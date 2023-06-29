@@ -26,10 +26,12 @@
     <compiler-plugin.version>3.11.0</compiler-plugin.version>
     <surefire-plugin.version>3.0.0</surefire-plugin.version>
     <failsafe-plugin.version>3.1.2</failsafe-plugin.version>
+    <jib-maven-plugin.version>3.3.1</jib-maven-plugin.version>
   </properties>
   <modules>
     <module>api</module>
     <module>core</module>
+    <module>webservice</module>
   </modules>
 
   <dependencyManagement>
@@ -94,6 +96,14 @@
     </resources>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>com.google.cloud.tools</groupId>
+          <artifactId>jib-maven-plugin</artifactId>
+          <version>${jib-maven-plugin.version}</version>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>

@@ -17,6 +17,8 @@
     <java.version>17</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <pulsar.version>3.0.0</pulsar.version>
+    <testcontainers.version>1.17.6</testcontainers.version>
     <junit-jupiter.version>5.9.3</junit-jupiter.version>
     <lombok.version>1.18.28</lombok.version>
     <jackson.version>2.14.2</jackson.version>
@@ -31,16 +33,28 @@
   <modules>
     <module>api</module>
     <module>core</module>
+    <module>pulsar</module>
     <module>webservice</module>
   </modules>
 
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>org.apache.pulsar</groupId>
+        <artifactId>pulsar-client-admin</artifactId>
+        <version>${pulsar.version}</version>
+      </dependency>
+      <dependency>
        <groupId>org.projectlombok</groupId>
         <artifactId>lombok</artifactId>
         <version>${lombok.version}</version>
         <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -71,6 +85,11 @@
         <groupId>org.junit.jupiter</groupId>
         <artifactId>junit-jupiter</artifactId>
         <version>${junit-jupiter.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>pulsar</artifactId>
+        <version>${testcontainers.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

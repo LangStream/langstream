@@ -7,4 +7,5 @@ instance:
       credentials: "#pulsar-credentials"
       webServiceUrl: "https://pulsar.astra.datastax.com/"
       brokerUrl: "pulsar+tls://pulsar.astra.datastax.com:6651/"
-      defaultNamespace: "tenant1/namespace1"
+      defaultTenant: "public"
+      defaultNamespace: "default"

@@ -14,16 +14,8 @@
  * limitations under the License.
  */
 package com.datastax.oss.sga.api.model;
-
-import lombok.Data;
-
-import java.util.HashMap;
 import java.util.Map;
 
-@Data
-public class Instance {
-
-    private Map<String, Object> globals = new HashMap<>();
-    private StreamingCluster streamingCluster;
+public record Instance (StreamingCluster streamingCluster, Map<String, Object> globals){
 
 }

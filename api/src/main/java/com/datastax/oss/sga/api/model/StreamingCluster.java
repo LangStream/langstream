@@ -15,15 +15,17 @@
  */
 package com.datastax.oss.sga.api.model;
 
+import lombok.Builder;
 import lombok.Data;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Data
-public class StreamingCluster {
 
-    private String type;
-    private Map<String, Object> configuration = new HashMap<>();
-
+public record StreamingCluster(String type, Map<String, Object> configuration) {
+    public StreamingCluster {
+        if (configuration == null) {
+            configuration = new HashMap<>();
+        }
+    }
 }

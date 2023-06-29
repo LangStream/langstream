@@ -17,10 +17,13 @@ package com.datastax.oss.sga.model.parser;
 
 import com.datastax.oss.sga.model.AgentConfiguration;
 import com.datastax.oss.sga.model.Application;
-import com.datastax.oss.sga.model.Configuration;
 import com.datastax.oss.sga.model.Connection;
+import com.datastax.oss.sga.model.Instance;
 import com.datastax.oss.sga.model.Module;
 import com.datastax.oss.sga.model.Pipeline;
+import com.datastax.oss.sga.model.Resource;
+import com.datastax.oss.sga.model.Secret;
+import com.datastax.oss.sga.model.Secrets;
 import com.datastax.oss.sga.model.TopicDefinition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -35,6 +38,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class ModelBuilder {
@@ -54,9 +59,10 @@ public class ModelBuilder {
 
     private static void parseFile(Path path, Application application) throws IOException {
         String fileName = path.getFileName().toString();
-        if (!fileName.endsWith(".yaml")) {
+        if (!fileName.endsWith(".yaml")
+                || !Files.isRegularFile(path)) {
             // skip
-            log.info("Skipping file {}", fileName);
+            log.info("Skipping {}", fileName);
             return;
         }
 
@@ -67,22 +73,29 @@ public class ModelBuilder {
             case "secrets.yaml":
                 parseSecrets(path, application);
                 break;
+            case "instance.yaml":
+                parseInstance(path, application);
+                break;
             default:
-                parsePipeline(path, application);
+                parsePipelineFile(path, application);
                 break;
         }
     }
 
     private static void parseConfiguration(Path path, Application application) throws IOException {
         log.info("Reading Application Global Configuration from {}", path.toAbsolutePath());
-        ConfigurationModel configuration = mapper.readValue(path.toFile(), ConfigurationModel.class);
-        if (configuration.configuration() != null) {
-            application.setConfiguration(configuration.configuration());
+        ConfigurationFileModel configurationFileModel = mapper.readValue(path.toFile(), ConfigurationFileModel.class);
+        ConfigurationNodeModel configurationNode = configurationFileModel.configuration();
+        if (configurationNode != null && configurationNode.resources != null) {
+            configurationNode.resources.forEach(r-> {
+                application.getResources().put(r.id(), r);
+            });
+
         }
-        log.info("Configuration: {}", configuration);
+        log.info("Configuration: {}", configurationFileModel);
     }
 
-    private static void parsePipeline(Path path, Application application) throws IOException {
+    private static void parsePipelineFile(Path path, Application application) throws IOException {
         log.info("Reading Pipeline from {}", path.toAbsolutePath());
         PipelineFileModel configuration = mapper.readValue(path.toFile(), PipelineFileModel.class);
         Module module = application.getModule(configuration.getModule());
@@ -100,7 +113,7 @@ public class ModelBuilder {
         for (AgentModel agent: configuration.getPipeline()) {
             AgentConfiguration agentConfiguration = agent.toAgentConfiguration();
             if (agentConfiguration.getId() == null) {
-                // ensure that we always have an id
+                // ensure that we always have a name
                 // please note that this algorithm should not be changed in order to not break
                 // compatibility with existing configuration files
                 agentConfiguration.setId(agentConfiguration.getType() + "_" + autoId++);
@@ -121,7 +134,18 @@ public class ModelBuilder {
     }
 
     private static void parseSecrets(Path path, Application application) throws IOException {
-        log.info("Skipping Secrets from {}", path.toAbsolutePath());
+        log.info("Reading Secrets from {}", path.toAbsolutePath());
+        SecretsFileModel secretsFileModel = mapper.readValue(path.toFile(), SecretsFileModel.class);
+        log.info("Secrets: {}", secretsFileModel);
+        application.setSecrets(new Secrets(secretsFileModel.secrets()
+                .stream().collect(Collectors.toMap(Secret::id, Function.identity()))));
+    }
+
+    private static void parseInstance(Path path, Application application) throws IOException {
+        log.info("Reading Instance from {}", path.toAbsolutePath());
+        InstanceFileModel instance = mapper.readValue(path.toFile(), InstanceFileModel.class);
+        log.info("Instance Configuration: {}", instance);
+        application.setInstance(instance.instance);
     }
 
 
@@ -154,6 +178,14 @@ public class ModelBuilder {
         }
     }
 
+    public record ConfigurationNodeModel(List<Resource> resources) {}
 
-    public record ConfigurationModel(Configuration configuration) {}
+    public record ConfigurationFileModel(ConfigurationNodeModel configuration) {}
+
+    public record SecretsFileModel(List<Secret> secrets) {
+    }
+
+    public record InstanceFileModel(Instance instance) {
+    }
 }
+

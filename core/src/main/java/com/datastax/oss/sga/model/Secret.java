@@ -15,21 +15,7 @@
  */
 package com.datastax.oss.sga.model;
 
-import lombok.Data;
-
-import java.util.HashMap;
 import java.util.Map;
 
-@Data
-public class Application {
-
-    private Map<String, Resource> resources = new HashMap<>();
-    private Map<String, Module> modules = new HashMap<>();
-
-    private Instance instance;
-    private Secrets secrets;
-
-    public Module getModule(String module) {
-        return modules.computeIfAbsent(module, m -> new Module(m));
-    }
+public record Secret(String id, String name, Map<String, Object> data) {
 }

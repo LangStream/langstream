@@ -17,12 +17,13 @@ package com.datastax.oss.sga.model;
 
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 @Data
-public class Configuration {
-    private List<Map<String, Object>> resources = new ArrayList<>();
+public class StreamingCluster {
+
+    private String type;
+    private Map<String, Object> configuration = new HashMap<>();
 
 }

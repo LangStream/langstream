@@ -19,6 +19,6 @@ pipeline:
   - name: "Write to Database"
     type: "cassandra-sink"
     configuration:
-      credentials: "#db-credentials"
-      table: "vsearch.products"
+      credentials: "#secrets.db-credentials"
+      table: "#globals.tableName"
       mappings: "id=id,name=name,description=description,price=price,category=category,item-vector=item-vector"

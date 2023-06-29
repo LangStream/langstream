@@ -1,0 +1,6 @@
+configuration:
+  resources:
+    - type: "openai-azure-config"
+      name: "OpenAI Azure configuration"
+      id: "openai-azure"
+      credentials: "#secrets.openai-credentials"

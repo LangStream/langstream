@@ -31,6 +31,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -63,17 +64,23 @@ public class ModelBuilder {
             log.info("Parsing directory: {}", directory.toAbsolutePath());
             try (DirectoryStream<Path> paths = Files.newDirectoryStream(directory);) {
                 for (Path path : paths) {
-                    parseFile(path, application);
+                    parseFile(path.getFileName().toString(), Files.readString(path, StandardCharsets.UTF_8), application);
                 }
             }
         }
         return application;
     }
 
-    private static void parseFile(Path path, ApplicationInstance application) throws IOException {
-        String fileName = path.getFileName().toString();
-        if (!fileName.endsWith(".yaml")
-                || !Files.isRegularFile(path)) {
+    public static ApplicationInstance buildApplicationInstance(Map<String, String> files) throws Exception {
+        ApplicationInstance application = new ApplicationInstance();
+        for (Map.Entry<String, String> entry : files.entrySet()) {
+            parseFile(entry.getKey(), entry.getValue(), application);
+        }
+        return application;
+    }
+
+    private static void parseFile(String fileName, String content, ApplicationInstance application) throws IOException {
+        if (!fileName.endsWith(".yaml")) {
             // skip
             log.info("Skipping {}", fileName);
             return;
@@ -81,23 +88,22 @@ public class ModelBuilder {
 
         switch (fileName) {
             case "configuration.yaml":
-                parseConfiguration(path, application);
+                parseConfiguration(content, application);
                 break;
             case "secrets.yaml":
-                parseSecrets(path, application);
+                parseSecrets(content, application);
                 break;
             case "instance.yaml":
-                parseInstance(path, application);
+                parseInstance(content, application);
                 break;
             default:
-                parsePipelineFile(path, application);
+                parsePipelineFile(content, application);
                 break;
         }
     }
 
-    private static void parseConfiguration(Path path, ApplicationInstance application) throws IOException {
-        log.info("Reading Application Global Configuration from {}", path.toAbsolutePath());
-        ConfigurationFileModel configurationFileModel = mapper.readValue(path.toFile(), ConfigurationFileModel.class);
+    private static void parseConfiguration(String content, ApplicationInstance application) throws IOException {
+        ConfigurationFileModel configurationFileModel = mapper.readValue(content, ConfigurationFileModel.class);
         ConfigurationNodeModel configurationNode = configurationFileModel.configuration();
         if (configurationNode != null && configurationNode.resources != null) {
             configurationNode.resources.forEach(r-> {
@@ -108,9 +114,8 @@ public class ModelBuilder {
         log.info("Configuration: {}", configurationFileModel);
     }
 
-    private static void parsePipelineFile(Path path, ApplicationInstance application) throws IOException {
-        log.info("Reading Pipeline from {}", path.toAbsolutePath());
-        PipelineFileModel configuration = mapper.readValue(path.toFile(), PipelineFileModel.class);
+    private static void parsePipelineFile(String content, ApplicationInstance application) throws IOException {
+        PipelineFileModel configuration = mapper.readValue(content, PipelineFileModel.class);
         Module module = application.getModule(configuration.getModule());
         log.info("Configuration: {}", configuration);
 
@@ -118,45 +123,47 @@ public class ModelBuilder {
         pipeline.setName(configuration.getName());
         AgentConfiguration last = null;
 
-        for (TopicDefinition topicDefinition : configuration.getTopics()) {
-            module.addTopic(topicDefinition);
+        if (configuration.getTopics() != null) {
+            for (TopicDefinition topicDefinition : configuration.getTopics()) {
+                module.addTopic(topicDefinition);
+            }
         }
 
         int autoId = 1;
-        for (AgentModel agent: configuration.getPipeline()) {
-            AgentConfiguration agentConfiguration = agent.toAgentConfiguration();
-            if (agentConfiguration.getId() == null) {
-                // ensure that we always have a name
-                // please note that this algorithm should not be changed in order to not break
-                // compatibility with existing configuration files
-                agentConfiguration.setId(agentConfiguration.getType() + "_" + autoId++);
+        if (configuration.getPipeline() != null) {
+            for (AgentModel agent : configuration.getPipeline()) {
+                AgentConfiguration agentConfiguration = agent.toAgentConfiguration();
+                if (agentConfiguration.getId() == null) {
+                    // ensure that we always have a name
+                    // please note that this algorithm should not be changed in order to not break
+                    // compatibility with existing configuration files
+                    agentConfiguration.setId(agentConfiguration.getType() + "_" + autoId++);
+                }
+                if (agent.getInput() != null) {
+                    agentConfiguration.setInput(new Connection(module.resolveTopic(agent.getInput())));
+                }
+                if (agent.getOutput() != null) {
+                    agentConfiguration.setOutput(new Connection(module.resolveTopic(agent.getOutput())));
+                }
+                if (last != null && agentConfiguration.getOutput() == null) {
+                    // assume that the previous agent is the output of this one
+                    agentConfiguration.setOutput(new Connection(last));
+                }
+                pipeline.addAgentConfiguration(agentConfiguration);
+                last = agentConfiguration;
             }
-            if (agent.getInput() != null) {
-                agentConfiguration.setInput(new Connection(module.resolveTopic(agent.getInput())));
-            }
-            if (agent.getOutput() != null) {
-                agentConfiguration.setOutput(new Connection(module.resolveTopic(agent.getOutput())));
-            }
-            if (last != null && agentConfiguration.getOutput() == null) {
-                // assume that the previous agent is the output of this one
-                agentConfiguration.setOutput(new Connection(last));
-            }
-            pipeline.addAgentConfiguration(agentConfiguration);
-            last = agentConfiguration;
         }
     }
 
-    private static void parseSecrets(Path path, ApplicationInstance application) throws IOException {
-        log.info("Reading Secrets from {}", path.toAbsolutePath());
-        SecretsFileModel secretsFileModel = mapper.readValue(path.toFile(), SecretsFileModel.class);
+    private static void parseSecrets(String content, ApplicationInstance application) throws IOException {
+        SecretsFileModel secretsFileModel = mapper.readValue(content, SecretsFileModel.class);
         log.info("Secrets: {}", secretsFileModel);
         application.setSecrets(new Secrets(secretsFileModel.secrets()
                 .stream().collect(Collectors.toMap(Secret::id, Function.identity()))));
     }
 
-    private static void parseInstance(Path path, ApplicationInstance application) throws IOException {
-        log.info("Reading Instance from {}", path.toAbsolutePath());
-        InstanceFileModel instance = mapper.readValue(path.toFile(), InstanceFileModel.class);
+    private static void parseInstance(String content, ApplicationInstance application) throws IOException {
+        InstanceFileModel instance = mapper.readValue(content, InstanceFileModel.class);
         log.info("Instance Configuration: {}", instance);
         application.setInstance(instance.instance);
     }

@@ -21,16 +21,16 @@ import com.datastax.oss.sga.api.model.ApplicationInstance;
  * This is the interface that the SGA framework uses to interact with the cluster. It is used to
  * model a physical cluster runtime (Pulsar, Kafka....)
  */
-public interface ClusterRuntime {
+public interface ClusterRuntime<T extends PhysicalApplicationInstance> {
 
     /**
      * Create a physical application instance from the logical application instance.
      * @param applicationInstance
      * @return the physical application instance
      */
-    PhysicalApplicationInstance createImplementation(ApplicationInstance applicationInstance);
+    T createImplementation(ApplicationInstance applicationInstance);
 
-    void deploy(PhysicalApplicationInstance applicationInstance);
+    void deploy(ApplicationInstance logicalInstance,T applicationInstance);
 
-    void delete(PhysicalApplicationInstance applicationInstance);
+    void delete(ApplicationInstance logicalInstance,T applicationInstance);
 }

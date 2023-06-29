@@ -14,7 +14,7 @@ public class ApplicationResource {
 
     @GetMapping("")
     @Operation(summary = "Get all applications")
-    List<String> getJob() {
+    List<String> getApplications() {
         return List.of();
     }
 }

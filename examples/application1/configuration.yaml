@@ -5,3 +5,10 @@ configuration:
       id: "openai-azure"
       configuration:
         credentials: "#secrets.openai-credentials"
+        url: "https://api-server/v1/engines/"
+    - type: "hugging-face-config"
+      name: "Hugging Face API configuration"
+      id: "hugging-face"
+      configuration:
+        credentials: "#secrets.hf-credentials"
+        url: "https://api-server/"

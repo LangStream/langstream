@@ -16,7 +16,7 @@
 package com.datastax.oss.sga.model.parser;
 
 import com.datastax.oss.sga.model.AgentConfiguration;
-import com.datastax.oss.sga.model.Application;
+import com.datastax.oss.sga.model.ApplicationInstance;
 import com.datastax.oss.sga.model.Connection;
 import com.datastax.oss.sga.model.Instance;
 import com.datastax.oss.sga.model.Module;
@@ -45,19 +45,32 @@ import java.util.stream.Collectors;
 public class ModelBuilder {
 
     static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-    public static Application build(Path directory) throws Exception {
-        log.info("Parsing directory: {}", directory.toAbsolutePath());
 
-        Application application = new Application();
-        try (DirectoryStream<Path> paths = Files.newDirectoryStream(directory);) {
-            for (Path path :paths) {
-                parseFile(path, application);
+
+    /**
+     * Builds an in memory model of the application from the given directories.
+     * We read from multiple directories to allow for a modular approach to defining the application.
+     * For instance, you can have a directory with the application definition and one directory with the
+     * instance.yaml file and the secrets.yaml file.
+     * This is server side code and it is expected that the directories are local to the server.
+     * @param directories
+     * @return a fully built application instance (application model + instance + secrets)
+     * @throws Exception
+     */
+    public static ApplicationInstance buildApplicationInstance(List<Path> directories) throws Exception {
+        ApplicationInstance application = new ApplicationInstance();
+        for (Path directory : directories) {
+            log.info("Parsing directory: {}", directory.toAbsolutePath());
+            try (DirectoryStream<Path> paths = Files.newDirectoryStream(directory);) {
+                for (Path path : paths) {
+                    parseFile(path, application);
+                }
             }
         }
         return application;
     }
 
-    private static void parseFile(Path path, Application application) throws IOException {
+    private static void parseFile(Path path, ApplicationInstance application) throws IOException {
         String fileName = path.getFileName().toString();
         if (!fileName.endsWith(".yaml")
                 || !Files.isRegularFile(path)) {
@@ -82,7 +95,7 @@ public class ModelBuilder {
         }
     }
 
-    private static void parseConfiguration(Path path, Application application) throws IOException {
+    private static void parseConfiguration(Path path, ApplicationInstance application) throws IOException {
         log.info("Reading Application Global Configuration from {}", path.toAbsolutePath());
         ConfigurationFileModel configurationFileModel = mapper.readValue(path.toFile(), ConfigurationFileModel.class);
         ConfigurationNodeModel configurationNode = configurationFileModel.configuration();
@@ -95,7 +108,7 @@ public class ModelBuilder {
         log.info("Configuration: {}", configurationFileModel);
     }
 
-    private static void parsePipelineFile(Path path, Application application) throws IOException {
+    private static void parsePipelineFile(Path path, ApplicationInstance application) throws IOException {
         log.info("Reading Pipeline from {}", path.toAbsolutePath());
         PipelineFileModel configuration = mapper.readValue(path.toFile(), PipelineFileModel.class);
         Module module = application.getModule(configuration.getModule());
@@ -133,7 +146,7 @@ public class ModelBuilder {
         }
     }
 
-    private static void parseSecrets(Path path, Application application) throws IOException {
+    private static void parseSecrets(Path path, ApplicationInstance application) throws IOException {
         log.info("Reading Secrets from {}", path.toAbsolutePath());
         SecretsFileModel secretsFileModel = mapper.readValue(path.toFile(), SecretsFileModel.class);
         log.info("Secrets: {}", secretsFileModel);
@@ -141,7 +154,7 @@ public class ModelBuilder {
                 .stream().collect(Collectors.toMap(Secret::id, Function.identity()))));
     }
 
-    private static void parseInstance(Path path, Application application) throws IOException {
+    private static void parseInstance(Path path, ApplicationInstance application) throws IOException {
         log.info("Reading Instance from {}", path.toAbsolutePath());
         InstanceFileModel instance = mapper.readValue(path.toFile(), InstanceFileModel.class);
         log.info("Instance Configuration: {}", instance);

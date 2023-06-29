@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Data
-public class Application {
+public class ApplicationInstance {
 
     private Map<String, Resource> resources = new HashMap<>();
     private Map<String, Module> modules = new HashMap<>();

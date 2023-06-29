@@ -13,11 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sga.model;
+package com.datastax.oss.sga.api.model;
 
-public record Connection(Connectable endpoint) {
+import lombok.Data;
 
-    public interface Connectable {
+import java.util.HashMap;
+import java.util.Map;
+
+@Data
+public class ApplicationInstance {
+
+    private Map<String, Resource> resources = new HashMap<>();
+    private Map<String, Module> modules = new HashMap<>();
+
+    private Instance instance;
+    private Secrets secrets;
+
+    public Module getModule(String module) {
+        return modules.computeIfAbsent(module, m -> new Module(m));
     }
-
 }

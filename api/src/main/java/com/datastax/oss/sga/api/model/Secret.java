@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sga.model;
+package com.datastax.oss.sga.api.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 
-public record TopicDefinition(String name, @JsonProperty("creation-mode") String creationMode, SchemaDefinition schema) implements Connection.Connectable {
+public record Secret(String id, String name, Map<String, Object> data) {
 }

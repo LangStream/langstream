@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sga.model.parser;
+package com.datastax.oss.sga.impl.parser;
 
-import com.datastax.oss.sga.model.AgentConfiguration;
-import com.datastax.oss.sga.model.ApplicationInstance;
-import com.datastax.oss.sga.model.Connection;
-import com.datastax.oss.sga.model.Instance;
-import com.datastax.oss.sga.model.Module;
-import com.datastax.oss.sga.model.Pipeline;
-import com.datastax.oss.sga.model.Resource;
-import com.datastax.oss.sga.model.Secret;
-import com.datastax.oss.sga.model.Secrets;
-import com.datastax.oss.sga.model.TopicDefinition;
+import com.datastax.oss.sga.api.model.AgentConfiguration;
+import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Instance;
+import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
+import com.datastax.oss.sga.api.model.Resource;
+import com.datastax.oss.sga.api.model.Secret;
+import com.datastax.oss.sga.api.model.Secrets;
+import com.datastax.oss.sga.api.model.Connection;
+import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.Data;

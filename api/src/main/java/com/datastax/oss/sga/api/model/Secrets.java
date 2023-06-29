@@ -1,4 +1,4 @@
-package com.datastax.oss.sga.model;
+package com.datastax.oss.sga.api.model;
 
 import java.util.HashMap;
 import java.util.Map;

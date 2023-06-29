@@ -13,27 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sga.model;
+package com.datastax.oss.sga.api.model;
 
-import lombok.Data;
+public record Connection(Connectable endpoint) {
 
-import java.util.HashMap;
-import java.util.Map;
-
-@Data
-public class Pipeline {
-    private final String id;
-    private final String module;
-    private String name;
-
-    public Pipeline(String id, String module) {
-        this.id = id;
-        this.module = module;
+    public interface Connectable {
     }
 
-    private Map<String, AgentConfiguration> agents = new HashMap<>();
-
-    public void addAgentConfiguration(AgentConfiguration a) {
-        agents.put(a.getId(), a);
-    }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sga.model;
+package com.datastax.oss.sga.api.model;
 
 import lombok.Data;
 
@@ -21,15 +21,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Data
-public class ApplicationInstance {
+public class Instance {
 
-    private Map<String, Resource> resources = new HashMap<>();
-    private Map<String, Module> modules = new HashMap<>();
+    private Map<String, Object> globals = new HashMap<>();
+    private StreamingCluster streamingCluster;
 
-    private Instance instance;
-    private Secrets secrets;
-
-    public Module getModule(String module) {
-        return modules.computeIfAbsent(module, m -> new Module(m));
-    }
 }

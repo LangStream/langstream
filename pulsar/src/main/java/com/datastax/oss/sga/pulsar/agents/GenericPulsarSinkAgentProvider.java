@@ -1,9 +1,13 @@
 package com.datastax.oss.sga.pulsar.agents;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
+import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.runtime.ClusterRuntime;
+import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
 
 import java.util.List;
+import java.util.Map;
 
 public class GenericPulsarSinkAgentProvider extends AbstractPulsarSinkAgentProvider {
 
@@ -19,5 +23,12 @@ public class GenericPulsarSinkAgentProvider extends AbstractPulsarSinkAgentProvi
             throw new IllegalArgumentException("For the generic pulsar-sink you must configured the sinkType configuration property");
         }
         return sinkType;
+    }
+
+    @Override
+    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, PhysicalApplicationInstance physicalApplicationInstance, ClusterRuntime clusterRuntime) {
+        Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
+        copy.remove("sinkType");
+        return copy;
     }
 }

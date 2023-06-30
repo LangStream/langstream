@@ -13,16 +13,7 @@ public class ListCmd extends BaseCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final HttpResponse<String> response = getHttpClient().send(
-                HttpRequest.newBuilder()
-                        .uri(URI.create("%s/api/applications".formatted(getBaseWebServiceUrl())))
-                        .GET()
-                        .build(),
-                HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) {
-            log("Error: " + response.statusCode());
-        }
-        log(response.body());
-
+        final String body = http(newGet("/applications")).body();
+        log(body);
     }
 }

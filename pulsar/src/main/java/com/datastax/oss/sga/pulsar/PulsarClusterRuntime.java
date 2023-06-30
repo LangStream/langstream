@@ -11,21 +11,21 @@ import com.datastax.oss.sga.api.runtime.AgentImplementation;
 import com.datastax.oss.sga.api.runtime.AgentImplementationProvider;
 import com.datastax.oss.sga.api.runtime.ClusterRuntime;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
-import com.datastax.oss.sga.impl.common.GenericSinkProvider;
-import com.datastax.oss.sga.pulsar.agents.PulsarSinkAgentProvider;
+import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
+import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSinkAgentProvider;
+import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSourceAgentProvider;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.common.functions.FunctionConfig;
 import org.apache.pulsar.common.io.SinkConfig;
+import org.apache.pulsar.common.io.SourceConfig;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -129,6 +129,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         String createMode = topic.createMode();
         String namespace = topic.name().tenant() + "/" + topic.name().namespace();
         String topicName = topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
+        log.info("Listing topics in namespace {}", namespace);
         List<String> existing = admin.topics().getList(namespace);
         log.info("Existing topics: {}", existing);
         String fullyQualifiedName = TopicName.get(topicName).toString();
@@ -177,32 +178,59 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
 
     private static void deployAgent(PulsarAdmin admin, AgentImplementation agent) throws PulsarAdminException {
 
-        if (agent instanceof GenericSinkProvider.GenericSink sink) {
-            PulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = sink.getPhysicalMetadata();
-            PulsarName pulsarName = pulsarSinkMetadata.getPulsarName();
-            
-            PulsarTopic topic = (PulsarTopic) sink.getInputConnection();
-            List<String> inputs = List.of(topic.name().toPulsarName());
+        if (agent instanceof AbstractAgentProvider.DefaultAgentImplementation agentImpl) {
+            Object physicalMetadata = agentImpl.getPhysicalMetadata();
+            if (physicalMetadata instanceof AbstractPulsarSinkAgentProvider.PulsarSinkMetadata) {
+                AbstractPulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = (AbstractPulsarSinkAgentProvider.PulsarSinkMetadata) physicalMetadata;
+                PulsarName pulsarName = pulsarSinkMetadata.getPulsarName();
 
-            // this is a trick to deploy builtin connectors
-            String archiveName = "builtin://" + pulsarSinkMetadata.getSinkType();
-            // TODO: plug all the possible configurations
-            SinkConfig sinkConfig = SinkConfig
-                    .builder()
-                    .name(pulsarName.name())
-                    .namespace(pulsarName.namespace())
-                    .tenant(pulsarName.tenant())
-                    .sinkType(pulsarSinkMetadata.getSinkType())
-                    .configs(sink.getConfiguration())
-                    .inputs(inputs)
-                    .archive(archiveName)
-                    .parallelism(1)
-                    .retainOrdering(true)
-                    .build();
+                PulsarTopic topic = (PulsarTopic) agentImpl.getInputConnection();
+                List<String> inputs = List.of(topic.name().toPulsarName());
 
-            log.info("SinkConfiguration: {}", sinkConfig);
-            admin.sinks().createSink(sinkConfig, null);
-            return;
+                // this is a trick to deploy builtin connectors
+                String archiveName = "builtin://" + pulsarSinkMetadata.getSinkType();
+                // TODO: plug all the possible configurations
+                SinkConfig sinkConfig = SinkConfig
+                        .builder()
+                        .name(pulsarName.name())
+                        .namespace(pulsarName.namespace())
+                        .tenant(pulsarName.tenant())
+                        .sinkType(pulsarSinkMetadata.getSinkType())
+                        .configs(agentImpl.getConfiguration())
+                        .inputs(inputs)
+                        .archive(archiveName)
+                        .parallelism(1)
+                        .retainOrdering(true)
+                        .build();
+
+                log.info("SinkConfiguration: {}", sinkConfig);
+                admin.sinks().createSink(sinkConfig, null);
+                return;
+            } else if (physicalMetadata instanceof AbstractPulsarSourceAgentProvider.PulsarSourceMetadata) {
+                AbstractPulsarSourceAgentProvider.PulsarSourceMetadata pulsarSource = (AbstractPulsarSourceAgentProvider.PulsarSourceMetadata) physicalMetadata;
+                PulsarName pulsarName = pulsarSource.getPulsarName();
+
+                PulsarTopic topic = (PulsarTopic) agentImpl.getOutputConnection();
+                String output = topic.name().toPulsarName();
+
+                // this is a trick to deploy builtin connectors
+                String archiveName = "builtin://" + pulsarSource.getSourceType();
+                // TODO: plug all the possible configurations
+                SourceConfig sourceConfig = SourceConfig
+                        .builder()
+                        .name(pulsarName.name())
+                        .namespace(pulsarName.namespace())
+                        .tenant(pulsarName.tenant())
+                        .topicName(output)
+                        .configs(agentImpl.getConfiguration())
+                        .archive(archiveName)
+                        .parallelism(1)
+                        .build();
+
+                log.info("SourceConfiguration: {}", sourceConfig);
+                admin.sources().createSource(sourceConfig, null);
+                return;
+            }
         }
         throw new IllegalArgumentException("Unsupported Agent type " + agent.getClass().getName());
     }

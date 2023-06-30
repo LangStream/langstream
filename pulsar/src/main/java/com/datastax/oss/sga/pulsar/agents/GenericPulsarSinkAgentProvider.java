@@ -5,7 +5,7 @@ import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
 
 import java.util.List;
 
-public class GenericPulsarSinkAgentProvider extends PulsarSinkAgentProvider {
+public class GenericPulsarSinkAgentProvider extends AbstractPulsarSinkAgentProvider {
 
     public GenericPulsarSinkAgentProvider() {
         super(List.of("generic-pulsar-sink"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));

@@ -14,30 +14,33 @@ import java.util.List;
 import java.util.Map;
 
 @Getter
-public abstract class GenericSinkProvider implements AgentImplementationProvider {
+public abstract class AbstractAgentProvider implements AgentImplementationProvider {
 
     protected final List<String> supportedTypes;
     protected final List<String> supportedClusterTypes;
 
-    public GenericSinkProvider(List<String> supportedTypes, List<String> supportedClusterTypes) {
+    public AbstractAgentProvider(List<String> supportedTypes, List<String> supportedClusterTypes) {
         this.supportedTypes = Collections.unmodifiableList(supportedTypes);
         this.supportedClusterTypes = Collections.unmodifiableList(supportedClusterTypes);
     }
 
     @Getter
-    public static class GenericSink implements AgentImplementation {
+    public static class DefaultAgentImplementation implements AgentImplementation {
         private final String type;
         private final Map<String, Object> configuration;
         private final Object runtimeMetadata;
 
         private final ConnectionImplementation inputConnection;
+        private final ConnectionImplementation outputConnection;
 
-        public GenericSink(String type, Map<String, Object> configuration, Object runtimeMetadata,
-                           ConnectionImplementation inputConnection) {
+        public DefaultAgentImplementation(String type, Map<String, Object> configuration, Object runtimeMetadata,
+                                          ConnectionImplementation inputConnection,
+                                          ConnectionImplementation outputConnection) {
             this.type = type;
             this.configuration = configuration;
             this.runtimeMetadata = runtimeMetadata;
             this.inputConnection = inputConnection;
+            this.outputConnection = outputConnection;
         }
 
         public <T> T getPhysicalMetadata() {
@@ -49,8 +52,24 @@ public abstract class GenericSinkProvider implements AgentImplementationProvider
                                           Module module,
                                           PhysicalApplicationInstance physicalApplicationInstance,
                                           ClusterRuntime clusterRuntime) {
-        return physicalApplicationInstance
-                .getConnectionImplementation(module, agentConfiguration.getInput());
+        if (agentConfiguration.getInput() != null) {
+            return physicalApplicationInstance
+                    .getConnectionImplementation(module, agentConfiguration.getInput());
+        } else {
+            return null;
+        }
+    }
+
+    protected ConnectionImplementation computeOutput(AgentConfiguration agentConfiguration,
+                                                    Module module,
+                                                    PhysicalApplicationInstance physicalApplicationInstance,
+                                                    ClusterRuntime clusterRuntime) {
+        if (agentConfiguration.getOutput() != null) {
+            return physicalApplicationInstance
+                    .getConnectionImplementation(module, agentConfiguration.getOutput());
+        } else {
+            return null;
+        }
     }
 
     protected Object computeAgentMetadata(AgentConfiguration agentConfiguration,
@@ -74,7 +93,8 @@ public abstract class GenericSinkProvider implements AgentImplementationProvider
         Map<String, Object> configuration = computeAgentConfiguration(agentConfiguration, module,
                 physicalApplicationInstance, clusterRuntime);
         ConnectionImplementation input = computeInput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
-        return new GenericSink(agentConfiguration.getType(), configuration, metadata, input);
+        ConnectionImplementation output = computeOutput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
+        return new DefaultAgentImplementation(agentConfiguration.getType(), configuration, metadata, input, output);
     }
 
     @Override

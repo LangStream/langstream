@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -97,7 +98,7 @@ public class ModelBuilder {
                 parseInstance(content, application);
                 break;
             default:
-                parsePipelineFile(content, application);
+                parsePipelineFile(fileName, content, application);
                 break;
         }
     }
@@ -114,29 +115,32 @@ public class ModelBuilder {
         log.info("Configuration: {}", configurationFileModel);
     }
 
-    private static void parsePipelineFile(String content, ApplicationInstance application) throws IOException {
-        PipelineFileModel configuration = mapper.readValue(content, PipelineFileModel.class);
-        Module module = application.getModule(configuration.getModule());
-        log.info("Configuration: {}", configuration);
-
-        Pipeline pipeline = module.addPipeline(configuration.getId());
-        pipeline.setName(configuration.getName());
+    private static void parsePipelineFile(String filename, String content, ApplicationInstance application) throws IOException {
+        PipelineFileModel pipelineConfiguration = mapper.readValue(content, PipelineFileModel.class);
+        Module module = application.getModule(pipelineConfiguration.getModule());
+        log.info("Configuration: {}", pipelineConfiguration);
+        String id = pipelineConfiguration.getId();
+        if (id == null) {
+            id = filename;
+        }
+        Pipeline pipeline = module.addPipeline(id);
+        pipeline.setName(pipelineConfiguration.getName());
         AgentConfiguration last = null;
 
-        if (configuration.getTopics() != null) {
-            for (TopicDefinition topicDefinition : configuration.getTopics()) {
+        if (pipelineConfiguration.getTopics() != null) {
+            for (TopicDefinition topicDefinition : pipelineConfiguration.getTopics()) {
                 module.addTopic(topicDefinition);
             }
         }
 
         int autoId = 1;
-        if (configuration.getPipeline() != null) {
-            for (AgentModel agent : configuration.getPipeline()) {
+        if (pipelineConfiguration.getPipeline() != null) {
+            for (AgentModel agent : pipelineConfiguration.getPipeline()) {
                 AgentConfiguration agentConfiguration = agent.toAgentConfiguration();
                 if (agentConfiguration.getId() == null) {
                     // ensure that we always have a name
                     // please note that this algorithm should not be changed in order to not break
-                    // compatibility with existing configuration files
+                    // compatibility with existing pipelineConfiguration files
                     agentConfiguration.setId(agentConfiguration.getType() + "_" + autoId++);
                 }
 

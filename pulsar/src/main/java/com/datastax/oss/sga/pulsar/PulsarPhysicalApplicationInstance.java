@@ -7,11 +7,13 @@ import com.datastax.oss.sga.api.runtime.AgentImplementation;
 import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Data
+@Slf4j
 public class PulsarPhysicalApplicationInstance implements PhysicalApplicationInstance {
 
     private final Map<PulsarName, PulsarTopic> topics = new HashMap<>();
@@ -41,7 +43,9 @@ public class PulsarPhysicalApplicationInstance implements PhysicalApplicationIns
     }
 
     public void registerAgent(Module module, String id, AgentImplementation agentImplementation) {
-        agents.put(module.getId() + "#" + id, agentImplementation);
+        String internalId = module.getId() + "#" + id;
+        log.info("registering agent {} for module {} with id {}", agentImplementation, module.getId(), id);
+        agents.put(internalId, agentImplementation);
     }
 
 }

@@ -1,0 +1,14 @@
+module: "module-1"
+id: "pipeline-1"
+name: "Generate data on Pulsar"
+
+topics:
+  - name: "output-topic"
+    creation-mode: "create-if-not-exists"
+pipeline:
+  - name: "source1"
+    id: "source-1-id"
+    type: "generic-pulsar-source"
+    output: "output-topic"
+    configuration:
+      sourceType: "data-generator"

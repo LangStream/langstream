@@ -1,2 +1,6 @@
+# Sinks
 com.datastax.oss.sga.pulsar.agents.GenericPulsarSinkAgentProvider
 com.datastax.oss.sga.pulsar.agents.CassandraSinkAgentProvider
+
+# Sources
+com.datastax.oss.sga.pulsar.agents.GenericPulsarSourceAgentProvider

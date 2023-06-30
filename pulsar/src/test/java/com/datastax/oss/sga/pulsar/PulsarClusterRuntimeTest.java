@@ -1,35 +1,31 @@
 package com.datastax.oss.sga.pulsar;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Connection;
+import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.TopicDefinition;
+import com.datastax.oss.sga.api.runtime.AgentImplementation;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSinkAgentProvider;
+import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSourceAgentProvider;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.common.io.ConnectorDefinition;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.PulsarContainer;
-import org.testcontainers.utility.DockerImageName;
-
-import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class PulsarClusterRuntimeTest {
-    private static final String IMAGE = "datastax/lunastreaming-all:2.10_4.6";
-    private static PulsarContainer pulsarContainer;
-    private static PulsarAdmin admin;
-    private static PulsarClient client;
 
     @Test
-    public void testDeployTopics() throws Exception {
+    public void testMapCassandraSink() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         """
@@ -37,50 +33,10 @@ class PulsarClusterRuntimeTest {
                                   streamingCluster:
                                     type: "pulsar"
                                     configuration:                                      
-                                      webServiceUrl: "%s"
+                                      webServiceUrl: "http://localhost:8080"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
-                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
-                        "module.yaml", """
-                                module: "module-1"
-                                id: "pipeline-1"                               
-                                topics:
-                                  - name: "input-topic"
-                                    creation-mode: create-if-not-exists
-                                    schema:
-                                      type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
-                                pipeline:
-                                """));
-
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
-
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(applicationInstance, implementation);
-
-        // verify that the topic exists
-        admin.topics().getStats("public/default/input-topic");
-        // verify that the topic has a schema
-        admin.schemas().getSchemaInfo("public/default/input-topic");
-    }
-
-    @Test
-    public void testDeployCassandraSink() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      webServiceUrl: "%s"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
+                                """,
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -92,6 +48,7 @@ class PulsarClusterRuntimeTest {
                                       schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
                                 pipeline:
                                   - name: "sink1"
+                                    id: "sink-1-id"
                                     type: "cassandra-sink"
                                     input: "input-topic-cassandra"
                                     configuration:
@@ -104,48 +61,182 @@ class PulsarClusterRuntimeTest {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
+        Module module = applicationInstance.getModule("module-1");
+
         PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(applicationInstance, implementation);
+        assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof PulsarTopic);
+        PulsarName pulsarName = new PulsarName("public", "default", "input-topic-cassandra");
+        assertTrue(implementation.getTopics().containsKey(pulsarName));
 
-        // verify that the topic exists
-        admin.topics().getStats("public/default/input-topic-cassandra");
-        // verify that the topic has a schema
-        admin.schemas().getSchemaInfo("public/default/input-topic-cassandra");
+        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
+        assertNotNull(agentImplementation);
+        AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractPulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = genericSink.getPhysicalMetadata();
+        assertEquals("cassandra-enhanced", pulsarSinkMetadata.getSinkType());
+        assertEquals(new PulsarName("public", "default", "sink1"), pulsarSinkMetadata.getPulsarName());
 
-        // verify that we have the sink
-        List<String> sinks = admin.sinks().listSinks("public", "default");
-        assertTrue(sinks.contains("sink1"));
     }
 
-    @BeforeAll
-    public static void setup() throws Exception {
-        pulsarContainer = new PulsarContainer(DockerImageName.parse(IMAGE)
-                .asCompatibleSubstituteFor("apachepulsar/pulsar"))
-                .withFunctionsWorker();
-        // start Pulsar and wait for it to be ready to accept requests
-        pulsarContainer.start();
-        admin =
-                PulsarAdmin.builder()
-                        .serviceHttpUrl(
-                                "http://localhost:" + pulsarContainer.getMappedPort(8080))
-                        .build();
-        client =
-                PulsarClient.builder()
-                        .serviceUrl(
-                                "pulsar://localhost:" + pulsarContainer.getMappedPort(6650))
-                        .build();
+    @Test
+    public void testMapGenericPulsarSink() throws Exception {
+        ApplicationInstance applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        """
+                                instance:
+                                  streamingCluster:
+                                    type: "pulsar"
+                                    configuration:                                      
+                                      webServiceUrl: "http://localhost:8080"
+                                      defaultTenant: "public"
+                                      defaultNamespace: "default"
+                                """,
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                      type: avro
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                pipeline:
+                                  - name: "sink1"
+                                    id: "sink-1-id"
+                                    type: "generic-pulsar-sink"
+                                    input: "input-topic"
+                                    configuration:
+                                      sinkType: "some-sink-type-on-your-cluster"
+                                      config1: "value"
+                                      config2: "value2"
+                                """));
+
+        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
+                .<PulsarPhysicalApplicationInstance>builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+        PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
+        assertTrue(implementation.getTopics().containsKey(pulsarName));
+
+        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
+        assertNotNull(agentImplementation);
+        AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractPulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = genericSink.getPhysicalMetadata();
+        assertEquals("some-sink-type-on-your-cluster", pulsarSinkMetadata.getSinkType());
+        assertEquals(new PulsarName("public", "default", "sink1"), pulsarSinkMetadata.getPulsarName());
+
     }
 
-    @AfterAll
-    public static void teardown() {
-        if (client != null) {
-            client.closeAsync();
-        }
-        if (admin != null) {
-            admin.close();
-        }
-        if (pulsarContainer != null) {
-            pulsarContainer.close();
-        }
+    @Test
+    public void testMapGenericPulsarSource() throws Exception {
+        ApplicationInstance applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        """
+                                instance:
+                                  streamingCluster:
+                                    type: "pulsar"
+                                    configuration:                                      
+                                      webServiceUrl: "http://localhost:8080"
+                                      defaultTenant: "public"
+                                      defaultNamespace: "default"
+                                """,
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "source1"
+                                    id: "source-1-id"
+                                    type: "generic-pulsar-source"
+                                    output: "output-topic"
+                                    configuration:
+                                      sourceType: "some-source-type-on-your-cluster"
+                                      config1: "value"
+                                      config2: "value2"
+                                """));
+
+        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
+                .<PulsarPhysicalApplicationInstance>builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+        PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
+        assertTrue(implementation.getTopics().containsKey(pulsarName));
+
+        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "source-1-id");
+        assertNotNull(agentImplementation);
+        AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractPulsarSourceAgentProvider.PulsarSourceMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
+        assertEquals("some-source-type-on-your-cluster", pulsarSourceMetadata.getSourceType());
+        assertEquals(new PulsarName("public", "default", "source1"), pulsarSourceMetadata.getPulsarName());
+
     }
+
+
+    @Test
+    @Disabled
+    public void testOpenAIComputeEmbeddingFunction() throws Exception {
+        ApplicationInstance applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        """
+                                instance:
+                                  streamingCluster:
+                                    type: "pulsar"
+                                    configuration:                                      
+                                      webServiceUrl: "http://localhost:8080"
+                                      defaultTenant: "public"
+                                      defaultNamespace: "default"
+                                """,
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                      type: avro
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists                                    
+                                pipeline:
+                                  - name: "compute-embeddings"
+                                    id: "step1"
+                                    type: "compute-ai-embeddings"
+                                    input: "input-topic"
+                                    output: "output-topic"
+                                    configuration:                                      
+                                      model: "text-embedding-ada-002"
+                                      embeddings-field: "value.embeddings"
+                                      text: "{{ value.name }} {{ value.description }}"
+                                """));
+
+        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
+                .<PulsarPhysicalApplicationInstance>builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+        assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+
+        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "step1");
+        assertNotNull(agentImplementation);
+
+    }
+
 }

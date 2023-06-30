@@ -9,26 +9,26 @@ import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
 import java.util.List;
 import java.util.Map;
 
-public class GenericPulsarSinkAgentProvider extends AbstractPulsarSinkAgentProvider {
+public class GenericPulsarSourceAgentProvider extends AbstractPulsarSourceAgentProvider {
 
-    public GenericPulsarSinkAgentProvider() {
-        super(List.of("generic-pulsar-sink"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
+    public GenericPulsarSourceAgentProvider() {
+        super(List.of("generic-pulsar-source"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override
-    protected String getSinkType(AgentConfiguration configuration) {
-        String sinkType = (String)configuration.getConfiguration()
-                .get("sinkType");
-        if (sinkType == null) {
-            throw new IllegalArgumentException("For the generic pulsar-sink you must configured the sinkType configuration property");
+    protected String getSourceType(AgentConfiguration configuration) {
+        String sourceType = (String)configuration.getConfiguration()
+                .get("sourceType");
+        if (sourceType == null) {
+            throw new IllegalArgumentException("For the generic pulsar-sink you must configured the sourceType configuration property");
         }
-        return sinkType;
+        return sourceType;
     }
 
     @Override
     protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, PhysicalApplicationInstance physicalApplicationInstance, ClusterRuntime clusterRuntime) {
         Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
-        copy.remove("sinkType");
+        copy.remove("sourceType");
         return copy;
     }
 }

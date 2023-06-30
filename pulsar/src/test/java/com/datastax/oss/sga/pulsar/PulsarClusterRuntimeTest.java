@@ -1,6 +1,8 @@
 package com.datastax.oss.sga.pulsar;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.impl.RuntimeRegistry;
+import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -19,6 +21,8 @@ class PulsarClusterRuntimeTest {
     private static PulsarContainer pulsarContainer;
     private static PulsarAdmin admin;
     private static PulsarClient client;
+
+    private static RuntimeRegistry runtimeRegistry = new RuntimeRegistry();
 
 
     @Test
@@ -46,9 +50,13 @@ class PulsarClusterRuntimeTest {
                                 pipeline:
                                 """));
 
-        PulsarClusterRuntime pulsarClusterRuntime = new PulsarClusterRuntime();
-        PulsarPhysicalApplicationInstance implementation = pulsarClusterRuntime.createImplementation(applicationInstance);
-        pulsarClusterRuntime.deploy(applicationInstance, implementation);
+        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
+                .<PulsarPhysicalApplicationInstance>builder()
+                .registry(new RuntimeRegistry()).
+                build();
+
+        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        deployer.deploy(applicationInstance, implementation);
 
         // verify that the topic exists
         admin.topics().getStats("public/default/input-topic");

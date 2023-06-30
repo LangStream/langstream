@@ -1,8 +1,6 @@
-package com.datastax.oss.sga.impl;
+package com.datastax.oss.sga.api.runtime;
 
 import com.datastax.oss.sga.api.model.StreamingCluster;
-import com.datastax.oss.sga.api.runtime.ClusterRuntime;
-import com.datastax.oss.sga.api.runtime.ClusterRuntimeProvider;
 
 import java.util.Map;
 import java.util.Objects;
@@ -13,14 +11,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * The runtime registry is a singleton that holds all the runtime information about the
  * possible implementations of the SGA API.
  */
-public class RuntimeRegistry {
+public class ClusterRuntimeRegistry {
 
     private final Map<String, ClusterRuntime<?>> registry = new ConcurrentHashMap<>();
 
     public ClusterRuntime getClusterRuntime(StreamingCluster streamingCluster) {
         Objects.requireNonNull(streamingCluster);
         Objects.requireNonNull(streamingCluster.type());
-        return registry.computeIfAbsent(streamingCluster.type(), RuntimeRegistry::loadClusterRuntime);
+        return registry.computeIfAbsent(streamingCluster.type(), ClusterRuntimeRegistry::loadClusterRuntime);
     }
 
     private static ClusterRuntime<?> loadClusterRuntime(String streamingClusterType) {

@@ -1,6 +1,9 @@
 package com.datastax.oss.sga.pulsar;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Connection;
+import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.runtime.AgentImplementation;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import lombok.Data;
 
@@ -10,16 +13,24 @@ import java.util.Map;
 @Data
 public class PulsarPhysicalApplicationInstance implements PhysicalApplicationInstance {
 
-    record PulsarName(String tenant, String namespace, String name) { }
-    record PulsarTopic(PulsarName name, String schemaType, String schema, String createMode) { }
-    record PulsarFunction(PulsarName id, PulsarName inputTopic, PulsarName outputTopic, Map<String, Object> configuration) {}
-    record PulsarSink(PulsarName name, PulsarName inputTopic, Map<String, Object> configuration) {}
-    record PulsarSource(PulsarName name, PulsarName outputTopic, Map<String, Object> configuration) {}
+    private final Map<PulsarName, PulsarTopic> topics = new HashMap<>();
+    private final Map<String, AgentImplementation> agents = new HashMap<>();
 
-    final Map<PulsarName, PulsarTopic> topics = new HashMap<>();
-    final Map<PulsarName, PulsarFunction> functions = new HashMap<>();
-    final Map<PulsarName, PulsarSink> sinks = new HashMap<>();
-    final Map<PulsarName, PulsarSource> sources = new HashMap<>();
+    private final String defaultTenant;
+    private final String defaultNamespace;
 
+    @Override
+    public ConnectionImplementation getConnectionImplementation(Module module, Connection connection) {
+        return null;
+    }
+
+    @Override
+    public AgentImplementation getAgentImplementation(Module module, String id) {
+        return agents.get(module.getId() + "#" + id);
+    }
+
+    public void registerAgent(Module module, String id, AgentImplementation agentImplementation) {
+        agents.put(module.getId() + "#" + id, agentImplementation);
+    }
 
 }

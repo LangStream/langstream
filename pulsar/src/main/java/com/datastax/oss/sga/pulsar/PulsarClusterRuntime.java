@@ -20,6 +20,7 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.common.functions.FunctionConfig;
 import org.apache.pulsar.common.io.SinkConfig;
+import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 
@@ -97,7 +98,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         AgentImplementationProvider agentImplementationProvider = pluginsRegistry.lookupAgentImplementation(agentConfiguration.getType(), this);
 
         AgentImplementation agentImplementation = agentImplementationProvider
-                .createImplementation(agentConfiguration, result, this, pluginsRegistry);
+                .createImplementation(agentConfiguration, module, result, this, pluginsRegistry);
 
         result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
 
@@ -177,8 +178,10 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         if (agent instanceof GenericSinkProvider.GenericSink sink) {
             PulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = sink.getPhysicalMetadata();
             PulsarName pulsarName = pulsarSinkMetadata.getPulsarName();
+            
+            PulsarTopic topic = (PulsarTopic) sink.getInputConnection();
+            List<String> inputs = List.of(topic.name().toPulsarName());
 
-            List<String> inputs = new ArrayList<>();
             // this is a trick to deploy builtin connectors
             String archiveName = "builtin://" + pulsarSinkMetadata.getSinkType();
             // TODO: plug all the possible configurations

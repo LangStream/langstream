@@ -1,0 +1,2 @@
+com.datastax.oss.sga.pulsar.agents.GenericPulsarSinkAgentProvider
+com.datastax.oss.sga.pulsar.agents.CassandraSinkAgentProvider

@@ -18,4 +18,21 @@ package com.datastax.oss.sga.api.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record TopicDefinition(String name, @JsonProperty("creation-mode") String creationMode, SchemaDefinition schema) implements Connection.Connectable {
+
+    public static final String CREATE_MODE_NONE = "none";
+    public static final String CREATE_MODE_CREATE_IF_NOT_EXISTS = "create-if-not-exists";
+
+    public TopicDefinition {
+        if (creationMode == null) {
+            creationMode = CREATE_MODE_NONE;
+        }
+        switch (creationMode) {
+            case CREATE_MODE_NONE:
+            case CREATE_MODE_CREATE_IF_NOT_EXISTS:
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid creation mode: " + creationMode);
+
+        }
+    }
 }

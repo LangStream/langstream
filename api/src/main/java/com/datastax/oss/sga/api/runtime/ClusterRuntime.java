@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.api.runtime;
 
+import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 
 /**
@@ -23,14 +24,20 @@ import com.datastax.oss.sga.api.model.ApplicationInstance;
  */
 public interface ClusterRuntime<T extends PhysicalApplicationInstance> {
 
+    String getClusterType();
+
     /**
      * Create a physical application instance from the logical application instance.
      * @param applicationInstance
      * @return the physical application instance
      */
-    T createImplementation(ApplicationInstance applicationInstance);
+    T createImplementation(ApplicationInstance applicationInstance, PluginsRegistry pluginsRegistry);
 
     void deploy(ApplicationInstance logicalInstance,T applicationInstance);
 
     void delete(ApplicationInstance logicalInstance,T applicationInstance);
+
+    default Object computeAgentMetadata(AgentConfiguration agentConfiguration, PhysicalApplicationInstance physicalApplicationInstance) {
+        return null;
+    }
 }

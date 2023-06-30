@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,6 +32,7 @@ public class ApplicationInstance {
     private Instance instance;
     private Secrets secrets;
 
+    @JsonIgnore
     public Module getModule(String module) {
         return modules.computeIfAbsent(module, m -> new Module(m));
     }

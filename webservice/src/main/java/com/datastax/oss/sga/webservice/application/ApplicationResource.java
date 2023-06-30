@@ -15,10 +15,10 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,12 +42,13 @@ public class ApplicationResource {
     @GetMapping("")
     @Operation(summary = "Get all applications")
     Map<String, ApplicationInstance> getApplications() {
+        System.out.println("getApplications"  + apps);
         return apps;
     }
 
     @PutMapping(value = "/{name}", consumes = "multipart/form-data")
     @Operation(summary = "Get all applications")
-    void deployApplication(@NotBlank String name,
+    void deployApplication(@NotBlank @PathVariable("name") String name,
                         @NotNull @RequestParam("file") MultipartFile file) throws Exception {
         createApplicationFromZip(name, file);
     }

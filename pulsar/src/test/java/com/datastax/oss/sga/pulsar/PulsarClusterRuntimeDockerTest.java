@@ -166,6 +166,67 @@ class PulsarClusterRuntimeDockerTest {
         assertTrue(sources.contains("source1"));
     }
 
+    @Test
+    public void testDeployChainOfGenericFunctions() throws Exception {
+        ApplicationInstance applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        """
+                                instance:
+                                  streamingCluster:
+                                    type: "pulsar"
+                                    configuration:                                      
+                                      webServiceUrl: "%s"
+                                      defaultTenant: "public"
+                                      defaultNamespace: "default"
+                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
+                        "module.yaml", """
+                              module: "module-1"
+                              id: "pipeline-1"
+                              topics:
+                                - name: "input-topic-fn"
+                                  creation-mode: create-if-not-exists
+                                - name: "output-topic-fn"
+                                  creation-mode: create-if-not-exists
+                              pipeline:
+                                - name: "function1"
+                                  id: "function-1-id"
+                                  type: "generic-pulsar-function"
+                                  input: "input-topic-fn"
+                                  # the output is implicitly an intermediate topic
+                                  configuration:
+                                    functionType: "transforms"
+                                    steps: []
+                                - name: "function2"
+                                  id: "function-2-id"
+                                  type: "generic-pulsar-function"
+                                  # the input is implicitly an intermediate topic
+                                  output: "output-topic-fn"
+                                  configuration:
+                                    functionType: "transforms"
+                                    steps: []
+                                """));
+
+        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
+                .<PulsarPhysicalApplicationInstance>builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        deployer.deploy(applicationInstance, implementation);
+
+        // verify that the topics exist
+        admin.topics().getStats("output-topic-fn");
+        admin.topics().getStats("input-topic-fn");
+        admin.topics().getStats("agent-function-1-id-output");
+
+
+        // verify that we have the functions1
+        List<String> functions = admin.functions().getFunctions("public", "default");
+        assertTrue(functions.contains("function1"));
+        assertTrue(functions.contains("function2"));
+    }
+
     @BeforeAll
     public static void setup() throws Exception {
         pulsarContainer = new PulsarContainer(DockerImageName.parse(IMAGE)

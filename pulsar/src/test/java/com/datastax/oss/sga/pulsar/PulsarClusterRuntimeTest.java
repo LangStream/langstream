@@ -10,6 +10,7 @@ import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSinkAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSourceAgentProvider;
 import lombok.extern.slf4j.Slf4j;
@@ -181,6 +182,170 @@ class PulsarClusterRuntimeTest {
         AbstractPulsarSourceAgentProvider.PulsarSourceMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
         assertEquals("some-source-type-on-your-cluster", pulsarSourceMetadata.getSourceType());
         assertEquals(new PulsarName("public", "default", "source1"), pulsarSourceMetadata.getPulsarName());
+
+    }
+
+
+    @Test
+    public void testMapGenericPulsarFunction() throws Exception {
+        ApplicationInstance applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        """
+                                instance:
+                                  streamingCluster:
+                                    type: "pulsar"
+                                    configuration:                                      
+                                      webServiceUrl: "http://localhost:8080"
+                                      defaultTenant: "public"
+                                      defaultNamespace: "default"
+                                """,
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "function1"
+                                    id: "function-1-id"
+                                    type: "generic-pulsar-function"
+                                    input: "input-topic"
+                                    output: "output-topic"
+                                    configuration:
+                                      functionType: "some-function-type-on-your-cluster"
+                                      functionClassname: "a.b.c.ClassName"
+                                      config1: "value"
+                                      config2: "value2"
+                                """));
+
+        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
+                .<PulsarPhysicalApplicationInstance>builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        {
+            assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+            PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
+            assertTrue(implementation.getTopics().containsKey(pulsarName));
+        }
+        {
+            assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+            PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
+            assertTrue(implementation.getTopics().containsKey(pulsarName));
+        }
+
+        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
+        assertNotNull(agentImplementation);
+        AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
+        assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
+        assertEquals("a.b.c.ClassName", pulsarSourceMetadata.getFunctionClassname());
+        assertEquals(new PulsarName("public", "default", "function1"), pulsarSourceMetadata.getPulsarName());
+
+    }
+
+
+
+
+    @Test
+    public void testMapGenericPulsarFunctionsChain() throws Exception {
+        ApplicationInstance applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        """
+                                instance:
+                                  streamingCluster:
+                                    type: "pulsar"
+                                    configuration:                                      
+                                      webServiceUrl: "http://localhost:8080"
+                                      defaultTenant: "public"
+                                      defaultNamespace: "default"
+                                """,
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "function1"
+                                    id: "function-1-id"
+                                    type: "generic-pulsar-function"
+                                    input: "input-topic"
+                                    # the output is implicitly an intermediate topic                                    
+                                    configuration:
+                                      functionType: "some-function-type-on-your-cluster"
+                                      functionClassname: "a.b.c.ClassName"
+                                      config1: "value"
+                                      config2: "value2"
+                                  - name: "function2"
+                                    id: "function-2-id"
+                                    type: "generic-pulsar-function"
+                                    # the input is implicitly an intermediate topic                                    
+                                    output: "output-topic"
+                                    configuration:
+                                      functionType: "some-function-type-on-your-cluster"
+                                      functionClassname: "a.b.c.ClassName"
+                                      config1: "value"
+                                      config2: "value2"
+                                """));
+
+        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
+                .<PulsarPhysicalApplicationInstance>builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        {
+            assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+            PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
+            assertTrue(implementation.getTopics().containsKey(pulsarName));
+        }
+        {
+            assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+            PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
+            assertTrue(implementation.getTopics().containsKey(pulsarName));
+        }
+
+        {
+            assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("agent-function-1-id-output", null, null))) instanceof PulsarTopic);
+            PulsarName pulsarName = new PulsarName("public", "default", "agent-function-1-id-output");
+            assertTrue(implementation.getTopics().containsKey(pulsarName));
+        }
+
+
+
+        assertEquals(3, implementation.getTopics().size());
+
+        {
+            AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
+            assertNotNull(agentImplementation);
+            AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+            AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
+            assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
+            assertEquals("a.b.c.ClassName", pulsarSourceMetadata.getFunctionClassname());
+            assertEquals(new PulsarName("public", "default", "function1"), pulsarSourceMetadata.getPulsarName());
+        }
+
+        {
+            AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
+            assertNotNull(agentImplementation);
+            AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+            AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
+            assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
+            assertEquals("a.b.c.ClassName", pulsarSourceMetadata.getFunctionClassname());
+            assertEquals(new PulsarName("public", "default", "function2"), pulsarSourceMetadata.getPulsarName());
+        }
 
     }
 

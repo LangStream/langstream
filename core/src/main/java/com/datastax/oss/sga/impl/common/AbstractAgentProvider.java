@@ -9,6 +9,8 @@ import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import lombok.Getter;
+import lombok.ToString;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,7 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
     }
 
     @Getter
+    @ToString
     public static class DefaultAgentImplementation implements AgentImplementation {
         private final String type;
         private final Map<String, Object> configuration;

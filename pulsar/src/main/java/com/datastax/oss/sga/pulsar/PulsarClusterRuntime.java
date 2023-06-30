@@ -48,7 +48,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         String tenant = (String) streamingCluster.configuration().getOrDefault("defaultTenant", "public");
         String namespace = (String) streamingCluster.configuration().getOrDefault("defaultNamespace", "default");
 
-        PulsarPhysicalApplicationInstance result = new PulsarPhysicalApplicationInstance(tenant, namespace);
+        PulsarPhysicalApplicationInstance result = new PulsarPhysicalApplicationInstance(applicationInstance, tenant, namespace);
 
         detectTopics(applicationInstance, result, tenant, namespace);
 

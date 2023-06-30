@@ -7,11 +7,11 @@ topics:
     schema:
       type: avro
       schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
-pipeline: []
-#  - name: "Write to Database"
-#    type: "cassandra-sink"
-#    input: "input-topic"
-#    configuration:
-#      credentials: "#secrets.db-credentials"
-#      table: "#globals.tableName"
-#      mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
+pipeline:
+  - name: "Write to Database"
+    type: "cassandra-sink"
+    input: "input-topic"
+    configuration:
+      credentials: "#secrets.db-credentials"
+      table: "#globals.tableName"
+      mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"

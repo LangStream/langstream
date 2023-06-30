@@ -29,9 +29,13 @@
     <surefire-plugin.version>3.0.0</surefire-plugin.version>
     <failsafe-plugin.version>3.1.2</failsafe-plugin.version>
     <jib-maven-plugin.version>3.3.1</jib-maven-plugin.version>
+    <spring-boot.version>3.0.7</spring-boot.version>
+    <zip4j.version>2.11.5</zip4j.version>
+    <picocli.version>4.7.4</picocli.version>
   </properties>
   <modules>
     <module>api</module>
+    <module>cli</module>
     <module>core</module>
     <module>pulsar</module>
     <module>webservice</module>
@@ -91,10 +95,32 @@
         <artifactId>pulsar</artifactId>
         <version>${testcontainers.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>net.lingala.zip4j</groupId>
+        <artifactId>zip4j</artifactId>
+        <version>${zip4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli</artifactId>
+        <version>${picocli.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <build>

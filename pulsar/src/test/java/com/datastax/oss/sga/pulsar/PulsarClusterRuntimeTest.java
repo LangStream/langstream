@@ -43,7 +43,7 @@ class PulsarClusterRuntimeTest {
                                 """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"                               
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists

@@ -1,0 +1,9 @@
+instance:
+  streamingCluster:
+    type: "pulsar"
+    configuration:
+      credentials: "#pulsar-credentials"
+      webServiceUrl: "http://localhost:8080/"
+      brokerUrl: "pulsar://localhost:6650/"
+      defaultTenant: public
+      defaultNamespace: default

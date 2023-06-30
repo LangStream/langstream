@@ -113,8 +113,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
     @Override
     @SneakyThrows
     public void deploy(ApplicationInstance logicalInstance, PulsarPhysicalApplicationInstance applicationInstance) {
-<<<<<<< HEAD
-        try (PulsarAdmin admin  = buidPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
+        try (PulsarAdmin admin  = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
             for (PulsarTopic topic : applicationInstance.getTopics().values()) {
                 deployTopic(admin, topic);
             }

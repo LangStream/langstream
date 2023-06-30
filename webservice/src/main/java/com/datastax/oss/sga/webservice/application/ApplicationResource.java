@@ -2,7 +2,6 @@ package com.datastax.oss.sga.webservice.application;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
-import com.datastax.oss.sga.impl.RuntimeRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,7 +31,6 @@ public class ApplicationResource {
 
     ApplicationDeployer<PhysicalApplicationInstance> deployer = ApplicationDeployer
             .builder()
-            .registry(new RuntimeRegistry())
             .build();
 
     static final Map<String, ApplicationInstance> apps = new HashMap<>();

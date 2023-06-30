@@ -13,7 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ApplicationResourceErrorsHandler {
 
     @ExceptionHandler(Throwable.class)
-    ProblemDetail handleFlinkResourceNotFoundException(Throwable exception) {
+    ProblemDetail handleAll(Throwable exception) {
         if (exception instanceof final ResponseStatusException rs) {
             return ProblemDetail.forStatusAndDetail(rs.getStatusCode(), rs.getMessage());
         }

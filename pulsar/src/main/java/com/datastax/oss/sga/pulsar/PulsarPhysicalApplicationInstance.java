@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.pulsar;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
+import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.SchemaDefinition;
@@ -21,6 +22,7 @@ public class PulsarPhysicalApplicationInstance implements PhysicalApplicationIns
     private final Map<PulsarName, PulsarTopic> topics = new HashMap<>();
     private final Map<String, AgentImplementation> agents = new HashMap<>();
 
+    private final ApplicationInstance applicationInstance;
     private final String defaultTenant;
     private final String defaultNamespace;
 
@@ -37,6 +39,11 @@ public class PulsarPhysicalApplicationInstance implements PhysicalApplicationIns
                 creationMode);
         topics.put(topicName, pulsarTopic);
         return pulsarTopic;
+    }
+
+    @Override
+    public ApplicationInstance getApplicationInstance() {
+        return applicationInstance;
     }
 
     @Override

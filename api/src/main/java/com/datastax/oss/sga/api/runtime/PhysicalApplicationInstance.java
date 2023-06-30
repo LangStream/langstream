@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.api.runtime;
 
+import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 
@@ -22,6 +23,8 @@ import com.datastax.oss.sga.api.model.Module;
  * This is the implementation of an application instance.
  */
 public interface PhysicalApplicationInstance {
+
+    ApplicationInstance getApplicationInstance();
 
     ConnectionImplementation getConnectionImplementation(Module module, Connection connection);
     

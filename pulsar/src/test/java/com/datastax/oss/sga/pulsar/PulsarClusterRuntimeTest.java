@@ -16,6 +16,8 @@ import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSourceAgentProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -351,7 +353,6 @@ class PulsarClusterRuntimeTest {
 
 
     @Test
-    @Disabled
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
@@ -363,6 +364,17 @@ class PulsarClusterRuntimeTest {
                                       webServiceUrl: "http://localhost:8080"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
+                                """,
+                        "configuration.yaml",
+                        """
+                              configuration:  
+                                resources:
+                                  - name: open-ai
+                                    type: open-ai-configuration
+                                    configuration:
+                                      url: "http://something"                                
+                                      access-key: "xxcxcxc"
+                                      provider: "azure"
                                 """,
                         "module.yaml", """
                                 module: "module-1"
@@ -401,6 +413,24 @@ class PulsarClusterRuntimeTest {
 
         AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
+        AbstractAgentProvider.DefaultAgentImplementation step = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        Map<String, Object> configuration = step.getConfiguration();
+        log.info("Configuration: {}", configuration);
+        Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
+        log.info("openAIConfiguration: {}", openAIConfiguration);
+        assertEquals("http://something", openAIConfiguration.get("url"));
+        assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
+        assertEquals("azure", openAIConfiguration.get("provider"));
+
+
+        List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+        assertEquals(1, steps.size());
+        Map<String, Object> step1 = steps.get(0);
+        assertEquals("text-embedding-ada-002", step1.get("model"));
+        assertEquals("value.embeddings", step1.get("embeddings-field"));
+        assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
+
+
 
     }
 

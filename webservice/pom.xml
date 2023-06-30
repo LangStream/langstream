@@ -146,7 +146,7 @@
 						</platforms>
 					</from>
 					<to>
-						<image>sga:latest</image>
+						<image>datastax/sga:latest</image>
 					</to>
 					<container>
 						<entrypoint>

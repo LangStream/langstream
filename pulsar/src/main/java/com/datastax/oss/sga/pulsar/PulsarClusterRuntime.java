@@ -12,6 +12,7 @@ import com.datastax.oss.sga.api.runtime.AgentImplementationProvider;
 import com.datastax.oss.sga.api.runtime.ClusterRuntime;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
+import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSinkAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSourceAgentProvider;
 import lombok.SneakyThrows;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.common.functions.FunctionConfig;
 import org.apache.pulsar.common.io.SinkConfig;
 import org.apache.pulsar.common.io.SourceConfig;
 import org.apache.pulsar.common.naming.TopicName;
@@ -59,18 +61,8 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
     private void detectTopics(ApplicationInstance applicationInstance, PulsarPhysicalApplicationInstance result, String tenant, String namespace) {
         for (Module module : applicationInstance.getModules().values()) {
             for (TopicDefinition topic : module.getTopics().values()) {
-                PulsarName topicName
-                        = new PulsarName(tenant, namespace, topic.name());
-                SchemaDefinition schema = topic.schema();
-                String schemaType = schema != null ? schema.type() : null;
-                String schemaDefinition = schema != null ? schema.schema() : null;
-                String schemaName =  schema != null ? schema.name() : null;
-                PulsarTopic pulsarTopic = new PulsarTopic(topicName,
-                        schemaName,
-                        schemaType,
-                        schemaDefinition,
-                        topic.creationMode());
-                result.getTopics().put(topicName, pulsarTopic);
+                result.registerTopic(tenant, namespace,
+                        topic.name(), topic.schema(), topic.creationMode());
             }
         }
     }
@@ -229,6 +221,39 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
 
                 log.info("SourceConfiguration: {}", sourceConfig);
                 admin.sources().createSource(sourceConfig, null);
+                return;
+            } else if (physicalMetadata instanceof AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata) {
+                AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarFunction = (AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata) physicalMetadata;
+                PulsarName pulsarName = pulsarFunction.getPulsarName();
+
+                PulsarTopic topicInput = (PulsarTopic) agentImpl.getInputConnection();
+                String input = topicInput != null ? topicInput.name().toPulsarName() : null;
+
+                PulsarTopic topicOutput = (PulsarTopic) agentImpl.getOutputConnection();
+                String output = topicOutput != null ? topicOutput.name().toPulsarName() : null;
+
+                String functionType = pulsarFunction.getFunctionType();
+                String className = pulsarFunction.getFunctionClassname();
+
+                // this is a trick to deploy builtin connectors
+                String archiveName = "builtin://" + pulsarFunction.getFunctionType();
+                // TODO: plug all the possible configurations
+                FunctionConfig functionConfig = FunctionConfig
+                        .builder()
+                        .name(pulsarName.name())
+                        .namespace(pulsarName.namespace())
+                        .tenant(pulsarName.tenant())
+                        .inputs(input != null ? List.of(input) : null)
+                        .output(output)
+                        .userConfig(agentImpl.getConfiguration())
+                        .functionType(functionType)
+                        .className(className)
+                        .jar(archiveName)
+                        .parallelism(1)
+                        .build();
+
+                log.info("FunctionConfig: {}", functionConfig);
+                admin.functions().createFunction(functionConfig, null);
                 return;
             }
         }

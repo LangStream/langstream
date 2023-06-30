@@ -4,3 +4,6 @@ com.datastax.oss.sga.pulsar.agents.CassandraSinkAgentProvider
 
 # Sources
 com.datastax.oss.sga.pulsar.agents.GenericPulsarSourceAgentProvider
+
+# Functions
+com.datastax.oss.sga.pulsar.agents.GenericPulsarFunctionAgentProvider

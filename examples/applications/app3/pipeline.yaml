@@ -1,0 +1,24 @@
+module: "module-1"
+id: "pipeline-1"
+topics:
+  - name: "input-topic"
+    creation-mode: create-if-not-exists
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "function1"
+    id: "function-1-id"
+    type: "generic-pulsar-function"
+    input: "input-topic"
+    # the output is implicitly an intermediate topic
+    configuration:
+      functionType: "transforms"
+      steps: []
+  - name: "function2"
+    id: "function-2-id"
+    type: "generic-pulsar-function"
+    # the input is implicitly an intermediate topic
+    output: "output-topic"
+    configuration:
+      functionType: "transforms"
+      steps: []

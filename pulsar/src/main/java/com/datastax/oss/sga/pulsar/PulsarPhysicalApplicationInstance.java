@@ -1,7 +1,9 @@
 package com.datastax.oss.sga.pulsar;
 
+import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.SchemaDefinition;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentImplementation;
 import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
@@ -22,6 +24,21 @@ public class PulsarPhysicalApplicationInstance implements PhysicalApplicationIns
     private final String defaultTenant;
     private final String defaultNamespace;
 
+    public PulsarTopic registerTopic(String tenant, String namespace, String name, SchemaDefinition schema, String creationMode) {
+        PulsarName topicName
+                = new PulsarName(tenant, namespace, name);
+        String schemaType = schema != null ? schema.type() : null;
+        String schemaDefinition = schema != null ? schema.schema() : null;
+        String schemaName =  schema != null ? schema.name() : null;
+        PulsarTopic pulsarTopic = new PulsarTopic(topicName,
+                schemaName,
+                schemaType,
+                schemaDefinition,
+                creationMode);
+        topics.put(topicName, pulsarTopic);
+        return pulsarTopic;
+    }
+
     @Override
     public ConnectionImplementation getConnectionImplementation(Module module, Connection connection) {
         Connection.Connectable endpoint = connection.endpoint();
@@ -32,6 +49,14 @@ public class PulsarPhysicalApplicationInstance implements PhysicalApplicationIns
                     .filter(p -> p.name().name().equals(topicDefinition.name()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Topic " + topicDefinition.name() + " not found, only " + topics));
+            return pulsarTopic;
+        } else if (endpoint instanceof AgentConfiguration agentConfiguration) {
+            // connecting two agents requires an intermediate topic
+            String name = "agent-" + agentConfiguration.getId() + "-output";
+            log.info("Automatically creating topic {} in order to connect agent {}", name,
+                    agentConfiguration.getId());
+            PulsarTopic pulsarTopic = registerTopic(getDefaultTenant(), getDefaultNamespace(),
+                    name, null, TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS);
             return pulsarTopic;
         }
         throw new UnsupportedOperationException("Not implemented yet, connection with " + endpoint);

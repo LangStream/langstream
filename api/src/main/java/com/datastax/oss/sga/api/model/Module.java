@@ -15,15 +15,18 @@
  */
 package com.datastax.oss.sga.api.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.HashMap;
 import java.util.Map;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 public class Module {
     public static final String DEFAULT_MODULE = "default";
-    private final String id;
+    private String id;
 
     private final Map<String, Pipeline> pipelines = new HashMap<>();
 
@@ -43,16 +46,17 @@ public class Module {
     }
 
     public TopicDefinition addTopic(TopicDefinition topicDefinition) {
-        TopicDefinition existing = topics.get(topicDefinition.name());
+        final String topicName = topicDefinition.getName();
+        TopicDefinition existing = topics.get(topicName);
         if (existing != null) {
             // allow to declare the same topic in multiple pipelines of the same module
             // but only if the definition is the same
             if (!existing.equals(topicDefinition)) {
-                throw new IllegalArgumentException("Pipeline " + topicDefinition.name() + " already exists in module " + id);
+                throw new IllegalArgumentException("Pipeline " + topicName + " already exists in module " + id);
             }
             return existing;
         }
-        topics.put(topicDefinition.name(), topicDefinition);
+        topics.put(topicName, topicDefinition);
         return topicDefinition;
     }
 

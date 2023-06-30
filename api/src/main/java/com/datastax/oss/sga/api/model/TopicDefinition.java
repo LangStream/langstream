@@ -16,16 +16,37 @@
 package com.datastax.oss.sga.api.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-public record TopicDefinition(String name, @JsonProperty("creation-mode") String creationMode, SchemaDefinition schema) implements Connection.Connectable {
+@Getter
+@Setter
+public class TopicDefinition extends Connection.Connectable {
 
     public static final String CREATE_MODE_NONE = "none";
     public static final String CREATE_MODE_CREATE_IF_NOT_EXISTS = "create-if-not-exists";
 
-    public TopicDefinition {
-        if (creationMode == null) {
-            creationMode = CREATE_MODE_NONE;
-        }
+    public TopicDefinition() {
+        connectableType = Connection.Connectables.TOPIC;
+    }
+
+    public TopicDefinition(String name, String creationMode, SchemaDefinition schema) {
+        this();
+        this.name = name;
+        this.creationMode = creationMode;
+        this.schema = schema;
+        validateCreationMode();
+    }
+
+    private String name;
+
+    @JsonProperty("creation-mode")
+    private String creationMode = CREATE_MODE_NONE;
+    private SchemaDefinition schema;
+
+    private void validateCreationMode() {
         switch (creationMode) {
             case CREATE_MODE_NONE:
             case CREATE_MODE_CREATE_IF_NOT_EXISTS:

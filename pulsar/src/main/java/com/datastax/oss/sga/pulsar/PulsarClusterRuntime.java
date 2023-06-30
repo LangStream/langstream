@@ -62,7 +62,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         for (Module module : applicationInstance.getModules().values()) {
             for (TopicDefinition topic : module.getTopics().values()) {
                 result.registerTopic(tenant, namespace,
-                        topic.name(), topic.schema(), topic.creationMode());
+                        topic.getName(), topic.getSchema(), topic.getCreationMode());
             }
         }
     }

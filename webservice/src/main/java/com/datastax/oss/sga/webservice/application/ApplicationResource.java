@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @Tag(name = "applications")
@@ -46,9 +49,9 @@ public class ApplicationResource {
     }
 
     @PutMapping(value = "/{name}", consumes = "multipart/form-data")
-    @Operation(summary = "Get all applications")
+    @Operation(summary = "Create and deploy an application")
     void deployApplication(@NotBlank @PathVariable("name") String name,
-                        @NotNull @RequestParam("file") MultipartFile file) throws Exception {
+                           @NotNull @RequestParam("file") MultipartFile file) throws Exception {
         createApplicationFromZip(name, file);
     }
 
@@ -72,4 +75,27 @@ public class ApplicationResource {
             tempZip.toFile().delete();
         }
     }
+
+    @DeleteMapping("/{name}")
+    @Operation(summary = "Delete application by name")
+    void deleteApplication(@NotBlank @PathVariable("name") String name) {
+        final ApplicationInstance applicationInstance = apps.get(name);
+        // not supported yet
+        // deployer.delete(applicationInstance, deployer.createImplementation(applicationInstance));
+        apps.remove(name);
+        log.info("Deleted application {}", name);
+    }
+
+    @GetMapping("/{name}")
+    @Operation(summary = "Get an application by name")
+    ApplicationInstance getApplication(@NotBlank @PathVariable("name") String name) {
+        final ApplicationInstance applicationInstance = apps.get(name);
+        if (applicationInstance == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "application not found"
+            );
+        }
+        return applicationInstance;
+    }
+
 }

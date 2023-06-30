@@ -54,20 +54,11 @@ public class DeployCmd extends BaseCmd {
         }
 
 
-            String boundary = new BigInteger(256, new Random()).toString();
-            final HttpResponse<String> response = getHttpClient().send(
-                    HttpRequest.newBuilder()
-                            .uri(URI.create("%s/api/applications/%s".formatted(getBaseWebServiceUrl(), name)))
-                            .header("Content-Type", "multipart/form-data;boundary=" + boundary)
-                            .PUT(multiPartBodyPublisher(tempZip, boundary))
-                            .build(),
-                    HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                log("Application deployed");
-            } else {
-                log("Application not deployed, error: "+ response.statusCode());
-                log(response.body());
-            }
+        String boundary = new BigInteger(256, new Random()).toString();
+        http(newPut("/applications/%s".formatted(name),
+                "multipart/form-data;boundary=%s".formatted(boundary),
+                multiPartBodyPublisher(tempZip, boundary)));
+        log("Application deployed");
 
     }
 
@@ -81,10 +72,11 @@ public class DeployCmd extends BaseCmd {
 
     public static HttpRequest.BodyPublisher multiPartBodyPublisher(Path path, String boundary) throws IOException {
         List<byte[]> byteArrays = new ArrayList<>();
-        final String beforeFile = "--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"%s\"\r\nContent-Type: %s\r\n\r\n"
-                .formatted(boundary, path.getFileName(), Files.probeContentType(path));
+        final String beforeFile =
+                "--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"%s\"\r\nContent-Type: %s\r\n\r\n"
+                        .formatted(boundary, path.getFileName(), Files.probeContentType(path));
         byteArrays.add(beforeFile.getBytes(StandardCharsets.UTF_8));
-                byteArrays.add(Files.readAllBytes(path));
+        byteArrays.add(Files.readAllBytes(path));
         byteArrays.add("\r\n--%s--\r\n".formatted(boundary).getBytes(StandardCharsets.UTF_8));
         return HttpRequest.BodyPublishers.ofByteArrays(byteArrays);
     }

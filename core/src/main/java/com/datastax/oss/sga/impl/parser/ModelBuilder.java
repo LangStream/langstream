@@ -139,16 +139,19 @@ public class ModelBuilder {
                     // compatibility with existing configuration files
                     agentConfiguration.setId(agentConfiguration.getType() + "_" + autoId++);
                 }
+
                 if (agent.getInput() != null) {
                     agentConfiguration.setInput(new Connection(module.resolveTopic(agent.getInput())));
                 }
                 if (agent.getOutput() != null) {
                     agentConfiguration.setOutput(new Connection(module.resolveTopic(agent.getOutput())));
                 }
-                if (last != null && agentConfiguration.getOutput() == null) {
+                if (last != null && agentConfiguration.getInput() == null) {
                     // assume that the previous agent is the output of this one
-                    agentConfiguration.setOutput(new Connection(last));
+                    agentConfiguration.setInput(new Connection(last));
                 }
+
+
                 pipeline.addAgentConfiguration(agentConfiguration);
                 last = agentConfiguration;
             }

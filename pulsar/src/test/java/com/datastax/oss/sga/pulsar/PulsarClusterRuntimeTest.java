@@ -69,7 +69,6 @@ class PulsarClusterRuntimeTest {
     }
 
     @Test
-    @Disabled
     public void testDeployCassandraSink() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
@@ -94,6 +93,7 @@ class PulsarClusterRuntimeTest {
                                 pipeline:
                                   - name: "sink1"
                                     type: "cassandra-sink"
+                                    input: "input-topic-cassandra"
                                     configuration:
                                       mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
                                 """));
@@ -108,9 +108,9 @@ class PulsarClusterRuntimeTest {
         deployer.deploy(applicationInstance, implementation);
 
         // verify that the topic exists
-        admin.topics().getStats("public/default/input-topic");
+        admin.topics().getStats("public/default/input-topic-cassandra");
         // verify that the topic has a schema
-        admin.schemas().getSchemaInfo("public/default/input-topic");
+        admin.schemas().getSchemaInfo("public/default/input-topic-cassandra");
 
         // verify that we have the sink
         List<String> sinks = admin.sinks().listSinks("public", "default");

@@ -131,7 +131,9 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         String topicName = topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
         List<String> existing = admin.topics().getList(namespace);
         log.info("Existing topics: {}", existing);
-        boolean exists = existing.contains(topicName);
+        String fullyQualifiedName = TopicName.get(topicName).toString();
+        log.info("Looking for : {}", fullyQualifiedName);
+        boolean exists = existing.contains(fullyQualifiedName);
         if (exists) {
             log.info("Topic {} already exists", topicName);
         } else {
@@ -139,7 +141,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         }
         switch (createMode) {
             case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
-                if (!existing.contains(topicName)) {
+                if (!exists) {
                     log.info("Topic {} does not exist, creating", topicName);
                     admin
                             .topics().createNonPartitionedTopic(topicName);

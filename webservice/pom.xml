@@ -10,7 +10,7 @@
 	<groupId>com.datastax.oss</groupId>
 	<artifactId>webservice</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>webservice</name>
+	<name>Streaming GenAI - WebService</name>
 	<description>SGA Web Service</description>
 	<properties>
 		<java.version>17</java.version>

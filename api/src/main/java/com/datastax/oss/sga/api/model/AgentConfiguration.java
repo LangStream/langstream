@@ -21,7 +21,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Data
-public class AgentConfiguration implements Connection.Connectable {
+public class AgentConfiguration extends Connection.Connectable {
+
+    public AgentConfiguration() {
+        this.connectableType = Connection.Connectables.AGENT;
+    }
+
     private String id;
     private String name;
     private String type;

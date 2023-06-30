@@ -20,3 +20,5 @@ buildNumber.properties
 *.iml
 
 .DS_Store
+
+sga-data

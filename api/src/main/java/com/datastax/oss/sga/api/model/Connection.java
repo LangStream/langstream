@@ -15,9 +15,29 @@
  */
 package com.datastax.oss.sga.api.model;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import lombok.Getter;
+import lombok.Setter;
+
 public record Connection(Connectable endpoint) {
 
-    public interface Connectable {
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            property = "connectableType")
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = AgentConfiguration.class, name = Connectables.AGENT),
+            @JsonSubTypes.Type(value = TopicDefinition.class, name = Connectables.TOPIC)})
+    @Getter
+    @Setter
+    public abstract static class Connectable {
+        protected String connectableType;
+
+    }
+
+    public static final class Connectables {
+        public static final String AGENT = "agent";
+        public static final String TOPIC = "topic";
     }
 
 }

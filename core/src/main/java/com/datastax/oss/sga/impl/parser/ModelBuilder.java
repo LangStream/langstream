@@ -21,10 +21,12 @@ import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.Resource;
+import com.datastax.oss.sga.api.model.SchemaDefinition;
 import com.datastax.oss.sga.api.model.Secret;
 import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.TopicDefinition;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.Data;
@@ -55,6 +57,7 @@ public class ModelBuilder {
      * For instance, you can have a directory with the application definition and one directory with the
      * instance.yaml file and the secrets.yaml file.
      * This is server side code and it is expected that the directories are local to the server.
+     *
      * @param directories
      * @return a fully built application instance (application model + instance + secrets)
      * @throws Exception
@@ -65,7 +68,8 @@ public class ModelBuilder {
             log.info("Parsing directory: {}", directory.toAbsolutePath());
             try (DirectoryStream<Path> paths = Files.newDirectoryStream(directory);) {
                 for (Path path : paths) {
-                    parseFile(path.getFileName().toString(), Files.readString(path, StandardCharsets.UTF_8), application);
+                    parseFile(path.getFileName().toString(), Files.readString(path, StandardCharsets.UTF_8),
+                            application);
                 }
             }
         }
@@ -107,7 +111,7 @@ public class ModelBuilder {
         ConfigurationFileModel configurationFileModel = mapper.readValue(content, ConfigurationFileModel.class);
         ConfigurationNodeModel configurationNode = configurationFileModel.configuration();
         if (configurationNode != null && configurationNode.resources != null) {
-            configurationNode.resources.forEach(r-> {
+            configurationNode.resources.forEach(r -> {
                 application.getResources().put(r.id(), r);
             });
 
@@ -128,8 +132,9 @@ public class ModelBuilder {
         AgentConfiguration last = null;
 
         if (pipelineConfiguration.getTopics() != null) {
-            for (TopicDefinition topicDefinition : pipelineConfiguration.getTopics()) {
-                module.addTopic(topicDefinition);
+            for (TopicDefinitionModel topicDefinition : pipelineConfiguration.getTopics()) {
+                module.addTopic(new TopicDefinition(topicDefinition.getName(),
+                        topicDefinition.getCreationMode(), topicDefinition.getSchema()));
             }
         }
 
@@ -183,7 +188,16 @@ public class ModelBuilder {
         private String name;
         private List<AgentModel> pipeline = new ArrayList<>();
 
-        private List<TopicDefinition> topics = new ArrayList<>();
+        private List<TopicDefinitionModel> topics = new ArrayList<>();
+    }
+
+    @Data
+    public static final class TopicDefinitionModel {
+        private String name;
+        @JsonProperty("creation-mode")
+        private String creationMode;
+        private SchemaDefinition schema;
+
     }
 
     @Data
@@ -196,7 +210,7 @@ public class ModelBuilder {
         private Map<String, Object> configuration = new HashMap<>();
 
         AgentConfiguration toAgentConfiguration() {
-            AgentConfiguration res =  new AgentConfiguration();
+            AgentConfiguration res = new AgentConfiguration();
             res.setId(id);
             res.setName(name);
             res.setType(type);
@@ -205,9 +219,11 @@ public class ModelBuilder {
         }
     }
 
-    public record ConfigurationNodeModel(List<Resource> resources) {}
+    public record ConfigurationNodeModel(List<Resource> resources) {
+    }
 
-    public record ConfigurationFileModel(ConfigurationNodeModel configuration) {}
+    public record ConfigurationFileModel(ConfigurationNodeModel configuration) {
+    }
 
     public record SecretsFileModel(List<Secret> secrets) {
     }

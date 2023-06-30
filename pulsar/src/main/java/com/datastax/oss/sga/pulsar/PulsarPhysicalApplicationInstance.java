@@ -53,9 +53,9 @@ public class PulsarPhysicalApplicationInstance implements PhysicalApplicationIns
             // compare only by name (without tenant/namespace)
             PulsarTopic pulsarTopic = topics.values()
                     .stream()
-                    .filter(p -> p.name().name().equals(topicDefinition.name()))
+                    .filter(p -> p.name().name().equals(topicDefinition.getName()))
                     .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("Topic " + topicDefinition.name() + " not found, only " + topics));
+                    .orElseThrow(() -> new IllegalArgumentException("Topic " + topicDefinition.getName() + " not found, only " + topics));
             return pulsarTopic;
         } else if (endpoint instanceof AgentConfiguration agentConfiguration) {
             // connecting two agents requires an intermediate topic

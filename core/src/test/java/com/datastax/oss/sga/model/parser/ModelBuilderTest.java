@@ -17,6 +17,8 @@ package com.datastax.oss.sga.model.parser;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.datastax.oss.sga.impl.storage.ApplicationStore;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +34,7 @@ class ModelBuilderTest {
         Path path = Paths.get("../examples/application1");
         ApplicationInstance application = ModelBuilder.buildApplicationInstance(Arrays.asList(path));
 
-        log.info("Application: {}", application);
+
+
     }
 }

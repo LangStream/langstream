@@ -19,11 +19,13 @@ import lombok.Data;
 
 import java.util.HashMap;
 import java.util.Map;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 public class Pipeline {
-    private final String id;
-    private final String module;
+    private String id;
+    private String module;
     private String name;
 
     public Pipeline(String id, String module) {

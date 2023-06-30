@@ -6,18 +6,11 @@ topics:
     creation-mode: create-if-not-exists
     schema:
       type: avro
-      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item-vector","type":"bytes"}]}}'
+      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
 pipeline:
-  - name: "Compute Vector using Embeddings API"
-    type: "compute-embeddings"
-    input: "input-topic"
-    configuration:
-      model: "gpt-3"
-      provider: "openai-azure"
-      template: "{{name}} {{description}}"
-      embeddings-field: "item-vector"
   - name: "Write to Database"
     type: "cassandra-sink"
+    input: "input-topic"
     configuration:
       credentials: "#secrets.db-credentials"
       table: "#globals.tableName"

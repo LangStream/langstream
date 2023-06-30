@@ -42,7 +42,6 @@ public class ApplicationResource {
     @GetMapping("")
     @Operation(summary = "Get all applications")
     Map<String, ApplicationInstance> getApplications() {
-        System.out.println("getApplications"  + apps);
         return apps;
     }
 

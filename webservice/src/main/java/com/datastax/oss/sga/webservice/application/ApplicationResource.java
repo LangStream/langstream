@@ -1,6 +1,9 @@
 package com.datastax.oss.sga.webservice.application;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.impl.RuntimeRegistry;
+import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -9,6 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +30,11 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class ApplicationResource {
 
+    ApplicationDeployer<PhysicalApplicationInstance> deployer = ApplicationDeployer
+            .builder()
+            .registry(new RuntimeRegistry())
+            .build();
+
     static final Map<String, ApplicationInstance> apps = new HashMap<>();
 
     @GetMapping("")
@@ -36,8 +45,8 @@ public class ApplicationResource {
 
     @PutMapping(value = "/{name}", consumes = "multipart/form-data")
     @Operation(summary = "Get all applications")
-    void putApplication(@NotBlank String name,
-                @NotNull @RequestParam("file") MultipartFile file) throws Exception {
+    void deployApplication(@NotBlank String name,
+                        @NotNull @RequestParam("file") MultipartFile file) throws Exception {
         createApplicationFromZip(name, file);
     }
 
@@ -49,10 +58,12 @@ public class ApplicationResource {
             try (ZipFile zipFile = new ZipFile(tempZip.toFile());) {
                 zipFile.extractAll(tempdir.toFile().getAbsolutePath());
                 final ApplicationInstance applicationInstance =
-                        ModelBuilder.buildApplicationInstance(Files.list(tempdir).collect(
-                                Collectors.toList()));
+                        ModelBuilder.buildApplicationInstance(List.of(tempdir));
                 apps.put(name, applicationInstance);
-                log.info("Created application {}: {}", name, applicationInstance);
+                final PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+                deployer.deploy(applicationInstance, implementation);
+                log.info("Deployed application {} of {}: {}", name, implementation.getClass().getSimpleName(),
+                        applicationInstance);
             }
         } finally {
             tempdir.toFile().delete();

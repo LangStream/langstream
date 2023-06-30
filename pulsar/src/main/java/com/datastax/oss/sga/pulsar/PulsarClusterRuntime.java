@@ -103,7 +103,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
 
     }
 
-    private PulsarAdmin buidPulsarAdmin(StreamingCluster streamingCluster) throws Exception {
+    private PulsarAdmin buildPulsarAdmin(StreamingCluster streamingCluster) throws Exception {
         return PulsarAdmin
                 .builder()
                 .serviceHttpUrl((String) streamingCluster.configuration().getOrDefault("webServiceUrl", "http://localhost:8080"))
@@ -113,6 +113,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
     @Override
     @SneakyThrows
     public void deploy(ApplicationInstance logicalInstance, PulsarPhysicalApplicationInstance applicationInstance) {
+<<<<<<< HEAD
         try (PulsarAdmin admin  = buidPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
             for (PulsarTopic topic : applicationInstance.getTopics().values()) {
                 deployTopic(admin, topic);

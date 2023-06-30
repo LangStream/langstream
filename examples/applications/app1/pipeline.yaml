@@ -1,0 +1,24 @@
+module: "module-1"
+id: "pipeline-1"
+name: "Index Products on Vector Database"
+topics:
+  - name: "input-topic"
+    creation-mode: create-if-not-exists
+    schema:
+      type: avro
+      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item-vector","type":"bytes"}]}}'
+pipeline:
+  - name: "Compute Vector using Embeddings API"
+    type: "compute-embeddings"
+    input: "input-topic"
+    configuration:
+      model: "gpt-3"
+      provider: "openai-azure"
+      template: "{{name}} {{description}}"
+      embeddings-field: "item-vector"
+  - name: "Write to Database"
+    type: "cassandra-sink"
+    configuration:
+      credentials: "#secrets.db-credentials"
+      table: "#globals.tableName"
+      mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"

@@ -14,36 +14,45 @@ import java.util.List;
 import java.util.Random;
 import lombok.SneakyThrows;
 import net.lingala.zip4j.ZipFile;
+import net.lingala.zip4j.model.ZipParameters;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "deploy",
         description = "Deploy a SGA application")
 public class DeployCmd extends BaseCmd {
 
-    @CommandLine.Option(names = {"-n", "--name"}, description = "Name")
+    @CommandLine.Parameters(description = "Name of the application")
     private String name;
 
-    @CommandLine.Option(names = {"-p", "--package"}, description = "Package path")
-    private String packagePath;
+    @CommandLine.Option(names = {"-app", "--application"}, description = "Application directory path", required = true)
+    private String appPath;
+
+    @CommandLine.Option(names = {"-i", "--instance"}, description = "Instance file path", required = true)
+    private String instanceFilePath;
 
     @Override
     @SneakyThrows
     public void run() {
-        final File file = new File(packagePath);
-        if (!file.exists()) {
-            throw new RuntimeException("File " + packagePath + " does not exist");
-        }
-        if (!file.isDirectory()) {
-            throw new RuntimeException("Path " + packagePath + " is not a directory");
-        }
+        final File appDirectory = checkFileExists(appPath);
+        final File instanceFile = checkFileExists(instanceFilePath);
 
         final Path tempZip = Files.createTempFile("app", ".zip");
-
-
+        debug("building local zip at " + tempZip.toAbsolutePath());
         try (final ZipFile zip = new ZipFile(tempZip.toFile());) {
-            log("packaging folder: %s".formatted(file.getAbsolutePath()));
-            zip.addFolder(file);
+            log("packaging app: %s".formatted(appDirectory.getAbsolutePath()));
+            if (appDirectory.isDirectory()) {
+                for (File file : appDirectory.listFiles()) {
+                    zip.addFile(file);
+                }
+            } else {
+                zip.addFile(appDirectory);
+            }
+            log("using instance: %s".formatted(instanceFile.getAbsolutePath()));
+            final ZipParameters zipParameters = new ZipParameters();
+            zipParameters.setFileNameInZip("instance.yaml");
+            zip.addFile(instanceFile, zipParameters);
         }
+
 
             String boundary = new BigInteger(256, new Random()).toString();
             final HttpResponse<String> response = getHttpClient().send(
@@ -60,6 +69,14 @@ public class DeployCmd extends BaseCmd {
                 log(response.body());
             }
 
+    }
+
+    private File checkFileExists(String path) {
+        final File file = new File(path);
+        if (!file.exists()) {
+            throw new RuntimeException("File " + path + " does not exist");
+        }
+        return file;
     }
 
     public static HttpRequest.BodyPublisher multiPartBodyPublisher(Path path, String boundary) throws IOException {

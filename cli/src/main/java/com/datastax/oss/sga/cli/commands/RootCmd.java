@@ -5,7 +5,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(name = "", mixinStandardHelpOptions = true, version = "checksum 4.0",
         description = "Prints the checksum (SHA-256 by default) of a file to STDOUT.",
-        subcommands = { DeployCmd.class })
+        subcommands = { DeployCmd.class, ListCmd.class })
 public class RootCmd {
 
 

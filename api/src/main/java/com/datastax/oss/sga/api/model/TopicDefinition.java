@@ -16,9 +16,7 @@
 package com.datastax.oss.sga.api.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
@@ -29,6 +27,9 @@ public class TopicDefinition extends Connection.Connectable {
     public static final String CREATE_MODE_CREATE_IF_NOT_EXISTS = "create-if-not-exists";
 
     public TopicDefinition() {
+        if (creationMode == null) {
+            creationMode = CREATE_MODE_NONE;
+        }
         connectableType = Connection.Connectables.TOPIC;
     }
 

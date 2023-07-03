@@ -1,9 +1,11 @@
 package com.datastax.oss.sga.cli.commands;
 
+import com.datastax.oss.sga.cli.SgaCLI;
 import com.datastax.oss.sga.cli.SgaCLIConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -43,8 +45,22 @@ public abstract class BaseCmd implements Runnable {
                 throw new IllegalStateException("Config file not found: " + configFile);
             }
             config = objectMapper.readValue(configFile, SgaCLIConfig.class);
+            overrideFromEnv(config);
         }
         return config;
+    }
+
+    @SneakyThrows
+    private void overrideFromEnv(SgaCLIConfig config) {
+        for (Field field : SgaCLIConfig.class.getDeclaredFields()) {
+            final String name = field.getName();
+            final String newValue = System.getenv("SGA_" + name);
+            if (newValue != null) {
+                log("Using env variable: %s=%s".formatted(name, newValue));
+                field.trySetAccessible();
+                field.set(config, newValue);
+            }
+        }
     }
 
     protected String getBaseWebServiceUrl() {

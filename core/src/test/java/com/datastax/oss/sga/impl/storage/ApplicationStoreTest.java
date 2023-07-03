@@ -26,12 +26,15 @@ class ApplicationStoreTest {
         final Path base = Files.createTempDirectory("sga-test");
         final LocalStorageConfigStore configStore = new LocalStorageConfigStore();
         configStore.initialize(Map.of(LocalStorageConfigStore.LOCAL_BASEDIR, base.toFile().getAbsolutePath()));
-        final ApplicationStore store = new ApplicationStore(configStore);
+        final ApplicationStore store = new ApplicationStore(configStore, configStore);
 
 
         Path path = Paths.get("../examples/application1");
         ApplicationInstance application = ModelBuilder.buildApplicationInstance(Arrays.asList(path));
         store.put("test", application, ApplicationInstanceLifecycleStatus.CREATED);
+        Assertions.assertNotNull(configStore.get("app-test"));
+        Assertions.assertNotNull(configStore.get("sec-test"));
+
         StoredApplicationInstance get = store.get("test");
         Assertions.assertEquals("test", get.getName());
         Assertions.assertEquals(ApplicationInstanceLifecycleStatus.CREATED, get.getStatus());

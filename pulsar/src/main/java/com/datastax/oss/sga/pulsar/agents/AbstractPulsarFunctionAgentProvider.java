@@ -11,7 +11,7 @@ import lombok.Data;
 
 import java.util.List;
 
-public abstract class AbstractPulsarFunctionAgentProvider extends AbstractAgentProvider {
+public abstract class AbstractPulsarFunctionAgentProvider extends AbstractPulsarAgentProvider {
 
     public AbstractPulsarFunctionAgentProvider(List<String> supportedTypes, List<String> supportedClusterTypes) {
         super(supportedTypes, supportedClusterTypes);
@@ -33,7 +33,7 @@ public abstract class AbstractPulsarFunctionAgentProvider extends AbstractAgentP
     @Override
     protected Object computeAgentMetadata(AgentConfiguration agentConfiguration, PhysicalApplicationInstance physicalApplicationInstance, ClusterRuntime clusterRuntime) {
         PulsarPhysicalApplicationInstance pulsar = (PulsarPhysicalApplicationInstance) physicalApplicationInstance;
-        PulsarName pulsarName = new PulsarName(pulsar.getDefaultTenant(), pulsar.getDefaultNamespace(), agentConfiguration.getName());
+        final PulsarName pulsarName = computePulsarName(pulsar, agentConfiguration);
         return new PulsarFunctionMetadata(pulsarName, getFunctionType(agentConfiguration), getFunctionClassname(agentConfiguration));
     }
 

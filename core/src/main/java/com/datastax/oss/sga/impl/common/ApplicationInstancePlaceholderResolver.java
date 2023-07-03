@@ -10,9 +10,11 @@ import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samskivert.mustache.Mustache;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 
 public class ApplicationInstancePlaceholderResolver {
@@ -107,15 +109,32 @@ public class ApplicationInstancePlaceholderResolver {
     }
 
     static Map<String, Object> resolveMap(Map<String, Object> context, Map<String, Object> config) {
-
         Map<String, Object> resolvedConfig = new HashMap<>();
         if (config == null) {
             return resolvedConfig;
         }
-        for (Map.Entry<String, Object> stringObjectEntry : config.entrySet()) {
-            resolvedConfig.put(stringObjectEntry.getKey(), resolveValue(context, stringObjectEntry.getValue() + ""));
+        for (Map.Entry<String, Object> entry : config.entrySet()) {
+            resolvedConfig.put(entry.getKey(), resolveValue(context, entry.getValue()));
         }
         return resolvedConfig;
+    }
+
+    static Collection<?> resolveCollection(Map<String, Object> context, Collection<?> config) {
+        return config.stream()
+                .map(entry -> {
+                    return resolveValue(context, entry);
+                })
+                .collect(Collectors.toList());
+    }
+
+    static Object resolveValue(Map<String, Object> context, Object object) {
+        if (object instanceof Map) {
+            return resolveMap(context, (Map<String, Object>) object);
+        } else if (object instanceof Collection) {
+            return resolveCollection(context, (Collection<?>) object);
+        } else {
+            return resolveValue(context, object == null ? null : object.toString());
+        }
     }
 
     static String resolveValue(Map<String, Object> context, String template) {

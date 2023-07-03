@@ -27,7 +27,8 @@ class ApplicationInstancePlaceholderResolverTest {
                                     streamingCluster:
                                         type: pulsar
                                         configuration:
-                                            webServiceUrl: http://mypulsar.localhost:8080
+                                            admin: 
+                                                serviceUrl: http://mypulsar.localhost:8080
                                     globals:
                                         another-url: another-value
                                         open-api-url: http://myurl.localhost:8080/endpoint
@@ -39,7 +40,7 @@ class ApplicationInstancePlaceholderResolverTest {
                         "{{secrets.openai-credentials.accessKey}}"));
         Assertions.assertEquals("http://mypulsar.localhost:8080",
                 ApplicationInstancePlaceholderResolver.resolveValue(context,
-                        "{{cluster.configuration.webServiceUrl}}"));
+                        "{{cluster.configuration.admin.serviceUrl}}"));
         Assertions.assertEquals("http://myurl.localhost:8080/endpoint",
                 ApplicationInstancePlaceholderResolver.resolveValue(context, "{{globals.open-api-url}}"));
     }
@@ -131,5 +132,31 @@ class ApplicationInstancePlaceholderResolverTest {
         Assertions.assertThrows(MustacheException.Context.class, () -> {
             ApplicationInstancePlaceholderResolver.resolvePlaceholders(applicationInstance);
         });
+    }
+
+    @Test
+    void testKeepStruct() throws Exception {
+        ApplicationInstance applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of(
+                        "instance.yaml", """
+                                instance:
+                                    streamingCluster:
+                                        type: pulsar
+                                        configuration:
+                                            rootObject:
+                                                nestedObject: "value"
+                                            rootArray:
+                                                - nestedObject: "value"
+                                                - nestedObject: "value"
+                                            myvalue: "thevalue"
+                                """));
+
+        final ApplicationInstance resolved =
+                ApplicationInstancePlaceholderResolver.resolvePlaceholders(applicationInstance);
+        final Map<String, Object> configuration = resolved.getInstance().streamingCluster()
+                .configuration();
+        Assertions.assertTrue(configuration.get("rootObject") instanceof Map);
+        Assertions.assertTrue(configuration.get("rootArray") instanceof java.util.List);
+        Assertions.assertTrue(configuration.get("myvalue") instanceof String);
     }
 }

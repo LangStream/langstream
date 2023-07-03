@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.webservice.application;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @ControllerAdvice
 @Order(Ordered.LOWEST_PRECEDENCE)
+@Slf4j
 public class ApplicationResourceErrorsHandler {
 
     @ExceptionHandler(Throwable.class)
@@ -17,6 +19,7 @@ public class ApplicationResourceErrorsHandler {
         if (exception instanceof final ResponseStatusException rs) {
             return ProblemDetail.forStatusAndDetail(rs.getStatusCode(), rs.getMessage());
         }
+        log.error("Internal error", exception);
         return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
     }
 }

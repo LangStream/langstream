@@ -40,7 +40,8 @@ class PulsarClusterRuntimeDockerTest {
                                   streamingCluster:
                                     type: "pulsar"
                                     configuration:                                      
-                                      webServiceUrl: "%s"
+                                      admin: 
+                                        serviceUrl: "%s"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
                                 """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
@@ -80,7 +81,8 @@ class PulsarClusterRuntimeDockerTest {
                                   streamingCluster:
                                     type: "pulsar"
                                     configuration:                                      
-                                      webServiceUrl: "%s"
+                                      admin: 
+                                        serviceUrl: "%s"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
                                 """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
@@ -130,7 +132,8 @@ class PulsarClusterRuntimeDockerTest {
                                   streamingCluster:
                                     type: "pulsar"
                                     configuration:                                      
-                                      webServiceUrl: "%s"
+                                      admin: 
+                                        serviceUrl: "%s"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
                                 """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
@@ -175,7 +178,8 @@ class PulsarClusterRuntimeDockerTest {
                                   streamingCluster:
                                     type: "pulsar"
                                     configuration:                                      
-                                      webServiceUrl: "%s"
+                                      admin:
+                                        serviceUrl: "%s"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
                                 """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),

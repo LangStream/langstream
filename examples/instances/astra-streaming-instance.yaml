@@ -1,0 +1,10 @@
+instance:
+  streamingCluster:
+    type: "pulsar"
+    configuration:
+      admin:
+        serviceUrl: https://pulsar-gcp-useast4.api.dev.streaming.datastax.com
+        authPluginClassName: org.apache.pulsar.client.impl.auth.AuthenticationToken
+        #authParams: "token:xxx"
+      defaultTenant: mytenant
+      defaultNamespace: default

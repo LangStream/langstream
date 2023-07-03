@@ -126,10 +126,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
 
     private PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
-        log.info("converting configuration: {}", configuration);
-        final PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration =
-                mapper.convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
-        return pulsarClusterRuntimeConfiguration;
+        return mapper.convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
     }
 
     @Override

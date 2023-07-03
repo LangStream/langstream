@@ -1,11 +1,12 @@
-package com.datastax.oss.sga.cli.commands;
+package com.datastax.oss.sga.cli.commands.applications;
 
+import com.datastax.oss.sga.cli.commands.BaseCmd;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "get",
         description = "Get SGA application status")
-public class GetCmd extends BaseCmd {
+public class GetApplicationCmd extends BaseApplicationCmd {
 
     @CommandLine.Parameters(description = "Name of the application")
     private String name;

@@ -4,8 +4,7 @@ instance:
   streamingCluster:
     type: "pulsar"
     configuration:
-      credentials: "#pulsar-credentials"
-      webServiceUrl: "https://pulsar.astra.datastax.com/"
-      brokerUrl: "pulsar+tls://pulsar.astra.datastax.com:6651/"
+      admin:
+        serviceUrl: "https://pulsar.astra.datastax.com/"
       defaultTenant: "public"
       defaultNamespace: "default"

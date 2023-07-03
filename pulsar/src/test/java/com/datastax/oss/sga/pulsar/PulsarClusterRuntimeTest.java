@@ -35,8 +35,9 @@ class PulsarClusterRuntimeTest {
                                 instance:
                                   streamingCluster:
                                     type: "pulsar"
-                                    configuration:                                      
-                                      webServiceUrl: "http://localhost:8080"
+                                    configuration:
+                                      admin:                                      
+                                        serviceUrl: "http://localhost:8080"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
                                 """,
@@ -67,13 +68,15 @@ class PulsarClusterRuntimeTest {
         Module module = applicationInstance.getModule("module-1");
 
         PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof PulsarTopic);
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic-cassandra");
         assertTrue(implementation.getTopics().containsKey(pulsarName));
 
         AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractAgentProvider.DefaultAgentImplementation genericSink =
+                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
         AbstractPulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = genericSink.getPhysicalMetadata();
         assertEquals("cassandra-enhanced", pulsarSinkMetadata.getSinkType());
         assertEquals(new PulsarName("public", "default", "sink1"), pulsarSinkMetadata.getPulsarName());
@@ -88,8 +91,9 @@ class PulsarClusterRuntimeTest {
                                 instance:
                                   streamingCluster:
                                     type: "pulsar"
-                                    configuration:                                      
-                                      webServiceUrl: "http://localhost:8080"
+                                    configuration:
+                                      admin:
+                                          serviceUrl: "http://localhost:8080"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
                                 """,
@@ -122,13 +126,15 @@ class PulsarClusterRuntimeTest {
         Module module = applicationInstance.getModule("module-1");
 
         PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
         assertTrue(implementation.getTopics().containsKey(pulsarName));
 
         AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractAgentProvider.DefaultAgentImplementation genericSink =
+                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
         AbstractPulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = genericSink.getPhysicalMetadata();
         assertEquals("some-sink-type-on-your-cluster", pulsarSinkMetadata.getSinkType());
         assertEquals(new PulsarName("public", "default", "sink1"), pulsarSinkMetadata.getPulsarName());
@@ -143,8 +149,9 @@ class PulsarClusterRuntimeTest {
                                 instance:
                                   streamingCluster:
                                     type: "pulsar"
-                                    configuration:                                      
-                                      webServiceUrl: "http://localhost:8080"
+                                    configuration:
+                                      admin:                                     
+                                          serviceUrl: "http://localhost:8080"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
                                 """,
@@ -174,13 +181,15 @@ class PulsarClusterRuntimeTest {
         Module module = applicationInstance.getModule("module-1");
 
         PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
         assertTrue(implementation.getTopics().containsKey(pulsarName));
 
         AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "source-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractAgentProvider.DefaultAgentImplementation genericSink =
+                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
         AbstractPulsarSourceAgentProvider.PulsarSourceMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
         assertEquals("some-source-type-on-your-cluster", pulsarSourceMetadata.getSourceType());
         assertEquals(new PulsarName("public", "default", "source1"), pulsarSourceMetadata.getPulsarName());
@@ -197,7 +206,8 @@ class PulsarClusterRuntimeTest {
                                   streamingCluster:
                                     type: "pulsar"
                                     configuration:                                      
-                                      webServiceUrl: "http://localhost:8080"
+                                      admin:
+                                        serviceUrl: "http://localhost:8080"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
                                 """,
@@ -232,27 +242,29 @@ class PulsarClusterRuntimeTest {
 
         PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         {
-            assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
             assertTrue(implementation.getTopics().containsKey(pulsarName));
         }
         {
-            assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
             assertTrue(implementation.getTopics().containsKey(pulsarName));
         }
 
         AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
-        AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
+        AbstractAgentProvider.DefaultAgentImplementation genericSink =
+                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata =
+                genericSink.getPhysicalMetadata();
         assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
         assertEquals("a.b.c.ClassName", pulsarSourceMetadata.getFunctionClassname());
         assertEquals(new PulsarName("public", "default", "function1"), pulsarSourceMetadata.getPulsarName());
 
     }
-
-
 
 
     @Test
@@ -264,7 +276,8 @@ class PulsarClusterRuntimeTest {
                                   streamingCluster:
                                     type: "pulsar"
                                     configuration:                                      
-                                      webServiceUrl: "http://localhost:8080"
+                                      admin: 
+                                        serviceUrl: "http://localhost:8080"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
                                 """,
@@ -309,22 +322,24 @@ class PulsarClusterRuntimeTest {
 
         PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         {
-            assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
             assertTrue(implementation.getTopics().containsKey(pulsarName));
         }
         {
-            assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
             assertTrue(implementation.getTopics().containsKey(pulsarName));
         }
 
         {
-            assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("agent-function-1-id-output", null, null))) instanceof PulsarTopic);
+            assertTrue(implementation.getConnectionImplementation(module, new Connection(
+                    new TopicDefinition("agent-function-1-id-output", null, null))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "agent-function-1-id-output");
             assertTrue(implementation.getTopics().containsKey(pulsarName));
         }
-
 
 
         assertEquals(3, implementation.getTopics().size());
@@ -332,8 +347,10 @@ class PulsarClusterRuntimeTest {
         {
             AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
             assertNotNull(agentImplementation);
-            AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
-            AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
+            AbstractAgentProvider.DefaultAgentImplementation genericSink =
+                    (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+            AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata =
+                    genericSink.getPhysicalMetadata();
             assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
             assertEquals("a.b.c.ClassName", pulsarSourceMetadata.getFunctionClassname());
             assertEquals(new PulsarName("public", "default", "function1"), pulsarSourceMetadata.getPulsarName());
@@ -342,8 +359,10 @@ class PulsarClusterRuntimeTest {
         {
             AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
             assertNotNull(agentImplementation);
-            AbstractAgentProvider.DefaultAgentImplementation genericSink = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
-            AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
+            AbstractAgentProvider.DefaultAgentImplementation genericSink =
+                    (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+            AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata =
+                    genericSink.getPhysicalMetadata();
             assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
             assertEquals("a.b.c.ClassName", pulsarSourceMetadata.getFunctionClassname());
             assertEquals(new PulsarName("public", "default", "function2"), pulsarSourceMetadata.getPulsarName());
@@ -361,21 +380,22 @@ class PulsarClusterRuntimeTest {
                                   streamingCluster:
                                     type: "pulsar"
                                     configuration:                                      
-                                      webServiceUrl: "http://localhost:8080"
+                                      admin: 
+                                        serviceUrl: "http://localhost:8080"
                                       defaultTenant: "public"
                                       defaultNamespace: "default"
                                 """,
                         "configuration.yaml",
                         """
-                              configuration:  
-                                resources:
-                                  - name: open-ai
-                                    type: open-ai-configuration
-                                    configuration:
-                                      url: "http://something"                                
-                                      access-key: "xxcxcxc"
-                                      provider: "azure"
-                                """,
+                                configuration:  
+                                  resources:
+                                    - name: open-ai
+                                      type: open-ai-configuration
+                                      configuration:
+                                        url: "http://something"                                
+                                        access-key: "xxcxcxc"
+                                        provider: "azure"
+                                  """,
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -408,12 +428,15 @@ class PulsarClusterRuntimeTest {
         Module module = applicationInstance.getModule("module-1");
 
         PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
-        assertTrue(implementation.getConnectionImplementation(module, new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
 
         AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation step = (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractAgentProvider.DefaultAgentImplementation step =
+                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
@@ -431,7 +454,85 @@ class PulsarClusterRuntimeTest {
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
 
+    }
 
+    @Test
+    public void testSanitizePipelineName() throws Exception {
+        ApplicationInstance applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        """
+                                instance:
+                                  streamingCluster:
+                                    type: "pulsar"
+                                    configuration:                                      
+                                      admin: 
+                                        serviceUrl: "http://localhost:8080"
+                                      defaultTenant: "public"
+                                      defaultNamespace: "default"
+                                """,
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "My function name with spaces"
+                                    id: "step1"
+                                    type: "compute-ai-embeddings"
+                                    input: "input-topic"
+                                    output: "input-topic"
+                                    configuration:                                      
+                                      model: "text-embedding-ada-002"
+                                      embeddings-field: "value.embeddings"
+                                      text: "{{ value.name }} {{ value.description }}"
+                                  - name: "My sink name with spaces"
+                                    id: "sink1"
+                                    type: "generic-pulsar-sink"
+                                    input: "input-topic"
+                                    configuration:
+                                      sinkType: "some-sink-type-on-your-cluster"
+                                      config1: "value"
+                                      config2: "value2"
+                                  - name: "My source name with spaces"
+                                    id: "source1"
+                                    type: "generic-pulsar-source"
+                                    output: "input-topic"
+                                    configuration:
+                                      sourceType: "some-source-type-on-your-cluster"
+                                      config1: "value"
+                                      config2: "value2"
+                                """));
+
+        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
+                .<PulsarPhysicalApplicationInstance>builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        final AbstractAgentProvider.DefaultAgentImplementation functionPhysicalImpl =
+                (AbstractAgentProvider.DefaultAgentImplementation) implementation.getAgentImplementation(module,
+                        "step1");
+        assertEquals("my-function-name-with-spaces",
+                ((AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata) functionPhysicalImpl.getPhysicalMetadata()).getPulsarName()
+                        .name());
+
+        final AbstractAgentProvider.DefaultAgentImplementation sinkPhysicalImpl =
+                (AbstractAgentProvider.DefaultAgentImplementation) implementation.getAgentImplementation(module,
+                        "sink1");
+        assertEquals("my-sink-name-with-spaces",
+                ((AbstractPulsarSinkAgentProvider.PulsarSinkMetadata) sinkPhysicalImpl.getPhysicalMetadata()).getPulsarName()
+                        .name());
+
+        final AbstractAgentProvider.DefaultAgentImplementation sourcePhysicalImpl =
+                (AbstractAgentProvider.DefaultAgentImplementation) implementation.getAgentImplementation(module,
+                        "source1");
+        assertEquals("my-source-name-with-spaces",
+                ((AbstractPulsarSourceAgentProvider.PulsarSourceMetadata) sourcePhysicalImpl.getPhysicalMetadata()).getPulsarName()
+                        .name());
     }
 
 }

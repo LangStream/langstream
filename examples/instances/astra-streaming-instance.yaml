@@ -1,0 +1,10 @@
+instance:
+  streamingCluster:
+    type: "pulsar"
+    configuration:
+      admin:
+        serviceUrl: https://pulsar-gcp-useast4.api.dev.streaming.datastax.com
+        authPluginClassName: org.apache.pulsar.client.impl.auth.AuthenticationToken
+        authParams: "token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2NzgwOTEyODgsImlzcyI6ImRhdGFzdGF4Iiwic3ViIjoiY2xpZW50OzYxZjM5NDZiLTc0YTctNDk5MS05ZTAzLWQyM2U5N2YzYTQwZTtibWxqYjJ4djs3YWM3ZTE1NDE2IiwidG9rZW5pZCI6IjdhYzdlMTU0MTYifQ.eGQHOuyAc4OzP0ajqttzTmubHk4BU_zRjEnoTxslXABXk50a0Gpe2hwFrusQg71cBDVPK6ntdihn0Qdd6sd4pVbDpNBkYx_0sEoma87a-i6PnIFSz99C2lKe9WlPLBSDeVGCL0q_ebnqmGKPOLyEaT94ZJ2SW5fQZdXlrwiKPPVDMm4JQVkXiEX-0dHIXBYciqIBC3cQddMqDwyh6HFs_-Njfkrb7ONXldsl7lBbe_DuZeCPXhh6MqrD6ZJKo7DKQD06mZsKt7C9T8fQ7H3sHzrOKnXpeelEZryumUiGrvE4fYKo_9Ab6IzRNIq_OhGd-bzapXyTr6ZID7gGv7Uozw"
+      defaultTenant: nicolo
+      defaultNamespace: sga

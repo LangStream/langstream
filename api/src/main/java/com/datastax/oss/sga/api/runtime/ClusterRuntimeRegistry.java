@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ClusterRuntimeRegistry {
 
-    private final Map<String, ClusterRuntime<?>> registry = new ConcurrentHashMap<>();
+    protected final Map<String, ClusterRuntime<?>> registry = new ConcurrentHashMap<>();
 
     public ClusterRuntime getClusterRuntime(StreamingCluster streamingCluster) {
         Objects.requireNonNull(streamingCluster);

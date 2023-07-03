@@ -27,16 +27,18 @@ public class TopicDefinition extends Connection.Connectable {
     public static final String CREATE_MODE_CREATE_IF_NOT_EXISTS = "create-if-not-exists";
 
     public TopicDefinition() {
-        if (creationMode == null) {
-            creationMode = CREATE_MODE_NONE;
-        }
+        creationMode = CREATE_MODE_NONE;
         connectableType = Connection.Connectables.TOPIC;
     }
 
     public TopicDefinition(String name, String creationMode, SchemaDefinition schema) {
         this();
         this.name = name;
-        this.creationMode = creationMode;
+        if (creationMode == null) {
+            this.creationMode = CREATE_MODE_NONE;
+        } else {
+            this.creationMode = creationMode;
+        }
         this.schema = schema;
         validateCreationMode();
     }
@@ -44,7 +46,7 @@ public class TopicDefinition extends Connection.Connectable {
     private String name;
 
     @JsonProperty("creation-mode")
-    private String creationMode = CREATE_MODE_NONE;
+    private String creationMode;
     private SchemaDefinition schema;
 
     private void validateCreationMode() {

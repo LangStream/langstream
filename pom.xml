@@ -32,6 +32,7 @@
     <spring-boot.version>3.0.7</spring-boot.version>
     <zip4j.version>2.11.5</zip4j.version>
     <picocli.version>4.7.4</picocli.version>
+    <jmustache.version>1.15</jmustache.version>
   </properties>
   <modules>
     <module>api</module>
@@ -111,6 +112,11 @@
         <groupId>info.picocli</groupId>
         <artifactId>picocli</artifactId>
         <version>${picocli.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.samskivert</groupId>
+        <artifactId>jmustache</artifactId>
+        <version>${jmustache.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -35,9 +35,11 @@ class ApplicationInstancePlaceholderResolverTest {
 
         final Map<String, Object> context = ApplicationInstancePlaceholderResolver.createContext(applicationInstance);
         Assertions.assertEquals("my-access-key",
-                ApplicationInstancePlaceholderResolver.resolveValue(context, "{{secrets.openai-credentials.accessKey}}"));
+                ApplicationInstancePlaceholderResolver.resolveValue(context,
+                        "{{secrets.openai-credentials.accessKey}}"));
         Assertions.assertEquals("http://mypulsar.localhost:8080",
-                ApplicationInstancePlaceholderResolver.resolveValue(context, "{{cluster.configuration.webServiceUrl}}"));
+                ApplicationInstancePlaceholderResolver.resolveValue(context,
+                        "{{cluster.configuration.webServiceUrl}}"));
         Assertions.assertEquals("http://myurl.localhost:8080/endpoint",
                 ApplicationInstancePlaceholderResolver.resolveValue(context, "{{globals.open-api-url}}"));
     }
@@ -76,6 +78,40 @@ class ApplicationInstancePlaceholderResolverTest {
         final Resource resource = resolved.getResources().get("openai-azure");
         Assertions.assertEquals("my-access-key", resource.configuration().get("credentials"));
         Assertions.assertEquals("http://myurl.localhost:8080/endpoint", resource.configuration().get("url"));
+    }
+
+    @Test
+    void testResolveInAgentConfiguration() throws Exception {
+        ApplicationInstance applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("module1.yaml",
+                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                    - name: "input-topic"
+                                pipeline:
+                                  - name: "sink1"
+                                    id: "sink1"
+                                    type: "generic-pulsar-sink"
+                                    input: "input-topic"
+                                    configuration:
+                                      sinkType: "some-sink-type-on-your-cluster"
+                                      access-key: "{{ secrets.ak.value }}"
+                                """,
+                        "secrets.yaml", """
+                                secrets:
+                                    - name: "OpenAI Azure credentials"
+                                      id: "ak"
+                                      data:
+                                        value: "my-access-key"
+                                """));
+
+        final ApplicationInstance resolved =
+                ApplicationInstancePlaceholderResolver.resolvePlaceholders(applicationInstance);
+        Assertions.assertEquals("my-access-key",
+                resolved.getModule("module-1").getPipelines().values().iterator().next().getAgents().get("sink1")
+                        .getConfiguration()
+                        .get("access-key"));
     }
 
     @Test

@@ -1,11 +1,12 @@
-package com.datastax.oss.sga.cli.commands;
+package com.datastax.oss.sga.cli.commands.applications;
 
+import com.datastax.oss.sga.cli.commands.BaseCmd;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "delete",
         description = "Delete an application")
-public class DeleteCmd extends BaseCmd {
+public class DeleteApplicationCmd extends BaseApplicationCmd {
 
     @CommandLine.Parameters(description = "Name of the application")
     private String name;
@@ -14,6 +15,6 @@ public class DeleteCmd extends BaseCmd {
     @SneakyThrows
     public void run() {
         http(newDelete("/applications/%s".formatted(name)));
-        log("Application deleted");
+        log("Application %s deleted".formatted(name));
     }
 }

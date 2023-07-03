@@ -16,8 +16,10 @@ public abstract class BaseCmd implements Runnable {
 
 
     protected final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
-    @CommandLine.ParentCommand
-    protected RootCmd rootCmd;
+
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec command;
+    protected abstract RootCmd getRootCmd();
 
     private HttpClient httpClient;
     private SgaCLIConfig config;
@@ -27,6 +29,7 @@ public abstract class BaseCmd implements Runnable {
     protected SgaCLIConfig getConfig() {
         if (config == null) {
             File configFile;
+            final RootCmd rootCmd = getRootCmd();
             if (rootCmd.getConfigPath() == null) {
                 String configBaseDir = System.getProperty("basedir");
                 if (configBaseDir == null) {
@@ -69,9 +72,9 @@ public abstract class BaseCmd implements Runnable {
             return response;
         }
         if (status >= 400) {
-            log("Request failed: " + response.statusCode());
-            log(response.body());
-            throw new RuntimeException("Request failed");
+            err("Request failed: " + response.statusCode());
+            err(response.body());
+            throw new RuntimeException();
         }
         throw new RuntimeException("Unexpected status code: " + status);
     }
@@ -79,6 +82,7 @@ public abstract class BaseCmd implements Runnable {
     protected HttpRequest newGet(String uri) {
         return HttpRequest.newBuilder()
                         .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                .version(HttpClient.Version.HTTP_1_1)
                 .GET()
                 .build();
     }
@@ -86,6 +90,7 @@ public abstract class BaseCmd implements Runnable {
     protected HttpRequest newDelete(String uri) {
         return HttpRequest.newBuilder()
                 .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                .version(HttpClient.Version.HTTP_1_1)
                 .DELETE()
                 .build();
     }
@@ -94,17 +99,22 @@ public abstract class BaseCmd implements Runnable {
         return HttpRequest.newBuilder()
                 .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
                 .header("Content-Type", contentType)
+                .version(HttpClient.Version.HTTP_1_1)
                 .PUT(bodyPublisher)
                 .build();
     }
 
 
     protected void log(Object log) {
-        System.out.println(log);
+        command.commandLine().getOut().println(log);
+    }
+
+    protected void err(Object log) {
+        System.err.println(command.commandLine().getColorScheme().errorText(log.toString()));
     }
 
     protected void debug(Object log) {
-        if (rootCmd.isVerbose()) {
+        if (getRootCmd().isVerbose()) {
             log(log);
         }
     }

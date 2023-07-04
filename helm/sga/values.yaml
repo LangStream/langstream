@@ -13,6 +13,10 @@ serviceAccount:
   create: true
   annotations: {}
   name: ""
+  role:
+    name: "sga"
+  roleBinding:
+    name: "sga-role-binding"
 
 podAnnotations: {}
 
@@ -46,3 +50,8 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+app:
+  config:
+    application.storage.configs.type: kubernetes
+    application.storage.secrets.type: kubernetes

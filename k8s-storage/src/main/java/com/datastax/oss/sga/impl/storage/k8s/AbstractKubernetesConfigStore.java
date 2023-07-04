@@ -37,13 +37,20 @@ public abstract class AbstractKubernetesConfigStore<T extends HasMetadata> imple
         final KubernetesConfigStoreProperties properties =
                 mapper.convertValue(configuration, KubernetesConfigStoreProperties.class);
         if (properties.getNamespace() == null) {
-            throw new IllegalArgumentException("kubernetes namespace is required");
+            final String fromEnv = System.getenv("KUBERNETES_NAMESPACE");
+            if (fromEnv == null) {
+                throw new IllegalArgumentException("Kubernetes namespace is required. Either set " +
+                        "KUBERNETES_NAMESPACE environment variable or set namespace in configuration.");
+            } else {
+                namespace = fromEnv;
+                log.info("Using namespace from env {}", namespace);
+            }
+        } else {
+            namespace = properties.getNamespace();
+            log.info("Using namespace from properties {}", namespace);
         }
-        client = new KubernetesClientBuilder()
-                .withConfig(Config.autoConfigure(properties.getContext()))
-                .build();
-        namespace = properties.getNamespace();
-        log.info("Configured kubernetes client, namespace {}", namespace);
+        client = KubernetesClientFactory.get(properties.getContext());
+        log.info("Kubernetes client configured");
     }
 
     private static String resourceName(String key) {

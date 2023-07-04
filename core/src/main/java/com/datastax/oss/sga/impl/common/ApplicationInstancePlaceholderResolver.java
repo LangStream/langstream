@@ -8,6 +8,7 @@ import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.Resource;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.samskivert.mustache.Mustache;
 import java.io.IOException;
 import java.util.Collection;
@@ -16,10 +17,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ApplicationInstancePlaceholderResolver {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper()
+            .enable(SerializationFeature.INDENT_OUTPUT);
 
     private ApplicationInstancePlaceholderResolver() {
     }
@@ -28,6 +32,9 @@ public class ApplicationInstancePlaceholderResolver {
     public static ApplicationInstance resolvePlaceholders(ApplicationInstance instance) {
         instance = deepCopy(instance);
         final Map<String, Object> context = createContext(instance);
+        if (log.isDebugEnabled()) {
+            log.debug("Resolving placeholders with context:\n{}", mapper.writeValueAsString(context));
+        }
 
 
         instance.setInstance(resolveInstance(instance, context));

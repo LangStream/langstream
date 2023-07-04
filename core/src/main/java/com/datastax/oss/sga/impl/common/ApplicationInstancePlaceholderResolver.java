@@ -145,9 +145,12 @@ public class ApplicationInstancePlaceholderResolver {
     }
 
     static String resolveValue(Map<String, Object> context, String template) {
-        return Mustache.compiler()
-                .compile(template)
+        final String escaped = template.replace("{{% ", "{__MUSTACHE_ESCAPING_PREFIX ");
+        final String result = Mustache.compiler()
+                .compile(escaped)
                 .execute(context);
+        return result.
+                replace("{__MUSTACHE_ESCAPING_PREFIX ", "{{ ");
     }
 
     private static ApplicationInstance deepCopy(ApplicationInstance instance) throws IOException {
@@ -157,6 +160,4 @@ public class ApplicationInstancePlaceholderResolver {
     private static Map<String, Object> deepCopy(Map<String, Object> context) throws IOException {
         return mapper.readValue(mapper.writeValueAsBytes(context), Map.class);
     }
-
-
 }

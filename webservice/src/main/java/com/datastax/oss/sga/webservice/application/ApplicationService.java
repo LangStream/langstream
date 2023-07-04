@@ -1,7 +1,6 @@
 package com.datastax.oss.sga.webservice.application;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
-import com.datastax.oss.sga.api.model.ApplicationInstanceLifecycleStatus;
 import com.datastax.oss.sga.api.model.StoredApplicationInstance;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
@@ -9,7 +8,9 @@ import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.storage.ConfigStore;
 import com.datastax.oss.sga.api.storage.ConfigStoreRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
+import com.datastax.oss.sga.impl.deploy.ApplicationManager;
 import com.datastax.oss.sga.impl.storage.ApplicationStore;
+import com.datastax.oss.sga.webservice.config.SchedulingProperties;
 import com.datastax.oss.sga.webservice.config.StorageProperties;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -18,60 +19,43 @@ import org.springframework.stereotype.Service;
 @Service
 public class ApplicationService {
 
-    private final ApplicationDeployer<PhysicalApplicationInstance> deployer = ApplicationDeployer
-            .builder()
-            .pluginsRegistry(new PluginsRegistry())
-            .registry(new ClusterRuntimeRegistry())
-            .build();
+    private final ApplicationManager applicationManager;
 
-    private final StorageProperties storageProperties;
-    private final ApplicationStore applicationStore;
-
-    public ApplicationService(StorageProperties storageProperties) {
-        this.storageProperties = storageProperties;
+    public ApplicationService(StorageProperties storageProperties, SchedulingProperties schedulingProperties) {
         final ConfigStore configStore =
                 ConfigStoreRegistry.loadConfigsStore(storageProperties.getConfigs().getType(),
                         storageProperties.getConfigs().getConfiguration());
         final ConfigStore secretsStore =
                 ConfigStoreRegistry.loadSecretsStore(storageProperties.getSecrets().getType(),
                         storageProperties.getSecrets().getConfiguration());
-        this.applicationStore = new ApplicationStore(configStore, secretsStore);
+
+        final ApplicationDeployer<PhysicalApplicationInstance> deployer = ApplicationDeployer
+                .builder()
+                .pluginsRegistry(new PluginsRegistry())
+                .registry(new ClusterRuntimeRegistry())
+                .build();
+        final ApplicationStore store = new ApplicationStore(configStore, secretsStore);
+        applicationManager = new ApplicationManager(deployer, store, schedulingProperties.getExecutors());
     }
 
     @SneakyThrows
     public Map<String, StoredApplicationInstance> getAllApplications() {
-        return applicationStore.list();
+        return applicationManager.getAllApplications();
     }
 
     @SneakyThrows
     public void deployApplication(String applicationName, ApplicationInstance applicationInstance) {
-        applicationStore.put(applicationName, applicationInstance, ApplicationInstanceLifecycleStatus.CREATED);
-
-        try {
-            final PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-            deployer.deploy(applicationInstance, implementation);
-            applicationStore.put(applicationName, applicationInstance, ApplicationInstanceLifecycleStatus.DEPLOYED);
-        } catch (Exception e) {
-            applicationStore.put(applicationName, applicationInstance, ApplicationInstanceLifecycleStatus.error(e.getMessage()));
-            throw new RuntimeException(e);
-        }
+        applicationManager.deployApplication(applicationName, applicationInstance);
     }
 
     @SneakyThrows
     public StoredApplicationInstance getApplication(String applicationName) {
-        return applicationStore.get(applicationName);
+        return applicationManager.getApplication(applicationName);
     }
 
     @SneakyThrows
     public void deleteApplication(String applicationName) {
-        final StoredApplicationInstance current = applicationStore.get(applicationName);
-        if (current == null || current.getStatus() == ApplicationInstanceLifecycleStatus.DELETING) {
-            return;
-        }
-        applicationStore.put(applicationName, current.getInstance(), ApplicationInstanceLifecycleStatus.DELETING);
-        // not supported yet
-        // deployer.delete(applicationInstance, deployer.createImplementation(current.getInstance()));
-        applicationStore.delete(applicationName);
+        applicationManager.deleteApplication(applicationName);
     }
 
 }

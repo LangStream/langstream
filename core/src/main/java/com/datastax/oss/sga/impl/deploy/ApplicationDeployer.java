@@ -16,7 +16,9 @@ public class ApplicationDeployer<T extends PhysicalApplicationInstance> {
 
       public T createImplementation(ApplicationInstance applicationInstance) {
           ClusterRuntime<T> clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().streamingCluster());
-          return (T) clusterRuntime.createImplementation(applicationInstance, pluginsRegistry);
+          final ApplicationInstance resolvedApplicationInstance = ApplicationInstancePlaceholderResolver
+                  .resolvePlaceholders(applicationInstance);
+          return (T) clusterRuntime.createImplementation(resolvedApplicationInstance, pluginsRegistry);
       }
 
       public void deploy(ApplicationInstance applicationInstance, T physicalApplicationInstance) {

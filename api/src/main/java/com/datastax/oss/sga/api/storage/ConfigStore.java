@@ -1,10 +1,16 @@
 package com.datastax.oss.sga.api.storage;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 public interface ConfigStore {
+
+    enum Scope {
+        CONFIGS,
+        SECRETS
+    }
+
+    boolean acceptScope(Scope scope);
 
     String storeType();
 

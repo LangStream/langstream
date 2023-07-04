@@ -159,4 +159,12 @@ class ApplicationInstancePlaceholderResolverTest {
         Assertions.assertTrue(configuration.get("rootArray") instanceof java.util.List);
         Assertions.assertTrue(configuration.get("myvalue") instanceof String);
     }
+
+
+    @Test
+    void testEscapeMustache() throws Exception {
+        Assertions.assertEquals("{{ do not resolve }} resolved",
+                ApplicationInstancePlaceholderResolver.resolveValue(Map.of("test", "resolved"),
+                        "{{% do not resolve }} {{ test }}"));
+    }
 }

@@ -60,3 +60,25 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create the name of the role to use
+*/}}
+{{- define "sga.roleName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "sga.fullname" .) .Values.serviceAccount.role.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.role.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the name of the role binding to use
+*/}}
+{{- define "sga.roleBindingName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "sga.fullname" .) .Values.serviceAccount.roleBinding.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.roleBinding.name }}
+{{- end }}
+{{- end }}

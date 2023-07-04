@@ -112,7 +112,14 @@ public class ModelBuilder {
         ConfigurationNodeModel configurationNode = configurationFileModel.configuration();
         if (configurationNode != null && configurationNode.resources != null) {
             configurationNode.resources.forEach(r -> {
-                application.getResources().put(r.id(), r);
+                String id = r.id();
+                if (id == null) {
+                    id = r.name();
+                }
+                if (id == null) {
+                    throw new RuntimeException("Resource 'id' is required");
+                }
+                application.getResources().put(id, r);
             });
 
         }

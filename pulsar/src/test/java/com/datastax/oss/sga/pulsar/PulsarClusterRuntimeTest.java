@@ -416,7 +416,7 @@ class PulsarClusterRuntimeTest {
                                     configuration:                                      
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{ value.name }} {{ value.description }}"
+                                      text: "{{% value.name }} {{% value.description }}"
                                 """));
 
         ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
@@ -485,7 +485,7 @@ class PulsarClusterRuntimeTest {
                                     configuration:                                      
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{ value.name }} {{ value.description }}"
+                                      text: "{{% value.name }} {{% value.description }}"
                                   - name: "My sink name with spaces"
                                     id: "sink1"
                                     type: "generic-pulsar-sink"

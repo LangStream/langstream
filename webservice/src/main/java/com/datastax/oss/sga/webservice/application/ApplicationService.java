@@ -30,9 +30,12 @@ public class ApplicationService {
     public ApplicationService(StorageProperties storageProperties) {
         this.storageProperties = storageProperties;
         final ConfigStore configStore =
-                ConfigStoreRegistry.loadConfigStore(storageProperties.getType(),
-                        storageProperties.getConfiguration());
-        this.applicationStore = new ApplicationStore(configStore, configStore);
+                ConfigStoreRegistry.loadConfigsStore(storageProperties.getConfigs().getType(),
+                        storageProperties.getConfigs().getConfiguration());
+        final ConfigStore secretsStore =
+                ConfigStoreRegistry.loadSecretsStore(storageProperties.getSecrets().getType(),
+                        storageProperties.getSecrets().getConfiguration());
+        this.applicationStore = new ApplicationStore(configStore, secretsStore);
     }
 
     @SneakyThrows

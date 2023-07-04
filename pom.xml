@@ -18,7 +18,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <pulsar.version>3.0.0</pulsar.version>
-    <testcontainers.version>1.17.6</testcontainers.version>
+    <testcontainers.version>1.18.3</testcontainers.version>
     <junit-jupiter.version>5.9.3</junit-jupiter.version>
     <lombok.version>1.18.28</lombok.version>
     <jackson.version>2.14.2</jackson.version>
@@ -41,6 +41,7 @@
     <module>core</module>
     <module>pulsar</module>
     <module>webservice</module>
+    <module>k8s-storage</module>
   </modules>
 
   <dependencyManagement>
@@ -93,8 +94,18 @@
         <version>${junit-jupiter.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-params</artifactId>
+        <version>${junit-jupiter.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>pulsar</artifactId>
+        <version>${testcontainers.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>k3s</artifactId>
         <version>${testcontainers.version}</version>
       </dependency>
       <dependency>
@@ -150,6 +161,11 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.webservice;
 
+import com.datastax.oss.sga.webservice.config.SchedulingProperties;
 import com.datastax.oss.sga.webservice.config.StorageProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,7 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.core.env.Environment;
 
 @SpringBootApplication
-@EnableConfigurationProperties({ SgaProperties.class, StorageProperties.class })
+@EnableConfigurationProperties({ SgaProperties.class, StorageProperties.class, SchedulingProperties.class })
 public class SgaWebApplication {
 
 	static {

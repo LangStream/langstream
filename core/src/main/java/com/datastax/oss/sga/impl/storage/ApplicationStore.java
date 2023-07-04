@@ -8,10 +8,12 @@ import com.datastax.oss.sga.api.model.Resource;
 import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplicationInstance;
 import com.datastax.oss.sga.api.storage.ConfigStore;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +22,6 @@ import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 
 
-@AllArgsConstructor
 public class ApplicationStore {
 
     @Data
@@ -50,12 +51,24 @@ public class ApplicationStore {
     private final ConfigStore appConfigStore;
     private final ConfigStore secretStore;
 
+    private final Map<String, StoredApplicationInstance> localApps = new ConcurrentHashMap<>();
+
+    public ApplicationStore(ConfigStore appConfigStore, ConfigStore secretStore) {
+        this.appConfigStore = appConfigStore;
+        this.secretStore = secretStore;
+        loadFromStore();
+    }
+
     private static String keyedConfigName(String name) {
         return KEY_PREFIX + name;
     }
 
     private static String keyedSecretName(String name) {
         return KEY_SECRET_PREFIX + name;
+    }
+
+    private void loadFromStore() {
+        list();
     }
 
     @SneakyThrows
@@ -71,16 +84,21 @@ public class ApplicationStore {
         secretStore.put(keyedSecretName(name), mapper.writeValueAsString(ApplicationSecretsObject.builder()
                 .secrets(applicationInstance.getSecrets())
                 .build()));
+        localApps.put(name, StoredApplicationInstance.builder()
+                .name(name)
+                .instance(applicationInstance)
+                .status(status)
+                .build()
+        );
     }
 
     @SneakyThrows
     public StoredApplicationInstance get(String key) {
-        return buildStoredApplicationInstance(key);
-
+        return localApps.computeIfAbsent(key, k -> buildStoredApplicationInstance(k));
     }
 
-    private StoredApplicationInstance buildStoredApplicationInstance(String key)
-            throws JsonProcessingException {
+    @SneakyThrows
+    private StoredApplicationInstance buildStoredApplicationInstance(String key) {
         final String s = appConfigStore.get(keyedConfigName(key));
         if (s == null) {
             return null;
@@ -108,6 +126,7 @@ public class ApplicationStore {
     public void delete(String key) {
         appConfigStore.delete(keyedConfigName(key));
         secretStore.delete(keyedSecretName(key));
+        localApps.remove(key);
     }
 
     @SneakyThrows
@@ -119,7 +138,7 @@ public class ApplicationStore {
                 .map((entry) -> {
                     try {
                         final String unkeyed = entry.getKey().substring(KEY_PREFIX.length());
-                        final StoredApplicationInstance parsed = buildStoredApplicationInstance(unkeyed);
+                        final StoredApplicationInstance parsed = get(unkeyed);
                         return Map.entry(parsed.getName(), parsed);
                     } catch (Exception e) {
                         throw new RuntimeException(e);

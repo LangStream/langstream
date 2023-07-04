@@ -12,9 +12,9 @@ public class ApplicationInstanceLifecycleStatus {
     public static final ApplicationInstanceLifecycleStatus CREATED =
             new ApplicationInstanceLifecycleStatus(Status.CREATED, null);
     public static final ApplicationInstanceLifecycleStatus DEPLOYED =
-            new ApplicationInstanceLifecycleStatus(Status.CREATED, null);
+            new ApplicationInstanceLifecycleStatus(Status.DEPLOYED, null);
     public static final ApplicationInstanceLifecycleStatus DELETING =
-            new ApplicationInstanceLifecycleStatus(Status.CREATED, null);
+            new ApplicationInstanceLifecycleStatus(Status.DELETING, null);
 
     public static final ApplicationInstanceLifecycleStatus error(String reason) {
         return new ApplicationInstanceLifecycleStatus(Status.ERROR, reason);

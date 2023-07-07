@@ -7,13 +7,11 @@ import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Resource;
 import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplicationInstance;
-import com.datastax.oss.sga.api.storage.ConfigStore;
+import com.datastax.oss.sga.api.storage.TenantDataStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,15 +46,14 @@ public class ApplicationStore {
     public static final String KEY_SECRET_PREFIX = "sec-";
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private final ConfigStore appConfigStore;
-    private final ConfigStore secretStore;
+    private final TenantDataStore appConfigStore;
+    private final TenantDataStore secretStore;
 
-    private final Map<String, StoredApplicationInstance> localApps = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, StoredApplicationInstance>> localApps = new ConcurrentHashMap<>();
 
-    public ApplicationStore(ConfigStore appConfigStore, ConfigStore secretStore) {
+    public ApplicationStore(TenantDataStore appConfigStore, TenantDataStore secretStore) {
         this.appConfigStore = appConfigStore;
         this.secretStore = secretStore;
-        loadFromStore();
     }
 
     private static String keyedConfigName(String name) {
@@ -67,44 +64,52 @@ public class ApplicationStore {
         return KEY_SECRET_PREFIX + name;
     }
 
-    private void loadFromStore() {
-        list();
+    public void initializeTenant(String tenant) {
+        appConfigStore.initializeTenant(tenant);
+        secretStore.initializeTenant(tenant);
+    }
+
+    public void loadTenant(String tenant) {
+        list(tenant);
     }
 
     @SneakyThrows
-    public void put(String name, ApplicationInstance applicationInstance,
+    public void put(String tenant, String name, ApplicationInstance applicationInstance,
                     ApplicationInstanceLifecycleStatus status) {
-        appConfigStore.put(keyedConfigName(name), mapper.writeValueAsString(ApplicationConfigObject.builder()
+        appConfigStore.put(tenant, keyedConfigName(name), mapper.writeValueAsString(ApplicationConfigObject.builder()
                 .name(name)
                 .modules(applicationInstance.getModules())
                 .resources(applicationInstance.getResources())
                 .instance(applicationInstance.getInstance())
                 .status(status)
                 .build()));
-        secretStore.put(keyedSecretName(name), mapper.writeValueAsString(ApplicationSecretsObject.builder()
+        secretStore.put(tenant, keyedSecretName(name), mapper.writeValueAsString(ApplicationSecretsObject.builder()
                 .secrets(applicationInstance.getSecrets())
                 .build()));
-        localApps.put(name, StoredApplicationInstance.builder()
-                .name(name)
-                .instance(applicationInstance)
-                .status(status)
-                .build()
-        );
+        localApps.computeIfAbsent(tenant, k -> new ConcurrentHashMap<>())
+                .put(name, StoredApplicationInstance.builder()
+                        .name(name)
+                        .instance(applicationInstance)
+                        .status(status)
+                        .build());
+
     }
 
     @SneakyThrows
-    public StoredApplicationInstance get(String key) {
-        return localApps.computeIfAbsent(key, k -> buildStoredApplicationInstance(k));
+    public StoredApplicationInstance get(String tenant, String key) {
+        return localApps
+                .computeIfAbsent(tenant, t -> new ConcurrentHashMap<>())
+                .computeIfAbsent(key, k -> buildStoredApplicationInstance(tenant, k));
     }
 
     @SneakyThrows
-    private StoredApplicationInstance buildStoredApplicationInstance(String key) {
-        final String s = appConfigStore.get(keyedConfigName(key));
+    private StoredApplicationInstance buildStoredApplicationInstance(String tenant, String key) {
+        final String s = appConfigStore.get(tenant, keyedConfigName(key));
         if (s == null) {
             return null;
         }
         final ApplicationConfigObject config = mapper.readValue(s, ApplicationConfigObject.class);
-        final String secretsStr = secretStore.get(keyedSecretName(key));
+        final String secretsStr = secretStore.get(tenant, keyedSecretName(key));
         ApplicationSecretsObject secrets = null;
         if (secretsStr != null) {
             secrets = mapper.readValue(secretsStr, ApplicationSecretsObject.class);
@@ -123,22 +128,25 @@ public class ApplicationStore {
     }
 
     @SneakyThrows
-    public void delete(String key) {
-        appConfigStore.delete(keyedConfigName(key));
-        secretStore.delete(keyedSecretName(key));
-        localApps.remove(key);
+    public void delete(String tenant, String key) {
+        appConfigStore.delete(tenant, keyedConfigName(key));
+        secretStore.delete(tenant, keyedSecretName(key));
+        final Map<String, StoredApplicationInstance> tenantApps = localApps.get(tenant);
+        if (tenantApps != null) {
+            tenantApps.remove(key);
+        }
     }
 
     @SneakyThrows
-    public LinkedHashMap<String, StoredApplicationInstance> list() {
-        return appConfigStore.list()
+    public LinkedHashMap<String, StoredApplicationInstance> list(String tenant) {
+        return appConfigStore.list(tenant)
                 .entrySet()
                 .stream()
                 .filter((entry) -> entry.getKey().startsWith(KEY_PREFIX))
                 .map((entry) -> {
                     try {
                         final String unkeyed = entry.getKey().substring(KEY_PREFIX.length());
-                        final StoredApplicationInstance parsed = get(unkeyed);
+                        final StoredApplicationInstance parsed = get(tenant, unkeyed);
                         return Map.entry(parsed.getName(), parsed);
                     } catch (Exception e) {
                         throw new RuntimeException(e);

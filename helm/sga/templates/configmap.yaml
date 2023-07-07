@@ -23,5 +23,5 @@ metadata:
     {{- include "sga.labels" . | nindent 4 }}
 data:
 {{- range $key, $val := $.Values.app.config }}
-  {{ $key | replace "-" "." | replace "\"" "." | snakecase | upper | replace "." "_"  }}: {{ $val | toString | replace "\"" "" | trim | quote }}
+  {{ $key | replace "-" "" | replace "\"" "." | snakecase | upper | replace "." "_"  }}: {{ $val | toString | replace "\"" "" | trim | quote }}
 {{- end }}

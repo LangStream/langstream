@@ -1,7 +1,7 @@
 package com.datastax.oss.sga.impl.storage.k8s;
 
 import static org.junit.jupiter.api.Assertions.*;
-import com.datastax.oss.sga.api.storage.ConfigStore;
+import com.datastax.oss.sga.api.storage.TenantDataStore;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
@@ -43,23 +43,20 @@ class KubernetesConfigStoreTest {
     }
 
     @ParameterizedTest
-    @ValueSource(classes = {ConfigMapKubernetesConfigStore.class, SecretsKubernetesConfigStore.class})
+    @ValueSource(classes = {ConfigMapKubernetesTenantDataStore.class, SecretsKubernetesTenantDataStore.class})
     public void test(Class storeClass) throws Exception {
-        String namespace = "test-" + System.nanoTime();
-        client.resource(new NamespaceBuilder()
-                        .withNewMetadata()
-                        .withName(namespace)
-                        .endMetadata().build())
-                .create();
-        final ConfigStore store = (ConfigStore) storeClass.getConstructor().newInstance();
-        store.initialize(Map.of("namespace", namespace));
-        store.put("mykey", "myvalue");
-        if (storeClass == ConfigMapKubernetesConfigStore.class) {
+        final String tenant = "tenant";
+        String namespace = "sga-" + tenant;
+        final TenantDataStore store = (TenantDataStore) storeClass.getConstructor().newInstance();
+        store.initialize(Map.of("namespaceprefix", "sga-"));
+        store.initializeTenant(tenant);
+        store.put(tenant, "mykey", "myvalue");
+        if (storeClass == ConfigMapKubernetesTenantDataStore.class) {
             final ConfigMap configMap = client.configMaps().inNamespace(namespace).withName("sga-mykey").get();
             assertEquals("sga", configMap.getMetadata().getLabels().get("app"));
             assertEquals("mykey", configMap.getMetadata().getLabels().get("sga-key"));
             assertEquals("myvalue", configMap.getData().get("value"));
-            assertEquals("myvalue", store.get("mykey"));
+            assertEquals("myvalue", store.get(tenant, "mykey"));
             assertEquals(0, client.secrets().inNamespace(namespace).withLabel("app", "sga")
                     .list().getItems().size());
         } else {
@@ -67,16 +64,16 @@ class KubernetesConfigStoreTest {
             assertEquals("sga", secret.getMetadata().getLabels().get("app"));
             assertEquals("mykey", secret.getMetadata().getLabels().get("sga-key"));
             assertEquals("bXl2YWx1ZQ==", secret.getData().get("value"));
-            assertEquals("myvalue", store.get("mykey"));
+            assertEquals("myvalue", store.get(tenant, "mykey"));
             assertEquals(0, client.configMaps().inNamespace(namespace)
                     .withLabel("app", "sga")
                     .list().getItems().size());
         }
-        final LinkedHashMap<String, String> list = store.list();
+        final LinkedHashMap<String, String> list = store.list(tenant);
         assertEquals(1, list.size());
         assertEquals("myvalue", list.get("mykey"));
-        store.delete("mykey");
-        if (storeClass == ConfigMapKubernetesConfigStore.class) {
+        store.delete(tenant, "mykey");
+        if (storeClass == ConfigMapKubernetesTenantDataStore.class) {
             assertNull(client.configMaps().inNamespace(namespace).withName("sga-mykey").get());
         } else {
             assertNull(client.secrets().inNamespace(namespace).withName("sga-mykey").get());

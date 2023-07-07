@@ -14,7 +14,7 @@ public class DeleteApplicationCmd extends BaseApplicationCmd {
     @Override
     @SneakyThrows
     public void run() {
-        http(newDelete("/applications/%s".formatted(name)));
+        http(newDelete(tenantAppPath("/" + name)));
         log("Application %s deleted".formatted(name));
     }
 }

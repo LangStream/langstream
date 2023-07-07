@@ -11,7 +11,7 @@ public class ListApplicationCmd extends BaseApplicationCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final String body = http(newGet("/applications")).body();
+        final String body = http(newGet(tenantAppPath(""))).body();
         log(body);
     }
 }

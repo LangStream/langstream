@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.cli.commands.applications;
 
 import com.datastax.oss.sga.cli.commands.BaseCmd;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -11,6 +12,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
@@ -40,26 +42,31 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
         final File instanceFile = checkFileExists(instanceFilePath);
         final File secretsFile = checkFileExists(secretFilePath);
 
-        final Path tempZip = Files.createTempFile("app", ".zip");
-        debug("building local zip at " + tempZip.toAbsolutePath());
-        try (final ZipFile zip = new ZipFile(tempZip.toFile());) {
-            addApp(appDirectory, zip);
-            addInstance(instanceFile, zip);
-            addSecrets(secretsFile, zip);
-        }
+        final Path tempZip = buildZip(appDirectory, instanceFile, secretsFile, s -> log(s));
 
 
         log("deploying application: %s".formatted(name));
         String boundary = new BigInteger(256, new Random()).toString();
-        http(newPut("/applications/%s".formatted(name),
+        http(newPut(tenantAppPath("/" + name),
                 "multipart/form-data;boundary=%s".formatted(boundary),
                 multiPartBodyPublisher(tempZip, boundary)));
         log("application %s deployed".formatted(name));
 
     }
 
-    private void addApp(File appDirectory, ZipFile zip) throws ZipException {
-        log("packaging app: %s".formatted(appDirectory.getAbsolutePath()));
+    public static Path buildZip(File appDirectory, File instanceFile, File secretsFile,
+                                Consumer<String> logger) throws IOException {
+        final Path tempZip = Files.createTempFile("app", ".zip");
+        try (final ZipFile zip = new ZipFile(tempZip.toFile());) {
+            addApp(appDirectory, zip, logger);
+            addInstance(instanceFile, zip, logger);
+            addSecrets(secretsFile, zip, logger);
+        }
+        return tempZip;
+    }
+
+    private static void addApp(File appDirectory, ZipFile zip, Consumer<String> logger) throws ZipException {
+        logger.accept("packaging app: %s".formatted(appDirectory.getAbsolutePath()));
         if (appDirectory.isDirectory()) {
             for (File file : appDirectory.listFiles()) {
                 zip.addFile(file);
@@ -67,21 +74,21 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
         } else {
             zip.addFile(appDirectory);
         }
-        log("app packaged");
+        logger.accept("app packaged");
     }
 
-    private void addInstance(File instanceFile, ZipFile zip) throws ZipException {
-        log("using instance: %s".formatted(instanceFile.getAbsolutePath()));
+    private static void addInstance(File instanceFile, ZipFile zip, Consumer<String> logger) throws ZipException {
+        logger.accept("using instance: %s".formatted(instanceFile.getAbsolutePath()));
         final ZipParameters zipParameters = new ZipParameters();
         zipParameters.setFileNameInZip("instance.yaml");
         zip.addFile(instanceFile, zipParameters);
     }
 
-    private void addSecrets(File secretsFile, ZipFile zip) throws ZipException {
+    private static void addSecrets(File secretsFile, ZipFile zip, Consumer<String> logger) throws ZipException {
         if (secretsFile == null) {
             return;
         }
-        log("using secrets: %s".formatted(secretsFile.getAbsolutePath()));
+        logger.accept("using secrets: %s".formatted(secretsFile.getAbsolutePath()));
         final ZipParameters zipParameters = new ZipParameters();
         zipParameters.setFileNameInZip("secrets.yaml");
         zip.addFile(secretsFile, zipParameters);
@@ -98,7 +105,7 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
         return file;
     }
 
-    public static HttpRequest.BodyPublisher multiPartBodyPublisher(Path path, String boundary) throws IOException {
+    public static byte[] buildMultipartContentForAppZip(Path path, String boundary) throws IOException {
         List<byte[]> byteArrays = new ArrayList<>();
         final String beforeFile =
                 "--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"%s\"\r\nContent-Type: %s\r\n\r\n"
@@ -106,7 +113,20 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
         byteArrays.add(beforeFile.getBytes(StandardCharsets.UTF_8));
         byteArrays.add(Files.readAllBytes(path));
         byteArrays.add("\r\n--%s--\r\n".formatted(boundary).getBytes(StandardCharsets.UTF_8));
-        return HttpRequest.BodyPublishers.ofByteArrays(byteArrays);
+        return concatBytes(byteArrays.toArray(new byte[0][]));
+    }
+
+    @SneakyThrows
+    private static byte[] concatBytes(byte[]... arrays) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        for (byte[] array : arrays) {
+            outputStream.write(array);
+        }
+        return outputStream.toByteArray();
+    }
+
+    private static HttpRequest.BodyPublisher multiPartBodyPublisher(Path path, String boundary) throws IOException {
+        return HttpRequest.BodyPublishers.ofByteArray(buildMultipartContentForAppZip(path, boundary));
     }
 
 }

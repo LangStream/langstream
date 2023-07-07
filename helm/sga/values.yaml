@@ -53,5 +53,8 @@ affinity: {}
 
 app:
   config:
-    application.storage.configs.type: kubernetes
+    application.storage.apps.type: kubernetes
+    application.storage.apps.configuration.namespace-prefix: sga-
     application.storage.secrets.type: kubernetes
+    application.storage.secrets.configuration.namespace-prefix: sga-
+    application.storage.global.type: kubernetes

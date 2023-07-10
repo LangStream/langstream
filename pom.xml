@@ -42,6 +42,7 @@
     <module>cli</module>
     <module>core</module>
     <module>pulsar</module>
+    <module>kafka</module>
     <module>webservice</module>
     <module>k8s-storage</module>
   </modules>

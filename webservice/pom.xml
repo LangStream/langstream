@@ -33,6 +33,11 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>sga-pulsar</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>k8s-storage</artifactId>
 			<version>${project.version}</version>
 		</dependency>

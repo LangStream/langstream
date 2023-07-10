@@ -3,7 +3,6 @@ package com.datastax.oss.sga.webservice.application;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.StoredApplicationInstance;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.storage.ConfigStore;
 import com.datastax.oss.sga.api.storage.ConfigStoreRegistry;
@@ -29,7 +28,7 @@ public class ApplicationService {
                 ConfigStoreRegistry.loadSecretsStore(storageProperties.getSecrets().getType(),
                         storageProperties.getSecrets().getConfiguration());
 
-        final ApplicationDeployer<PhysicalApplicationInstance> deployer = ApplicationDeployer
+        final ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .pluginsRegistry(new PluginsRegistry())
                 .registry(new ClusterRuntimeRegistry())

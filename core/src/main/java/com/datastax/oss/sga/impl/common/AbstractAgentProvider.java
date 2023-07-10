@@ -8,6 +8,7 @@ import com.datastax.oss.sga.api.runtime.ClusterRuntime;
 import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -52,24 +53,24 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
     }
 
     protected ConnectionImplementation computeInput(AgentConfiguration agentConfiguration,
-                                          Module module,
-                                          PhysicalApplicationInstance physicalApplicationInstance,
-                                          ClusterRuntime clusterRuntime) {
+                                                    Module module,
+                                                    PhysicalApplicationInstance physicalApplicationInstance,
+                                                    ClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
         if (agentConfiguration.getInput() != null) {
-            return physicalApplicationInstance
-                    .getConnectionImplementation(module, agentConfiguration.getInput());
+            return clusterRuntime
+                    .getConnectionImplementation(module, agentConfiguration.getInput(), physicalApplicationInstance, streamingClusterRuntime);
         } else {
             return null;
         }
     }
 
     protected ConnectionImplementation computeOutput(AgentConfiguration agentConfiguration,
-                                                    Module module,
-                                                    PhysicalApplicationInstance physicalApplicationInstance,
-                                                    ClusterRuntime clusterRuntime) {
+                                                     Module module,
+                                                     PhysicalApplicationInstance physicalApplicationInstance,
+                                                     ClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
         if (agentConfiguration.getOutput() != null) {
-            return physicalApplicationInstance
-                    .getConnectionImplementation(module, agentConfiguration.getOutput());
+            return clusterRuntime
+                    .getConnectionImplementation(module, agentConfiguration.getOutput(), physicalApplicationInstance, streamingClusterRuntime);
         } else {
             return null;
         }
@@ -77,8 +78,9 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
 
     protected Object computeAgentMetadata(AgentConfiguration agentConfiguration,
                                           PhysicalApplicationInstance physicalApplicationInstance,
-                                          ClusterRuntime clusterRuntime) {
-        return clusterRuntime.computeAgentMetadata(agentConfiguration, physicalApplicationInstance);
+                                          ClusterRuntime clusterRuntime,
+                                          StreamingClusterRuntime streamingClusterRuntime) {
+        return clusterRuntime.computeAgentMetadata(agentConfiguration, physicalApplicationInstance, streamingClusterRuntime);
     }
 
     protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module,
@@ -91,17 +93,18 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
     public AgentImplementation createImplementation(AgentConfiguration agentConfiguration,
                                                     Module module,
                                                     PhysicalApplicationInstance physicalApplicationInstance,
-                                                    ClusterRuntime clusterRuntime, PluginsRegistry pluginsRegistry) {
-        Object metadata = computeAgentMetadata(agentConfiguration, physicalApplicationInstance, clusterRuntime);
+                                                    ClusterRuntime clusterRuntime, PluginsRegistry pluginsRegistry,
+                                                    StreamingClusterRuntime streamingClusterRuntime) {
+        Object metadata = computeAgentMetadata(agentConfiguration, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
         Map<String, Object> configuration = computeAgentConfiguration(agentConfiguration, module,
                 physicalApplicationInstance, clusterRuntime);
-        ConnectionImplementation input = computeInput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
-        ConnectionImplementation output = computeOutput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
+        ConnectionImplementation input = computeInput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
+        ConnectionImplementation output = computeOutput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
         return new DefaultAgentImplementation(agentConfiguration.getType(), configuration, metadata, input, output);
     }
 
     @Override
-    public boolean supports(String type, ClusterRuntime<?> clusterRuntime) {
+    public boolean supports(String type, ClusterRuntime clusterRuntime) {
         return supportedTypes.contains(type) && supportedClusterTypes.contains(clusterRuntime.getClusterType());
     }
 }

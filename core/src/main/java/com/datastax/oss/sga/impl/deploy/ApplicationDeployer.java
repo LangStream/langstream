@@ -5,33 +5,37 @@ import com.datastax.oss.sga.api.runtime.ClusterRuntime;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
+import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.impl.common.ApplicationInstancePlaceholderResolver;
 import com.datastax.oss.sga.impl.storage.ApplicationStore;
 import lombok.Builder;
 
 @Builder
-public class ApplicationDeployer<T extends PhysicalApplicationInstance> {
+public class ApplicationDeployer {
 
       private ClusterRuntimeRegistry registry;
       private PluginsRegistry pluginsRegistry;
       private ApplicationStore applicationStore;
 
-      public T createImplementation(ApplicationInstance applicationInstance) {
-          ClusterRuntime<T> clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().streamingCluster());
+      public PhysicalApplicationInstance createImplementation(ApplicationInstance applicationInstance) {
+          ClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
+          StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
           final ApplicationInstance resolvedApplicationInstance = ApplicationInstancePlaceholderResolver
                   .resolvePlaceholders(applicationInstance);
-          return (T) clusterRuntime.createImplementation(resolvedApplicationInstance, pluginsRegistry);
+          return clusterRuntime.createImplementation(resolvedApplicationInstance, pluginsRegistry, streamingClusterRuntime);
       }
 
-      public void deploy(ApplicationInstance applicationInstance, T physicalApplicationInstance) {
-          ClusterRuntime<T> clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().streamingCluster());
+      public void deploy(ApplicationInstance applicationInstance, PhysicalApplicationInstance physicalApplicationInstance) {
+          ClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
+          StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
           final ApplicationInstance resolvedApplicationInstance = ApplicationInstancePlaceholderResolver
                   .resolvePlaceholders(applicationInstance);
-          clusterRuntime.deploy(resolvedApplicationInstance, physicalApplicationInstance);
+          clusterRuntime.deploy(resolvedApplicationInstance, physicalApplicationInstance, streamingClusterRuntime);
       }
 
-      public void delete(ApplicationInstance applicationInstance, T physicalApplicationInstance) {
-          ClusterRuntime<T> clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().streamingCluster());
-          clusterRuntime.delete(applicationInstance, physicalApplicationInstance);
+      public void delete(ApplicationInstance applicationInstance, PhysicalApplicationInstance physicalApplicationInstance) {
+          ClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
+          StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
+          clusterRuntime.delete(applicationInstance, physicalApplicationInstance, streamingClusterRuntime);
       }
 }

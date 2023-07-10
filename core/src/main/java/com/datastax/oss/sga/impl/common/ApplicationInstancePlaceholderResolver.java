@@ -2,6 +2,7 @@ package com.datastax.oss.sga.impl.common;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.ComputeCluster;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
@@ -82,6 +83,7 @@ public class ApplicationInstancePlaceholderResolver {
 
     private static Instance resolveInstance(ApplicationInstance applicationInstance, Map<String, Object> context) {
         final StreamingCluster newCluster;
+        final ComputeCluster newComputeCluster;
         final Instance instance = applicationInstance.getInstance();
         if (instance == null) {
             return null;
@@ -92,8 +94,15 @@ public class ApplicationInstancePlaceholderResolver {
         } else {
             newCluster = null;
         }
+        final ComputeCluster computeCluster = instance.computeCluster();
+        if (computeCluster != null) {
+            newComputeCluster = new ComputeCluster(computeCluster.type(), resolveMap(context, computeCluster.configuration()));
+        } else {
+            newComputeCluster = null;
+        }
         return new Instance(
                 newCluster,
+                newComputeCluster,
                 resolveMap(context, instance.globals())
         );
     }

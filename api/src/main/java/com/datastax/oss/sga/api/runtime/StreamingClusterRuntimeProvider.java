@@ -13,9 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sga.api.model;
-import java.util.Map;
+package com.datastax.oss.sga.api.runtime;
 
-public record Instance (StreamingCluster streamingCluster, ComputeCluster computeCluster, Map<String, Object> globals){
+/**
+ * Factory
+ */
+public interface StreamingClusterRuntimeProvider {
 
+    boolean supports(String type);
+
+    /**
+     * Create a new cluster runtime for the given application instance
+     * @return the physical application instance
+     */
+    StreamingClusterRuntime getImplementation();
 }

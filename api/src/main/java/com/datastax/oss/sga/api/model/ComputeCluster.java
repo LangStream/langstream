@@ -14,8 +14,15 @@
  * limitations under the License.
  */
 package com.datastax.oss.sga.api.model;
+
+import java.util.HashMap;
 import java.util.Map;
 
-public record Instance (StreamingCluster streamingCluster, ComputeCluster computeCluster, Map<String, Object> globals){
 
+public record ComputeCluster(String type, Map<String, Object> configuration) {
+    public ComputeCluster {
+        if (configuration == null) {
+            configuration = new HashMap<>();
+        }
+    }
 }

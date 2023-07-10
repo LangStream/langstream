@@ -3,9 +3,8 @@ package com.datastax.oss.sga.pulsar.agents;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.runtime.ClusterRuntime;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
-import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
+import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.pulsar.PulsarName;
-import com.datastax.oss.sga.pulsar.PulsarPhysicalApplicationInstance;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -31,9 +30,10 @@ public abstract class AbstractPulsarFunctionAgentProvider extends AbstractPulsar
     }
 
     @Override
-    protected Object computeAgentMetadata(AgentConfiguration agentConfiguration, PhysicalApplicationInstance physicalApplicationInstance, ClusterRuntime clusterRuntime) {
-        PulsarPhysicalApplicationInstance pulsar = (PulsarPhysicalApplicationInstance) physicalApplicationInstance;
-        final PulsarName pulsarName = computePulsarName(pulsar, agentConfiguration);
+    protected Object computeAgentMetadata(AgentConfiguration agentConfiguration,
+                                          PhysicalApplicationInstance physicalApplicationInstance,
+                                          ClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
+        final PulsarName pulsarName = computePulsarName(physicalApplicationInstance, agentConfiguration);
         return new PulsarFunctionMetadata(pulsarName, getFunctionType(agentConfiguration), getFunctionClassname(agentConfiguration));
     }
 

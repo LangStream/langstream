@@ -1,16 +1,20 @@
 package com.datastax.oss.sga.impl.deploy;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.ComputeCluster;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.runtime.ClusterRuntime;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import static org.mockito.ArgumentMatchers.eq;
 
 class ApplicationDeployerTest {
 
@@ -20,13 +24,22 @@ class ApplicationDeployerTest {
             super();
         }
 
-        public void addClusterRuntime(String name, ClusterRuntime<?> clusterRuntime) {
-            registry.put(name, clusterRuntime);
+        public void addClusterRuntime(String name, ClusterRuntime clusterRuntime) {
+            computeClusterImplementations.put(name, clusterRuntime);
+        }
+
+        public void addStreamingClusterRuntime(String name, StreamingClusterRuntime clusterRuntime) {
+            streamingClusterImplementations.put(name, clusterRuntime);
         }
 
         @Override
-        public ClusterRuntime getClusterRuntime(StreamingCluster streamingCluster) {
-            return registry.get(streamingCluster.type());
+        public ClusterRuntime getClusterRuntime(ComputeCluster computeCluster) {
+            return computeClusterImplementations.get(computeCluster.type());
+        }
+
+        @Override
+        public StreamingClusterRuntime getStreamingClusterRuntime(StreamingCluster streamingCluster) {
+            return streamingClusterImplementations.get(streamingCluster.type());
         }
     }
 
@@ -35,9 +48,11 @@ class ApplicationDeployerTest {
 
         final MockClusterRuntimeRegistry registry = new MockClusterRuntimeRegistry();
         final ClusterRuntime mockRuntime = Mockito.mock(ClusterRuntime.class);
+        final StreamingClusterRuntime mockStreamingRuntime = Mockito.mock(StreamingClusterRuntime.class);
         registry.addClusterRuntime("mock", mockRuntime);
+        registry.addStreamingClusterRuntime("mock", mockStreamingRuntime);
 
-        final ApplicationDeployer<PhysicalApplicationInstance> deployer = ApplicationDeployer
+        final ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .pluginsRegistry(new PluginsRegistry())
                 .registry(registry)
@@ -67,6 +82,8 @@ class ApplicationDeployerTest {
                                 instance:
                                     streamingCluster:
                                         type: mock
+                                    computeCluster:
+                                        type: mock
                                 """));
         deployer.deploy(applicationInstance, null);
         Mockito.doAnswer(invocationOnMock -> {
@@ -76,7 +93,7 @@ class ApplicationDeployerTest {
                     resolvedApplicationInstance.getResources().get("openai-azure").configuration()
                             .get("accessKey"));
             return null;
-        }).when(mockRuntime).deploy(Mockito.any(), Mockito.any());
-        Mockito.verify(mockRuntime).deploy(Mockito.any(), Mockito.any());
+        }).when(mockRuntime).deploy(Mockito.any(), Mockito.any(), eq(mockStreamingRuntime) );
+        Mockito.verify(mockRuntime).deploy(Mockito.any(), Mockito.any(), eq(mockStreamingRuntime));
     }
 }

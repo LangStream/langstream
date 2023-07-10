@@ -2,6 +2,7 @@ package com.datastax.oss.sga.pulsar;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
+import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
@@ -35,16 +36,7 @@ class PulsarClusterRuntimeDockerTest {
     public void testDeployTopics() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin: 
-                                        serviceUrl: "%s"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                               
@@ -57,13 +49,13 @@ class PulsarClusterRuntimeDockerTest {
                                 pipeline:
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .<PhysicalApplicationInstance>builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(applicationInstance, implementation);
 
         // verify that the topic exists
@@ -76,16 +68,7 @@ class PulsarClusterRuntimeDockerTest {
     public void testDeployCassandraSink() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin: 
-                                        serviceUrl: "%s"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -103,13 +86,13 @@ class PulsarClusterRuntimeDockerTest {
                                       mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(applicationInstance, implementation);
 
         // verify that the topic exists
@@ -122,21 +105,33 @@ class PulsarClusterRuntimeDockerTest {
         assertTrue(sinks.contains("sink1"));
     }
 
+    private static String buildInstanceYaml() {
+        return """
+                instance:
+                  computeCluster:
+                    type: "pulsar"
+                    configuration:                                      
+                      admin: 
+                        serviceUrl: "%s"
+                      defaultTenant: "public"
+                      defaultNamespace: "default"
+                  streamingCluster:
+                    type: "pulsar"
+                    configuration:                                      
+                      admin: 
+                        serviceUrl: "%s"
+                      defaultTenant: "public"
+                      defaultNamespace: "default"
+                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080),
+                                     "http://localhost:" + pulsarContainer.getMappedPort(8080));
+    }
+
 
     @Test
     public void testDeployDataGeneratorSource() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin: 
-                                        serviceUrl: "%s"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -152,13 +147,13 @@ class PulsarClusterRuntimeDockerTest {
                                       sourceType: "data-generator"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(applicationInstance, implementation);
 
         // verify that the topic exists
@@ -173,16 +168,7 @@ class PulsarClusterRuntimeDockerTest {
     public void testDeployChainOfGenericFunctions() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin:
-                                        serviceUrl: "%s"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
+                        buildInstanceYaml(),
                         "module.yaml", """
                               module: "module-1"
                               id: "pipeline-1"
@@ -210,13 +196,13 @@ class PulsarClusterRuntimeDockerTest {
                                     steps: []
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(applicationInstance, implementation);
 
         // verify that the topics exist

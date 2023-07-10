@@ -4,13 +4,14 @@ import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
-import com.datastax.oss.sga.api.model.SchemaDefinition;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentImplementation;
 import com.datastax.oss.sga.api.runtime.AgentImplementationProvider;
 import com.datastax.oss.sga.api.runtime.ClusterRuntime;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
+import com.datastax.oss.sga.api.runtime.TopicImplementation;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSinkAgentProvider;
@@ -47,7 +48,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
 
     @Override
     public PulsarPhysicalApplicationInstance createImplementation(ApplicationInstance applicationInstance,
-                                                                  PluginsRegistry pluginsRegistry) {
+                                                                  PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime) {
         StreamingCluster streamingCluster = applicationInstance.getInstance().streamingCluster();
         final PulsarClusterRuntimeConfiguration config =
                 getPulsarClusterRuntimeConfiguration(streamingCluster);
@@ -58,7 +59,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         PulsarPhysicalApplicationInstance result =
                 new PulsarPhysicalApplicationInstance(applicationInstance, tenant, namespace);
 
-        detectTopics(applicationInstance, result, tenant, namespace);
+        detectTopics(result, streamingClusterRuntime);
 
         detectPipelines(applicationInstance, result, tenant, namespace, pluginsRegistry);
 
@@ -66,12 +67,13 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         return result;
     }
 
-    private void detectTopics(ApplicationInstance applicationInstance, PulsarPhysicalApplicationInstance result,
-                              String tenant, String namespace) {
+    private void detectTopics(PulsarPhysicalApplicationInstance result,
+                              StreamingClusterRuntime streamingClusterRuntime) {
+        ApplicationInstance applicationInstance = result.getApplicationInstance();
         for (Module module : applicationInstance.getModules().values()) {
             for (TopicDefinition topic : module.getTopics().values()) {
-                result.registerTopic(tenant, namespace,
-                        topic.getName(), topic.getSchema(), topic.getCreationMode());
+                TopicImplementation topicImplementation = streamingClusterRuntime.createTopicImplementation(topic, result);
+                result.registerTopic(topic, topicImplementation);
             }
         }
     }
@@ -131,12 +133,11 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
 
     @Override
     @SneakyThrows
-    public void deploy(ApplicationInstance logicalInstance, PulsarPhysicalApplicationInstance applicationInstance) {
-        try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
-            for (PulsarTopic topic : applicationInstance.getTopics().values()) {
-                deployTopic(admin, topic);
-            }
+    public void deploy(ApplicationInstance logicalInstance, PulsarPhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
 
+        streamingClusterRuntime.deploy(applicationInstance);
+
+        try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
             for (AgentImplementation agentImplementation : applicationInstance.getAgents().values()) {
                 deployAgent(admin, agentImplementation);
             }
@@ -291,7 +292,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
 
 
     @Override
-    public void delete(ApplicationInstance logicalInstance, PulsarPhysicalApplicationInstance applicationInstance) {
+    public void delete(ApplicationInstance logicalInstance, PulsarPhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         throw new UnsupportedOperationException();
     }
 }

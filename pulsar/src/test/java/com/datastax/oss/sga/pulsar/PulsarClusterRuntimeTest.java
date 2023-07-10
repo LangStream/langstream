@@ -14,7 +14,7 @@ import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSinkAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSourceAgentProvider;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -31,16 +31,7 @@ class PulsarClusterRuntimeTest {
     public void testMapCassandraSink() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:
-                                      admin:                                      
-                                        serviceUrl: "http://localhost:8080"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """,
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -71,7 +62,7 @@ class PulsarClusterRuntimeTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic-cassandra");
-        assertTrue(implementation.getTopics().containsKey(pulsarName));
+        assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
 
         AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
@@ -83,20 +74,32 @@ class PulsarClusterRuntimeTest {
 
     }
 
+    @NotNull
+    private static String buildInstanceYaml() {
+        return """
+                instance:
+                  streamingCluster:
+                    type: "pulsar"
+                    configuration:
+                      admin:                                      
+                        serviceUrl: "http://localhost:8080"
+                      defaultTenant: "public"
+                      defaultNamespace: "default"
+                  computeCluster:
+                    type: "pulsar"
+                    configuration:
+                      admin:                                      
+                        serviceUrl: "http://localhost:8080"
+                      defaultTenant: "public"
+                      defaultNamespace: "default"
+                """;
+    }
+
     @Test
     public void testMapGenericPulsarSink() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:
-                                      admin:
-                                          serviceUrl: "http://localhost:8080"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """,
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -129,7 +132,7 @@ class PulsarClusterRuntimeTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
-        assertTrue(implementation.getTopics().containsKey(pulsarName));
+        assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
 
         AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
@@ -145,16 +148,7 @@ class PulsarClusterRuntimeTest {
     public void testMapGenericPulsarSource() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:
-                                      admin:                                     
-                                          serviceUrl: "http://localhost:8080"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """,
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -184,7 +178,7 @@ class PulsarClusterRuntimeTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
-        assertTrue(implementation.getTopics().containsKey(pulsarName));
+        assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
 
         AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "source-1-id");
         assertNotNull(agentImplementation);
@@ -201,16 +195,7 @@ class PulsarClusterRuntimeTest {
     public void testMapGenericPulsarFunction() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin:
-                                        serviceUrl: "http://localhost:8080"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """,
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -245,13 +230,13 @@ class PulsarClusterRuntimeTest {
             assertTrue(implementation.getConnectionImplementation(module,
                     new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
-            assertTrue(implementation.getTopics().containsKey(pulsarName));
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
         {
             assertTrue(implementation.getConnectionImplementation(module,
                     new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
-            assertTrue(implementation.getTopics().containsKey(pulsarName));
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
 
         AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
@@ -271,16 +256,7 @@ class PulsarClusterRuntimeTest {
     public void testMapGenericPulsarFunctionsChain() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin: 
-                                        serviceUrl: "http://localhost:8080"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """,
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -325,20 +301,20 @@ class PulsarClusterRuntimeTest {
             assertTrue(implementation.getConnectionImplementation(module,
                     new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
-            assertTrue(implementation.getTopics().containsKey(pulsarName));
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
         {
             assertTrue(implementation.getConnectionImplementation(module,
                     new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
-            assertTrue(implementation.getTopics().containsKey(pulsarName));
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
 
         {
             assertTrue(implementation.getConnectionImplementation(module, new Connection(
                     new TopicDefinition("agent-function-1-id-output", null, null))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "agent-function-1-id-output");
-            assertTrue(implementation.getTopics().containsKey(pulsarName));
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
 
 
@@ -375,16 +351,7 @@ class PulsarClusterRuntimeTest {
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin: 
-                                        serviceUrl: "http://localhost:8080"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """,
+                        buildInstanceYaml(),
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -460,16 +427,7 @@ class PulsarClusterRuntimeTest {
     public void testSanitizePipelineName() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin: 
-                                        serviceUrl: "http://localhost:8080"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """,
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                

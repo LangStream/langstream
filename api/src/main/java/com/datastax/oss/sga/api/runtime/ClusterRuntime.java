@@ -28,14 +28,16 @@ public interface ClusterRuntime<T extends PhysicalApplicationInstance> {
 
     /**
      * Create a physical application instance from the logical application instance.
+     *
      * @param applicationInstance
+     * @param streamingClusterRuntime
      * @return the physical application instance
      */
-    T createImplementation(ApplicationInstance applicationInstance, PluginsRegistry pluginsRegistry);
+    T createImplementation(ApplicationInstance applicationInstance, PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime);
 
-    void deploy(ApplicationInstance logicalInstance,T applicationInstance);
+    void deploy(ApplicationInstance logicalInstance, T applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    void delete(ApplicationInstance logicalInstance,T applicationInstance);
+    void delete(ApplicationInstance logicalInstance, T applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
     default Object computeAgentMetadata(AgentConfiguration agentConfiguration, PhysicalApplicationInstance physicalApplicationInstance) {
         return null;

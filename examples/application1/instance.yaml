@@ -8,3 +8,5 @@ instance:
         serviceUrl: "https://pulsar.astra.datastax.com/"
       defaultTenant: "public"
       defaultNamespace: "default"
+  computeCluster:
+    type: "pulsar"

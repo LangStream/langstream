@@ -35,16 +35,7 @@ class PulsarClusterRuntimeDockerTest {
     public void testDeployTopics() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin: 
-                                        serviceUrl: "%s"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                               
@@ -76,16 +67,7 @@ class PulsarClusterRuntimeDockerTest {
     public void testDeployCassandraSink() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin: 
-                                        serviceUrl: "%s"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -122,21 +104,33 @@ class PulsarClusterRuntimeDockerTest {
         assertTrue(sinks.contains("sink1"));
     }
 
+    private static String buildInstanceYaml() {
+        return """
+                instance:
+                  computeCluster:
+                    type: "pulsar"
+                    configuration:                                      
+                      admin: 
+                        serviceUrl: "%s"
+                      defaultTenant: "public"
+                      defaultNamespace: "default"
+                  streamingCluster:
+                    type: "pulsar"
+                    configuration:                                      
+                      admin: 
+                        serviceUrl: "%s"
+                      defaultTenant: "public"
+                      defaultNamespace: "default"
+                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080),
+                                     "http://localhost:" + pulsarContainer.getMappedPort(8080));
+    }
+
 
     @Test
     public void testDeployDataGeneratorSource() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin: 
-                                        serviceUrl: "%s"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
+                        buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -173,16 +167,7 @@ class PulsarClusterRuntimeDockerTest {
     public void testDeployChainOfGenericFunctions() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "pulsar"
-                                    configuration:                                      
-                                      admin:
-                                        serviceUrl: "%s"
-                                      defaultTenant: "public"
-                                      defaultNamespace: "default"
-                                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080)),
+                        buildInstanceYaml(),
                         "module.yaml", """
                               module: "module-1"
                               id: "pipeline-1"

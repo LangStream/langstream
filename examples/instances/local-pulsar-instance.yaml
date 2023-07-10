@@ -6,3 +6,10 @@ instance:
         serviceUrl: http://localhost:8080/
       defaultTenant: public
       defaultNamespace: default
+  computeCluster:
+    type: "pulsar"
+    configuration:
+      admin:
+        serviceUrl: http://localhost:8080/
+      defaultTenant: public
+      defaultNamespace: default

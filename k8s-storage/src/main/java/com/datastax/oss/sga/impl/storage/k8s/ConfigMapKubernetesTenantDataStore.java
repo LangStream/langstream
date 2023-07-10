@@ -2,17 +2,16 @@ package com.datastax.oss.sga.impl.storage.k8s;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
-import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import java.util.Map;
 
-public class ConfigMapKubernetesConfigStore extends AbstractKubernetesConfigStore<ConfigMap> {
+public class ConfigMapKubernetesTenantDataStore extends AbstractKubernetesTenantDataStore<ConfigMap> {
 
     @Override
-    public boolean acceptScope(Scope scope) {
-        return scope == Scope.CONFIGS;
+    public boolean includeScope(Scope scope) {
+        return scope == Scope.APPS;
     }
 
     @Override

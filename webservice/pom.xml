@@ -106,6 +106,13 @@
 			<version>2.11.5</version>
 		</dependency>
 
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>cli</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>

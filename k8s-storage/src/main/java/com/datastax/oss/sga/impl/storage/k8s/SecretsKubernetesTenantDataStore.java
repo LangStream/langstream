@@ -9,10 +9,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
-public class SecretsKubernetesConfigStore extends AbstractKubernetesConfigStore<Secret> {
+public class SecretsKubernetesTenantDataStore extends AbstractKubernetesTenantDataStore<Secret> {
 
     @Override
-    public boolean acceptScope(Scope scope) {
+    public boolean includeScope(Scope scope) {
         return scope == Scope.SECRETS;
     }
 

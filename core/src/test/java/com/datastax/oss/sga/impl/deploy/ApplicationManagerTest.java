@@ -22,18 +22,18 @@ class ApplicationManagerTest {
         final ApplicationStore applicationStore = new ApplicationStore(store, store);
         final ApplicationManager manager =
                 new ApplicationManager(deployer, applicationStore, 4);
-        manager.deployApplication("test", new ApplicationInstance());
+        manager.deployApplication("tenant", "test", new ApplicationInstance());
 
         Awaitility.await().untilAsserted(() -> {
             Mockito.verify(deployer, Mockito.times(1)).createImplementation(any());
             Mockito.verify(deployer, Mockito.times(1)).deploy(any(), any());
-            final StoredApplicationInstance stored = applicationStore.get("test");
+            final StoredApplicationInstance stored = applicationStore.get("tenant","test");
             Assertions.assertEquals(ApplicationInstanceLifecycleStatus.Status.DEPLOYED, stored.getStatus().getStatus());
         });
 
-        manager.deleteApplication("test");
+        manager.deleteApplication("tenant", "test");
         Awaitility.await().untilAsserted(() -> {
-            Assertions.assertNull(applicationStore.get("test"));
+            Assertions.assertNull(applicationStore.get("tenant", "test"));
         });
     }
 
@@ -45,18 +45,19 @@ class ApplicationManagerTest {
         final ApplicationStore applicationStore = new ApplicationStore(store, store);
         final ApplicationManager manager =
                 new ApplicationManager(deployer, applicationStore, 4);
-        manager.deployApplication("test", new ApplicationInstance());
+        final String tenantName = "tenant";
+        manager.deployApplication(tenantName, "test", new ApplicationInstance());
 
         Awaitility.await().untilAsserted(() -> {
             Mockito.verify(deployer, Mockito.times(1)).createImplementation(any());
             Mockito.verify(deployer, Mockito.times(0)).deploy(any(), any());
-            final StoredApplicationInstance stored = applicationStore.get("test");
+            final StoredApplicationInstance stored = applicationStore.get(tenantName, "test");
             Assertions.assertEquals(ApplicationInstanceLifecycleStatus.Status.ERROR, stored.getStatus().getStatus());
         });
 
-        manager.deleteApplication("test");
+        manager.deleteApplication(tenantName, "test");
         Awaitility.await().untilAsserted(() -> {
-            Assertions.assertNull(applicationStore.get("test"));
+            Assertions.assertNull(applicationStore.get(tenantName, "test"));
         });
     }
 
@@ -68,16 +69,17 @@ class ApplicationManagerTest {
         final ApplicationDeployer deployer = Mockito.mock(ApplicationDeployer.class);
         final ApplicationStore applicationStore = new ApplicationStore(store, store);
 
-        applicationStore.put("test", new ApplicationInstance(), ApplicationInstanceLifecycleStatus.CREATED);
-        applicationStore.put("test-delete", new ApplicationInstance(), ApplicationInstanceLifecycleStatus.DELETING);
+        applicationStore.put("tenant", "test", new ApplicationInstance(), ApplicationInstanceLifecycleStatus.CREATED);
+        applicationStore.put("tenant", "test-delete", new ApplicationInstance(), ApplicationInstanceLifecycleStatus.DELETING);
 
         final ApplicationManager manager =
                 new ApplicationManager(deployer, applicationStore, 1);
+        manager.recoverTenant("tenant");
 
         Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
             Assertions.assertEquals(ApplicationInstanceLifecycleStatus.Status.DEPLOYED,
-                    applicationStore.get("test").getStatus().getStatus());
-            Assertions.assertNull(applicationStore.get("test-delete"));
+                    applicationStore.get("tenant", "test").getStatus().getStatus());
+            Assertions.assertNull(applicationStore.get("tenant", "test-delete"));
         });
     }
 }

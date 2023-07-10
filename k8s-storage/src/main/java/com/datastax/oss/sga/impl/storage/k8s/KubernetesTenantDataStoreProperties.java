@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.impl.storage.k8s;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,7 +8,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class KubernetesConfigStoreProperties {
+public class KubernetesTenantDataStoreProperties {
     private String context;
-    private String namespace;
+    @JsonProperty("namespaceprefix")
+    private String namespacePrefix;
 }

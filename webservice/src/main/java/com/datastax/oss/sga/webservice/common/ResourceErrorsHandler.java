@@ -1,4 +1,4 @@
-package com.datastax.oss.sga.webservice.application;
+package com.datastax.oss.sga.webservice.common;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -12,7 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 @ControllerAdvice
 @Order(Ordered.LOWEST_PRECEDENCE)
 @Slf4j
-public class ApplicationResourceErrorsHandler {
+public class ResourceErrorsHandler {
 
     @ExceptionHandler(Throwable.class)
     ProblemDetail handleAll(Throwable exception) {

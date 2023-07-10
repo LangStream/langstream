@@ -10,7 +10,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
@@ -49,6 +51,29 @@ public abstract class BaseCmd implements Runnable {
         }
         return config;
     }
+
+    @SneakyThrows
+    protected void updateConfig(Consumer<SgaCLIConfig> consumer) {
+        consumer.accept(getConfig());
+        File configFile = computeConfigFile();
+        Files.write(configFile.toPath(), objectMapper.writeValueAsBytes(config));
+    }
+
+    private File computeConfigFile() {
+        File configFile;
+        final RootCmd rootCmd = getRootCmd();
+        if (rootCmd.getConfigPath() == null) {
+            String configBaseDir = System.getProperty("basedir");
+            if (configBaseDir == null) {
+                configBaseDir = System.getProperty("user.dir");
+            }
+            configFile = Path.of(configBaseDir, "conf", "cli.yaml").toFile();
+        } else {
+            configFile = new File(rootCmd.getConfigPath());
+        }
+        return configFile;
+    }
+
 
     @SneakyThrows
     private void overrideFromEnv(SgaCLIConfig config) {

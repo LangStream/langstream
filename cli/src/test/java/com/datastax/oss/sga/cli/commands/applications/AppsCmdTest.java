@@ -57,7 +57,8 @@ class AppsCmdTest extends CommandTestBase {
         final String secrets = createTempFile("secrets: []");
 
         final InterceptDeploySupport support = new InterceptDeploySupport();
-        wireMock.register(WireMock.put("/api/applications/my-app")
+        wireMock.register(WireMock.put("/api/applications/%s/my-app"
+                        .formatted(TENANT))
                 .withMultipartRequestBody(support.multipartValuePatternBuilder())
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
@@ -77,7 +78,8 @@ class AppsCmdTest extends CommandTestBase {
 
     @Test
     public void testGet() throws Exception {
-        wireMock.register(WireMock.get("/api/applications/my-app").willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+        wireMock.register(WireMock.get("/api/applications/%s/my-app"
+                .formatted(TENANT)).willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
         CommandResult result = executeCommand("apps", "get", "my-app");
         Assertions.assertEquals(0, result.exitCode());
@@ -88,7 +90,8 @@ class AppsCmdTest extends CommandTestBase {
 
     @Test
     public void testDelete() throws Exception {
-        wireMock.register(WireMock.delete("/api/applications/my-app").willReturn(WireMock.ok()));
+        wireMock.register(WireMock.delete("/api/applications/%s/my-app"
+                .formatted(TENANT)).willReturn(WireMock.ok()));
 
         CommandResult result = executeCommand("apps", "delete", "my-app");
         Assertions.assertEquals(0, result.exitCode());
@@ -99,7 +102,8 @@ class AppsCmdTest extends CommandTestBase {
 
     @Test
     public void testList() throws Exception {
-        wireMock.register(WireMock.get("/api/applications").willReturn(WireMock.ok("{}")));
+        wireMock.register(WireMock.get("/api/applications/%s"
+                .formatted(TENANT)).willReturn(WireMock.ok("{}")));
 
         CommandResult result = executeCommand("apps", "list");
         Assertions.assertEquals(0, result.exitCode());

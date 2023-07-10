@@ -20,6 +20,7 @@ import org.junit.jupiter.api.io.TempDir;
 @WireMockTest
 public class CommandTestBase {
 
+    protected static final String TENANT = "my-tenant";
     protected WireMock wireMock;
     protected Path tempDir;
     private Path cliYaml;
@@ -29,9 +30,11 @@ public class CommandTestBase {
         this.tempDir = tempDir;
 
         cliYaml = Path.of(tempDir.toFile().getAbsolutePath(), "cli.yaml");
-        Files.write(cliYaml,
-                "webServiceUrl: http://localhost:%d".formatted(wmRuntimeInfo.getHttpPort()).getBytes(
-                        StandardCharsets.UTF_8));
+        final String config = """
+                webServiceUrl: http://localhost:%d
+                tenant: %s
+                """.formatted(wmRuntimeInfo.getHttpPort(), TENANT);
+        Files.write(cliYaml, config.getBytes(StandardCharsets.UTF_8));
         wireMock = wmRuntimeInfo.getWireMock();
     }
 

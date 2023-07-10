@@ -14,7 +14,7 @@ public class GetApplicationCmd extends BaseApplicationCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final String body = http(newGet("/applications/%s".formatted(name))).body();
+        final String body = http(newGet(tenantAppPath("/" + name))).body();
         log(body);
     }
 }

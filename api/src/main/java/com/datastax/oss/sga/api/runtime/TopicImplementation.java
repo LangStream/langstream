@@ -1,4 +1,4 @@
 package com.datastax.oss.sga.api.runtime;
 
-public interface TopicImplementation {
+public interface TopicImplementation extends ConnectionImplementation {
 }

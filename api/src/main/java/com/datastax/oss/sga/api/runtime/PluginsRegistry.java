@@ -6,7 +6,7 @@ import java.util.ServiceLoader;
 
 @Slf4j
 public class PluginsRegistry {
-    public AgentImplementationProvider lookupAgentImplementation(String type, ClusterRuntime<?> clusterRuntime) {
+    public AgentImplementationProvider lookupAgentImplementation(String type, ClusterRuntime clusterRuntime) {
         log.info("Looking for an implementation of agent type {} on {}", type, clusterRuntime.getClusterType());
         ServiceLoader<AgentImplementationProvider> loader = ServiceLoader.load(AgentImplementationProvider.class);
         ServiceLoader.Provider<AgentImplementationProvider> agentRuntimeProviderProvider = loader

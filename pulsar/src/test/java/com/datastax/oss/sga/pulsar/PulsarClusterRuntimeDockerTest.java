@@ -2,6 +2,7 @@ package com.datastax.oss.sga.pulsar;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
+import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
@@ -48,13 +49,13 @@ class PulsarClusterRuntimeDockerTest {
                                 pipeline:
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .<PhysicalApplicationInstance>builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(applicationInstance, implementation);
 
         // verify that the topic exists
@@ -85,13 +86,13 @@ class PulsarClusterRuntimeDockerTest {
                                       mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(applicationInstance, implementation);
 
         // verify that the topic exists
@@ -146,13 +147,13 @@ class PulsarClusterRuntimeDockerTest {
                                       sourceType: "data-generator"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(applicationInstance, implementation);
 
         // verify that the topic exists
@@ -195,13 +196,13 @@ class PulsarClusterRuntimeDockerTest {
                                     steps: []
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(applicationInstance, implementation);
 
         // verify that the topics exist

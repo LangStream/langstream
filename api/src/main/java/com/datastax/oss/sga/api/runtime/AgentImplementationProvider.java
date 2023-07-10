@@ -9,7 +9,7 @@ public interface AgentImplementationProvider {
                                              Module module,
                                              PhysicalApplicationInstance physicalApplicationInstance,
                                              ClusterRuntime clusterRuntime,
-                                             PluginsRegistry pluginsRegistry);
+                                             PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime);
 
-    boolean supports(String type, ClusterRuntime<?> clusterRuntime);
+    boolean supports(String type, ClusterRuntime clusterRuntime);
 }

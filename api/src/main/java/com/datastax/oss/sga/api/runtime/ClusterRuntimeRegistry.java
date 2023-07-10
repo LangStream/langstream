@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ClusterRuntimeRegistry {
 
-    protected final Map<String, ClusterRuntime<?>> computeClusterImplementations = new ConcurrentHashMap<>();
+    protected final Map<String, ClusterRuntime> computeClusterImplementations = new ConcurrentHashMap<>();
     protected final Map<String, StreamingClusterRuntime> streamingClusterImplementations = new ConcurrentHashMap<>();
 
     public ClusterRuntime getClusterRuntime(ComputeCluster computeCluster) {
@@ -29,7 +29,7 @@ public class ClusterRuntimeRegistry {
         return streamingClusterImplementations.computeIfAbsent(streamingCluster.type(), ClusterRuntimeRegistry::loadStreamingClusterRuntime);
     }
 
-    private static ClusterRuntime<?> loadClusterRuntime(String clusterType) {
+    private static ClusterRuntime loadClusterRuntime(String clusterType) {
         ServiceLoader<ClusterRuntimeProvider> loader = ServiceLoader.load(ClusterRuntimeProvider.class);
         ServiceLoader.Provider<ClusterRuntimeProvider> clusterRuntimeProviderProvider = loader
                 .stream()

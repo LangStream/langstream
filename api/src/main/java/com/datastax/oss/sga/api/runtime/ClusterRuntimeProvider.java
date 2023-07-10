@@ -18,7 +18,7 @@ package com.datastax.oss.sga.api.runtime;
 /**
  * Factory
  */
-public interface ClusterRuntimeProvider<T extends PhysicalApplicationInstance> {
+public interface ClusterRuntimeProvider {
 
     boolean supports(String type);
 
@@ -26,5 +26,5 @@ public interface ClusterRuntimeProvider<T extends PhysicalApplicationInstance> {
      * Create a new cluster runtime for the given application instance
      * @return the physical application instance
      */
-    ClusterRuntime<T> getImplementation();
+    ClusterRuntime getImplementation();
 }

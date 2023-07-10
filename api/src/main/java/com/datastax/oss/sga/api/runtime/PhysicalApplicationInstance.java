@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.api.runtime;
 
+import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
@@ -32,7 +33,7 @@ import java.util.Map;
  */
 @Slf4j
 @Data
-public abstract class PhysicalApplicationInstance {
+public final class PhysicalApplicationInstance {
 
     private final Map<TopicDefinition, TopicImplementation> topics = new HashMap<>();
     private final Map<String, AgentImplementation> agents = new HashMap<>();
@@ -46,7 +47,7 @@ public abstract class PhysicalApplicationInstance {
      * Get reference to the source application instance
      * @return the source application definition
      */
-    public final ApplicationInstance getApplicationInstance() {
+    public ApplicationInstance getApplicationInstance() {
         return applicationInstance;
     }
 
@@ -56,14 +57,23 @@ public abstract class PhysicalApplicationInstance {
      * @param connection
      * @return the connection implementation
      */
-    public abstract ConnectionImplementation getConnectionImplementation(Module module, Connection connection);
-
+    public ConnectionImplementation getConnectionImplementation(Module module, Connection connection) {
+        Connection.Connectable endpoint = connection.endpoint();
+        switch (endpoint.getConnectableType()) {
+            case Connection.Connectables.AGENT:
+                return getAgentImplementation(module, ((AgentConfiguration) endpoint).getId());
+            case Connection.Connectables.TOPIC:
+                return getTopicByName(((TopicDefinition) endpoint).getName());
+            default:
+                throw new IllegalArgumentException("Unknown connectable type " + endpoint.getConnectableType());
+        }
+    }
 
     /**
      * Get all the Logical Topics to be deployed on the StreamingCluster
      * @return the topics to be deployed on the StreamingCluster
      */
-    public final List<TopicImplementation> getLogicalTopics() {
+    public List<TopicImplementation> getLogicalTopics() {
         return new ArrayList<>(topics.values());
     }
 
@@ -72,7 +82,7 @@ public abstract class PhysicalApplicationInstance {
      * @param topicDefinition
      * @param topicImplementation
      */
-    public final void registerTopic(TopicDefinition topicDefinition, TopicImplementation topicImplementation) {
+    public void registerTopic(TopicDefinition topicDefinition, TopicImplementation topicImplementation) {
         topics.put(topicDefinition, topicImplementation);
     }
 
@@ -82,17 +92,27 @@ public abstract class PhysicalApplicationInstance {
      * @param id
      * @return the agent
      */
-    public final AgentImplementation getAgentImplementation(Module module, String id) {
+    public AgentImplementation getAgentImplementation(Module module, String id) {
         return agents.get(module.getId() + "#" + id);
     }
 
-    public final void registerAgent(Module module, String id, AgentImplementation agentImplementation) {
+    public void registerAgent(Module module, String id, AgentImplementation agentImplementation) {
         String internalId = module.getId() + "#" + id;
         log.info("registering agent {} for module {} with id {}", agentImplementation, module.getId(), id);
         agents.put(internalId, agentImplementation);
     }
 
-    public final Map<String, AgentImplementation> getAgents() {
+    public Map<String, AgentImplementation> getAgents() {
         return agents;
+    }
+
+    public TopicImplementation getTopicByName(String name) {
+        return topics
+                .entrySet()
+                .stream()
+                .filter(e -> e.getKey().getName().equals(name))
+                .findFirst()
+                .map(Map.Entry::getValue)
+                .orElse(null);
     }
 }

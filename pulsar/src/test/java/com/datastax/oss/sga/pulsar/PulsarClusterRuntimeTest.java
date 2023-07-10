@@ -6,6 +6,7 @@ import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentImplementation;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
+import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
@@ -50,15 +51,15 @@ class PulsarClusterRuntimeTest {
                                       mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
         Module module = applicationInstance.getModule("module-1");
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic-cassandra");
@@ -120,15 +121,15 @@ class PulsarClusterRuntimeTest {
                                       config2: "value2"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
         Module module = applicationInstance.getModule("module-1");
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
@@ -166,15 +167,15 @@ class PulsarClusterRuntimeTest {
                                       config2: "value2"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
         Module module = applicationInstance.getModule("module-1");
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
@@ -217,15 +218,15 @@ class PulsarClusterRuntimeTest {
                                       config2: "value2"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
         Module module = applicationInstance.getModule("module-1");
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
                     new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
@@ -288,15 +289,15 @@ class PulsarClusterRuntimeTest {
                                       config2: "value2"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
         Module module = applicationInstance.getModule("module-1");
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
                     new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
@@ -386,15 +387,15 @@ class PulsarClusterRuntimeTest {
                                       text: "{{% value.name }} {{% value.description }}"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
         Module module = applicationInstance.getModule("module-1");
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
         assertTrue(implementation.getConnectionImplementation(module,
@@ -462,15 +463,15 @@ class PulsarClusterRuntimeTest {
                                       config2: "value2"
                                 """));
 
-        ApplicationDeployer<PulsarPhysicalApplicationInstance> deployer = ApplicationDeployer
-                .<PulsarPhysicalApplicationInstance>builder()
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
         Module module = applicationInstance.getModule("module-1");
 
-        PulsarPhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         final AbstractAgentProvider.DefaultAgentImplementation functionPhysicalImpl =
                 (AbstractAgentProvider.DefaultAgentImplementation) implementation.getAgentImplementation(module,
                         "step1");

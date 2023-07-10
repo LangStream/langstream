@@ -24,7 +24,7 @@ class ApplicationDeployerTest {
             super();
         }
 
-        public void addClusterRuntime(String name, ClusterRuntime<?> clusterRuntime) {
+        public void addClusterRuntime(String name, ClusterRuntime clusterRuntime) {
             computeClusterImplementations.put(name, clusterRuntime);
         }
 
@@ -52,7 +52,7 @@ class ApplicationDeployerTest {
         registry.addClusterRuntime("mock", mockRuntime);
         registry.addStreamingClusterRuntime("mock", mockStreamingRuntime);
 
-        final ApplicationDeployer<PhysicalApplicationInstance> deployer = ApplicationDeployer
+        final ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .pluginsRegistry(new PluginsRegistry())
                 .registry(registry)

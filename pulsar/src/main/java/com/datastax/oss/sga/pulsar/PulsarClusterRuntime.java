@@ -2,6 +2,7 @@ package com.datastax.oss.sga.pulsar;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.StreamingCluster;
@@ -9,6 +10,8 @@ import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentImplementation;
 import com.datastax.oss.sga.api.runtime.AgentImplementationProvider;
 import com.datastax.oss.sga.api.runtime.ClusterRuntime;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
+import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.TopicImplementation;
@@ -35,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplicationInstance> {
+public class PulsarClusterRuntime implements ClusterRuntime {
 
     static final ObjectMapper mapper = new ObjectMapper();
 
@@ -47,7 +50,7 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
     }
 
     @Override
-    public PulsarPhysicalApplicationInstance createImplementation(ApplicationInstance applicationInstance,
+    public PhysicalApplicationInstance createImplementation(ApplicationInstance applicationInstance,
                                                                   PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime) {
         StreamingCluster streamingCluster = applicationInstance.getInstance().streamingCluster();
         final PulsarClusterRuntimeConfiguration config =
@@ -56,18 +59,18 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         String tenant = config.getDefaultTenant();
         String namespace = config.getDefaultNamespace();
 
-        PulsarPhysicalApplicationInstance result =
-                new PulsarPhysicalApplicationInstance(applicationInstance, tenant, namespace);
+        PhysicalApplicationInstance result =
+                new PhysicalApplicationInstance(applicationInstance);
 
         detectTopics(result, streamingClusterRuntime);
 
-        detectPipelines(applicationInstance, result, tenant, namespace, pluginsRegistry);
+        detectPipelines(applicationInstance, result, tenant, namespace, pluginsRegistry, streamingClusterRuntime);
 
 
         return result;
     }
 
-    private void detectTopics(PulsarPhysicalApplicationInstance result,
+    private void detectTopics(PhysicalApplicationInstance result,
                               StreamingClusterRuntime streamingClusterRuntime) {
         ApplicationInstance applicationInstance = result.getApplicationInstance();
         for (Module module : applicationInstance.getModules().values()) {
@@ -79,9 +82,10 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
     }
 
     private void detectPipelines(ApplicationInstance applicationInstance,
-                                 PulsarPhysicalApplicationInstance result,
+                                 PhysicalApplicationInstance result,
                                  String tenant, String namespace,
-                                 PluginsRegistry pluginsRegistry) {
+                                 PluginsRegistry pluginsRegistry,
+                                 StreamingClusterRuntime streamingClusterRuntime) {
         for (Module module : applicationInstance.getModules().values()) {
             if (module.getPipelines() == null) {
                 return;
@@ -89,22 +93,22 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
             for (Pipeline pipeline : module.getPipelines().values()) {
                 log.info("Pipeline: {}", pipeline.getName());
                 for (AgentConfiguration agentConfiguration : pipeline.getAgents().values()) {
-                    buildAgent(module, agentConfiguration, result, tenant, namespace, pluginsRegistry);
+                    buildAgent(module, agentConfiguration, result, tenant, namespace, pluginsRegistry, streamingClusterRuntime);
                 }
             }
         }
     }
 
     private void buildAgent(Module module, AgentConfiguration agentConfiguration,
-                            PulsarPhysicalApplicationInstance result, String tenant, String namespace,
-                            PluginsRegistry pluginsRegistry) {
+                            PhysicalApplicationInstance result, String tenant, String namespace,
+                            PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime) {
         log.info("Processing agent {} id={} type={}", agentConfiguration.getName(), agentConfiguration.getId(),
                 agentConfiguration.getType());
         AgentImplementationProvider agentImplementationProvider =
                 pluginsRegistry.lookupAgentImplementation(agentConfiguration.getType(), this);
 
         AgentImplementation agentImplementation = agentImplementationProvider
-                .createImplementation(agentConfiguration, module, result, this, pluginsRegistry);
+                .createImplementation(agentConfiguration, module, result, this, pluginsRegistry, streamingClusterRuntime );
 
         result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
 
@@ -126,14 +130,14 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
                 .build();
     }
 
-    private PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(StreamingCluster streamingCluster) {
+    public static PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
         return mapper.convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
     }
 
     @Override
     @SneakyThrows
-    public void deploy(ApplicationInstance logicalInstance, PulsarPhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void deploy(ApplicationInstance logicalInstance, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
 
         streamingClusterRuntime.deploy(applicationInstance);
 
@@ -290,9 +294,43 @@ public class PulsarClusterRuntime implements ClusterRuntime<PulsarPhysicalApplic
         throw new IllegalArgumentException("Unsupported Agent type " + agent.getClass().getName());
     }
 
+    @Override
+    public ConnectionImplementation getConnectionImplementation(Module module, Connection connection,
+                                                                PhysicalApplicationInstance physicalApplicationInstance,
+                                                                StreamingClusterRuntime streamingClusterRuntime) {
+        Connection.Connectable endpoint = connection.endpoint();
+        if (endpoint instanceof TopicDefinition topicDefinition) {
+            // compare by name
+            ConnectionImplementation result =
+                    physicalApplicationInstance.getTopicByName(topicDefinition.getName());
+            if (result == null) {
+                throw new IllegalArgumentException("Topic " + topicDefinition.getName() + " not found, only " + physicalApplicationInstance.getLogicalTopics());
+            }
+            return result;
+        } else if (endpoint instanceof AgentConfiguration agentConfiguration) {
+            // connecting two agents requires an intermediate topic
+            String name = "agent-" + agentConfiguration.getId() + "-output";
+            log.info("Automatically creating topic {} in order to connect agent {}", name,
+                    agentConfiguration.getId());
+            // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
+            String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
+            TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, null);
+            StreamingCluster streamingCluster = physicalApplicationInstance.getApplicationInstance().getInstance().streamingCluster();
+            final PulsarClusterRuntimeConfiguration config =
+                    getPulsarClusterRuntimeConfiguration(streamingCluster);
+            String tenant = config.getDefaultTenant();
+            String namespace = config.getDefaultNamespace();
+            PulsarName pulsarName = new PulsarName(tenant, namespace, name);
+            PulsarTopic pulsarTopic = new PulsarTopic(pulsarName, null, null, null, creationMode);
+            physicalApplicationInstance.registerTopic(topicDefinition, pulsarTopic);
+            return pulsarTopic;
+        }
+        throw new UnsupportedOperationException("Not implemented yet, connection with " + endpoint);
+    }
+
 
     @Override
-    public void delete(ApplicationInstance logicalInstance, PulsarPhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void delete(ApplicationInstance logicalInstance, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         throw new UnsupportedOperationException();
     }
 }

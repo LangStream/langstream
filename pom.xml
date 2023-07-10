@@ -18,10 +18,11 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <pulsar.version>3.0.0</pulsar.version>
+    <kafka.version>3.5.0</kafka.version>
     <testcontainers.version>1.18.3</testcontainers.version>
     <junit-jupiter.version>5.9.3</junit-jupiter.version>
     <lombok.version>1.18.28</lombok.version>
-    <jackson.version>2.14.2</jackson.version>
+    <jackson.version>2.15.1</jackson.version>
     <logback.version>1.4.7</logback.version>
     <slf4j.version>2.0.7</slf4j.version>
     <maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
@@ -50,6 +51,11 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>${kafka.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.pulsar</groupId>
         <artifactId>pulsar-client-admin</artifactId>
         <version>${pulsar.version}</version>
@@ -74,6 +80,11 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
         <version>${jackson.version}</version>
       </dependency>
       <dependency>

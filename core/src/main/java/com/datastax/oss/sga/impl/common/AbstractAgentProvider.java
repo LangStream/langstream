@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,11 +33,11 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
     public static class DefaultAgentImplementation implements AgentImplementation {
         private final String id;
         private final String type;
-        private final Map<String, Object> configuration;
+        private Map<String, Object> configuration;
         private final Object runtimeMetadata;
 
         private final ConnectionImplementation inputConnection;
-        private final ConnectionImplementation outputConnection;
+        private ConnectionImplementation outputConnection;
 
         public DefaultAgentImplementation(String id, String type, Map<String, Object> configuration, Object runtimeMetadata,
                                           ConnectionImplementation inputConnection,
@@ -51,6 +52,11 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
 
         public <T> T getPhysicalMetadata() {
             return (T) runtimeMetadata;
+        }
+
+        public void overrideConfiguration(Map<String, Object> newConfiguration, ConnectionImplementation newOutput) {
+            this.configuration = new HashMap<>(newConfiguration);
+            this.outputConnection = newOutput;
         }
     }
 

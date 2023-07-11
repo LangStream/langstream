@@ -87,6 +87,17 @@ public final class PhysicalApplicationInstance {
     }
 
     /**
+     * Discard a topic implementation
+     * @param topicImplementation
+     */
+    public void discardTopic(ConnectionImplementation topicImplementation) {
+        topics.entrySet()
+                .stream()
+                .filter(e -> e.getValue().equals(topicImplementation)).findFirst()
+                .ifPresent(e -> topics.remove(e.getKey()));
+    }
+
+    /**
      * Get an existing agent implementation
      * @param module
      * @param id

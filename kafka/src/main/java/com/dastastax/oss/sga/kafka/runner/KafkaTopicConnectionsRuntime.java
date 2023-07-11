@@ -66,7 +66,8 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         copy.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 
-        copy.computeIfAbsent("group.id", key -> "sga-input");
+        copy.computeIfAbsent("group.id", key -> "sga");
+        copy.computeIfAbsent("auto.offset.reset", key -> "earliest");
 
         // producer
         copy.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");

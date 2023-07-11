@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.util.List;
@@ -89,14 +90,19 @@ class KafkaRunnerDockerTest {
                 Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
                     "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
                     "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
-                    "group.id","test")
+                    "group.id","testgroup",
+                    "auto.offset.reset", "earliest")
         )) {
             consumer.subscribe(List.of("output-topic"));
+
+
+            // produce one message to the input-topic
             producer.send(new org.apache.kafka.clients.producer.ProducerRecord<>("input-topic", "key", "value")).get();
             producer.flush();
 
-            PodJavaRuntime.run(runtimePodConfiguration, 1);
+            PodJavaRuntime.run(runtimePodConfiguration, 5);
 
+            // receive one message from the output-topic (written by the PodJavaRuntime)
             ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(10));
             assertEquals(poll.count(), 1);
         }
@@ -119,7 +125,7 @@ class KafkaRunnerDockerTest {
 
     @BeforeAll
     public static void setup() throws Exception {
-        kafkaContainer = new KafkaContainer()
+        kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
                 .withLogConsumer(new Consumer<OutputFrame>() {
                     @Override
                     public void accept(OutputFrame outputFrame) {

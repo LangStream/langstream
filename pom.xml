@@ -48,6 +48,7 @@
     <module>runtime</module>
     <module>webservice</module>
     <module>k8s-storage</module>
+    <module>k8s-deployer</module>
   </modules>
 
   <dependencyManagement>

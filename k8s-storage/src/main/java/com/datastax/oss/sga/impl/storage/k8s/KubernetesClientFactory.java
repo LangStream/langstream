@@ -8,7 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class KubernetesClientFactory {
 
-    private static Map<String, KubernetesClient> clients = new ConcurrentHashMap<>();
+    private static final Map<String, KubernetesClient> clients = new ConcurrentHashMap<>();
+
 
     public static KubernetesClient get(String context) {
         if (context == null) {

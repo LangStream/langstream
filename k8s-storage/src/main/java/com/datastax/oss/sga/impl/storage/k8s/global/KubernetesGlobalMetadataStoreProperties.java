@@ -1,4 +1,4 @@
-package com.datastax.oss.sga.impl.storage.k8s;
+package com.datastax.oss.sga.impl.storage.k8s.global;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

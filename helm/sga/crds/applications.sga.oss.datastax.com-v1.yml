@@ -19,119 +19,10 @@ spec:
         properties:
           spec:
             properties:
-              instance:
-                properties:
-                  streamingCluster:
-                    properties:
-                      configuration:
-                        additionalProperties:
-                          type: object
-                        type: object
-                      type:
-                        type: string
-                    type: object
-                  globals:
-                    additionalProperties:
-                      type: object
-                    type: object
-                  computeCluster:
-                    properties:
-                      configuration:
-                        additionalProperties:
-                          type: object
-                        type: object
-                      type:
-                        type: string
-                    type: object
-                type: object
+              application:
+                type: string
               image:
                 type: string
-              resources:
-                additionalProperties:
-                  properties:
-                    id:
-                      type: string
-                    configuration:
-                      additionalProperties:
-                        type: object
-                      type: object
-                    name:
-                      type: string
-                    type:
-                      type: string
-                  type: object
-                type: object
-              modules:
-                additionalProperties:
-                  properties:
-                    id:
-                      type: string
-                    pipelines:
-                      additionalProperties:
-                        properties:
-                          id:
-                            type: string
-                          agents:
-                            additionalProperties:
-                              properties:
-                                id:
-                                  type: string
-                                configuration:
-                                  additionalProperties:
-                                    type: object
-                                  type: object
-                                input:
-                                  properties:
-                                    endpoint:
-                                      properties:
-                                        connectableType:
-                                          type: string
-                                      type: object
-                                  type: object
-                                output:
-                                  properties:
-                                    endpoint:
-                                      properties:
-                                        connectableType:
-                                          type: string
-                                      type: object
-                                  type: object
-                                name:
-                                  type: string
-                                type:
-                                  type: string
-                                connectableType:
-                                  type: string
-                              type: object
-                            type: object
-                          module:
-                            type: string
-                          name:
-                            type: string
-                        type: object
-                      type: object
-                    topics:
-                      additionalProperties:
-                        properties:
-                          creation-mode:
-                            type: string
-                          schema:
-                            properties:
-                              schema:
-                                type: string
-                              name:
-                                type: string
-                              type:
-                                type: string
-                            type: object
-                          name:
-                            type: string
-                          connectableType:
-                            type: string
-                        type: object
-                      type: object
-                  type: object
-                type: object
               imagePullPolicy:
                 type: string
               tenant:
@@ -142,6 +33,18 @@ spec:
               lastApplied:
                 description: Last spec applied.
                 type: string
+              status:
+                properties:
+                  reason:
+                    type: string
+                  status:
+                    enum:
+                    - DEPLOYED
+                    - CREATED
+                    - ERROR
+                    - DELETING
+                    type: string
+                type: object
             type: object
         type: object
     served: true

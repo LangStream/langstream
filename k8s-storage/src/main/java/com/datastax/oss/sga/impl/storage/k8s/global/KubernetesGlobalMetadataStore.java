@@ -1,6 +1,8 @@
-package com.datastax.oss.sga.impl.storage.k8s;
+package com.datastax.oss.sga.impl.storage.k8s.global;
 
 import com.datastax.oss.sga.api.storage.GlobalMetadataStore;
+import com.datastax.oss.sga.impl.storage.k8s.AbstractKubernetesGenericStore;
+import com.datastax.oss.sga.impl.storage.k8s.KubernetesClientFactory;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;

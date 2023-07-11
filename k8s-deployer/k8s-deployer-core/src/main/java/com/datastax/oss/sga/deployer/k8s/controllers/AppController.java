@@ -69,12 +69,6 @@ public class AppController implements Reconciler<Application> {
     }
 
     private void createJob(String tenant, ApplicationSpec spec, String jobName, String targetNamespace) {
-        final ApplicationInstance instance = new ApplicationInstance();
-        instance.setInstance(spec.getInstance());
-        instance.setModules(spec.getModules());
-        instance.setResources(spec.getResources());
-
-
         final Container container = new ContainerBuilder()
                 .withName("initialize")
                 .withImage(spec.getImage())

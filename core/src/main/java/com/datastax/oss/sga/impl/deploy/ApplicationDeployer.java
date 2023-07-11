@@ -6,8 +6,8 @@ import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
+import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.impl.common.ApplicationInstancePlaceholderResolver;
-import com.datastax.oss.sga.impl.storage.ApplicationStore;
 import lombok.Builder;
 
 @Builder
@@ -15,7 +15,6 @@ public final class ApplicationDeployer {
 
       private ClusterRuntimeRegistry registry;
       private PluginsRegistry pluginsRegistry;
-      private ApplicationStore applicationStore;
 
     /**
      * Create a new implementation of the application instance.

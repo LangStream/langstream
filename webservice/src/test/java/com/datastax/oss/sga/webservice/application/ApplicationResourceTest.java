@@ -59,11 +59,6 @@ class ApplicationResourceTest {
                             LocalStore.LOCAL_BASEDIR,
                             Files.createTempDirectory("sga-test").toFile().getAbsolutePath()
                     )),
-                    new StorageProperties.SecretStoreProperties("local",
-                            Map.of(
-                                    LocalStore.LOCAL_BASEDIR,
-                                    Files.createTempDirectory("sga-test").toFile().getAbsolutePath()
-                            )),
                     new StorageProperties.GlobalMetadataStoreProperties("local",
                             Map.of(
                                     LocalStore.LOCAL_BASEDIR,

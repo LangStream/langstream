@@ -4,6 +4,8 @@ import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.SchemaDefinition;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
+import com.datastax.oss.sga.api.runtime.AgentImplementation;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.TopicImplementation;
@@ -81,12 +83,39 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         String schemaType = schema != null ? schema.type() : null;
         String schemaDefinition = schema != null ? schema.schema() : null;
         String schemaName =  schema != null ? schema.name() : null;
-        KafkaTopic pulsarTopic = new KafkaTopic(name,
+        KafkaTopic kafkaTopic = new KafkaTopic(name,
                 schemaName,
                 schemaType,
                 schemaDefinition,
                 creationMode);
-        return pulsarTopic;
+        return kafkaTopic;
     }
 
+    @Override
+    public Map<String, Object> createConsumerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation inputConnection) {
+        KafkaTopic kafkaTopic = (KafkaTopic) inputConnection;
+        Map<String, Object> configuration = new HashMap<>();
+
+        // handle schema
+        configuration.putAll(kafkaTopic.createConsumerConfiguration());
+
+        // TODO: handle other configurations
+        configuration.computeIfAbsent("group.id", key -> "sga-agent-" + agentImplementation.getId());
+        configuration.computeIfAbsent("auto.offset.reset", key -> "earliest");
+        return configuration;
+    }
+
+    @Override
+    public Map<String, Object> createProducerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation outputConnection) {
+        KafkaTopic kafkaTopic = (KafkaTopic) outputConnection;
+
+        Map<String, Object> configuration = new HashMap<>();
+        // handle schema
+        configuration.putAll(kafkaTopic.createProducerConfiguration());
+
+
+        // TODO: handle other configurations
+
+        return configuration;
+    }
 }

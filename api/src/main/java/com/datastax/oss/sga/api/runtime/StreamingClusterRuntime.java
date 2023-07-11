@@ -19,6 +19,8 @@ import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 
+import java.util.Map;
+
 /**
  * This is the interface that the SGA framework uses to interact with the StreamingCluster. It is used to
  * model a physical cluster runtime with Brokers (Pulsar, Kafka....)
@@ -44,4 +46,19 @@ public interface StreamingClusterRuntime {
      */
     TopicImplementation createTopicImplementation(TopicDefinition topicDefinition, PhysicalApplicationInstance applicationInstance);
 
+    /**
+     * Create the configuration to consume from a topic.
+     * The contents of the map are specific to the StreamingCluster implementation.
+     * @param inputConnection
+     * @return the configuration
+     */
+    Map<String, Object> createConsumerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation inputConnection);
+
+    /**
+     * Create the configuration to produce to a topic.
+     * The contents of the map are specific to the StreamingCluster implementation.
+     * @param outputConnection
+     * @return the configuration
+     */
+    Map<String, Object> createProducerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation outputConnection);
 }

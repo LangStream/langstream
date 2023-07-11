@@ -1,17 +1,17 @@
-package com.datastax.oss.sga.kafka;
+package com.datastax.oss.sga.runtime.impl.k8s;
 
-import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.TopicDefinition;
+import com.datastax.oss.sga.api.runtime.AgentImplementation;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.admin.AdminClient;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -20,21 +20,17 @@ import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Slf4j
-class KafkaClusterRuntimeDockerTest {
+class KubernetesClusterRuntimeTest {
 
     private static KafkaContainer kafkaContainer;
-    private static AdminClient admin;
-
 
     @Test
-    public void testMapKafkaTopics() throws Exception {
+    public void testMapGenericAgent() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -42,11 +38,18 @@ class KafkaClusterRuntimeDockerTest {
                                 module: "module-1"
                                 id: "pipeline-1"                                
                                 topics:
-                                  - name: "input-topic-cassandra"
+                                  - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                     schema:
                                       type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'                               
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                pipeline:
+                                  - name: "sink1"
+                                    id: "sink-1-id"
+                                    type: "generic-agent"
+                                    input: "input-topic"
+                                    configuration:
+                                      mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
                                 """));
 
         ApplicationDeployer deployer = ApplicationDeployer
@@ -58,20 +61,17 @@ class KafkaClusterRuntimeDockerTest {
         Module module = applicationInstance.getModule("module-1");
 
         PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof KafkaTopic);
+        ConnectionImplementation connectionImplementation = implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("input-topic", null, null)));
+        assertNotNull(connectionImplementation);
+
+        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
+        assertNotNull(agentImplementation);
 
         deployer.deploy(implementation);
 
-        Set<String> topics = admin.listTopics().names().get();
-        log.info("Topics {}", topics);
-        assertTrue(topics.contains("input-topic-cassandra"));
-
-        deployer.delete(implementation);
-        topics = admin.listTopics().names().get();
-        log.info("Topics {}", topics);
-        assertFalse(topics.contains("input-topic-cassandra"));
     }
+
 
     private static String buildInstanceYaml() {
         return """
@@ -82,7 +82,7 @@ class KafkaClusterRuntimeDockerTest {
                       admin:                                      
                         bootstrap.servers: "%s"
                   computeCluster:
-                     type: "none"
+                     type: "kubernetes"
                 """.formatted(kafkaContainer.getBootstrapServers());
     }
 
@@ -98,17 +98,13 @@ class KafkaClusterRuntimeDockerTest {
                 });
         // start Pulsar and wait for it to be ready to accept requests
         kafkaContainer.start();
-        admin =
-                AdminClient.create(Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers()));
     }
 
     @AfterAll
     public static void teardown() {
-        if (admin != null) {
-            admin.close();
-        }
         if (kafkaContainer != null) {
             kafkaContainer.close();
         }
     }
+
 }

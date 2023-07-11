@@ -4,6 +4,7 @@ import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentImplementation;
 import com.datastax.oss.sga.api.runtime.AgentImplementationProvider;
@@ -64,6 +65,18 @@ public abstract class BasicClusterRuntime implements ClusterRuntime {
     protected void detectAgents(PhysicalApplicationInstance result,
                                 StreamingClusterRuntime streamingClusterRuntime,
                                 PluginsRegistry pluginsRegistry) {
+        ApplicationInstance applicationInstance = result.getApplicationInstance();
+        for (Module module : applicationInstance.getModules().values()) {
+            if (module.getPipelines() == null) {
+                return;
+            }
+            for (Pipeline pipeline : module.getPipelines().values()) {
+                log.info("Pipeline: {}", pipeline.getName());
+                for (AgentConfiguration agentConfiguration : pipeline.getAgents().values()) {
+                    buildAgent(module, agentConfiguration, result, pluginsRegistry, streamingClusterRuntime);
+                }
+            }
+        }
     }
 
 
@@ -100,13 +113,24 @@ public abstract class BasicClusterRuntime implements ClusterRuntime {
             }
             return result;
         } else if (endpoint instanceof AgentConfiguration agentConfiguration) {
-            return buildImplicitTopicForAgent(physicalApplicationInstance, agentConfiguration);
+            return buildImplicitTopicForAgent(physicalApplicationInstance, agentConfiguration, streamingClusterRuntime);
         }
         throw new UnsupportedOperationException("Not implemented yet, connection with " + endpoint);
     }
 
-    protected ConnectionImplementation buildImplicitTopicForAgent(PhysicalApplicationInstance physicalApplicationInstance, AgentConfiguration agentConfiguration) {
-        throw new UnsupportedOperationException("ClusterType " + getClusterType() + " doesn't support implicit creation of topics for agents");
+    protected ConnectionImplementation buildImplicitTopicForAgent(PhysicalApplicationInstance physicalApplicationInstance,
+                                                                  AgentConfiguration agentConfiguration,
+                                                                  StreamingClusterRuntime streamingClusterRuntime) {
+        // connecting two agents requires an intermediate topic
+        String name = "agent-" + agentConfiguration.getId() + "-output";
+        log.info("Automatically creating topic {} in order to connect agent {}", name, agentConfiguration.getId());
+        // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
+        String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
+        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, null);
+        TopicImplementation topicImplementation = streamingClusterRuntime.createTopicImplementation(topicDefinition, physicalApplicationInstance);
+        physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);
+
+        return topicImplementation;
     }
 
     @Override

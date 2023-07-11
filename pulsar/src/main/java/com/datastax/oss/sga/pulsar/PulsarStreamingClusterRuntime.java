@@ -10,6 +10,7 @@ import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentImplementation;
 import com.datastax.oss.sga.api.runtime.AgentImplementationProvider;
 import com.datastax.oss.sga.api.runtime.ClusterRuntime;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
@@ -173,4 +174,13 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         return pulsarTopic;
     }
 
+    @Override
+    public Map<String, Object> createConsumerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation inputConnection) {
+        throw new UnsupportedOperationException("Not needed for Pulsar at the moment");
+    }
+
+    @Override
+    public Map<String, Object> createProducerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation outputConnection) {
+        throw new UnsupportedOperationException("Not needed for Pulsar at the moment");
+    }
 }

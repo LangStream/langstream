@@ -1,6 +1,6 @@
 package com.datastax.oss.sga.kafka;
 
-import com.dastastax.oss.sga.kafka.KafkaTopic;
+import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;

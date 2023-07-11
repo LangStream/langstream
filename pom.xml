@@ -44,6 +44,7 @@
     <module>core</module>
     <module>pulsar</module>
     <module>kafka</module>
+    <module>runtime</module>
     <module>webservice</module>
     <module>k8s-storage</module>
   </modules>

@@ -1,6 +1,8 @@
 package com.datastax.oss.sga.kafka;
 
 import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
+import com.dastastax.oss.sga.runtime.PodJavaRuntime;
+import com.dastastax.oss.sga.runtime.RuntimePodConfiguration;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
@@ -12,27 +14,34 @@ import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame;
+
+import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import java.util.function.Consumer;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-class KafkaClusterRuntimeDockerTest {
+class KafkaRunnerDockerTest {
 
     private static KafkaContainer kafkaContainer;
     private static AdminClient admin;
 
 
     @Test
-    public void testMapKafkaTopics() throws Exception {
+    public void testConnectToTopics() throws Exception {
         ApplicationInstance applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -40,11 +49,10 @@ class KafkaClusterRuntimeDockerTest {
                                 module: "module-1"
                                 id: "pipeline-1"                                
                                 topics:
-                                  - name: "input-topic-cassandra"
+                                  - name: "input-topic"
                                     creation-mode: create-if-not-exists
-                                    schema:
-                                      type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'                               
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
                                 """));
 
         ApplicationDeployer deployer = ApplicationDeployer
@@ -57,18 +65,42 @@ class KafkaClusterRuntimeDockerTest {
 
         PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof KafkaTopic);
+                new Connection(new TopicDefinition("input-topic", null, null))) instanceof KafkaTopic);
 
         deployer.deploy(implementation);
 
         Set<String> topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
-        assertTrue(topics.contains("input-topic-cassandra"));
+        assertTrue(topics.contains("input-topic"));
 
-        deployer.delete(implementation);
-        topics = admin.listTopics().names().get();
-        log.info("Topics {}", topics);
-        assertFalse(topics.contains("input-topic-cassandra"));
+        RuntimePodConfiguration runtimePodConfiguration = new RuntimePodConfiguration(
+                Map.of("topic", "input-topic"),
+                Map.of("topic", "output-topic"),
+                Map.of(),
+                applicationInstance.getInstance().streamingCluster()
+        );
+
+        try (KafkaProducer<String, String> producer = new KafkaProducer<String, String>(
+                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+        );
+                     KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(
+                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                    "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                    "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                    "group.id","test")
+        )) {
+            consumer.subscribe(List.of("output-topic"));
+            producer.send(new org.apache.kafka.clients.producer.ProducerRecord<>("input-topic", "key", "value")).get();
+            producer.flush();
+
+            PodJavaRuntime.run(runtimePodConfiguration, 1);
+
+            ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(10));
+            assertEquals(poll.count(), 1);
+        }
+
     }
 
     private static String buildInstanceYaml() {

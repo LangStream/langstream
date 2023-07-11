@@ -56,7 +56,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(applicationInstance, implementation);
+        deployer.deploy(implementation);
 
         // verify that the topic exists
         admin.topics().getStats("public/default/input-topic");
@@ -93,7 +93,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(applicationInstance, implementation);
+        deployer.deploy(implementation);
 
         // verify that the topic exists
         admin.topics().getStats("public/default/input-topic-cassandra");
@@ -154,7 +154,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(applicationInstance, implementation);
+        deployer.deploy(implementation);
 
         // verify that the topic exists
         admin.topics().getStats("output-topic-from-file");
@@ -203,7 +203,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(applicationInstance, implementation);
+        deployer.deploy(implementation);
 
         // verify that the topics exist
         admin.topics().getStats("output-topic-fn");

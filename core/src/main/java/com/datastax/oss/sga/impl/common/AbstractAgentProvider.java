@@ -30,6 +30,7 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
     @Getter
     @ToString
     public static class DefaultAgentImplementation implements AgentImplementation {
+        private final String id;
         private final String type;
         private final Map<String, Object> configuration;
         private final Object runtimeMetadata;
@@ -37,10 +38,11 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
         private final ConnectionImplementation inputConnection;
         private final ConnectionImplementation outputConnection;
 
-        public DefaultAgentImplementation(String type, Map<String, Object> configuration, Object runtimeMetadata,
+        public DefaultAgentImplementation(String id, String type, Map<String, Object> configuration, Object runtimeMetadata,
                                           ConnectionImplementation inputConnection,
                                           ConnectionImplementation outputConnection) {
             this.type = type;
+            this.id = id;
             this.configuration = configuration;
             this.runtimeMetadata = runtimeMetadata;
             this.inputConnection = inputConnection;
@@ -100,7 +102,7 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
                 physicalApplicationInstance, clusterRuntime);
         ConnectionImplementation input = computeInput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
         ConnectionImplementation output = computeOutput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
-        return new DefaultAgentImplementation(agentConfiguration.getType(), configuration, metadata, input, output);
+        return new DefaultAgentImplementation(agentConfiguration.getId(), agentConfiguration.getType(), configuration, metadata, input, output);
     }
 
     @Override

@@ -11,6 +11,7 @@ import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
+import com.datastax.oss.sga.api.runtime.TopicImplementation;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
@@ -39,26 +40,6 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
     @Override
     public String getClusterType() {
         return CLUSTER_TYPE;
-    }
-
-    @Override
-    protected void detectAgents(PhysicalApplicationInstance result, StreamingClusterRuntime streamingClusterRuntime, PluginsRegistry pluginsRegistry) {
-        ApplicationInstance applicationInstance = result.getApplicationInstance();
-        final PulsarClusterRuntimeConfiguration config =
-                getPulsarClusterRuntimeConfiguration(applicationInstance.getInstance().streamingCluster());
-        String tenant = config.getDefaultTenant();
-        String namespace = config.getDefaultNamespace();
-        for (Module module : applicationInstance.getModules().values()) {
-            if (module.getPipelines() == null) {
-                return;
-            }
-            for (Pipeline pipeline : module.getPipelines().values()) {
-                log.info("Pipeline: {}", pipeline.getName());
-                for (AgentConfiguration agentConfiguration : pipeline.getAgents().values()) {
-                    buildAgent(module, agentConfiguration, result, pluginsRegistry, streamingClusterRuntime);
-                }
-            }
-        }
     }
 
     private PulsarAdmin buildPulsarAdmin(StreamingCluster streamingCluster) throws Exception {
@@ -189,27 +170,6 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
         }
         throw new IllegalArgumentException("Unsupported Agent type " + agent.getClass().getName());
     }
-
-    @Override
-    protected ConnectionImplementation buildImplicitTopicForAgent(PhysicalApplicationInstance physicalApplicationInstance, AgentConfiguration agentConfiguration) {
-        // connecting two agents requires an intermediate topic
-        String name = "agent-" + agentConfiguration.getId() + "-output";
-        log.info("Automatically creating topic {} in order to connect agent {}", name,
-                agentConfiguration.getId());
-        // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
-        String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
-        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, null);
-        StreamingCluster streamingCluster = physicalApplicationInstance.getApplicationInstance().getInstance().streamingCluster();
-        final PulsarClusterRuntimeConfiguration config =
-                getPulsarClusterRuntimeConfiguration(streamingCluster);
-        String tenant = config.getDefaultTenant();
-        String namespace = config.getDefaultNamespace();
-        PulsarName pulsarName = new PulsarName(tenant, namespace, name);
-        PulsarTopic pulsarTopic = new PulsarTopic(pulsarName, null, null, null, creationMode);
-        physicalApplicationInstance.registerTopic(topicDefinition, pulsarTopic);
-        return pulsarTopic;
-    }
-
 
     @Override
     public void delete(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {

@@ -49,6 +49,7 @@
     <module>webservice</module>
     <module>k8s-storage</module>
     <module>k8s-deployer</module>
+    <module>k8s-deployer/k8s-deployer-client</module>
   </modules>
 
   <dependencyManagement>

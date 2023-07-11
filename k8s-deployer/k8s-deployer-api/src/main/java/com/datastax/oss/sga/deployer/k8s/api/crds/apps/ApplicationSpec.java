@@ -8,9 +8,11 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Data
 @NoArgsConstructor
+@SuperBuilder
 public class ApplicationSpec extends NamespacedSpec {
     private String image;
     private String imagePullPolicy;

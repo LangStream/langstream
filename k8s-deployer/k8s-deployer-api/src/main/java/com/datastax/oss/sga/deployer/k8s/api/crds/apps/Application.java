@@ -8,6 +8,7 @@ import io.fabric8.kubernetes.model.annotation.Plural;
 import io.fabric8.kubernetes.model.annotation.ShortNames;
 import io.fabric8.kubernetes.model.annotation.Singular;
 import io.fabric8.kubernetes.model.annotation.Version;
+import lombok.Builder;
 
 @Version("v1alpha1")
 @Group("sga.oss.datastax.com")

@@ -1,4 +1,4 @@
-package com.dastastax.oss.sga.kafka;
+package com.dastastax.oss.sga.kafka.runtime;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.SchemaDefinition;
@@ -35,7 +35,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         return KafkaAdminClient.create(adminConfig);
     }
 
-    private KafkaClusterRuntimeConfiguration getKafkaClusterRuntimeConfiguration(StreamingCluster streamingCluster) {
+    public static KafkaClusterRuntimeConfiguration getKafkaClusterRuntimeConfiguration(StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
         return mapper.convertValue(configuration, KafkaClusterRuntimeConfiguration.class);
     }

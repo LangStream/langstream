@@ -1,4 +1,4 @@
-package com.dastastax.oss.sga.kafka;
+package com.dastastax.oss.sga.kafka.runtime;
 
 import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.TopicImplementation;

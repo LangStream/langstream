@@ -1,0 +1,17 @@
+streamingCluster:
+   type: kafka
+   configuration:
+     bootstrap.servers: localhost:9092
+
+input:
+  topic: input-topic
+
+
+output:
+  topic: output-topic
+
+
+agent:
+  type: xxx
+  configuration:
+     key1: value1

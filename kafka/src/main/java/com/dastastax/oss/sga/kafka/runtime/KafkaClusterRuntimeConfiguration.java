@@ -1,4 +1,4 @@
-package com.dastastax.oss.sga.kafka;
+package com.dastastax.oss.sga.kafka.runtime;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

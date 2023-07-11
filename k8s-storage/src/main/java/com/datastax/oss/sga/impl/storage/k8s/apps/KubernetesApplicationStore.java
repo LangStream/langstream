@@ -1,7 +1,6 @@
 package com.datastax.oss.sga.impl.storage.k8s.apps;
 
 import com.datastax.oss.sga.api.model.ApplicationInstance;
-import com.datastax.oss.sga.api.model.ApplicationInstanceLifecycleStatus;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Resource;
@@ -10,7 +9,6 @@ import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.Application;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationStatus;
-import com.datastax.oss.sga.deployer.k8s.client.DeployerClient;
 import com.datastax.oss.sga.impl.storage.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;

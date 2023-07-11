@@ -9,6 +9,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
+  <name>Streaming GenAI - K8s deployer API</name>
   <artifactId>k8s-deployer-api</artifactId>
 
   <properties>

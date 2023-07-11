@@ -72,17 +72,21 @@ public abstract class BasicClusterRuntime implements ClusterRuntime {
             }
             for (Pipeline pipeline : module.getPipelines().values()) {
                 log.info("Pipeline: {}", pipeline.getName());
+                AgentImplementation previousAgent = null;
                 for (AgentConfiguration agentConfiguration : pipeline.getAgents().values()) {
-                    buildAgent(module, agentConfiguration, result, pluginsRegistry, streamingClusterRuntime);
+                    previousAgent = buildAgent(module, agentConfiguration, result, pluginsRegistry,
+                            streamingClusterRuntime, previousAgent);
                 }
             }
         }
     }
 
 
-    protected void buildAgent(Module module, AgentConfiguration agentConfiguration,
+    protected AgentImplementation buildAgent(Module module, AgentConfiguration agentConfiguration,
                             PhysicalApplicationInstance result,
-                            PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime) {
+                            PluginsRegistry pluginsRegistry,
+                            StreamingClusterRuntime streamingClusterRuntime,
+                            AgentImplementation previousAgent) {
         log.info("Processing agent {} id={} type={}", agentConfiguration.getName(), agentConfiguration.getId(),
                 agentConfiguration.getType());
         AgentImplementationProvider agentImplementationProvider =
@@ -91,8 +95,13 @@ public abstract class BasicClusterRuntime implements ClusterRuntime {
         AgentImplementation agentImplementation = agentImplementationProvider
                 .createImplementation(agentConfiguration, module, result, this, pluginsRegistry, streamingClusterRuntime );
 
+        if (previousAgent != null && agentImplementationProvider.canMerge(previousAgent, agentImplementation)) {
+            agentImplementation = agentImplementationProvider.mergeAgents(previousAgent, agentImplementation, result);
+        }
+
         result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
 
+        return agentImplementation;
     }
 
     @Override

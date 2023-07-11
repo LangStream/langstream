@@ -494,4 +494,97 @@ class PulsarClusterRuntimeTest {
                         .name());
     }
 
+
+    @Test
+    public void testMergeGenAIToolKitAgents() throws Exception {
+        ApplicationInstance applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        buildInstanceYaml(),
+                        "configuration.yaml",
+                        """
+                                configuration:  
+                                  resources:
+                                    - name: open-ai
+                                      type: open-ai-configuration
+                                      configuration:
+                                        url: "http://something"                                
+                                        access-key: "xxcxcxc"
+                                        provider: "azure"
+                                  """,
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                      type: avro
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists                                    
+                                pipeline:
+                                  - name: "compute-embeddings"
+                                    id: "step1"
+                                    type: "compute-ai-embeddings"
+                                    input: "input-topic"                                    
+                                    configuration:                                      
+                                      model: "text-embedding-ada-002"
+                                      embeddings-field: "value.embeddings"
+                                      text: "{{% value.name }} {{% value.description }}"
+                                  - name: "compute-embeddings"
+                                    id: "step2"
+                                    type: "compute-ai-embeddings"                                    
+                                    output: "output-topic"
+                                    configuration:                                      
+                                      model: "text-embedding-ada-003"
+                                      embeddings-field: "value.embeddings2"
+                                      text: "{{% value.name }}"
+                                """));
+
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+
+        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "step1");
+        assertNotNull(agentImplementation);
+        AbstractAgentProvider.DefaultAgentImplementation step =
+                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        Map<String, Object> configuration = step.getConfiguration();
+        log.info("Configuration: {}", configuration);
+        Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
+        log.info("openAIConfiguration: {}", openAIConfiguration);
+        assertEquals("http://something", openAIConfiguration.get("url"));
+        assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
+        assertEquals("azure", openAIConfiguration.get("provider"));
+
+
+        List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+        assertEquals(2, steps.size());
+        Map<String, Object> step1 = steps.get(0);
+        assertEquals("text-embedding-ada-002", step1.get("model"));
+        assertEquals("value.embeddings", step1.get("embeddings-field"));
+        assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
+
+        Map<String, Object> step2 = steps.get(1);
+        assertEquals("text-embedding-ada-003", step2.get("model"));
+        assertEquals("value.embeddings2", step2.get("embeddings-field"));
+        assertEquals("{{ value.name }}", step2.get("text"));
+
+
+        // verify that the intermediate topic is not created
+        log.info("topics {}", implementation.getTopics());
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+        assertEquals(2, implementation.getTopics().size());
+
+    }
+
 }

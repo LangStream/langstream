@@ -124,9 +124,19 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>k8s-deployer-api</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>k3s</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
 			<groupId>io.fabric8</groupId>
-			<artifactId>kubernetes-server-mock</artifactId>
-			<version>${kubernetes-client.version}</version>
+			<artifactId>kubernetes-client</artifactId>
 			<scope>test</scope>
 		</dependency>
 

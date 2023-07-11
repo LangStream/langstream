@@ -1,9 +1,9 @@
 package com.datastax.oss.sga.webservice.common;
 
 import com.datastax.oss.sga.api.model.TenantConfiguration;
+import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.api.storage.GlobalMetadataStore;
 import com.datastax.oss.sga.api.storage.GlobalMetadataStoreRegistry;
-import com.datastax.oss.sga.impl.storage.ApplicationStore;
 import com.datastax.oss.sga.impl.storage.GlobalMetadataStoreManager;
 import com.datastax.oss.sga.webservice.config.StorageProperties;
 import java.util.Map;

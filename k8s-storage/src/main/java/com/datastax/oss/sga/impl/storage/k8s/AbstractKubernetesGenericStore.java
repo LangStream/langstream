@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class AbstractKubernetesGenericStore<T extends HasMetadata> implements GenericStore {
 
-    static final ObjectMapper mapper = new ObjectMapper();
+    protected static final ObjectMapper mapper = new ObjectMapper();
     protected static final String PREFIX = "sga-";
 
     private static String resourceName(String key) {

@@ -40,8 +40,6 @@ public class ApplicationResource {
         return applicationService.getAllApplications(tenant);
     }
 
-
-
     @PutMapping(value = "/{tenant}/{name}", consumes = "multipart/form-data")
     @Operation(summary = "Create and deploy an application")
     void deployApplication(

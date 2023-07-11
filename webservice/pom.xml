@@ -18,7 +18,8 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<springdoc-openapi-starter-webmvc.version>2.1.0</springdoc-openapi-starter-webmvc.version>
 		<jib-maven-plugin.version>3.3.1</jib-maven-plugin.version>
-	</properties>
+    <kindcontainer.version>1.4.1</kindcontainer.version>
+  </properties>
 
 	<dependencies>
 		<dependency>
@@ -123,6 +124,23 @@
 			<version>${project.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>k8s-deployer-api</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.dajudge.kindcontainer</groupId>
+			<artifactId>kindcontainer</artifactId>
+			<version>${kindcontainer.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.fabric8</groupId>
+			<artifactId>kubernetes-client</artifactId>
+			<scope>test</scope>
+		</dependency>
 
 	</dependencies>
 
@@ -181,7 +199,7 @@
 						</platforms>
 					</from>
 					<to>
-						<image>datastax/sga:latest</image>
+						<image>datastax/sga-control-plane:latest-dev</image>
 					</to>
 					<container>
 						<entrypoint>

@@ -10,6 +10,8 @@ import com.datastax.oss.sga.cli.commands.applications.DeployApplicationCmd;
 import com.datastax.oss.sga.impl.storage.LocalStore;
 import com.datastax.oss.sga.webservice.config.StorageProperties;
 import java.io.File;
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +31,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpMethod;
@@ -39,10 +41,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Slf4j
-class ApplicationResourceTest {
-
-
-
+class ApplicationResourceTest extends KubeTestUtil {
 
     @Autowired
     MockMvc mockMvc;
@@ -55,15 +54,10 @@ class ApplicationResourceTest {
         @SneakyThrows
         public StorageProperties storageProperties() {
             return new StorageProperties(
-                    new StorageProperties.AppsStoreProperties("local", Map.of(
-                            LocalStore.LOCAL_BASEDIR,
-                            Files.createTempDirectory("sga-test").toFile().getAbsolutePath()
+                    new StorageProperties.AppsStoreProperties("kubernetes", Map.of(
+                            "namespaceprefix",
+                            "sga-"
                     )),
-                    new StorageProperties.SecretStoreProperties("local",
-                            Map.of(
-                                    LocalStore.LOCAL_BASEDIR,
-                                    Files.createTempDirectory("sga-test").toFile().getAbsolutePath()
-                            )),
                     new StorageProperties.GlobalMetadataStoreProperties("local",
                             Map.of(
                                     LocalStore.LOCAL_BASEDIR,
@@ -109,7 +103,6 @@ class ApplicationResourceTest {
 
     @Test
     void testAppCrud() throws Exception {
-
         mockMvc.perform(put("/api/tenants/my-tenant"))
                         .andExpect(status().isOk());
         mockMvc
@@ -155,6 +148,6 @@ class ApplicationResourceTest {
                         get("/api/applications/my-tenant/test")
                 )
                 .andExpect(status().isNotFound());
-
     }
+
 }

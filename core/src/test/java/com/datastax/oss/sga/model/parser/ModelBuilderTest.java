@@ -31,8 +31,5 @@ class ModelBuilderTest {
     void testParseApplication1() throws Exception {
         Path path = Paths.get("../examples/application1");
         Application application = ModelBuilder.buildApplicationInstance(Arrays.asList(path));
-
-
-
     }
 }

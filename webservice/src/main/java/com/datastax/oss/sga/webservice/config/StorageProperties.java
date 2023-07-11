@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.webservice.config;
 
+import jakarta.validation.constraints.NotBlank;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -24,21 +25,13 @@ public class StorageProperties {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class SecretStoreProperties {
-        private String type;
-        private Map<String, String> configuration = new HashMap<>();
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class GlobalMetadataStoreProperties {
         private String type;
         private Map<String, String> configuration = new HashMap<>();
     }
 
+    @NotBlank
     private AppsStoreProperties apps;
-    private SecretStoreProperties secrets;
     private GlobalMetadataStoreProperties global;
 
 }

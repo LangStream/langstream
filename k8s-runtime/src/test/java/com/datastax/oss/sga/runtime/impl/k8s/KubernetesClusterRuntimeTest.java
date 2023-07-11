@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -88,7 +89,7 @@ class KubernetesClusterRuntimeTest {
 
     @BeforeAll
     public static void setup() throws Exception {
-        kafkaContainer = new KafkaContainer()
+        kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
                 .withLogConsumer(new Consumer<OutputFrame>() {
                     @Override
                     public void accept(OutputFrame outputFrame) {

@@ -181,7 +181,7 @@
 						</platforms>
 					</from>
 					<to>
-						<image>datastax/sga:latest</image>
+						<image>datastax/sga-control-plane:latest-dev</image>
 					</to>
 					<container>
 						<entrypoint>

@@ -1,38 +1,36 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "sga.fullname" . }}
+  name: {{ include "sga.controlPlaneFullname" . }}
   labels:
-    {{- include "sga.labels" . | nindent 4 }}
+    {{- include "sga.controlPlaneLabels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: {{ .Values.controlPlane.replicaCount }}
   selector:
     matchLabels:
-      {{- include "sga.selectorLabels" . | nindent 6 }}
+      {{- include "sga.controlPlaneSelectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- with .Values.controlPlane.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "sga.selectorLabels" . | nindent 8 }}
+        {{- include "sga.controlPlaneSelectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- with .Values.controlPlane.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "sga.serviceAccountName" . }}
+      serviceAccountName: {{ include "sga.controlPlaneServiceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.controlPlane.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+            {{- toYaml .Values.controlPlane.securityContext | nindent 12 }}
+          image: "{{ .Values.controlPlane.image.repository }}:{{ .Values.controlPlane.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.controlPlane.image.pullPolicy }}
           ports:
             - name: http
               containerPort: 8090
@@ -46,7 +44,7 @@ spec:
               path: /management/health
               port: http
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.controlPlane.resources | nindent 12 }}
           env:
             - name: KUBERNETES_NAMESPACE
               valueFrom:
@@ -54,16 +52,16 @@ spec:
                   fieldPath: metadata.namespace
           envFrom:
             - configMapRef:
-                name: {{ include "sga.fullname" . }}
-      {{- with .Values.nodeSelector }}
+                name: {{ include "sga.controlPlaneFullname" . }}
+      {{- with .Values.controlPlane.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with .Values.controlPlane.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with .Values.controlPlane.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

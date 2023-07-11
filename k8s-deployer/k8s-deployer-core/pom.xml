@@ -10,6 +10,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>k8s-deployer-core</artifactId>
+  <properties>
+    <quarkus.container-image.build>true</quarkus.container-image.build>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -55,6 +58,32 @@
 
   <build>
     <plugins>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.0.2</version>
+        <executions>
+          <!--resources:copy-resources@sync-crd-->
+          <execution>
+            <id>sync-crd</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.basedir}/../../helm/sga/crds</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.build.directory}/kubernetes</directory>
+                  <includes>
+                    <include>*.oss.datastax.com-*.yml</include>
+                  </includes>
+                  <filtering>false</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>io.quarkus</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>

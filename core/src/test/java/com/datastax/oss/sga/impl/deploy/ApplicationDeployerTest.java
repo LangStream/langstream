@@ -96,7 +96,7 @@ class ApplicationDeployerTest {
                     resolvedApplicationInstance.getResources().get("openai-azure").configuration()
                             .get("accessKey"));
             return null;
-        }).when(mockRuntime).deploy(Mockito.any(), Mockito.any(), eq(mockStreamingRuntime) );
-        Mockito.verify(mockRuntime).deploy(Mockito.any(), Mockito.any(), eq(mockStreamingRuntime));
+        }).when(mockRuntime).deploy(Mockito.any(), eq(mockStreamingRuntime) );
+        Mockito.verify(mockRuntime).deploy(Mockito.any(), eq(mockStreamingRuntime));
     }
 }

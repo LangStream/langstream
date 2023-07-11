@@ -84,8 +84,8 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void deploy(ApplicationInstance logicalInstance, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
-
+    public void deploy(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+        ApplicationInstance logicalInstance = applicationInstance.getApplicationInstance();
         streamingClusterRuntime.deploy(applicationInstance);
 
         try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
@@ -212,7 +212,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
 
 
     @Override
-    public void delete(ApplicationInstance logicalInstance, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void delete(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         throw new UnsupportedOperationException();
     }
 }

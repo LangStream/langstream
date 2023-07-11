@@ -38,9 +38,7 @@ public final class ApplicationDeployer {
       ApplicationInstance applicationInstance = physicalApplicationInstance.getApplicationInstance();
       ClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
       StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
-      final ApplicationInstance resolvedApplicationInstance = ApplicationInstancePlaceholderResolver
-              .resolvePlaceholders(applicationInstance);
-      clusterRuntime.deploy(resolvedApplicationInstance, physicalApplicationInstance, streamingClusterRuntime);
+      clusterRuntime.deploy(physicalApplicationInstance, streamingClusterRuntime);
   }
 
     /**
@@ -51,6 +49,6 @@ public final class ApplicationDeployer {
       ApplicationInstance applicationInstance = physicalApplicationInstance.getApplicationInstance();
       ClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
       StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
-      clusterRuntime.delete(applicationInstance, physicalApplicationInstance, streamingClusterRuntime);
+      clusterRuntime.delete(physicalApplicationInstance, streamingClusterRuntime);
   }
 }

@@ -110,13 +110,13 @@ public abstract class BasicClusterRuntime implements ClusterRuntime {
     }
 
     @Override
-    public void deploy(ApplicationInstance logicalInstance, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void deploy(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         streamingClusterRuntime.deploy(applicationInstance);
         log.warn("ClusterType " + getClusterType() + " doesn't actually deploy agents, it's just a logical representation");
     }
 
     @Override
-    public void delete(ApplicationInstance logicalInstance, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void delete(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         streamingClusterRuntime.delete(applicationInstance);
         log.warn("ClusterType " + getClusterType() + " doesn't actually deploy agents, it's just a logical representation");
     }

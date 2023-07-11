@@ -46,9 +46,9 @@ public interface ClusterRuntime {
      */
     ConnectionImplementation getConnectionImplementation(Module module, Connection connection, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    void deploy(ApplicationInstance logicalInstance, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    void deploy(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    void delete(ApplicationInstance logicalInstance, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    void delete(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
     default Object computeAgentMetadata(AgentConfiguration agentConfiguration, PhysicalApplicationInstance physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         return null;

@@ -2,19 +2,16 @@ package com.datastax.oss.sga.pulsar;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.ApplicationInstance;
-import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentImplementation;
-import com.datastax.oss.sga.api.runtime.AgentImplementationProvider;
-import com.datastax.oss.sga.api.runtime.ClusterRuntime;
 import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.api.runtime.TopicImplementation;
+import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSinkAgentProvider;
@@ -23,22 +20,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.common.functions.FunctionConfig;
 import org.apache.pulsar.common.io.SinkConfig;
 import org.apache.pulsar.common.io.SourceConfig;
-import org.apache.pulsar.common.naming.TopicName;
-import org.apache.pulsar.common.schema.SchemaInfo;
-import org.apache.pulsar.common.schema.SchemaType;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
-public class PulsarClusterRuntime implements ClusterRuntime {
+public class PulsarClusterRuntime extends BasicClusterRuntime {
 
     static final ObjectMapper mapper = new ObjectMapper();
 
@@ -50,42 +42,12 @@ public class PulsarClusterRuntime implements ClusterRuntime {
     }
 
     @Override
-    public PhysicalApplicationInstance createImplementation(ApplicationInstance applicationInstance,
-                                                                  PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime) {
-        StreamingCluster streamingCluster = applicationInstance.getInstance().streamingCluster();
+    protected void detectAgents(PhysicalApplicationInstance result, StreamingClusterRuntime streamingClusterRuntime, PluginsRegistry pluginsRegistry) {
+        ApplicationInstance applicationInstance = result.getApplicationInstance();
         final PulsarClusterRuntimeConfiguration config =
-                getPulsarClusterRuntimeConfiguration(streamingCluster);
-
+                getPulsarClusterRuntimeConfiguration(applicationInstance.getInstance().streamingCluster());
         String tenant = config.getDefaultTenant();
         String namespace = config.getDefaultNamespace();
-
-        PhysicalApplicationInstance result =
-                new PhysicalApplicationInstance(applicationInstance);
-
-        detectTopics(result, streamingClusterRuntime);
-
-        detectPipelines(applicationInstance, result, tenant, namespace, pluginsRegistry, streamingClusterRuntime);
-
-
-        return result;
-    }
-
-    private void detectTopics(PhysicalApplicationInstance result,
-                              StreamingClusterRuntime streamingClusterRuntime) {
-        ApplicationInstance applicationInstance = result.getApplicationInstance();
-        for (Module module : applicationInstance.getModules().values()) {
-            for (TopicDefinition topic : module.getTopics().values()) {
-                TopicImplementation topicImplementation = streamingClusterRuntime.createTopicImplementation(topic, result);
-                result.registerTopic(topic, topicImplementation);
-            }
-        }
-    }
-
-    private void detectPipelines(ApplicationInstance applicationInstance,
-                                 PhysicalApplicationInstance result,
-                                 String tenant, String namespace,
-                                 PluginsRegistry pluginsRegistry,
-                                 StreamingClusterRuntime streamingClusterRuntime) {
         for (Module module : applicationInstance.getModules().values()) {
             if (module.getPipelines() == null) {
                 return;
@@ -93,25 +55,10 @@ public class PulsarClusterRuntime implements ClusterRuntime {
             for (Pipeline pipeline : module.getPipelines().values()) {
                 log.info("Pipeline: {}", pipeline.getName());
                 for (AgentConfiguration agentConfiguration : pipeline.getAgents().values()) {
-                    buildAgent(module, agentConfiguration, result, tenant, namespace, pluginsRegistry, streamingClusterRuntime);
+                    buildAgent(module, agentConfiguration, result, pluginsRegistry, streamingClusterRuntime);
                 }
             }
         }
-    }
-
-    private void buildAgent(Module module, AgentConfiguration agentConfiguration,
-                            PhysicalApplicationInstance result, String tenant, String namespace,
-                            PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime) {
-        log.info("Processing agent {} id={} type={}", agentConfiguration.getName(), agentConfiguration.getId(),
-                agentConfiguration.getType());
-        AgentImplementationProvider agentImplementationProvider =
-                pluginsRegistry.lookupAgentImplementation(agentConfiguration.getType(), this);
-
-        AgentImplementation agentImplementation = agentImplementationProvider
-                .createImplementation(agentConfiguration, module, result, this, pluginsRegistry, streamingClusterRuntime );
-
-        result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
-
     }
 
     private PulsarAdmin buildPulsarAdmin(StreamingCluster streamingCluster) throws Exception {
@@ -137,64 +84,13 @@ public class PulsarClusterRuntime implements ClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void deploy(ApplicationInstance logicalInstance, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
-
+    public void deploy(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+        ApplicationInstance logicalInstance = applicationInstance.getApplicationInstance();
         streamingClusterRuntime.deploy(applicationInstance);
 
         try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
             for (AgentImplementation agentImplementation : applicationInstance.getAgents().values()) {
                 deployAgent(admin, agentImplementation);
-            }
-        }
-    }
-
-    private static void deployTopic(PulsarAdmin admin, PulsarTopic topic) throws PulsarAdminException {
-        String createMode = topic.createMode();
-        String namespace = topic.name().tenant() + "/" + topic.name().namespace();
-        String topicName = topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
-        log.info("Listing topics in namespace {}", namespace);
-        List<String> existing = admin.topics().getList(namespace);
-        log.info("Existing topics: {}", existing);
-        String fullyQualifiedName = TopicName.get(topicName).toString();
-        log.info("Looking for : {}", fullyQualifiedName);
-        boolean exists = existing.contains(fullyQualifiedName);
-        if (exists) {
-            log.info("Topic {} already exists", topicName);
-        } else {
-            log.info("Topic {} does not exist", topicName);
-        }
-        switch (createMode) {
-            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
-                if (!exists) {
-                    log.info("Topic {} does not exist, creating", topicName);
-                    admin
-                            .topics().createNonPartitionedTopic(topicName);
-                }
-                break;
-            }
-            case TopicDefinition.CREATE_MODE_NONE: {
-                // do nothing
-                break;
-            }
-            default:
-                throw new IllegalArgumentException("Unknown create mode " + createMode);
-        }
-
-        // deploy schema
-        if (!StringUtils.isEmpty(topic.schemaType())) {
-            List<SchemaInfo> allSchemas = admin.schemas().getAllSchemas(topicName);
-            if (allSchemas.isEmpty()) {
-                log.info("Deploying schema for topic {}", topicName);
-                SchemaInfo schemaInfo = SchemaInfo
-                        .builder()
-                        .type(SchemaType.valueOf(topic.schemaType().toUpperCase()))
-                        .name(topic.schemaName())
-                        .properties(Map.of())
-                        .schema(topic.schema().getBytes(StandardCharsets.UTF_8))
-                        .build();
-                admin.schemas().createSchema(topicName, schemaInfo);
-            } else {
-                log.info("Topic {} already has some schemas, skipping. ({})", topicName, allSchemas);
             }
         }
     }
@@ -295,42 +191,28 @@ public class PulsarClusterRuntime implements ClusterRuntime {
     }
 
     @Override
-    public ConnectionImplementation getConnectionImplementation(Module module, Connection connection,
-                                                                PhysicalApplicationInstance physicalApplicationInstance,
-                                                                StreamingClusterRuntime streamingClusterRuntime) {
-        Connection.Connectable endpoint = connection.endpoint();
-        if (endpoint instanceof TopicDefinition topicDefinition) {
-            // compare by name
-            ConnectionImplementation result =
-                    physicalApplicationInstance.getTopicByName(topicDefinition.getName());
-            if (result == null) {
-                throw new IllegalArgumentException("Topic " + topicDefinition.getName() + " not found, only " + physicalApplicationInstance.getLogicalTopics());
-            }
-            return result;
-        } else if (endpoint instanceof AgentConfiguration agentConfiguration) {
-            // connecting two agents requires an intermediate topic
-            String name = "agent-" + agentConfiguration.getId() + "-output";
-            log.info("Automatically creating topic {} in order to connect agent {}", name,
-                    agentConfiguration.getId());
-            // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
-            String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
-            TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, null);
-            StreamingCluster streamingCluster = physicalApplicationInstance.getApplicationInstance().getInstance().streamingCluster();
-            final PulsarClusterRuntimeConfiguration config =
-                    getPulsarClusterRuntimeConfiguration(streamingCluster);
-            String tenant = config.getDefaultTenant();
-            String namespace = config.getDefaultNamespace();
-            PulsarName pulsarName = new PulsarName(tenant, namespace, name);
-            PulsarTopic pulsarTopic = new PulsarTopic(pulsarName, null, null, null, creationMode);
-            physicalApplicationInstance.registerTopic(topicDefinition, pulsarTopic);
-            return pulsarTopic;
-        }
-        throw new UnsupportedOperationException("Not implemented yet, connection with " + endpoint);
+    protected ConnectionImplementation buildImplicitTopicForAgent(PhysicalApplicationInstance physicalApplicationInstance, AgentConfiguration agentConfiguration) {
+        // connecting two agents requires an intermediate topic
+        String name = "agent-" + agentConfiguration.getId() + "-output";
+        log.info("Automatically creating topic {} in order to connect agent {}", name,
+                agentConfiguration.getId());
+        // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
+        String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
+        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, null);
+        StreamingCluster streamingCluster = physicalApplicationInstance.getApplicationInstance().getInstance().streamingCluster();
+        final PulsarClusterRuntimeConfiguration config =
+                getPulsarClusterRuntimeConfiguration(streamingCluster);
+        String tenant = config.getDefaultTenant();
+        String namespace = config.getDefaultNamespace();
+        PulsarName pulsarName = new PulsarName(tenant, namespace, name);
+        PulsarTopic pulsarTopic = new PulsarTopic(pulsarName, null, null, null, creationMode);
+        physicalApplicationInstance.registerTopic(topicDefinition, pulsarTopic);
+        return pulsarTopic;
     }
 
 
     @Override
-    public void delete(ApplicationInstance logicalInstance, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void delete(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         throw new UnsupportedOperationException();
     }
 }

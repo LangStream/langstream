@@ -4,7 +4,6 @@ import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.ApplicationInstanceLifecycleStatus;
 import com.datastax.oss.sga.api.model.StoredApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
-import com.datastax.oss.sga.api.storage.TenantDataStore;
 import com.datastax.oss.sga.impl.storage.ApplicationStore;
 import com.google.common.util.concurrent.Striped;
 import java.util.LinkedHashMap;
@@ -52,7 +51,7 @@ public class ApplicationManager implements AutoCloseable {
                         if (newTask.deploy) {
                             internalDeploy(newTask.tenant, newTask.applicationName, newTask.applicationInstance);
                         } else {
-                            internalUnemployment(newTask.tenant, newTask.applicationName, newTask.applicationInstance);
+                            internalDelete(newTask.tenant, newTask.applicationName, newTask.applicationInstance);
                         }
                     } catch (Throwable ex) {
                         log.error("Error while processing task", ex);
@@ -148,7 +147,7 @@ public class ApplicationManager implements AutoCloseable {
         try {
             final PhysicalApplicationInstance implementation =
                     applicationDeployer.createImplementation(applicationInstance);
-            applicationDeployer.deploy(applicationInstance, implementation);
+            applicationDeployer.deploy(implementation);
             applicationStore.put(tenant, applicationName, applicationInstance,
                     ApplicationInstanceLifecycleStatus.DEPLOYED);
         } catch (Throwable e) {
@@ -159,12 +158,12 @@ public class ApplicationManager implements AutoCloseable {
         }
     }
 
-    private void internalUnemployment(String tenant, String applicationName, ApplicationInstance applicationInstance) {
-        log.info("start unemployment of {}", applicationName);
+    private void internalDelete(String tenant, String applicationName, ApplicationInstance applicationInstance) {
+        log.info("start deletion of {}", applicationName);
         // not supported yet
         // deployer.delete(applicationInstance, deployer.createImplementation(current.getInstance()));
         applicationStore.delete(tenant, applicationName);
-        log.info("unemployed {}", applicationName);
+        log.info("deleted {}", applicationName);
     }
 
     @SneakyThrows

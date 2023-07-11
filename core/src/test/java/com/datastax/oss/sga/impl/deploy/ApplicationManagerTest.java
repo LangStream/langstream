@@ -26,7 +26,7 @@ class ApplicationManagerTest {
 
         Awaitility.await().untilAsserted(() -> {
             Mockito.verify(deployer, Mockito.times(1)).createImplementation(any());
-            Mockito.verify(deployer, Mockito.times(1)).deploy(any(), any());
+            Mockito.verify(deployer, Mockito.times(1)).deploy(any());
             final StoredApplicationInstance stored = applicationStore.get("tenant","test");
             Assertions.assertEquals(ApplicationInstanceLifecycleStatus.Status.DEPLOYED, stored.getStatus().getStatus());
         });
@@ -50,7 +50,7 @@ class ApplicationManagerTest {
 
         Awaitility.await().untilAsserted(() -> {
             Mockito.verify(deployer, Mockito.times(1)).createImplementation(any());
-            Mockito.verify(deployer, Mockito.times(0)).deploy(any(), any());
+            Mockito.verify(deployer, Mockito.times(0)).deploy(any());
             final StoredApplicationInstance stored = applicationStore.get(tenantName, "test");
             Assertions.assertEquals(ApplicationInstanceLifecycleStatus.Status.ERROR, stored.getStatus().getStatus());
         });

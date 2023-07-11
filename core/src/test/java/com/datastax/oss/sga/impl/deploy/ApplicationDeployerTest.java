@@ -8,6 +8,7 @@ import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
+import com.datastax.oss.sga.impl.dummy.NoOpClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.spy;
 
 class ApplicationDeployerTest {
 
@@ -47,7 +49,7 @@ class ApplicationDeployerTest {
     void testDeploy() throws Exception {
 
         final MockClusterRuntimeRegistry registry = new MockClusterRuntimeRegistry();
-        final ClusterRuntime mockRuntime = Mockito.mock(ClusterRuntime.class);
+        final ClusterRuntime mockRuntime = spy(new NoOpClusterRuntimeProvider.NoOpClusterRuntime());
         final StreamingClusterRuntime mockStreamingRuntime = Mockito.mock(StreamingClusterRuntime.class);
         registry.addClusterRuntime("mock", mockRuntime);
         registry.addStreamingClusterRuntime("mock", mockStreamingRuntime);
@@ -85,7 +87,8 @@ class ApplicationDeployerTest {
                                     computeCluster:
                                         type: mock
                                 """));
-        deployer.deploy(applicationInstance, null);
+        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        deployer.deploy(implementation);
         Mockito.doAnswer(invocationOnMock -> {
             final ApplicationInstance resolvedApplicationInstance =
                     (ApplicationInstance) invocationOnMock.getArguments()[0];
@@ -93,7 +96,7 @@ class ApplicationDeployerTest {
                     resolvedApplicationInstance.getResources().get("openai-azure").configuration()
                             .get("accessKey"));
             return null;
-        }).when(mockRuntime).deploy(Mockito.any(), Mockito.any(), eq(mockStreamingRuntime) );
-        Mockito.verify(mockRuntime).deploy(Mockito.any(), Mockito.any(), eq(mockStreamingRuntime));
+        }).when(mockRuntime).deploy(Mockito.any(), eq(mockStreamingRuntime) );
+        Mockito.verify(mockRuntime).deploy(Mockito.any(), eq(mockStreamingRuntime));
     }
 }

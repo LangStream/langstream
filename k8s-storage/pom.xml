@@ -14,7 +14,7 @@
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <kubernetes-client.version>6.7.2</kubernetes-client.version>
+
   </properties>
   <dependencies>
     <dependency>

@@ -35,8 +35,8 @@
     <picocli.version>4.7.4</picocli.version>
     <jmustache.version>1.15</jmustache.version>
     <mockito-core.version>5.2.0</mockito-core.version>
-    <guava.version>32.0.0-jre</guava.version>
     <awaitility.version>4.2.0</awaitility.version>
+    <kubernetes-client.version>6.7.2</kubernetes-client.version>
   </properties>
   <modules>
     <module>api</module>
@@ -158,14 +158,14 @@
         <version>${mockito-core.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${guava.version}</version>
-      </dependency>
-      <dependency>
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
         <version>${awaitility.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fabric8</groupId>
+        <artifactId>kubernetes-client</artifactId>
+        <version>${kubernetes-client.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

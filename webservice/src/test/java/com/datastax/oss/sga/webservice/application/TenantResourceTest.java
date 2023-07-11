@@ -35,9 +35,6 @@ import org.springframework.test.web.servlet.MockMvc;
 @Slf4j
 class TenantResourceTest {
 
-
-
-
     @Autowired
     MockMvc mockMvc;
 
@@ -49,10 +46,7 @@ class TenantResourceTest {
         @SneakyThrows
         public StorageProperties storageProperties() {
             return new StorageProperties(
-                    new StorageProperties.AppsStoreProperties("local", Map.of(
-                            LocalStore.LOCAL_BASEDIR,
-                            Files.createTempDirectory("sga-test").toFile().getAbsolutePath()
-                    )),
+                    new StorageProperties.AppsStoreProperties("kubernetes", Map.of("namespaceprefix", "sga-")),
                     new StorageProperties.GlobalMetadataStoreProperties("local",
                             Map.of(
                                     LocalStore.LOCAL_BASEDIR,

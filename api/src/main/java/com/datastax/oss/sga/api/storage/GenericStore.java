@@ -5,5 +5,5 @@ import java.util.Map;
 public interface GenericStore {
     String storeType();
 
-    void initialize(Map<String, String> configuration);
+    void initialize(Map<String, Object> configuration);
 }

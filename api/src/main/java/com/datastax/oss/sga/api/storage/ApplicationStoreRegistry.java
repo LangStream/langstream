@@ -6,7 +6,7 @@ import java.util.ServiceLoader;
 
 public class ApplicationStoreRegistry {
 
-    public static ApplicationStore loadStore(String type, Map<String, String> configuration) {
+    public static ApplicationStore loadStore(String type, Map<String, Object> configuration) {
         Objects.requireNonNull(type, "type cannot be null");
         Objects.requireNonNull(configuration, "configuration cannot be null");
         ServiceLoader<ApplicationStore> loader = ServiceLoader.load(ApplicationStore.class);

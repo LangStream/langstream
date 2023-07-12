@@ -21,7 +21,7 @@ public class GlobalMetadataStoreManager {
     public void putTenant(String tenant, TenantConfiguration tenantConfiguration) {
         final String key = keyedTenantName(tenant);
         globalMetadataStore.put(key, mapper.writeValueAsString(tenantConfiguration));
-        applicationStore.initializeTenant(tenant);
+        applicationStore.onTenantCreated(tenant);
     }
 
     public TenantConfiguration getTenant(String tenant) {
@@ -42,6 +42,7 @@ public class GlobalMetadataStoreManager {
     public void deleteTenant(String tenant) {
         final String key = keyedTenantName(tenant);
         globalMetadataStore.delete(key);
+        applicationStore.onTenantDeleted(tenant);
     }
 
     @SneakyThrows

@@ -1,4 +1,4 @@
-package com.dastastax.oss.sga.runtime;
+package com.datastax.oss.sga.runtime.agent;
 
 import java.util.Map;
 

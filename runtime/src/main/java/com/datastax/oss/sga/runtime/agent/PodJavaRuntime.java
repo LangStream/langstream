@@ -1,4 +1,4 @@
-package com.dastastax.oss.sga.runtime;
+package com.datastax.oss.sga.runtime.agent;
 
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeRegistry;

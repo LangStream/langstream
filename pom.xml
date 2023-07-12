@@ -37,6 +37,7 @@
     <mockito-core.version>5.2.0</mockito-core.version>
     <awaitility.version>4.2.0</awaitility.version>
     <kubernetes-client.version>6.7.2</kubernetes-client.version>
+    <bouncy-castle.version>1.70</bouncy-castle.version>
   </properties>
   <modules>
     <module>api</module>
@@ -166,6 +167,21 @@
         <groupId>io.fabric8</groupId>
         <artifactId>kubernetes-client</artifactId>
         <version>${kubernetes-client.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${bouncy-castle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>${bouncy-castle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-ext-jdk15on</artifactId>
+        <version>${bouncy-castle.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

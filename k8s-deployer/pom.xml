@@ -21,7 +21,6 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <quarkus-operator-sdk-bom.version>6.2.1</quarkus-operator-sdk-bom.version>
-    <bouncy-castle.version>1.70</bouncy-castle.version>
     <jsonassert.version>1.5.1</jsonassert.version>
   </properties>
 
@@ -33,16 +32,6 @@
         <version>${quarkus-operator-sdk-bom.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.bouncycastle</groupId>
-        <artifactId>bcprov-jdk15on</artifactId>
-        <version>${bouncy-castle.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.bouncycastle</groupId>
-        <artifactId>bcpkix-jdk15on</artifactId>
-        <version>${bouncy-castle.version}</version>
       </dependency>
       <dependency>
         <groupId>org.skyscreamer</groupId>

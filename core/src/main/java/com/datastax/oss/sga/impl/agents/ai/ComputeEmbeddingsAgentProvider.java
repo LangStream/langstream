@@ -5,8 +5,8 @@ import java.util.Map;
 
 public class ComputeEmbeddingsAgentProvider extends GenAIToolKitFunctionAgentProvider {
 
-    public ComputeEmbeddingsAgentProvider(String clusterType) {
-        super("compute-ai-embeddings", clusterType);
+    public ComputeEmbeddingsAgentProvider(String clusterType, String mainAgentType) {
+        super("compute-ai-embeddings", clusterType, mainAgentType);
     }
 
     @Override

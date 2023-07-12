@@ -397,6 +397,8 @@ class PulsarClusterRuntimeTest {
                 new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
+        // use the standard toolkit
+        assertEquals("ai-tools", agentImplementation.getAgentType());
         assertNotNull(agentImplementation);
         DefaultAgentNode step =
                 (DefaultAgentNode) agentImplementation;

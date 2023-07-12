@@ -1,15 +1,21 @@
 package com.datastax.oss.sga.pulsar;
 
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.Connection;
+import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.TopicDefinition;
+import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.common.functions.FunctionConfig;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -17,15 +23,18 @@ import org.testcontainers.containers.PulsarContainer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class PulsarClusterRuntimeDockerTest {
-    private static final String IMAGE = "datastax/lunastreaming-all:2.10_4.6";
+    private static final String IMAGE = "datastax/lunastreaming-all:2.10_4.9";
     private static PulsarContainer pulsarContainer;
     private static PulsarAdmin admin;
     private static PulsarClient client;
@@ -215,11 +224,101 @@ class PulsarClusterRuntimeDockerTest {
         assertTrue(functions.contains("function2"));
     }
 
+
+    @Test
+    public void testOpenAIComputeEmbeddingFunction() throws Exception {
+        Application applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        buildInstanceYaml(),
+                        "configuration.yaml",
+                        """
+                                configuration:  
+                                  resources:
+                                    - name: open-ai
+                                      type: open-ai-configuration
+                                      configuration:
+                                        url: "http://something"                                
+                                        access-key: "xxcxcxc"
+                                        provider: "azure"
+                                  """,
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                      type: avro
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists                                    
+                                pipeline:
+                                  - name: "compute-embeddings"
+                                    id: "step1"
+                                    type: "compute-ai-embeddings"
+                                    input: "input-topic"
+                                    output: "output-topic"
+                                    configuration:                                      
+                                      model: "text-embedding-ada-002"
+                                      embeddings-field: "value.embeddings"
+                                      text: "{{% value.name }} {{% value.description }}"
+                                """));
+
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+
+        AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
+        // use the standard toolkit
+        assertEquals("ai-tools", agentImplementation.getAgentType());
+        assertNotNull(agentImplementation);
+        DefaultAgentNode step =
+                (DefaultAgentNode) agentImplementation;
+        Map<String, Object> configuration = step.getConfiguration();
+        log.info("Configuration: {}", configuration);
+        Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
+        log.info("openAIConfiguration: {}", openAIConfiguration);
+        assertEquals("http://something", openAIConfiguration.get("url"));
+        assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
+        assertEquals("azure", openAIConfiguration.get("provider"));
+
+
+        List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+        assertEquals(1, steps.size());
+        Map<String, Object> step1 = steps.get(0);
+        assertEquals("text-embedding-ada-002", step1.get("model"));
+        assertEquals("value.embeddings", step1.get("embeddings-field"));
+        assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
+
+        deployer.deploy(implementation);
+
+        // verify that we have the functions1
+        List<String> functions = admin.functions().getFunctions("public", "default");
+        log.info("Functions: {}", functions);
+        assertTrue(functions.contains("compute-embeddings"));
+
+        FunctionConfig function = admin.functions().getFunction("public", "default", "compute-embeddings");
+        log.info("Function: {}", function);
+        assertEquals("com.datastax.oss.pulsar.functions.transforms.TransformFunction", function.getClassName());
+
+    }
+
     @BeforeAll
     public static void setup() throws Exception {
         pulsarContainer = new PulsarContainer(DockerImageName.parse(IMAGE)
                 .asCompatibleSubstituteFor("apachepulsar/pulsar"))
                 .withFunctionsWorker()
+                .withStartupTimeout(Duration.ofSeconds(120)) // Mac M1 is slow with Intel docker images
                 .withLogConsumer(new Consumer<OutputFrame>() {
                     @Override
                     public void accept(OutputFrame outputFrame) {

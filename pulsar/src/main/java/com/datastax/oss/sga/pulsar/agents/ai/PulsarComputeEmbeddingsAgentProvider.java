@@ -13,7 +13,7 @@ import com.datastax.oss.sga.pulsar.agents.AbstractPulsarAgentProvider;
 public class PulsarComputeEmbeddingsAgentProvider extends ComputeEmbeddingsAgentProvider {
 
     public PulsarComputeEmbeddingsAgentProvider() {
-        super(PulsarClusterRuntime.CLUSTER_TYPE);
+        super(PulsarClusterRuntime.CLUSTER_TYPE, "ai-tools");
     }
 
     @Override

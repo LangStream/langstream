@@ -21,7 +21,7 @@ public abstract class KubeTestUtil {
 
     @BeforeAll
     public static void setup(@TempDir Path tempDir) throws Exception {
-        k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.21.3-k3s1"))
+        k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.21.14-k3s1"))
                 .withLogConsumer(outputFrame -> log.info("k3s> {}", outputFrame.getUtf8String().trim()));
         k3s.start();
         kubeconfigFile = tempDir.resolve("kubeconfig.yaml");

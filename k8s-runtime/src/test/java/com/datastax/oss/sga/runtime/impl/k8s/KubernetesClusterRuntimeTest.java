@@ -1,13 +1,12 @@
 package com.datastax.oss.sga.runtime.impl.k8s;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
-import com.datastax.oss.sga.api.model.Connection;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.AgentImplementation;
+import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
@@ -31,7 +30,7 @@ class KubernetesClusterRuntimeTest {
 
     @Test
     public void testMapGenericAgent() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -60,12 +59,12 @@ class KubernetesClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        ConnectionImplementation connectionImplementation = implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic", null, null)));
-        assertNotNull(connectionImplementation);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        Connection connection = implementation.getConnectionImplementation(module,
+                new com.datastax.oss.sga.api.model.Connection(new TopicDefinition("input-topic", null, null)));
+        assertNotNull(connection);
 
-        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
+        AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
 
         deployer.deploy(implementation);

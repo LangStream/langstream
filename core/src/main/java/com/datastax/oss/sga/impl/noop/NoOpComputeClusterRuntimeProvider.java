@@ -1,20 +1,20 @@
-package com.datastax.oss.sga.impl.dummy;
+package com.datastax.oss.sga.impl.noop;
 
-import com.datastax.oss.sga.api.runtime.ClusterRuntime;
-import com.datastax.oss.sga.api.runtime.ClusterRuntimeProvider;
+import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
+import com.datastax.oss.sga.api.runtime.ComputeClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
 
 /**
  * This is a dummy implementation of a ClusterRuntimeProvider useful mostly for unit tests.
  */
-public class NoOpClusterRuntimeProvider implements ClusterRuntimeProvider {
+public class NoOpComputeClusterRuntimeProvider implements ComputeClusterRuntimeProvider {
     @Override
     public boolean supports(String type) {
         return "none".equals(type);
     }
 
     @Override
-    public ClusterRuntime getImplementation() {
+    public ComputeClusterRuntime getImplementation() {
         return new NoOpClusterRuntime();
     }
 

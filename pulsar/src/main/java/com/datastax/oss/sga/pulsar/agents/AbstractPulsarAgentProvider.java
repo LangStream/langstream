@@ -1,7 +1,7 @@
 package com.datastax.oss.sga.pulsar.agents;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.pulsar.PulsarClusterRuntimeConfiguration;
 import com.datastax.oss.sga.pulsar.PulsarName;
@@ -17,8 +17,8 @@ public abstract class AbstractPulsarAgentProvider extends AbstractAgentProvider 
         super(supportedTypes, supportedClusterTypes);
     }
 
-    protected PulsarName computePulsarName(PhysicalApplicationInstance instance, AgentConfiguration agentConfiguration) {
-        PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration = getPulsarClusterRuntimeConfiguration(instance.getApplicationInstance().getInstance().streamingCluster());
+    protected PulsarName computePulsarName(ExecutionPlan instance, AgentConfiguration agentConfiguration) {
+        PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration = getPulsarClusterRuntimeConfiguration(instance.getApplication().getInstance().streamingCluster());
         return new PulsarName(pulsarClusterRuntimeConfiguration.getDefaultTenant(),
                 pulsarClusterRuntimeConfiguration.getDefaultNamespace(), sanitizeName(agentConfiguration));
     }

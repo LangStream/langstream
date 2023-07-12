@@ -1,6 +1,6 @@
 package com.datastax.oss.sga.impl.common;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Resource;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.samskivert.mustache.MustacheException;
@@ -8,12 +8,12 @@ import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-class ApplicationInstancePlaceholderResolverTest {
+class ApplicationPlaceholderResolverTest {
 
     @Test
     void testAvailablePlaceholders() throws Exception {
 
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of(
                         "secrets.yaml", """
                                 secrets:
@@ -34,20 +34,20 @@ class ApplicationInstancePlaceholderResolverTest {
                                         open-api-url: http://myurl.localhost:8080/endpoint
                                 """));
 
-        final Map<String, Object> context = ApplicationInstancePlaceholderResolver.createContext(applicationInstance);
+        final Map<String, Object> context = ApplicationPlaceholderResolver.createContext(applicationInstance);
         Assertions.assertEquals("my-access-key",
-                ApplicationInstancePlaceholderResolver.resolveValue(context,
+                ApplicationPlaceholderResolver.resolveValue(context,
                         "{{secrets.openai-credentials.accessKey}}"));
         Assertions.assertEquals("http://mypulsar.localhost:8080",
-                ApplicationInstancePlaceholderResolver.resolveValue(context,
+                ApplicationPlaceholderResolver.resolveValue(context,
                         "{{cluster.configuration.admin.serviceUrl}}"));
         Assertions.assertEquals("http://myurl.localhost:8080/endpoint",
-                ApplicationInstancePlaceholderResolver.resolveValue(context, "{{globals.open-api-url}}"));
+                ApplicationPlaceholderResolver.resolveValue(context, "{{globals.open-api-url}}"));
     }
 
     @Test
     void testResolveSecretsInConfiguration() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("configuration.yaml",
                         """
                                 configuration:
@@ -74,8 +74,8 @@ class ApplicationInstancePlaceholderResolverTest {
                                         open-api-url: http://myurl.localhost:8080/endpoint
                                 """));
 
-        final ApplicationInstance resolved =
-                ApplicationInstancePlaceholderResolver.resolvePlaceholders(applicationInstance);
+        final Application resolved =
+                ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
         final Resource resource = resolved.getResources().get("openai-azure");
         Assertions.assertEquals("my-access-key", resource.configuration().get("credentials"));
         Assertions.assertEquals("http://myurl.localhost:8080/endpoint", resource.configuration().get("url"));
@@ -83,7 +83,7 @@ class ApplicationInstancePlaceholderResolverTest {
 
     @Test
     void testResolveInAgentConfiguration() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("module1.yaml",
                         """
                                 module: "module-1"
@@ -107,8 +107,8 @@ class ApplicationInstancePlaceholderResolverTest {
                                         value: "my-access-key"
                                 """));
 
-        final ApplicationInstance resolved =
-                ApplicationInstancePlaceholderResolver.resolvePlaceholders(applicationInstance);
+        final Application resolved =
+                ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
         Assertions.assertEquals("my-access-key",
                 resolved.getModule("module-1").getPipelines().values().iterator().next().getAgents().get("sink1")
                         .getConfiguration()
@@ -117,7 +117,7 @@ class ApplicationInstancePlaceholderResolverTest {
 
     @Test
     void testErrorOnNotFound() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("configuration.yaml",
                         """
                                 configuration:
@@ -130,13 +130,13 @@ class ApplicationInstancePlaceholderResolverTest {
                                     
                                 """));
         Assertions.assertThrows(MustacheException.Context.class, () -> {
-            ApplicationInstancePlaceholderResolver.resolvePlaceholders(applicationInstance);
+            ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
         });
     }
 
     @Test
     void testKeepStruct() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of(
                         "instance.yaml", """
                                 instance:
@@ -151,8 +151,8 @@ class ApplicationInstancePlaceholderResolverTest {
                                             myvalue: "thevalue"
                                 """));
 
-        final ApplicationInstance resolved =
-                ApplicationInstancePlaceholderResolver.resolvePlaceholders(applicationInstance);
+        final Application resolved =
+                ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
         final Map<String, Object> configuration = resolved.getInstance().streamingCluster()
                 .configuration();
         Assertions.assertTrue(configuration.get("rootObject") instanceof Map);
@@ -164,7 +164,7 @@ class ApplicationInstancePlaceholderResolverTest {
     @Test
     void testEscapeMustache() throws Exception {
         Assertions.assertEquals("{{ do not resolve }} resolved",
-                ApplicationInstancePlaceholderResolver.resolveValue(Map.of("test", "resolved"),
+                ApplicationPlaceholderResolver.resolveValue(Map.of("test", "resolved"),
                         "{{% do not resolve }} {{ test }}"));
     }
 }

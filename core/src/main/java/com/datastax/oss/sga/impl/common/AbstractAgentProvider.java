@@ -2,11 +2,11 @@ package com.datastax.oss.sga.impl.common;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.runtime.AgentImplementation;
-import com.datastax.oss.sga.api.runtime.AgentImplementationProvider;
-import com.datastax.oss.sga.api.runtime.ClusterRuntime;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.AgentNode;
+import com.datastax.oss.sga.api.runtime.AgentNodeProvider;
+import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
+import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import lombok.Getter;
@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @Getter
-public abstract class AbstractAgentProvider implements AgentImplementationProvider {
+public abstract class AbstractAgentProvider implements AgentNodeProvider {
 
     protected final List<String> supportedTypes;
     protected final List<String> supportedClusterTypes;
@@ -30,18 +30,18 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
 
     @Getter
     @ToString
-    public static class DefaultAgentImplementation implements AgentImplementation {
+    public static class DefaultAgent implements AgentNode {
         private final String id;
         private final String type;
         private Map<String, Object> configuration;
         private final Object runtimeMetadata;
 
-        private final ConnectionImplementation inputConnection;
-        private ConnectionImplementation outputConnection;
+        private final Connection inputConnection;
+        private Connection outputConnection;
 
-        public DefaultAgentImplementation(String id, String type, Map<String, Object> configuration, Object runtimeMetadata,
-                                          ConnectionImplementation inputConnection,
-                                          ConnectionImplementation outputConnection) {
+        public DefaultAgent(String id, String type, Map<String, Object> configuration, Object runtimeMetadata,
+                            Connection inputConnection,
+                            Connection outputConnection) {
             this.type = type;
             this.id = id;
             this.configuration = configuration;
@@ -54,16 +54,16 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
             return (T) runtimeMetadata;
         }
 
-        public void overrideConfiguration(Map<String, Object> newConfiguration, ConnectionImplementation newOutput) {
+        public void overrideConfiguration(Map<String, Object> newConfiguration, Connection newOutput) {
             this.configuration = new HashMap<>(newConfiguration);
             this.outputConnection = newOutput;
         }
     }
 
-    protected ConnectionImplementation computeInput(AgentConfiguration agentConfiguration,
-                                                    Module module,
-                                                    PhysicalApplicationInstance physicalApplicationInstance,
-                                                    ClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
+    protected Connection computeInput(AgentConfiguration agentConfiguration,
+                                      Module module,
+                                      ExecutionPlan physicalApplicationInstance,
+                                      ComputeClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
         if (agentConfiguration.getInput() != null) {
             return clusterRuntime
                     .getConnectionImplementation(module, agentConfiguration.getInput(), physicalApplicationInstance, streamingClusterRuntime);
@@ -72,10 +72,10 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
         }
     }
 
-    protected ConnectionImplementation computeOutput(AgentConfiguration agentConfiguration,
-                                                     Module module,
-                                                     PhysicalApplicationInstance physicalApplicationInstance,
-                                                     ClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
+    protected Connection computeOutput(AgentConfiguration agentConfiguration,
+                                       Module module,
+                                       ExecutionPlan physicalApplicationInstance,
+                                       ComputeClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
         if (agentConfiguration.getOutput() != null) {
             return clusterRuntime
                     .getConnectionImplementation(module, agentConfiguration.getOutput(), physicalApplicationInstance, streamingClusterRuntime);
@@ -85,34 +85,34 @@ public abstract class AbstractAgentProvider implements AgentImplementationProvid
     }
 
     protected Object computeAgentMetadata(AgentConfiguration agentConfiguration,
-                                          PhysicalApplicationInstance physicalApplicationInstance,
-                                          ClusterRuntime clusterRuntime,
+                                          ExecutionPlan physicalApplicationInstance,
+                                          ComputeClusterRuntime clusterRuntime,
                                           StreamingClusterRuntime streamingClusterRuntime) {
         return clusterRuntime.computeAgentMetadata(agentConfiguration, physicalApplicationInstance, streamingClusterRuntime);
     }
 
     protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module,
-                                          PhysicalApplicationInstance physicalApplicationInstance,
-                                          ClusterRuntime clusterRuntime) {
+                                          ExecutionPlan physicalApplicationInstance,
+                                          ComputeClusterRuntime clusterRuntime) {
         return agentConfiguration.getConfiguration();
     }
 
     @Override
-    public AgentImplementation createImplementation(AgentConfiguration agentConfiguration,
-                                                    Module module,
-                                                    PhysicalApplicationInstance physicalApplicationInstance,
-                                                    ClusterRuntime clusterRuntime, PluginsRegistry pluginsRegistry,
-                                                    StreamingClusterRuntime streamingClusterRuntime) {
+    public AgentNode createImplementation(AgentConfiguration agentConfiguration,
+                                          Module module,
+                                          ExecutionPlan physicalApplicationInstance,
+                                          ComputeClusterRuntime clusterRuntime, PluginsRegistry pluginsRegistry,
+                                          StreamingClusterRuntime streamingClusterRuntime) {
         Object metadata = computeAgentMetadata(agentConfiguration, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
         Map<String, Object> configuration = computeAgentConfiguration(agentConfiguration, module,
                 physicalApplicationInstance, clusterRuntime);
-        ConnectionImplementation input = computeInput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
-        ConnectionImplementation output = computeOutput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
-        return new DefaultAgentImplementation(agentConfiguration.getId(), agentConfiguration.getType(), configuration, metadata, input, output);
+        Connection input = computeInput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
+        Connection output = computeOutput(agentConfiguration, module, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
+        return new DefaultAgent(agentConfiguration.getId(), agentConfiguration.getType(), configuration, metadata, input, output);
     }
 
     @Override
-    public boolean supports(String type, ClusterRuntime clusterRuntime) {
+    public boolean supports(String type, ComputeClusterRuntime clusterRuntime) {
         return supportedTypes.contains(type) && supportedClusterTypes.contains(clusterRuntime.getClusterType());
     }
 }

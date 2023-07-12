@@ -1,17 +1,10 @@
 package com.datastax.oss.sga.pulsar;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.model.ApplicationInstance;
-import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.model.Pipeline;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.StreamingCluster;
-import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.AgentImplementation;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
-import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.api.runtime.AgentNode;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.api.runtime.TopicImplementation;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
@@ -65,20 +58,20 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void deploy(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
-        ApplicationInstance logicalInstance = applicationInstance.getApplicationInstance();
+    public void deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+        Application logicalInstance = applicationInstance.getApplication();
         streamingClusterRuntime.deploy(applicationInstance);
 
         try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
-            for (AgentImplementation agentImplementation : applicationInstance.getAgents().values()) {
+            for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
                 deployAgent(admin, agentImplementation);
             }
         }
     }
 
-    private static void deployAgent(PulsarAdmin admin, AgentImplementation agent) throws PulsarAdminException {
+    private static void deployAgent(PulsarAdmin admin, AgentNode agent) throws PulsarAdminException {
 
-        if (agent instanceof AbstractAgentProvider.DefaultAgentImplementation agentImpl) {
+        if (agent instanceof AbstractAgentProvider.DefaultAgent agentImpl) {
             Object physicalMetadata = agentImpl.getPhysicalMetadata();
             if (physicalMetadata instanceof AbstractPulsarSinkAgentProvider.PulsarSinkMetadata) {
                 AbstractPulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata =
@@ -172,7 +165,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
     }
 
     @Override
-    public void delete(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void delete(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         throw new UnsupportedOperationException();
     }
 }

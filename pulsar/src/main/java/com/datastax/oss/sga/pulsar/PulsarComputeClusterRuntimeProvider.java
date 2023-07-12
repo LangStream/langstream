@@ -1,14 +1,14 @@
 package com.datastax.oss.sga.pulsar;
 
-import com.datastax.oss.sga.api.runtime.ClusterRuntime;
-import com.datastax.oss.sga.api.runtime.ClusterRuntimeProvider;
+import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
+import com.datastax.oss.sga.api.runtime.ComputeClusterRuntimeProvider;
 
-public class PulsarClusterRuntimeProvider implements ClusterRuntimeProvider {
+public class PulsarComputeClusterRuntimeProvider implements ComputeClusterRuntimeProvider {
 
     private PulsarClusterRuntime pulsarClusterRuntime = new PulsarClusterRuntime();
 
     @Override
-    public  ClusterRuntime getImplementation() {
+    public ComputeClusterRuntime getImplementation() {
         return pulsarClusterRuntime;
     }
 

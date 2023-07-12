@@ -9,10 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class StoredApplicationInstance {
+public class StoredApplication {
 
     private String name;
-    private ApplicationInstance instance;
+    private Application instance;
     private ApplicationInstanceLifecycleStatus status;
 
 }

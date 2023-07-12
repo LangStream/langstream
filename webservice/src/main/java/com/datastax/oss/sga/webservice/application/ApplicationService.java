@@ -1,7 +1,7 @@
 package com.datastax.oss.sga.webservice.application;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
-import com.datastax.oss.sga.api.model.StoredApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
@@ -43,19 +43,19 @@ public class ApplicationService {
 
 
     @SneakyThrows
-    public Map<String, StoredApplicationInstance> getAllApplications(String tenant) {
+    public Map<String, StoredApplication> getAllApplications(String tenant) {
         checkTenant(tenant);
         return applicationManager.getAllApplications(tenant);
     }
 
     @SneakyThrows
-    public void deployApplication(String tenant, String applicationName, ApplicationInstance applicationInstance) {
+    public void deployApplication(String tenant, String applicationName, Application applicationInstance) {
         checkTenant(tenant);
         applicationManager.deployApplication(tenant, applicationName, applicationInstance);
     }
 
     @SneakyThrows
-    public StoredApplicationInstance getApplication(String tenant, String applicationName) {
+    public StoredApplication getApplication(String tenant, String applicationName) {
         checkTenant(tenant);
         return applicationManager.getApplication(tenant, applicationName);
     }

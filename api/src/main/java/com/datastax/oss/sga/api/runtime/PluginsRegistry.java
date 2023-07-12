@@ -6,13 +6,13 @@ import java.util.ServiceLoader;
 
 @Slf4j
 public class PluginsRegistry {
-    public AgentImplementationProvider lookupAgentImplementation(String type, ClusterRuntime clusterRuntime) {
+    public AgentNodeProvider lookupAgentImplementation(String type, ComputeClusterRuntime clusterRuntime) {
         log.info("Looking for an implementation of agent type {} on {}", type, clusterRuntime.getClusterType());
-        ServiceLoader<AgentImplementationProvider> loader = ServiceLoader.load(AgentImplementationProvider.class);
-        ServiceLoader.Provider<AgentImplementationProvider> agentRuntimeProviderProvider = loader
+        ServiceLoader<AgentNodeProvider> loader = ServiceLoader.load(AgentNodeProvider.class);
+        ServiceLoader.Provider<AgentNodeProvider> agentRuntimeProviderProvider = loader
                 .stream()
                 .filter(p -> {
-                    AgentImplementationProvider agentImplementationProvider = p.get();
+                    AgentNodeProvider agentImplementationProvider = p.get();
                     boolean success = agentImplementationProvider.supports(type, clusterRuntime);
                     log.info("Tested {}: result {}", agentImplementationProvider, success);
                     return success;

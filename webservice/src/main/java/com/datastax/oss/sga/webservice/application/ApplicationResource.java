@@ -1,9 +1,8 @@
 package com.datastax.oss.sga.webservice.application;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
-import com.datastax.oss.sga.api.model.StoredApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.datastax.oss.sga.webservice.common.GlobalMetadataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
@@ -37,7 +36,7 @@ public class ApplicationResource {
 
     @GetMapping("/{tenant}")
     @Operation(summary = "Get all applications")
-    Map<String, StoredApplicationInstance> getApplications(@NotBlank @PathVariable("tenant") String tenant) {
+    Map<String, StoredApplication> getApplications(@NotBlank @PathVariable("tenant") String tenant) {
         return applicationService.getAllApplications(tenant);
     }
 
@@ -49,18 +48,18 @@ public class ApplicationResource {
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("name") String name,
             @NotNull @RequestParam("file") MultipartFile file) throws Exception {
-        final ApplicationInstance instance = parseApplicationInstance(name, file);
+        final Application instance = parseApplicationInstance(name, file);
         applicationService.deployApplication(tenant, name, instance);
     }
 
-    private ApplicationInstance parseApplicationInstance(String name, MultipartFile file) throws Exception {
+    private Application parseApplicationInstance(String name, MultipartFile file) throws Exception {
         Path tempdir = Files.createTempDirectory("zip-extract");
         final Path tempZip = Files.createTempFile("app", ".zip");
         try {
             file.transferTo(tempZip);
             try (ZipFile zipFile = new ZipFile(tempZip.toFile());) {
                 zipFile.extractAll(tempdir.toFile().getAbsolutePath());
-                final ApplicationInstance applicationInstance =
+                final Application applicationInstance =
                         ModelBuilder.buildApplicationInstance(List.of(tempdir));
                 return applicationInstance;
 
@@ -81,9 +80,9 @@ public class ApplicationResource {
 
     @GetMapping("/{tenant}/{name}")
     @Operation(summary = "Get an application by name")
-    StoredApplicationInstance getApplication(@NotBlank @PathVariable("tenant") String tenant,
-                                             @NotBlank @PathVariable("name") String name) {
-        final StoredApplicationInstance app = applicationService.getApplication(tenant, name);
+    StoredApplication getApplication(@NotBlank @PathVariable("tenant") String tenant,
+                                     @NotBlank @PathVariable("name") String name) {
+        final StoredApplication app = applicationService.getApplication(tenant, name);
         if (app == null) {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "application not found"

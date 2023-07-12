@@ -3,7 +3,7 @@ package com.datastax.oss.sga.api.runtime;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Module;
 
-public interface AgentImplementationProvider {
+public interface AgentNodeProvider {
 
     /**
      * Create an Implementation of an Agent that can be deployed on the give runtimes.
@@ -15,12 +15,12 @@ public interface AgentImplementationProvider {
      * @param streamingClusterRuntime
      * @return the Agent
      */
-    AgentImplementation createImplementation(AgentConfiguration agentConfiguration,
-                                             Module module,
-                                             PhysicalApplicationInstance physicalApplicationInstance,
-                                             ClusterRuntime clusterRuntime,
-                                             PluginsRegistry pluginsRegistry,
-                                             StreamingClusterRuntime streamingClusterRuntime);
+    AgentNode createImplementation(AgentConfiguration agentConfiguration,
+                                   Module module,
+                                   ExecutionPlan physicalApplicationInstance,
+                                   ComputeClusterRuntime clusterRuntime,
+                                   PluginsRegistry pluginsRegistry,
+                                   StreamingClusterRuntime streamingClusterRuntime);
 
     /**
      * Returns the ability of an Agent to be deployed on the give runtimes.
@@ -28,17 +28,17 @@ public interface AgentImplementationProvider {
      * @param clusterRuntime
      * @return true if this provider that can create the implementation
      */
-    boolean supports(String type, ClusterRuntime clusterRuntime);
+    boolean supports(String type, ComputeClusterRuntime clusterRuntime);
 
     /**
      * Returns the ability of an Agent to be merged with the previous version.
      * @return true if the agents can be merged
      */
-    default boolean canMerge(AgentImplementation previousAgent, AgentImplementation agentImplementation) {
+    default boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation) {
         return false;
     }
 
-    default AgentImplementation mergeAgents(AgentImplementation previousAgent, AgentImplementation agentImplementation, PhysicalApplicationInstance instance) {
+    default AgentNode mergeAgents(AgentNode previousAgent, AgentNode agentImplementation, ExecutionPlan instance) {
         throw new UnsupportedOperationException("This provider cannot merge agents");
     }
 }

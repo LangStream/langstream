@@ -2,8 +2,8 @@ package com.datastax.oss.sga.pulsar.agents;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.runtime.ClusterRuntime;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
 
 import java.util.List;
@@ -30,7 +30,7 @@ public class GenericPulsarFunctionAgentProvider extends AbstractPulsarFunctionAg
     }
 
     @Override
-    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, PhysicalApplicationInstance physicalApplicationInstance, ClusterRuntime clusterRuntime) {
+    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, ExecutionPlan physicalApplicationInstance, ComputeClusterRuntime clusterRuntime) {
         Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
         copy.remove("functionType");
         copy.remove("functionClassname");

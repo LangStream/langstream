@@ -1,8 +1,8 @@
 package com.datastax.oss.sga.pulsar;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
@@ -15,12 +15,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PulsarContainer;
 import org.testcontainers.containers.output.OutputFrame;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,7 +32,7 @@ class PulsarClusterRuntimeDockerTest {
 
     @Test
     public void testDeployTopics() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -50,12 +48,12 @@ class PulsarClusterRuntimeDockerTest {
                                 """));
 
         ApplicationDeployer deployer = ApplicationDeployer
-                .<PhysicalApplicationInstance>builder()
+                .<ExecutionPlan>builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(implementation);
 
         // verify that the topic exists
@@ -66,7 +64,7 @@ class PulsarClusterRuntimeDockerTest {
 
     @Test
     public void testDeployCassandraSink() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -92,7 +90,7 @@ class PulsarClusterRuntimeDockerTest {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(implementation);
 
         // verify that the topic exists
@@ -129,7 +127,7 @@ class PulsarClusterRuntimeDockerTest {
 
     @Test
     public void testDeployDataGeneratorSource() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -153,7 +151,7 @@ class PulsarClusterRuntimeDockerTest {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(implementation);
 
         // verify that the topic exists
@@ -166,7 +164,7 @@ class PulsarClusterRuntimeDockerTest {
 
     @Test
     public void testDeployChainOfGenericFunctions() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -202,7 +200,7 @@ class PulsarClusterRuntimeDockerTest {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(implementation);
 
         // verify that the topics exist

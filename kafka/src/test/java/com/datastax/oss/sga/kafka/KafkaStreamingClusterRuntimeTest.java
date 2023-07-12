@@ -1,12 +1,12 @@
 package com.datastax.oss.sga.kafka;
 
 import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
@@ -21,7 +21,7 @@ class KafkaStreamingClusterRuntimeTest {
 
     @Test
     public void testMapKafkaTopics() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -43,7 +43,7 @@ class KafkaStreamingClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof KafkaTopic);
     }

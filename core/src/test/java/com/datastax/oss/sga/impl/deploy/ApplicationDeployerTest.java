@@ -1,14 +1,14 @@
 package com.datastax.oss.sga.impl.deploy;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.ComputeCluster;
 import com.datastax.oss.sga.api.model.StreamingCluster;
-import com.datastax.oss.sga.api.runtime.ClusterRuntime;
+import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.impl.dummy.NoOpClusterRuntimeProvider;
+import com.datastax.oss.sga.impl.noop.NoOpComputeClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
@@ -26,7 +26,7 @@ class ApplicationDeployerTest {
             super();
         }
 
-        public void addClusterRuntime(String name, ClusterRuntime clusterRuntime) {
+        public void addClusterRuntime(String name, ComputeClusterRuntime clusterRuntime) {
             computeClusterImplementations.put(name, clusterRuntime);
         }
 
@@ -35,7 +35,7 @@ class ApplicationDeployerTest {
         }
 
         @Override
-        public ClusterRuntime getClusterRuntime(ComputeCluster computeCluster) {
+        public ComputeClusterRuntime getClusterRuntime(ComputeCluster computeCluster) {
             return computeClusterImplementations.get(computeCluster.type());
         }
 
@@ -49,7 +49,7 @@ class ApplicationDeployerTest {
     void testDeploy() throws Exception {
 
         final MockClusterRuntimeRegistry registry = new MockClusterRuntimeRegistry();
-        final ClusterRuntime mockRuntime = spy(new NoOpClusterRuntimeProvider.NoOpClusterRuntime());
+        final ComputeClusterRuntime mockRuntime = spy(new NoOpComputeClusterRuntimeProvider.NoOpClusterRuntime());
         final StreamingClusterRuntime mockStreamingRuntime = Mockito.mock(StreamingClusterRuntime.class);
         registry.addClusterRuntime("mock", mockRuntime);
         registry.addStreamingClusterRuntime("mock", mockStreamingRuntime);
@@ -61,7 +61,7 @@ class ApplicationDeployerTest {
                 .build();
 
 
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("configuration.yaml",
                         """
                                 configuration:
@@ -87,11 +87,11 @@ class ApplicationDeployerTest {
                                     computeCluster:
                                         type: mock
                                 """));
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(implementation);
         Mockito.doAnswer(invocationOnMock -> {
-            final ApplicationInstance resolvedApplicationInstance =
-                    (ApplicationInstance) invocationOnMock.getArguments()[0];
+            final Application resolvedApplicationInstance =
+                    (Application) invocationOnMock.getArguments()[0];
             Assertions.assertEquals("my-access-key",
                     resolvedApplicationInstance.getResources().get("openai-azure").configuration()
                             .get("accessKey"));

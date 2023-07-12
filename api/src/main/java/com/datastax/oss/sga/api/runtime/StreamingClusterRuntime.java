@@ -17,6 +17,7 @@ package com.datastax.oss.sga.api.runtime;
 
 import com.datastax.oss.sga.api.model.TopicDefinition;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -29,13 +30,15 @@ public interface StreamingClusterRuntime {
      * Deploy the topics on the StreamingCluster
      * @param applicationInstance
      */
-    void deploy(ExecutionPlan applicationInstance);
+    default void deploy(ExecutionPlan applicationInstance) {
+    }
 
     /**
      * Undeploy all the resources created on the StreamingCluster
      * @param applicationInstance
      */
-    void delete(ExecutionPlan applicationInstance);
+    default void delete(ExecutionPlan applicationInstance){
+    }
 
     /**
      * Map a Logical TopicDefinition to a Physical TopicImplementation
@@ -50,7 +53,9 @@ public interface StreamingClusterRuntime {
      * @param inputConnection
      * @return the configuration
      */
-    Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, Connection inputConnection);
+    default Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, Connection inputConnection) {
+        return Map.of();
+    }
 
     /**
      * Create the configuration to produce to a topic.
@@ -58,5 +63,8 @@ public interface StreamingClusterRuntime {
      * @param outputConnection
      * @return the configuration
      */
-    Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, Connection outputConnection);
+    default Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, Connection outputConnection) {
+        return Map.of();
+    }
+
 }

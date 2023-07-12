@@ -21,13 +21,22 @@ import java.util.Objects;
 @Slf4j
 public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
-    public GenAIToolKitFunctionAgentProvider(String stepType, String clusterType) {
+    private final String mainAgentType;
+    public GenAIToolKitFunctionAgentProvider(String stepType, String clusterType, String mainAgentType) {
         super(List.of(stepType), List.of(clusterType));
+        this.mainAgentType = mainAgentType;
     }
 
     @Override
     protected final ComponentType getComponentType(AgentConfiguration agentConfiguration) {
         return ComponentType.FUNCTION;
+    }
+
+    @Override
+    protected String getAgentType(AgentConfiguration agentConfiguration) {
+        // all the agents in the AT ToolKit can be generated from one single agent implementation
+        // this is important because the runtime is able to "merge" agents of the same type
+        return mainAgentType;
     }
 
     protected void generateSteps(Map<String, Object> originalConfiguration, List<Map<String, Object>> steps) {

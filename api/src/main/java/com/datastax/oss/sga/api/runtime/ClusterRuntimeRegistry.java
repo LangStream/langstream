@@ -14,10 +14,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ClusterRuntimeRegistry {
 
-    protected final Map<String, ClusterRuntime> computeClusterImplementations = new ConcurrentHashMap<>();
+    protected final Map<String, ComputeClusterRuntime> computeClusterImplementations = new ConcurrentHashMap<>();
     protected final Map<String, StreamingClusterRuntime> streamingClusterImplementations = new ConcurrentHashMap<>();
 
-    public ClusterRuntime getClusterRuntime(ComputeCluster computeCluster) {
+    public ComputeClusterRuntime getClusterRuntime(ComputeCluster computeCluster) {
         Objects.requireNonNull(computeCluster, "computeCluster cannot be null");
         Objects.requireNonNull(computeCluster.type(), "computeCluster type cannot be null");
         return computeClusterImplementations.computeIfAbsent(computeCluster.type(), ClusterRuntimeRegistry::loadClusterRuntime);
@@ -29,9 +29,9 @@ public class ClusterRuntimeRegistry {
         return streamingClusterImplementations.computeIfAbsent(streamingCluster.type(), ClusterRuntimeRegistry::loadStreamingClusterRuntime);
     }
 
-    private static ClusterRuntime loadClusterRuntime(String clusterType) {
-        ServiceLoader<ClusterRuntimeProvider> loader = ServiceLoader.load(ClusterRuntimeProvider.class);
-        ServiceLoader.Provider<ClusterRuntimeProvider> clusterRuntimeProviderProvider = loader
+    private static ComputeClusterRuntime loadClusterRuntime(String clusterType) {
+        ServiceLoader<ComputeClusterRuntimeProvider> loader = ServiceLoader.load(ComputeClusterRuntimeProvider.class);
+        ServiceLoader.Provider<ComputeClusterRuntimeProvider> clusterRuntimeProviderProvider = loader
                 .stream()
                 .filter(p -> {
                     return p.get().supports(clusterType);

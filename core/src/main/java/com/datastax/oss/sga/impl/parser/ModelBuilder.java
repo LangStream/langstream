@@ -16,7 +16,7 @@
 package com.datastax.oss.sga.impl.parser;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
@@ -41,7 +41,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -62,8 +61,8 @@ public class ModelBuilder {
      * @return a fully built application instance (application model + instance + secrets)
      * @throws Exception
      */
-    public static ApplicationInstance buildApplicationInstance(List<Path> directories) throws Exception {
-        ApplicationInstance application = new ApplicationInstance();
+    public static Application buildApplicationInstance(List<Path> directories) throws Exception {
+        Application application = new Application();
         for (Path directory : directories) {
             log.info("Parsing directory: {}", directory.toAbsolutePath());
             try (DirectoryStream<Path> paths = Files.newDirectoryStream(directory);) {
@@ -76,15 +75,15 @@ public class ModelBuilder {
         return application;
     }
 
-    public static ApplicationInstance buildApplicationInstance(Map<String, String> files) throws Exception {
-        ApplicationInstance application = new ApplicationInstance();
+    public static Application buildApplicationInstance(Map<String, String> files) throws Exception {
+        Application application = new Application();
         for (Map.Entry<String, String> entry : files.entrySet()) {
             parseFile(entry.getKey(), entry.getValue(), application);
         }
         return application;
     }
 
-    private static void parseFile(String fileName, String content, ApplicationInstance application) throws IOException {
+    private static void parseFile(String fileName, String content, Application application) throws IOException {
         if (!fileName.endsWith(".yaml")) {
             // skip
             log.info("Skipping {}", fileName);
@@ -107,7 +106,7 @@ public class ModelBuilder {
         }
     }
 
-    private static void parseConfiguration(String content, ApplicationInstance application) throws IOException {
+    private static void parseConfiguration(String content, Application application) throws IOException {
         ConfigurationFileModel configurationFileModel = mapper.readValue(content, ConfigurationFileModel.class);
         ConfigurationNodeModel configurationNode = configurationFileModel.configuration();
         if (configurationNode != null && configurationNode.resources != null) {
@@ -126,7 +125,7 @@ public class ModelBuilder {
         log.info("Configuration: {}", configurationFileModel);
     }
 
-    private static void parsePipelineFile(String filename, String content, ApplicationInstance application) throws IOException {
+    private static void parsePipelineFile(String filename, String content, Application application) throws IOException {
         PipelineFileModel pipelineConfiguration = mapper.readValue(content, PipelineFileModel.class);
         Module module = application.getModule(pipelineConfiguration.getModule());
         log.info("Configuration: {}", pipelineConfiguration);
@@ -174,14 +173,14 @@ public class ModelBuilder {
         }
     }
 
-    private static void parseSecrets(String content, ApplicationInstance application) throws IOException {
+    private static void parseSecrets(String content, Application application) throws IOException {
         SecretsFileModel secretsFileModel = mapper.readValue(content, SecretsFileModel.class);
         log.info("Secrets: {}", secretsFileModel);
         application.setSecrets(new Secrets(secretsFileModel.secrets()
                 .stream().collect(Collectors.toMap(Secret::id, Function.identity()))));
     }
 
-    private static void parseInstance(String content, ApplicationInstance application) throws IOException {
+    private static void parseInstance(String content, Application application) throws IOException {
         InstanceFileModel instance = mapper.readValue(content, InstanceFileModel.class);
         log.info("Instance Configuration: {}", instance);
         application.setInstance(instance.instance);

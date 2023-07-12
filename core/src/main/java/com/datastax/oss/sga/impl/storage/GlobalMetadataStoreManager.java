@@ -1,13 +1,9 @@
 package com.datastax.oss.sga.impl.storage;
 
-import com.datastax.oss.sga.api.model.StoredApplicationInstance;
 import com.datastax.oss.sga.api.model.TenantConfiguration;
 import com.datastax.oss.sga.api.storage.GlobalMetadataStore;
-import com.datastax.oss.sga.api.storage.TenantDataStore;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;

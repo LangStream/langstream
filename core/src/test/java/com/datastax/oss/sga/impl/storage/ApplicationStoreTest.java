@@ -1,9 +1,9 @@
 package com.datastax.oss.sga.impl.storage;
 
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.ApplicationInstanceLifecycleStatus;
-import com.datastax.oss.sga.api.model.StoredApplicationInstance;
+import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -31,12 +31,12 @@ class ApplicationStoreTest {
         store.initializeTenant(tenant);
 
         Path path = Paths.get("../examples/application1");
-        ApplicationInstance application = ModelBuilder.buildApplicationInstance(Arrays.asList(path));
+        Application application = ModelBuilder.buildApplicationInstance(Arrays.asList(path));
         store.put(tenant, "test", application, ApplicationInstanceLifecycleStatus.CREATED);
         Assertions.assertNotNull(configStore.get(tenant, "app-test"));
         Assertions.assertNotNull(configStore.get(tenant, "sec-test"));
 
-        StoredApplicationInstance get = store.get(tenant, "test");
+        StoredApplication get = store.get(tenant, "test");
         Assertions.assertEquals("test", get.getName());
         Assertions.assertEquals(ApplicationInstanceLifecycleStatus.CREATED, get.getStatus());
         Assertions.assertEquals(mapper.writeValueAsString(application), mapper.writeValueAsString(get.getInstance()));

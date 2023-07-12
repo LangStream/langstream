@@ -1,8 +1,8 @@
 package com.datastax.oss.sga.pulsar.agents;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.runtime.ClusterRuntime;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.pulsar.PulsarName;
 import lombok.AllArgsConstructor;
@@ -26,8 +26,8 @@ public abstract class AbstractPulsarSourceAgentProvider extends AbstractPulsarAg
     }
 
     @Override
-    protected Object computeAgentMetadata(AgentConfiguration agentConfiguration, PhysicalApplicationInstance physicalApplicationInstance,
-                                          ClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
+    protected Object computeAgentMetadata(AgentConfiguration agentConfiguration, ExecutionPlan physicalApplicationInstance,
+                                          ComputeClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
         PulsarName pulsarName = computePulsarName(physicalApplicationInstance, agentConfiguration);
         return new PulsarSourceMetadata(pulsarName, getSourceType(agentConfiguration));
     }

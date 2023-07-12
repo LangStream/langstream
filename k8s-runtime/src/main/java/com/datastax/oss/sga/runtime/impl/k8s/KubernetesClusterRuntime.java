@@ -1,10 +1,8 @@
 package com.datastax.oss.sga.runtime.impl.k8s;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.StreamingCluster;
-import com.datastax.oss.sga.api.runtime.AgentImplementation;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.AgentNode;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
@@ -33,7 +31,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void deploy(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         streamingClusterRuntime.deploy(applicationInstance);
 
         List<PodAgentConfiguration> crds = buildCustomResourceDefinitions(applicationInstance, streamingClusterRuntime);
@@ -43,22 +41,22 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         // TODO: use K8S client to create CRDs
     }
 
-    private static List<PodAgentConfiguration> buildCustomResourceDefinitions(PhysicalApplicationInstance applicationInstance,
+    private static List<PodAgentConfiguration> buildCustomResourceDefinitions(ExecutionPlan applicationInstance,
                                                                               StreamingClusterRuntime streamingClusterRuntime) {
         List<PodAgentConfiguration> agentsCustomResourceDefinitions = new ArrayList<>();
-        for (AgentImplementation agentImplementation : applicationInstance.getAgents().values()) {
+        for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
             buildCRDForAgent(agentsCustomResourceDefinitions, agentImplementation, streamingClusterRuntime, applicationInstance);
         }
         return agentsCustomResourceDefinitions;
     }
 
-    private static void buildCRDForAgent(List<PodAgentConfiguration> agentsCustomResourceDefinitions, AgentImplementation agent,
-                                         StreamingClusterRuntime streamingClusterRuntime, PhysicalApplicationInstance applicationInstance) {
+    private static void buildCRDForAgent(List<PodAgentConfiguration> agentsCustomResourceDefinitions, AgentNode agent,
+                                         StreamingClusterRuntime streamingClusterRuntime, ExecutionPlan applicationInstance) {
         log.info("Building CRD for Agent {}", agent);
-        if (! (agent instanceof AbstractAgentProvider.DefaultAgentImplementation)) {
+        if (! (agent instanceof AbstractAgentProvider.DefaultAgent)) {
             throw new UnsupportedOperationException("Only default agent implementations are supported");
         }
-        AbstractAgentProvider.DefaultAgentImplementation defaultAgentImplementation = (AbstractAgentProvider.DefaultAgentImplementation) agent;
+        AbstractAgentProvider.DefaultAgent defaultAgentImplementation = (AbstractAgentProvider.DefaultAgent) agent;
 
         Map<String, Object> agentConfiguration = new HashMap<>();
         agentConfiguration.putAll(defaultAgentImplementation.getConfiguration());
@@ -82,14 +80,14 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 inputConfiguration,
                 outputConfiguration,
                 agentConfiguration,
-                applicationInstance.getApplicationInstance().getInstance().streamingCluster()
+                applicationInstance.getApplication().getInstance().streamingCluster()
         );
 
         agentsCustomResourceDefinitions.add(crd);
     }
 
     @Override
-    public void delete(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void delete(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         List<PodAgentConfiguration> crds = buildCustomResourceDefinitions(applicationInstance, streamingClusterRuntime);
         // TODO: delete CRDs
     }

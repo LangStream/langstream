@@ -15,8 +15,6 @@
  */
 package com.datastax.oss.sga.api.runtime;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 
 import java.util.Map;
@@ -31,20 +29,20 @@ public interface StreamingClusterRuntime {
      * Deploy the topics on the StreamingCluster
      * @param applicationInstance
      */
-    void deploy(PhysicalApplicationInstance applicationInstance);
+    void deploy(ExecutionPlan applicationInstance);
 
     /**
      * Undeploy all the resources created on the StreamingCluster
      * @param applicationInstance
      */
-    void delete(PhysicalApplicationInstance applicationInstance);
+    void delete(ExecutionPlan applicationInstance);
 
     /**
      * Map a Logical TopicDefinition to a Physical TopicImplementation
      * @param topicDefinition
      * @return
      */
-    TopicImplementation createTopicImplementation(TopicDefinition topicDefinition, PhysicalApplicationInstance applicationInstance);
+    Topic createTopicImplementation(TopicDefinition topicDefinition, ExecutionPlan applicationInstance);
 
     /**
      * Create the configuration to consume from a topic.
@@ -52,7 +50,7 @@ public interface StreamingClusterRuntime {
      * @param inputConnection
      * @return the configuration
      */
-    Map<String, Object> createConsumerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation inputConnection);
+    Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, Connection inputConnection);
 
     /**
      * Create the configuration to produce to a topic.
@@ -60,5 +58,5 @@ public interface StreamingClusterRuntime {
      * @param outputConnection
      * @return the configuration
      */
-    Map<String, Object> createProducerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation outputConnection);
+    Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, Connection outputConnection);
 }

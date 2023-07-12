@@ -16,16 +16,13 @@
 package com.datastax.oss.sga.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Data
-public class ApplicationInstance {
+public class Application {
 
     private Map<String, Resource> resources = new HashMap<>();
     private Map<String, Module> modules = new HashMap<>();

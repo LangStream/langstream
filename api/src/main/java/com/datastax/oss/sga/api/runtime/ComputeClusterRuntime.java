@@ -16,26 +16,25 @@
 package com.datastax.oss.sga.api.runtime;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.model.ApplicationInstance;
-import com.datastax.oss.sga.api.model.Connection;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
 
 /**
  * This is the interface that the SGA framework uses to interact with the cluster. It is used to
  * model a physical cluster runtime (Pulsar, Kafka....)
  */
-public interface ClusterRuntime {
+public interface ComputeClusterRuntime {
 
     String getClusterType();
 
     /**
      * Create a physical application instance from the logical application instance.
      *
-     * @param applicationInstance
+     * @param application
      * @param streamingClusterRuntime
      * @return the physical application instance
      */
-    PhysicalApplicationInstance createImplementation(ApplicationInstance applicationInstance, PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime);
+    ExecutionPlan buildExecutionPlan(Application application, PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime);
 
 
     /**
@@ -44,13 +43,13 @@ public interface ClusterRuntime {
      * @param connection
      * @return the connection implementation
      */
-    ConnectionImplementation getConnectionImplementation(Module module, Connection connection, PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    Connection getConnectionImplementation(Module module, com.datastax.oss.sga.api.model.Connection connection, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    void deploy(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    void deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    void delete(PhysicalApplicationInstance applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    void delete(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    default Object computeAgentMetadata(AgentConfiguration agentConfiguration, PhysicalApplicationInstance physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    default Object computeAgentMetadata(AgentConfiguration agentConfiguration, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         return null;
     }
 }

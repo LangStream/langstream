@@ -1,11 +1,11 @@
 package com.datastax.oss.sga.impl.common;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 
 public class PlaceholderEvaluator {
 
-    public static ApplicationInstance evaluate(ApplicationInstance applicationInstance) {
-        new ApplicationInstance();
+    public static Application evaluate(Application applicationInstance) {
+        new Application();
         return applicationInstance;
     }
 

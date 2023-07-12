@@ -1,14 +1,14 @@
 package com.dastastax.oss.sga.kafka.runtime;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.SchemaDefinition;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.AgentImplementation;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.AgentNode;
+import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.api.runtime.TopicImplementation;
+import com.datastax.oss.sga.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -44,10 +44,10 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void deploy(PhysicalApplicationInstance applicationInstance) {
-        ApplicationInstance logicalInstance = applicationInstance.getApplicationInstance();
+    public void deploy(ExecutionPlan applicationInstance) {
+        Application logicalInstance = applicationInstance.getApplication();
         try (AdminClient admin = buildKafkaAdmin(logicalInstance.getInstance().streamingCluster())) {
-            for (TopicImplementation topic : applicationInstance.getLogicalTopics()) {
+            for (Topic topic : applicationInstance.getLogicalTopics()) {
                 deployTopic(admin, (KafkaTopic) topic);
             }
 
@@ -61,10 +61,10 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void delete(PhysicalApplicationInstance applicationInstance) {
-        ApplicationInstance logicalInstance = applicationInstance.getApplicationInstance();
+    public void delete(ExecutionPlan applicationInstance) {
+        Application logicalInstance = applicationInstance.getApplication();
         try (AdminClient admin = buildKafkaAdmin(logicalInstance.getInstance().streamingCluster())) {
-            for (TopicImplementation topic : applicationInstance.getLogicalTopics()) {
+            for (Topic topic : applicationInstance.getLogicalTopics()) {
                 deleteTopic(admin, (KafkaTopic) topic);
             }
         }
@@ -76,7 +76,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     @Override
-    public TopicImplementation createTopicImplementation(TopicDefinition topicDefinition, PhysicalApplicationInstance applicationInstance) {
+    public Topic createTopicImplementation(TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
         SchemaDefinition schema = topicDefinition.getSchema();
         String name = topicDefinition.getName();
         String creationMode = topicDefinition.getCreationMode();
@@ -92,7 +92,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     @Override
-    public Map<String, Object> createConsumerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation inputConnection) {
+    public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, Connection inputConnection) {
         KafkaTopic kafkaTopic = (KafkaTopic) inputConnection;
         Map<String, Object> configuration = new HashMap<>();
 
@@ -106,7 +106,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     @Override
-    public Map<String, Object> createProducerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation outputConnection) {
+    public Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, Connection outputConnection) {
         KafkaTopic kafkaTopic = (KafkaTopic) outputConnection;
 
         Map<String, Object> configuration = new HashMap<>();

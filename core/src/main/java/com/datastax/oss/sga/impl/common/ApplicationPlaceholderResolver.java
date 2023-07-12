@@ -1,7 +1,7 @@
 package com.datastax.oss.sga.impl.common;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.ComputeCluster;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
@@ -21,16 +21,16 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ApplicationInstancePlaceholderResolver {
+public class ApplicationPlaceholderResolver {
 
     private static final ObjectMapper mapper = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
 
-    private ApplicationInstancePlaceholderResolver() {
+    private ApplicationPlaceholderResolver() {
     }
 
     @SneakyThrows
-    public static ApplicationInstance resolvePlaceholders(ApplicationInstance instance) {
+    public static Application resolvePlaceholders(Application instance) {
         instance = deepCopy(instance);
         final Map<String, Object> context = createContext(instance);
         if (log.isDebugEnabled()) {
@@ -44,7 +44,7 @@ public class ApplicationInstancePlaceholderResolver {
         return instance;
     }
 
-    static Map<String, Object> createContext(ApplicationInstance application) throws IOException {
+    static Map<String, Object> createContext(Application application) throws IOException {
         Map<String, Object> context = new HashMap<>();
         final Instance instance = application.getInstance();
         if (instance != null) {
@@ -61,7 +61,7 @@ public class ApplicationInstancePlaceholderResolver {
         return context;
     }
 
-    private static Map<String, Module> resolveModules(ApplicationInstance instance, Map<String, Object> context) {
+    private static Map<String, Module> resolveModules(Application instance, Map<String, Object> context) {
         Map<String, Module> newModules = new LinkedHashMap<>();
         for (Map.Entry<String, Module> moduleEntry : instance.getModules().entrySet()) {
             final Module module = moduleEntry.getValue();
@@ -81,7 +81,7 @@ public class ApplicationInstancePlaceholderResolver {
         return newModules;
     }
 
-    private static Instance resolveInstance(ApplicationInstance applicationInstance, Map<String, Object> context) {
+    private static Instance resolveInstance(Application applicationInstance, Map<String, Object> context) {
         final StreamingCluster newCluster;
         final ComputeCluster newComputeCluster;
         final Instance instance = applicationInstance.getInstance();
@@ -107,7 +107,7 @@ public class ApplicationInstancePlaceholderResolver {
         );
     }
 
-    private static Map<String, Resource> resolveResources(ApplicationInstance instance,
+    private static Map<String, Resource> resolveResources(Application instance,
                                                           Map<String, Object> context) {
         Map<String, Resource> newResources = new HashMap<>();
         for (Map.Entry<String, Resource> resourceEntry : instance.getResources().entrySet()) {
@@ -162,8 +162,8 @@ public class ApplicationInstancePlaceholderResolver {
                 replace("{__MUSTACHE_ESCAPING_PREFIX ", "{{ ");
     }
 
-    private static ApplicationInstance deepCopy(ApplicationInstance instance) throws IOException {
-        return mapper.readValue(mapper.writeValueAsBytes(instance), ApplicationInstance.class);
+    private static Application deepCopy(Application instance) throws IOException {
+        return mapper.readValue(mapper.writeValueAsBytes(instance), Application.class);
     }
 
     private static Map<String, Object> deepCopy(Map<String, Object> context) throws IOException {

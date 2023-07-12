@@ -1,15 +1,13 @@
 package com.datastax.oss.sga.pulsar.agents.ai;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Resource;
-import com.datastax.oss.sga.api.runtime.AgentImplementation;
-import com.datastax.oss.sga.api.runtime.ClusterRuntime;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.AgentNode;
+import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
-import com.datastax.oss.sga.pulsar.PulsarTopic;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,7 +40,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarFunctionAge
     protected void generateSteps(Map<String, Object> originalConfiguration, List<Map<String, Object>> steps) {
     }
 
-    private void generateOpenAIConfiguration(ApplicationInstance applicationInstance, Map<String, Object> configuration) {
+    private void generateOpenAIConfiguration(Application applicationInstance, Map<String, Object> configuration) {
         Resource resource = applicationInstance.getResources().values().stream()
                 .filter(r -> r.type().equals("open-ai-configuration"))
                 .findFirst().orElse(null);
@@ -66,12 +64,12 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarFunctionAge
 
     @Override
     protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module,
-                                                            PhysicalApplicationInstance physicalApplicationInstance,
-                                                            ClusterRuntime clusterRuntime) {
+                                                            ExecutionPlan physicalApplicationInstance,
+                                                            ComputeClusterRuntime clusterRuntime) {
         Map<String, Object> originalConfiguration = super.computeAgentConfiguration(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
         Map<String, Object> configuration = new HashMap<>();
 
-        generateOpenAIConfiguration(physicalApplicationInstance.getApplicationInstance(), configuration);
+        generateOpenAIConfiguration(physicalApplicationInstance.getApplication(), configuration);
 
         List<Map<String, Object>> steps = new ArrayList<>();
         configuration.put("steps", steps);
@@ -81,10 +79,10 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarFunctionAge
 
 
     @Override
-    public boolean canMerge(AgentImplementation previousAgent, AgentImplementation agentImplementation) {
-        if (previousAgent instanceof DefaultAgentImplementation agent1
+    public boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation) {
+        if (previousAgent instanceof DefaultAgent agent1
                 && agent1.getRuntimeMetadata() instanceof PulsarFunctionMetadata metadata1
-                && agentImplementation instanceof DefaultAgentImplementation agent2
+                && agentImplementation instanceof DefaultAgent agent2
                 && agent2.getRuntimeMetadata() instanceof PulsarFunctionMetadata metadata2)
             if (Objects.equals(metadata1.getFunctionType(), FUNCTION_TYPE)
                     && Objects.equals(metadata2.getFunctionType(), FUNCTION_TYPE)) {
@@ -99,11 +97,11 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarFunctionAge
     }
 
     @Override
-    public AgentImplementation mergeAgents(AgentImplementation previousAgent, AgentImplementation agentImplementation,
-                                           PhysicalApplicationInstance applicationInstance) {
-        if (previousAgent instanceof DefaultAgentImplementation agent1
+    public AgentNode mergeAgents(AgentNode previousAgent, AgentNode agentImplementation,
+                                 ExecutionPlan applicationInstance) {
+        if (previousAgent instanceof DefaultAgent agent1
                 && agent1.getRuntimeMetadata() instanceof PulsarFunctionMetadata metadata1
-                && agentImplementation instanceof DefaultAgentImplementation agent2
+                && agentImplementation instanceof DefaultAgent agent2
                 && agent2.getRuntimeMetadata() instanceof PulsarFunctionMetadata metadata2) {
             Map<String, Object> configurationWithoutSteps1 = new HashMap<>(agent1.getConfiguration());
             List<Map<String, Object>> steps1 = (List<Map<String, Object>>) configurationWithoutSteps1.remove("steps");

@@ -1,9 +1,9 @@
 package com.datastax.oss.sga.impl.deploy;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.ApplicationInstanceLifecycleStatus;
-import com.datastax.oss.sga.api.model.StoredApplicationInstance;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.model.StoredApplication;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.impl.storage.ApplicationStore;
 import com.google.common.util.concurrent.Striped;
 import java.util.LinkedHashMap;
@@ -29,7 +29,7 @@ public class ApplicationManager implements AutoCloseable {
     private final LinkedBlockingQueue<Task> tasks = new LinkedBlockingQueue<>();
     private final Striped<Lock> applicationLocks = Striped.lock(1000);
 
-    public record Task(String tenant, String applicationName, ApplicationInstance applicationInstance, boolean deploy) {
+    public record Task(String tenant, String applicationName, Application applicationInstance, boolean deploy) {
     }
 
     public ApplicationManager(ApplicationDeployer applicationDeployer,
@@ -68,13 +68,13 @@ public class ApplicationManager implements AutoCloseable {
     }
 
     public void recoverTenant(String tenant) {
-        final LinkedHashMap<String, StoredApplicationInstance> apps = applicationStore.list(tenant);
+        final LinkedHashMap<String, StoredApplication> apps = applicationStore.list(tenant);
         recoverInFlightDeployments(tenant, apps);
         recoverInFlightUnemployments(tenant, apps);
     }
 
-    private void recoverInFlightUnemployments(String tenant, LinkedHashMap<String, StoredApplicationInstance> apps) {
-        final List<StoredApplicationInstance> deletingDeployments = apps.values()
+    private void recoverInFlightUnemployments(String tenant, LinkedHashMap<String, StoredApplication> apps) {
+        final List<StoredApplication> deletingDeployments = apps.values()
                 .stream()
                 .filter(app -> app.getStatus().getStatus() == ApplicationInstanceLifecycleStatus.Status.DELETING)
                 .collect(Collectors.toList());
@@ -83,14 +83,14 @@ public class ApplicationManager implements AutoCloseable {
             log.info("No inflight unemployments to recover");
         } else {
             log.info("Recovering {} inflight unemployments", deletingDeployments.size());
-            for (StoredApplicationInstance deployment : deletingDeployments) {
+            for (StoredApplication deployment : deletingDeployments) {
                 scheduleUnemployment(tenant, deployment.getName(), deployment.getInstance());
             }
         }
     }
 
-    private void recoverInFlightDeployments(String tenant, LinkedHashMap<String, StoredApplicationInstance> apps) {
-        final List<StoredApplicationInstance> inflightDeployments = apps.values()
+    private void recoverInFlightDeployments(String tenant, LinkedHashMap<String, StoredApplication> apps) {
+        final List<StoredApplication> inflightDeployments = apps.values()
                 .stream()
                 .filter(app -> app.getStatus().getStatus() == ApplicationInstanceLifecycleStatus.Status.CREATED)
                 .collect(Collectors.toList());
@@ -99,22 +99,22 @@ public class ApplicationManager implements AutoCloseable {
             log.info("No inflight deployments to recover");
         } else {
             log.info("Recovering {} inflight deployments", inflightDeployments.size());
-            for (StoredApplicationInstance inflightDeployment : inflightDeployments) {
+            for (StoredApplication inflightDeployment : inflightDeployments) {
                 scheduleDeployment(tenant, inflightDeployment.getName(), inflightDeployment.getInstance());
             }
         }
     }
 
     @SneakyThrows
-    public Map<String, StoredApplicationInstance> getAllApplications(String tenant) {
+    public Map<String, StoredApplication> getAllApplications(String tenant) {
         return applicationStore.list(tenant);
     }
 
     @SneakyThrows
-    public void deployApplication(String tenant, String applicationName, ApplicationInstance applicationInstance) {
+    public void deployApplication(String tenant, String applicationName, Application applicationInstance) {
         getLock(tenant, applicationName).lock();
         try {
-            final StoredApplicationInstance current = applicationStore.get(tenant, applicationName);
+            final StoredApplication current = applicationStore.get(tenant, applicationName);
             if (current != null) {
                 throw new IllegalArgumentException("Application " + applicationName + " already exists");
             }
@@ -130,22 +130,22 @@ public class ApplicationManager implements AutoCloseable {
         return applicationLocks.get(tenant + "_" + applicationName);
     }
 
-    private void scheduleDeployment(String tenant, String applicationName, ApplicationInstance applicationInstance) {
+    private void scheduleDeployment(String tenant, String applicationName, Application applicationInstance) {
         tasks.add(new Task(tenant, applicationName, applicationInstance, true));
         log.info("Scheduled deployment of {}", applicationName);
 
     }
 
-    private void scheduleUnemployment(String tenant, String applicationName, ApplicationInstance applicationInstance) {
+    private void scheduleUnemployment(String tenant, String applicationName, Application applicationInstance) {
         tasks.add(new Task(tenant, applicationName, applicationInstance, false));
         log.info("Scheduled unemployment of {}", applicationName);
     }
 
-    private void internalDeploy(String tenant, String applicationName, ApplicationInstance applicationInstance) {
+    private void internalDeploy(String tenant, String applicationName, Application applicationInstance) {
         log.info("start deploying {}", applicationName);
 
         try {
-            final PhysicalApplicationInstance implementation =
+            final ExecutionPlan implementation =
                     applicationDeployer.createImplementation(applicationInstance);
             applicationDeployer.deploy(implementation);
             applicationStore.put(tenant, applicationName, applicationInstance,
@@ -158,7 +158,7 @@ public class ApplicationManager implements AutoCloseable {
         }
     }
 
-    private void internalDelete(String tenant, String applicationName, ApplicationInstance applicationInstance) {
+    private void internalDelete(String tenant, String applicationName, Application applicationInstance) {
         log.info("start deletion of {}", applicationName);
         // not supported yet
         // deployer.delete(applicationInstance, deployer.createImplementation(current.getInstance()));
@@ -167,7 +167,7 @@ public class ApplicationManager implements AutoCloseable {
     }
 
     @SneakyThrows
-    public StoredApplicationInstance getApplication(String tenant, String applicationName) {
+    public StoredApplication getApplication(String tenant, String applicationName) {
         return applicationStore.get(tenant, applicationName);
     }
 
@@ -176,7 +176,7 @@ public class ApplicationManager implements AutoCloseable {
         final Lock lock = getLock(tenant, applicationName);
         lock.lock();
         try {
-            final StoredApplicationInstance current = applicationStore.get(tenant, applicationName);
+            final StoredApplication current = applicationStore.get(tenant, applicationName);
             if (current == null) {
                 return;
             }

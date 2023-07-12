@@ -1,12 +1,12 @@
 package com.datastax.oss.sga.pulsar;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.AgentImplementation;
+import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
@@ -30,7 +30,7 @@ class PulsarClusterRuntimeTest {
 
     @Test
     public void testMapCassandraSink() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -59,16 +59,16 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic-cassandra");
         assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
 
-        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
+        AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation genericSink =
-                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractAgentProvider.DefaultAgent genericSink =
+                (AbstractAgentProvider.DefaultAgent) agentImplementation;
         AbstractPulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = genericSink.getPhysicalMetadata();
         assertEquals("cassandra-enhanced", pulsarSinkMetadata.getSinkType());
         assertEquals(new PulsarName("public", "default", "sink1"), pulsarSinkMetadata.getPulsarName());
@@ -98,7 +98,7 @@ class PulsarClusterRuntimeTest {
 
     @Test
     public void testMapGenericPulsarSink() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -129,16 +129,16 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
         assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
 
-        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
+        AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation genericSink =
-                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractAgentProvider.DefaultAgent genericSink =
+                (AbstractAgentProvider.DefaultAgent) agentImplementation;
         AbstractPulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = genericSink.getPhysicalMetadata();
         assertEquals("some-sink-type-on-your-cluster", pulsarSinkMetadata.getSinkType());
         assertEquals(new PulsarName("public", "default", "sink1"), pulsarSinkMetadata.getPulsarName());
@@ -147,7 +147,7 @@ class PulsarClusterRuntimeTest {
 
     @Test
     public void testMapGenericPulsarSource() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -175,16 +175,16 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
         assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
 
-        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "source-1-id");
+        AgentNode agentImplementation = implementation.getAgentImplementation(module, "source-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation genericSink =
-                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractAgentProvider.DefaultAgent genericSink =
+                (AbstractAgentProvider.DefaultAgent) agentImplementation;
         AbstractPulsarSourceAgentProvider.PulsarSourceMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
         assertEquals("some-source-type-on-your-cluster", pulsarSourceMetadata.getSourceType());
         assertEquals(new PulsarName("public", "default", "source1"), pulsarSourceMetadata.getPulsarName());
@@ -194,7 +194,7 @@ class PulsarClusterRuntimeTest {
 
     @Test
     public void testMapGenericPulsarFunction() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -226,7 +226,7 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
                     new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
@@ -240,10 +240,10 @@ class PulsarClusterRuntimeTest {
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
 
-        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
+        AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation genericSink =
-                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractAgentProvider.DefaultAgent genericSink =
+                (AbstractAgentProvider.DefaultAgent) agentImplementation;
         AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata =
                 genericSink.getPhysicalMetadata();
         assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
@@ -255,7 +255,7 @@ class PulsarClusterRuntimeTest {
 
     @Test
     public void testMapGenericPulsarFunctionsChain() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -297,7 +297,7 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
                     new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
@@ -322,10 +322,10 @@ class PulsarClusterRuntimeTest {
         assertEquals(3, implementation.getTopics().size());
 
         {
-            AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
             assertNotNull(agentImplementation);
-            AbstractAgentProvider.DefaultAgentImplementation genericSink =
-                    (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+            AbstractAgentProvider.DefaultAgent genericSink =
+                    (AbstractAgentProvider.DefaultAgent) agentImplementation;
             AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata =
                     genericSink.getPhysicalMetadata();
             assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
@@ -334,10 +334,10 @@ class PulsarClusterRuntimeTest {
         }
 
         {
-            AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
             assertNotNull(agentImplementation);
-            AbstractAgentProvider.DefaultAgentImplementation genericSink =
-                    (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+            AbstractAgentProvider.DefaultAgent genericSink =
+                    (AbstractAgentProvider.DefaultAgent) agentImplementation;
             AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata =
                     genericSink.getPhysicalMetadata();
             assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
@@ -350,7 +350,7 @@ class PulsarClusterRuntimeTest {
 
     @Test
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "configuration.yaml",
@@ -395,16 +395,16 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
 
-        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "step1");
+        AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation step =
-                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractAgentProvider.DefaultAgent step =
+                (AbstractAgentProvider.DefaultAgent) agentImplementation;
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
@@ -426,7 +426,7 @@ class PulsarClusterRuntimeTest {
 
     @Test
     public void testSanitizePipelineName() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
@@ -471,23 +471,23 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
-        final AbstractAgentProvider.DefaultAgentImplementation functionPhysicalImpl =
-                (AbstractAgentProvider.DefaultAgentImplementation) implementation.getAgentImplementation(module,
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        final AbstractAgentProvider.DefaultAgent functionPhysicalImpl =
+                (AbstractAgentProvider.DefaultAgent) implementation.getAgentImplementation(module,
                         "step1");
         assertEquals("my-function-name-with-spaces",
                 ((AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata) functionPhysicalImpl.getPhysicalMetadata()).getPulsarName()
                         .name());
 
-        final AbstractAgentProvider.DefaultAgentImplementation sinkPhysicalImpl =
-                (AbstractAgentProvider.DefaultAgentImplementation) implementation.getAgentImplementation(module,
+        final AbstractAgentProvider.DefaultAgent sinkPhysicalImpl =
+                (AbstractAgentProvider.DefaultAgent) implementation.getAgentImplementation(module,
                         "sink1");
         assertEquals("my-sink-name-with-spaces",
                 ((AbstractPulsarSinkAgentProvider.PulsarSinkMetadata) sinkPhysicalImpl.getPhysicalMetadata()).getPulsarName()
                         .name());
 
-        final AbstractAgentProvider.DefaultAgentImplementation sourcePhysicalImpl =
-                (AbstractAgentProvider.DefaultAgentImplementation) implementation.getAgentImplementation(module,
+        final AbstractAgentProvider.DefaultAgent sourcePhysicalImpl =
+                (AbstractAgentProvider.DefaultAgent) implementation.getAgentImplementation(module,
                         "source1");
         assertEquals("my-source-name-with-spaces",
                 ((AbstractPulsarSourceAgentProvider.PulsarSourceMetadata) sourcePhysicalImpl.getPhysicalMetadata()).getPulsarName()
@@ -497,7 +497,7 @@ class PulsarClusterRuntimeTest {
 
     @Test
     public void testMergeGenAIToolKitAgents() throws Exception {
-        ApplicationInstance applicationInstance = ModelBuilder
+        Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "configuration.yaml",
@@ -549,12 +549,12 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        PhysicalApplicationInstance implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
 
-        AgentImplementation agentImplementation = implementation.getAgentImplementation(module, "step1");
+        AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgentImplementation step =
-                (AbstractAgentProvider.DefaultAgentImplementation) agentImplementation;
+        AbstractAgentProvider.DefaultAgent step =
+                (AbstractAgentProvider.DefaultAgent) agentImplementation;
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");

@@ -1,33 +1,20 @@
 package com.datastax.oss.sga.pulsar;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.model.ApplicationInstance;
-import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.model.Pipeline;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.SchemaDefinition;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.AgentImplementation;
-import com.datastax.oss.sga.api.runtime.AgentImplementationProvider;
-import com.datastax.oss.sga.api.runtime.ClusterRuntime;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.PhysicalApplicationInstance;
-import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.api.runtime.AgentNode;
+import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.api.runtime.TopicImplementation;
-import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
-import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
-import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSinkAgentProvider;
-import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSourceAgentProvider;
+import com.datastax.oss.sga.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.common.functions.FunctionConfig;
-import org.apache.pulsar.common.io.SinkConfig;
-import org.apache.pulsar.common.io.SourceConfig;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
@@ -66,10 +53,10 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void deploy(PhysicalApplicationInstance applicationInstance) {
-        ApplicationInstance logicalInstance = applicationInstance.getApplicationInstance();
+    public void deploy(ExecutionPlan applicationInstance) {
+        Application logicalInstance = applicationInstance.getApplication();
         try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
-            for (TopicImplementation topic : applicationInstance.getLogicalTopics()) {
+            for (Topic topic : applicationInstance.getLogicalTopics()) {
                 deployTopic(admin, (PulsarTopic) topic);
             }
 
@@ -142,19 +129,19 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void delete(PhysicalApplicationInstance applicationInstance) {
-        ApplicationInstance logicalInstance = applicationInstance.getApplicationInstance();
+    public void delete(ExecutionPlan applicationInstance) {
+        Application logicalInstance = applicationInstance.getApplication();
         try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
-            for (TopicImplementation topic : applicationInstance.getLogicalTopics()) {
+            for (Topic topic : applicationInstance.getLogicalTopics()) {
                 deleteTopic(admin, (PulsarTopic) topic);
             }
         }
     }
 
     @Override
-    public TopicImplementation createTopicImplementation(TopicDefinition topicDefinition, PhysicalApplicationInstance applicationInstance) {
+    public Topic createTopicImplementation(TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
         final PulsarClusterRuntimeConfiguration config =
-                getPulsarClusterRuntimeConfiguration(applicationInstance.getApplicationInstance().getInstance().streamingCluster());
+                getPulsarClusterRuntimeConfiguration(applicationInstance.getApplication().getInstance().streamingCluster());
 
         SchemaDefinition schema = topicDefinition.getSchema();
         String name = topicDefinition.getName();
@@ -175,12 +162,12 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     @Override
-    public Map<String, Object> createConsumerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation inputConnection) {
+    public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, Connection inputConnection) {
         throw new UnsupportedOperationException("Not needed for Pulsar at the moment");
     }
 
     @Override
-    public Map<String, Object> createProducerConfiguration(AgentImplementation agentImplementation, ConnectionImplementation outputConnection) {
+    public Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, Connection outputConnection) {
         throw new UnsupportedOperationException("Not needed for Pulsar at the moment");
     }
 }

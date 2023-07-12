@@ -93,7 +93,7 @@ class ApplicationPlaceholderResolverTest {
                                 pipeline:
                                   - name: "sink1"
                                     id: "sink1"
-                                    type: "generic-pulsar-sink"
+                                    type: "sink"
                                     input: "input-topic"
                                     configuration:
                                       sinkType: "some-sink-type-on-your-cluster"

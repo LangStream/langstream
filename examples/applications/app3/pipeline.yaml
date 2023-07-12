@@ -8,7 +8,7 @@ topics:
 pipeline:
   - name: "function1"
     id: "function-1-id"
-    type: "generic-pulsar-function"
+    type: "function"
     input: "input-topic"
     # the output is implicitly an intermediate topic
     configuration:
@@ -16,7 +16,7 @@ pipeline:
       steps: []
   - name: "function2"
     id: "function-2-id"
-    type: "generic-pulsar-function"
+    type: "function"
     # the input is implicitly an intermediate topic
     output: "output-topic"
     configuration:

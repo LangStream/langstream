@@ -8,7 +8,7 @@ topics:
 pipeline:
   - name: "source1"
     id: "source-1-id"
-    type: "generic-pulsar-source"
+    type: "source"
     output: "output-topic"
     configuration:
       sourceType: "data-generator"

@@ -9,4 +9,4 @@ com.datastax.oss.sga.pulsar.agents.GenericPulsarSourceAgentProvider
 com.datastax.oss.sga.pulsar.agents.GenericPulsarFunctionAgentProvider
 
 # Streaming AI
-com.datastax.oss.sga.pulsar.agents.ai.ComputeEmbeddingsAgentProvider
+com.datastax.oss.sga.pulsar.agents.ai.PulsarComputeEmbeddingsAgentProvider

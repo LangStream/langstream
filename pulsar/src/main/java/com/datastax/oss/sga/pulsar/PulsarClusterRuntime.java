@@ -6,8 +6,8 @@ import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
-import com.datastax.oss.sga.impl.common.DefaultAgent;
-import com.datastax.oss.sga.pulsar.agents.AbstractPulsarAgentProvider;
+import com.datastax.oss.sga.impl.common.DefaultAgentNode;
+import com.datastax.oss.sga.pulsar.agents.PulsarAgentNodeMetadata;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import lombok.SneakyThrows;
@@ -68,9 +68,9 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
     }
 
     private static void deployAgent(PulsarAdmin admin, AgentNode agent) throws PulsarAdminException {
-        if (agent instanceof DefaultAgent agentImpl) {
+        if (agent instanceof DefaultAgentNode agentImpl) {
             Object customMetadata = agentImpl.getCustomMetadata();
-            if (customMetadata instanceof AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarComponentMetadata) {
+            if (customMetadata instanceof PulsarAgentNodeMetadata pulsarComponentMetadata) {
                 switch (pulsarComponentMetadata.getComponentType()) {
                     case SINK: {
                         deployySink(admin, agentImpl, pulsarComponentMetadata);
@@ -92,7 +92,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
         throw new IllegalArgumentException("Unsupported Agent type " + agent.getClass().getName());
     }
 
-    private static void deployFunction(PulsarAdmin admin, DefaultAgent agentImpl, AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
+    private static void deployFunction(PulsarAdmin admin, DefaultAgentNode agentImpl, PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
         PulsarName pulsarName = pulsarComponentMetadata.getPulsarName();
 
         PulsarTopic topicInput = (PulsarTopic) agentImpl.getInputConnection();
@@ -123,7 +123,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
         admin.functions().createFunction(functionConfig, null);
     }
 
-    private static void deploySource(PulsarAdmin admin, DefaultAgent agentImpl, AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
+    private static void deploySource(PulsarAdmin admin, DefaultAgentNode agentImpl, PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
         PulsarName pulsarName = pulsarComponentMetadata.getPulsarName();
 
         PulsarTopic topic = (PulsarTopic) agentImpl.getOutputConnection();
@@ -147,7 +147,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
         admin.sources().createSource(sourceConfig, null);
     }
 
-    private static void deployySink(PulsarAdmin admin, DefaultAgent agentImpl, AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
+    private static void deployySink(PulsarAdmin admin, DefaultAgentNode agentImpl, PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
         PulsarName pulsarName = pulsarComponentMetadata.getPulsarName();
 
         PulsarTopic topic = (PulsarTopic) agentImpl.getInputConnection();

@@ -8,10 +8,10 @@ import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
-import com.datastax.oss.sga.impl.common.DefaultAgent;
+import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.datastax.oss.sga.pulsar.agents.AbstractPulsarAgentProvider;
+import com.datastax.oss.sga.pulsar.agents.PulsarAgentNodeMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
@@ -65,9 +65,9 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
-        DefaultAgent genericSink =
-                (DefaultAgent) agentImplementation;
-        AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSinkMetadata = genericSink.getCustomMetadata();
+        DefaultAgentNode genericSink =
+                (DefaultAgentNode) agentImplementation;
+        PulsarAgentNodeMetadata pulsarSinkMetadata = genericSink.getCustomMetadata();
         assertEquals("cassandra-enhanced", pulsarSinkMetadata.getAgentType());
         assertEquals(new PulsarName("public", "default", "sink1"), pulsarSinkMetadata.getPulsarName());
 
@@ -111,7 +111,7 @@ class PulsarClusterRuntimeTest {
                                 pipeline:
                                   - name: "sink1"
                                     id: "sink-1-id"
-                                    type: "generic-pulsar-sink"
+                                    type: "sink"
                                     input: "input-topic"
                                     configuration:
                                       sinkType: "some-sink-type-on-your-cluster"
@@ -135,9 +135,9 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
-        DefaultAgent genericSink =
-                (DefaultAgent) agentImplementation;
-        AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSinkMetadata = genericSink.getCustomMetadata();
+        DefaultAgentNode genericSink =
+                (DefaultAgentNode) agentImplementation;
+        PulsarAgentNodeMetadata pulsarSinkMetadata = genericSink.getCustomMetadata();
         assertEquals("some-sink-type-on-your-cluster", pulsarSinkMetadata.getAgentType());
         assertEquals(new PulsarName("public", "default", "sink1"), pulsarSinkMetadata.getPulsarName());
 
@@ -157,7 +157,7 @@ class PulsarClusterRuntimeTest {
                                 pipeline:
                                   - name: "source1"
                                     id: "source-1-id"
-                                    type: "generic-pulsar-source"
+                                    type: "source"
                                     output: "output-topic"
                                     configuration:
                                       sourceType: "some-source-type-on-your-cluster"
@@ -181,9 +181,9 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "source-1-id");
         assertNotNull(agentImplementation);
-        DefaultAgent genericSink =
-                (DefaultAgent) agentImplementation;
-        AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSourceMetadata = genericSink.getCustomMetadata();
+        DefaultAgentNode genericSink =
+                (DefaultAgentNode) agentImplementation;
+        PulsarAgentNodeMetadata pulsarSourceMetadata = genericSink.getCustomMetadata();
         assertEquals("some-source-type-on-your-cluster", pulsarSourceMetadata.getAgentType());
         assertEquals(new PulsarName("public", "default", "source1"), pulsarSourceMetadata.getPulsarName());
 
@@ -206,7 +206,7 @@ class PulsarClusterRuntimeTest {
                                 pipeline:
                                   - name: "function1"
                                     id: "function-1-id"
-                                    type: "generic-pulsar-function"
+                                    type: "function"
                                     input: "input-topic"
                                     output: "output-topic"
                                     configuration:
@@ -240,9 +240,9 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
         assertNotNull(agentImplementation);
-        DefaultAgent genericSink =
-                (DefaultAgent) agentImplementation;
-        AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSourceMetadata =
+        DefaultAgentNode genericSink =
+                (DefaultAgentNode) agentImplementation;
+        PulsarAgentNodeMetadata pulsarSourceMetadata =
                 genericSink.getCustomMetadata();
         assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getAgentType());
         assertEquals(new PulsarName("public", "default", "function1"), pulsarSourceMetadata.getPulsarName());
@@ -266,7 +266,7 @@ class PulsarClusterRuntimeTest {
                                 pipeline:
                                   - name: "function1"
                                     id: "function-1-id"
-                                    type: "generic-pulsar-function"
+                                    type: "function"
                                     input: "input-topic"
                                     # the output is implicitly an intermediate topic                                    
                                     configuration:
@@ -276,7 +276,7 @@ class PulsarClusterRuntimeTest {
                                       config2: "value2"
                                   - name: "function2"
                                     id: "function-2-id"
-                                    type: "generic-pulsar-function"
+                                    type: "function"
                                     # the input is implicitly an intermediate topic                                    
                                     output: "output-topic"
                                     configuration:
@@ -321,9 +321,9 @@ class PulsarClusterRuntimeTest {
         {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
             assertNotNull(agentImplementation);
-            DefaultAgent genericSink =
-                    (DefaultAgent) agentImplementation;
-            AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSourceMetadata =
+            DefaultAgentNode genericSink =
+                    (DefaultAgentNode) agentImplementation;
+            PulsarAgentNodeMetadata pulsarSourceMetadata =
                     genericSink.getCustomMetadata();
             assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getAgentType());
             assertEquals(new PulsarName("public", "default", "function1"), pulsarSourceMetadata.getPulsarName());
@@ -332,9 +332,9 @@ class PulsarClusterRuntimeTest {
         {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
             assertNotNull(agentImplementation);
-            DefaultAgent genericSink =
-                    (DefaultAgent) agentImplementation;
-            AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSourceMetadata =
+            DefaultAgentNode genericSink =
+                    (DefaultAgentNode) agentImplementation;
+            PulsarAgentNodeMetadata pulsarSourceMetadata =
                     genericSink.getCustomMetadata();
             assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getAgentType());
             assertEquals(new PulsarName("public", "default", "function2"), pulsarSourceMetadata.getPulsarName());
@@ -398,8 +398,8 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        DefaultAgent step =
-                (DefaultAgent) agentImplementation;
+        DefaultAgentNode step =
+                (DefaultAgentNode) agentImplementation;
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
@@ -442,7 +442,7 @@ class PulsarClusterRuntimeTest {
                                       text: "{{% value.name }} {{% value.description }}"
                                   - name: "My sink name with spaces"
                                     id: "sink1"
-                                    type: "generic-pulsar-sink"
+                                    type: "sink"
                                     input: "input-topic"
                                     configuration:
                                       sinkType: "some-sink-type-on-your-cluster"
@@ -450,7 +450,7 @@ class PulsarClusterRuntimeTest {
                                       config2: "value2"
                                   - name: "My source name with spaces"
                                     id: "source1"
-                                    type: "generic-pulsar-source"
+                                    type: "source"
                                     output: "input-topic"
                                     configuration:
                                       sourceType: "some-source-type-on-your-cluster"
@@ -467,25 +467,25 @@ class PulsarClusterRuntimeTest {
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
-        final DefaultAgent functionPhysicalImpl =
-                (DefaultAgent) implementation.getAgentImplementation(module,
+        final DefaultAgentNode functionPhysicalImpl =
+                (DefaultAgentNode) implementation.getAgentImplementation(module,
                         "step1");
         assertEquals("my-function-name-with-spaces",
-                ((AbstractPulsarAgentProvider.PulsarAgentNodeMetadata) functionPhysicalImpl.getCustomMetadata()).getPulsarName()
+                ((PulsarAgentNodeMetadata) functionPhysicalImpl.getCustomMetadata()).getPulsarName()
                         .name());
 
-        final DefaultAgent sinkPhysicalImpl =
-                (DefaultAgent) implementation.getAgentImplementation(module,
+        final DefaultAgentNode sinkPhysicalImpl =
+                (DefaultAgentNode) implementation.getAgentImplementation(module,
                         "sink1");
         assertEquals("my-sink-name-with-spaces",
-                ((AbstractPulsarAgentProvider.PulsarAgentNodeMetadata) sinkPhysicalImpl.getCustomMetadata()).getPulsarName()
+                ((PulsarAgentNodeMetadata) sinkPhysicalImpl.getCustomMetadata()).getPulsarName()
                         .name());
 
-        final DefaultAgent sourcePhysicalImpl =
-                (DefaultAgent) implementation.getAgentImplementation(module,
+        final DefaultAgentNode sourcePhysicalImpl =
+                (DefaultAgentNode) implementation.getAgentImplementation(module,
                         "source1");
         assertEquals("my-source-name-with-spaces",
-                ((AbstractPulsarAgentProvider.PulsarAgentNodeMetadata) sourcePhysicalImpl.getCustomMetadata()).getPulsarName()
+                ((PulsarAgentNodeMetadata) sourcePhysicalImpl.getCustomMetadata()).getPulsarName()
                         .name());
     }
 
@@ -548,8 +548,8 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        DefaultAgent step =
-                (DefaultAgent) agentImplementation;
+        DefaultAgentNode step =
+                (DefaultAgentNode) agentImplementation;
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");

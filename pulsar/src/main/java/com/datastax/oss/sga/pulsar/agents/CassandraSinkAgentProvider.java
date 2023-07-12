@@ -2,6 +2,7 @@ package com.datastax.oss.sga.pulsar.agents;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
 import com.datastax.oss.sga.api.runtime.Connection;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;

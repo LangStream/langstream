@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.impl.common;
 
 import com.datastax.oss.sga.api.runtime.AgentNode;
+import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.Connection;
 import lombok.Getter;
 import lombok.ToString;
@@ -10,20 +11,22 @@ import java.util.Map;
 
 @Getter
 @ToString
-public class DefaultAgent implements AgentNode {
+public class DefaultAgentNode implements AgentNode {
     private final String id;
-    private final String type;
+    private final String agentType;
+    private final ComponentType componentType;
     private Map<String, Object> configuration;
     private final Object customMetadata;
 
     private final Connection inputConnection;
     private Connection outputConnection;
 
-    public DefaultAgent(String id, String type, Map<String, Object> configuration, Object runtimeMetadata,
-                        Connection inputConnection,
-                        Connection outputConnection) {
-        this.type = type;
+    public DefaultAgentNode(String id, String agentType, ComponentType componentType, Map<String, Object> configuration, Object runtimeMetadata,
+                            Connection inputConnection,
+                            Connection outputConnection) {
+        this.agentType = agentType;
         this.id = id;
+        this.componentType = componentType;
         this.configuration = configuration;
         this.customMetadata = runtimeMetadata;
         this.inputConnection = inputConnection;

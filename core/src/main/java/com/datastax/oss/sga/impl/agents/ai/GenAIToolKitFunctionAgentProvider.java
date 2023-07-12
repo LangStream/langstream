@@ -1,15 +1,15 @@
-package com.datastax.oss.sga.pulsar.agents.ai;
+package com.datastax.oss.sga.impl.agents.ai;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Resource;
 import com.datastax.oss.sga.api.runtime.AgentNode;
+import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.impl.common.DefaultAgent;
-import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
-import com.datastax.oss.sga.pulsar.agents.AbstractPulsarAgentProvider;
+import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
+import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -19,22 +19,14 @@ import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
-public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarAgentProvider {
+public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
-    private static final String FUNCTION_TYPE = "ai-tools";
-
-    public GenAIToolKitFunctionAgentProvider(String stepType) {
-        super(List.of(stepType), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
+    public GenAIToolKitFunctionAgentProvider(String stepType, String clusterType) {
+        super(List.of(stepType), List.of(clusterType));
     }
 
     @Override
-    protected String getAgentType(AgentConfiguration agentConfiguration) {
-        // https://github.com/datastax/pulsar-transformations/tree/master/pulsar-ai-tools
-        return FUNCTION_TYPE;
-    }
-
-    @Override
-    protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
+    protected final ComponentType getComponentType(AgentConfiguration agentConfiguration) {
         return ComponentType.FUNCTION;
     }
 
@@ -81,12 +73,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarAgentProvid
 
     @Override
     public boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation) {
-        if (previousAgent instanceof DefaultAgent agent1
-                && agent1.getCustomMetadata() instanceof PulsarAgentNodeMetadata metadata1
-                && agentImplementation instanceof DefaultAgent agent2
-                && agent2.getCustomMetadata() instanceof PulsarAgentNodeMetadata metadata2)
-            if (Objects.equals(metadata1.getAgentType(), FUNCTION_TYPE)
-                    && Objects.equals(metadata2.getAgentType(), FUNCTION_TYPE)) {
+        if (Objects.equals(previousAgent.getAgentType(), agentImplementation.getAgentType())
+            && previousAgent instanceof DefaultAgentNode agent1
+            && agentImplementation instanceof DefaultAgentNode agent2) {
                 Map<String, Object> configurationWithoutSteps1 = new HashMap<>(agent1.getConfiguration());
                 configurationWithoutSteps1.remove("steps");
                 Map<String, Object> configurationWithoutSteps2 = new HashMap<>(agent2.getConfiguration());
@@ -100,10 +89,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarAgentProvid
     @Override
     public AgentNode mergeAgents(AgentNode previousAgent, AgentNode agentImplementation,
                                  ExecutionPlan applicationInstance) {
-        if (previousAgent instanceof DefaultAgent agent1
-                && agent1.getCustomMetadata() instanceof PulsarAgentNodeMetadata metadata1
-                && agentImplementation instanceof DefaultAgent agent2
-                && agent2.getCustomMetadata() instanceof PulsarAgentNodeMetadata metadata2) {
+        if (Objects.equals(previousAgent.getAgentType(), agentImplementation.getAgentType())
+                && previousAgent instanceof DefaultAgentNode agent1
+                && agentImplementation instanceof DefaultAgentNode agent2) {
             Map<String, Object> configurationWithoutSteps1 = new HashMap<>(agent1.getConfiguration());
             List<Map<String, Object>> steps1 = (List<Map<String, Object>>) configurationWithoutSteps1.remove("steps");
             Map<String, Object> configurationWithoutSteps2 = new HashMap<>(agent2.getConfiguration());
@@ -125,4 +113,5 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarAgentProvid
         }
         throw new IllegalStateException();
     }
+
 }

@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.kafka;
 
 import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
+import com.dastastax.oss.sga.runtime.AgentSpec;
 import com.dastastax.oss.sga.runtime.PodJavaRuntime;
 import com.dastastax.oss.sga.runtime.RuntimePodConfiguration;
 import com.datastax.oss.sga.api.model.Application;
@@ -77,7 +78,7 @@ class KafkaRunnerDockerTest {
         RuntimePodConfiguration runtimePodConfiguration = new RuntimePodConfiguration(
                 Map.of("topic", "input-topic"),
                 Map.of("topic", "output-topic"),
-                Map.of(),
+                new AgentSpec(AgentSpec.ComponentType.FUNCTION, "mock", Map.of()),
                 applicationInstance.getInstance().streamingCluster()
         );
 

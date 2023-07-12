@@ -1,29 +1,4 @@
 {{/*
-Expand the name of the chart.
-*/}}
-{{- define "sga.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
-{{- end }}
-
-{{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "sga.fullname" -}}
-{{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "sga.chart" -}}
@@ -31,54 +6,156 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
+    CONTROL PLANE
+*/}}
+
+{{- define "sga.controlPlaneName" -}}
+{{- default .Chart.Name .Values.controlPlane.nameOverride | trunc 63 | trimSuffix "-" }}-control-plane
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+If release name contains chart name it will be used as a full name.
+*/}}
+{{- define "sga.controlPlaneFullname" -}}
+{{- if .Values.controlPlane.fullnameOverride }}
+{{- .Values.controlPlane.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.controlPlane.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}-control-plane
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}-control-plane
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Common labels
 */}}
-{{- define "sga.labels" -}}
+{{- define "sga.controlPlaneLabels" -}}
 helm.sh/chart: {{ include "sga.chart" . }}
-{{ include "sga.selectorLabels" . }}
+{{ include "sga.controlPlaneSelectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
-{{/*
-Selector labels
-*/}}
-{{- define "sga.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "sga.name" . }}
+
+{{- define "sga.controlPlaneSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "sga.controlPlaneName" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "sga.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "sga.fullname" .) .Values.serviceAccount.name }}
+{{- define "sga.controlPlaneServiceAccountName" -}}
+{{- if .Values.controlPlane.serviceAccount.create }}
+{{- default (include "sga.controlPlaneFullname" .) .Values.controlPlane.serviceAccount.name }}
 {{- else }}
-{{- default "default" .Values.serviceAccount.name }}
+{{- default "default" .Values.controlPlane.serviceAccount.name }}
 {{- end }}
 {{- end }}
 
 {{/*
 Create the name of the role to use
 */}}
-{{- define "sga.roleName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "sga.fullname" .) .Values.serviceAccount.role.name }}
+{{- define "sga.controlPlaneRoleName" -}}
+{{- if .Values.controlPlane.serviceAccount.create }}
+{{- default (include "sga.controlPlaneFullname" .) .Values.controlPlane.serviceAccount.role.name }}
 {{- else }}
-{{- default "default" .Values.serviceAccount.role.name }}
+{{- default "default" .Values.controlPlane.serviceAccount.role.name }}
 {{- end }}
 {{- end }}
 
 {{/*
 Create the name of the role binding to use
 */}}
-{{- define "sga.roleBindingName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "sga.fullname" .) .Values.serviceAccount.roleBinding.name }}
+{{- define "sga.controlPlaneRoleBindingName" -}}
+{{- if .Values.controlPlane.serviceAccount.create }}
+{{- default (include "sga.controlPlaneFullname" .) .Values.controlPlane.serviceAccount.roleBinding.name }}
 {{- else }}
-{{- default "default" .Values.serviceAccount.roleBinding.name }}
+{{- default "default" .Values.controlPlane.serviceAccount.roleBinding.name }}
 {{- end }}
 {{- end }}
+
+
+
+
+{{/*
+    DEPLOYER
+*/}}
+
+{{- define "sga.deployerName" -}}
+{{- default .Chart.Name .Values.deployer.nameOverride | trunc 63 | trimSuffix "-" }}-deployer
+{{- end }}
+
+
+{{- define "sga.deployerFullname" -}}
+{{- if .Values.deployer.fullnameOverride }}
+{{- .Values.deployer.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.deployer.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}-deployer
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}-deployer
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "sga.deployerLabels" -}}
+helm.sh/chart: {{ include "sga.chart" . }}
+{{ include "sga.deployerSelectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+
+{{- define "sga.deployerSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "sga.deployerName" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "sga.deployerServiceAccountName" -}}
+{{- if .Values.deployer.serviceAccount.create }}
+{{- default (include "sga.deployerFullname" .) .Values.deployer.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.deployer.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the name of the role to use
+*/}}
+{{- define "sga.deployerRoleName" -}}
+{{- if .Values.deployer.serviceAccount.create }}
+{{- default (include "sga.deployerFullname" .) .Values.deployer.serviceAccount.role.name }}
+{{- else }}
+{{- default "default" .Values.deployer.serviceAccount.role.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the name of the role binding to use
+*/}}
+{{- define "sga.deployerRoleBindingName" -}}
+{{- if .Values.deployer.serviceAccount.create }}
+{{- default (include "sga.deployerFullname" .) .Values.deployer.serviceAccount.roleBinding.name }}
+{{- else }}
+{{- default "default" .Values.deployer.serviceAccount.roleBinding.name }}
+{{- end }}
+{{- end }}
+
+

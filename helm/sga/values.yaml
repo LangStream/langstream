@@ -1,60 +1,68 @@
-replicaCount: 1
 
-image:
-  repository: datastax/sga
-  pullPolicy: IfNotPresent
-  tag: ""
+controlPlane:
+  replicaCount: 1
+  image:
+    repository: datastax/sga-control-plane
+    pullPolicy: IfNotPresent
+    tag: ""
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+    role:
+      name: "sga-control-plane"
+    roleBinding:
+      name: "sga-control-plane-role-binding"
 
-serviceAccount:
-  create: true
-  annotations: {}
-  name: ""
-  role:
-    name: "sga"
-  roleBinding:
-    name: "sga-role-binding"
+  podAnnotations: {}
+  podSecurityContext: {}
+  securityContext: {}
+  service:
+    type: ClusterIP
+    port: 8090
+  resources:
+    requests:
+       cpu: 200m
+       memory: 256Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  app:
+    config:
+      application.storage.apps.type: kubernetes
+      application.storage.apps.configuration.namespaceprefix: sga-
+      application.storage.global.type: kubernetes
 
-podAnnotations: {}
-
-podSecurityContext: {}
-
-securityContext: {}
-
-service:
-  type: ClusterIP
-  port: 8090
-
-ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-  tls: []
-
-resources:
-  requests:
-     cpu: 200m
-     memory: 256Mi
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
-
-app:
-  config:
-    application.storage.apps.type: kubernetes
-    application.storage.apps.configuration.namespace-prefix: sga-
-    application.storage.secrets.type: kubernetes
-    application.storage.secrets.configuration.namespace-prefix: sga-
-    application.storage.global.type: kubernetes
+deployer:
+  replicaCount: 1
+  image:
+    repository: datastax/sga-deployer
+    pullPolicy: IfNotPresent
+    tag: ""
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+    role:
+      name: "sga-deployer"
+    roleBinding:
+      name: "sga-deployer-role-binding"
+  podAnnotations: {}
+  podSecurityContext: {}
+  securityContext: {}
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  app:
+    config: {}

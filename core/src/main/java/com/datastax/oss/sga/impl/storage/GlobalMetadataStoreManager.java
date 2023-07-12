@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.impl.storage;
 
 import com.datastax.oss.sga.api.model.TenantConfiguration;
+import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.api.storage.GlobalMetadataStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;

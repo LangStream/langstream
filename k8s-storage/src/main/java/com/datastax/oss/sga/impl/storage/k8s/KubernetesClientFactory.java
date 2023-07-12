@@ -10,7 +10,6 @@ public class KubernetesClientFactory {
 
     private static final Map<String, KubernetesClient> clients = new ConcurrentHashMap<>();
 
-
     public static KubernetesClient get(String context) {
         if (context == null) {
             context = "__null__";
@@ -18,6 +17,11 @@ public class KubernetesClientFactory {
         return clients.computeIfAbsent(context, c -> new KubernetesClientBuilder()
                 .withConfig(Config.autoConfigure(c.equals("__null__") ? null : c))
                 .build());
+    }
+
+    public static void clear() {
+        clients.values().forEach(KubernetesClient::close);
+        clients.clear();
     }
 
     private KubernetesClientFactory() {

@@ -1,7 +1,7 @@
 package com.datastax.oss.sga.deployer.k8s.controllers;
 
 import com.datastax.oss.sga.deployer.k8s.DeployerConfiguration;
-import com.datastax.oss.sga.deployer.k8s.api.crds.agents.Agent;
+import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -13,7 +13,7 @@ import lombok.extern.jbosslog.JBossLog;
 
 @ControllerConfiguration(namespaces = Constants.WATCH_ALL_NAMESPACES, name = "agent-controller")
 @JBossLog
-public class AgentController implements Reconciler<Agent> {
+public class AgentController implements Reconciler<AgentCustomResource> {
 
     @Inject
     KubernetesClient client;
@@ -22,7 +22,7 @@ public class AgentController implements Reconciler<Agent> {
     DeployerConfiguration configuration;
 
     @Override
-    public UpdateControl<Agent> reconcile(Agent application, Context<Agent> context)
+    public UpdateControl<AgentCustomResource> reconcile(AgentCustomResource application, Context<AgentCustomResource> context)
             throws Exception {
 
         log.infof("Got agent: %s, doing nothing..", application.getMetadata().getName());

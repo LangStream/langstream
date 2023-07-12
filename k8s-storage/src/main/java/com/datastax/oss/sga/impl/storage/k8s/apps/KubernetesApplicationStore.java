@@ -1,12 +1,12 @@
 package com.datastax.oss.sga.impl.storage.k8s.apps;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Resource;
-import com.datastax.oss.sga.api.model.StoredApplicationInstance;
+import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
-import com.datastax.oss.sga.deployer.k8s.api.crds.apps.Application;
+import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationStatus;
 import com.datastax.oss.sga.impl.storage.k8s.KubernetesClientFactory;
@@ -64,10 +64,10 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     @Override
     @SneakyThrows
-    public void put(String tenant, String name, ApplicationInstance applicationInstance) {
+    public void put(String tenant, String name, com.datastax.oss.sga.api.model.Application applicationInstance) {
         final String namespace = tenantToNamespace(tenant);
         final String appJson = mapper.writeValueAsString(new SerializedApplicationInstance(applicationInstance));
-        final Application crd = new Application();
+        final ApplicationCustomResource crd = new ApplicationCustomResource();
         crd.setMetadata(new ObjectMetaBuilder()
                 .withName(name)
                 .withNamespace(namespace)
@@ -85,9 +85,9 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @Override
-    public StoredApplicationInstance get(String tenant, String name) {
+    public StoredApplication get(String tenant, String name) {
         final String namespace = tenantToNamespace(tenant);
-        final Application application = client.resources(Application.class)
+        final ApplicationCustomResource application = client.resources(ApplicationCustomResource.class)
                 .inNamespace(namespace)
                 .withName(name)
                 .get();
@@ -101,33 +101,33 @@ public class KubernetesApplicationStore implements ApplicationStore {
     public void delete(String tenant, String name) {
         final String namespace = tenantToNamespace(tenant);
 
-        client.resources(Application.class)
+        client.resources(ApplicationCustomResource.class)
                 .inNamespace(namespace)
                 .withName(name)
                 .delete();
     }
 
     @Override
-    public Map<String, StoredApplicationInstance> list(String tenant) {
+    public Map<String, StoredApplication> list(String tenant) {
         final String namespace = tenantToNamespace(tenant);
-        return client.resources(Application.class)
+        return client.resources(ApplicationCustomResource.class)
                 .inNamespace(namespace)
                 .list()
                 .getItems().stream()
                 .map(a -> convertApplicationToResult(a.getMetadata().getName(), a))
-                .collect(Collectors.toMap(StoredApplicationInstance::getName, Function.identity()));
+                .collect(Collectors.toMap(StoredApplication::getName, Function.identity()));
     }
 
     @SneakyThrows
-    private StoredApplicationInstance convertApplicationToResult(String applicationName, Application application) {
-        final ApplicationInstance instance =
+    private StoredApplication convertApplicationToResult(String applicationName, ApplicationCustomResource application) {
+        final Application instance =
                 mapper.readValue(application.getSpec().getApplication(), SerializedApplicationInstance.class)
                         .toApplicationInstance();
 
         // TODO: load secrets ?
 
         final ApplicationStatus status = application.getStatus();
-        return StoredApplicationInstance.builder()
+        return StoredApplication.builder()
                 .name(applicationName)
                 .instance(instance)
                 .status(status == null ? null : status.getStatus())
@@ -139,7 +139,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
     @NoArgsConstructor
     public static class SerializedApplicationInstance {
 
-        public SerializedApplicationInstance(ApplicationInstance applicationInstance) {
+        public SerializedApplicationInstance(Application applicationInstance) {
             this.resources = applicationInstance.getResources();
             this.modules = applicationInstance.getModules();
             this.instance = applicationInstance.getInstance();
@@ -149,8 +149,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
         private Map<String, Module> modules = new HashMap<>();
         private Instance instance;
 
-        public ApplicationInstance toApplicationInstance() {
-            final ApplicationInstance app = new ApplicationInstance();
+        public Application toApplicationInstance() {
+            final Application app = new Application();
             app.setInstance(instance);
             app.setModules(modules);
             app.setResources(resources);

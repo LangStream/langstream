@@ -3,6 +3,7 @@ package com.datastax.oss.sga.webservice.application;
 import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.K3sContainerVersion;
 import com.dajudge.kindcontainer.KubernetesImageSpec;
+import com.datastax.oss.sga.impl.storage.k8s.KubernetesClientFactory;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
@@ -12,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
-import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 public abstract class KubeTestUtil {
@@ -40,6 +40,7 @@ public abstract class KubeTestUtil {
 
     @AfterAll
     public static void after() {
+        KubernetesClientFactory.clear();
         System.clearProperty(Config.KUBERNETES_KUBECONFIG_FILE);
         if (k3s != null) {
             k3s.stop();

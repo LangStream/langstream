@@ -1,8 +1,7 @@
 package com.datastax.oss.sga.deployer.k8s.controllers;
 
-import com.datastax.oss.sga.api.model.ApplicationInstance;
 import com.datastax.oss.sga.deployer.k8s.DeployerConfiguration;
-import com.datastax.oss.sga.deployer.k8s.api.crds.apps.Application;
+import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
@@ -26,7 +25,7 @@ import lombok.extern.jbosslog.JBossLog;
 
 @ControllerConfiguration(namespaces = Constants.WATCH_ALL_NAMESPACES, name = "app-controller")
 @JBossLog
-public class AppController implements Reconciler<Application> {
+public class AppController implements Reconciler<ApplicationCustomResource> {
 
     @Inject
     KubernetesClient client;
@@ -35,7 +34,7 @@ public class AppController implements Reconciler<Application> {
     DeployerConfiguration configuration;
 
     @Override
-    public UpdateControl<Application> reconcile(Application application, Context<Application> context)
+    public UpdateControl<ApplicationCustomResource> reconcile(ApplicationCustomResource application, Context<ApplicationCustomResource> context)
             throws Exception {
         final String tenant = application.getSpec().getTenant();
         final String appName = application.getMetadata().getName();
@@ -101,7 +100,7 @@ public class AppController implements Reconciler<Application> {
         KubeUtil.patchJob(client, job);
     }
 
-    protected boolean areSpecChanged(Application cr) {
+    protected boolean areSpecChanged(ApplicationCustomResource cr) {
         final String lastApplied = cr.getStatus().getLastApplied();
         if (lastApplied == null) {
             return true;

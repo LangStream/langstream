@@ -10,10 +10,8 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import lombok.Getter;
-import lombok.ToString;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,38 +24,6 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
     public AbstractAgentProvider(List<String> supportedTypes, List<String> supportedClusterTypes) {
         this.supportedTypes = Collections.unmodifiableList(supportedTypes);
         this.supportedClusterTypes = Collections.unmodifiableList(supportedClusterTypes);
-    }
-
-    @Getter
-    @ToString
-    public static class DefaultAgent implements AgentNode {
-        private final String id;
-        private final String type;
-        private Map<String, Object> configuration;
-        private final Object runtimeMetadata;
-
-        private final Connection inputConnection;
-        private Connection outputConnection;
-
-        public DefaultAgent(String id, String type, Map<String, Object> configuration, Object runtimeMetadata,
-                            Connection inputConnection,
-                            Connection outputConnection) {
-            this.type = type;
-            this.id = id;
-            this.configuration = configuration;
-            this.runtimeMetadata = runtimeMetadata;
-            this.inputConnection = inputConnection;
-            this.outputConnection = outputConnection;
-        }
-
-        public <T> T getPhysicalMetadata() {
-            return (T) runtimeMetadata;
-        }
-
-        public void overrideConfiguration(Map<String, Object> newConfiguration, Connection newOutput) {
-            this.configuration = new HashMap<>(newConfiguration);
-            this.outputConnection = newOutput;
-        }
     }
 
     protected Connection computeInput(AgentConfiguration agentConfiguration,

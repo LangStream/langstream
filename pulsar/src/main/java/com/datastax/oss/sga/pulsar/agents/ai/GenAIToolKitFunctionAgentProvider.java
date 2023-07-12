@@ -7,8 +7,9 @@ import com.datastax.oss.sga.api.model.Resource;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
+import com.datastax.oss.sga.impl.common.DefaultAgent;
 import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
-import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
+import com.datastax.oss.sga.pulsar.agents.AbstractPulsarAgentProvider;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -18,7 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
-public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarFunctionAgentProvider {
+public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarAgentProvider {
 
     private static final String FUNCTION_TYPE = "ai-tools";
 
@@ -27,14 +28,14 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarFunctionAge
     }
 
     @Override
-    protected String getFunctionType(AgentConfiguration agentConfiguration) {
+    protected String getAgentType(AgentConfiguration agentConfiguration) {
         // https://github.com/datastax/pulsar-transformations/tree/master/pulsar-ai-tools
         return FUNCTION_TYPE;
     }
 
     @Override
-    protected String getFunctionClassname(AgentConfiguration agentConfiguration) {
-        return null;
+    protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
+        return ComponentType.FUNCTION;
     }
 
     protected void generateSteps(Map<String, Object> originalConfiguration, List<Map<String, Object>> steps) {
@@ -81,11 +82,11 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarFunctionAge
     @Override
     public boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation) {
         if (previousAgent instanceof DefaultAgent agent1
-                && agent1.getRuntimeMetadata() instanceof PulsarFunctionMetadata metadata1
+                && agent1.getCustomMetadata() instanceof PulsarAgentNodeMetadata metadata1
                 && agentImplementation instanceof DefaultAgent agent2
-                && agent2.getRuntimeMetadata() instanceof PulsarFunctionMetadata metadata2)
-            if (Objects.equals(metadata1.getFunctionType(), FUNCTION_TYPE)
-                    && Objects.equals(metadata2.getFunctionType(), FUNCTION_TYPE)) {
+                && agent2.getCustomMetadata() instanceof PulsarAgentNodeMetadata metadata2)
+            if (Objects.equals(metadata1.getAgentType(), FUNCTION_TYPE)
+                    && Objects.equals(metadata2.getAgentType(), FUNCTION_TYPE)) {
                 Map<String, Object> configurationWithoutSteps1 = new HashMap<>(agent1.getConfiguration());
                 configurationWithoutSteps1.remove("steps");
                 Map<String, Object> configurationWithoutSteps2 = new HashMap<>(agent2.getConfiguration());
@@ -100,9 +101,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarFunctionAge
     public AgentNode mergeAgents(AgentNode previousAgent, AgentNode agentImplementation,
                                  ExecutionPlan applicationInstance) {
         if (previousAgent instanceof DefaultAgent agent1
-                && agent1.getRuntimeMetadata() instanceof PulsarFunctionMetadata metadata1
+                && agent1.getCustomMetadata() instanceof PulsarAgentNodeMetadata metadata1
                 && agentImplementation instanceof DefaultAgent agent2
-                && agent2.getRuntimeMetadata() instanceof PulsarFunctionMetadata metadata2) {
+                && agent2.getCustomMetadata() instanceof PulsarAgentNodeMetadata metadata2) {
             Map<String, Object> configurationWithoutSteps1 = new HashMap<>(agent1.getConfiguration());
             List<Map<String, Object>> steps1 = (List<Map<String, Object>>) configurationWithoutSteps1.remove("steps");
             Map<String, Object> configurationWithoutSteps2 = new HashMap<>(agent2.getConfiguration());
@@ -116,7 +117,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractPulsarFunctionAge
             result.putAll(configurationWithoutSteps1);
             result.put("steps", mergedSteps);
 
-            agent1.overrideConfiguration(result, agent2.getOutputConnection());
+            agent1.overrideConfigurationAfterMerge(result, agent2.getOutputConnection());
 
             log.info("Discarding topic {}", agent1.getInputConnection());
             applicationInstance.discardTopic(agent1.getInputConnection());

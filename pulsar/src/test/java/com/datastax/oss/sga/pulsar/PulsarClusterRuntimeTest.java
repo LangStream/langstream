@@ -8,12 +8,10 @@ import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
-import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
+import com.datastax.oss.sga.impl.common.DefaultAgent;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.datastax.oss.sga.pulsar.agents.AbstractPulsarFunctionAgentProvider;
-import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSinkAgentProvider;
-import com.datastax.oss.sga.pulsar.agents.AbstractPulsarSourceAgentProvider;
+import com.datastax.oss.sga.pulsar.agents.AbstractPulsarAgentProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
@@ -67,10 +65,10 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgent genericSink =
-                (AbstractAgentProvider.DefaultAgent) agentImplementation;
-        AbstractPulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = genericSink.getPhysicalMetadata();
-        assertEquals("cassandra-enhanced", pulsarSinkMetadata.getSinkType());
+        DefaultAgent genericSink =
+                (DefaultAgent) agentImplementation;
+        AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSinkMetadata = genericSink.getCustomMetadata();
+        assertEquals("cassandra-enhanced", pulsarSinkMetadata.getAgentType());
         assertEquals(new PulsarName("public", "default", "sink1"), pulsarSinkMetadata.getPulsarName());
 
     }
@@ -137,10 +135,10 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgent genericSink =
-                (AbstractAgentProvider.DefaultAgent) agentImplementation;
-        AbstractPulsarSinkAgentProvider.PulsarSinkMetadata pulsarSinkMetadata = genericSink.getPhysicalMetadata();
-        assertEquals("some-sink-type-on-your-cluster", pulsarSinkMetadata.getSinkType());
+        DefaultAgent genericSink =
+                (DefaultAgent) agentImplementation;
+        AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSinkMetadata = genericSink.getCustomMetadata();
+        assertEquals("some-sink-type-on-your-cluster", pulsarSinkMetadata.getAgentType());
         assertEquals(new PulsarName("public", "default", "sink1"), pulsarSinkMetadata.getPulsarName());
 
     }
@@ -183,10 +181,10 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "source-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgent genericSink =
-                (AbstractAgentProvider.DefaultAgent) agentImplementation;
-        AbstractPulsarSourceAgentProvider.PulsarSourceMetadata pulsarSourceMetadata = genericSink.getPhysicalMetadata();
-        assertEquals("some-source-type-on-your-cluster", pulsarSourceMetadata.getSourceType());
+        DefaultAgent genericSink =
+                (DefaultAgent) agentImplementation;
+        AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSourceMetadata = genericSink.getCustomMetadata();
+        assertEquals("some-source-type-on-your-cluster", pulsarSourceMetadata.getAgentType());
         assertEquals(new PulsarName("public", "default", "source1"), pulsarSourceMetadata.getPulsarName());
 
     }
@@ -242,12 +240,11 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgent genericSink =
-                (AbstractAgentProvider.DefaultAgent) agentImplementation;
-        AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata =
-                genericSink.getPhysicalMetadata();
-        assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
-        assertEquals("a.b.c.ClassName", pulsarSourceMetadata.getFunctionClassname());
+        DefaultAgent genericSink =
+                (DefaultAgent) agentImplementation;
+        AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSourceMetadata =
+                genericSink.getCustomMetadata();
+        assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getAgentType());
         assertEquals(new PulsarName("public", "default", "function1"), pulsarSourceMetadata.getPulsarName());
 
     }
@@ -324,24 +321,22 @@ class PulsarClusterRuntimeTest {
         {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
             assertNotNull(agentImplementation);
-            AbstractAgentProvider.DefaultAgent genericSink =
-                    (AbstractAgentProvider.DefaultAgent) agentImplementation;
-            AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata =
-                    genericSink.getPhysicalMetadata();
-            assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
-            assertEquals("a.b.c.ClassName", pulsarSourceMetadata.getFunctionClassname());
+            DefaultAgent genericSink =
+                    (DefaultAgent) agentImplementation;
+            AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSourceMetadata =
+                    genericSink.getCustomMetadata();
+            assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getAgentType());
             assertEquals(new PulsarName("public", "default", "function1"), pulsarSourceMetadata.getPulsarName());
         }
 
         {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
             assertNotNull(agentImplementation);
-            AbstractAgentProvider.DefaultAgent genericSink =
-                    (AbstractAgentProvider.DefaultAgent) agentImplementation;
-            AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata pulsarSourceMetadata =
-                    genericSink.getPhysicalMetadata();
-            assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getFunctionType());
-            assertEquals("a.b.c.ClassName", pulsarSourceMetadata.getFunctionClassname());
+            DefaultAgent genericSink =
+                    (DefaultAgent) agentImplementation;
+            AbstractPulsarAgentProvider.PulsarAgentNodeMetadata pulsarSourceMetadata =
+                    genericSink.getCustomMetadata();
+            assertEquals("some-function-type-on-your-cluster", pulsarSourceMetadata.getAgentType());
             assertEquals(new PulsarName("public", "default", "function2"), pulsarSourceMetadata.getPulsarName());
         }
 
@@ -403,8 +398,8 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgent step =
-                (AbstractAgentProvider.DefaultAgent) agentImplementation;
+        DefaultAgent step =
+                (DefaultAgent) agentImplementation;
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
@@ -472,25 +467,25 @@ class PulsarClusterRuntimeTest {
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
-        final AbstractAgentProvider.DefaultAgent functionPhysicalImpl =
-                (AbstractAgentProvider.DefaultAgent) implementation.getAgentImplementation(module,
+        final DefaultAgent functionPhysicalImpl =
+                (DefaultAgent) implementation.getAgentImplementation(module,
                         "step1");
         assertEquals("my-function-name-with-spaces",
-                ((AbstractPulsarFunctionAgentProvider.PulsarFunctionMetadata) functionPhysicalImpl.getPhysicalMetadata()).getPulsarName()
+                ((AbstractPulsarAgentProvider.PulsarAgentNodeMetadata) functionPhysicalImpl.getCustomMetadata()).getPulsarName()
                         .name());
 
-        final AbstractAgentProvider.DefaultAgent sinkPhysicalImpl =
-                (AbstractAgentProvider.DefaultAgent) implementation.getAgentImplementation(module,
+        final DefaultAgent sinkPhysicalImpl =
+                (DefaultAgent) implementation.getAgentImplementation(module,
                         "sink1");
         assertEquals("my-sink-name-with-spaces",
-                ((AbstractPulsarSinkAgentProvider.PulsarSinkMetadata) sinkPhysicalImpl.getPhysicalMetadata()).getPulsarName()
+                ((AbstractPulsarAgentProvider.PulsarAgentNodeMetadata) sinkPhysicalImpl.getCustomMetadata()).getPulsarName()
                         .name());
 
-        final AbstractAgentProvider.DefaultAgent sourcePhysicalImpl =
-                (AbstractAgentProvider.DefaultAgent) implementation.getAgentImplementation(module,
+        final DefaultAgent sourcePhysicalImpl =
+                (DefaultAgent) implementation.getAgentImplementation(module,
                         "source1");
         assertEquals("my-source-name-with-spaces",
-                ((AbstractPulsarSourceAgentProvider.PulsarSourceMetadata) sourcePhysicalImpl.getPhysicalMetadata()).getPulsarName()
+                ((AbstractPulsarAgentProvider.PulsarAgentNodeMetadata) sourcePhysicalImpl.getCustomMetadata()).getPulsarName()
                         .name());
     }
 
@@ -553,8 +548,8 @@ class PulsarClusterRuntimeTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        AbstractAgentProvider.DefaultAgent step =
-                (AbstractAgentProvider.DefaultAgent) agentImplementation;
+        DefaultAgent step =
+                (DefaultAgent) agentImplementation;
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");

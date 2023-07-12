@@ -9,31 +9,28 @@ import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
 import java.util.List;
 import java.util.Map;
 
-public class GenericPulsarFunctionAgentProvider extends AbstractPulsarFunctionAgentProvider {
+public class GenericPulsarFunctionAgentProvider extends AbstractPulsarAgentProvider {
 
     public GenericPulsarFunctionAgentProvider() {
         super(List.of("generic-pulsar-function"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override
-    protected String getFunctionType(AgentConfiguration configuration) {
+    protected String getAgentType(AgentConfiguration configuration) {
         String functionType = (String)configuration.getConfiguration()
                 .get("functionType");
         return functionType;
     }
 
     @Override
-    protected String getFunctionClassname(AgentConfiguration configuration) {
-        String functionClassname = (String)configuration.getConfiguration()
-                .get("functionClassname");
-        return functionClassname;
+    protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
+        return ComponentType.FUNCTION;
     }
 
     @Override
     protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, ExecutionPlan physicalApplicationInstance, ComputeClusterRuntime clusterRuntime) {
         Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
         copy.remove("functionType");
-        copy.remove("functionClassname");
         return copy;
     }
 }

@@ -11,15 +11,20 @@ import com.datastax.oss.sga.pulsar.PulsarTopic;
 import java.util.List;
 import java.util.Map;
 
-public class CassandraSinkAgentProvider extends AbstractPulsarSinkAgentProvider {
+public class CassandraSinkAgentProvider extends AbstractPulsarAgentProvider {
 
     public CassandraSinkAgentProvider() {
         super(List.of("cassandra-sink"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override
-    protected String getSinkType(AgentConfiguration agentConfiguration) {
+    protected String getAgentType(AgentConfiguration agentConfiguration) {
         return "cassandra-enhanced";
+    }
+
+    @Override
+    protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
+        return ComponentType.SINK;
     }
 
     @Override

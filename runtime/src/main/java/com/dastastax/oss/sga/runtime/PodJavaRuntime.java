@@ -117,7 +117,7 @@ public class PodJavaRuntime
                 return records;
             }
         };
-        agentCode.init(configuration.agent());
+        agentCode.init(configuration.agent().configuration());
         return agentCode;
     }
 

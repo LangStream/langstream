@@ -49,7 +49,7 @@ public interface ComputeClusterRuntime {
 
     void delete(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    default Object computeAgentMetadata(AgentConfiguration agentConfiguration, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    default AgentNodeMetadata computeAgentMetadata(AgentConfiguration agentConfiguration, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         return null;
     }
 }

@@ -7,4 +7,8 @@ public interface AgentNode extends Connection {
      * @return the id
      */
     String getId();
+
+    ComponentType getComponentType();
+
+    String getAgentType();
 }

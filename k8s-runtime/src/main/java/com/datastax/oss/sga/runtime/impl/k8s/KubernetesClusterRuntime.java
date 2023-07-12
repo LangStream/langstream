@@ -4,8 +4,8 @@ import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
+import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -53,18 +53,18 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     private static void buildCRDForAgent(List<PodAgentConfiguration> agentsCustomResourceDefinitions, AgentNode agent,
                                          StreamingClusterRuntime streamingClusterRuntime, ExecutionPlan applicationInstance) {
         log.info("Building CRD for Agent {}", agent);
-        if (! (agent instanceof AbstractAgentProvider.DefaultAgent)) {
+        if (! (agent instanceof DefaultAgentNode)) {
             throw new UnsupportedOperationException("Only default agent implementations are supported");
         }
-        AbstractAgentProvider.DefaultAgent defaultAgentImplementation = (AbstractAgentProvider.DefaultAgent) agent;
+        DefaultAgentNode defaultAgentImplementation = (DefaultAgentNode) agent;
 
         Map<String, Object> agentConfiguration = new HashMap<>();
         agentConfiguration.putAll(defaultAgentImplementation.getConfiguration());
         agentConfiguration.put("agentId", defaultAgentImplementation.getId());
-        agentConfiguration.put("agentType", defaultAgentImplementation.getType());
+        agentConfiguration.put("agentType", defaultAgentImplementation.getAgentType());
 
-        if (defaultAgentImplementation.getRuntimeMetadata() != null) {
-            agentConfiguration.put("metadata", defaultAgentImplementation.getRuntimeMetadata());
+        if (defaultAgentImplementation.getCustomMetadata() != null) {
+            agentConfiguration.put("metadata", defaultAgentImplementation.getCustomMetadata());
         }
 
         Map<String, Object> inputConfiguration = new HashMap<>();

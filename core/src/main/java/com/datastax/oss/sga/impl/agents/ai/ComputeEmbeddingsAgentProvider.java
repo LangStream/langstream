@@ -1,12 +1,12 @@
-package com.datastax.oss.sga.pulsar.agents.ai;
+package com.datastax.oss.sga.impl.agents.ai;
 
 import java.util.List;
 import java.util.Map;
 
 public class ComputeEmbeddingsAgentProvider extends GenAIToolKitFunctionAgentProvider {
 
-    public ComputeEmbeddingsAgentProvider() {
-        super("compute-ai-embeddings");
+    public ComputeEmbeddingsAgentProvider(String clusterType) {
+        super("compute-ai-embeddings", clusterType);
     }
 
     @Override

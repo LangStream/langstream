@@ -139,7 +139,7 @@ class PulsarClusterRuntimeDockerTest {
                                 pipeline:
                                   - name: "source1"
                                     id: "source-1-id"
-                                    type: "generic-pulsar-source"
+                                    type: "source"
                                     output: "output-topic-from-file"
                                     configuration:
                                       sourceType: "data-generator"
@@ -178,7 +178,7 @@ class PulsarClusterRuntimeDockerTest {
                               pipeline:
                                 - name: "function1"
                                   id: "function-1-id"
-                                  type: "generic-pulsar-function"
+                                  type: "function"
                                   input: "input-topic-fn"
                                   # the output is implicitly an intermediate topic
                                   configuration:
@@ -186,7 +186,7 @@ class PulsarClusterRuntimeDockerTest {
                                     steps: []
                                 - name: "function2"
                                   id: "function-2-id"
-                                  type: "generic-pulsar-function"
+                                  type: "function"
                                   # the input is implicitly an intermediate topic
                                   output: "output-topic-fn"
                                   configuration:

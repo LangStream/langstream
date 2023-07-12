@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Slf4j
-class KubernetesClusterRuntimeTest {
+class KubernetesClusterRuntimeDockerTest {
 
     private static KafkaContainer kafkaContainer;
 

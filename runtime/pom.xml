@@ -116,7 +116,7 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  <build>:
+  <build>
     <plugins>
       <plugin>
         <groupId>com.google.cloud.tools</groupId>

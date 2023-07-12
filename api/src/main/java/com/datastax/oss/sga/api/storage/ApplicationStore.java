@@ -6,7 +6,9 @@ import java.util.Map;
 
 public interface ApplicationStore extends GenericStore {
 
-    void initializeTenant(String tenant);
+    void onTenantCreated(String tenant);
+
+    void onTenantDeleted(String tenant);
 
     void put(String tenant, String name, Application applicationInstance);
 

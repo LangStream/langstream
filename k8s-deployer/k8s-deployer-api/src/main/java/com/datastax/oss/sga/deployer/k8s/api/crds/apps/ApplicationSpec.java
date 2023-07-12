@@ -8,11 +8,16 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class ApplicationSpec extends NamespacedSpec {
     private String image;
     private String imagePullPolicy;
     private String application;
 
+    @Builder
+    public ApplicationSpec(String tenant, String image, String imagePullPolicy, String application) {
+        super(tenant);
+        this.image = image;
+        this.imagePullPolicy = imagePullPolicy;
+        this.application = application;
+    }
 }

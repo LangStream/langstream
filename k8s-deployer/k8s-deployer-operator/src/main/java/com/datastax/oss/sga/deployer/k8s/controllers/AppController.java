@@ -6,9 +6,14 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SpecDiffer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.EmptyDirVolumeSource;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -21,6 +26,7 @@ import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import lombok.SneakyThrows;
 import lombok.extern.jbosslog.JBossLog;
 
 @ControllerConfiguration(namespaces = Constants.WATCH_ALL_NAMESPACES, name = "app-controller")
@@ -40,8 +46,8 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
         final String appName = application.getMetadata().getName();
 
         final ApplicationSpec spec = application.getSpec();
-        final String jobName = "init" + appName;
-        final String targetNamespace = "" + configuration.namespacePrefix() + tenant;
+        final String jobName = "sga-runtime-deployer-" + appName;
+        final String targetNamespace = configuration.namespacePrefix() + tenant;
         final Job currentJob = client.batch().v1().jobs()
                 .inNamespace(targetNamespace)
                 .withName(jobName)
@@ -52,7 +58,7 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
             if (currentJob != null) {
                 client.resource(currentJob).inNamespace(targetNamespace).delete();
             }
-            createJob(tenant, spec, jobName, targetNamespace);
+            createJob(tenant, appName, spec, jobName, targetNamespace);
             return UpdateControl.updateStatus(application);
         } else {
             if (KubeUtil.isJobCompleted(currentJob)) {
@@ -67,11 +73,31 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
 
     }
 
-    private void createJob(String tenant, ApplicationSpec spec, String jobName, String targetNamespace) {
-        final Container container = new ContainerBuilder()
-                .withName("initialize")
+    @SneakyThrows
+    private void createJob(String tenant, String name, ApplicationSpec spec, String jobName, String targetNamespace) {
+
+        final Map<String, String> config = Map.of("name", name, "application", spec.getApplication());
+
+        final Container initContainer = new ContainerBuilder()
+                .withName("deployer-init-config")
                 .withImage(spec.getImage())
                 .withImagePullPolicy(spec.getImagePullPolicy())
+                .withCommand("bash", "-c")
+                .withArgs("echo '%s' > /app-config/config".formatted(SerializationUtil.writeAsJson(config)))
+                .withVolumeMounts(new VolumeMountBuilder()
+                        .withName("app-config")
+                        .withMountPath("/app-config")
+                        .build())
+                .build();
+        final Container container = new ContainerBuilder()
+                .withName("deployer")
+                .withImage(spec.getImage())
+                .withImagePullPolicy(spec.getImagePullPolicy())
+                .withArgs("deployer-runtime", "/app-config/config")
+                .withVolumeMounts(new VolumeMountBuilder()
+                        .withName("app-config")
+                        .withMountPath("/app-config")
+                        .build())
                 .withNewResources()
                 .withRequests(Map.of("cpu", Quantity.parse("100m"), "memory", Quantity.parse("128Mi")))
                 .endResources()
@@ -90,6 +116,12 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
                 .withLabels(Map.of("app", "sga", "tenant", tenant))
                 .endMetadata()
                 .withNewSpec()
+                .withVolumes(new VolumeBuilder()
+                        .withName("app-config")
+                        .withEmptyDir(new EmptyDirVolumeSource())
+                        .build()
+                )
+                .withInitContainers(List.of(initContainer))
                 .withContainers(List.of(container))
                 .withRestartPolicy("OnFailure")
                 .endSpec()

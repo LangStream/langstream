@@ -24,8 +24,8 @@ public class LocalStore implements GlobalMetadataStore {
     }
 
     @Override
-    public void initialize(Map<String, String> configuration) {
-        this.baseDir = configuration.getOrDefault(LOCAL_BASEDIR, "sga-data");
+    public void initialize(Map<String, Object> configuration) {
+        this.baseDir = configuration.getOrDefault(LOCAL_BASEDIR, "sga-data").toString();
         final Path basePath = Path.of(baseDir);
         basePath.toFile().mkdirs();
         Path.of(baseDir, GLOBAL_DIR).toFile().mkdirs();

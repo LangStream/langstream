@@ -8,8 +8,7 @@ import lombok.experimental.SuperBuilder;
 
 @Data
 @NoArgsConstructor
-@SuperBuilder
 @AllArgsConstructor
 public abstract class NamespacedSpec {
-    private String tenant;
+    String tenant;
 }

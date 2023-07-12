@@ -19,7 +19,7 @@ public class StorageProperties {
     @AllArgsConstructor
     public static class AppsStoreProperties {
         private String type;
-        private Map<String, String> configuration = new HashMap<>();
+        private Map<String, Object> configuration = new HashMap<>();
     }
 
     @Data
@@ -27,7 +27,7 @@ public class StorageProperties {
     @AllArgsConstructor
     public static class GlobalMetadataStoreProperties {
         private String type;
-        private Map<String, String> configuration = new HashMap<>();
+        private Map<String, Object> configuration = new HashMap<>();
     }
 
     @NotBlank

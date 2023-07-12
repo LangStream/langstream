@@ -28,7 +28,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     private static ObjectMapper mapper = new ObjectMapper();
     private KubernetesClient client;
-    private String namespacePrefix;
+    private KubernetesApplicationStoreProperties properties;
 
 
     @Override
@@ -37,20 +37,20 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @Override
-    public void initialize(Map<String, String> configuration) {
+    public void initialize(Map<String, Object> configuration) {
         final KubernetesApplicationStoreProperties props =
                 mapper.convertValue(configuration, KubernetesApplicationStoreProperties.class);
-        client = KubernetesClientFactory.get(null);
-        namespacePrefix = props.getNamespaceprefix();
+        this.properties = props;
+        this.client = KubernetesClientFactory.get(null);
     }
 
     private String tenantToNamespace(String tenant) {
-        return namespacePrefix + tenant;
+        return properties.getNamespaceprefix() + tenant;
     }
 
 
     @Override
-    public void initializeTenant(String tenant) {
+    public void onTenantCreated(String tenant) {
         final String namespace = tenantToNamespace(tenant);
         if (client.namespaces().withName(namespace).get() == null) {
             client.resource(new NamespaceBuilder()
@@ -59,6 +59,14 @@ public class KubernetesApplicationStore implements ApplicationStore {
                             .endMetadata().build())
                     .serverSideApply();
             log.info("Created namespace {} for tenant {}", namespace, tenant);
+        }
+    }
+
+    @Override
+    public void onTenantDeleted(String tenant) {
+        final String namespace = tenantToNamespace(tenant);
+        if (client.namespaces().withName(namespace).get() != null) {
+            client.namespaces().withName(namespace).delete();
         }
     }
 
@@ -73,8 +81,9 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .withNamespace(namespace)
                 .build());
         final ApplicationSpec spec = ApplicationSpec.builder()
-                .image("datastax/sga-runtime:latest")
-                .imagePullPolicy("Always")
+                .tenant(tenant)
+                .image(properties.getDeployerRuntime().getImage())
+                .imagePullPolicy(properties.getDeployerRuntime().getImagePullPolicy())
                 .application(appJson)
                 .build();
         crd.setSpec(spec);
@@ -119,7 +128,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @SneakyThrows
-    private StoredApplication convertApplicationToResult(String applicationName, ApplicationCustomResource application) {
+    private StoredApplication convertApplicationToResult(String applicationName,
+                                                         ApplicationCustomResource application) {
         final Application instance =
                 mapper.readValue(application.getSpec().getApplication(), SerializedApplicationInstance.class)
                         .toApplicationInstance();

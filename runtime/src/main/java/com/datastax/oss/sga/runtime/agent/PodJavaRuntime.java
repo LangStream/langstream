@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.runtime.agent;
 
 import com.datastax.oss.sga.api.runner.code.AgentCode;
+import com.datastax.oss.sga.api.runner.code.AgentCodeRegistry;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
@@ -20,7 +21,8 @@ import java.util.List;
 @Slf4j
 public class PodJavaRuntime
 {
-    private static final TopicConnectionsRuntimeRegistry REGISTRY = new TopicConnectionsRuntimeRegistry();
+    private static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY = new TopicConnectionsRuntimeRegistry();
+    private static final AgentCodeRegistry AGENT_CODE_REGISTRY = new AgentCodeRegistry();
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
     private static ErrorHandler errorHandler = error -> {
@@ -57,7 +59,7 @@ public class PodJavaRuntime
         log.info("Pod Configuration {}", configuration);
 
         TopicConnectionsRuntime topicConnectionsRuntime =
-                REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
+                TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
 
         log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
 
@@ -81,7 +83,7 @@ public class PodJavaRuntime
         }
 
 
-        AgentCode agentCode = bootstrapAgent(configuration);
+        AgentCode agentCode = initAgent(configuration);
 
         runMainLoop(consumer, producer, agentCode, maxLoops);
     }
@@ -108,15 +110,9 @@ public class PodJavaRuntime
         }
     }
 
-    private static AgentCode bootstrapAgent(RuntimePodConfiguration configuration) {
+    private static AgentCode initAgent(RuntimePodConfiguration configuration) {
         log.info("Bootstrapping agent with configuration {}", configuration.agent());
-        AgentCode agentCode = new AgentCode() {
-            // TODO: load a real agent
-            @Override
-            public List<Record> process(List<Record> records) {
-                return records;
-            }
-        };
+        AgentCode agentCode = AGENT_CODE_REGISTRY.getAgentCode(configuration.agent().agentType());
         agentCode.init(configuration.agent().configuration());
         return agentCode;
     }

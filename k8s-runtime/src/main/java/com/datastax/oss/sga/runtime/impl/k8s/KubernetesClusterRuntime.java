@@ -31,7 +31,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public Object deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         streamingClusterRuntime.deploy(applicationInstance);
 
         List<PodAgentConfiguration> crds = buildCustomResourceDefinitions(applicationInstance, streamingClusterRuntime);
@@ -39,6 +39,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             log.info("Created CRD: {}", crd);
         }
         // TODO: use K8S client to create CRDs
+
+        return crds;
     }
 
     private static List<PodAgentConfiguration> buildCustomResourceDefinitions(ExecutionPlan applicationInstance,
@@ -79,7 +81,10 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         PodAgentConfiguration crd = new PodAgentConfiguration(
                 inputConfiguration,
                 outputConfiguration,
-                agentConfiguration,
+                new PodAgentConfiguration.AgentConfiguration(defaultAgentImplementation.getId(),
+                        defaultAgentImplementation.getAgentType(),
+                        defaultAgentImplementation.getComponentType().name(),
+                        defaultAgentImplementation.getConfiguration()),
                 applicationInstance.getApplication().getInstance().streamingCluster()
         );
 

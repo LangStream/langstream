@@ -48,6 +48,13 @@
       <version>${project.version}</version>
     </dependency>
 
+    <!-- main implementation for the AI Agents -->
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sga-ai-agents</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
@@ -74,7 +81,12 @@
       <artifactId>logback-classic</artifactId>
     </dependency>
 
-
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sga-k8s-runtime</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>

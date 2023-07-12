@@ -1,7 +1,8 @@
 streamingCluster:
    type: kafka
    configuration:
-     bootstrap.servers: localhost:9092
+     admin:
+      bootstrap.servers: localhost:9092
 
 input:
   topic: input-topic
@@ -12,6 +13,6 @@ output:
 
 
 agent:
-  type: xxx
+  agentType: xxx
   configuration:
      key1: value1

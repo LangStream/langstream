@@ -103,12 +103,49 @@
             <configuration>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.dastastax.oss.sga.runtime.PodJavaRuntime</mainClass>
+                  <mainClass>com.datastax.oss.sga.runtime.agent.PodJavaRuntime</mainClass>
                 </transformer>
               </transformers>
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.google.cloud.tools</groupId>
+        <artifactId>jib-maven-plugin</artifactId>
+        <configuration>
+          <skip>false</skip>
+          <from>
+            <image>eclipse-temurin:17-jre-focal</image>
+            <platforms>
+              <platform>
+                <architecture>amd64</architecture>
+                <os>linux</os>
+              </platform>
+            </platforms>
+          </from>
+          <to>
+            <image>datastax/sga-runtime:latest-dev</image>
+          </to>
+          <container>
+            <args>
+              <arg>/bin/bash</arg>
+              <arg>-c</arg>
+              <arg>./entrypoint.sh</arg>
+            </args>
+            <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+            <user>1000</user>
+          </container>
+          <extraDirectories>
+            <paths>src/main/docker/jib</paths>
+            <permissions>
+              <permission>
+                <file>/entrypoint.sh</file>
+                <mode>755</mode>
+              </permission>
+            </permissions>
+          </extraDirectories>
+        </configuration>
       </plugin>
     </plugins>
 

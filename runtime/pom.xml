@@ -128,23 +128,10 @@
             <image>datastax/sga-runtime:latest-dev</image>
           </to>
           <container>
-            <args>
-              <arg>/bin/bash</arg>
-              <arg>-c</arg>
-              <arg>./entrypoint.sh</arg>
-            </args>
+            <mainClass>com.datastax.oss.sga.runtime.Main</mainClass>
             <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
             <user>1000</user>
           </container>
-          <extraDirectories>
-            <paths>src/main/docker/jib</paths>
-            <permissions>
-              <permission>
-                <file>/entrypoint.sh</file>
-                <mode>755</mode>
-              </permission>
-            </permissions>
-          </extraDirectories>
         </configuration>
       </plugin>
     </plugins>

@@ -1,9 +1,6 @@
 package com.datastax.oss.sga.kafka;
 
 import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
-import com.dastastax.oss.sga.runtime.AgentSpec;
-import com.dastastax.oss.sga.runtime.PodJavaRuntime;
-import com.dastastax.oss.sga.runtime.RuntimePodConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
@@ -13,6 +10,9 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.datastax.oss.sga.runtime.agent.AgentSpec;
+import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
+import com.datastax.oss.sga.runtime.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.impl.k8s.PodAgentConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;

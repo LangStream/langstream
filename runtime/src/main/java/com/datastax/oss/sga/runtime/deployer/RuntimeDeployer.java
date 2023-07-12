@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.runtime.deployer;
 
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
@@ -31,6 +32,13 @@ public class RuntimeDeployer {
                 throw new IllegalArgumentException("Missing runtime deployer configuration");
             }
             Path configPath = Path.of(args[0]);
+            Secrets secrets = null;
+            if (args.length > 1) {
+                Path secretsPath = Path.of(args[1]);
+                log.info("Loading secrets from {}", secretsPath);
+                secrets = MAPPER.readValue(secretsPath.toFile(), Secrets.class);
+
+            }
             log.info("Loading configuration from {}", configPath);
             final RuntimeDeployerConfiguration configuration =
                     MAPPER.readValue(configPath.toFile(), RuntimeDeployerConfiguration.class);
@@ -40,6 +48,7 @@ public class RuntimeDeployer {
 
             final Application appInstance =
                     MAPPER.readValue(applicationConfig, Application.class);
+            appInstance.setSecrets(secrets);
 
             ApplicationDeployer deployer = ApplicationDeployer
                     .builder()

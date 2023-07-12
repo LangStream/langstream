@@ -4,6 +4,7 @@ import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Resource;
+import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
@@ -13,7 +14,11 @@ import com.datastax.oss.sga.impl.storage.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -72,7 +77,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     @Override
     @SneakyThrows
-    public void put(String tenant, String name, com.datastax.oss.sga.api.model.Application applicationInstance) {
+    public void put(String tenant, String name, Application applicationInstance) {
         final String namespace = tenantToNamespace(tenant);
         final String appJson = mapper.writeValueAsString(new SerializedApplicationInstance(applicationInstance));
         final ApplicationCustomResource crd = new ApplicationCustomResource();
@@ -89,6 +94,18 @@ public class KubernetesApplicationStore implements ApplicationStore {
         crd.setSpec(spec);
 
         client.resource(crd)
+                .inNamespace(namespace)
+                .serverSideApply();
+
+        final Secret secret = new SecretBuilder()
+                .withNewMetadata()
+                .withName(name)
+                .withNamespace(namespace)
+                .endMetadata()
+                .withData(Map.of("secrets",
+                        encodeSecret(mapper.writeValueAsString(applicationInstance.getSecrets()))))
+                .build();
+        client.resource(secret)
                 .inNamespace(namespace)
                 .serverSideApply();
     }
@@ -111,6 +128,10 @@ public class KubernetesApplicationStore implements ApplicationStore {
         final String namespace = tenantToNamespace(tenant);
 
         client.resources(ApplicationCustomResource.class)
+                .inNamespace(namespace)
+                .withName(name)
+                .delete();
+        client.resources(Secret.class)
                 .inNamespace(namespace)
                 .withName(name)
                 .delete();
@@ -166,5 +187,9 @@ public class KubernetesApplicationStore implements ApplicationStore {
             app.setResources(resources);
             return app;
         }
+    }
+
+    private static String encodeSecret(String value) {
+        return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 }

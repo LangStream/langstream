@@ -6,6 +6,7 @@ import java.util.Map;
 
 public record PodAgentConfiguration(Map<String, Object> input,
                                      Map<String, Object> output,
-                                     Map<String, Object> agentConfiguration,
+                                     AgentConfiguration agentConfiguration,
                                      StreamingCluster streamingCluster){
+    public record AgentConfiguration(String agentId, String agentType, String componentType, Map<String, Object> configuration) {}
 }

@@ -32,11 +32,11 @@ public final class ApplicationDeployer {
      * Deploy the application instance.
      * @param physicalApplicationInstance
      */
-    public void deploy(ExecutionPlan physicalApplicationInstance) {
+    public Object deploy(ExecutionPlan physicalApplicationInstance) {
       Application applicationInstance = physicalApplicationInstance.getApplication();
       ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
       StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
-      clusterRuntime.deploy(physicalApplicationInstance, streamingClusterRuntime);
+      return clusterRuntime.deploy(physicalApplicationInstance, streamingClusterRuntime);
   }
 
     /**

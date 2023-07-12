@@ -13,6 +13,7 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.datastax.oss.sga.runtime.impl.k8s.PodAgentConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -29,21 +30,20 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-class KafkaRunnerDockerTest {
+class GenIAgentsRunnerTest {
 
     private static KafkaContainer kafkaContainer;
     private static AdminClient admin;
 
 
     @Test
-    public void testConnectToTopics() throws Exception {
+    public void testRunAITools() throws Exception {
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -55,6 +55,16 @@ class KafkaRunnerDockerTest {
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "compute-embeddings"
+                                    id: "step1"
+                                    type: "compute-ai-embeddings"
+                                    input: "input-topic"
+                                    output: "output-topic"
+                                    configuration:                                      
+                                      model: "text-embedding-ada-002"
+                                      embeddings-field: "value.embeddings"
+                                      text: "{{% value.name }} {{% value.description }}"                                    
                                 """));
 
         ApplicationDeployer deployer = ApplicationDeployer
@@ -69,16 +79,23 @@ class KafkaRunnerDockerTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("input-topic", null, null))) instanceof KafkaTopic);
 
-        deployer.deploy(implementation);
+        List<PodAgentConfiguration> customResourceDefinitions = (List<PodAgentConfiguration>) deployer.deploy(implementation);
 
         Set<String> topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertTrue(topics.contains("input-topic"));
 
+        log.info("CRDS: {}", customResourceDefinitions);
+
+        assertEquals(1, customResourceDefinitions.size());
+        PodAgentConfiguration podAgentConfiguration = customResourceDefinitions.get(0);
+
         RuntimePodConfiguration runtimePodConfiguration = new RuntimePodConfiguration(
-                Map.of("topic", "input-topic"),
-                Map.of("topic", "output-topic"),
-                new AgentSpec(AgentSpec.ComponentType.FUNCTION, "identity", Map.of()),
+                podAgentConfiguration.input(),
+                podAgentConfiguration.output(),
+                new AgentSpec(AgentSpec.ComponentType.valueOf(podAgentConfiguration.agentConfiguration().componentType()),
+                        podAgentConfiguration.agentConfiguration().agentType(),
+                        podAgentConfiguration.agentConfiguration().configuration()),
                 applicationInstance.getInstance().streamingCluster()
         );
 
@@ -119,7 +136,7 @@ class KafkaRunnerDockerTest {
                       admin:                                      
                         bootstrap.servers: "%s"
                   computeCluster:
-                     type: "none"
+                     type: "kubernetes"
                 """.formatted(kafkaContainer.getBootstrapServers());
     }
 

@@ -56,7 +56,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public Object deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         Application logicalInstance = applicationInstance.getApplication();
         streamingClusterRuntime.deploy(applicationInstance);
 
@@ -65,6 +65,8 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
                 deployAgent(admin, agentImplementation);
             }
         }
+
+        return null;
     }
 
     private static void deployAgent(PulsarAdmin admin, AgentNode agent) throws PulsarAdminException {

@@ -45,7 +45,7 @@ public interface ComputeClusterRuntime {
      */
     Connection getConnectionImplementation(Module module, com.datastax.oss.sga.api.model.Connection connection, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    void deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    Object deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
     void delete(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 

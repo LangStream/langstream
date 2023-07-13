@@ -33,15 +33,33 @@ public class TopicDefinition extends Connection.Connectable {
         connectableType = Connection.Connectables.TOPIC;
     }
 
-    public TopicDefinition(String name, String creationMode, SchemaDefinition schema) {
-        this();
+    public static TopicDefinition fromName(String name) {
+        TopicDefinition topicDefinition = new TopicDefinition();
+        topicDefinition.setName(name);
+        return topicDefinition;
+    }
+
+    public TopicDefinition(String name,
+                           String creationMode,
+                           SchemaDefinition keySchema,
+                           SchemaDefinition valueSchema) {
+        this(name, creationMode, 1, keySchema, valueSchema);
+    }
+
+    public TopicDefinition(String name,
+                           String creationMode,
+                           int partitions,
+                           SchemaDefinition keySchema,
+                           SchemaDefinition valueSchema) {
         this.name = name;
         if (creationMode == null) {
             this.creationMode = CREATE_MODE_NONE;
         } else {
             this.creationMode = creationMode;
         }
-        this.schema = schema;
+        this.partitions = partitions;
+        this.keySchema = keySchema;
+        this.valueSchema = valueSchema;
         validateCreationMode();
     }
 
@@ -49,7 +67,9 @@ public class TopicDefinition extends Connection.Connectable {
 
     @JsonProperty("creation-mode")
     private String creationMode;
-    private SchemaDefinition schema;
+    private SchemaDefinition keySchema;
+    private SchemaDefinition valueSchema;
+    private int partitions;
 
     private void validateCreationMode() {
         switch (creationMode) {

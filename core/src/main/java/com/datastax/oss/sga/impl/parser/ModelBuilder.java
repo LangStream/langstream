@@ -140,7 +140,8 @@ public class ModelBuilder {
         if (pipelineConfiguration.getTopics() != null) {
             for (TopicDefinitionModel topicDefinition : pipelineConfiguration.getTopics()) {
                 module.addTopic(new TopicDefinition(topicDefinition.getName(),
-                        topicDefinition.getCreationMode(), topicDefinition.getSchema()));
+                        topicDefinition.getCreationMode(), topicDefinition.getPartitions(),
+                        topicDefinition.getKeySchema(), topicDefinition.getSchema()));
             }
         }
 
@@ -203,6 +204,10 @@ public class ModelBuilder {
         @JsonProperty("creation-mode")
         private String creationMode;
         private SchemaDefinition schema;
+
+        private int partitions = 0;
+
+        private SchemaDefinition keySchema;
 
     }
 

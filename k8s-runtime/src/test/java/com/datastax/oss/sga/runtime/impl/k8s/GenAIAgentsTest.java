@@ -87,9 +87,9 @@ class GenAIAgentsTest {
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertEquals(1, implementation.getAgents().size());
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                new Connection(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("output-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                new Connection(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
@@ -201,9 +201,9 @@ class GenAIAgentsTest {
         // verify that the intermediate topic is not created
         log.info("topics {}", implementation.getTopics());
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                new Connection(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("output-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                new Connection(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
         assertEquals(2, implementation.getTopics().size());
 
     }
@@ -330,9 +330,9 @@ class GenAIAgentsTest {
         log.info("topics {}", implementation.getTopics());
         assertEquals(2, implementation.getTopics().size());
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                new Connection(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("output-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                new Connection(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
 
     }
@@ -440,11 +440,11 @@ class GenAIAgentsTest {
         log.info("topics {}", implementation.getTopics());
         assertEquals(3, implementation.getTopics().size());
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                new Connection(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("output-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                new Connection(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("agent-query1-output", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                new Connection(TopicDefinition.fromName("agent-query1-output"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
 
 

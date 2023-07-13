@@ -11,7 +11,6 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
-import com.datastax.oss.sga.impl.noop.NoOpStreamingClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
@@ -67,7 +66,7 @@ class KubernetesClusterRuntimeDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         Connection connection = implementation.getConnectionImplementation(module,
-                new com.datastax.oss.sga.api.model.Connection(new TopicDefinition("input-topic", null, null)));
+                new com.datastax.oss.sga.api.model.Connection(TopicDefinition.fromName("input-topic")));
         assertNotNull(connection);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
@@ -126,9 +125,9 @@ class KubernetesClusterRuntimeDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new com.datastax.oss.sga.api.model.Connection(new TopicDefinition("input-topic", null, null))) instanceof KafkaTopic);
+                new com.datastax.oss.sga.api.model.Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new com.datastax.oss.sga.api.model.Connection(new TopicDefinition("output-topic", null, null))) instanceof KafkaTopic);
+                new com.datastax.oss.sga.api.model.Connection(TopicDefinition.fromName("output-topic"))) instanceof KafkaTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);

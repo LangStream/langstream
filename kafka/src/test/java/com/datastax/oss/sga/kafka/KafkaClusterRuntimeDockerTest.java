@@ -59,7 +59,7 @@ class KafkaClusterRuntimeDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof KafkaTopic);
+                new Connection(TopicDefinition.fromName("input-topic-cassandra"))) instanceof KafkaTopic);
 
         deployer.deploy(implementation);
 

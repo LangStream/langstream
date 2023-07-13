@@ -78,18 +78,18 @@ class SimpleClusterRuntimeTest {
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
-                    new Connection(new TopicDefinition("input-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                    new Connection(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((NoOpStreamingClusterRuntimeProvider.SimpleTopic) t).name().equals("input-topic")));
         }
         {
             assertTrue(implementation.getConnectionImplementation(module,
-                    new Connection(new TopicDefinition("output-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                    new Connection(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((NoOpStreamingClusterRuntimeProvider.SimpleTopic) t).name().equals("output-topic")));
         }
 
         {
             assertTrue(implementation.getConnectionImplementation(module, new Connection(
-                    new TopicDefinition("agent-function-1-id-output", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                    TopicDefinition.fromName("agent-function-1-id-output"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((NoOpStreamingClusterRuntimeProvider.SimpleTopic) t).name().equals("agent-function-1-id-output")));
         }
 

@@ -1,12 +1,13 @@
 package com.dastastax.oss.sga.kafka.runtime;
 
+import com.datastax.oss.sga.api.model.SchemaDefinition;
 import com.datastax.oss.sga.api.runtime.Connection;
 import com.datastax.oss.sga.api.runtime.Topic;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public record KafkaTopic(String name, String schemaName, String schemaType, String schema, String createMode)
+public record KafkaTopic(String name, SchemaDefinition keySchema, SchemaDefinition valueSchema, String createMode)
         implements Connection, Topic {
     public Map<String,Object> createConsumerConfiguration() {
         Map<String, Object> configuration = new HashMap<>();

@@ -77,16 +77,11 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Topic createTopicImplementation(TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
-        SchemaDefinition schema = topicDefinition.getSchema();
         String name = topicDefinition.getName();
         String creationMode = topicDefinition.getCreationMode();
-        String schemaType = schema != null ? schema.type() : null;
-        String schemaDefinition = schema != null ? schema.schema() : null;
-        String schemaName =  schema != null ? schema.name() : null;
         KafkaTopic kafkaTopic = new KafkaTopic(name,
-                schemaName,
-                schemaType,
-                schemaDefinition,
+                topicDefinition.getKeySchema(),
+                topicDefinition.getValueSchema(),
                 creationMode);
         return kafkaTopic;
     }

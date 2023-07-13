@@ -15,7 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.schema.KeyValueSchema;
+import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
 import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 
@@ -68,7 +71,12 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         String namespace = topic.name().tenant() + "/" + topic.name().namespace();
         String topicName = topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
         log.info("Listing topics in namespace {}", namespace);
-        List<String> existing = admin.topics().getList(namespace);
+        List<String> existing;
+        if (topic.partitions() <= 0) {
+            existing = admin.topics().getList(namespace);
+        } else {
+            existing = admin.topics().getPartitionedTopicList(namespace);
+        }
         log.info("Existing topics: {}", existing);
         String fullyQualifiedName = TopicName.get(topicName).toString();
         log.info("Looking for : {}", fullyQualifiedName);
@@ -82,8 +90,13 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
             case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
                 if (!exists) {
                     log.info("Topic {} does not exist, creating", topicName);
-                    admin
-                            .topics().createNonPartitionedTopic(topicName);
+                    if (topic.partitions() <= 0) {
+                        admin
+                                .topics().createNonPartitionedTopic(topicName);
+                    } else {
+                        admin
+                                .topics().createPartitionedTopic(topicName, topic.partitions());
+                    }
                 }
                 break;
             }
@@ -96,17 +109,36 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         }
 
         // deploy schema
-        if (!StringUtils.isEmpty(topic.schemaType())) {
+        if (topic.valueSchema() != null) {
             List<SchemaInfo> allSchemas = admin.schemas().getAllSchemas(topicName);
             if (allSchemas.isEmpty()) {
                 log.info("Deploying schema for topic {}", topicName);
+
                 SchemaInfo schemaInfo = SchemaInfo
                         .builder()
-                        .type(SchemaType.valueOf(topic.schemaType().toUpperCase()))
-                        .name(topic.schemaName())
+                        .type(SchemaType.valueOf(topic.valueSchema().name().toUpperCase()))
+                        .name(topic.valueSchema().name())
                         .properties(Map.of())
-                        .schema(topic.schema().getBytes(StandardCharsets.UTF_8))
+                        .schema(topic.valueSchema().schema().getBytes(StandardCharsets.UTF_8))
                         .build();
+                if (topic.keySchema() != null) {
+                    // KEY VALUE
+                    SchemaInfo keySchemaInfo = SchemaInfo
+                            .builder()
+                            .type(SchemaType.valueOf(topic.keySchema().name().toUpperCase()))
+                            .name(topic.keySchema().name())
+                            .properties(Map.of())
+                            .schema(topic.keySchema().schema().getBytes(StandardCharsets.UTF_8))
+                            .build();
+
+                    schemaInfo = KeyValueSchemaInfo
+                            .encodeKeyValueSchemaInfo(topic.valueSchema().name(),
+                                    keySchemaInfo,
+                                    schemaInfo,
+                                    KeyValueEncodingType.SEPARATED);
+
+                }
+
                 admin.schemas().createSchema(topicName, schemaInfo);
             } else {
                 log.info("Topic {} already has some schemas, skipping. ({})", topicName, allSchemas);
@@ -143,20 +175,18 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         final PulsarClusterRuntimeConfiguration config =
                 getPulsarClusterRuntimeConfiguration(applicationInstance.getApplication().getInstance().streamingCluster());
 
-        SchemaDefinition schema = topicDefinition.getSchema();
+        SchemaDefinition keySchema = topicDefinition.getKeySchema();
+        SchemaDefinition valueSchema = topicDefinition.getValueSchema();
         String name = topicDefinition.getName();
         String tenant = config.getDefaultTenant();
         String creationMode = topicDefinition.getCreationMode();
         String namespace = config.getDefaultNamespace();
         PulsarName topicName
                 = new PulsarName(tenant, namespace, name);
-        String schemaType = schema != null ? schema.type() : null;
-        String schemaDefinition = schema != null ? schema.schema() : null;
-        String schemaName =  schema != null ? schema.name() : null;
         PulsarTopic pulsarTopic = new PulsarTopic(topicName,
-                schemaName,
-                schemaType,
-                schemaDefinition,
+                topicDefinition.getPartitions(),
+                keySchema,
+                valueSchema,
                 creationMode);
         return pulsarTopic;
     }

@@ -18,6 +18,7 @@ package com.datastax.oss.sga.api.runtime;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
+import java.util.Map;
 
 /**
  * This is the interface that the SGA framework uses to interact with the cluster. It is used to
@@ -26,6 +27,8 @@ import com.datastax.oss.sga.api.model.Module;
 public interface ComputeClusterRuntime {
 
     String getClusterType();
+
+    void initialize(Map<String, Object> configuration);
 
     /**
      * Create a physical application instance from the logical application instance.
@@ -45,9 +48,9 @@ public interface ComputeClusterRuntime {
      */
     Connection getConnectionImplementation(Module module, com.datastax.oss.sga.api.model.Connection connection, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    Object deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    void delete(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
     default AgentNodeMetadata computeAgentMetadata(AgentConfiguration agentConfiguration, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         return null;

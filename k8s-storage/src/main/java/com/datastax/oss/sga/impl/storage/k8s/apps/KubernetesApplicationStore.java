@@ -16,6 +16,13 @@ import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
+import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
+import io.fabric8.kubernetes.api.model.rbac.PolicyRule;
+import io.fabric8.kubernetes.api.model.rbac.PolicyRuleBuilder;
+import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
+import io.fabric8.kubernetes.api.model.rbac.RoleBindingBuilder;
+import io.fabric8.kubernetes.api.model.rbac.RoleBuilder;
+import io.fabric8.kubernetes.api.model.rbac.SubjectBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -64,6 +71,51 @@ public class KubernetesApplicationStore implements ApplicationStore {
                             .endMetadata().build())
                     .serverSideApply();
             log.info("Created namespace {} for tenant {}", namespace, tenant);
+
+            client.resource(new ServiceAccountBuilder()
+                            .withNewMetadata()
+                            .withName(tenant)
+                            .endMetadata()
+                            .build())
+                    .inNamespace(namespace)
+                    .serverSideApply();
+            log.info("Created service account for tenant {}", tenant);
+
+            client.resource(new RoleBuilder()
+                            .withNewMetadata()
+                            .withName(tenant)
+                            .endMetadata()
+                            .withRules(new PolicyRuleBuilder()
+                                    .withApiGroups("sga.oss.datastax.com")
+                                    .withResources("agents")
+                                    .withVerbs("*")
+                                    .build()
+                            ).build())
+                    .inNamespace(namespace)
+                    .serverSideApply();
+
+            log.info("Created role for tenant {}", tenant);
+
+            client.resource(new RoleBindingBuilder()
+                            .withNewMetadata()
+                            .withName(tenant)
+                            .endMetadata()
+                            .withNewRoleRef()
+                            .withKind("Role")
+                            .withApiGroup("rbac.authorization.k8s.io")
+                            .withName(tenant)
+                            .endRoleRef()
+                            .withSubjects(new SubjectBuilder()
+                                    .withName(tenant)
+                                    .withNamespace(namespace)
+                                    .withKind("ServiceAccount")
+                                    .build()
+                            )
+                            .build())
+                    .inNamespace(namespace)
+                    .serverSideApply();
+            log.info("Created role binding for tenant {}", tenant);
+
         }
     }
 

@@ -10,6 +10,7 @@ import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.impl.noop.NoOpComputeClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import java.util.Collections;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -88,7 +89,7 @@ class ApplicationDeployerTest {
                                         type: mock
                                 """));
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
         Mockito.doAnswer(invocationOnMock -> {
             final Application resolvedApplicationInstance =
                     (Application) invocationOnMock.getArguments()[0];
@@ -96,7 +97,7 @@ class ApplicationDeployerTest {
                     resolvedApplicationInstance.getResources().get("openai-azure").configuration()
                             .get("accessKey"));
             return null;
-        }).when(mockRuntime).deploy(Mockito.any(), eq(mockStreamingRuntime) );
-        Mockito.verify(mockRuntime).deploy(Mockito.any(), eq(mockStreamingRuntime));
+        }).when(mockRuntime).deploy(Mockito.anyString(), Mockito.any(), eq(mockStreamingRuntime) );
+        Mockito.verify(mockRuntime).deploy(Mockito.anyString(), Mockito.any(), eq(mockStreamingRuntime));
     }
 }

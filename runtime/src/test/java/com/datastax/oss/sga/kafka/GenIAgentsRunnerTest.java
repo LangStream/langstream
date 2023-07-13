@@ -79,7 +79,7 @@ class GenIAgentsRunnerTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
-        List<PodAgentConfiguration> customResourceDefinitions = (List<PodAgentConfiguration>) deployer.deploy(implementation);
+        List<PodAgentConfiguration> customResourceDefinitions = (List<PodAgentConfiguration>) deployer.deploy("tenant", implementation);
 
         Set<String> topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);

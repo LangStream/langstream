@@ -67,4 +67,10 @@ deployer:
   tolerations: []
   affinity: {}
   app:
-    config: {}
+    config:
+      namespacePrefix: sga-
+      clusterRuntime:
+        kubernetes:
+          namespace-prefix: sga-
+          image: datastax/sga-runtime:latest-dev
+          image-pull-policy: Never

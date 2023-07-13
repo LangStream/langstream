@@ -25,7 +25,7 @@ public class AgentController implements Reconciler<AgentCustomResource> {
     public UpdateControl<AgentCustomResource> reconcile(AgentCustomResource application, Context<AgentCustomResource> context)
             throws Exception {
 
-        log.infof("Got agent: %s, doing nothing..", application.getMetadata().getName());
+        log.infof("Got agent: %s, doing nothing.. %s", application.getMetadata().getName(), application.getSpec().toString());
         return UpdateControl.noUpdate();
     }
 

@@ -63,7 +63,7 @@ class KafkaClusterRuntimeDockerTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
 
         Set<String> topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
@@ -74,7 +74,7 @@ class KafkaClusterRuntimeDockerTest {
         assertEquals(1, stats.get("input-topic").partitions().size());
         assertEquals(2, stats.get("input-topic-2-partitions").partitions().size());
 
-        deployer.delete(implementation);
+        deployer.delete("tenant", implementation);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains("input-topic"));

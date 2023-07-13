@@ -42,6 +42,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>k8s-deployer-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>sga-kafka</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>

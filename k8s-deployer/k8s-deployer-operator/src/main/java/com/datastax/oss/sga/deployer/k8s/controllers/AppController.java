@@ -92,18 +92,33 @@ public class AppController implements Reconciler<ApplicationCustomResource>, Cle
     private void createJob(String tenant, String name, ApplicationSpec spec, String jobName, String targetNamespace,
                            boolean delete) {
 
-        final Map<String, String> config = Map.of("name", name, "application", spec.getApplication());
+        final Map<String, String> config = Map.of(
+                "name", name,
+                "application", spec.getApplication(),
+                "tenant", tenant);
 
+        final Map<String, Object> clusterRuntime;
+        if (configuration.clusterRuntime() == null) {
+            clusterRuntime = Map.of();
+        } else {
+            clusterRuntime = SerializationUtil.readYaml(configuration.clusterRuntime(), Map.class);
+        }
         final Container initContainer = new ContainerBuilder()
                 .withName("deployer-init-config")
                 .withImage(spec.getImage())
                 .withImagePullPolicy(spec.getImagePullPolicy())
                 .withCommand("bash", "-c")
-                .withArgs("echo '%s' > /app-config/config".formatted(SerializationUtil.writeAsJson(config)))
+                .withArgs("echo '%s' > /app-config/config && echo '%s' > /cluster-runtime-config/config".formatted(
+                        SerializationUtil.writeAsJson(config),
+                        SerializationUtil.writeAsJson(clusterRuntime)))
                 .withVolumeMounts(new VolumeMountBuilder()
-                        .withName("app-config")
-                        .withMountPath("/app-config")
-                        .build())
+                                .withName("app-config")
+                                .withMountPath("/app-config")
+                                .build(),
+                        new VolumeMountBuilder()
+                                .withName("cluster-runtime-config")
+                                .withMountPath("/cluster-runtime-config")
+                                .build())
                 .build();
         final String command = delete ? "delete" : "deploy";
 
@@ -111,7 +126,7 @@ public class AppController implements Reconciler<ApplicationCustomResource>, Cle
                 .withName("deployer")
                 .withImage(spec.getImage())
                 .withImagePullPolicy(spec.getImagePullPolicy())
-                .withArgs("deployer-runtime", command, "/app-config/config", "/app-secrets/secrets")
+                .withArgs("deployer-runtime", command, "/cluster-runtime-config/config", "/app-config/config", "/app-secrets/secrets")
                 .withVolumeMounts(new VolumeMountBuilder()
                                 .withName("app-config")
                                 .withMountPath("/app-config")
@@ -119,6 +134,10 @@ public class AppController implements Reconciler<ApplicationCustomResource>, Cle
                         new VolumeMountBuilder()
                                 .withName("app-secrets")
                                 .withMountPath("/app-secrets")
+                                .build(),
+                        new VolumeMountBuilder()
+                                .withName("cluster-runtime-config")
+                                .withMountPath("/cluster-runtime-config")
                                 .build())
                 .withNewResources()
                 .withRequests(Map.of("cpu", Quantity.parse("100m"), "memory", Quantity.parse("128Mi")))
@@ -138,6 +157,7 @@ public class AppController implements Reconciler<ApplicationCustomResource>, Cle
                 .withLabels(Map.of("app", "sga", "tenant", tenant))
                 .endMetadata()
                 .withNewSpec()
+                .withServiceAccount(tenant)
                 .withVolumes(new VolumeBuilder()
                                 .withName("app-config")
                                 .withEmptyDir(new EmptyDirVolumeSource())
@@ -147,6 +167,10 @@ public class AppController implements Reconciler<ApplicationCustomResource>, Cle
                                 .withNewSecret()
                                 .withSecretName(name)
                                 .endSecret()
+                                .build(),
+                        new VolumeBuilder()
+                                .withName("cluster-runtime-config")
+                                .withEmptyDir(new EmptyDirVolumeSource())
                                 .build()
                 )
                 .withInitContainers(List.of(initContainer))

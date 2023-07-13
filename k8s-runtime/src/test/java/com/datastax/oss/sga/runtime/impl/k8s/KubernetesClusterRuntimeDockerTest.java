@@ -72,7 +72,7 @@ class KubernetesClusterRuntimeDockerTest {
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
 
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
 
     }
 
@@ -149,7 +149,7 @@ class KubernetesClusterRuntimeDockerTest {
         assertEquals("value.embeddings", step1.get("embeddings-field"));
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
 
 
     }

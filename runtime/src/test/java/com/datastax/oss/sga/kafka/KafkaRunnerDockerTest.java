@@ -69,7 +69,7 @@ class KafkaRunnerDockerTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
 
         Set<String> topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);

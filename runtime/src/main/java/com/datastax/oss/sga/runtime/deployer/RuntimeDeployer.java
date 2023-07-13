@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -36,27 +37,34 @@ public class RuntimeDeployer {
 
             final String arg0 = args[0];
 
-            if (args.length < 2) {
+            if (args.length < 3) {
                 throw new IllegalArgumentException("Missing runtime deployer configuration");
             }
-            Path configPath = Path.of(args[1]);
+
+
+            Path clusterRuntimeConfigPath = Path.of(args[1]);
+            log.info("Loading cluster runtime config from {}", clusterRuntimeConfigPath);
+            final Map<String, Map<String, Object>> clusterRuntimeConfiguration =
+                    (Map<String, Map<String, Object>>) MAPPER.readValue(clusterRuntimeConfigPath.toFile(), Map.class);
+
+            Path appConfigPath = Path.of(args[2]);
+            log.info("Loading configuration from {}", appConfigPath);
+            final RuntimeDeployerConfiguration configuration =
+                    MAPPER.readValue(appConfigPath.toFile(), RuntimeDeployerConfiguration.class);
+
             Secrets secrets = null;
             if (args.length > 1) {
-                Path secretsPath = Path.of(args[2]);
+                Path secretsPath = Path.of(args[3]);
                 log.info("Loading secrets from {}", secretsPath);
                 secrets = MAPPER.readValue(secretsPath.toFile(), Secrets.class);
-
             }
-            log.info("Loading configuration from {}", configPath);
-            final RuntimeDeployerConfiguration configuration =
-                    MAPPER.readValue(configPath.toFile(), RuntimeDeployerConfiguration.class);
 
             switch (arg0) {
                 case "delete":
-                    delete(configuration, secrets);
+                    delete(clusterRuntimeConfiguration, configuration, secrets);
                     break;
                 case "deploy":
-                    deploy(configuration, secrets);
+                    deploy(clusterRuntimeConfiguration, configuration, secrets);
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown command " + arg0);
@@ -67,7 +75,8 @@ public class RuntimeDeployer {
         }
     }
 
-    private static void deploy(RuntimeDeployerConfiguration configuration, Secrets secrets) throws IOException {
+    private static void deploy(Map<String, Map<String, Object>> clusterRuntimeConfiguration,
+                               RuntimeDeployerConfiguration configuration, Secrets secrets) throws IOException {
 
 
         final String applicationName = configuration.getName();
@@ -80,16 +89,18 @@ public class RuntimeDeployer {
 
         ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
-                .registry(new ClusterRuntimeRegistry())
+                .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
         final ExecutionPlan implementation = deployer.createImplementation(appInstance);
-        deployer.deploy(implementation);
+        deployer.deploy(configuration.getTenant(), implementation);
         log.info("Application {} deployed", applicationName);
     }
 
-    private static void delete(RuntimeDeployerConfiguration configuration, Secrets secrets) throws IOException {
+    private static void delete(Map<String, Map<String, Object>> clusterRuntimeConfiguration,
+                               RuntimeDeployerConfiguration configuration,
+                               Secrets secrets) throws IOException {
 
 
         final String applicationName = configuration.getName();
@@ -101,13 +112,13 @@ public class RuntimeDeployer {
 
         ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
-                .registry(new ClusterRuntimeRegistry())
+                .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
         log.info("Deleting application {}", applicationName);
         final ExecutionPlan implementation = deployer.createImplementation(appInstance);
-        deployer.delete(implementation);
+        deployer.delete(configuration.getTenant(), implementation);
         log.info("Application {} deleted", applicationName);
     }
 }

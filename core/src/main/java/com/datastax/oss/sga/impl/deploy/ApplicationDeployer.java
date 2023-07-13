@@ -32,21 +32,21 @@ public final class ApplicationDeployer {
      * Deploy the application instance.
      * @param physicalApplicationInstance
      */
-    public Object deploy(ExecutionPlan physicalApplicationInstance) {
+    public Object deploy(String tenant, ExecutionPlan physicalApplicationInstance) {
       Application applicationInstance = physicalApplicationInstance.getApplication();
       ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
       StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
-      return clusterRuntime.deploy(physicalApplicationInstance, streamingClusterRuntime);
+      return clusterRuntime.deploy(tenant, physicalApplicationInstance, streamingClusterRuntime);
   }
 
     /**
      * Delete the application instance and all the resources associated with it.
      * @param physicalApplicationInstance
      */
-    public void delete(ExecutionPlan physicalApplicationInstance) {
+    public void delete(String tenant, ExecutionPlan physicalApplicationInstance) {
       Application applicationInstance = physicalApplicationInstance.getApplication();
       ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
       StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
-      clusterRuntime.delete(physicalApplicationInstance, streamingClusterRuntime);
+      clusterRuntime.delete(tenant, physicalApplicationInstance, streamingClusterRuntime);
   }
 }

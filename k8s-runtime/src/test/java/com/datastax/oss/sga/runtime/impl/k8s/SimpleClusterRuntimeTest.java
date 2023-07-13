@@ -227,14 +227,13 @@ class SimpleClusterRuntimeTest {
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
-                                  - name: "compute-embeddings"
+                                  - name: "drop"
                                     id: "step2"
-                                    type: "compute-ai-embeddings"                                    
+                                    type: "drop-fields"                                    
                                     output: "output-topic"
                                     configuration:                                      
-                                      model: "text-embedding-ada-003"
-                                      embeddings-field: "value.embeddings2"
-                                      text: "{{% value.name }}"
+                                      fields: "embeddings"
+                                      part: "value"
                                 """));
 
         ApplicationDeployer deployer = ApplicationDeployer
@@ -263,14 +262,15 @@ class SimpleClusterRuntimeTest {
         List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
         assertEquals(2, steps.size());
         Map<String, Object> step1 = steps.get(0);
+        assertEquals("compute-ai-embeddings", step1.get("type"));
         assertEquals("text-embedding-ada-002", step1.get("model"));
         assertEquals("value.embeddings", step1.get("embeddings-field"));
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
         Map<String, Object> step2 = steps.get(1);
-        assertEquals("text-embedding-ada-003", step2.get("model"));
-        assertEquals("value.embeddings2", step2.get("embeddings-field"));
-        assertEquals("{{ value.name }}", step2.get("text"));
+        assertEquals("drop-fields", step2.get("type"));
+        assertEquals("embeddings", step2.get("fields"));
+        assertEquals("value", step2.get("part"));
 
 
         // verify that the intermediate topic is not created
@@ -280,6 +280,128 @@ class SimpleClusterRuntimeTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(new TopicDefinition("output-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
         assertEquals(2, implementation.getTopics().size());
+
+    }
+
+
+    @Test
+    public void testMapAllGenAIToolKitAgents() throws Exception {
+        Application applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        buildInstanceYaml(),
+                        "configuration.yaml",
+                        """
+                                configuration:  
+                                  resources:
+                                    - name: open-ai
+                                      type: open-ai-configuration
+                                      configuration:
+                                        url: "http://something"                                
+                                        access-key: "xxcxcxc"
+                                        provider: "azure"
+                                  """,
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                      type: avro
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists                                    
+                                pipeline:
+                                  - name: "compute-embeddings"
+                                    id: step1
+                                    type: "compute-ai-embeddings"
+                                    input: "input-topic"                                    
+                                    configuration:                                      
+                                      model: "text-embedding-ada-002"
+                                      embeddings-field: "value.embeddings"
+                                      text: "{{% value.name }} {{% value.description }}"
+                                  - name: "dropfields"
+                                    type: "drop-fields"                                    
+                                    configuration:                                      
+                                      fields: "embeddings"
+                                      part: "value"
+                                  - name: "drop"
+                                    type: "drop"                                    
+                                    configuration:                                      
+                                      when: "true"
+                                  - name: "query"
+                                    type: "query"                                    
+                                    configuration:         
+                                      query: "select * from table"
+                                      output-field: "value.queryresult"                             
+                                      fields:
+                                        - "value.field1"                                          
+                                        - "key.field2"
+                                  - name: "unwrap-key-value"
+                                    type: "unwrap-key-value"
+                                  - name: "flatten"
+                                    type: "flatten"
+                                  - name: "compute"
+                                    type: "compute"
+                                    configuration:
+                                       fields:
+                                        - name: "field1"
+                                          type: "string"
+                                          expression: "value.field1"
+                                        - name: "field2"
+                                          type: "string"
+                                          expression: "value.field2"                                         
+                                  - name: "merge-key-value"
+                                    type: "merge-key-value"
+                                  - name: "chat-ai-completions"
+                                    type: "chat-ai-completions"
+                                    configuration:   
+                                      model: "davinci"                                   
+                                      output-field: "value.chatresult"
+                                      messages:
+                                         role: user
+                                         message: xxx
+                                  - name: "casttojson"
+                                    type: "cast"                                    
+                                    output: "output-topic"
+                                    configuration:                                      
+                                      schema-type: "string"
+                                """));
+
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+
+        AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
+        assertNotNull(agentImplementation);
+        DefaultAgentNode step =
+                (DefaultAgentNode) agentImplementation;
+        Map<String, Object> configuration = step.getConfiguration();
+        log.info("Configuration: {}", configuration);
+        Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
+        log.info("openAIConfiguration: {}", openAIConfiguration);
+        assertEquals("http://something", openAIConfiguration.get("url"));
+        assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
+        assertEquals("azure", openAIConfiguration.get("provider"));
+
+
+        List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+        assertEquals(10, steps.size());
+
+        // verify that the intermediate topics are not created
+        log.info("topics {}", implementation.getTopics());
+        assertEquals(2, implementation.getTopics().size());
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("input-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        assertTrue(implementation.getConnectionImplementation(module,
+                new Connection(new TopicDefinition("output-topic", null, null))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+
 
     }
 

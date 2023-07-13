@@ -128,6 +128,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
         STEP_TYPES.get(agentConfiguration.getType())
                 .generateSteps(step, originalConfiguration, agentConfiguration);
+        steps.add(step);
     }
 
     private void generateOpenAIConfiguration(Application applicationInstance, Map<String, Object> configuration) {
@@ -189,6 +190,11 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         if (Objects.equals(previousAgent.getAgentType(), agentImplementation.getAgentType())
                 && previousAgent instanceof DefaultAgentNode agent1
                 && agentImplementation instanceof DefaultAgentNode agent2) {
+
+            log.info("Merging agents");
+            log.info("Agent 1: {}", agent1);
+            log.info("Agent 2: {}", agent2);
+
             Map<String, Object> configurationWithoutSteps1 = new HashMap<>(agent1.getConfiguration());
             List<Map<String, Object>> steps1 = (List<Map<String, Object>>) configurationWithoutSteps1.remove("steps");
             Map<String, Object> configurationWithoutSteps2 = new HashMap<>(agent2.getConfiguration());
@@ -203,9 +209,10 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             result.put("steps", mergedSteps);
 
             agent1.overrideConfigurationAfterMerge(result, agent2.getOutputConnection());
+            log.info("Agent 1 modified: {}", agent1);
 
-            log.info("Discarding topic {}", agent1.getInputConnection());
-            applicationInstance.discardTopic(agent1.getInputConnection());
+            log.info("Discarding topic {}", agent2.getInputConnection());
+            applicationInstance.discardTopic(agent2.getInputConnection());
             return previousAgent;
         }
         throw new IllegalStateException();

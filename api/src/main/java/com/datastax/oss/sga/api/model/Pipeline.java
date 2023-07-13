@@ -17,7 +17,9 @@ package com.datastax.oss.sga.api.model;
 
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.NoArgsConstructor;
 
@@ -33,9 +35,10 @@ public class Pipeline {
         this.module = module;
     }
 
-    private Map<String, AgentConfiguration> agents = new HashMap<>();
+    private List<AgentConfiguration> agents = new ArrayList<>();
+
 
     public void addAgentConfiguration(AgentConfiguration a) {
-        agents.put(a.getId(), a);
+        agents.add(a);
     }
 }

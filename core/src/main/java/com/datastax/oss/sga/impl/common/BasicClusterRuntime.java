@@ -72,7 +72,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             for (Pipeline pipeline : module.getPipelines().values()) {
                 log.info("Pipeline: {}", pipeline.getName());
                 AgentNode previousAgent = null;
-                for (AgentConfiguration agentConfiguration : pipeline.getAgents().values()) {
+                for (AgentConfiguration agentConfiguration : pipeline.getAgents()) {
                     previousAgent = buildAgent(module, agentConfiguration, result, pluginsRegistry,
                             streamingClusterRuntime, previousAgent);
                 }

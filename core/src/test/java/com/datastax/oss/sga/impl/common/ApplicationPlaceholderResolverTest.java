@@ -110,7 +110,12 @@ class ApplicationPlaceholderResolverTest {
         final Application resolved =
                 ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
         Assertions.assertEquals("my-access-key",
-                resolved.getModule("module-1").getPipelines().values().iterator().next().getAgents().get("sink1")
+                resolved.getModule("module-1").getPipelines().values().iterator().next()
+                        .getAgents()
+                        .stream()
+                        .filter(agent -> agent.getId().equals("sink1"))
+                        .findFirst()
+                        .get()
                         .getConfiguration()
                         .get("access-key"));
     }

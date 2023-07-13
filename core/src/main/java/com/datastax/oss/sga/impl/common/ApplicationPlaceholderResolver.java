@@ -12,9 +12,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.samskivert.mustache.Mustache;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
@@ -67,12 +69,10 @@ public class ApplicationPlaceholderResolver {
             final Module module = moduleEntry.getValue();
             for (Map.Entry<String, Pipeline> pipelineEntry : module.getPipelines().entrySet()) {
                 final Pipeline pipeline = pipelineEntry.getValue();
-                Map<String, AgentConfiguration> newAgents = new LinkedHashMap<>();
-                for (Map.Entry<String, AgentConfiguration> stringAgentConfigurationEntry : pipeline.getAgents()
-                        .entrySet()) {
-                    final AgentConfiguration value = stringAgentConfigurationEntry.getValue();
+                List<AgentConfiguration> newAgents = new ArrayList<>();
+                for (AgentConfiguration value : pipeline.getAgents()) {
                     value.setConfiguration(resolveMap(context, value.getConfiguration()));
-                    newAgents.put(stringAgentConfigurationEntry.getKey(), value);
+                    newAgents.add(value);
                 }
                 pipeline.setAgents(newAgents);
             }

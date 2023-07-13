@@ -13,19 +13,21 @@ import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import lombok.Getter;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Getter
 public abstract class AbstractAgentProvider implements AgentNodeProvider {
 
-    protected final List<String> supportedTypes;
+    protected final Set<String> supportedTypes;
     protected final List<String> supportedClusterTypes;
 
-    public AbstractAgentProvider(List<String> supportedTypes, List<String> supportedClusterTypes) {
-        this.supportedTypes = Collections.unmodifiableList(supportedTypes);
+    public AbstractAgentProvider(Set<String> supportedTypes, List<String> supportedClusterTypes) {
+        this.supportedTypes = Collections.unmodifiableSet(supportedTypes);
         this.supportedClusterTypes = Collections.unmodifiableList(supportedClusterTypes);
     }
 

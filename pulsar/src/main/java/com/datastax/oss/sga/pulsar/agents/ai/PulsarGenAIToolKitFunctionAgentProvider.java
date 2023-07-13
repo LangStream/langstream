@@ -6,13 +6,13 @@ import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.impl.agents.ai.ComputeEmbeddingsAgentProvider;
+import com.datastax.oss.sga.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
 import com.datastax.oss.sga.pulsar.agents.AbstractPulsarAgentProvider;
 
-public class PulsarComputeEmbeddingsAgentProvider extends ComputeEmbeddingsAgentProvider {
+public class PulsarGenAIToolKitFunctionAgentProvider extends GenAIToolKitFunctionAgentProvider {
 
-    public PulsarComputeEmbeddingsAgentProvider() {
+    public PulsarGenAIToolKitFunctionAgentProvider() {
         super(PulsarClusterRuntime.CLUSTER_TYPE, "ai-tools");
     }
 

@@ -21,9 +21,50 @@ import java.util.Objects;
 @Slf4j
 public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
+    private static final Map<String, StepConfigurationInitializer> STEP_TYPES = Map.of(
+            "compute-ai-embeddings", new StepConfigurationInitializer() {
+                @Override
+                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
+                    optionalField(step, agentConfiguration, originalConfiguration, "model", "text-embedding-ada-002");
+                    requiredField(step, agentConfiguration, originalConfiguration, "embeddings-field");
+                    requiredField(step, agentConfiguration, originalConfiguration, "text");
+                }
+            },
+            "drop-fields", new StepConfigurationInitializer() {
+                @Override
+                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
+                    requiredField(step, agentConfiguration, originalConfiguration, "fields");
+                    optionalField(step, agentConfiguration, originalConfiguration, "part", null);
+                }
+            },
+            "merge-key-value", new StepConfigurationInitializer() {
+            },
+            "unwrap-key-value", new StepConfigurationInitializer() {
+            },
+            "cast", new StepConfigurationInitializer() {
+                @Override
+                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
+                    requiredField(step, agentConfiguration, originalConfiguration, "schema-type");
+                    optionalField(step, agentConfiguration, originalConfiguration, "part", null);
+                }},
+                "flatten", new StepConfigurationInitializer() {
+                    @Override
+                    public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration)
+                    {
+                        optionalField(step, agentConfiguration, originalConfiguration, "delimiter", null);
+                        optionalField(step, agentConfiguration, originalConfiguration, "part", null);
+                    }},
+            "drop", new StepConfigurationInitializer() {},
+            "compute", new StepConfigurationInitializer() {
+                @Override
+                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
+                    requiredField(step, agentConfiguration, originalConfiguration, "fields");
+                }}
+
+    );
     private final String mainAgentType;
-    public GenAIToolKitFunctionAgentProvider(String stepType, String clusterType, String mainAgentType) {
-        super(List.of(stepType), List.of(clusterType));
+    public GenAIToolKitFunctionAgentProvider(String clusterType, String mainAgentType) {
+        super(STEP_TYPES.keySet(), List.of(clusterType));
         this.mainAgentType = mainAgentType;
     }
 
@@ -39,7 +80,23 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         return mainAgentType;
     }
 
-    protected void generateSteps(Map<String, Object> originalConfiguration, List<Map<String, Object>> steps) {
+    private interface StepConfigurationInitializer {
+        default void generateSteps(Map<String, Object> step,
+                           Map<String, Object> originalConfiguration,
+                           AgentConfiguration agentConfiguration) {}
+    }
+
+    protected void generateSteps(Map<String, Object> originalConfiguration, List<Map<String, Object>> steps, AgentConfiguration agentConfiguration) {
+        Map<String, Object> step = new HashMap<>();
+
+        // we are mapping the original name to the ai-tools function name
+        step.put("type", agentConfiguration.getType());
+
+        // on every step you can put a "when" clause
+        optionalField(step, agentConfiguration, originalConfiguration, "when", null);
+
+        STEP_TYPES.get(agentConfiguration.getType())
+                .generateSteps(step, originalConfiguration, agentConfiguration);
     }
 
     private void generateOpenAIConfiguration(Application applicationInstance, Map<String, Object> configuration) {
@@ -75,7 +132,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
         List<Map<String, Object>> steps = new ArrayList<>();
         configuration.put("steps", steps);
-        generateSteps(originalConfiguration, steps);
+        generateSteps(originalConfiguration, steps, agentConfiguration);
         return configuration;
     }
 
@@ -123,4 +180,21 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         throw new IllegalStateException();
     }
 
+    protected static void requiredField(Map<String, Object> step, AgentConfiguration agentConfiguration, Map<String, Object> originalConfiguration, String name) {
+        if (!originalConfiguration.containsKey(name)) {
+            throw new IllegalArgumentException("Missing required field " + name + " in agent definition, type=" + agentConfiguration.getType()
+                    + ", name="+agentConfiguration.getName());
+        }
+        step.put(name,originalConfiguration.get(name));
+    }
+
+    protected static void optionalField(Map<String, Object> step, AgentConfiguration agentConfiguration, Map<String, Object> originalConfiguration, String name, Object defaultValue) {
+        if (!originalConfiguration.containsKey(name)) {
+            if (defaultValue != null) {
+                step.put(name, defaultValue);
+            }
+        } else {
+            step.put(name,originalConfiguration.get(name));
+        }
+    }
 }

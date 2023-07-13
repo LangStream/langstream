@@ -11,11 +11,12 @@ import com.datastax.oss.sga.pulsar.PulsarTopic;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class CassandraSinkAgentProvider extends AbstractPulsarAgentProvider {
 
     public CassandraSinkAgentProvider() {
-        super(List.of("cassandra-sink"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
+        super(Set.of("cassandra-sink"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override

@@ -11,12 +11,13 @@ import com.datastax.oss.sga.pulsar.PulsarClusterRuntimeConfiguration;
 import com.datastax.oss.sga.pulsar.PulsarName;
 
 import java.util.List;
+import java.util.Set;
 
 import static com.datastax.oss.sga.pulsar.PulsarClusterRuntime.getPulsarClusterRuntimeConfiguration;
 
 public abstract class AbstractPulsarAgentProvider extends AbstractAgentProvider {
 
-    public AbstractPulsarAgentProvider(List<String> supportedTypes,
+    public AbstractPulsarAgentProvider(Set<String> supportedTypes,
                                        List<String> supportedClusterTypes) {
         super(supportedTypes, supportedClusterTypes);
     }

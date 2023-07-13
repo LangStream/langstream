@@ -9,11 +9,12 @@ import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class GenericPulsarFunctionAgentProvider extends AbstractPulsarAgentProvider {
 
     public GenericPulsarFunctionAgentProvider() {
-        super(List.of("function"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
+        super(Set.of("function"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override

@@ -116,10 +116,10 @@ class KafkaRunnerDockerTest {
                   streamingCluster:
                     type: "kafka"
                     configuration:
-                      admin:                                      
+                      admin:
                         bootstrap.servers: "%s"
                   computeCluster:
-                     type: "none"
+                    type: "none"
                 """.formatted(kafkaContainer.getBootstrapServers());
     }
 

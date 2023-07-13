@@ -51,11 +51,10 @@ public class PodJavaRuntime
 
         } catch (Throwable error) {
             errorHandler.handleError(error);
-            return;
         }
     }
 
-    public static void run(RuntimePodConfiguration configuration, int maxLoops) {
+    public static void run(RuntimePodConfiguration configuration, int maxLoops) throws Exception {
         log.info("Pod Configuration {}", configuration);
 
         TopicConnectionsRuntime topicConnectionsRuntime =
@@ -88,7 +87,7 @@ public class PodJavaRuntime
         runMainLoop(consumer, producer, agentCode, maxLoops);
     }
 
-    private static void runMainLoop(TopicConsumer consumer, TopicProducer producer, AgentCode agentCode, int maxLoops) {
+    private static void runMainLoop(TopicConsumer consumer, TopicProducer producer, AgentCode agentCode, int maxLoops) throws Exception {
         consumer.start();
         producer.start();
         agentCode.start();
@@ -97,8 +96,13 @@ public class PodJavaRuntime
             List<Record> records = consumer.read();
             while ((maxLoops < 0) || (maxLoops-- > 0)) {
                 if (records != null && !records.isEmpty()) {
-                    List<Record> outputRecords = agentCode.process(records);
-                    producer.write(outputRecords);
+                    try {
+                        List<Record> outputRecords = agentCode.process(records);
+                        producer.write(outputRecords);
+                    } catch (Exception e) {
+                        // TODO: handle errors
+                        log.error("Error while processing records", e);
+                    }
                     // commit
                 }
                 records = consumer.read();
@@ -110,7 +114,7 @@ public class PodJavaRuntime
         }
     }
 
-    private static AgentCode initAgent(RuntimePodConfiguration configuration) {
+    private static AgentCode initAgent(RuntimePodConfiguration configuration) throws Exception {
         log.info("Bootstrapping agent with configuration {}", configuration.agent());
         AgentCode agentCode = AGENT_CODE_REGISTRY.getAgentCode(configuration.agent().agentType());
         agentCode.init(configuration.agent().configuration());

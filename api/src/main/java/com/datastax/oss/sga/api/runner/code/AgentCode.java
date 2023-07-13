@@ -9,16 +9,17 @@ import java.util.Map;
 public interface AgentCode {
 
     /**
-     * The agent processes one record and returns a list of records.
+     * The agent processes records and returns a list of records.
      * The transactionality of the function is guaranteed by the runtime.
-     * @param record
-     * @return the list of records
+     * @param records the list of input records
+     * @return the list of output records
+     * @throws Exception if the agent fails to process the records
      */
-    List<Record> process(List<Record> record);
+    List<Record> process(List<Record> records) throws Exception;
 
-    default void init(Map<String, Object> configuration) {
+    default void init(Map<String, Object> configuration) throws Exception {
     }
 
-    default void start() {}
-    default void close() {}
+    default void start() throws Exception {}
+    default void close() throws Exception {}
 }

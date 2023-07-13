@@ -7,7 +7,7 @@ import com.datastax.oss.sga.api.runtime.Topic;
 import java.util.HashMap;
 import java.util.Map;
 
-public record KafkaTopic(String name, SchemaDefinition keySchema, SchemaDefinition valueSchema, String createMode)
+public record KafkaTopic(String name, int partitions, SchemaDefinition keySchema, SchemaDefinition valueSchema, String createMode)
         implements Connection, Topic {
     public Map<String,Object> createConsumerConfiguration() {
         Map<String, Object> configuration = new HashMap<>();

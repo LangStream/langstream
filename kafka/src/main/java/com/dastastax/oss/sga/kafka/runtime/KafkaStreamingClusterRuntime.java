@@ -55,7 +55,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     private void deployTopic(AdminClient admin, KafkaTopic topic) {
-        admin.createTopics(List.of(new NewTopic(topic.name(), 1, (short) 1)));
+        admin.createTopics(List.of(new NewTopic(topic.name(), topic.partitions(), (short) 1)));
         // TODO: schema
     }
 
@@ -80,6 +80,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         String name = topicDefinition.getName();
         String creationMode = topicDefinition.getCreationMode();
         KafkaTopic kafkaTopic = new KafkaTopic(name,
+                topicDefinition.getPartitions() <= 0 ? 1 : topicDefinition.getPartitions(),
                 topicDefinition.getKeySchema(),
                 topicDefinition.getValueSchema(),
                 creationMode);

@@ -12,6 +12,7 @@ import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -42,11 +44,11 @@ class KafkaClusterRuntimeDockerTest {
                                 module: "module-1"
                                 id: "pipeline-1"                                
                                 topics:
-                                  - name: "input-topic-cassandra"
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists                                     
+                                  - name: "input-topic-2-partitions"
                                     creation-mode: create-if-not-exists
-                                    schema:
-                                      type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'                               
+                                    partitions: 2                                     
                                 """));
 
         ApplicationDeployer deployer = ApplicationDeployer
@@ -59,18 +61,25 @@ class KafkaClusterRuntimeDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("input-topic-cassandra"))) instanceof KafkaTopic);
+                new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
         deployer.deploy(implementation);
 
         Set<String> topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
-        assertTrue(topics.contains("input-topic-cassandra"));
+        assertTrue(topics.contains("input-topic"));
+        assertTrue(topics.contains("input-topic-2-partitions"));
+
+        Map<String, TopicDescription> stats = admin.describeTopics(Set.of("input-topic", "input-topic-2-partitions")).all().get();
+        assertEquals(1, stats.get("input-topic").partitions().size());
+        assertEquals(2, stats.get("input-topic-2-partitions").partitions().size());
 
         deployer.delete(implementation);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
-        assertFalse(topics.contains("input-topic-cassandra"));
+        assertFalse(topics.contains("input-topic"));
+        assertFalse(topics.contains("input-topic-2-partitions"));
+
     }
 
     private static String buildInstanceYaml() {

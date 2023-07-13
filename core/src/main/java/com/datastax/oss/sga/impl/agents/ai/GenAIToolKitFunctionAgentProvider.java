@@ -22,14 +22,7 @@ import java.util.Objects;
 public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
     private static final Map<String, StepConfigurationInitializer> STEP_TYPES = Map.of(
-            "compute-ai-embeddings", new StepConfigurationInitializer() {
-                @Override
-                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
-                    optionalField(step, agentConfiguration, originalConfiguration, "model", "text-embedding-ada-002");
-                    requiredField(step, agentConfiguration, originalConfiguration, "embeddings-field");
-                    requiredField(step, agentConfiguration, originalConfiguration, "text");
-                }
-            },
+
             "drop-fields", new StepConfigurationInitializer() {
                 @Override
                 public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
@@ -40,26 +33,64 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             "merge-key-value", new StepConfigurationInitializer() {
             },
             "unwrap-key-value", new StepConfigurationInitializer() {
+                @Override
+                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
+                    optionalField(step, agentConfiguration, originalConfiguration, "unwrapKey", null);
+                }
             },
             "cast", new StepConfigurationInitializer() {
                 @Override
                 public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
                     requiredField(step, agentConfiguration, originalConfiguration, "schema-type");
                     optionalField(step, agentConfiguration, originalConfiguration, "part", null);
-                }},
-                "flatten", new StepConfigurationInitializer() {
-                    @Override
-                    public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration)
-                    {
-                        optionalField(step, agentConfiguration, originalConfiguration, "delimiter", null);
-                        optionalField(step, agentConfiguration, originalConfiguration, "part", null);
-                    }},
-            "drop", new StepConfigurationInitializer() {},
+                }
+            },
+            "flatten", new StepConfigurationInitializer() {
+                @Override
+                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
+                    optionalField(step, agentConfiguration, originalConfiguration, "delimiter", null);
+                    optionalField(step, agentConfiguration, originalConfiguration, "part", null);
+                }
+            },
+            "drop", new StepConfigurationInitializer() {
+            },
             "compute", new StepConfigurationInitializer() {
                 @Override
                 public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
                     requiredField(step, agentConfiguration, originalConfiguration, "fields");
-                }}
+                }
+            },
+            "compute-ai-embeddings", new StepConfigurationInitializer() {
+                @Override
+                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
+                    optionalField(step, agentConfiguration, originalConfiguration, "model", "text-embedding-ada-002");
+                    requiredField(step, agentConfiguration, originalConfiguration, "embeddings-field");
+                    requiredField(step, agentConfiguration, originalConfiguration, "text");
+                }
+            },
+            "query", new StepConfigurationInitializer() {
+                @Override
+                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
+                    requiredField(step, agentConfiguration, originalConfiguration, "fields");
+                    requiredField(step, agentConfiguration, originalConfiguration, "query");
+                    requiredField(step, agentConfiguration, originalConfiguration, "output-field");
+                }
+            },
+            "chat-ai-completions", new StepConfigurationInitializer() {
+                @Override
+                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration) {
+                    requiredField(step, agentConfiguration, originalConfiguration, "output-field");
+                    requiredField(step, agentConfiguration, originalConfiguration, "messages");
+                    requiredField(step, agentConfiguration, originalConfiguration, "model");
+                    optionalField(step, agentConfiguration, originalConfiguration, "temperature", null);
+                    optionalField(step, agentConfiguration, originalConfiguration, "top-p", null);
+                    optionalField(step, agentConfiguration, originalConfiguration, "stop", null);
+                    optionalField(step, agentConfiguration, originalConfiguration, "max-tokens", null);
+                    optionalField(step, agentConfiguration, originalConfiguration, "presence-penalty", null);
+                    optionalField(step, agentConfiguration, originalConfiguration, "frequency-penalty", null);
+                    optionalField(step, agentConfiguration, originalConfiguration, "user", null);
+                }
+            }
 
     );
     private final String mainAgentType;

@@ -6,20 +6,20 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SpecDiffer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EmptyDirVolumeSource;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
-import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
+import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import jakarta.inject.Inject;
@@ -31,7 +31,7 @@ import lombok.extern.jbosslog.JBossLog;
 
 @ControllerConfiguration(namespaces = Constants.WATCH_ALL_NAMESPACES, name = "app-controller")
 @JBossLog
-public class AppController implements Reconciler<ApplicationCustomResource> {
+public class AppController implements Reconciler<ApplicationCustomResource>, Cleaner<ApplicationCustomResource> {
 
     @Inject
     KubernetesClient client;
@@ -43,11 +43,31 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
     public UpdateControl<ApplicationCustomResource> reconcile(ApplicationCustomResource application,
                                                               Context<ApplicationCustomResource> context)
             throws Exception {
+        final boolean reschedule = handleJob(application, false);
+        return reschedule ? UpdateControl.updateStatus(application)
+                .rescheduleAfter(5, TimeUnit.SECONDS) : UpdateControl.updateStatus(application);
+    }
+
+    @Override
+    public DeleteControl cleanup(ApplicationCustomResource application,
+                                 Context<ApplicationCustomResource> context) {
+
+        final boolean reschedule = handleJob(application, true);
+        return reschedule ? DeleteControl.defaultDelete()
+                .rescheduleAfter(5, TimeUnit.SECONDS) : DeleteControl.defaultDelete();
+    }
+
+    private boolean handleJob(ApplicationCustomResource application, boolean delete) {
         final String tenant = application.getSpec().getTenant();
         final String appName = application.getMetadata().getName();
 
         final ApplicationSpec spec = application.getSpec();
-        final String jobName = "sga-runtime-deployer-" + appName;
+        final String jobName;
+        if (delete) {
+            jobName = "sga-runtime-deployer-cleanup-" + appName;
+        } else {
+            jobName = "sga-runtime-deployer-" + appName;
+        }
         final String targetNamespace = configuration.namespacePrefix() + tenant;
         final Job currentJob = client.batch().v1().jobs()
                 .inNamespace(targetNamespace)
@@ -55,27 +75,22 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
                 .get();
 
 
-        if (currentJob == null || areSpecChanged(application)) {
-            if (currentJob != null) {
-                client.resource(currentJob).inNamespace(targetNamespace).delete();
-            }
-            createJob(tenant, appName, spec, jobName, targetNamespace);
-            return UpdateControl.updateStatus(application);
+        if (currentJob == null) {
+            createJob(tenant, appName, spec, jobName, targetNamespace, delete);
+            return true;
         } else {
             if (KubeUtil.isJobCompleted(currentJob)) {
                 application.getStatus().setLastApplied(SerializationUtil.writeAsJson(spec));
-                return UpdateControl.updateStatus(application);
+                return false;
             } else {
-                return UpdateControl.updateStatus(application)
-                        .rescheduleAfter(5, TimeUnit.SECONDS);
+                return true;
             }
         }
-
-
     }
 
     @SneakyThrows
-    private void createJob(String tenant, String name, ApplicationSpec spec, String jobName, String targetNamespace) {
+    private void createJob(String tenant, String name, ApplicationSpec spec, String jobName, String targetNamespace,
+                           boolean delete) {
 
         final Map<String, String> config = Map.of("name", name, "application", spec.getApplication());
 
@@ -90,11 +105,13 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
                         .withMountPath("/app-config")
                         .build())
                 .build();
+        final String command = delete ? "delete" : "deploy";
+
         final Container container = new ContainerBuilder()
                 .withName("deployer")
                 .withImage(spec.getImage())
                 .withImagePullPolicy(spec.getImagePullPolicy())
-                .withArgs("deployer-runtime", "/app-config/config", "/app-secrets/secrets")
+                .withArgs("deployer-runtime", command, "/app-config/config", "/app-secrets/secrets")
                 .withVolumeMounts(new VolumeMountBuilder()
                                 .withName("app-config")
                                 .withMountPath("/app-config")
@@ -122,9 +139,9 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
                 .endMetadata()
                 .withNewSpec()
                 .withVolumes(new VolumeBuilder()
-                        .withName("app-config")
-                        .withEmptyDir(new EmptyDirVolumeSource())
-                        .build(),
+                                .withName("app-config")
+                                .withEmptyDir(new EmptyDirVolumeSource())
+                                .build(),
                         new VolumeBuilder()
                                 .withName("app-secrets")
                                 .withNewSecret()

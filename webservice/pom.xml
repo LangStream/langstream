@@ -18,7 +18,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<springdoc-openapi-starter-webmvc.version>2.1.0</springdoc-openapi-starter-webmvc.version>
 		<jib-maven-plugin.version>3.3.1</jib-maven-plugin.version>
-    <kindcontainer.version>1.4.1</kindcontainer.version>
+
   </properties>
 
 	<dependencies>
@@ -132,7 +132,6 @@
 		<dependency>
 			<groupId>com.dajudge.kindcontainer</groupId>
 			<artifactId>kindcontainer</artifactId>
-			<version>${kindcontainer.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

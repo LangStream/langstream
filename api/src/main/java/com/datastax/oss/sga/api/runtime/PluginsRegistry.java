@@ -13,9 +13,7 @@ public class PluginsRegistry {
                 .stream()
                 .filter(p -> {
                     AgentNodeProvider agentImplementationProvider = p.get();
-                    boolean success = agentImplementationProvider.supports(type, clusterRuntime);
-                    log.info("Tested {}: result {}", agentImplementationProvider, success);
-                    return success;
+                    return agentImplementationProvider.supports(type, clusterRuntime);
                 })
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No AgentImplementationProvider found for type " + type

@@ -96,9 +96,9 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
         if (previousAgent != null && agentImplementationProvider.canMerge(previousAgent, agentImplementation)) {
             agentImplementation = agentImplementationProvider.mergeAgents(previousAgent, agentImplementation, result);
+        } else {
+            result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
         }
-
-        result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
 
         return agentImplementation;
     }

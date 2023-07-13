@@ -9,11 +9,12 @@ import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class GenericPulsarSinkAgentProvider extends AbstractPulsarAgentProvider {
 
     public GenericPulsarSinkAgentProvider() {
-        super(List.of("sink"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
+        super(Set.of("sink"), List.of(PulsarClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override

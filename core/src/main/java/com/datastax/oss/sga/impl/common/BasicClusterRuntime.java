@@ -72,7 +72,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             for (Pipeline pipeline : module.getPipelines().values()) {
                 log.info("Pipeline: {}", pipeline.getName());
                 AgentNode previousAgent = null;
-                for (AgentConfiguration agentConfiguration : pipeline.getAgents().values()) {
+                for (AgentConfiguration agentConfiguration : pipeline.getAgents()) {
                     previousAgent = buildAgent(module, agentConfiguration, result, pluginsRegistry,
                             streamingClusterRuntime, previousAgent);
                 }
@@ -96,9 +96,9 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
         if (previousAgent != null && agentImplementationProvider.canMerge(previousAgent, agentImplementation)) {
             agentImplementation = agentImplementationProvider.mergeAgents(previousAgent, agentImplementation, result);
+        } else {
+            result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
         }
-
-        result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
 
         return agentImplementation;
     }

@@ -9,11 +9,12 @@ import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class GenericAgentProvider extends AbstractAgentProvider {
 
     public GenericAgentProvider() {
-        super(List.of("generic-agent"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
+        super(Set.of("generic-agent"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override

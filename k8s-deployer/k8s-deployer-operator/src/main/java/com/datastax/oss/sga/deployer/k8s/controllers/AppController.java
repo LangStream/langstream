@@ -40,7 +40,8 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
     DeployerConfiguration configuration;
 
     @Override
-    public UpdateControl<ApplicationCustomResource> reconcile(ApplicationCustomResource application, Context<ApplicationCustomResource> context)
+    public UpdateControl<ApplicationCustomResource> reconcile(ApplicationCustomResource application,
+                                                              Context<ApplicationCustomResource> context)
             throws Exception {
         final String tenant = application.getSpec().getTenant();
         final String appName = application.getMetadata().getName();
@@ -93,11 +94,15 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
                 .withName("deployer")
                 .withImage(spec.getImage())
                 .withImagePullPolicy(spec.getImagePullPolicy())
-                .withArgs("deployer-runtime", "/app-config/config")
+                .withArgs("deployer-runtime", "/app-config/config", "/app-secrets/secrets")
                 .withVolumeMounts(new VolumeMountBuilder()
-                        .withName("app-config")
-                        .withMountPath("/app-config")
-                        .build())
+                                .withName("app-config")
+                                .withMountPath("/app-config")
+                                .build(),
+                        new VolumeMountBuilder()
+                                .withName("app-secrets")
+                                .withMountPath("/app-secrets")
+                                .build())
                 .withNewResources()
                 .withRequests(Map.of("cpu", Quantity.parse("100m"), "memory", Quantity.parse("128Mi")))
                 .endResources()
@@ -119,7 +124,13 @@ public class AppController implements Reconciler<ApplicationCustomResource> {
                 .withVolumes(new VolumeBuilder()
                         .withName("app-config")
                         .withEmptyDir(new EmptyDirVolumeSource())
-                        .build()
+                        .build(),
+                        new VolumeBuilder()
+                                .withName("app-secrets")
+                                .withNewSecret()
+                                .withSecretName(name)
+                                .endSecret()
+                                .build()
                 )
                 .withInitContainers(List.of(initContainer))
                 .withContainers(List.of(container))

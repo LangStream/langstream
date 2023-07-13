@@ -2,8 +2,7 @@ configuration:
   resources:
     - type: "open-ai-configuration"
       name: "OpenAI Azure configuration"
-      id: "openai-configuration"
       configuration:
         url: "https://put-here-you-api-server"
         access-key: "put-here-you-api-key"
-        provider": "azure"
+        provider: "azure"

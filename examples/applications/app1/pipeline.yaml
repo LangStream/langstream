@@ -12,6 +12,5 @@ pipeline:
     type: "cassandra-sink"
     input: "input-topic"
     configuration:
-      credentials: "#secrets.db-credentials"
-      table: "#globals.tableName"
+      table: "{{globals.tableName}}"
       mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"

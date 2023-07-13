@@ -17,7 +17,6 @@ pipeline:
   - name: "function2"
     id: "function-2-id"
     type: "function"
-    # the input is implicitly an intermediate topic
     output: "output-topic"
     configuration:
       functionType: "transforms"

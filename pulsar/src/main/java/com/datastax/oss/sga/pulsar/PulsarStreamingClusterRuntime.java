@@ -114,28 +114,20 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
             if (allSchemas.isEmpty()) {
                 log.info("Deploying schema for topic {}", topicName);
 
-                SchemaInfo schemaInfo = SchemaInfo
-                        .builder()
-                        .type(SchemaType.valueOf(topic.valueSchema().name().toUpperCase()))
-                        .name(topic.valueSchema().name())
-                        .properties(Map.of())
-                        .schema(topic.valueSchema().schema().getBytes(StandardCharsets.UTF_8))
-                        .build();
+                SchemaInfo schemaInfo = getSchemaInfo(topic.valueSchema());
+                log.info("Value schema {}", schemaInfo);
                 if (topic.keySchema() != null) {
                     // KEY VALUE
-                    SchemaInfo keySchemaInfo = SchemaInfo
-                            .builder()
-                            .type(SchemaType.valueOf(topic.keySchema().name().toUpperCase()))
-                            .name(topic.keySchema().name())
-                            .properties(Map.of())
-                            .schema(topic.keySchema().schema().getBytes(StandardCharsets.UTF_8))
-                            .build();
+                    SchemaInfo keySchemaInfo = getSchemaInfo(topic.keySchema());
+                    log.info("Key schema {}", keySchemaInfo);
 
                     schemaInfo = KeyValueSchemaInfo
                             .encodeKeyValueSchemaInfo(topic.valueSchema().name(),
                                     keySchemaInfo,
                                     schemaInfo,
                                     KeyValueEncodingType.SEPARATED);
+
+                    log.info("KeyValue schema {}", schemaInfo);
 
                 }
 
@@ -144,6 +136,18 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
                 log.info("Topic {} already has some schemas, skipping. ({})", topicName, allSchemas);
             }
         }
+    }
+
+    private static SchemaInfo getSchemaInfo(SchemaDefinition logicalSchemaDefinition) {
+        SchemaType pulsarSchemaType = SchemaType.valueOf(logicalSchemaDefinition.type().toUpperCase());
+        SchemaInfo keySchemaInfo = SchemaInfo
+                .builder()
+                .type(pulsarSchemaType)
+                .name(logicalSchemaDefinition.name())
+                .properties(Map.of())
+                .schema(logicalSchemaDefinition.schema() != null ? logicalSchemaDefinition.schema().getBytes(StandardCharsets.UTF_8) : new byte[0])
+                .build();
+        return keySchemaInfo;
     }
 
     private static void deleteTopic(PulsarAdmin admin, PulsarTopic topic) throws PulsarAdminException {

@@ -16,6 +16,7 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.common.functions.FunctionConfig;
+import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,20 @@ class PulsarClusterRuntimeDockerTest {
                                     schema:
                                       type: avro
                                       schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                  - name: "input-topic-partitioned"
+                                    creation-mode: create-if-not-exists
+                                    partitions: 2  
+                                    schema:
+                                      type: avro
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                  - name: "input-topic-partitioned-keyvalue"
+                                    creation-mode: create-if-not-exists
+                                    partitions: 3
+                                    keySchema:
+                                      type: string  
+                                    schema:
+                                      type: avro
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
                                 pipeline:
                                 """));
 
@@ -65,10 +80,18 @@ class PulsarClusterRuntimeDockerTest {
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         deployer.deploy(implementation);
 
-        // verify that the topic exists
+        // verify that the topic exist
         admin.topics().getStats("public/default/input-topic");
-        // verify that the topic has a schema
-        admin.schemas().getSchemaInfo("public/default/input-topic");
+        assertEquals(2, admin.topics().getPartitionedStats("public/default/input-topic-partitioned", false).getMetadata().partitions);
+        assertEquals(3, admin.topics().getPartitionedStats("public/default/input-topic-partitioned-keyvalue", false).getMetadata().partitions);
+
+        // verify that the topic have a schema
+        assertEquals(SchemaType.AVRO, admin.schemas().getSchemaInfo("public/default/input-topic").getType());
+        assertEquals(SchemaType.AVRO, admin.schemas().getSchemaInfo("public/default/input-topic-partitioned").getType());
+        assertEquals(SchemaType.KEY_VALUE, admin.schemas().getSchemaInfo("public/default/input-topic-partitioned-keyvalue").getType());
+
+        // deploy again, should not fail
+        deployer.deploy(implementation);
     }
 
     @Test

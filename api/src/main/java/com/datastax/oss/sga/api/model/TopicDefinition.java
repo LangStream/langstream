@@ -34,23 +34,16 @@ public class TopicDefinition extends Connection.Connectable {
     }
 
     public static TopicDefinition fromName(String name) {
-        TopicDefinition topicDefinition = new TopicDefinition();
-        topicDefinition.setName(name);
-        return topicDefinition;
+        return new TopicDefinition(name, CREATE_MODE_NONE, 0, null, null);
     }
 
-    public TopicDefinition(String name,
-                           String creationMode,
-                           SchemaDefinition keySchema,
-                           SchemaDefinition valueSchema) {
-        this(name, creationMode, 1, keySchema, valueSchema);
-    }
 
     public TopicDefinition(String name,
                            String creationMode,
                            int partitions,
                            SchemaDefinition keySchema,
                            SchemaDefinition valueSchema) {
+        this();
         this.name = name;
         if (creationMode == null) {
             this.creationMode = CREATE_MODE_NONE;

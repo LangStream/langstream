@@ -27,6 +27,8 @@ spec:
                 type: string
               tenant:
                 type: string
+            required:
+            - tenant
             type: object
           status:
             properties:

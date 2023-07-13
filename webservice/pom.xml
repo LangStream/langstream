@@ -223,5 +223,31 @@
 		</plugins>
 		<defaultGoal>spring-boot:run</defaultGoal>
 	</build>
+	<profiles>
+		<profile>
+			<id>docker</id>
+			<activation>
+				<property>
+					<name>docker</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+					<groupId>com.google.cloud.tools</groupId>
+					<artifactId>jib-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<goals>
+									<goal>dockerBuild</goal>
+								</goals>
+								<phase>package</phase>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

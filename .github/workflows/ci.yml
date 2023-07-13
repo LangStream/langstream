@@ -32,5 +32,5 @@ jobs:
       - name: 'Test: run tests'
         run: |
           chmod +x mvnw
-          ./mvnw clean verify
+          ./mvnw clean verify -Pdocker
 

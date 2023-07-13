@@ -1,10 +1,5 @@
 #!/bin/bash
 set -e
 
-# Control plane
-./mvnw package jib:dockerBuild -pl webservice -am -DskipTests
-echo "Image built successfully: datastax/sga-control-plane:latest-dev"
-./mvnw package -pl :k8s-deployer-operator -am -DskipTests
-echo "Image built successfully: datastax/sga-deployer:latest-dev"
-./mvnw package jib:dockerBuild -pl runtime -am -DskipTests
-echo "Image built successfully: datastax/sga-runtime:latest-dev"
+./mvnw package -am -DskipTests -Pdocker
+docker images | head -n 4

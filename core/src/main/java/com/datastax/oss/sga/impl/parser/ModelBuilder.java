@@ -116,7 +116,7 @@ public class ModelBuilder {
                     id = r.name();
                 }
                 if (id == null) {
-                    throw new RuntimeException("Resource 'id' is required");
+                    throw new RuntimeException("Resource 'name' is required");
                 }
                 application.getResources().put(id, r);
             });

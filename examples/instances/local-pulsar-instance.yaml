@@ -1,4 +1,6 @@
 instance:
+  globals:
+    tableName: "vsearch.products"
   streamingCluster:
     type: "pulsar"
     configuration:

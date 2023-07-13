@@ -67,7 +67,7 @@ class KafkaRunnerDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic", null, null))) instanceof KafkaTopic);
+                new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
         deployer.deploy(implementation);
 

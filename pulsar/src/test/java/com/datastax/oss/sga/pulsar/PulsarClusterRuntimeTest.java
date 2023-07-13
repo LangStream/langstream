@@ -38,7 +38,7 @@ class PulsarClusterRuntimeTest {
                                   - name: "input-topic-cassandra"
                                     creation-mode: create-if-not-exists
                                     schema:
-                                      type: avro
+                                      type: avro                                      
                                       schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
                                 pipeline:
                                   - name: "sink1"
@@ -59,7 +59,7 @@ class PulsarClusterRuntimeTest {
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic-cassandra", null, null))) instanceof PulsarTopic);
+                new Connection(TopicDefinition.fromName("input-topic-cassandra"))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic-cassandra");
         assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
 
@@ -129,7 +129,7 @@ class PulsarClusterRuntimeTest {
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+                new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
         assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
 
@@ -175,7 +175,7 @@ class PulsarClusterRuntimeTest {
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+                new Connection(TopicDefinition.fromName("output-topic"))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
         assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
 
@@ -227,13 +227,13 @@ class PulsarClusterRuntimeTest {
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
-                    new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+                    new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
         {
             assertTrue(implementation.getConnectionImplementation(module,
-                    new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+                    new Connection(TopicDefinition.fromName("output-topic"))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
@@ -297,20 +297,20 @@ class PulsarClusterRuntimeTest {
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
-                    new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+                    new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
         {
             assertTrue(implementation.getConnectionImplementation(module,
-                    new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+                    new Connection(TopicDefinition.fromName("output-topic"))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
 
         {
             assertTrue(implementation.getConnectionImplementation(module, new Connection(
-                    new TopicDefinition("agent-function-1-id-output", null, null))) instanceof PulsarTopic);
+                    TopicDefinition.fromName("agent-function-1-id-output"))) instanceof PulsarTopic);
             PulsarName pulsarName = new PulsarName("public", "default", "agent-function-1-id-output");
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
@@ -392,9 +392,9 @@ class PulsarClusterRuntimeTest {
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+                new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+                new Connection(TopicDefinition.fromName("output-topic"))) instanceof PulsarTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         // use the standard toolkit
@@ -577,9 +577,9 @@ class PulsarClusterRuntimeTest {
         // verify that the intermediate topic is not created
         log.info("topics {}", implementation.getTopics());
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("input-topic", null, null))) instanceof PulsarTopic);
+                new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(new TopicDefinition("output-topic", null, null))) instanceof PulsarTopic);
+                new Connection(TopicDefinition.fromName("output-topic"))) instanceof PulsarTopic);
         assertEquals(2, implementation.getTopics().size());
 
     }

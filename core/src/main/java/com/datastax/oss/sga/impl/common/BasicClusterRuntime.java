@@ -22,6 +22,9 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
+
+    private static final int DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS = 0;
+
     @Override
     public ExecutionPlan buildExecutionPlan(Application application,
                                             PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime) {
@@ -134,7 +137,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
         log.info("Automatically creating topic {} in order to connect agent {}", name, agentConfiguration.getId());
         // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
         String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
-        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, null);
+        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS, null, null);
         Topic topicImplementation = streamingClusterRuntime.createTopicImplementation(topicDefinition, physicalApplicationInstance);
         physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);
 

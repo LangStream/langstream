@@ -58,6 +58,9 @@ public final class ExecutionPlan {
      */
     public Connection getConnectionImplementation(Module module, com.datastax.oss.sga.api.model.Connection connection) {
         com.datastax.oss.sga.api.model.Connection.Connectable endpoint = connection.endpoint();
+        if (endpoint.getConnectableType() == null) {
+            throw new IllegalArgumentException("Connection " + connection + " has no connectable endpoint");
+        }
         switch (endpoint.getConnectableType()) {
             case com.datastax.oss.sga.api.model.Connection.Connectables.AGENT:
                 return getAgentImplementation(module, ((AgentConfiguration) endpoint).getId());

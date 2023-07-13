@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.impl.storage.k8s.apps;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,12 +14,12 @@ public class KubernetesApplicationStoreProperties {
     @NoArgsConstructor
     public static class DeployerRuntimeConfig {
         private String image;
-        @JsonProperty("image-pull-policy")
+        @JsonAlias({"image-pull-policy", "imagepullpolicy"})
         private String imagePullPolicy;
     }
 
 
-    @JsonProperty("deployer-runtime")
+    @JsonAlias({"deployer-runtime", "deployerruntime"})
     private DeployerRuntimeConfig deployerRuntime;
 
 }

@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+
+# need this for relative symlinks
+PRG="$0"
+while [ -h "$PRG" ] ; do
+  ls=`ls -ld "$PRG"`
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '/.*' > /dev/null; then
+    PRG="$link"
+  else
+    PRG="`dirname "$PRG"`/$link"
+  fi
+done
+
+BINDIR=$(dirname "$PRG")
+ROOT_DIR=`cd -P $BINDIR/..;pwd`
+
+cd $ROOT_DIR
+if [ ! -d cli/target/cli ]; then
+  ./mvnw clean install -DskipTests -pl cli -am
+fi
+
+"cli/target/cli/bin/cli" "$@"
+
+

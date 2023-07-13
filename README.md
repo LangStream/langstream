@@ -5,6 +5,13 @@ Streaming Gen AI Project
 
 ## Run in local Kubernetes (minikube)
 
+### Requirements
+- Minikube
+- Helm
+- Docker
+- Java 17
+
+
 ```
 brew install minikube
 minikube start

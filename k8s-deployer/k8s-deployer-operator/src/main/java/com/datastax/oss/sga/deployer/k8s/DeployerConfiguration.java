@@ -27,6 +27,7 @@ public interface DeployerConfiguration {
     String namespacePrefix();
 
     // workaround: quarkus doesn't support dynamic maps
+    @WithDefault("{}")
     String clusterRuntime();
 
 }

@@ -50,14 +50,14 @@ public class AppController extends BaseController<ApplicationCustomResource> {
 
     private boolean handleJob(ApplicationCustomResource application, boolean delete) {
         final String tenant = application.getSpec().getTenant();
-        final String appName = application.getMetadata().getName();
+        final String appId = application.getMetadata().getName();
 
         final ApplicationSpec spec = application.getSpec();
         final String jobName;
         if (delete) {
-            jobName = "sga-runtime-deployer-cleanup-" + appName;
+            jobName = "sga-runtime-deployer-cleanup-" + appId;
         } else {
-            jobName = "sga-runtime-deployer-" + appName;
+            jobName = "sga-runtime-deployer-" + appId;
         }
         final String targetNamespace = configuration.namespacePrefix() + tenant;
         final Job currentJob = client.batch().v1().jobs()
@@ -67,7 +67,7 @@ public class AppController extends BaseController<ApplicationCustomResource> {
 
 
         if (currentJob == null) {
-            createJob(tenant, appName, spec, jobName, targetNamespace, delete);
+            createJob(tenant, appId, spec, jobName, targetNamespace, delete);
             return true;
         } else {
             if (KubeUtil.isJobCompleted(currentJob)) {
@@ -79,11 +79,11 @@ public class AppController extends BaseController<ApplicationCustomResource> {
     }
 
     @SneakyThrows
-    private void createJob(String tenant, String name, ApplicationSpec spec, String jobName, String targetNamespace,
+    private void createJob(String tenant, String appId, ApplicationSpec spec, String jobName, String targetNamespace,
                            boolean delete) {
 
         final Map<String, String> config = Map.of(
-                "name", name,
+                "applicationId", appId,
                 "application", spec.getApplication(),
                 "tenant", tenant);
 
@@ -155,7 +155,7 @@ public class AppController extends BaseController<ApplicationCustomResource> {
                         new VolumeBuilder()
                                 .withName("app-secrets")
                                 .withNewSecret()
-                                .withSecretName(name)
+                                .withSecretName(appId)
                                 .endSecret()
                                 .build(),
                         new VolumeBuilder()

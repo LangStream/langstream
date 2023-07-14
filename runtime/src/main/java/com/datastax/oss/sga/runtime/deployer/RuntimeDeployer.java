@@ -7,7 +7,6 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
@@ -79,7 +78,7 @@ public class RuntimeDeployer {
                                RuntimeDeployerConfiguration configuration, Secrets secrets) throws IOException {
 
 
-        final String applicationId = configuration.getName();
+        final String applicationId = configuration.getApplicationId();
         log.info("Deploying application {}", applicationId);
         final String applicationConfig = configuration.getApplication();
 
@@ -103,7 +102,7 @@ public class RuntimeDeployer {
                                Secrets secrets) throws IOException {
 
 
-        final String applicationId = configuration.getName();
+        final String applicationId = configuration.getApplicationId();
         final String applicationConfig = configuration.getApplication();
 
         final Application appInstance =

@@ -9,6 +9,7 @@ import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
+import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.runtime.agent.AgentSpec;
 import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
@@ -22,6 +23,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
@@ -41,9 +43,14 @@ class GenIAgentsRunnerTest {
     private static KafkaContainer kafkaContainer;
     private static AdminClient admin;
 
+    @RegisterExtension
+    static final KubeTestServer kubeServer = new KubeTestServer();
+
 
     @Test
     public void testRunAITools() throws Exception {
+        kubeServer.spyAgentCustomResources("tenant", "step1");
+
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),

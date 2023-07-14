@@ -13,7 +13,7 @@ import java.util.Map;
 public class KubernetesClusterRuntimeConfiguration {
 
     @JsonAlias({"namespace-prefix", "namespaceprefix"})
-    private String namespacePrefix;
+    private String namespacePrefix = "";
     private String image;
     @JsonAlias({"image-pull-policy", "imagepullpolicy"})
     private String imagePullPolicy;

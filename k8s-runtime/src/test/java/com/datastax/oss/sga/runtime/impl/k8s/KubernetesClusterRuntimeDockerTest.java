@@ -12,26 +12,15 @@ import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
-import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
+import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.fabric8.kubernetes.client.Config;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.internal.KubeConfigUtils;
-import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.HashMap;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
@@ -48,12 +37,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class KubernetesClusterRuntimeDockerTest {
 
     private static KafkaContainer kafkaContainer;
-    private static KubeServer kubeServer;
+    @RegisterExtension
+    static final KubeTestServer kubeServer = new KubeTestServer();
 
     @Test
     public void testMapGenericAgent() throws Exception {
         final String tenant = "tenant";
-        final Map<String, AgentCustomResource> agentsCRs = spyAgents("sga-tenant", "sink-1-id");
+        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-tenant", "sink-1-id");
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -125,7 +115,7 @@ class KubernetesClusterRuntimeDockerTest {
     @Test
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
         final String tenant = "tenant";
-        final Map<String, AgentCustomResource> agentsCRs = spyAgents("sga-" + tenant, "step1");
+        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-" + tenant, "step1");
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -233,61 +223,6 @@ class KubernetesClusterRuntimeDockerTest {
                 """.formatted(kafkaContainer.getBootstrapServers());
     }
 
-    private static class KubeServer extends KubernetesMockServer {
-        @Override
-        @SneakyThrows
-        public void init() {
-            super.init();
-            KubernetesClientFactory.set(null, createClient());
-        }
-
-        @Override
-        public void destroy() {
-            super.destroy();
-            KubernetesClientFactory.clear();
-        }
-    }
-
-    private Map<String, AgentCustomResource> spyAgents(final String namespace, String... expectedAgents) {
-
-
-        Map<String, AgentCustomResource> agents = new HashMap<>();
-        for (String agentId : expectedAgents) {
-            final String fullPath =
-                    "/apis/sga.oss.datastax.com/v1alpha1/namespaces/%s/agents/%s?fieldManager=fabric8".formatted(
-                            namespace, agentId);
-            System.out.println("mocking: " + fullPath);
-            kubeServer
-                    .expect()
-                    .patch()
-                    .withPath(fullPath)
-                    .andReply(
-                            HttpURLConnection.HTTP_OK,
-                            recordedRequest -> {
-                                try {
-                                    final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                                    recordedRequest.getBody().copyTo(byteArrayOutputStream);
-                                    final ObjectMapper mapper = new ObjectMapper();
-                                    final AgentCustomResource agent =
-                                            mapper.readValue(byteArrayOutputStream.toByteArray(),
-                                                    AgentCustomResource.class);
-                                    agents.put(agent.getMetadata().getName(), agent);
-                                    return agent;
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-                    ).always();
-        }
-        return agents;
-    }
-
-
-    @BeforeEach
-    public void beforeEach() throws Exception {
-        kubeServer.reset();
-
-    }
 
     @BeforeAll
     public static void setup() throws Exception {
@@ -300,17 +235,12 @@ class KubernetesClusterRuntimeDockerTest {
                 });
         // start Pulsar and wait for it to be ready to accept requests
         kafkaContainer.start();
-        kubeServer = new KubeServer();
-        kubeServer.init();
     }
 
     @AfterAll
     public static void teardown() {
         if (kafkaContainer != null) {
             kafkaContainer.close();
-        }
-        if (kubeServer != null) {
-            kubeServer.destroy();
         }
     }
 

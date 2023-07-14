@@ -89,12 +89,14 @@ public class AppControllerIT {
             int args = 0;
             assertEquals("deployer-runtime", container.getArgs().get(args++));
             assertEquals("delete", container.getArgs().get(args++));
+            assertEquals("/cluster-runtime-config/config", container.getArgs().get(args++));
             assertEquals("/app-config/config", container.getArgs().get(args++));
             assertEquals("/app-secrets/secrets", container.getArgs().get(args++));
         } else {
             int args = 0;
             assertEquals("deployer-runtime", container.getArgs().get(args++));
             assertEquals("deploy", container.getArgs().get(args++));
+            assertEquals("/cluster-runtime-config/config", container.getArgs().get(args++));
             assertEquals("/app-config/config", container.getArgs().get(args++));
             assertEquals("/app-secrets/secrets", container.getArgs().get(args++));
         }
@@ -105,9 +107,12 @@ public class AppControllerIT {
         assertEquals("deployer-init-config", initContainer.getName());
         assertEquals("/app-config", initContainer.getVolumeMounts().get(0).getMountPath());
         assertEquals("app-config", initContainer.getVolumeMounts().get(0).getName());
+        assertEquals("/cluster-runtime-config", initContainer.getVolumeMounts().get(1).getMountPath());
+        assertEquals("cluster-runtime-config", initContainer.getVolumeMounts().get(1).getName());
         assertEquals("bash", initContainer.getCommand().get(0));
         assertEquals("-c", initContainer.getCommand().get(1));
-        assertEquals("echo '{\"application\":\"{app: true}\",\"name\":\"test-app\"}' > /app-config/config", initContainer.getArgs().get(0));
+        assertEquals("echo '{\"application\":\"{app: true}\",\"name\":\"test-app\"}' > /app-config/config && echo "
+                + "'{}' > /cluster-runtime-config/config", initContainer.getArgs().get(0));
     }
 
     private ApplicationCustomResource getCr(String yaml) {

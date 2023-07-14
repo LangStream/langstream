@@ -79,7 +79,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
             if (customMetadata instanceof PulsarAgentNodeMetadata pulsarComponentMetadata) {
                 switch (pulsarComponentMetadata.getComponentType()) {
                     case SINK: {
-                        deployySink(admin, agentImpl, pulsarComponentMetadata);
+                        deploySink(admin, agentImpl, pulsarComponentMetadata);
                         return;
                     }
                     case SOURCE: {
@@ -153,7 +153,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
         admin.sources().createSource(sourceConfig, null);
     }
 
-    private static void deployySink(PulsarAdmin admin, DefaultAgentNode agentImpl, PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
+    private static void deploySink(PulsarAdmin admin, DefaultAgentNode agentImpl, PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
         PulsarName pulsarName = pulsarComponentMetadata.getPulsarName();
 
         PulsarTopic topic = (PulsarTopic) agentImpl.getInputConnection();
@@ -180,7 +180,49 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
     }
 
     @Override
+    @SneakyThrows
     public void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
-        throw new UnsupportedOperationException();
+        Application logicalInstance = applicationInstance.getApplication();
+        streamingClusterRuntime.delete(applicationInstance);
+
+        try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
+            for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
+                deleteAgent(admin, agentImplementation);
+            }
+        }
+
+    }
+
+    private static void deleteAgent(PulsarAdmin admin, AgentNode agent) throws PulsarAdminException {
+        if (agent instanceof DefaultAgentNode agentImpl) {
+            Object customMetadata = agentImpl.getCustomMetadata();
+            if (customMetadata instanceof PulsarAgentNodeMetadata pulsarComponentMetadata) {
+                PulsarName pulsarName = pulsarComponentMetadata.getPulsarName();
+                try {
+                    switch (pulsarComponentMetadata.getComponentType()) {
+                        case SINK: {
+                            log.info("Deleting Sink {}", pulsarName);
+                            admin.sinks().deleteSink(pulsarName.tenant(), pulsarName.namespace(), pulsarName.name());
+                            return;
+                        }
+                        case SOURCE: {
+                            log.info("Deleting Source {}", pulsarName);
+                            admin.sources().deleteSource(pulsarName.tenant(), pulsarName.namespace(), pulsarName.name());
+                            return;
+                        }
+                        case FUNCTION: {
+                            log.info("Deleting Function {}", pulsarName);
+                            admin.functions().deleteFunction(pulsarName.tenant(), pulsarName.namespace(), pulsarName.name());
+                            return;
+                        }
+                        default:
+                            throw new IllegalArgumentException("Unsupported Agent type " + agent.getClass().getName());
+                    }
+                } catch (PulsarAdminException.NotFoundException notFoundException) {
+                    log.info("Component {} not found (maybe this it no a problem)", pulsarName, notFoundException);
+                }
+            }
+        }
+        throw new IllegalArgumentException("Unsupported Agent type " + agent.getClass().getName());
     }
 }

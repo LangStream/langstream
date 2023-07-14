@@ -112,12 +112,13 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         if (topic.valueSchema() != null) {
             List<SchemaInfo> allSchemas = admin.schemas().getAllSchemas(topicName);
             if (allSchemas.isEmpty()) {
-                log.info("Deploying schema for topic {}", topicName);
+                log.info("Deploying schema for topic {}: {}", topicName, topic.valueSchema());
 
                 SchemaInfo schemaInfo = getSchemaInfo(topic.valueSchema());
                 log.info("Value schema {}", schemaInfo);
                 if (topic.keySchema() != null) {
                     // KEY VALUE
+                    log.info("Deploying key schema for topic {}: {}", topicName, topic.keySchema());
                     SchemaInfo keySchemaInfo = getSchemaInfo(topic.keySchema());
                     log.info("Key schema {}", keySchemaInfo);
 
@@ -155,9 +156,16 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         String fullyQualifiedName = TopicName.get(topicName).toString();
         log.info("Deleting topic {}", fullyQualifiedName);
         try {
-            admin
-                    .topics()
-                    .delete(fullyQualifiedName, true);
+            if (topic.partitions() <= 0) {
+                admin
+                        .topics()
+                        .delete(fullyQualifiedName, true);
+            } else {
+                admin
+                        .topics()
+                        .deletePartitionedTopic(fullyQualifiedName, true);
+
+            }
         } catch (PulsarAdminException.NotFoundException notFoundException) {
             log.info("Topic {} didn't exit. Not a problem", fullyQualifiedName);
         }
@@ -197,11 +205,11 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, Connection inputConnection) {
-        throw new UnsupportedOperationException("Not needed for Pulsar at the moment");
+        return Map.of();
     }
 
     @Override
     public Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, Connection outputConnection) {
-        throw new UnsupportedOperationException("Not needed for Pulsar at the moment");
+        return Map.of();
     }
 }

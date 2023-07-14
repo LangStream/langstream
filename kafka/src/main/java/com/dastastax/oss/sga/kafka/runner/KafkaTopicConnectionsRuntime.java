@@ -90,6 +90,11 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         public String origin() {
             return record.topic();
         }
+
+        @Override
+        public Long timestamp() {
+            return record().timestamp();
+        }
     }
 
     @Override

@@ -84,6 +84,7 @@ public class GenAIToolKitAgent implements AgentCode  {
             context.setKeyNativeSchema(((GenericRecord) record.value()).getSchema());
         }
         context.setInputTopic(record.origin());
+        context.setEventTime(record.timestamp());
         return context;
     }
 
@@ -109,6 +110,11 @@ public class GenAIToolKitAgent implements AgentCode  {
         @Override
         public String origin() {
             return context.getInputTopic();
+        }
+
+        @Override
+        public Long timestamp() {
+            return context().getEventTime();
         }
     }
 

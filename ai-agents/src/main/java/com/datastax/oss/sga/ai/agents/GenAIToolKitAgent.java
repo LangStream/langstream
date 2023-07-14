@@ -83,6 +83,7 @@ public class GenAIToolKitAgent implements AgentCode  {
         if (record.value() instanceof GenericRecord) {
             context.setKeyNativeSchema(((GenericRecord) record.value()).getSchema());
         }
+        context.setInputTopic(record.origin());
         return context;
     }
 
@@ -90,10 +91,25 @@ public class GenAIToolKitAgent implements AgentCode  {
         if (context.isDropCurrentRecord()) {
             return Optional.empty();
         }
-        return Optional.of(new TransformRecord(context.getKeyObject(), context.getValueObject()));
+        return Optional.of(new TransformRecord(context));
     }
 
-    private record TransformRecord(Object key, Object value) implements Record {
+    private record TransformRecord(TransformContext context) implements Record {
+
+        @Override
+        public Object key() {
+            return context.getKeyObject();
+        }
+
+        @Override
+        public Object value() {
+            return context.getValueObject();
+        }
+
+        @Override
+        public String origin() {
+            return context.getInputTopic();
+        }
     }
 
     private static TransformSchemaType getSchemaType(Class<?> javaType) {

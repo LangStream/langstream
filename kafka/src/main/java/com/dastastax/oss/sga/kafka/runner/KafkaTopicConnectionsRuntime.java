@@ -50,7 +50,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
                 ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(1));
                 List<Record> result = new ArrayList<>(poll.count());
                 for (ConsumerRecord<?,?> record : poll) {
-                    result.add(new KafkaRecord(record.key(), record.value()));
+                    result.add(new KafkaRecord(record));
                 }
                 log.info("Received {} records from Kafka {}", result.size(), result);
                 return result;
@@ -74,7 +74,22 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
     }
 
-    private record KafkaRecord (Object key, Object value) implements Record {
+    private record KafkaRecord(ConsumerRecord<?, ?> record) implements Record {
+
+        @Override
+        public Object key() {
+            return record.key();
+        }
+
+        @Override
+        public Object value() {
+            return record.value();
+        }
+
+        @Override
+        public String origin() {
+            return record.topic();
+        }
     }
 
     @Override

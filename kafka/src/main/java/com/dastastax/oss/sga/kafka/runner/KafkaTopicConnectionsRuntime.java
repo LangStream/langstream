@@ -24,41 +24,16 @@ import java.util.Map;
 @Slf4j
 public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
     @Override
-    public TopicConsumer createConsumer(StreamingCluster streamingCluster, Map<String, Object> configuration) {
+    public TopicConsumer createConsumer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
 
         Map<String, Object> copy = new HashMap<>(configuration);
-        applyDefaultConfiguration(streamingCluster, copy);
+        applyDefaultConfiguration(agentId, streamingCluster, copy);
         String topicName = (String) copy.remove("topic");
 
-        return new TopicConsumer() {
-            KafkaConsumer consumer;
-            @Override
-            public void start() {
-                consumer = new KafkaConsumer(copy);
-                consumer.subscribe(List.of(topicName));
-            }
-
-            @Override
-            public void close() {
-                if (consumer != null) {
-                    consumer.close();
-                }
-            }
-
-            @Override
-            public List<Record> read() {
-                ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(1));
-                List<Record> result = new ArrayList<>(poll.count());
-                for (ConsumerRecord<?,?> record : poll) {
-                    result.add(new KafkaRecord(record));
-                }
-                log.info("Received {} records from Kafka {}", result.size(), result);
-                return result;
-            }
-        };
+        return new KafkaConsumerWrapper(copy, topicName);
     }
 
-    private static void applyDefaultConfiguration(StreamingCluster streamingCluster, Map<String, Object> copy) {
+    private static void applyDefaultConfiguration(String agentId, StreamingCluster streamingCluster, Map<String, Object> copy) {
         KafkaClusterRuntimeConfiguration configuration = KafkaStreamingClusterRuntime.getKafkaClusterRuntimeConfiguration(streamingCluster);
         copy.putAll(configuration.getAdmin());
 
@@ -66,7 +41,8 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         copy.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 
-        copy.computeIfAbsent("group.id", key -> "sga");
+        copy.put("enable.auto.commit", "false");
+        copy.computeIfAbsent("group.id", key -> "sga-" + agentId);
         copy.computeIfAbsent("auto.offset.reset", key -> "earliest");
 
         // producer
@@ -98,9 +74,9 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
     }
 
     @Override
-    public TopicProducer createProducer(StreamingCluster streamingCluster, Map<String, Object> configuration) {
+    public TopicProducer createProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
         Map<String, Object> copy = new HashMap<>(configuration);
-        applyDefaultConfiguration(streamingCluster, copy);
+        applyDefaultConfiguration(agentId, streamingCluster, copy);
         String topicName = (String) copy.remove("topic");
 
         return new TopicProducer() {
@@ -127,5 +103,45 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
                 }
             }
         };
+    }
+
+    private static class KafkaConsumerWrapper implements TopicConsumer {
+        private final Map<String, Object> configuration;
+        private final String topicName;
+        KafkaConsumer consumer;
+
+        public KafkaConsumerWrapper(Map<String, Object> configuration, String topicName) {
+            this.configuration = configuration;
+            this.topicName = topicName;
+        }
+
+        @Override
+        public void start() {
+            consumer = new KafkaConsumer(configuration);
+            consumer.subscribe(List.of(topicName));
+        }
+
+        @Override
+        public void close() {
+            if (consumer != null) {
+                consumer.close();
+            }
+        }
+
+        @Override
+        public List<Record> read() {
+            ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(1));
+            List<Record> result = new ArrayList<>(poll.count());
+            for (ConsumerRecord<?,?> record : poll) {
+                result.add(new KafkaRecord(record));
+            }
+            log.info("Received {} records from Kafka {}", result.size(), result);
+            return result;
+        }
+
+        @Override
+        public void commit() {
+            consumer.commitSync();
+        }
     }
 }

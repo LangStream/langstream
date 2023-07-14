@@ -100,7 +100,10 @@ class GenIAgentsRunnerTest {
         RuntimePodConfiguration runtimePodConfiguration = new RuntimePodConfiguration(
                 podAgentConfiguration.input(),
                 podAgentConfiguration.output(),
-                new AgentSpec(AgentSpec.ComponentType.valueOf(podAgentConfiguration.agentConfiguration().componentType()),
+                new AgentSpec(AgentSpec.ComponentType.valueOf(
+                        podAgentConfiguration.agentConfiguration().componentType()),
+                        podAgentConfiguration.agentConfiguration().agentId(),
+                        "application",
                         podAgentConfiguration.agentConfiguration().agentType(),
                         podAgentConfiguration.agentConfiguration().configuration()),
                 applicationInstance.getInstance().streamingCluster()

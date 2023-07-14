@@ -18,6 +18,7 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.common.functions.FunctionConfig;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PulsarContainer;
@@ -32,6 +33,7 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 class PulsarClusterRuntimeDockerTest {
@@ -53,13 +55,13 @@ class PulsarClusterRuntimeDockerTest {
                                     creation-mode: create-if-not-exists
                                     schema:
                                       type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}'
                                   - name: "input-topic-partitioned"
                                     creation-mode: create-if-not-exists
                                     partitions: 2  
                                     schema:
                                       type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}'
                                   - name: "input-topic-partitioned-keyvalue"
                                     creation-mode: create-if-not-exists
                                     partitions: 3
@@ -67,7 +69,7 @@ class PulsarClusterRuntimeDockerTest {
                                       type: string  
                                     schema:
                                       type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}'
                                 pipeline:
                                 """));
 
@@ -92,6 +94,9 @@ class PulsarClusterRuntimeDockerTest {
 
         // deploy again, should not fail
         deployer.deploy("tenant", implementation);
+
+        // delete everything
+        deployer.delete("tenant", implementation);
     }
 
     @Test
@@ -107,7 +112,7 @@ class PulsarClusterRuntimeDockerTest {
                                     creation-mode: create-if-not-exists
                                     schema:
                                       type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}'
                                 pipeline:
                                   - name: "sink1"
                                     type: "cassandra-sink"
@@ -133,6 +138,9 @@ class PulsarClusterRuntimeDockerTest {
         // verify that we have the sink
         List<String> sinks = admin.sinks().listSinks("public", "default");
         assertTrue(sinks.contains("sink1"));
+
+        // delete everything
+        deployer.delete("tenant", implementation);
     }
 
     private static String buildInstanceYaml() {
@@ -192,6 +200,9 @@ class PulsarClusterRuntimeDockerTest {
         // verify that we have the sink
         List<String> sources = admin.sources().listSources("public", "default");
         assertTrue(sources.contains("source1"));
+
+        // delete everything
+        deployer.delete("tenant", implementation);
     }
 
     @Test
@@ -245,6 +256,9 @@ class PulsarClusterRuntimeDockerTest {
         List<String> functions = admin.functions().getFunctions("public", "default");
         assertTrue(functions.contains("function1"));
         assertTrue(functions.contains("function2"));
+
+        // delete everything
+        deployer.delete("tenant", implementation);
     }
 
 
@@ -272,7 +286,7 @@ class PulsarClusterRuntimeDockerTest {
                                     creation-mode: create-if-not-exists
                                     schema:
                                       type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}'
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists                                    
                                 pipeline:
@@ -334,6 +348,27 @@ class PulsarClusterRuntimeDockerTest {
         log.info("Function: {}", function);
         assertEquals("com.datastax.oss.pulsar.functions.transforms.TransformFunction", function.getClassName());
 
+        // delete everything
+        deployer.delete("tenant", implementation);
+    }
+
+    @AfterEach
+    public void verifyNoTopicsOrComponents() throws Exception {
+        admin.topics().getList("public/default").forEach(topic -> {
+            fail("The test left behind a topic: " + topic);
+        });
+
+        admin.sinks().listSinks("public", "default").forEach(sink -> {
+            fail("The test left behind a sink: " + sink);
+        });
+
+        admin.sources().listSources("public", "default").forEach(source -> {
+            fail("The test left behind a source: " + source);
+        });
+
+        admin.functions().getFunctions("public", "default").forEach(function -> {
+            fail("The test left behind a function: " + function);
+        });
     }
 
     @BeforeAll

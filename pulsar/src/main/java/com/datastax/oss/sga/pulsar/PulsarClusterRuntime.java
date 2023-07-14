@@ -122,7 +122,8 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
                 .userConfig(agentImpl.getConfiguration())
                 .functionType(functionType)
                 .jar(archiveName)
-                .parallelism(1)
+                .parallelism(agentImpl
+                        .getResourcesSpec().parallelism())
                 .build();
 
         log.info("FunctionConfig: {}", functionConfig);

@@ -29,6 +29,8 @@ public class Pipeline {
     private String id;
     private String module;
     private String name;
+    // defaults for all the agents in the pipeline
+    private ResourcesSpec resources;
 
     public Pipeline(String id, String module) {
         this.id = id;

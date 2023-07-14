@@ -33,4 +33,5 @@ public class AgentConfiguration extends Connection.Connectable {
     private Connection input;
     private Connection output;
     private Map<String, Object> configuration = new HashMap<>();
+    private ResourcesSpec resources;
 }

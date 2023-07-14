@@ -21,6 +21,7 @@ import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.Resource;
+import com.datastax.oss.sga.api.model.ResourcesSpec;
 import com.datastax.oss.sga.api.model.SchemaDefinition;
 import com.datastax.oss.sga.api.model.Secret;
 import com.datastax.oss.sga.api.model.Secrets;
@@ -135,6 +136,7 @@ public class ModelBuilder {
         }
         Pipeline pipeline = module.addPipeline(id);
         pipeline.setName(pipelineConfiguration.getName());
+        pipeline.setResources(pipelineConfiguration.getResources() != null ? pipelineConfiguration.getResources().withDefaultsFrom(ResourcesSpec.DEFAULT) : ResourcesSpec.DEFAULT);
         AgentConfiguration last = null;
 
         if (pipelineConfiguration.getTopics() != null) {
@@ -148,7 +150,7 @@ public class ModelBuilder {
         int autoId = 1;
         if (pipelineConfiguration.getPipeline() != null) {
             for (AgentModel agent : pipelineConfiguration.getPipeline()) {
-                AgentConfiguration agentConfiguration = agent.toAgentConfiguration();
+                AgentConfiguration agentConfiguration = agent.toAgentConfiguration(pipeline);
                 if (agentConfiguration.getId() == null) {
                     // ensure that we always have a name
                     // please note that this algorithm should not be changed in order to not break
@@ -196,6 +198,8 @@ public class ModelBuilder {
         private List<AgentModel> pipeline = new ArrayList<>();
 
         private List<TopicDefinitionModel> topics = new ArrayList<>();
+
+        private ResourcesSpec resources;
     }
 
     @Data
@@ -220,12 +224,16 @@ public class ModelBuilder {
         private String output;
         private Map<String, Object> configuration = new HashMap<>();
 
-        AgentConfiguration toAgentConfiguration() {
+        private ResourcesSpec resources;
+
+        AgentConfiguration toAgentConfiguration(Pipeline pipeline) {
             AgentConfiguration res = new AgentConfiguration();
             res.setId(id);
             res.setName(name);
             res.setType(type);
             res.setConfiguration(configuration);
+            res.setResources(resources == null ?
+                    pipeline.getResources() : resources.withDefaultsFrom(pipeline.getResources()));
             return res;
         }
     }

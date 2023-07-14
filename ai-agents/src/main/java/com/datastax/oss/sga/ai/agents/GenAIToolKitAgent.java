@@ -2,6 +2,7 @@ package com.datastax.oss.sga.ai.agents;
 
 import com.azure.ai.openai.OpenAIClient;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
+import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -17,6 +18,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +48,7 @@ public class GenAIToolKitAgent implements AgentCode  {
             }
             TransformFunctionUtil.processTransformSteps(context, steps);
             context.convertMapToStringOrBytes();
-            transformContextToRecord(context).ifPresent(output::add);
+            transformContextToRecord(context, record.headers()).ifPresent(output::add);
         }
         return output;
     }
@@ -88,14 +90,18 @@ public class GenAIToolKitAgent implements AgentCode  {
         return context;
     }
 
-    private Optional<Record> transformContextToRecord(TransformContext context) {
+    private Optional<Record> transformContextToRecord(TransformContext context, Collection<Header> headers) {
         if (context.isDropCurrentRecord()) {
             return Optional.empty();
         }
-        return Optional.of(new TransformRecord(context));
+        return Optional.of(new TransformRecord(context, headers));
     }
 
-    private record TransformRecord(TransformContext context) implements Record {
+    private record TransformRecord(TransformContext context, Collection<Header> headers) implements Record {
+        private TransformRecord(TransformContext context, Collection<Header> headers) {
+            this.context = context;
+            this.headers = new ArrayList<>(headers);
+        }
 
         @Override
         public Object key() {
@@ -114,7 +120,7 @@ public class GenAIToolKitAgent implements AgentCode  {
 
         @Override
         public Long timestamp() {
-            return context().getEventTime();
+            return context.getEventTime();
         }
     }
 

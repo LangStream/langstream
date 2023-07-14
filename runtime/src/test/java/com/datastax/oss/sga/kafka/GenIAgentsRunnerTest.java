@@ -15,12 +15,15 @@ import com.datastax.oss.sga.runtime.agent.AgentSpec;
 import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
 import com.datastax.oss.sga.runtime.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.impl.k8s.PodAgentConfiguration;
+import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -125,7 +128,14 @@ class GenIAgentsRunnerTest {
 
 
             // produce one message to the input-topic
-            producer.send(new org.apache.kafka.clients.producer.ProducerRecord<>("input-topic", "key", "{\"name\": \"some name\", \"description\": \"some description\"}")).get();
+            producer
+                .send(new ProducerRecord<>(
+                    "input-topic",
+                    null,
+                    "key",
+                    "{\"name\": \"some name\", \"description\": \"some description\"}",
+                    List.of(new RecordHeader("header-key", "header-value".getBytes(StandardCharsets.UTF_8)))))
+                .get();
             producer.flush();
 
             PodJavaRuntime.run(runtimePodConfiguration, 5);
@@ -134,7 +144,8 @@ class GenIAgentsRunnerTest {
             ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(10));
             assertEquals(poll.count(), 1);
             ConsumerRecord<String, String> record = poll.iterator().next();
-            assertEquals(record.value(), "{\"name\":\"some name\"}");
+            assertEquals("{\"name\":\"some name\"}", record.value());
+            assertEquals("header-value", new String(record.headers().lastHeader("header-key").value(), StandardCharsets.UTF_8));
         }
 
     }

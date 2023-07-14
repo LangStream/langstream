@@ -39,6 +39,7 @@
     <kubernetes-client.version>6.7.2</kubernetes-client.version>
     <bouncy-castle.version>1.70</bouncy-castle.version>
     <kindcontainer.version>1.4.1</kindcontainer.version>
+    <streaming-ai.version>3.1.1-alpha</streaming-ai.version>
   </properties>
   <modules>
     <module>api</module>
@@ -65,6 +66,11 @@
         <groupId>org.apache.pulsar</groupId>
         <artifactId>pulsar-client-admin</artifactId>
         <version>${pulsar.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>streaming-ai</artifactId>
+        <version>${streaming-ai.version}</version>
       </dependency>
       <dependency>
        <groupId>org.projectlombok</groupId>

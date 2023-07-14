@@ -7,7 +7,9 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
+import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -21,7 +23,8 @@ import java.util.Map;
 
 @Slf4j
 public class KubernetesClusterRuntime extends BasicClusterRuntime {
-    static final ObjectMapper mapper = new ObjectMapper();
+    static final ObjectMapper mapper = new ObjectMapper()
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
     public static final String CLUSTER_TYPE = "kubernetes";
 
     private KubernetesClusterRuntimeConfiguration configuration;
@@ -36,9 +39,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     @SneakyThrows
     public void initialize(Map<String, Object> configuration) {
         this.configuration = mapper.convertValue(configuration, KubernetesClusterRuntimeConfiguration.class);
-        this.client = new KubernetesClientBuilder()
-                .withConfig(Config.autoConfigure(null))
-                .build();
+        this.client = KubernetesClientFactory.get(null);
     }
 
     @Override

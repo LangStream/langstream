@@ -309,6 +309,9 @@ class KubernetesClusterRuntimeDockerTest {
         if (kafkaContainer != null) {
             kafkaContainer.close();
         }
+        if (kubeServer != null) {
+            kubeServer.destroy();
+        }
     }
 
 }

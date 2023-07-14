@@ -3,6 +3,7 @@ package com.datastax.oss.sga.kafka;
 
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeRegistry;
+import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,11 @@ class LoadAgentCodeTest {
             public Long timestamp() {
                 return null;
             }
+
+            @Override
+            public List<Header> headers() {
+                return null;
+            }
         })).isEmpty());
     }
 
@@ -62,6 +68,11 @@ class LoadAgentCodeTest {
 
             @Override
             public Long timestamp() {
+                return null;
+            }
+
+            @Override
+            public List<Header> headers() {
                 return null;
             }
         })).size());

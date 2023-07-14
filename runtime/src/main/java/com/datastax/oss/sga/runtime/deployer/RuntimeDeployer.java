@@ -93,7 +93,7 @@ public class RuntimeDeployer {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        final ExecutionPlan implementation = deployer.createImplementation(appInstance);
+        final ExecutionPlan implementation = deployer.createImplementation(applicationName, appInstance);
         deployer.deploy(configuration.getTenant(), implementation);
         log.info("Application {} deployed", applicationName);
     }
@@ -117,7 +117,7 @@ public class RuntimeDeployer {
                 .build();
 
         log.info("Deleting application {}", applicationName);
-        final ExecutionPlan implementation = deployer.createImplementation(appInstance);
+        final ExecutionPlan implementation = deployer.createImplementation(applicationName, appInstance);
         deployer.delete(configuration.getTenant(), implementation);
         log.info("Application {} deleted", applicationName);
     }

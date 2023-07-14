@@ -20,9 +20,7 @@ import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
 import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
-import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
-import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -31,28 +29,21 @@ import lombok.extern.jbosslog.JBossLog;
 
 @ControllerConfiguration(namespaces = Constants.WATCH_ALL_NAMESPACES, name = "app-controller")
 @JBossLog
-public class AppController implements Reconciler<ApplicationCustomResource>, Cleaner<ApplicationCustomResource> {
+public class AppController extends BaseController<ApplicationCustomResource> {
 
-    @Inject
-    KubernetesClient client;
-
-    @Inject
-    DeployerConfiguration configuration;
 
     @Override
-    public UpdateControl<ApplicationCustomResource> reconcile(ApplicationCustomResource application,
-                                                              Context<ApplicationCustomResource> context)
-            throws Exception {
-        final boolean reschedule = handleJob(application, false);
-        return reschedule ? UpdateControl.updateStatus(application)
-                .rescheduleAfter(5, TimeUnit.SECONDS) : UpdateControl.updateStatus(application);
+    protected UpdateControl<ApplicationCustomResource> patchResources(ApplicationCustomResource resource,
+                                                                      Context<ApplicationCustomResource> context) {
+        final boolean reschedule = handleJob(resource, false);
+        return reschedule ? UpdateControl.updateStatus(resource)
+                .rescheduleAfter(5, TimeUnit.SECONDS) : UpdateControl.updateStatus(resource);
     }
 
     @Override
-    public DeleteControl cleanup(ApplicationCustomResource application,
-                                 Context<ApplicationCustomResource> context) {
-
-        final boolean reschedule = handleJob(application, true);
+    protected DeleteControl cleanupResources(ApplicationCustomResource resource,
+                                             Context<ApplicationCustomResource> context) {
+        final boolean reschedule = handleJob(resource, true);
         return reschedule ? DeleteControl.defaultDelete()
                 .rescheduleAfter(5, TimeUnit.SECONDS) : DeleteControl.defaultDelete();
     }
@@ -80,7 +71,6 @@ public class AppController implements Reconciler<ApplicationCustomResource>, Cle
             return true;
         } else {
             if (KubeUtil.isJobCompleted(currentJob)) {
-                application.getStatus().setLastApplied(SerializationUtil.writeAsJson(spec));
                 return false;
             } else {
                 return true;

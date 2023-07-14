@@ -57,7 +57,7 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic-cassandra"))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic-cassandra");
@@ -127,7 +127,7 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "input-topic");
@@ -173,7 +173,7 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("output-topic"))) instanceof PulsarTopic);
         PulsarName pulsarName = new PulsarName("public", "default", "output-topic");
@@ -224,7 +224,7 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
                     new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
@@ -294,7 +294,7 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
                     new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
@@ -390,7 +390,7 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
         assertTrue(implementation.getConnectionImplementation(module,
@@ -468,7 +468,7 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         final DefaultAgentNode functionPhysicalImpl =
                 (DefaultAgentNode) implementation.getAgentImplementation(module,
                         "step1");
@@ -546,7 +546,7 @@ class PulsarClusterRuntimeTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);

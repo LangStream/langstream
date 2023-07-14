@@ -79,7 +79,7 @@ class PulsarClusterRuntimeDockerTest {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         deployer.deploy("tenant", implementation);
 
         // verify that the topic exist
@@ -127,7 +127,7 @@ class PulsarClusterRuntimeDockerTest {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         deployer.deploy("tenant", implementation);
 
         // verify that the topic exists
@@ -191,7 +191,7 @@ class PulsarClusterRuntimeDockerTest {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         deployer.deploy("tenant", implementation);
 
         // verify that the topic exists
@@ -243,7 +243,7 @@ class PulsarClusterRuntimeDockerTest {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         deployer.deploy("tenant", implementation);
 
         // verify that the topics exist
@@ -309,7 +309,7 @@ class PulsarClusterRuntimeDockerTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
         assertTrue(implementation.getConnectionImplementation(module,

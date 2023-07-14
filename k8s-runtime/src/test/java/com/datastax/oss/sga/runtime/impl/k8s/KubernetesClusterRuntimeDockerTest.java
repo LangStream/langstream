@@ -69,7 +69,7 @@ class KubernetesClusterRuntimeDockerTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         Connection connection = implementation.getConnectionImplementation(module,
                 new com.datastax.oss.sga.api.model.Connection(TopicDefinition.fromName("input-topic")));
         assertNotNull(connection);
@@ -157,7 +157,7 @@ class KubernetesClusterRuntimeDockerTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new com.datastax.oss.sga.api.model.Connection(
                         TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);

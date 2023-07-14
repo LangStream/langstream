@@ -54,8 +54,10 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         for (PodAgentConfiguration podAgentConfiguration : configs) {
 
             final AgentCustomResource agentCR = new AgentCustomResource();
+            final String agentName = applicationInstance.getApplicationName()
+                    + "-" + podAgentConfiguration.agentConfiguration().agentId();
             agentCR.setMetadata(new ObjectMetaBuilder()
-                    .withName(podAgentConfiguration.agentConfiguration().agentId())
+                    .withName(agentName)
                     .withNamespace(namespace)
                     .build());
             agentCR.setSpec(AgentSpec.builder()

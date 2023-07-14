@@ -32,9 +32,6 @@ spec:
             type: object
           status:
             properties:
-              lastApplied:
-                description: Last spec applied.
-                type: string
               status:
                 properties:
                   reason:
@@ -47,6 +44,9 @@ spec:
                     - DELETING
                     type: string
                 type: object
+              lastApplied:
+                description: Last spec applied.
+                type: string
             type: object
         type: object
     served: true

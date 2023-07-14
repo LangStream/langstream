@@ -36,10 +36,16 @@ public final class ExecutionPlan {
 
     private final Map<TopicDefinition, Topic> topics = new HashMap<>();
     private final Map<String, AgentNode> agents = new HashMap<>();
+    protected final String applicationName;
     protected final Application application;
 
-    public ExecutionPlan(Application applicationInstance) {
+    public ExecutionPlan(String applicationName, Application applicationInstance) {
+        this.applicationName = applicationName;
         this.application = applicationInstance;
+    }
+
+    public String getApplicationName() {
+        return applicationName;
     }
 
     /**

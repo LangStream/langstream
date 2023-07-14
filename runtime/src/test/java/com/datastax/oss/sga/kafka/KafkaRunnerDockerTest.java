@@ -78,7 +78,7 @@ class KafkaRunnerDockerTest {
         RuntimePodConfiguration runtimePodConfiguration = new RuntimePodConfiguration(
                 Map.of("topic", "input-topic"),
                 Map.of("topic", "output-topic"),
-                new AgentSpec(AgentSpec.ComponentType.FUNCTION, "identity", Map.of()),
+                new AgentSpec(AgentSpec.ComponentType.FUNCTION, "agent", "application", "identity", Map.of()),
                 applicationInstance.getInstance().streamingCluster()
         );
 

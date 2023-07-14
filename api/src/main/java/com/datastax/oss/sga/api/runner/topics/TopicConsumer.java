@@ -6,11 +6,14 @@ import java.util.List;
 
 public interface TopicConsumer {
 
-    default void start() {}
+    default void start() throws Exception {}
 
-    default void close() {}
+    default void close() throws Exception  {}
 
-    default List<Record> read() {
+    default List<Record> read()throws Exception  {
         return List.of();
+    }
+
+    default void commit() throws Exception {
     }
 }

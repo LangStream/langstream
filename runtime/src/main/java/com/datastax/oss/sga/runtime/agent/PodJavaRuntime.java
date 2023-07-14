@@ -57,10 +57,18 @@ public class PodJavaRuntime
     public static void run(RuntimePodConfiguration configuration, int maxLoops) throws Exception {
         log.info("Pod Configuration {}", configuration);
 
+        // agentId is the identity of the agent in the cluster
+        // it is shared by all the instances of the agent
+        String agentId = configuration.agent().applicationId() + "-" + configuration.agent().agentId();
+
+        log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
+
         TopicConnectionsRuntime topicConnectionsRuntime =
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
 
         log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
+
+        AgentCode agentCode = initAgent(configuration);
 
         TopicConsumer consumer = new TopicConsumer() {
             @SneakyThrows
@@ -73,25 +81,25 @@ public class PodJavaRuntime
             }
         };
         if (configuration.input() != null && !configuration.input().isEmpty()) {
-            consumer = topicConnectionsRuntime.createConsumer(configuration.streamingCluster(), configuration.input());
+            consumer = topicConnectionsRuntime.createConsumer(agentId,
+                    configuration.streamingCluster(), configuration.input());
         }
 
         TopicProducer producer = new TopicProducer() {};
         if (configuration.output() != null && !configuration.output().isEmpty()) {
-            producer = topicConnectionsRuntime.createProducer(configuration.streamingCluster(), configuration.output());
+            producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
         }
 
 
-        AgentCode agentCode = initAgent(configuration);
 
         runMainLoop(consumer, producer, agentCode, maxLoops);
     }
 
     private static void runMainLoop(TopicConsumer consumer, TopicProducer producer, AgentCode agentCode, int maxLoops) throws Exception {
-        consumer.start();
-        producer.start();
-        agentCode.start();
         try {
+            consumer.start();
+            producer.start();
+            agentCode.start();
             // TODO: handle semantics, transactions...
             List<Record> records = consumer.read();
             while ((maxLoops < 0) || (maxLoops-- > 0)) {
@@ -100,11 +108,15 @@ public class PodJavaRuntime
                         List<Record> outputRecords = agentCode.process(records);
                         producer.write(outputRecords);
                     } catch (Exception e) {
-                        // TODO: handle errors
                         log.error("Error while processing records", e);
+
+                        // throw the error
+                        // this way the consumer will not commit the records
+                        throw new RuntimeException("Error while processing records", e);
                     }
                     // commit
                 }
+                consumer.commit();
                 records = consumer.read();
             }
         } finally {

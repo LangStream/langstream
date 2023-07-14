@@ -74,7 +74,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
     }
 
-    private static record KafkaRecord (Object key, Object value) implements Record {
+    private record KafkaRecord (Object key, Object value) implements Record {
     }
 
     @Override
@@ -103,8 +103,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
             @SneakyThrows
             public void write(List<Record> records) {
                 for (Record r : records) {
-                    KafkaRecord kafkaRecord = (KafkaRecord) r;
-                    producer.send(new ProducerRecord(topicName, kafkaRecord.key, kafkaRecord.value)).get();
+                    producer.send(new ProducerRecord<>(topicName, r.key(), r.value())).get();
                 }
             }
         };

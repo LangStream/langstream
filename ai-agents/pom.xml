@@ -36,6 +36,10 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>streaming-ai</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
@@ -74,4 +78,17 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>public-datastax-releases</id>
+      <url>https://repo.datastax.com/datastax-public-releases-local</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository>
+  </repositories>
 </project>

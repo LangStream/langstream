@@ -16,6 +16,7 @@ import com.datastax.oss.sga.runtime.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.impl.k8s.PodAgentConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -49,22 +50,21 @@ class GenIAgentsRunnerTest {
                         buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
                                 pipeline:
-                                  - name: "compute-embeddings"
+                                  - name: "drop-description"
                                     id: "step1"
-                                    type: "compute-ai-embeddings"
+                                    type: "drop-fields"
                                     input: "input-topic"
                                     output: "output-topic"
-                                    configuration:                                      
-                                      model: "text-embedding-ada-002"
-                                      embeddings-field: "value.embeddings"
-                                      text: "{{% value.name }} {{% value.description }}"                                    
+                                    configuration:
+                                      fields:
+                                        - "description"
                                 """));
 
         ApplicationDeployer deployer = ApplicationDeployer
@@ -115,7 +115,7 @@ class GenIAgentsRunnerTest {
 
 
             // produce one message to the input-topic
-            producer.send(new org.apache.kafka.clients.producer.ProducerRecord<>("input-topic", "key", "value")).get();
+            producer.send(new org.apache.kafka.clients.producer.ProducerRecord<>("input-topic", "key", "{\"name\": \"some name\", \"description\": \"some description\"}")).get();
             producer.flush();
 
             PodJavaRuntime.run(runtimePodConfiguration, 5);
@@ -123,6 +123,8 @@ class GenIAgentsRunnerTest {
             // receive one message from the output-topic (written by the PodJavaRuntime)
             ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(10));
             assertEquals(poll.count(), 1);
+            ConsumerRecord<String, String> record = poll.iterator().next();
+            assertEquals(record.value(), "{\"name\":\"some name\"}");
         }
 
     }
@@ -133,7 +135,7 @@ class GenIAgentsRunnerTest {
                   streamingCluster:
                     type: "kafka"
                     configuration:
-                      admin:                                      
+                      admin:
                         bootstrap.servers: "%s"
                   computeCluster:
                      type: "kubernetes"

@@ -36,13 +36,13 @@ final class ApplicationStartupTraces {
   }
 
   private static String applicationRunningTrace(Environment environment) {
-    String applicationName = environment.getProperty("spring.application.name");
+    String applicationId = environment.getProperty("spring.application.name");
 
-    if (StringUtils.isBlank(applicationName)) {
+    if (StringUtils.isBlank(applicationId)) {
       return "Application is running!";
     }
 
-    return new StringBuilder().append("Application '").append(applicationName).append("' is running!").toString();
+    return new StringBuilder().append("Application '").append(applicationId).append("' is running!").toString();
   }
 
   private static String localUrl(Environment environment) {

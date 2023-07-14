@@ -26,12 +26,12 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
     private static final int DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS = 0;
 
     @Override
-    public ExecutionPlan buildExecutionPlan(String applicationName,
+    public ExecutionPlan buildExecutionPlan(String applicationId,
                                             Application application,
                                             PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime) {
 
         ExecutionPlan result =
-                new ExecutionPlan(applicationName, application);
+                new ExecutionPlan(applicationId, application);
 
         detectTopics(result, streamingClusterRuntime);
 

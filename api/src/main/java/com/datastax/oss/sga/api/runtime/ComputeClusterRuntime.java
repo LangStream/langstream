@@ -37,7 +37,7 @@ public interface ComputeClusterRuntime {
      * @param streamingClusterRuntime
      * @return the physical application instance
      */
-    ExecutionPlan buildExecutionPlan(String applicationName, Application application, PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime);
+    ExecutionPlan buildExecutionPlan(String applicationId, Application application, PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime);
 
 
     /**

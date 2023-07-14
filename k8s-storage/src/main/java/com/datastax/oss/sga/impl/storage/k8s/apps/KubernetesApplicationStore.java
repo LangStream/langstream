@@ -198,7 +198,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @SneakyThrows
-    private StoredApplication convertApplicationToResult(String applicationName,
+    private StoredApplication convertApplicationToResult(String applicationId,
                                                          ApplicationCustomResource application) {
         final Application instance =
                 mapper.readValue(application.getSpec().getApplication(), SerializedApplicationInstance.class)
@@ -208,7 +208,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
         final ApplicationStatus status = application.getStatus();
         return StoredApplication.builder()
-                .name(applicationName)
+                .name(applicationId)
                 .instance(instance)
                 .status(status == null ? null : status.getStatus())
                 .build();

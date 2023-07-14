@@ -27,6 +27,16 @@ class LoadAgentCodeTest {
             public Object value() {
                 return null;
             }
+
+            @Override
+            public String origin() {
+                return null;
+            }
+
+            @Override
+            public Long timestamp() {
+                return null;
+            }
         })).isEmpty());
     }
 
@@ -42,6 +52,16 @@ class LoadAgentCodeTest {
 
             @Override
             public Object value() {
+                return null;
+            }
+
+            @Override
+            public String origin() {
+                return null;
+            }
+
+            @Override
+            public Long timestamp() {
                 return null;
             }
         })).size());

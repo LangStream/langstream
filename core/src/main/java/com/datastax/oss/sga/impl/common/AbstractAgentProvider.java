@@ -101,7 +101,8 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                 agentType,
                 componentType,
                 configuration,
-                metadata, input, output);
+                metadata, input, output,
+                agentConfiguration.getResources());
     }
 
     @Override

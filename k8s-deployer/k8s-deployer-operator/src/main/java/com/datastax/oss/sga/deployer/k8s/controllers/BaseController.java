@@ -2,9 +2,7 @@ package com.datastax.oss.sga.deployer.k8s.controllers;
 
 import com.datastax.oss.sga.deployer.k8s.DeployerConfiguration;
 import com.datastax.oss.sga.deployer.k8s.api.crds.BaseStatus;
-import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
-import com.oracle.svm.core.annotate.Delete;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
@@ -13,10 +11,7 @@ import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import jakarta.inject.Inject;
-import java.time.Instant;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import lombok.extern.jbosslog.JBossLog;
 
 @JBossLog
@@ -36,7 +31,6 @@ public abstract class BaseController<T extends CustomResource> implements Reconc
     @Override
     public DeleteControl cleanup(T resource, Context<T> context) {
         DeleteControl result;
-        final BaseStatus baseStatus = new BaseStatus();
         try {
             result = cleanupResources(resource, context);
         } catch (Throwable throwable) {
@@ -47,7 +41,6 @@ public abstract class BaseController<T extends CustomResource> implements Reconc
             result = DeleteControl.defaultDelete()
                     .rescheduleAfter(5, TimeUnit.SECONDS);
         }
-        resource.setStatus(baseStatus);
         return result;
     }
 

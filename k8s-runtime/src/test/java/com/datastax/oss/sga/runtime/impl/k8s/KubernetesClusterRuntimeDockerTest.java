@@ -43,7 +43,7 @@ class KubernetesClusterRuntimeDockerTest {
     @Test
     public void testMapGenericAgent() throws Exception {
         final String tenant = "tenant";
-        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-tenant", "sink-1-id");
+        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-tenant", "app-sink-1-id");
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -115,7 +115,7 @@ class KubernetesClusterRuntimeDockerTest {
     @Test
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
         final String tenant = "tenant";
-        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-" + tenant, "step1");
+        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-" + tenant, "app-step1");
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),

@@ -53,7 +53,7 @@ class GenIAgentsRunnerTest {
 
     @Test
     public void testRunAITools() throws Exception {
-        kubeServer.spyAgentCustomResources("tenant", "step1");
+        kubeServer.spyAgentCustomResources("tenant", "app-step1");
 
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",

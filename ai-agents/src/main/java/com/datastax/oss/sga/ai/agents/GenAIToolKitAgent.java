@@ -74,7 +74,7 @@ public class GenAIToolKitAgent implements AgentCode  {
     private TransformContext recordToTransformContext(Record record) {
         TransformContext context = new TransformContext();
         context.setKeyObject(record.key());
-        context.setKeySchemaType(getSchemaType(record.key().getClass()));
+        context.setKeySchemaType(record.key() == null ? null : getSchemaType(record.key().getClass()));
         // TODO: temporary hack. We should be able to get the schema from the record
         if (record.key() instanceof GenericRecord) {
             context.setKeyNativeSchema(((GenericRecord) record.key()).getSchema());

@@ -33,6 +33,10 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
         return CLUSTER_TYPE;
     }
 
+    @Override
+    public void initialize(Map<String, Object> configuration) {
+    }
+
     private PulsarAdmin buildPulsarAdmin(StreamingCluster streamingCluster) throws Exception {
         final PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration =
                 getPulsarClusterRuntimeConfiguration(streamingCluster);
@@ -56,7 +60,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
 
     @Override
     @SneakyThrows
-    public Object deploy(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         Application logicalInstance = applicationInstance.getApplication();
         streamingClusterRuntime.deploy(applicationInstance);
 
@@ -176,7 +180,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
     }
 
     @Override
-    public void delete(ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         throw new UnsupportedOperationException();
     }
 }

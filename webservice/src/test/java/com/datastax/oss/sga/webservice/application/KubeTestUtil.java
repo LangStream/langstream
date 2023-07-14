@@ -3,7 +3,7 @@ package com.datastax.oss.sga.webservice.application;
 import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.K3sContainerVersion;
 import com.dajudge.kindcontainer.KubernetesImageSpec;
-import com.datastax.oss.sga.impl.storage.k8s.KubernetesClientFactory;
+import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;

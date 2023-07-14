@@ -53,6 +53,7 @@
     <module>webservice</module>
     <module>k8s-storage</module>
     <module>k8s-deployer</module>
+    <module>k8s-common</module>
   </modules>
 
   <dependencyManagement>
@@ -149,6 +150,11 @@
       <dependency>
         <groupId>io.fabric8</groupId>
         <artifactId>kubernetes-client</artifactId>
+        <version>${kubernetes-client.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fabric8</groupId>
+        <artifactId>kubernetes-server-mock</artifactId>
         <version>${kubernetes-client.version}</version>
       </dependency>
       <dependency>

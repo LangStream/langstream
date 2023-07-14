@@ -78,7 +78,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
 
         // verify that the topic exist
         admin.topics().getStats("public/default/input-topic");
@@ -91,7 +91,7 @@ class PulsarClusterRuntimeDockerTest {
         assertEquals(SchemaType.KEY_VALUE, admin.schemas().getSchemaInfo("public/default/input-topic-partitioned-keyvalue").getType());
 
         // deploy again, should not fail
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
     }
 
     @Test
@@ -123,7 +123,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
 
         // verify that the topic exists
         admin.topics().getStats("public/default/input-topic-cassandra");
@@ -184,7 +184,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
 
         // verify that the topic exists
         admin.topics().getStats("output-topic-from-file");
@@ -233,7 +233,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
 
         // verify that the topics exist
         admin.topics().getStats("output-topic-fn");
@@ -323,7 +323,7 @@ class PulsarClusterRuntimeDockerTest {
         assertEquals("value.embeddings", step1.get("embeddings-field"));
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
-        deployer.deploy(implementation);
+        deployer.deploy("tenant", implementation);
 
         // verify that we have the functions1
         List<String> functions = admin.functions().getFunctions("public", "default");

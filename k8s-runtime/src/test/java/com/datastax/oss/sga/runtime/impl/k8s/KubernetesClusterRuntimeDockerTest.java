@@ -9,13 +9,18 @@ import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.Connection;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
+import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
@@ -32,9 +37,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class KubernetesClusterRuntimeDockerTest {
 
     private static KafkaContainer kafkaContainer;
+    @RegisterExtension
+    static final KubeTestServer kubeServer = new KubeTestServer();
 
     @Test
     public void testMapGenericAgent() throws Exception {
+        final String tenant = "tenant";
+        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-tenant", "sink-1-id");
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -56,11 +65,7 @@ class KubernetesClusterRuntimeDockerTest {
                                       mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        ApplicationDeployer deployer = getDeployer();
 
         Module module = applicationInstance.getModule("module-1");
 
@@ -72,12 +77,45 @@ class KubernetesClusterRuntimeDockerTest {
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
         assertNotNull(agentImplementation);
 
-        deployer.deploy(implementation);
 
+        deployer.deploy(tenant, implementation);
+        assertEquals(1, agentsCRs.size());
+        final AgentCustomResource agent = agentsCRs.values().iterator().next();
+        assertEquals("datastax/sga-generic-agent:latest", agent.getSpec().getImage());
+        assertEquals("Never", agent.getSpec().getImagePullPolicy());
+        assertEquals(tenant, agent.getSpec().getTenant());
+        assertEquals("{\"input\":{\"auto.offset.reset\":\"earliest\",\"group.id\":\"sga-agent-sink-1-id\",\"key"
+                + ".deserializer\":\"org.apache.kafka.common.serialization.StringDeserializer\","
+                + "\"topic\":\"input-topic\",\"value.deserializer\":\"org.apache.kafka.common.serialization"
+                + ".StringDeserializer\"},\"output\":{},\"agentConfiguration\":{\"agentId\":\"sink-1-id\","
+                + "\"agentType\":\"generic-agent\",\"componentType\":\"FUNCTION\","
+                + "\"configuration\":{\"mappings\":\"id=value.id,name=value.name,description=value.description,"
+                + "item_vector=value.item_vector\"}},\"streamingCluster\":{\"type\":\"kafka\","
+                + "\"configuration\":{\"admin\":{\"bootstrap.servers\":\"PLAINTEXT://localhost:%d\"}}}}".formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
+
+
+    }
+
+    private ApplicationDeployer getDeployer() {
+        final KubernetesClusterRuntimeConfiguration config =
+                new KubernetesClusterRuntimeConfiguration();
+        config.setImage("datastax/sga-generic-agent:latest");
+        config.setImagePullPolicy("Never");
+        config.setNamespacePrefix("sga-");
+
+        ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
+                .registry(new ClusterRuntimeRegistry(
+                        Map.of("kubernetes", new ObjectMapper().convertValue(config, Map.class))))
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+        return deployer;
     }
 
     @Test
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
+        final String tenant = "tenant";
+        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-" + tenant, "step1");
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -115,19 +153,17 @@ class KubernetesClusterRuntimeDockerTest {
                                       text: "{{% value.name }} {{% value.description }}"
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        ApplicationDeployer deployer = getDeployer();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new com.datastax.oss.sga.api.model.Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
+                new com.datastax.oss.sga.api.model.Connection(
+                        TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new com.datastax.oss.sga.api.model.Connection(TopicDefinition.fromName("output-topic"))) instanceof KafkaTopic);
+                new com.datastax.oss.sga.api.model.Connection(
+                        TopicDefinition.fromName("output-topic"))) instanceof KafkaTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
@@ -149,7 +185,26 @@ class KubernetesClusterRuntimeDockerTest {
         assertEquals("value.embeddings", step1.get("embeddings-field"));
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
-        deployer.deploy(implementation);
+
+        deployer.deploy(tenant, implementation);
+
+        assertEquals(1, agentsCRs.size());
+        final AgentCustomResource agent = agentsCRs.values().iterator().next();
+        assertEquals("datastax/sga-generic-agent:latest", agent.getSpec().getImage());
+        assertEquals("Never", agent.getSpec().getImagePullPolicy());
+        assertEquals(tenant, agent.getSpec().getTenant());
+        assertEquals(("{\"input\":{\"auto.offset.reset\":\"earliest\",\"group.id\":\"sga-agent-step1\",\"key"
+                + ".deserializer\":\"org.apache.kafka.common.serialization.StringDeserializer\","
+                + "\"topic\":\"input-topic\",\"value.deserializer\":\"org.apache.kafka.common.serialization"
+                + ".StringDeserializer\"},\"output\":{\"key.serializer\":\"org.apache.kafka.common.serialization"
+                + ".StringSerializer\",\"topic\":\"output-topic\",\"value.serializer\":\"org.apache.kafka.common"
+                + ".serialization.StringSerializer\"},\"agentConfiguration\":{\"agentId\":\"step1\","
+                + "\"agentType\":\"ai-tools\",\"componentType\":\"FUNCTION\","
+                + "\"configuration\":{\"openai\":{\"access-key\":\"xxcxcxc\",\"provider\":\"azure\","
+                + "\"url\":\"http://something\"},\"steps\":[{\"embeddings-field\":\"value.embeddings\","
+                + "\"model\":\"text-embedding-ada-002\",\"text\":\"{{ value.name }} {{ value.description }}\","
+                + "\"type\":\"compute-ai-embeddings\"}]}},\"streamingCluster\":{\"type\":\"kafka\","
+                + "\"configuration\":{\"admin\":{\"bootstrap.servers\":\"PLAINTEXT://localhost:%d\"}}}}").formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
 
 
     }

@@ -1,0 +1,5 @@
+instance:
+  streamingCluster:
+    type: "noop"
+  computeCluster:
+    type: "kubernetes"

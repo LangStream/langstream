@@ -22,6 +22,6 @@ metadata:
   labels:
     {{- include "sga.deployerLabels" . | nindent 4 }}
 data:
-{{- range $key, $val := $.Values.controlPlane.app.config }}
-  {{ $key | replace "-" "" | replace "\"" "." | snakecase | upper | replace "." "_"  }}: {{ $val | toString | replace "\"" "" | trim | quote }}
-{{- end }}
+  DEPLOYER_NAMESPACE_PREFIX: {{ .Values.deployer.app.config.namespacePrefix }}
+  DEPLOYER_CLUSTER_RUNTIME: |
+{{ .Values.deployer.app.config.clusterRuntime | toYaml | indent 4 }}

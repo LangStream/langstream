@@ -111,8 +111,8 @@ public class AppControllerIT {
         assertEquals("cluster-runtime-config", initContainer.getVolumeMounts().get(1).getName());
         assertEquals("bash", initContainer.getCommand().get(0));
         assertEquals("-c", initContainer.getCommand().get(1));
-        assertEquals("echo '{\"application\":\"{app: true}\",\"name\":\"test-app\"}' > /app-config/config && echo "
-                + "'{}' > /cluster-runtime-config/config", initContainer.getArgs().get(0));
+        assertEquals("echo '{\"application\":\"{app: true}\",\"name\":\"test-app\",\"tenant\":\"my-tenant\"}' > "
+                + "/app-config/config && echo '{}' > /cluster-runtime-config/config", initContainer.getArgs().get(0));
     }
 
     private ApplicationCustomResource getCr(String yaml) {

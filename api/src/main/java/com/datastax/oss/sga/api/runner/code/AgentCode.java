@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Body of the agent
  */
-public interface AgentCode {
+public interface AgentCode extends AutoCloseable {
 
     /**
      * The agent processes one record and returns a list of records.

@@ -14,12 +14,17 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.header.Header;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
@@ -39,6 +44,11 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
             }
 
             @Override
+            public Object getNativeConsumer() {
+                return consumer;
+            }
+
+            @Override
             public void close() {
                 if (consumer != null) {
                     consumer.close();
@@ -50,7 +60,14 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
                 ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(1));
                 List<Record> result = new ArrayList<>(poll.count());
                 for (ConsumerRecord<?,?> record : poll) {
-                    result.add(new KafkaRecord(record.key(), record.value()));
+                    // TODO: how to get actual schemas?
+                    result.add(new KafkaRecord(record.topic(),
+                            record.partition(),
+                            record.offset(),
+                            Schema.OPTIONAL_STRING_SCHEMA,
+                            record.key(),
+                            Schema.OPTIONAL_STRING_SCHEMA,
+                            record.value()));
                 }
                 log.info("Received {} records from Kafka {}", result.size(), result);
                 return result;
@@ -74,7 +91,43 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
     }
 
-    private static record KafkaRecord (Object key, Object value) implements Record {
+    public record KafkaRecord (String topic, int kafkaPartition,
+                               TopicPartition topicPartition,
+                                       long kafkaOffset,
+                                       Schema keySchema, Object key,
+                                       Schema valueSchema, Object value,
+                                       Long timestamp, TimestampType timestampType,
+                                       Iterable<Header> headers) implements Record {
+
+        public KafkaRecord {
+            Objects.requireNonNull(topic);
+            Objects.requireNonNull(kafkaPartition);
+
+            // topicPartition is to avoid repeated creation of new TopicPartition for each record later
+            if (!topicPartition.topic().equals(topic) || topicPartition.partition() != kafkaPartition) {
+                throw new IllegalArgumentException("topicPartition is inconsistent with provided topic and partition");
+            }
+        }
+
+        public KafkaRecord(String topic, int kafkaPartition,
+                           long kafkaOffset,
+                           Schema keySchema, Object key,
+                           Schema valueSchema, Object value) {
+            this(topic, kafkaPartition, new TopicPartition(topic, kafkaPartition), kafkaOffset,
+                    keySchema, key, valueSchema, value,
+                    null, TimestampType.NO_TIMESTAMP_TYPE, null);
+        }
+
+        public KafkaRecord(String topic, int kafkaPartition,
+                           long kafkaOffset,
+                           Schema keySchema, Object key,
+                           Schema valueSchema, Object value,
+                           Long timestamp, TimestampType timestampType,
+                           Iterable<Header> headers) {
+            this(topic, kafkaPartition, new TopicPartition(topic, kafkaPartition), kafkaOffset,
+                    keySchema, key, valueSchema, value,
+                    timestamp, timestampType, headers);
+        }
     }
 
     @Override
@@ -97,6 +150,11 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
                 if (producer != null) {
                     producer.close();
                 }
+            }
+
+            @Override
+            public java.lang.Object getNativeProducer() {
+                return producer;
             }
 
             @Override

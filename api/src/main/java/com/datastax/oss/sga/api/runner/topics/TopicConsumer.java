@@ -13,4 +13,8 @@ public interface TopicConsumer {
     default List<Record> read() {
         return List.of();
     }
+
+    default Object getNativeConsumer() {
+        return null;
+    }
 }

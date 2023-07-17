@@ -1,5 +1,6 @@
 package com.dastastax.oss.sga.runtime;
 
+import com.dastastax.oss.sga.agents.KafkaSinkAgent;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
@@ -10,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -89,6 +92,15 @@ public class PodJavaRuntime
     private static void runMainLoop(TopicConsumer consumer, TopicProducer producer, AgentCode agentCode, int maxLoops) {
         consumer.start();
         producer.start();
+
+        if (agentCode instanceof KafkaSinkAgent) {
+            KafkaSinkAgent sa = (KafkaSinkAgent) agentCode;
+            sa.setConsumer((KafkaConsumer<byte[], byte[]>)consumer.getNativeConsumer());
+            sa.setProducer((KafkaProducer<byte[], byte[]>)producer.getNativeProducer());
+            // TODO; but should only be needed if the offset topic was not pre-created
+            sa.setTopicAdmin(null);
+        }
+
         agentCode.start();
         try {
             // TODO: handle semantics, transactions...
@@ -102,9 +114,9 @@ public class PodJavaRuntime
                 records = consumer.read();
             }
         } finally {
+            agentCode.close();
             consumer.close();
             producer.close();
-            agentCode.close();
         }
     }
 

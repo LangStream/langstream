@@ -24,7 +24,13 @@ import java.util.Map;
  */
 public interface TopicConnectionsRuntime {
 
+    default void init(StreamingCluster streamingCluster){
+    }
+
     TopicConsumer createConsumer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration);
 
     TopicProducer createProducer(String agentId,StreamingCluster streamingCluster, Map<String, Object> configuration);
+
+    default void close(){
+    }
 }

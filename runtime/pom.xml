@@ -49,6 +49,13 @@
       <scope>runtime</scope>
     </dependency>
 
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sga-pulsar</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+
     <!-- main implementation for the AI Agents -->
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -106,6 +113,11 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>pulsar</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

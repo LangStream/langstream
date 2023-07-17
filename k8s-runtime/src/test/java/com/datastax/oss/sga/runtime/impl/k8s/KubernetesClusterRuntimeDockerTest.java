@@ -18,7 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
@@ -78,7 +77,7 @@ class KubernetesClusterRuntimeDockerTest {
         assertNotNull(agentImplementation);
 
 
-        deployer.deploy(tenant, implementation);
+        deployer.deploy(tenant, implementation, null);
         assertEquals(1, agentsCRs.size());
         final AgentCustomResource agent = agentsCRs.values().iterator().next();
         assertEquals("datastax/sga-generic-agent:latest", agent.getSpec().getImage());
@@ -186,7 +185,7 @@ class KubernetesClusterRuntimeDockerTest {
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
 
-        deployer.deploy(tenant, implementation);
+        deployer.deploy(tenant, implementation, null);
 
         assertEquals(1, agentsCRs.size());
         final AgentCustomResource agent = agentsCRs.values().iterator().next();

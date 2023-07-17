@@ -31,6 +31,13 @@ spec:
     volumeMounts:
     - mountPath: /data
       name: localvolume # Corresponds to the `spec.volumes` Persistent Volume
+    ports:
+      -  containerPort: 9090
+         protocol: TCP
+         name: console
+      -  containerPort: 9000
+         protocol: TCP
+         name: s3
   volumes:
   - name: localvolume
     hostPath: # MinIO generally recommends using locally-attached volumes
@@ -48,5 +55,11 @@ spec:
   ports:
     - port: 9090
       protocol: TCP
+      targetPort: 9090
+      name: console
+    - port: 9000
+      protocol: TCP
+      targetPort: 9000
+      name: s3
   selector:
     app: minio

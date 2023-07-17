@@ -11,4 +11,5 @@ public class RuntimeDeployerConfiguration {
     private String applicationId;
     private String tenant;
     private String application;
+    private String codeStorageArchiveId;
 }

@@ -1,9 +1,9 @@
 package com.datastax.oss.sga.impl.codestorage;
 
-import com.datastax.oss.sga.api.codestorage.DownloadedCodeArchive;
 import com.datastax.oss.sga.api.codestorage.CodeArchiveMetadata;
 import com.datastax.oss.sga.api.codestorage.CodeStorage;
 import com.datastax.oss.sga.api.codestorage.CodeStorageException;
+import com.datastax.oss.sga.api.codestorage.LocalZipFileArchiveFile;
 import com.datastax.oss.sga.api.codestorage.UploadableCodeArchive;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
 
 @Slf4j
 public class LocalDiskCodeStorage implements CodeStorage {
@@ -86,7 +85,7 @@ public class LocalDiskCodeStorage implements CodeStorage {
     }
 
     @Override
-    public void downloadApplicationCode(String tenant, String codeStoreId, Consumer<DownloadedCodeArchive> codeArchive) throws CodeStorageException {
+    public void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive) throws CodeStorageException {
         CodeArchiveMetadata metadata = describeApplicationCode(tenant, codeStoreId);
         Path resolve = rootPath.resolve(metadata.codeStoreId());
         codeArchive.accept(new LocalZipFileArchiveFile(resolve));

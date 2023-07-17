@@ -8,4 +8,8 @@ public class CodeStorageException extends Exception{
     public CodeStorageException(String message) {
         super(message);
     }
+
+    public CodeStorageException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

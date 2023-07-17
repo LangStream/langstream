@@ -1,9 +1,11 @@
 package com.datastax.oss.sga.deployer.k8s.controllers;
 
+import com.datastax.oss.sga.deployer.k8s.DeployerConfiguration;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
+import com.datastax.oss.sga.runtime.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
 import com.datastax.oss.sga.runtime.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.impl.k8s.PodAgentConfiguration;
@@ -44,6 +46,9 @@ import lombok.extern.jbosslog.JBossLog;
 @JBossLog
 public class AgentController extends BaseController<AgentCustomResource> {
 
+    @Inject
+    protected DeployerConfiguration configuration;
+
     @Override
     protected UpdateControl<AgentCustomResource> patchResources(AgentCustomResource agent,
                                                                       Context<AgentCustomResource> context) {
@@ -59,6 +64,8 @@ public class AgentController extends BaseController<AgentCustomResource> {
     }
 
     private boolean handleResource(AgentCustomResource agent) {
+        log.info("handling agent: " + agent);
+        log.infof("operator configuration clusterRuntime:%s codeStorage:%s", configuration.clusterRuntime(), configuration.codeStorage());
         final String tenant = agent.getSpec().getTenant();
         final String agentName = agent.getMetadata().getName();
 
@@ -89,17 +96,34 @@ public class AgentController extends BaseController<AgentCustomResource> {
         final AgentSpec spec = agentCustomResource.getSpec();
         final PodAgentConfiguration podAgentConfiguration =
                 SerializationUtil.readJson(spec.getConfiguration(), PodAgentConfiguration.class);
+
+        final Map<String, Object> codeStorage;
+        if (configuration.codeStorage() == null) {
+            codeStorage = Map.of("type", "none");
+        } else {
+            codeStorage = SerializationUtil.readYaml(configuration.codeStorage(), Map.class);
+        }
+        log.info("codeStorage configuration: " + codeStorage);
+
+        CodeStorageConfig codeStorageConfig = podAgentConfiguration.codeStorage() != null ? new CodeStorageConfig(
+                codeStorage.getOrDefault("type", "none").toString(),
+                podAgentConfiguration.codeStorage().codeStorageArchiveId(),
+                codeStorage
+        ) : new CodeStorageConfig("none", "", Map.of());
+
         RuntimePodConfiguration podConfig = new RuntimePodConfiguration(
                 podAgentConfiguration.input(),
                 podAgentConfiguration.output(),
                 new com.datastax.oss.sga.runtime.agent.AgentSpec(
                         com.datastax.oss.sga.runtime.agent.AgentSpec.ComponentType.valueOf(podAgentConfiguration.agentConfiguration().componentType()),
+                        spec.getTenant(),
                         podAgentConfiguration.agentConfiguration().agentId(),
                         spec.getApplicationId(),
                         podAgentConfiguration.agentConfiguration().agentType(),
                         podAgentConfiguration.agentConfiguration().configuration()
                 ),
-                podAgentConfiguration.streamingCluster()
+                podAgentConfiguration.streamingCluster(),
+                codeStorageConfig
         );
 
 

@@ -53,6 +53,7 @@ public class ApplicationResource {
             @NotBlank @PathVariable("name") String name,
             @NotNull @RequestParam("file") MultipartFile file) throws Exception {
         final Map.Entry<Application, String> instance = parseApplicationInstance(name, file, tenant);
+        log.info("Parsed application instance code:{} application:{}", instance.getValue(), instance.getKey());
         applicationService.deployApplication(tenant, name, instance.getKey(), instance.getValue());
     }
 
@@ -67,23 +68,28 @@ public class ApplicationResource {
                         ModelBuilder.buildApplicationInstance(List.of(tempdir));
                 String codeArchiveReference = codeStorageService.deployApplicationCodeStorage(tenant, name,
                         applicationInstance, tempZip);
+                log.info("Parsed application {} with code archive {}", name, codeArchiveReference);
                 return new AbstractMap.SimpleImmutableEntry<>(applicationInstance, codeArchiveReference);
             }
         } finally {
             tempZip.toFile().delete();
 
-            Files
-                    .walk(tempdir)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            log.info("Deleting temporary file {}", path);
-                            Files.delete(path);  //delete each file or directory
-                        } catch (IOException e) {
-                            log.info("Cannot delete file {}", path, e);
-                        }
-                    });
+            deleteDirectory(tempdir);
         }
+    }
+
+    private static void deleteDirectory(Path tempdir) throws IOException {
+        Files
+                .walk(tempdir)
+                .sorted(Comparator.reverseOrder())
+                .forEach(path -> {
+                    try {
+                        log.info("Deleting temporary file {}", path);
+                        Files.delete(path);  //delete each file or directory
+                    } catch (IOException e) {
+                        log.info("Cannot delete file {}", path, e);
+                    }
+                });
     }
 
     @DeleteMapping("/{tenant}/{name}")

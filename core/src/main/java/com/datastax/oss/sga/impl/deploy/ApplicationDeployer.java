@@ -30,23 +30,27 @@ public final class ApplicationDeployer {
 
     /**
      * Deploy the application instance.
+     *
      * @param physicalApplicationInstance
+     * @param codeStorageArchiveId
      */
-    public Object deploy(String tenant, ExecutionPlan physicalApplicationInstance) {
+    public Object deploy(String tenant, ExecutionPlan physicalApplicationInstance, String codeStorageArchiveId) {
       Application applicationInstance = physicalApplicationInstance.getApplication();
       ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
       StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
-      return clusterRuntime.deploy(tenant, physicalApplicationInstance, streamingClusterRuntime);
+      return clusterRuntime.deploy(tenant, physicalApplicationInstance, streamingClusterRuntime, codeStorageArchiveId);
   }
 
     /**
      * Delete the application instance and all the resources associated with it.
+     *
      * @param physicalApplicationInstance
+     * @param codeStorageArchiveId
      */
-    public void delete(String tenant, ExecutionPlan physicalApplicationInstance) {
+    public void delete(String tenant, ExecutionPlan physicalApplicationInstance, String codeStorageArchiveId) {
       Application applicationInstance = physicalApplicationInstance.getApplication();
       ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
       StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
-      clusterRuntime.delete(tenant, physicalApplicationInstance, streamingClusterRuntime);
+      clusterRuntime.delete(tenant, physicalApplicationInstance, streamingClusterRuntime, codeStorageArchiveId);
   }
 }

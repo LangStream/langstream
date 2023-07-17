@@ -11,6 +11,7 @@ import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.runtime.agent.AgentSpec;
+import com.datastax.oss.sga.runtime.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
 import com.datastax.oss.sga.runtime.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.impl.k8s.PodAgentConfiguration;
@@ -91,7 +92,7 @@ class PulsarRunnerDockerTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
 
-        List<PodAgentConfiguration> customResourceDefinitions = (List<PodAgentConfiguration>) deployer.deploy("tenant", implementation);
+        List<PodAgentConfiguration> customResourceDefinitions = (List<PodAgentConfiguration>) deployer.deploy("tenant", implementation, null);
         Collection<String> topics = admin.topics().getList("public/default");
         log.info("Topics {}", topics);
         assertTrue(topics.contains("persistent://public/default/input-topic"));
@@ -108,11 +109,13 @@ class PulsarRunnerDockerTest {
                 podAgentConfiguration.output(),
                 new AgentSpec(AgentSpec.ComponentType.valueOf(
                         podAgentConfiguration.agentConfiguration().componentType()),
+                        "tenant",
                         podAgentConfiguration.agentConfiguration().agentId(),
                         appId,
                         podAgentConfiguration.agentConfiguration().agentType(),
                         podAgentConfiguration.agentConfiguration().configuration()),
-                applicationInstance.getInstance().streamingCluster()
+                applicationInstance.getInstance().streamingCluster(),
+                new CodeStorageConfig("none", "none", Map.of())
         );
 
         try (PulsarClient client = PulsarClientUtils.buildPulsarClient(implementation.getApplication().getInstance().streamingCluster());

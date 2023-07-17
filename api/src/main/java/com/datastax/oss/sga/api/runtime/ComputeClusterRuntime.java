@@ -48,9 +48,11 @@ public interface ComputeClusterRuntime {
      */
     Connection getConnectionImplementation(Module module, com.datastax.oss.sga.api.model.Connection connection, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
 
-    Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
+                  String codeStorageArchiveId);
 
-    void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
+                String codeStorageArchiveId);
 
     default AgentNodeMetadata computeAgentMetadata(AgentConfiguration agentConfiguration, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         return null;

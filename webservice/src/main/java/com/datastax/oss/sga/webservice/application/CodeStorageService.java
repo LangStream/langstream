@@ -7,10 +7,7 @@ import com.datastax.oss.sga.api.codestorage.CodeStorageRegistry;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.impl.codestorage.LocalFileUploadableCodeArchive;
 import com.datastax.oss.sga.webservice.config.StorageProperties;
-<<<<<<< HEAD
-=======
-import lombok.extern.slf4j.Slf4j;
->>>>>>> origin/main
+import lombok.extern.jbosslog.JBossLog;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
@@ -18,18 +15,16 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service
+@JBossLog
 public class CodeStorageService {
 
     private final CodeStorage codeStorage;
 
     public CodeStorageService(StorageProperties storageProperties) {
+        log.info("Loading CodeStorage implementation for " + storageProperties);
         codeStorage =
                 CodeStorageRegistry.getCodeStorage(storageProperties.getCode().getType(),
                         storageProperties.getCode().getConfiguration());
-    }
-
-    public CodeStorage getCodeStorage() {
-        return codeStorage;
     }
 
     public String deployApplicationCodeStorage(String tenant, String application,

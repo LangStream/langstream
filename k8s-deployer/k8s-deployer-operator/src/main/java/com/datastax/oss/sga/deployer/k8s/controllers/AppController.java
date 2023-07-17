@@ -1,6 +1,5 @@
 package com.datastax.oss.sga.deployer.k8s.controllers;
 
-import com.datastax.oss.sga.deployer.k8s.DeployerConfiguration;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
@@ -14,8 +13,6 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -53,6 +50,7 @@ public class AppController extends BaseController<ApplicationCustomResource> {
         final String appId = application.getMetadata().getName();
 
         final ApplicationSpec spec = application.getSpec();
+        log.infof("ApplicationSpec {}", spec);
         final String jobName;
         if (delete) {
             jobName = "sga-runtime-deployer-cleanup-" + appId;
@@ -82,10 +80,12 @@ public class AppController extends BaseController<ApplicationCustomResource> {
     private void createJob(String tenant, String appId, ApplicationSpec spec, String jobName, String targetNamespace,
                            boolean delete) {
 
+        // this is RuntimeDeployerConfiguration
         final Map<String, String> config = Map.of(
                 "applicationId", appId,
                 "application", spec.getApplication(),
-                "tenant", tenant);
+                "tenant", tenant,
+                "codeStorageArchiveId", spec.getCodeArchiveId() != null ? spec.getCodeArchiveId() : "");
 
         final Map<String, Object> clusterRuntime;
         if (configuration.clusterRuntime() == null) {
@@ -93,6 +93,13 @@ public class AppController extends BaseController<ApplicationCustomResource> {
         } else {
             clusterRuntime = SerializationUtil.readYaml(configuration.clusterRuntime(), Map.class);
         }
+        final Map<String, Object> codeStorage;
+        if (configuration.codeStorage() == null) {
+            codeStorage = Map.of("type", "none");
+        } else {
+            codeStorage = SerializationUtil.readYaml(configuration.codeStorage(), Map.class);
+        }
+
         final Container initContainer = new ContainerBuilder()
                 .withName("deployer-init-config")
                 .withImage(spec.getImage())

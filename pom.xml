@@ -49,6 +49,7 @@
     <module>pulsar</module>
     <module>kafka</module>
     <module>k8s-runtime</module>
+    <module>codestorage-s3</module>
     <module>runtime</module>
     <module>ai-agents</module>
     <module>webservice</module>

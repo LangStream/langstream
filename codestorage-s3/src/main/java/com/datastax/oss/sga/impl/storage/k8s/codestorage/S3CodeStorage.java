@@ -4,12 +4,16 @@ import com.datastax.oss.sga.api.codestorage.CodeArchiveMetadata;
 import com.datastax.oss.sga.api.codestorage.CodeStorage;
 import com.datastax.oss.sga.api.codestorage.CodeStorageException;
 import com.datastax.oss.sga.api.codestorage.DownloadedCodeArchive;
+import com.datastax.oss.sga.api.codestorage.LocalZipFileArchiveFile;
 import com.datastax.oss.sga.api.codestorage.UploadableCodeArchive;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.DownloadObjectArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
+import io.minio.MakeBucketArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.messages.Bucket;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import io.minio.MinioClient;
 import io.minio.UploadObjectArgs;
@@ -20,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -32,18 +37,30 @@ public class S3CodeStorage implements CodeStorage {
     private String bucketName;
     private MinioClient minioClient;
 
-
+    @SneakyThrows
     public S3CodeStorage(Map<String, Object> configuration) {
         bucketName = configuration.getOrDefault("bucketName", "sga-code-storage").toString();
         String endpoint = configuration.getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090").toString();
         String username =  configuration.getOrDefault("username", "minioadmin").toString();
         String password =  configuration.getOrDefault("username", "minioadmin").toString();
 
+        log.info("Connecting to S3 BlobStorage at {} with user {}", endpoint, username);
+
         minioClient =
                 MinioClient.builder()
                         .endpoint(endpoint)
                         .credentials(username, password)
                         .build();
+
+        List<Bucket> buckets = minioClient.listBuckets();
+        log.info("Existing Buckets: {}", buckets.stream().map(Bucket::name).toList());
+        if (!buckets.stream().filter(b->b.name().equals(bucketName)).findAny().isPresent()) {
+            log.info("Creating bucket {}", bucketName);
+            minioClient.makeBucket(MakeBucketArgs
+                    .builder()
+                    .bucket(bucketName)
+                    .build());
+        }
     }
 
 
@@ -81,19 +98,25 @@ public class S3CodeStorage implements CodeStorage {
     }
 
     @Override
-    public void downloadApplicationCode(String tenant, String codeStoreId, Consumer<DownloadedCodeArchive> codeArchive) throws CodeStorageException {
+    public void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive) throws CodeStorageException {
         try {
-            Path tempFile = Files.createTempFile("sga", "upload");
+            Path tempFile = Files.createTempDirectory("sga-download-code");
+            Path zipFile = tempFile.resolve("code.zip");
             try {
                 minioClient.downloadObject(DownloadObjectArgs.builder()
                                 .bucket(bucketName)
-                                .filename(tempFile.toAbsolutePath().toString())
+                                .filename(zipFile.toAbsolutePath().toString())
                                 .object(tenant +"/" + codeStoreId)
                         .build());
+                codeArchive.accept(new LocalZipFileArchiveFile(zipFile));
             } finally {
+                if (Files.exists(zipFile)) {
+                    Files.delete(zipFile);
+                }
                 Files.delete(tempFile);
             }
         } catch (MinioException | NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+            log.error("Error downloading code archive {} for tenant {}", codeStoreId, tenant, e);
             throw new CodeStorageException(e);
         }
     }

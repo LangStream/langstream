@@ -2,6 +2,7 @@ package com.datastax.oss.sga.kafka;
 
 import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
 import com.datastax.oss.sga.runtime.agent.AgentSpec;
+import com.datastax.oss.sga.runtime.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
 import com.datastax.oss.sga.runtime.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.api.model.Application;
@@ -69,7 +70,7 @@ class KafkaRunnerDockerTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
-        deployer.deploy("tenant", implementation);
+        deployer.deploy("tenant", implementation, null);
 
         Set<String> topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
@@ -78,8 +79,9 @@ class KafkaRunnerDockerTest {
         RuntimePodConfiguration runtimePodConfiguration = new RuntimePodConfiguration(
                 Map.of("topic", "input-topic"),
                 Map.of("topic", "output-topic"),
-                new AgentSpec(AgentSpec.ComponentType.FUNCTION, "agent", "application", "identity", Map.of()),
-                applicationInstance.getInstance().streamingCluster()
+                new AgentSpec(AgentSpec.ComponentType.FUNCTION, "tenant", "agent", "application", "identity", Map.of()),
+                applicationInstance.getInstance().streamingCluster(),
+                new CodeStorageConfig("none", "none", Map.of())
         );
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<String, String>(
@@ -90,7 +92,7 @@ class KafkaRunnerDockerTest {
                      KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(
                 Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
                     "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
-                    "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                    "value.deserializer", " org.apache.kafka.common.serialization.StringDeserializer",
                     "group.id","testgroup",
                     "auto.offset.reset", "earliest")
         )) {

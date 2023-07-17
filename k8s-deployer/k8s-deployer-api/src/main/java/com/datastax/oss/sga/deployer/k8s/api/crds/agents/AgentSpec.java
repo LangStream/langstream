@@ -11,14 +11,16 @@ public class AgentSpec extends NamespacedSpec {
 
     private String image;
     private String imagePullPolicy;
+    private String applicationId;
     private String configuration;
 
     @Builder
-    public AgentSpec(String tenant, String image, String imagePullPolicy, String configuration) {
+    public AgentSpec(String tenant, String image, String imagePullPolicy, String applicationId, String configuration) {
         super(tenant);
         this.configuration = configuration;
         this.image = image;
         this.imagePullPolicy = imagePullPolicy;
+        this.applicationId = applicationId;
     }
 
 

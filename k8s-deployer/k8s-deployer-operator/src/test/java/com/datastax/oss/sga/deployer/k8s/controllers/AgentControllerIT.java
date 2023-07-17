@@ -36,7 +36,7 @@ public class AgentControllerIT {
         final PodAgentConfiguration podConf = new PodAgentConfiguration(
                 Map.of("input", Map.of("is_input", true)),
                 Map.of("output", Map.of("is_output", true)),
-                new PodAgentConfiguration.AgentConfiguration("id", "my-agent", "FUNCTION", Map.of("config", true)),
+                new PodAgentConfiguration.AgentConfiguration("agent-id", "my-agent", "FUNCTION", Map.of("config", true)),
                 new StreamingCluster("noop", Map.of("config", true))
         );
 
@@ -52,6 +52,7 @@ public class AgentControllerIT {
                     imagePullPolicy: Always
                     configuration: '%s'
                     tenant: my-tenant
+                    applicationId: the-app
                 """.formatted(SerializationUtil.writeAsJson(podConf)));
         final KubernetesClient client = deployment.getClient();
         final String namespace = "sga-my-tenant";
@@ -91,7 +92,7 @@ public class AgentControllerIT {
         assertEquals("bash", initContainer.getCommand().get(0));
         assertEquals("-c", initContainer.getCommand().get(1));
         assertEquals("echo '{\"input\":{\"input\":{\"is_input\":true}},\"output\":{\"output\":{\"is_output\":true}},"
-                + "\"agent\":{\"componentType\":\"FUNCTION\",\"agentType\":\"my-agent\","
+                + "\"agent\":{\"componentType\":\"FUNCTION\",\"agentId\":\"agent-id\",\"applicationId\":\"the-app\",\"agentType\":\"my-agent\","
                 + "\"configuration\":{\"config\":true}},\"streamingCluster\":{\"type\":\"noop\","
                 + "\"configuration\":{\"config\":true}}}' > /app-config/config", initContainer.getArgs().get(0));
 

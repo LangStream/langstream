@@ -23,6 +23,8 @@ spec:
                 type: string
               imagePullPolicy:
                 type: string
+              applicationId:
+                type: string
               tenant:
                 type: string
             required:

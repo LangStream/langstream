@@ -1,10 +1,7 @@
 package com.datastax.oss.sga.deployer.k8s.controllers;
 
-import com.datastax.oss.sga.deployer.k8s.DeployerConfiguration;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
-import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
-import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
@@ -65,7 +62,6 @@ public class AgentController extends BaseController<AgentCustomResource> {
         final String tenant = agent.getSpec().getTenant();
         final String agentName = agent.getMetadata().getName();
 
-        final AgentSpec spec = agent.getSpec();
         final String stsName = agentName;
         final String targetNamespace = configuration.namespacePrefix() + tenant;
         final StatefulSet current = client.apps().statefulSets()
@@ -98,6 +94,8 @@ public class AgentController extends BaseController<AgentCustomResource> {
                 podAgentConfiguration.output(),
                 new com.datastax.oss.sga.runtime.agent.AgentSpec(
                         com.datastax.oss.sga.runtime.agent.AgentSpec.ComponentType.valueOf(podAgentConfiguration.agentConfiguration().componentType()),
+                        podAgentConfiguration.agentConfiguration().agentId(),
+                        spec.getApplicationId(),
                         podAgentConfiguration.agentConfiguration().agentType(),
                         podAgentConfiguration.agentConfiguration().configuration()
                 ),

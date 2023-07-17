@@ -62,6 +62,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     .build());
             agentCR.setSpec(AgentSpec.builder()
                     .tenant(tenant)
+                    .applicationId(applicationInstance.getApplicationId())
                     .image(configuration.getImage())
                     .imagePullPolicy(configuration.getImagePullPolicy())
                     .configuration(mapper.writeValueAsString(podAgentConfiguration))

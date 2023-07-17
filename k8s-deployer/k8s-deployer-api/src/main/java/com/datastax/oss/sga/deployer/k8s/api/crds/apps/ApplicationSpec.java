@@ -13,8 +13,10 @@ public class ApplicationSpec extends NamespacedSpec {
     private String imagePullPolicy;
     private String application;
 
+    private String codeArchiveId;
+
     @Builder
-    public ApplicationSpec(String tenant, String image, String imagePullPolicy, String application) {
+    public ApplicationSpec(String tenant, String image, String imagePullPolicy, String application, String codeArchiveId) {
         super(tenant);
         this.image = image;
         this.imagePullPolicy = imagePullPolicy;

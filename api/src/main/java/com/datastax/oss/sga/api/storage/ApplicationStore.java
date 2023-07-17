@@ -10,7 +10,7 @@ public interface ApplicationStore extends GenericStore {
 
     void onTenantDeleted(String tenant);
 
-    void put(String tenant, String applicationId, Application applicationInstance);
+    void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveReference);
 
     StoredApplication get(String tenant, String applicationId);
 

@@ -21,6 +21,8 @@ spec:
             properties:
               application:
                 type: string
+              codeArchiveId:
+                type: string
               image:
                 type: string
               imagePullPolicy:

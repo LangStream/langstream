@@ -1,0 +1,2 @@
+com.datastax.oss.sga.impl.codestorage.LocalDiskCodeStorageProvider
+com.datastax.oss.sga.impl.codestorage.NoopCodeStorageProvider

@@ -42,7 +42,8 @@ class TenantResourceTest extends KubeTestUtil {
                                     LocalStore.LOCAL_BASEDIR,
                                     Files.createTempDirectory("sga-test").toFile().getAbsolutePath()
                             )
-                    )
+                    ),
+                    new StorageProperties.CodeStorageProperties()
             );
         }
 

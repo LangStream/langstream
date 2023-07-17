@@ -10,20 +10,13 @@ import com.datastax.oss.sga.cli.commands.applications.DeployApplicationCmd;
 import com.datastax.oss.sga.impl.storage.LocalStore;
 import com.datastax.oss.sga.webservice.config.StorageProperties;
 import java.io.File;
-import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import net.lingala.zip4j.ZipFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -63,7 +56,8 @@ class ApplicationResourceTest extends KubeTestUtil {
                                     LocalStore.LOCAL_BASEDIR,
                                     Files.createTempDirectory("sga-test").toFile().getAbsolutePath()
                             )
-                    )
+                    ),
+                    new StorageProperties.CodeStorageProperties()
             );
         }
 

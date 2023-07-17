@@ -85,7 +85,7 @@ public class AgentController extends BaseController<AgentCustomResource> {
 
 
     public StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource) {
-
+        log.info("generating statefulset for agent: " + agentCustomResource);
         final AgentSpec spec = agentCustomResource.getSpec();
         final PodAgentConfiguration podAgentConfiguration =
                 SerializationUtil.readJson(spec.getConfiguration(), PodAgentConfiguration.class);

@@ -126,7 +126,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     @Override
     @SneakyThrows
-    public void put(String tenant, String applicationId, Application applicationInstance) {
+    public void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveId) {
         final String namespace = tenantToNamespace(tenant);
         final String appJson = mapper.writeValueAsString(new SerializedApplicationInstance(applicationInstance));
         final ApplicationCustomResource crd = new ApplicationCustomResource();
@@ -139,6 +139,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .image(properties.getDeployerRuntime().getImage())
                 .imagePullPolicy(properties.getDeployerRuntime().getImagePullPolicy())
                 .application(appJson)
+                .codeArchiveId(codeArchiveId)
                 .build();
         crd.setSpec(spec);
 

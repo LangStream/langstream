@@ -25,6 +25,14 @@ public class StorageProperties {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class CodeStorageProperties {
+        private String type;
+        private Map<String, Object> configuration = new HashMap<>();
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class GlobalMetadataStoreProperties {
         private String type;
         private Map<String, Object> configuration = new HashMap<>();
@@ -33,5 +41,7 @@ public class StorageProperties {
     @NotBlank
     private AppsStoreProperties apps;
     private GlobalMetadataStoreProperties global;
+
+    private CodeStorageProperties codeStorage;
 
 }

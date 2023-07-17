@@ -3,12 +3,17 @@ package com.datastax.oss.sga.webservice.application;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.google.common.collect.ImmutableMap;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.AbstractMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -33,6 +38,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ApplicationResource {
 
     ApplicationService applicationService;
+    CodeStorageService codeStorageService;
 
     @GetMapping("/{tenant}")
     @Operation(summary = "Get all applications")
@@ -46,11 +52,11 @@ public class ApplicationResource {
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("name") String name,
             @NotNull @RequestParam("file") MultipartFile file) throws Exception {
-        final Application instance = parseApplicationInstance(name, file);
-        applicationService.deployApplication(tenant, name, instance);
+        final Map.Entry<Application, String> instance = parseApplicationInstance(name, file, tenant);
+        applicationService.deployApplication(tenant, name, instance.getKey(), instance.getValue());
     }
 
-    private Application parseApplicationInstance(String name, MultipartFile file) throws Exception {
+    private Map.Entry<Application, String> parseApplicationInstance(String name, MultipartFile file, String tenant) throws Exception {
         Path tempdir = Files.createTempDirectory("zip-extract");
         final Path tempZip = Files.createTempFile("app", ".zip");
         try {
@@ -59,12 +65,24 @@ public class ApplicationResource {
                 zipFile.extractAll(tempdir.toFile().getAbsolutePath());
                 final Application applicationInstance =
                         ModelBuilder.buildApplicationInstance(List.of(tempdir));
-                return applicationInstance;
-
+                String codeArchiveReference = codeStorageService.deployApplicationCodeStorage(tenant, name,
+                        applicationInstance, tempZip);
+                return new AbstractMap.SimpleImmutableEntry<>(applicationInstance, codeArchiveReference);
             }
         } finally {
-            tempdir.toFile().delete();
             tempZip.toFile().delete();
+
+            Files
+                    .walk(tempdir)
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try {
+                            log.info("Deleting temporary file {}", path);
+                            Files.delete(path);  //delete each file or directory
+                        } catch (IOException e) {
+                            log.info("Cannot delete file {}", path, e);
+                        }
+                    });
         }
     }
 

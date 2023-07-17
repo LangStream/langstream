@@ -1,10 +1,8 @@
 package com.datastax.oss.sga.webservice.application;
 
+import com.datastax.oss.sga.api.codestorage.CodeStorage;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.StoredApplication;
-import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.PluginsRegistry;
-import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.webservice.common.GlobalMetadataService;
 import java.util.Map;
@@ -19,6 +17,8 @@ public class ApplicationService {
 
     private final GlobalMetadataService globalMetadataService;
     private final ApplicationStore applicationStore;
+
+    private CodeStorage codeStorage;
 
     public ApplicationService(
             GlobalMetadataService globalMetadataService,
@@ -35,9 +35,11 @@ public class ApplicationService {
     }
 
     @SneakyThrows
-    public void deployApplication(String tenant, String applicationId, Application applicationInstance) {
+
+    public void deployApplication(String tenant, String applicationId, Application applicationInstance,
+                                  String codeArchiveReference) {
         checkTenant(tenant);
-        applicationStore.put(tenant, applicationId, applicationInstance);
+        applicationStore.put(tenant, applicationId, applicationInstance, codeArchiveReference);
     }
 
     @SneakyThrows

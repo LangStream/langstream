@@ -37,6 +37,7 @@
     <mockito-core.version>5.2.0</mockito-core.version>
     <awaitility.version>4.2.0</awaitility.version>
     <kubernetes-client.version>6.7.2</kubernetes-client.version>
+    <minio.version>8.5.4</minio.version>
     <bouncy-castle.version>1.70</bouncy-castle.version>
     <kindcontainer.version>1.4.1</kindcontainer.version>
     <streaming-ai.version>3.1.1-alpha</streaming-ai.version>
@@ -147,6 +148,13 @@
         <artifactId>awaitility</artifactId>
         <version>${awaitility.version}</version>
       </dependency>
+
+      <dependency>
+        <groupId>io.minio</groupId>
+        <artifactId>minio</artifactId>
+        <version>${minio.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>io.fabric8</groupId>
         <artifactId>kubernetes-client</artifactId>

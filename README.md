@@ -37,6 +37,16 @@ kubectl port-forward svc/sga-control-plane 8090:8090 &
 ```
 
 
+Deploy MinIO
+Instructions taken from https://min.io/docs/minio/kubernetes/upstream/index.html
+
+
+```
+kubectl apply -f helm/examples/minio-dev.yaml
+kubectl port-forward pod/minio 9000 9090 -n minio-dev &
+```
+
+
 Deploy Kafka:
 ```
 kubectl create namespace kafka

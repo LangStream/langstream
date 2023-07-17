@@ -7,7 +7,6 @@ import com.datastax.oss.sga.api.codestorage.CodeStorageRegistry;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.impl.codestorage.LocalFileUploadableCodeArchive;
 import com.datastax.oss.sga.webservice.config.StorageProperties;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
@@ -21,8 +20,8 @@ public class CodeStorageService {
 
     public CodeStorageService(StorageProperties storageProperties) {
         codeStorage =
-                CodeStorageRegistry.getCodeStorage(storageProperties.getCodeStorage().getType(),
-                        storageProperties.getCodeStorage().getConfiguration());
+                CodeStorageRegistry.getCodeStorage(storageProperties.getCode().getType(),
+                        storageProperties.getCode().getConfiguration());
     }
 
     public CodeStorage getCodeStorage() {

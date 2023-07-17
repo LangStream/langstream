@@ -53,7 +53,8 @@ class PulsarRunnerDockerTest {
 
     @Test
     public void testRunAITools() throws Exception {
-        kubeServer.spyAgentCustomResources("tenant", "step1");
+        final String appId = "application";
+        kubeServer.spyAgentCustomResources("tenant", appId + "-step1");
 
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
@@ -85,7 +86,7 @@ class PulsarRunnerDockerTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        final String appId = "application";
+
         ExecutionPlan implementation = deployer.createImplementation(appId, applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);

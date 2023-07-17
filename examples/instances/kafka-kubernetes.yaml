@@ -1,0 +1,8 @@
+instance:
+  streamingCluster:
+    type: "kafka"
+    configuration:
+      admin:
+        bootstrap.servers: my-cluster-kafka-bootstrap.kafka:9092
+  computeCluster:
+    type: "kubernetes"

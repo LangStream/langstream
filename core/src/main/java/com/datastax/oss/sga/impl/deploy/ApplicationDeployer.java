@@ -20,12 +20,12 @@ public final class ApplicationDeployer {
      * @param applicationInstance
      * @return the new application
      */
-      public ExecutionPlan createImplementation(Application applicationInstance) {
+      public ExecutionPlan createImplementation(String applicationId, Application applicationInstance) {
           ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
           StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
           final Application resolvedApplicationInstance = ApplicationPlaceholderResolver
                   .resolvePlaceholders(applicationInstance);
-          return clusterRuntime.buildExecutionPlan(resolvedApplicationInstance, pluginsRegistry, streamingClusterRuntime);
+          return clusterRuntime.buildExecutionPlan(applicationId, resolvedApplicationInstance, pluginsRegistry, streamingClusterRuntime);
       }
 
     /**

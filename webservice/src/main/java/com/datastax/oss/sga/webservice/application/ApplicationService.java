@@ -35,21 +35,21 @@ public class ApplicationService {
     }
 
     @SneakyThrows
-    public void deployApplication(String tenant, String applicationName, Application applicationInstance) {
+    public void deployApplication(String tenant, String applicationId, Application applicationInstance) {
         checkTenant(tenant);
-        applicationStore.put(tenant, applicationName, applicationInstance);
+        applicationStore.put(tenant, applicationId, applicationInstance);
     }
 
     @SneakyThrows
-    public StoredApplication getApplication(String tenant, String applicationName) {
+    public StoredApplication getApplication(String tenant, String applicationId) {
         checkTenant(tenant);
-        return applicationStore.get(tenant, applicationName);
+        return applicationStore.get(tenant, applicationId);
     }
 
     @SneakyThrows
-    public void deleteApplication(String tenant, String applicationName) {
+    public void deleteApplication(String tenant, String applicationId) {
         checkTenant(tenant);
-        applicationStore.delete(tenant, applicationName);
+        applicationStore.delete(tenant, applicationId);
     }
 
     private void checkTenant(String tenant) {

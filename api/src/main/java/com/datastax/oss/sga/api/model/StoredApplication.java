@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class StoredApplication {
 
-    private String name;
+    private String applicationId;
     private Application instance;
     private ApplicationInstanceLifecycleStatus status;
 

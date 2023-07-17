@@ -128,14 +128,14 @@ class ApplicationResourceTest extends KubeTestUtil {
                         get("/api/applications/my-tenant/test")
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("test"));
+                .andExpect(jsonPath("$.applicationId").value("test"));
 
         mockMvc
                 .perform(
                         get("/api/applications/my-tenant")
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.test.name").value("test"));
+                .andExpect(jsonPath("$.test.applicationId").value("test"));
 
         mockMvc
                 .perform(

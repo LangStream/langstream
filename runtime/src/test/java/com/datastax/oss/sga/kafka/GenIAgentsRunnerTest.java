@@ -53,7 +53,7 @@ class GenIAgentsRunnerTest {
 
     @Test
     public void testRunAITools() throws Exception {
-        kubeServer.spyAgentCustomResources("tenant", "step1");
+        kubeServer.spyAgentCustomResources("tenant", "app-step1");
 
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
@@ -85,7 +85,7 @@ class GenIAgentsRunnerTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 

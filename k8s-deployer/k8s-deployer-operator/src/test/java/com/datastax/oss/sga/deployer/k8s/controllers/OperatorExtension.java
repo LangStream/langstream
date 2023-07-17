@@ -1,28 +1,29 @@
 package com.datastax.oss.sga.deployer.k8s.controllers;
 
 import com.dajudge.kindcontainer.K3sContainer;
-import com.dajudge.kindcontainer.client.KubeConfigUtils;
-import com.dajudge.kindcontainer.client.config.Cluster;
-import com.dajudge.kindcontainer.client.config.KubeConfig;
 import com.dajudge.kindcontainer.exception.ExecutionException;
 import com.dajudge.kindcontainer.kubectl.KubectlContainer;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
+import com.github.dockerjava.api.DockerClient;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.impl.KubernetesClientImpl;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.PortForwardingContainer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.containers.wait.strategy.WaitStrategy;
 import org.testcontainers.images.builder.Transferable;
@@ -39,12 +40,15 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
     public void afterAll(ExtensionContext extensionContext) throws Exception {
         if (container != null) {
             container.stop();
+            container = null;
         }
         if (client != null) {
             client.close();
+            client = null;
         }
         if (k3s != null) {
             k3s.stop();
+            k3s = null;
         }
 
 
@@ -52,6 +56,7 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
 
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
+        MethodUtils.invokeMethod(PortForwardingContainer.INSTANCE, true, "reset");
         k3s = new K3sContainer();
         k3s.start();
         applyCRDs();
@@ -95,7 +100,6 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
                 .run();
     }
 
-    @NotNull
     private Path writeKubeConfigForOperatorContainer() throws IOException {
         final Path kubeconfigFile = Files.createTempDirectory("test-k3s").resolve("kubeconfig.yaml");
 

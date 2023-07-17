@@ -7,7 +7,6 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
@@ -79,8 +78,8 @@ public class RuntimeDeployer {
                                RuntimeDeployerConfiguration configuration, Secrets secrets) throws IOException {
 
 
-        final String applicationName = configuration.getName();
-        log.info("Deploying application {}", applicationName);
+        final String applicationId = configuration.getApplicationId();
+        log.info("Deploying application {}", applicationId);
         final String applicationConfig = configuration.getApplication();
 
         final Application appInstance =
@@ -93,9 +92,9 @@ public class RuntimeDeployer {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        final ExecutionPlan implementation = deployer.createImplementation(appInstance);
+        final ExecutionPlan implementation = deployer.createImplementation(applicationId, appInstance);
         deployer.deploy(configuration.getTenant(), implementation);
-        log.info("Application {} deployed", applicationName);
+        log.info("Application {} deployed", applicationId);
     }
 
     private static void delete(Map<String, Map<String, Object>> clusterRuntimeConfiguration,
@@ -103,7 +102,7 @@ public class RuntimeDeployer {
                                Secrets secrets) throws IOException {
 
 
-        final String applicationName = configuration.getName();
+        final String applicationId = configuration.getApplicationId();
         final String applicationConfig = configuration.getApplication();
 
         final Application appInstance =
@@ -116,10 +115,10 @@ public class RuntimeDeployer {
                 .pluginsRegistry(new PluginsRegistry())
                 .build();
 
-        log.info("Deleting application {}", applicationName);
-        final ExecutionPlan implementation = deployer.createImplementation(appInstance);
+        log.info("Deleting application {}", applicationId);
+        final ExecutionPlan implementation = deployer.createImplementation(applicationId, appInstance);
         deployer.delete(configuration.getTenant(), implementation);
-        log.info("Application {} deleted", applicationName);
+        log.info("Application {} deleted", applicationId);
     }
 }
 

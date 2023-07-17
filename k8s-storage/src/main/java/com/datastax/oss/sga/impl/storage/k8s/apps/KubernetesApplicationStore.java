@@ -126,12 +126,12 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     @Override
     @SneakyThrows
-    public void put(String tenant, String name, Application applicationInstance) {
+    public void put(String tenant, String applicationId, Application applicationInstance) {
         final String namespace = tenantToNamespace(tenant);
         final String appJson = mapper.writeValueAsString(new SerializedApplicationInstance(applicationInstance));
         final ApplicationCustomResource crd = new ApplicationCustomResource();
         crd.setMetadata(new ObjectMetaBuilder()
-                .withName(name)
+                .withName(applicationId)
                 .withNamespace(namespace)
                 .build());
         final ApplicationSpec spec = ApplicationSpec.builder()
@@ -148,7 +148,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
         final Secret secret = new SecretBuilder()
                 .withNewMetadata()
-                .withName(name)
+                .withName(applicationId)
                 .withNamespace(namespace)
                 .endMetadata()
                 .withData(Map.of("secrets",
@@ -160,29 +160,29 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @Override
-    public StoredApplication get(String tenant, String name) {
+    public StoredApplication get(String tenant, String applicationId) {
         final String namespace = tenantToNamespace(tenant);
         final ApplicationCustomResource application = client.resources(ApplicationCustomResource.class)
                 .inNamespace(namespace)
-                .withName(name)
+                .withName(applicationId)
                 .get();
         if (application == null) {
             return null;
         }
-        return convertApplicationToResult(name, application);
+        return convertApplicationToResult(applicationId, application);
     }
 
     @Override
-    public void delete(String tenant, String name) {
+    public void delete(String tenant, String applicationId) {
         final String namespace = tenantToNamespace(tenant);
 
         client.resources(ApplicationCustomResource.class)
                 .inNamespace(namespace)
-                .withName(name)
+                .withName(applicationId)
                 .delete();
         client.resources(Secret.class)
                 .inNamespace(namespace)
-                .withName(name)
+                .withName(applicationId)
                 .delete();
     }
 
@@ -194,11 +194,11 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .list()
                 .getItems().stream()
                 .map(a -> convertApplicationToResult(a.getMetadata().getName(), a))
-                .collect(Collectors.toMap(StoredApplication::getName, Function.identity()));
+                .collect(Collectors.toMap(StoredApplication::getApplicationId, Function.identity()));
     }
 
     @SneakyThrows
-    private StoredApplication convertApplicationToResult(String applicationName,
+    private StoredApplication convertApplicationToResult(String applicationId,
                                                          ApplicationCustomResource application) {
         final Application instance =
                 mapper.readValue(application.getSpec().getApplication(), SerializedApplicationInstance.class)
@@ -208,7 +208,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
         final ApplicationStatus status = application.getStatus();
         return StoredApplication.builder()
-                .name(applicationName)
+                .applicationId(applicationId)
                 .instance(instance)
                 .status(status == null ? null : status.getStatus())
                 .build();

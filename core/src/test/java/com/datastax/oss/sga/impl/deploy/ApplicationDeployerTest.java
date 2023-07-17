@@ -88,7 +88,7 @@ class ApplicationDeployerTest {
                                     computeCluster:
                                         type: mock
                                 """));
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         deployer.deploy("tenant", implementation);
         Mockito.doAnswer(invocationOnMock -> {
             final Application resolvedApplicationInstance =

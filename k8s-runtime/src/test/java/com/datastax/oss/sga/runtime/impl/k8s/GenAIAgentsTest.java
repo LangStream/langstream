@@ -84,7 +84,7 @@ class GenAIAgentsTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertEquals(1, implementation.getAgents().size());
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
@@ -167,7 +167,7 @@ class GenAIAgentsTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         log.info("Agents: {}", implementation.getAgents());
         assertEquals(1, implementation.getAgents().size());
 
@@ -306,7 +306,7 @@ class GenAIAgentsTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         log.info("Agents: {}", implementation.getAgents());
         assertEquals(1, implementation.getAgents().size());
 
@@ -409,7 +409,7 @@ class GenAIAgentsTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertEquals(2, implementation.getAgents().size());
 
         {

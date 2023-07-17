@@ -85,7 +85,8 @@ class PulsarRunnerDockerTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation(applicationInstance);
+        final String appId = "application";
+        ExecutionPlan implementation = deployer.createImplementation(appId, applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
 
@@ -100,13 +101,14 @@ class PulsarRunnerDockerTest {
         assertEquals(1, customResourceDefinitions.size());
         PodAgentConfiguration podAgentConfiguration = customResourceDefinitions.get(0);
 
+
         RuntimePodConfiguration runtimePodConfiguration = new RuntimePodConfiguration(
                 podAgentConfiguration.input(),
                 podAgentConfiguration.output(),
                 new AgentSpec(AgentSpec.ComponentType.valueOf(
                         podAgentConfiguration.agentConfiguration().componentType()),
                         podAgentConfiguration.agentConfiguration().agentId(),
-                        "application",
+                        appId,
                         podAgentConfiguration.agentConfiguration().agentType(),
                         podAgentConfiguration.agentConfiguration().configuration()),
                 applicationInstance.getInstance().streamingCluster()

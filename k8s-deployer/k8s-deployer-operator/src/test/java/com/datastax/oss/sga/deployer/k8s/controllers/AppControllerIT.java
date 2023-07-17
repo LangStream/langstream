@@ -2,6 +2,7 @@ package com.datastax.oss.sga.deployer.k8s.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.Container;
@@ -48,6 +49,8 @@ public class AppControllerIT {
         Awaitility.await().untilAsserted(() -> {
             assertEquals(1, client.batch().v1().jobs().inNamespace(namespace).list().getItems().size());
         });
+        assertEquals(ApplicationLifecycleStatus.Status.DEPLOYED,
+                client.resource(resource).inNamespace(namespace).get().getStatus().getStatus());
         final Job job = client.batch().v1().jobs().inNamespace(namespace).list().getItems().get(0);
         checkJob(job, false);
 

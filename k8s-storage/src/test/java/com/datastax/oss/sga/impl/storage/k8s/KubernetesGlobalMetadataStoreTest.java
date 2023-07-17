@@ -2,6 +2,7 @@ package com.datastax.oss.sga.impl.storage.k8s;
 
 import static org.junit.jupiter.api.Assertions.*;
 import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
+import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
 import com.datastax.oss.sga.impl.storage.k8s.global.KubernetesGlobalMetadataStore;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.client.Config;
@@ -13,33 +14,19 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.testcontainers.k3s.K3sContainer;
-import org.testcontainers.utility.DockerImageName;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 @Slf4j
 class KubernetesGlobalMetadataStoreTest {
 
 
-    static K3sContainer k3s;
-    static KubernetesClient client;
-    static Path kubeconfigFile;
-
-    @BeforeAll
-    public static void setup(@TempDir Path tempDir) throws Exception {
-        k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.21.3-k3s1"))
-                .withLogConsumer(outputFrame -> log.info("k3s> {}", outputFrame.getUtf8String().trim()));
-        k3s.start();
-        client = new KubernetesClientBuilder()
-                .withConfig(Config.fromKubeconfig(k3s.getKubeConfigYaml()))
-                .build();
-        KubernetesClientFactory.set(null, client);
-    }
+    @RegisterExtension
+    static final KubeK3sServer k3s = new KubeK3sServer();
 
     @Test
     public void testGlobalMetadataStore() throws Exception {
+        final KubernetesClient client = k3s.getClient();
         final KubernetesGlobalMetadataStore store = new KubernetesGlobalMetadataStore();
         final String namespace = "default";
         store.initialize(Map.of("namespace", namespace));
@@ -54,15 +41,5 @@ class KubernetesGlobalMetadataStoreTest {
         assertEquals("myvalue", list.get("mykey"));
         store.delete("mykey");
         assertNull(client.configMaps().inNamespace(namespace).withName("sga-mykey").get());
-    }
-
-
-    @AfterAll
-    public static void after() {
-        System.clearProperty(Config.KUBERNETES_KUBECONFIG_FILE);
-        if (k3s != null) {
-            k3s.stop();
-        }
-        KubernetesClientFactory.clear();
     }
 }

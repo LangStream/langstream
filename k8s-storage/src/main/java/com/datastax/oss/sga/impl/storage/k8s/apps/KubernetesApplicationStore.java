@@ -1,18 +1,25 @@
 package com.datastax.oss.sga.impl.storage.k8s.apps;
 
+import com.datastax.oss.sga.api.model.AgentConfiguration;
+import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.ApplicationStatus;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.Resource;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
+import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
+import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
-import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationStatus;
 import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
@@ -22,8 +29,11 @@ import io.fabric8.kubernetes.api.model.rbac.RoleBuilder;
 import io.fabric8.kubernetes.api.model.rbac.SubjectBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -133,6 +143,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
         crd.setMetadata(new ObjectMetaBuilder()
                 .withName(applicationId)
                 .withNamespace(namespace)
+
                 .build());
         final ApplicationSpec spec = ApplicationSpec.builder()
                 .tenant(tenant)
@@ -207,12 +218,29 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
         // TODO: load secrets ?
 
-        final ApplicationStatus status = application.getStatus();
         return StoredApplication.builder()
                 .applicationId(applicationId)
                 .instance(instance)
-                .status(status == null ? null : status.getStatus())
+                .status(computeApplicationStatus(applicationId, instance, application))
                 .build();
+    }
+
+
+    private ApplicationStatus computeApplicationStatus(final String applicationId, Application app,
+                                                       ApplicationCustomResource customResource) {
+        final ApplicationStatus result = new ApplicationStatus();
+        result.setStatus(customResource.getStatus().getStatus());
+        List<String> declaredAgents = new ArrayList<>();
+        for (Module module : app.getModules().values()) {
+            for (Pipeline pipeline : module.getPipelines().values()) {
+                for (AgentConfiguration agent : pipeline.getAgents()) {
+                    declaredAgents.add(agent.getId());
+                }
+            }
+        }
+        result.setAgents(AgentResourcesFactory.aggregateAgentsStatus(client, customResource
+                .getMetadata().getNamespace(), applicationId, declaredAgents));
+        return result;
     }
 
 
@@ -237,6 +265,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
             app.setResources(resources);
             return app;
         }
+
     }
 
     private static String encodeSecret(String value) {

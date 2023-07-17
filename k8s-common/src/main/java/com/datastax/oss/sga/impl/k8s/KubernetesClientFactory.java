@@ -11,7 +11,6 @@ public class KubernetesClientFactory {
     private static final Map<String, KubernetesClient> clients = new ConcurrentHashMap<>();
 
     public static KubernetesClient get(String context) {
-        System.out.println("getting client for " + context + " -> " + clients);
         context = contextKey(context);
         return clients.computeIfAbsent(context, c -> new KubernetesClientBuilder()
                 .withConfig(Config.autoConfigure(c.equals("__null__") ? null : c))

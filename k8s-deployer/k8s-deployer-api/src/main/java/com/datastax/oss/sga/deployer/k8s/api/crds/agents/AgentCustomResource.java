@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.deployer.k8s.api.crds.agents;
 
+import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import io.fabric8.kubernetes.api.model.Namespaced;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.model.annotation.Group;
@@ -17,7 +18,9 @@ public class AgentCustomResource extends CustomResource<AgentSpec, AgentStatus> 
 
     @Override
     protected AgentStatus initStatus() {
-        return new AgentStatus();
+        final AgentStatus agentStatus = new AgentStatus();
+        agentStatus.setStatus(AgentLifecycleStatus.CREATED);
+        return agentStatus;
     }
 
 }

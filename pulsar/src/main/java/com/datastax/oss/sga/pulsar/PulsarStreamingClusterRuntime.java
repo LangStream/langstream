@@ -27,32 +27,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.datastax.oss.sga.pulsar.PulsarClientUtils.buildPulsarAdmin;
+import static com.datastax.oss.sga.pulsar.PulsarClientUtils.getPulsarClusterRuntimeConfiguration;
+
 @Slf4j
 public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
 
     static final ObjectMapper mapper = new ObjectMapper();
-
-
-    private PulsarAdmin buildPulsarAdmin(StreamingCluster streamingCluster) throws Exception {
-        final PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration =
-                getPulsarClusterRuntimeConfiguration(streamingCluster);
-        Map<String, Object> adminConfig = pulsarClusterRuntimeConfiguration.getAdmin();
-        if (adminConfig == null) {
-            adminConfig = new HashMap<>();
-        }
-        if (adminConfig.get("serviceUrl") == null) {
-            adminConfig.put("serviceUrl", "http://localhost:8080");
-        }
-        return PulsarAdmin
-                .builder()
-                .loadConf(adminConfig)
-                .build();
-    }
-
-    private PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(StreamingCluster streamingCluster) {
-        final Map<String, Object> configuration = streamingCluster.configuration();
-        return mapper.convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
-    }
 
     @Override
     @SneakyThrows
@@ -203,13 +184,26 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         return pulsarTopic;
     }
 
+
     @Override
     public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, Connection inputConnection) {
-        return Map.of();
+        PulsarTopic pulsarTopic = (PulsarTopic) inputConnection;
+        Map<String, Object> configuration = new HashMap<>();
+        configuration.computeIfAbsent("subscriptionName", key -> "sga-agent-" + agentImplementation.getId());
+
+
+        configuration.put("topic", pulsarTopic.name().toPulsarName());
+        return configuration;
     }
 
     @Override
     public Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, Connection outputConnection) {
-        return Map.of();
+        PulsarTopic pulsarTopic = (PulsarTopic) outputConnection;
+
+        Map<String, Object> configuration = new HashMap<>();
+        // TODO: handle other configurations and schema
+
+        configuration.put("topic", pulsarTopic.name().toPulsarName());
+        return configuration;
     }
 }

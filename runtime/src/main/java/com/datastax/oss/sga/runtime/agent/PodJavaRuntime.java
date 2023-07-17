@@ -67,32 +67,36 @@ public class PodJavaRuntime
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
 
         log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
+        topicConnectionsRuntime.init(configuration.streamingCluster());
+        try {
 
-        AgentCode agentCode = initAgent(configuration);
+            AgentCode agentCode = initAgent(configuration);
 
-        TopicConsumer consumer = new TopicConsumer() {
-            @SneakyThrows
+            TopicConsumer consumer = new TopicConsumer() {
+                @SneakyThrows
 
-            @Override
-            public List<Record> read() {
-                log.info("Sleeping for 1 second, no records...");
-                Thread.sleep(1000);
-                return List.of();
+                @Override
+                public List<Record> read() {
+                    log.info("Sleeping for 1 second, no records...");
+                    Thread.sleep(1000);
+                    return List.of();
+                }
+            };
+            if (configuration.input() != null && !configuration.input().isEmpty()) {
+                consumer = topicConnectionsRuntime.createConsumer(agentId,
+                        configuration.streamingCluster(), configuration.input());
             }
-        };
-        if (configuration.input() != null && !configuration.input().isEmpty()) {
-            consumer = topicConnectionsRuntime.createConsumer(agentId,
-                    configuration.streamingCluster(), configuration.input());
+
+            TopicProducer producer = new TopicProducer() {
+            };
+            if (configuration.output() != null && !configuration.output().isEmpty()) {
+                producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
+            }
+
+            runMainLoop(consumer, producer, agentCode, maxLoops);
+        } finally {
+            topicConnectionsRuntime.close();
         }
-
-        TopicProducer producer = new TopicProducer() {};
-        if (configuration.output() != null && !configuration.output().isEmpty()) {
-            producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
-        }
-
-
-
-        runMainLoop(consumer, producer, agentCode, maxLoops);
     }
 
     private static void runMainLoop(TopicConsumer consumer, TopicProducer producer, AgentCode agentCode, int maxLoops) throws Exception {

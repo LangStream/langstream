@@ -1,7 +1,6 @@
 package com.datastax.oss.sga.pulsar;
 
 import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
@@ -9,7 +8,6 @@ import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.pulsar.agents.PulsarAgentNodeMetadata;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.HashMap;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -37,34 +35,13 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
     public void initialize(Map<String, Object> configuration) {
     }
 
-    private PulsarAdmin buildPulsarAdmin(StreamingCluster streamingCluster) throws Exception {
-        final PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration =
-                getPulsarClusterRuntimeConfiguration(streamingCluster);
-        Map<String, Object> adminConfig = pulsarClusterRuntimeConfiguration.getAdmin();
-        if (adminConfig == null) {
-            adminConfig = new HashMap<>();
-        }
-        if (adminConfig.get("serviceUrl") == null) {
-            adminConfig.put("serviceUrl", "http://localhost:8080");
-        }
-        return PulsarAdmin
-                .builder()
-                .loadConf(adminConfig)
-                .build();
-    }
-
-    public static PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(StreamingCluster streamingCluster) {
-        final Map<String, Object> configuration = streamingCluster.configuration();
-        return mapper.convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
-    }
-
     @Override
     @SneakyThrows
     public Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         Application logicalInstance = applicationInstance.getApplication();
         streamingClusterRuntime.deploy(applicationInstance);
 
-        try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
+        try (PulsarAdmin admin = PulsarClientUtils.buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
             for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
                 deployAgent(admin, agentImplementation);
             }
@@ -186,7 +163,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
         Application logicalInstance = applicationInstance.getApplication();
         streamingClusterRuntime.delete(applicationInstance);
 
-        try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
+        try (PulsarAdmin admin = PulsarClientUtils.buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
             for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
                 deleteAgent(admin, agentImplementation);
             }

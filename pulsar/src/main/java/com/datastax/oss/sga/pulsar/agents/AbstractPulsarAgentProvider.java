@@ -13,7 +13,7 @@ import com.datastax.oss.sga.pulsar.PulsarName;
 import java.util.List;
 import java.util.Set;
 
-import static com.datastax.oss.sga.pulsar.PulsarClusterRuntime.getPulsarClusterRuntimeConfiguration;
+import static com.datastax.oss.sga.pulsar.PulsarClientUtils.getPulsarClusterRuntimeConfiguration;
 
 public abstract class AbstractPulsarAgentProvider extends AbstractAgentProvider {
 

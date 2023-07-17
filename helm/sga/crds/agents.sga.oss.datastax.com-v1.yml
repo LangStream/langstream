@@ -17,6 +17,14 @@ spec:
         properties:
           spec:
             properties:
+              configuration:
+                type: string
+              image:
+                type: string
+              imagePullPolicy:
+                type: string
+              applicationId:
+                type: string
               tenant:
                 type: string
             required:

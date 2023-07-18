@@ -10,14 +10,12 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 import org.apache.kafka.connect.sink.SinkConnectorContext;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
-import org.apache.kafka.connect.util.TopicAdmin;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -57,24 +55,12 @@ public class KafkaSinkAgent implements AgentCode {
     private Map<String, String> kafkaSinkConfig;
     private Map<String, String> adapterConfig;
 
-    private Producer<byte[], byte[]> producer;
-    private org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> consumer;
-    private TopicAdmin topicAdmin;
-
-    public KafkaSinkAgent setProducer(Producer<byte[], byte[]> producer) {
-        this.producer = producer;
-        return this;
-    }
+    private org.apache.kafka.clients.consumer.Consumer<?, ?> consumer;
 
     // has to be the same consumer as used to read records to process,
     // otherwise pause/resume won't work
-    public KafkaSinkAgent setConsumer(org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> consumer) {
+    public KafkaSinkAgent setConsumer(org.apache.kafka.clients.consumer.Consumer<?, ?> consumer) {
         this.consumer = consumer;
-        return this;
-    }
-
-    public KafkaSinkAgent setTopicAdmin(TopicAdmin topicAdmin) {
-        this.topicAdmin = topicAdmin;
         return this;
     }
 
@@ -84,7 +70,6 @@ public class KafkaSinkAgent implements AgentCode {
             log.warn("Sink is stopped. Cannot send the records");
             return null;
         }
-
         try {
             Collection<SinkRecord> sinkRecords = records.stream()
                     .map(this::toSinkRecord)
@@ -182,7 +167,7 @@ public class KafkaSinkAgent implements AgentCode {
             if (log.isDebugEnabled() && !areMapsEqual(committedOffsets, currentOffsets)) {
                 log.debug("committedOffsets {} differ from currentOffsets {}", committedOffsets, currentOffsets);
             }
-            taskContext.flushOffsets(committedOffsets);
+            //taskContext.flushOffsets(committedOffsets);
             ackUntil(lastNotFlushed, committedOffsets, true);
             log.info("Flush succeeded");
         } catch (Throwable t) {
@@ -295,7 +280,10 @@ public class KafkaSinkAgent implements AgentCode {
                 .collect(Collectors.toList());
 
         task = (SinkTask) taskClass.getConstructor().newInstance();
-        taskContext = new KafkaSinkTaskContext(configs.get(0), producer, consumer, topicAdmin, task::open);
+        taskContext = new KafkaSinkTaskContext(configs.get(0),
+                consumer,
+                task::open,
+                () -> KafkaSinkAgent.this.flushIfNeeded(true));
         task.initialize(taskContext);
         task.start(configs.get(0));
 
@@ -342,13 +330,6 @@ public class KafkaSinkAgent implements AgentCode {
             }
         } catch (Throwable t) {
             log.error("Error stopping the connector", t);
-        }
-        try {
-            if (taskContext != null) {
-                taskContext.close();
-            }
-        } catch (Throwable t) {
-            log.error("Error stopping the task context", t);
         }
 
         log.info("Kafka sink stopped.");

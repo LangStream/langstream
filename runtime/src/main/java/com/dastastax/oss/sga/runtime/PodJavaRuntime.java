@@ -93,12 +93,11 @@ public class PodJavaRuntime
         consumer.start();
         producer.start();
 
-        if (agentCode instanceof KafkaSinkAgent) {
-            KafkaSinkAgent sa = (KafkaSinkAgent) agentCode;
-            sa.setConsumer((KafkaConsumer<byte[], byte[]>)consumer.getNativeConsumer());
-            sa.setProducer((KafkaProducer<byte[], byte[]>)producer.getNativeProducer());
-            // TODO; but should only be needed if the offset topic was not pre-created
-            sa.setTopicAdmin(null);
+        if (agentCode instanceof KafkaSinkAgent sa) {
+            if (!(consumer instanceof KafkaConsumer)) {
+                throw new IllegalArgumentException("KafkaSinkAgent requires a KafkaConsumer");
+            }
+            sa.setConsumer((KafkaConsumer<?, ?>)consumer.getNativeConsumer());
         }
 
         agentCode.start();

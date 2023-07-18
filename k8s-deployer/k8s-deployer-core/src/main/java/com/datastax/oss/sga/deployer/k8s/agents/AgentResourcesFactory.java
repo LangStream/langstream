@@ -51,7 +51,7 @@ public class AgentResourcesFactory {
                         podAgentConfiguration.agentConfiguration().configuration()
                 ),
                 podAgentConfiguration.streamingCluster(),
-                new CodeStorageConfig(codeStoreConfiguration.getOrDefault("type", "node").toString(),
+                new CodeStorageConfig(codeStoreConfiguration.getOrDefault("type", "none").toString(),
                         podAgentConfiguration.codeStorage().codeStorageArchiveId(), codeStoreConfiguration)
         );
 

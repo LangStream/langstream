@@ -87,8 +87,9 @@ public class AgentController extends BaseController<AgentCustomResource>
             if (configuration.codeStorage() == null) {
                 codeStorage = Map.of();
             } else {
-                codeStorage = SerializationUtil.readYaml(configuration.clusterRuntime(), Map.class);
+                codeStorage = SerializationUtil.readYaml(configuration.codeStorage(), Map.class);
             }
+            log.infof("CodeStorage: %s", configuration.codeStorage());
             return AgentResourcesFactory.generateStatefulSet(primary, codeStorage);
         }
     }

@@ -28,7 +28,13 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
     @Override
     public ErrorStatusUpdateControl<ApplicationCustomResource> updateErrorStatus(
             ApplicationCustomResource customResource, Context<ApplicationCustomResource> context, Exception e) {
-        customResource.getStatus().setStatus(ApplicationLifecycleStatus.error(e.getMessage()));
+        if (customResource.getStatus() != null
+                && customResource.getStatus().getStatus() != null
+                && customResource.getStatus().getStatus().getStatus() == ApplicationLifecycleStatus.Status.DELETING) {
+            customResource.getStatus().setStatus(ApplicationLifecycleStatus.errorDeleting(e.getMessage()));
+        } else {
+            customResource.getStatus().setStatus(ApplicationLifecycleStatus.errorDeploying(e.getMessage()));
+        }
         return ErrorStatusUpdateControl.updateStatus(customResource);
     }
 

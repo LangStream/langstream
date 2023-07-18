@@ -1,11 +1,21 @@
 package com.datastax.oss.sga.deployer.k8s.util;
 
+import com.datastax.oss.sga.api.model.ApplicationStatus;
+import io.fabric8.kubernetes.api.model.ContainerState;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.DeletionPropagation;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -42,13 +52,6 @@ public class KubeUtil {
         return succeeded != null && succeeded > 0;
     }
 
-    public static void patchStatefulSet(KubernetesClient client, StatefulSet resource) {
-        final String namespace = resource.getMetadata().getNamespace();
-        client.resource(resource)
-                .inNamespace(namespace)
-                .serverSideApply();
-    }
-
 
     public static boolean isStatefulSetReady(StatefulSet sts) {
         if (sts == null || sts.getStatus() == null) {
@@ -73,5 +76,61 @@ public class KubeUtil {
         final int ready = status.getReadyReplicas().intValue();
         final int updated = status.getUpdatedReplicas().intValue();
         return replicas == ready && updated == ready;
+    }
+
+
+    @AllArgsConstructor
+    @Getter
+    public static class PodStatus {
+        public static final PodStatus RUNNING = new PodStatus(State.RUNNING, null);
+        public static final PodStatus WAITING = new PodStatus(State.WAITING, null);
+        public enum State {
+            RUNNING, WAITING, ERROR
+        }
+        private final State state;
+        private final String message;
+    }
+
+
+    public static Map<String, PodStatus> getPodsStatuses(List<Pod> pods) {
+        Map<String, PodStatus> podStatuses = new HashMap<>();
+        for (Pod pod : pods) {
+            final List<ContainerStatus> containerStatuses = pod.getStatus()
+                    .getContainerStatuses();
+            PodStatus status;
+            if (containerStatuses.isEmpty()) {
+                status = PodStatus.WAITING;
+            } else {
+                // only one container per pod
+                final ContainerStatus containerStatus = containerStatuses.get(0);
+                status = getStatusFromContainerState(containerStatus.getLastState());
+                if (status == null) {
+                    status = getStatusFromContainerState(containerStatus.getState());
+                }
+                if (status == null) {
+                    status = PodStatus.RUNNING;
+                }
+            }
+            final String podName = pod.getMetadata().getName();
+            podStatuses.put(podName, status);
+        }
+        return podStatuses;
+    }
+
+
+    private static PodStatus getStatusFromContainerState(ContainerState state) {
+        if (state == null) {
+            return null;
+        }
+        if (state.getTerminated() != null) {
+            if (state.getTerminated().getMessage() != null) {
+                return new PodStatus(PodStatus.State.ERROR, state.getTerminated().getMessage());
+            } else {
+                return new PodStatus(PodStatus.State.ERROR, "Unknown error");
+            }
+        } else if (state.getWaiting() != null) {
+            return PodStatus.WAITING;
+        }
+        return null;
     }
 }

@@ -18,8 +18,11 @@ public class ApplicationLifecycleStatus {
     public static final ApplicationLifecycleStatus DELETING =
             new ApplicationLifecycleStatus(Status.DELETING, null);
 
-    public static final ApplicationLifecycleStatus error(String reason) {
-        return new ApplicationLifecycleStatus(Status.ERROR, reason);
+    public static final ApplicationLifecycleStatus errorDeploying(String reason) {
+        return new ApplicationLifecycleStatus(Status.ERROR_DEPLOYING, reason);
+    }
+    public static final ApplicationLifecycleStatus errorDeleting(String reason) {
+        return new ApplicationLifecycleStatus(Status.ERROR_DELETING, reason);
     }
 
     private Status status;
@@ -29,7 +32,8 @@ public class ApplicationLifecycleStatus {
         CREATED,
         DEPLOYING,
         DEPLOYED,
-        ERROR,
-        DELETING;
+        ERROR_DEPLOYING,
+        DELETING,
+        ERROR_DELETING;
     }
 }

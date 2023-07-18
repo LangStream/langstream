@@ -19,7 +19,7 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-class ApplicationStatusTest {
+class AgentAggregatedStatusTest {
 
 
     @RegisterExtension

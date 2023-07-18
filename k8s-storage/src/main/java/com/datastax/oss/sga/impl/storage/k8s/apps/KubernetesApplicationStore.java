@@ -14,6 +14,8 @@ import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
+import com.datastax.oss.sga.deployer.k8s.apps.AppResourcesFactory;
+import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
@@ -229,7 +231,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
     private ApplicationStatus computeApplicationStatus(final String applicationId, Application app,
                                                        ApplicationCustomResource customResource) {
         final ApplicationStatus result = new ApplicationStatus();
-        result.setStatus(customResource.getStatus().getStatus());
+        result.setStatus(AppResourcesFactory.computeApplicationStatus(client, customResource));
         List<String> declaredAgents = new ArrayList<>();
         for (Module module : app.getModules().values()) {
             for (Pipeline pipeline : module.getPipelines().values()) {

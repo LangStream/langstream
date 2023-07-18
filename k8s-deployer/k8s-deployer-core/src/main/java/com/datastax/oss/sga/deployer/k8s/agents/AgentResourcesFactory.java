@@ -5,6 +5,7 @@ import com.datastax.oss.sga.api.model.ApplicationStatus;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
+import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
@@ -20,6 +21,7 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -167,7 +169,7 @@ public class AgentResourcesFactory {
             ApplicationStatus.AgentStatus agentStatus = new ApplicationStatus.AgentStatus();
             final AgentCustomResource cr = agentCustomResources.get(declaredAgent);
             if (cr == null) {
-                agentStatus.setStatus(AgentLifecycleStatus.error("Agent not found"));
+                agentStatus.setStatus(AgentLifecycleStatus.DEPLOYING);
             } else {
                 agentStatus.setStatus(cr.getStatus().getStatus());
                 Map<String, ApplicationStatus.AgentWorkerStatus> podStatuses =
@@ -190,45 +192,18 @@ public class AgentResourcesFactory {
                 .list()
                 .getItems();
 
-
-        Map<String, ApplicationStatus.AgentWorkerStatus> podStatuses = new HashMap<>();
-        for (Pod pod : pods) {
-            final List<ContainerStatus> containerStatuses = pod.getStatus()
-                    .getContainerStatuses();
-            ApplicationStatus.AgentWorkerStatus status;
-            if (containerStatuses.isEmpty()) {
-                status = ApplicationStatus.AgentWorkerStatus.INITIALIZING;
-            } else {
-                // only one container per pod
-                final ContainerStatus containerStatus = containerStatuses.get(0);
-                status = getStatusFromContainerState(containerStatus.getLastState());
-                if (status == null) {
-                    status = getStatusFromContainerState(containerStatus.getState());
-                }
-                if (status == null) {
-                    status = ApplicationStatus.AgentWorkerStatus.RUNNING;
-                }
-            }
-            final String podName = pod.getMetadata().getName();
-            podStatuses.put(podName, status);
-        }
-        return podStatuses;
-    }
-
-    private static ApplicationStatus.AgentWorkerStatus getStatusFromContainerState(ContainerState state) {
-        if (state == null) {
-            return null;
-        }
-        if (state.getTerminated() != null) {
-            if (state.getTerminated().getMessage() != null) {
-                return ApplicationStatus.AgentWorkerStatus.error(
-                        state.getTerminated().getMessage());
-            } else {
-                return ApplicationStatus.AgentWorkerStatus.error("Unknown error");
-            }
-        } else if (state.getWaiting() != null) {
-            return ApplicationStatus.AgentWorkerStatus.INITIALIZING;
-        }
-        return null;
+        return KubeUtil.getPodsStatuses(pods)
+                .entrySet()
+                .stream()
+                .map(e -> {
+                    ApplicationStatus.AgentWorkerStatus status = switch (e.getValue().getState()) {
+                        case RUNNING -> ApplicationStatus.AgentWorkerStatus.RUNNING;
+                        case WAITING -> ApplicationStatus.AgentWorkerStatus.INITIALIZING;
+                        case ERROR -> ApplicationStatus.AgentWorkerStatus.error(e.getValue().getMessage());
+                        default -> throw new RuntimeException("Unknown pod state: " + e.getValue().getState());
+                    };
+                    return new AbstractMap.SimpleEntry<>(e.getKey(), status);
+                })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

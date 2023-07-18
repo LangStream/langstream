@@ -2,20 +2,12 @@ package com.datastax.oss.sga.deployer.k8s.controllers.apps;
 
 import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
-import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
+import com.datastax.oss.sga.deployer.k8s.apps.AppResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.controllers.BaseController;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SpecDiffer;
-import com.datastax.oss.sga.runtime.api.deployer.RuntimeDeployerConfiguration;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.EmptyDirVolumeSource;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.VolumeBuilder;
-import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
-import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -23,7 +15,6 @@ import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
@@ -58,25 +49,13 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
     }
 
     private boolean handleJob(ApplicationCustomResource application, boolean delete) {
-        final String tenant = application.getSpec().getTenant();
-        final String appId = application.getMetadata().getName();
-
-        final ApplicationSpec spec = application.getSpec();
-        final String jobName;
-        if (delete) {
-            jobName = "sga-runtime-deployer-cleanup-" + appId;
-        } else {
-            jobName = "sga-runtime-deployer-" + appId;
-        }
-        final String targetNamespace = configuration.namespacePrefix() + tenant;
+        final String jobName = AppResourcesFactory.getJobName(application.getMetadata().getName(), delete);
         final Job currentJob = client.batch().v1().jobs()
-                .inNamespace(targetNamespace)
+                .inNamespace(application.getMetadata().getNamespace())
                 .withName(jobName)
                 .get();
-
-
-        if (currentJob == null) {
-            createJob(tenant, appId, spec, jobName, targetNamespace, delete);
+        if (currentJob == null || areSpecChanged(application)) {
+            createJob(application, delete);
             if (delete) {
                 application.getStatus().setStatus(ApplicationLifecycleStatus.DELETING);
             } else {
@@ -96,14 +75,7 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
     }
 
     @SneakyThrows
-    private void createJob(String tenant, String appId, ApplicationSpec spec, String jobName, String targetNamespace,
-                           boolean delete) {
-
-        final RuntimeDeployerConfiguration config = new RuntimeDeployerConfiguration(
-                appId,
-                tenant,
-                spec.getApplication()
-        );
+    private void createJob(ApplicationCustomResource applicationCustomResource, boolean delete) {
 
         final Map<String, Object> clusterRuntime;
         if (configuration.clusterRuntime() == null) {
@@ -111,84 +83,7 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
         } else {
             clusterRuntime = SerializationUtil.readYaml(configuration.clusterRuntime(), Map.class);
         }
-        final Container initContainer = new ContainerBuilder()
-                .withName("deployer-init-config")
-                .withImage(spec.getImage())
-                .withImagePullPolicy(spec.getImagePullPolicy())
-                .withCommand("bash", "-c")
-                .withArgs("echo '%s' > /app-config/config && echo '%s' > /cluster-runtime-config/config".formatted(
-                        SerializationUtil.writeAsJson(config),
-                        SerializationUtil.writeAsJson(clusterRuntime)))
-                .withVolumeMounts(new VolumeMountBuilder()
-                                .withName("app-config")
-                                .withMountPath("/app-config")
-                                .build(),
-                        new VolumeMountBuilder()
-                                .withName("cluster-runtime-config")
-                                .withMountPath("/cluster-runtime-config")
-                                .build())
-                .build();
-        final String command = delete ? "delete" : "deploy";
-
-        final Container container = new ContainerBuilder()
-                .withName("deployer")
-                .withImage(spec.getImage())
-                .withImagePullPolicy(spec.getImagePullPolicy())
-                .withArgs("deployer-runtime", command, "/cluster-runtime-config/config", "/app-config/config", "/app-secrets/secrets")
-                .withVolumeMounts(new VolumeMountBuilder()
-                                .withName("app-config")
-                                .withMountPath("/app-config")
-                                .build(),
-                        new VolumeMountBuilder()
-                                .withName("app-secrets")
-                                .withMountPath("/app-secrets")
-                                .build(),
-                        new VolumeMountBuilder()
-                                .withName("cluster-runtime-config")
-                                .withMountPath("/cluster-runtime-config")
-                                .build())
-                .withNewResources()
-                .withRequests(Map.of("cpu", Quantity.parse("100m"), "memory", Quantity.parse("128Mi")))
-                .endResources()
-                .build();
-
-
-        final Job job = new JobBuilder()
-                .withNewMetadata()
-                .withName(jobName)
-                .withNamespace(targetNamespace)
-                .withLabels(Map.of("app", "sga", "tenant", tenant))
-                .endMetadata()
-                .withNewSpec()
-                .withNewTemplate()
-                .withNewMetadata()
-                .withLabels(Map.of("app", "sga", "tenant", tenant))
-                .endMetadata()
-                .withNewSpec()
-                .withServiceAccount(tenant)
-                .withVolumes(new VolumeBuilder()
-                                .withName("app-config")
-                                .withEmptyDir(new EmptyDirVolumeSource())
-                                .build(),
-                        new VolumeBuilder()
-                                .withName("app-secrets")
-                                .withNewSecret()
-                                .withSecretName(appId)
-                                .endSecret()
-                                .build(),
-                        new VolumeBuilder()
-                                .withName("cluster-runtime-config")
-                                .withEmptyDir(new EmptyDirVolumeSource())
-                                .build()
-                )
-                .withInitContainers(List.of(initContainer))
-                .withContainers(List.of(container))
-                .withRestartPolicy("OnFailure")
-                .endSpec()
-                .endTemplate()
-                .endSpec()
-                .build();
-
+        final Job job = AppResourcesFactory.generateJob(applicationCustomResource, clusterRuntime, delete);
         KubeUtil.patchJob(client, job);
     }
 

@@ -42,7 +42,7 @@ public class S3CodeStorage implements CodeStorage {
         bucketName = configuration.getOrDefault("bucketName", "sga-code-storage").toString();
         String endpoint = configuration.getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090").toString();
         String username =  configuration.getOrDefault("username", "minioadmin").toString();
-        String password =  configuration.getOrDefault("username", "minioadmin").toString();
+        String password =  configuration.getOrDefault("password", "minioadmin").toString();
 
         log.info("Connecting to S3 BlobStorage at {} with user {}", endpoint, username);
 

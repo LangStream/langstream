@@ -1,5 +1,7 @@
 #/bin/bash
 
+cd $(dirname $0)/..
+
 set -x
 # This script bootstraps a local K8S based stack with SGA from the current code
 

@@ -73,7 +73,7 @@ class AgentResourcesFactoryTest {
                                   name: app-config
                               initContainers:
                               - args:
-                                - "echo '{\\"input\\":{\\"input\\":{\\"is_input\\":true}},\\"output\\":{\\"output\\":{\\"is_output\\":true}},\\"agent\\":{\\"componentType\\":\\"FUNCTION\\",\\"agentId\\":\\"agent-id\\",\\"applicationId\\":\\"the-app\\",\\"agentType\\":\\"my-agent\\",\\"configuration\\":{\\"config\\":true}},\\"streamingCluster\\":{\\"type\\":\\"noop\\",\\"configuration\\":{\\"config\\":true}}}' > /app-config/config"
+                                - "echo '{\\"input\\":{\\"input\\":{\\"is_input\\":true}},\\"output\\":{\\"output\\":{\\"is_output\\":true}},\\"agent\\":{\\"componentType\\":\\"FUNCTION\\",\\"tenant\\":\\"my-tenant\\",\\"agentId\\":\\"agent-id\\",\\"applicationId\\":\\"the-app\\",\\"agentType\\":\\"my-agent\\",\\"configuration\\":{\\"config\\":true}},\\"streamingCluster\\":{\\"type\\":\\"noop\\",\\"configuration\\":{\\"config\\":true}},\\"codeStorage\\":{\\"type\\":\\"none\\",\\"codeStorageArchiveId\\":\\"code-storage-id\\",\\"configuration\\":{}}}' > /app-config/config"
                                 command:
                                 - bash
                                 - -c

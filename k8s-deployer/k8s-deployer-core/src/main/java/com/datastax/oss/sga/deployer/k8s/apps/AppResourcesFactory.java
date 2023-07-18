@@ -162,12 +162,15 @@ public class AppResourcesFactory {
                 .withLabels(getLabels(delete, customResource.getMetadata().getName()))
                 .list()
                 .getItems();
+        System.out.println("got pods " + pods.size() + " of " + client.resources(Pod.class)
+                .inNamespace(customResource.getMetadata().getNamespace()).list().getItems().size());
         if (pods.isEmpty()) {
             // no job started yet
             return customResource.getStatus().getStatus();
         }
         final KubeUtil.PodStatus podStatus = KubeUtil.getPodsStatuses(pods).values().iterator().next();
 
+        System.out.println("got pods in status" + podStatus.getState());
         switch (podStatus.getState()) {
             case RUNNING:
             case WAITING:

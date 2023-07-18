@@ -28,10 +28,9 @@ class ApplicationStatusTest {
     void testApplicationStatus() {
         final String tenant = "my-tenant";
         final String namespace = "sga-%s".formatted(tenant);
-        final String agentId = "agent-id";
         final String applicationId = "my-app";
         final ApplicationCustomResource cr =
-                deployApp(tenant, namespace, agentId, applicationId);
+                deployApp(tenant, namespace, applicationId);
         Awaitility.await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
 
             final ApplicationLifecycleStatus status =
@@ -45,7 +44,7 @@ class ApplicationStatusTest {
         });
     }
 
-    private ApplicationCustomResource deployApp(String tenant, String namespace, String agentId, String applicationId) {
+    private ApplicationCustomResource deployApp(String tenant, String namespace, String applicationId) {
         k3s.getClient().resource(new NamespaceBuilder()
                         .withNewMetadata().withName(namespace).endMetadata().build())
                 .serverSideApply();
@@ -57,14 +56,14 @@ class ApplicationStatusTest {
                 apiVersion: sga.oss.datastax.com/v1alpha1
                 kind: Application
                 metadata:
-                  name: test-app
-                  namespace: default
+                  name: %s
+                  namespace: %s
                 spec:
                     image: ubuntu
                     imagePullPolicy: Always
                     application: "{app: true}"
-                    tenant: my-tenant
-                """);
+                    tenant: %s
+                """.formatted(applicationId, namespace, tenant));
         resource.getMetadata().setLabels(AppResourcesFactory.getLabels(false, applicationId));
         final ApplicationStatus status = new ApplicationStatus();
         status.setStatus(ApplicationLifecycleStatus.DEPLOYING);

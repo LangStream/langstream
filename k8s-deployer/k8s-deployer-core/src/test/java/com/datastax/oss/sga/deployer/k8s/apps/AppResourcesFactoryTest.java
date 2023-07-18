@@ -21,6 +21,7 @@ class AppResourcesFactoryTest {
                     imagePullPolicy: Always
                     application: "{app: true}"
                     tenant: my-tenant
+                    codeArchiveId: "iiii"
                 """);
 
 
@@ -67,7 +68,7 @@ class AppResourcesFactoryTest {
                                   name: cluster-runtime-config
                               initContainers:
                               - args:
-                                - "echo '{\\"applicationId\\":\\"test-app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                - "echo '{\\"applicationId\\":\\"test-app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
                                 command:
                                 - bash
                                 - -c
@@ -135,7 +136,7 @@ class AppResourcesFactoryTest {
                                   name: cluster-runtime-config
                               initContainers:
                               - args:
-                                - "echo '{\\"applicationId\\":\\"test-app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                - "echo '{\\"applicationId\\":\\"test-app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
                                 command:
                                 - bash
                                 - -c

@@ -45,7 +45,7 @@
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sga-k8s-runtime</artifactId>
+			<artifactId>sga-k8s-runtime-core</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

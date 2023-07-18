@@ -204,7 +204,8 @@ class KubernetesClusterRuntimeDockerTest {
                 + "\"url\":\"http://something\"},\"steps\":[{\"embeddings-field\":\"value.embeddings\","
                 + "\"model\":\"text-embedding-ada-002\",\"text\":\"{{ value.name }} {{ value.description }}\","
                 + "\"type\":\"compute-ai-embeddings\"}]}},\"streamingCluster\":{\"type\":\"kafka\","
-                + "\"configuration\":{\"admin\":{\"bootstrap.servers\":\"PLAINTEXT://localhost:%d\"}}}}").formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
+                + "\"configuration\":{\"admin\":{\"bootstrap.servers\":\"PLAINTEXT://localhost:%d\"}}},"
+                + "\"codeStorage\":{\"codeStorageArchiveId\":null}}").formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
 
 
     }

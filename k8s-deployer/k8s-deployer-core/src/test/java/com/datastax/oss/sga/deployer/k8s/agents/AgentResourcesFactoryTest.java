@@ -66,6 +66,7 @@ class AgentResourcesFactoryTest {
                                 image: ubuntu
                                 imagePullPolicy: Always
                                 name: runtime
+                                terminationMessagePolicy: FallbackToLogsOnError
                                 volumeMounts:
                                 - mountPath: /app-config
                                   name: app-config

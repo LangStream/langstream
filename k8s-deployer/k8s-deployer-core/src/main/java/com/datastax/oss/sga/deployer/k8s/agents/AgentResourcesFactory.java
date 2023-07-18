@@ -63,6 +63,7 @@ public class AgentResourcesFactory {
                         .withMountPath("/app-config")
                         .build()
                 )
+                .withTerminationMessagePolicy("FallbackToLogsOnError")
                 .build();
 
         final Container initContainer = new ContainerBuilder()

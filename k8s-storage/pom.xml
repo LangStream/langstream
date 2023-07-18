@@ -48,8 +48,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>k3s</artifactId>
+      <groupId>com.dajudge.kindcontainer</groupId>
+      <artifactId>kindcontainer</artifactId>
       <scope>test</scope>
     </dependency>
 

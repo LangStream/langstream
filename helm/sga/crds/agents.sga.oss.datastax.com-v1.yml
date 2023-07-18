@@ -32,6 +32,18 @@ spec:
             type: object
           status:
             properties:
+              status:
+                properties:
+                  status:
+                    enum:
+                    - DEPLOYING
+                    - ERROR
+                    - DEPLOYED
+                    - CREATED
+                    type: string
+                  reason:
+                    type: string
+                type: object
               lastApplied:
                 description: Last spec applied.
                 type: string

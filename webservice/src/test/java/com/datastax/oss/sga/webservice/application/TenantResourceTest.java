@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
 import com.datastax.oss.sga.impl.storage.LocalStore;
 import com.datastax.oss.sga.webservice.config.StorageProperties;
 import java.nio.file.Files;
@@ -12,6 +13,7 @@ import java.util.Map;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,10 +25,13 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Slf4j
-class TenantResourceTest extends KubeTestUtil {
+class TenantResourceTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @RegisterExtension
+    static final KubeK3sServer k3s = new KubeK3sServer(true);
 
     @TestConfiguration
     public static class TestConfig {

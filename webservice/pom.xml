@@ -54,7 +54,7 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sga-k8s-runtime</artifactId>
+			<artifactId>sga-k8s-runtime-core</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
@@ -143,6 +143,15 @@
 			<artifactId>kindcontainer</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>k8s-common</artifactId>
+			<version>${project.version}</version>
+			<classifier>tests</classifier>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>

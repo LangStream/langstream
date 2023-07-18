@@ -59,8 +59,8 @@ class ApplicationStatusTest {
                   name: %s
                   namespace: %s
                 spec:
-                    image: ubuntu
-                    imagePullPolicy: Always
+                    image: busybox
+                    imagePullPolicy: IfNotPresent
                     application: "{app: true}"
                     tenant: %s
                 """.formatted(applicationId, namespace, tenant));

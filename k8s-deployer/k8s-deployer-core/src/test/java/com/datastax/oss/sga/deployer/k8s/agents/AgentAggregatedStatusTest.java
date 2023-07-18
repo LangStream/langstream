@@ -72,8 +72,8 @@ class AgentAggregatedStatusTest {
                 metadata:
                   name: %s
                 spec:
-                    image: ubuntu
-                    imagePullPolicy: Always
+                    image: busybox
+                    imagePullPolicy: IfNotPresent
                     configuration: '%s'
                     tenant: %s
                     applicationId: %s

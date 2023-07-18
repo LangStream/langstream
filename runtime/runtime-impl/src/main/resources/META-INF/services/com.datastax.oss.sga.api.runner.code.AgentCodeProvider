@@ -1,0 +1,2 @@
+com.datastax.oss.sga.runtime.agent.simple.NoOpAgentProvider
+com.datastax.oss.sga.runtime.agent.simple.IdentityAgentProvider

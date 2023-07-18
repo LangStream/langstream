@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.deployer.k8s.api.crds.apps;
 
+import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
 import io.fabric8.kubernetes.api.model.Namespaced;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.model.annotation.Group;
@@ -19,7 +20,9 @@ public class ApplicationCustomResource extends CustomResource<ApplicationSpec, A
 
     @Override
     protected ApplicationStatus initStatus() {
-        return new ApplicationStatus();
+        final ApplicationStatus status = new ApplicationStatus();
+        status.setStatus(ApplicationLifecycleStatus.CREATED);
+        return status;
     }
 
 }

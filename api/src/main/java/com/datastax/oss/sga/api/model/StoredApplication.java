@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.api.model;
 
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,6 +14,7 @@ public class StoredApplication {
 
     private String applicationId;
     private Application instance;
-    private ApplicationInstanceLifecycleStatus status;
+    private ApplicationStatus status;
+
 
 }

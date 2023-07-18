@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.jbosslog.JBossLog;
 
 @JBossLog
-public abstract class BaseController<T extends CustomResource> implements Reconciler<T>,
+public abstract class BaseController<T extends CustomResource<?, ? extends BaseStatus>> implements Reconciler<T>,
         Cleaner<T> {
 
     @Inject
@@ -48,21 +48,23 @@ public abstract class BaseController<T extends CustomResource> implements Reconc
     public UpdateControl<T> reconcile(T resource, Context<T> context) throws Exception {
         String lastApplied;
         UpdateControl<T> result;
-        final BaseStatus baseStatus = new BaseStatus();
+        final BaseStatus baseStatus = resource.getStatus();
         try {
             result = patchResources(resource, context);
             lastApplied = SerializationUtil.writeAsJson(resource.getSpec());
             baseStatus.setLastApplied(lastApplied);
-
+            log.infof("Reconcilied application %s, reschedule: %s, status: %s",
+                    resource.getMetadata().getName(),
+                    String.valueOf(result.getScheduleDelay().isPresent()),
+                    resource.getStatus());
         } catch (Throwable throwable) {
             log.errorf(throwable, "Error during reconciliation for resource %s with name %s: %s",
                     resource.getFullResourceName(),
                     resource.getMetadata().getName(),
                     throwable.getMessage());
-            result = UpdateControl.updateResource(resource)
+            result = UpdateControl.updateStatus(resource)
                     .rescheduleAfter(5, TimeUnit.SECONDS);
         }
-        resource.setStatus(baseStatus);
         return result;
     }
 }

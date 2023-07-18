@@ -8,9 +8,13 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationStatus;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
+import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -38,8 +42,8 @@ class ApplicationStatusTest {
             System.out.println("got status" + status);
             assertEquals(ApplicationLifecycleStatus.Status.ERROR_DEPLOYING, status.getStatus());
             assertEquals("failed to create containerd task: failed to create shim task: OCI runtime create failed: "
-                    + "runc create failed: unable to start container process: exec: \"agent-runtime\": executable "
-                    + "file not found in $PATH: unknown", status.getReason());
+                    + "runc create failed: unable to start container process: exec: \"bash\": executable file not "
+                    + "found in $PATH: unknown", status.getReason());
 
         });
     }
@@ -50,6 +54,11 @@ class ApplicationStatusTest {
                 .serverSideApply();
         k3s.getClient().resource(new ServiceAccountBuilder()
                         .withNewMetadata().withName(tenant).endMetadata().build())
+                .inNamespace(namespace)
+                .serverSideApply();
+        k3s.getClient().resource(new SecretBuilder()
+                        .withNewMetadata().withName(applicationId).endMetadata().withData(Map.of("secrets",
+                                Base64.getEncoder().encodeToString("{}".getBytes(StandardCharsets.UTF_8)))).build())
                 .inNamespace(namespace)
                 .serverSideApply();
         final ApplicationCustomResource resource = getCr("""

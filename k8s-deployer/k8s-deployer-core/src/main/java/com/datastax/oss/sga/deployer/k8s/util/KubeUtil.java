@@ -95,20 +95,34 @@ public class KubeUtil {
     public static Map<String, PodStatus> getPodsStatuses(List<Pod> pods) {
         Map<String, PodStatus> podStatuses = new HashMap<>();
         for (Pod pod : pods) {
-            final List<ContainerStatus> containerStatuses = pod.getStatus()
-                    .getContainerStatuses();
-            PodStatus status;
-            if (containerStatuses.isEmpty()) {
-                status = PodStatus.WAITING;
-            } else {
-                // only one container per pod
-                final ContainerStatus containerStatus = containerStatuses.get(0);
-                status = getStatusFromContainerState(containerStatus.getLastState());
-                if (status == null) {
-                    status = getStatusFromContainerState(containerStatus.getState());
+            PodStatus status = null;
+
+            final List<ContainerStatus> initContainerStatuses = pod.getStatus()
+                    .getInitContainerStatuses();
+            if (initContainerStatuses != null && !initContainerStatuses.isEmpty()) {
+                for (ContainerStatus containerStatus : initContainerStatuses) {
+                    status = getStatusFromContainerState(containerStatus.getLastState());
+                    if (status == null) {
+                        status = getStatusFromContainerState(containerStatus.getState());
+                    }
                 }
-                if (status == null) {
-                    status = PodStatus.RUNNING;
+            }
+            if (status == null) {
+                final List<ContainerStatus> containerStatuses = pod.getStatus()
+                        .getContainerStatuses();
+
+                if (containerStatuses.isEmpty()) {
+                    status = PodStatus.WAITING;
+                } else {
+                    // only one container per pod
+                    final ContainerStatus containerStatus = containerStatuses.get(0);
+                    status = getStatusFromContainerState(containerStatus.getLastState());
+                    if (status == null) {
+                        status = getStatusFromContainerState(containerStatus.getState());
+                    }
+                    if (status == null) {
+                        status = PodStatus.RUNNING;
+                    }
                 }
             }
             final String podName = pod.getMetadata().getName();

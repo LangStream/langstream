@@ -9,6 +9,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.io.File;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -62,9 +63,15 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
         k3s.withLogConsumer(
                 (Consumer<OutputFrame>) outputFrame -> log.debug("k3s> {}", outputFrame.getUtf8String().trim()));
         k3s.start();
+        final Path tempFile = Files.createTempFile("sga-test-kube", ".yaml");
+        Files.write(tempFile,
+                k3s.getKubeconfig().getBytes(StandardCharsets.UTF_8));
+        System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
         client = new KubernetesClientBuilder()
                 .withConfig(Config.fromKubeconfig(k3s.getKubeconfig()))
                 .build();
+
+
         KubernetesClientFactory.set(null, client);
 
         if (installCRDs) {

@@ -34,55 +34,58 @@ class AgentResourcesFactoryTest {
                 """.formatted(SerializationUtil.writeAsJson(podConf)));
         final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource);
         assertEquals("""
-                ---
-                apiVersion: apps/v1
-                kind: StatefulSet
-                metadata:
-                  labels:
-                    app: sga-runtime
-                    tenant: my-tenant
-                  name: test-agent1
-                  namespace: default
-                spec:
-                  podManagementPolicy: Parallel
-                  replicas: 1
-                  selector:
-                    matchLabels:
-                      app: sga-runtime
-                      tenant: my-tenant
-                  template:
-                    metadata:
-                      labels:
-                        app: sga-runtime
-                        tenant: my-tenant
-                    spec:
-                      containers:
-                      - args:
-                        - agent-runtime
-                        - /app-config/config
-                        image: ubuntu
-                        imagePullPolicy: Always
-                        name: runtime
-                        volumeMounts:
-                        - mountPath: /app-config
-                          name: app-config
-                      initContainers:
-                      - args:
-                        - "echo '{\\"input\\":{\\"input\\":{\\"is_input\\":true}},\\"output\\":{\\"output\\":{\\"is_output\\":true}},\\"agent\\":{\\"componentType\\":\\"FUNCTION\\",\\"agentId\\":\\"agent-id\\",\\"applicationId\\":\\"the-app\\",\\"agentType\\":\\"my-agent\\",\\"configuration\\":{\\"config\\":true}},\\"streamingCluster\\":{\\"type\\":\\"noop\\",\\"configuration\\":{\\"config\\":true}}}' > /app-config/config"
-                        command:
-                        - bash
-                        - -c
-                        image: ubuntu
-                        imagePullPolicy: Always
-                        name: runtime-init-config
-                        volumeMounts:
-                        - mountPath: /app-config
-                          name: app-config
-                      serviceAccountName: my-tenant
-                      terminationGracePeriodSeconds: 60
-                      volumes:
-                      - emptyDir: {}
-                        name: app-config
+                        ---
+                        apiVersion: apps/v1
+                        kind: StatefulSet
+                        metadata:
+                          labels:
+                            app: sga-runtime
+                            sga-agent: agent-id
+                            sga-application: the-app
+                          name: test-agent1
+                          namespace: default
+                        spec:
+                          podManagementPolicy: Parallel
+                          replicas: 1
+                          selector:
+                            matchLabels:
+                              app: sga-runtime
+                              sga-agent: agent-id
+                              sga-application: the-app
+                          template:
+                            metadata:
+                              labels:
+                                app: sga-runtime
+                                sga-agent: agent-id
+                                sga-application: the-app
+                            spec:
+                              containers:
+                              - args:
+                                - agent-runtime
+                                - /app-config/config
+                                image: ubuntu
+                                imagePullPolicy: Always
+                                name: runtime
+                                volumeMounts:
+                                - mountPath: /app-config
+                                  name: app-config
+                              initContainers:
+                              - args:
+                                - "echo '{\\"input\\":{\\"input\\":{\\"is_input\\":true}},\\"output\\":{\\"output\\":{\\"is_output\\":true}},\\"agent\\":{\\"componentType\\":\\"FUNCTION\\",\\"agentId\\":\\"agent-id\\",\\"applicationId\\":\\"the-app\\",\\"agentType\\":\\"my-agent\\",\\"configuration\\":{\\"config\\":true}},\\"streamingCluster\\":{\\"type\\":\\"noop\\",\\"configuration\\":{\\"config\\":true}}}' > /app-config/config"
+                                command:
+                                - bash
+                                - -c
+                                image: ubuntu
+                                imagePullPolicy: Always
+                                name: runtime-init-config
+                                volumeMounts:
+                                - mountPath: /app-config
+                                  name: app-config
+                              serviceAccountName: my-tenant
+                              terminationGracePeriodSeconds: 60
+                              volumes:
+                              - emptyDir: {}
+                                name: app-config                                 
                         """,
                 SerializationUtil.writeAsYaml(statefulSet));
 

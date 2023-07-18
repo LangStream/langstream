@@ -33,7 +33,7 @@ class AgentResourcesFactoryTest {
                     tenant: my-tenant
                     applicationId: the-app
                 """.formatted(SerializationUtil.writeAsJson(podConf)));
-        final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource);
+        final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource, Map.of());
         assertEquals("""
                         ---
                         apiVersion: apps/v1

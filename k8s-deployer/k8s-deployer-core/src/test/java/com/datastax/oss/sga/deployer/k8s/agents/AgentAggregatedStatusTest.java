@@ -82,7 +82,7 @@ class AgentAggregatedStatusTest {
                 applicationId));
         resource.getMetadata().setLabels(AgentResourcesFactory.getAgentLabels(agentId, applicationId));
         k3s.getClient().resource(resource).inNamespace(namespace).serverSideApply();
-        final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource);
+        final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource, Map.of());
         k3s.getClient().resource(statefulSet).inNamespace(namespace).serverSideApply();
     }
 

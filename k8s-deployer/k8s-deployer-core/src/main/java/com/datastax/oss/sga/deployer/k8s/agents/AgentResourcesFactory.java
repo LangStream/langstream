@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 public class AgentResourcesFactory {
 
-    public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource) {
+    public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource, Map<String, Object> codeStoreConfiguration) {
 
         final AgentSpec spec = agentCustomResource.getSpec();
         final PodAgentConfiguration podAgentConfiguration =
@@ -51,8 +51,8 @@ public class AgentResourcesFactory {
                         podAgentConfiguration.agentConfiguration().configuration()
                 ),
                 podAgentConfiguration.streamingCluster(),
-                //TODO: add code storage config
-                new CodeStorageConfig("none", podAgentConfiguration.codeStorage().codeStorageArchiveId(), Map.of())
+                new CodeStorageConfig(codeStoreConfiguration.getOrDefault("type", "node").toString(),
+                        podAgentConfiguration.codeStorage().codeStorageArchiveId(), codeStoreConfiguration)
         );
 
 

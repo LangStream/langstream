@@ -37,7 +37,8 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
 
     @Override
     @SneakyThrows
-    public Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
+                         String codeStorageArchiveId) {
         Application logicalInstance = applicationInstance.getApplication();
         streamingClusterRuntime.deploy(applicationInstance);
 
@@ -159,7 +160,8 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
 
     @Override
     @SneakyThrows
-    public void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    public void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
+                       String codeStorageArchiveId) {
         Application logicalInstance = applicationInstance.getApplication();
         streamingClusterRuntime.delete(applicationInstance);
 

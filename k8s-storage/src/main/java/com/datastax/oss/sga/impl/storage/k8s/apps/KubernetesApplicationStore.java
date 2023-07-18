@@ -154,6 +154,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .application(appJson)
                 .codeArchiveId(codeArchiveId)
                 .build();
+        log.info("Creating application {} in namespace {}, spec {}", applicationId, namespace, spec);
         crd.setSpec(spec);
 
         client.resource(crd)

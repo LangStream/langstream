@@ -5,7 +5,9 @@ import com.datastax.oss.sga.cli.SgaCLIConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -105,19 +107,24 @@ public abstract class BaseCmd implements Runnable {
         return http(httpRequest, HttpResponse.BodyHandlers.ofString());
     }
 
-    @SneakyThrows
     protected <T> HttpResponse<T> http(HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler) {
-        final HttpResponse<T> response = getHttpClient().send(httpRequest, bodyHandler);
-        final int status = response.statusCode();
-        if (status >= 200 && status < 300) {
-            return response;
+        try {
+            final HttpResponse<T> response = getHttpClient().send(httpRequest, bodyHandler);
+            final int status = response.statusCode();
+            if (status >= 200 && status < 300) {
+                return response;
+            }
+            if (status >= 400) {
+                err("Request failed: " + response.statusCode());
+                err(response.body());
+                throw new RuntimeException();
+            }
+            throw new RuntimeException("Unexpected status code: " + status);
+        } catch (ConnectException error) {
+            throw new RuntimeException("Cannot connect to " + getBaseWebServiceUrl(), error);
+        } catch (IOException | InterruptedException error) {
+            throw new RuntimeException("Unexpected network error " + error, error);
         }
-        if (status >= 400) {
-            err("Request failed: " + response.statusCode());
-            err(response.body());
-            throw new RuntimeException();
-        }
-        throw new RuntimeException("Unexpected status code: " + status);
     }
 
     protected HttpRequest newGet(String uri) {

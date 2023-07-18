@@ -46,11 +46,13 @@ public class RuntimeDeployer {
             log.info("Loading cluster runtime config from {}", clusterRuntimeConfigPath);
             final Map<String, Map<String, Object>> clusterRuntimeConfiguration =
                     (Map<String, Map<String, Object>>) MAPPER.readValue(clusterRuntimeConfigPath.toFile(), Map.class);
+            log.info("clusterRuntimeConfiguration {}", clusterRuntimeConfiguration);
 
             Path appConfigPath = Path.of(args[2]);
             log.info("Loading configuration from {}", appConfigPath);
             final RuntimeDeployerConfiguration configuration =
                     MAPPER.readValue(appConfigPath.toFile(), RuntimeDeployerConfiguration.class);
+            log.info("RuntimeDeployerConfiguration {}", configuration);
 
             Secrets secrets = null;
             if (args.length > 1) {
@@ -80,7 +82,8 @@ public class RuntimeDeployer {
 
 
         final String applicationId = configuration.getApplicationId();
-        log.info("Deploying application {}", applicationId);
+        log.info("Deploying application {} codeStorageArchiveId {}",
+                applicationId, configuration.getCodeStorageArchiveId());
         final String applicationConfig = configuration.getApplication();
 
         final Application appInstance =
@@ -94,7 +97,7 @@ public class RuntimeDeployer {
                 .build();
 
         final ExecutionPlan implementation = deployer.createImplementation(applicationId, appInstance);
-        deployer.deploy(configuration.getTenant(), implementation);
+        deployer.deploy(configuration.getTenant(), implementation,  configuration.getCodeStorageArchiveId());
         log.info("Application {} deployed", applicationId);
     }
 
@@ -118,7 +121,7 @@ public class RuntimeDeployer {
 
         log.info("Deleting application {}", applicationId);
         final ExecutionPlan implementation = deployer.createImplementation(applicationId, appInstance);
-        deployer.delete(configuration.getTenant(), implementation);
+        deployer.delete(configuration.getTenant(), implementation, configuration.getCodeStorageArchiveId());
         log.info("Application {} deleted", applicationId);
     }
 }

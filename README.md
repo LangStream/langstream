@@ -24,18 +24,23 @@ eval $(minikube docker-env)
 ./docker/build.sh
 ```
 
+Deploy MinIO (S3 BlobStorage implementation for local testing)
+
+```
+kubectl apply -f helm/examples/minio-dev.yaml
+```
+
 Deploy the control plane and the operator:
 
 ```
 helm install sga helm/sga --values helm/examples/local.yaml
+kubectl wait deployment/sga-control-plane --for condition=available --timeout=60s
 ```
 
 Port forward control plane to localhost:
 ```
-kubectl wait deployment/sga-control-plane --for condition=available --timeout=60s
 kubectl port-forward svc/sga-control-plane 8090:8090 &
 ```
-
 
 Deploy Kafka:
 ```

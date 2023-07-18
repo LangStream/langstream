@@ -77,7 +77,7 @@ class KubernetesClusterRuntimeDockerTest {
         assertNotNull(agentImplementation);
 
 
-        deployer.deploy(tenant, implementation);
+        deployer.deploy(tenant, implementation, null);
         assertEquals(1, agentsCRs.size());
         final AgentCustomResource agent = agentsCRs.values().iterator().next();
         assertEquals("datastax/sga-generic-agent:latest", agent.getSpec().getImage());
@@ -90,7 +90,8 @@ class KubernetesClusterRuntimeDockerTest {
                 + "\"agentType\":\"generic-agent\",\"componentType\":\"FUNCTION\","
                 + "\"configuration\":{\"mappings\":\"id=value.id,name=value.name,description=value.description,"
                 + "item_vector=value.item_vector\"}},\"streamingCluster\":{\"type\":\"kafka\","
-                + "\"configuration\":{\"admin\":{\"bootstrap.servers\":\"PLAINTEXT://localhost:%d\"}}}}".formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
+                + ("\"configuration\":{\"admin\":{\"bootstrap.servers\":\"PLAINTEXT://localhost:%d\"}}},"
+                + "\"codeStorage\":{\"codeStorageArchiveId\":null}}").formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
 
 
     }
@@ -185,7 +186,7 @@ class KubernetesClusterRuntimeDockerTest {
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
 
-        deployer.deploy(tenant, implementation);
+        deployer.deploy(tenant, implementation, null);
 
         assertEquals(1, agentsCRs.size());
         final AgentCustomResource agent = agentsCRs.values().iterator().next();
@@ -203,7 +204,8 @@ class KubernetesClusterRuntimeDockerTest {
                 + "\"url\":\"http://something\"},\"steps\":[{\"embeddings-field\":\"value.embeddings\","
                 + "\"model\":\"text-embedding-ada-002\",\"text\":\"{{ value.name }} {{ value.description }}\","
                 + "\"type\":\"compute-ai-embeddings\"}]}},\"streamingCluster\":{\"type\":\"kafka\","
-                + "\"configuration\":{\"admin\":{\"bootstrap.servers\":\"PLAINTEXT://localhost:%d\"}}}}").formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
+                + "\"configuration\":{\"admin\":{\"bootstrap.servers\":\"PLAINTEXT://localhost:%d\"}}},"
+                + "\"codeStorage\":{\"codeStorageArchiveId\":null}}").formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
 
 
     }

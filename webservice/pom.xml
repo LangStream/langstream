@@ -33,6 +33,10 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>io.minio</groupId>
+			<artifactId>minio</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sga-kafka</artifactId>
 			<version>${project.version}</version>
@@ -42,7 +46,12 @@
 			<artifactId>k8s-storage</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sga-codestorage-s3</artifactId>
+			<version>${project.version}</version>
+			<scope>runtime</scope>
+		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sga-k8s-runtime-core</artifactId>

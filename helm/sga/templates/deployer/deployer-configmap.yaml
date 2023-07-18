@@ -25,3 +25,5 @@ data:
   DEPLOYER_NAMESPACE_PREFIX: {{ .Values.deployer.app.config.namespacePrefix }}
   DEPLOYER_CLUSTER_RUNTIME: |
 {{ .Values.deployer.app.config.clusterRuntime | toYaml | indent 4 }}
+  DEPLOYER_CODE_STORAGE: |
+{{ .Values.deployer.app.config.codeStorage | toYaml | indent 4 }}

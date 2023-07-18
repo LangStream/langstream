@@ -35,7 +35,8 @@ public class AppResourcesFactory {
         final RuntimeDeployerConfiguration config = new RuntimeDeployerConfiguration(
                 applicationId,
                 tenant,
-                spec.getApplication()
+                spec.getApplication(),
+                spec.getCodeArchiveId()
         );
 
         final Container initContainer = new ContainerBuilder()

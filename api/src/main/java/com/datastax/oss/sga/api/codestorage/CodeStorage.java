@@ -21,10 +21,14 @@ public interface CodeStorage {
     CodeArchiveMetadata storeApplicationCode(String tenant, String applicationId, String version, UploadableCodeArchive codeArchive) throws CodeStorageException;
 
 
+    interface DownloadedCodeHandled {
+        void accept(DownloadedCodeArchive archive) throws CodeStorageException;
+    }
+
     /**
      * Download the code for a given version of the application.
      */
-    void downloadApplicationCode(String tenant, String codeStoreId, Consumer<DownloadedCodeArchive> codeArchive) throws CodeStorageException;
+    void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive) throws CodeStorageException;
 
     /**
      * Describe the code for a given version of the application.

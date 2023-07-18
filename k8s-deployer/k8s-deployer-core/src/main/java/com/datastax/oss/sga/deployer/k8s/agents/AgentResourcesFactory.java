@@ -7,6 +7,7 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
+import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
 
 public class AgentResourcesFactory {
 
-    public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource) {
+    public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource, Map<String, Object> codeStoreConfiguration) {
 
         final AgentSpec spec = agentCustomResource.getSpec();
         final PodAgentConfiguration podAgentConfiguration =
@@ -43,12 +44,15 @@ public class AgentResourcesFactory {
                 new com.datastax.oss.sga.runtime.api.agent.AgentSpec(
                         com.datastax.oss.sga.runtime.api.agent.AgentSpec.ComponentType.valueOf(
                                 podAgentConfiguration.agentConfiguration().componentType()),
+                        spec.getTenant(),
                         agentId,
                         applicationId,
                         podAgentConfiguration.agentConfiguration().agentType(),
                         podAgentConfiguration.agentConfiguration().configuration()
                 ),
-                podAgentConfiguration.streamingCluster()
+                podAgentConfiguration.streamingCluster(),
+                new CodeStorageConfig(codeStoreConfiguration.getOrDefault("type", "none").toString(),
+                        podAgentConfiguration.codeStorage().codeStorageArchiveId(), codeStoreConfiguration)
         );
 
 

@@ -21,5 +21,6 @@ public class ApplicationSpec extends NamespacedSpec {
         this.image = image;
         this.imagePullPolicy = imagePullPolicy;
         this.application = application;
+        this.codeArchiveId = codeArchiveId;
     }
 }

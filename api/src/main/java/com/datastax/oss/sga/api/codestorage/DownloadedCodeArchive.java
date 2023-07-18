@@ -23,5 +23,5 @@ public interface DownloadedCodeArchive {
      * @throws CodeStorageException
      * @throws IOException
      */
-    void extractTo(Path directory) throws CodeStorageException, IOException;
+    void extractTo(Path directory) throws CodeStorageException;
 }

@@ -31,7 +31,7 @@ public class CodeStorageRegistry {
                     return p.get().supports(codeStorageType);
                 })
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("No CodeStorage found for type" + codeStorageType));
+                .orElseThrow(() -> new RuntimeException("No CodeStorage found for type " + codeStorageType));
 
         final CodeStorage implementation = codeStorageProvider.get().createImplementation(codeStorageType, configuration);
         return implementation;

@@ -13,6 +13,7 @@ import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
 import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
+import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
 import java.nio.charset.StandardCharsets;
@@ -53,7 +54,8 @@ class GenIAgentsRunnerTest {
 
     @Test
     public void testRunAITools() throws Exception {
-        kubeServer.spyAgentCustomResources("tenant", "app-step1");
+        String tenant = "tenant";
+        kubeServer.spyAgentCustomResources(tenant, "app-step1");
 
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
@@ -89,7 +91,7 @@ class GenIAgentsRunnerTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
-        List<PodAgentConfiguration> customResourceDefinitions = (List<PodAgentConfiguration>) deployer.deploy("tenant", implementation);
+        List<PodAgentConfiguration> customResourceDefinitions = (List<PodAgentConfiguration>) deployer.deploy(tenant, implementation, null);
 
         Set<String> topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
@@ -105,11 +107,13 @@ class GenIAgentsRunnerTest {
                 podAgentConfiguration.output(),
                 new AgentSpec(AgentSpec.ComponentType.valueOf(
                         podAgentConfiguration.agentConfiguration().componentType()),
+                        tenant,
                         podAgentConfiguration.agentConfiguration().agentId(),
                         "application",
                         podAgentConfiguration.agentConfiguration().agentType(),
                         podAgentConfiguration.agentConfiguration().configuration()),
-                applicationInstance.getInstance().streamingCluster()
+                applicationInstance.getInstance().streamingCluster(),
+                new CodeStorageConfig("none", "none", Map.of())
         );
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<String, String>(

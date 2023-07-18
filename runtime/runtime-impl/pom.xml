@@ -43,6 +43,13 @@
       <scope>runtime</scope>
     </dependency>
 
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sga-codestorage-s3</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+
     <!-- main implementation for the AI Agents -->
     <dependency>
       <groupId>${project.groupId}</groupId>

@@ -40,11 +40,12 @@ spec:
                     type: string
                   status:
                     enum:
-                    - ERROR
                     - DELETING
+                    - ERROR_DELETING
                     - CREATED
                     - DEPLOYED
                     - DEPLOYING
+                    - ERROR_DEPLOYING
                     type: string
                 type: object
               lastApplied:

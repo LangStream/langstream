@@ -10,6 +10,8 @@ controlPlane:
       application.storage.apps.configuration.deployer-runtime.image: datastax/sga-runtime:latest-dev
       application.storage.apps.configuration.deployer-runtime.image-pull-policy: Never
       application.storage.global.type: kubernetes
+      application.storage.code.type: s3
+      application.storage.code.configuration.endpoint: http://minio.minio-dev.svc.cluster.local:9000
 
 deployer:
   replicaCount: 1
@@ -17,3 +19,8 @@ deployer:
     repository: datastax/sga-deployer
     pullPolicy: Never
     tag: "latest-dev"
+  app:
+    config:
+      codeStorage:
+        type: s3
+        endpoint: http://minio.minio-dev.svc.cluster.local:9000

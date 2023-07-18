@@ -43,10 +43,11 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     @Override
     @SneakyThrows
     public Object deploy(String tenant, ExecutionPlan applicationInstance,
-                         StreamingClusterRuntime streamingClusterRuntime) {
+                         StreamingClusterRuntime streamingClusterRuntime,
+                         String codeStorageArchiveId) {
         streamingClusterRuntime.deploy(applicationInstance);
 
-        List<PodAgentConfiguration> configs = buildPodAgentConfigurations(applicationInstance, streamingClusterRuntime);
+        List<PodAgentConfiguration> configs = buildPodAgentConfigurations(applicationInstance, streamingClusterRuntime, codeStorageArchiveId);
         final String namespace = configuration.getNamespacePrefix() + tenant;
 
         for (PodAgentConfiguration podAgentConfiguration : configs) {
@@ -67,10 +68,12 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     }
 
     private static List<PodAgentConfiguration> buildPodAgentConfigurations(ExecutionPlan applicationInstance,
-                                                                           StreamingClusterRuntime streamingClusterRuntime) {
+                                                                           StreamingClusterRuntime streamingClusterRuntime,
+                                                                           String codeStorageArchiveId) {
         List<PodAgentConfiguration> agents = new ArrayList<>();
         for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
-            buildPodAgentConfiguration(agents, agentImplementation, streamingClusterRuntime, applicationInstance);
+            buildPodAgentConfiguration(agents, agentImplementation, streamingClusterRuntime,
+                    applicationInstance, codeStorageArchiveId);
         }
         return agents;
     }
@@ -78,8 +81,9 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     private static void buildPodAgentConfiguration(List<PodAgentConfiguration> agentsCustomResourceDefinitions,
                                                    AgentNode agent,
                                                    StreamingClusterRuntime streamingClusterRuntime,
-                                                   ExecutionPlan applicationInstance) {
-        log.info("Building configuration for Agent {}", agent);
+                                                   ExecutionPlan applicationInstance,
+                                                   String codeStorageArchiveId) {
+        log.info("Building configuration for Agent {}, codeStorageArchiveId {}", agent, codeStorageArchiveId);
         if (!(agent instanceof DefaultAgentNode)) {
             throw new UnsupportedOperationException("Only default agent implementations are supported");
         }
@@ -112,15 +116,16 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                         defaultAgentImplementation.getAgentType(),
                         defaultAgentImplementation.getComponentType().name(),
                         defaultAgentImplementation.getConfiguration()),
-                applicationInstance.getApplication().getInstance().streamingCluster()
+                applicationInstance.getApplication().getInstance().streamingCluster(),
+                new PodAgentConfiguration.CodeStorageConfiguration(codeStorageArchiveId)
         );
 
         agentsCustomResourceDefinitions.add(crd);
     }
 
     @Override
-    public void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
-        List<PodAgentConfiguration> agents = buildPodAgentConfigurations(applicationInstance, streamingClusterRuntime);
+    public void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime, String codeStorageArchiveId) {
+        List<PodAgentConfiguration> agents = buildPodAgentConfigurations(applicationInstance, streamingClusterRuntime, codeStorageArchiveId);
         final String namespace = configuration.getNamespacePrefix() + tenant;
         for (PodAgentConfiguration agent : agents) {
             client.resources(AgentCustomResource.class).inNamespace(namespace).withName(agent.agentConfiguration().agentId())

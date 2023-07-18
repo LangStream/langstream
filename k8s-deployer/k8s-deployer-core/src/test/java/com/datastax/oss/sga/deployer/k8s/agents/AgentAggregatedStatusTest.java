@@ -64,7 +64,8 @@ class AgentAggregatedStatusTest {
                 Map.of("input", Map.of("is_input", true)),
                 Map.of("output", Map.of("is_output", true)),
                 new PodAgentConfiguration.AgentConfiguration(agentId, "my-agent", "FUNCTION", Map.of("config", true)),
-                new StreamingCluster("noop", Map.of("config", true))
+                new StreamingCluster("noop", Map.of("config", true)),
+                new PodAgentConfiguration.CodeStorageConfiguration("code-storage-id")
         );
         final AgentCustomResource resource = getCr("""
                 apiVersion: sga.oss.datastax.com/v1alpha1
@@ -81,7 +82,7 @@ class AgentAggregatedStatusTest {
                 applicationId));
         resource.getMetadata().setLabels(AgentResourcesFactory.getAgentLabels(agentId, applicationId));
         k3s.getClient().resource(resource).inNamespace(namespace).serverSideApply();
-        final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource);
+        final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource, Map.of());
         k3s.getClient().resource(statefulSet).inNamespace(namespace).serverSideApply();
     }
 

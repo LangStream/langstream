@@ -17,7 +17,8 @@ class AgentResourcesFactoryTest {
                 Map.of("input", Map.of("is_input", true)),
                 Map.of("output", Map.of("is_output", true)),
                 new PodAgentConfiguration.AgentConfiguration("agent-id", "my-agent", "FUNCTION", Map.of("config", true)),
-                new StreamingCluster("noop", Map.of("config", true))
+                new StreamingCluster("noop", Map.of("config", true)),
+                new PodAgentConfiguration.CodeStorageConfiguration("code-storage-id")
         );
         final AgentCustomResource resource = getCr("""
                 apiVersion: sga.oss.datastax.com/v1alpha1
@@ -32,7 +33,7 @@ class AgentResourcesFactoryTest {
                     tenant: my-tenant
                     applicationId: the-app
                 """.formatted(SerializationUtil.writeAsJson(podConf)));
-        final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource);
+        final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource, Map.of());
         assertEquals("""
                         ---
                         apiVersion: apps/v1
@@ -72,7 +73,7 @@ class AgentResourcesFactoryTest {
                                   name: app-config
                               initContainers:
                               - args:
-                                - "echo '{\\"input\\":{\\"input\\":{\\"is_input\\":true}},\\"output\\":{\\"output\\":{\\"is_output\\":true}},\\"agent\\":{\\"componentType\\":\\"FUNCTION\\",\\"agentId\\":\\"agent-id\\",\\"applicationId\\":\\"the-app\\",\\"agentType\\":\\"my-agent\\",\\"configuration\\":{\\"config\\":true}},\\"streamingCluster\\":{\\"type\\":\\"noop\\",\\"configuration\\":{\\"config\\":true}}}' > /app-config/config"
+                                - "echo '{\\"input\\":{\\"input\\":{\\"is_input\\":true}},\\"output\\":{\\"output\\":{\\"is_output\\":true}},\\"agent\\":{\\"componentType\\":\\"FUNCTION\\",\\"tenant\\":\\"my-tenant\\",\\"agentId\\":\\"agent-id\\",\\"applicationId\\":\\"the-app\\",\\"agentType\\":\\"my-agent\\",\\"configuration\\":{\\"config\\":true}},\\"streamingCluster\\":{\\"type\\":\\"noop\\",\\"configuration\\":{\\"config\\":true}},\\"codeStorage\\":{\\"type\\":\\"none\\",\\"codeStorageArchiveId\\":\\"code-storage-id\\",\\"configuration\\":{}}}' > /app-config/config"
                                 command:
                                 - bash
                                 - -c

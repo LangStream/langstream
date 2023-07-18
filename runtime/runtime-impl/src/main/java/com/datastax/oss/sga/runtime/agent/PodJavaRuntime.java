@@ -1,5 +1,7 @@
 package com.datastax.oss.sga.runtime.agent;
 
+import com.datastax.oss.sga.api.codestorage.CodeStorage;
+import com.datastax.oss.sga.api.codestorage.CodeStorageRegistry;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeRegistry;
 import com.datastax.oss.sga.api.runner.code.Record;
@@ -7,13 +9,17 @@ import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFileAttributes;
 import java.util.List;
 
 /**
@@ -47,12 +53,30 @@ public class PodJavaRuntime
             RuntimePodConfiguration configuration = MAPPER.readValue(podRuntimeConfiguration.toFile(),
                     RuntimePodConfiguration.class);
 
+            Path codeDirectory = downloadCustomCode(configuration);
+
+            // TODO: set context class loader depending on the agent code type
+
             run(configuration, -1);
 
 
         } catch (Throwable error) {
             errorHandler.handleError(error);
         }
+    }
+
+    private static Path downloadCustomCode(RuntimePodConfiguration configuration) throws Exception {
+        Path codeDirectory = Files.createTempDirectory("sga-code-");
+        CodeStorageConfig codeStorageConfig = configuration.codeStorage();
+        if (codeStorageConfig != null) {
+            log.info("Downloading custom code from {}", codeStorageConfig);
+            log.info("Custom code is stored in {}", codeDirectory);
+            CodeStorage codeStorage = CodeStorageRegistry.getCodeStorage(codeStorageConfig.type(), codeStorageConfig.configuration());
+            codeStorage.downloadApplicationCode(configuration.agent().tenant(), configuration.codeStorage().codeStorageArchiveId(), (downloadedCodeArchive -> {
+                downloadedCodeArchive.extractTo(codeDirectory);
+            }));
+        }
+        return codeDirectory;
     }
 
     public static void run(RuntimePodConfiguration configuration, int maxLoops) throws Exception {

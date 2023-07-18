@@ -6,5 +6,6 @@ import java.util.Map;
 public record RuntimePodConfiguration(Map<String, Object> input,
                                       Map<String, Object> output,
                                       AgentSpec agent,
-                                      StreamingCluster streamingCluster) {
+                                      StreamingCluster streamingCluster,
+                                      CodeStorageConfig codeStorage) {
 }

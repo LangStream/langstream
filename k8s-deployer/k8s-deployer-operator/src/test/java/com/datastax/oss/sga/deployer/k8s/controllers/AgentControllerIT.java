@@ -1,10 +1,10 @@
 package com.datastax.oss.sga.deployer.k8s.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
+import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -13,7 +13,6 @@ import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
@@ -32,7 +31,8 @@ public class AgentControllerIT {
                 Map.of("input", Map.of("is_input", true)),
                 Map.of("output", Map.of("is_output", true)),
                 new PodAgentConfiguration.AgentConfiguration("agent-id", "my-agent", "FUNCTION", Map.of("config", true)),
-                new StreamingCluster("noop", Map.of("config", true))
+                new StreamingCluster("noop", Map.of("config", true)),
+                new PodAgentConfiguration.CodeStorageConfiguration("")
         );
 
 

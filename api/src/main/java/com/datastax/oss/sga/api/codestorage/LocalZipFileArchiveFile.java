@@ -1,6 +1,7 @@
-package com.datastax.oss.sga.impl.codestorage;
+package com.datastax.oss.sga.api.codestorage;
 
 import com.datastax.oss.sga.api.codestorage.CodeStorageException;
+import com.datastax.oss.sga.api.codestorage.GenericZipFileArchiveFile;
 
 import java.io.IOException;
 import java.io.InputStream;

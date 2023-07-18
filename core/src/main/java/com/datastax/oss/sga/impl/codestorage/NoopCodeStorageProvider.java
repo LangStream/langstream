@@ -30,10 +30,11 @@ public class NoopCodeStorageProvider implements CodeStorageProvider {
             }
 
             @Override
-            public void downloadApplicationCode(String tenant, String codeStoreId, Consumer<DownloadedCodeArchive> codeArchive) throws CodeStorageException {
+            public void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive) throws CodeStorageException {
                 codeArchive.accept(new DownloadedCodeArchive() {
                     @Override
-                    public void extractTo(Path directory) throws CodeStorageException, IOException {
+                    public void extractTo(Path directory) throws CodeStorageException {
+                        log.info("CodeArchive should have been extracted to {}, but this is a no-op implementation", directory);
                     }
                 });
             }

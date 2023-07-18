@@ -80,7 +80,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        deployer.deploy("tenant", implementation);
+        deployer.deploy("tenant", implementation, null);
 
         // verify that the topic exist
         admin.topics().getStats("public/default/input-topic");
@@ -93,10 +93,10 @@ class PulsarClusterRuntimeDockerTest {
         assertEquals(SchemaType.KEY_VALUE, admin.schemas().getSchemaInfo("public/default/input-topic-partitioned-keyvalue").getType());
 
         // deploy again, should not fail
-        deployer.deploy("tenant", implementation);
+        deployer.deploy("tenant", implementation, null);
 
         // delete everything
-        deployer.delete("tenant", implementation);
+        deployer.delete("tenant", implementation, null);
     }
 
     @Test
@@ -128,7 +128,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        deployer.deploy("tenant", implementation);
+        deployer.deploy("tenant", implementation, null);
 
         // verify that the topic exists
         admin.topics().getStats("public/default/input-topic-cassandra");
@@ -140,7 +140,7 @@ class PulsarClusterRuntimeDockerTest {
         assertTrue(sinks.contains("sink1"));
 
         // delete everything
-        deployer.delete("tenant", implementation);
+        deployer.delete("tenant", implementation, null);
     }
 
     private static String buildInstanceYaml() {
@@ -192,7 +192,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        deployer.deploy("tenant", implementation);
+        deployer.deploy("tenant", implementation, null);
 
         // verify that the topic exists
         admin.topics().getStats("output-topic-from-file");
@@ -202,7 +202,7 @@ class PulsarClusterRuntimeDockerTest {
         assertTrue(sources.contains("source1"));
 
         // delete everything
-        deployer.delete("tenant", implementation);
+        deployer.delete("tenant", implementation, null);
     }
 
     @Test
@@ -244,7 +244,7 @@ class PulsarClusterRuntimeDockerTest {
                 .build();
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        deployer.deploy("tenant", implementation);
+        deployer.deploy("tenant", implementation, null);
 
         // verify that the topics exist
         admin.topics().getStats("output-topic-fn");
@@ -258,7 +258,7 @@ class PulsarClusterRuntimeDockerTest {
         assertTrue(functions.contains("function2"));
 
         // delete everything
-        deployer.delete("tenant", implementation);
+        deployer.delete("tenant", implementation, null);
     }
 
 
@@ -337,7 +337,7 @@ class PulsarClusterRuntimeDockerTest {
         assertEquals("value.embeddings", step1.get("embeddings-field"));
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
-        deployer.deploy("tenant", implementation);
+        deployer.deploy("tenant", implementation, null);
 
         // verify that we have the functions1
         List<String> functions = admin.functions().getFunctions("public", "default");
@@ -349,7 +349,7 @@ class PulsarClusterRuntimeDockerTest {
         assertEquals("com.datastax.oss.pulsar.functions.transforms.TransformFunction", function.getClassName());
 
         // delete everything
-        deployer.delete("tenant", implementation);
+        deployer.delete("tenant", implementation, null);
     }
 
     @AfterEach

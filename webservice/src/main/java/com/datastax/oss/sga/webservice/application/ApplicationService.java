@@ -35,7 +35,6 @@ public class ApplicationService {
     }
 
     @SneakyThrows
-
     public void deployApplication(String tenant, String applicationId, Application applicationInstance,
                                   String codeArchiveReference) {
         checkTenant(tenant);

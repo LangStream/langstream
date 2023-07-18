@@ -42,6 +42,6 @@ public class StorageProperties {
     private AppsStoreProperties apps;
     private GlobalMetadataStoreProperties global;
 
-    private CodeStorageProperties codeStorage;
+    private CodeStorageProperties code;
 
 }

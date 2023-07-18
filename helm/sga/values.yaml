@@ -74,3 +74,6 @@ deployer:
           namespace-prefix: sga-
           image: datastax/sga-runtime:latest-dev
           image-pull-policy: Never
+      codeStorage:
+        type: none
+        endpoint: ""

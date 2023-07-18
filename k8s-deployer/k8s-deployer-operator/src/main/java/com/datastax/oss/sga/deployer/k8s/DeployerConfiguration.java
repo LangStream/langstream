@@ -17,7 +17,6 @@ package com.datastax.oss.sga.deployer.k8s;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
-import java.util.Map;
 
 
 @ConfigMapping(prefix = "deployer")
@@ -29,5 +28,10 @@ public interface DeployerConfiguration {
     // workaround: quarkus doesn't support dynamic maps
     @WithDefault("{}")
     String clusterRuntime();
+
+    @WithDefault("{}")
+    String codeStorage();
+
+
 
 }

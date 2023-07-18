@@ -1,10 +1,12 @@
 package com.datastax.oss.sga.deployer.k8s.controllers.agents;
 
 import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
+import com.datastax.oss.sga.deployer.k8s.DeployerConfiguration;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.controllers.BaseController;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
+import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -15,7 +17,11 @@ import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
+
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import jakarta.inject.Inject;
 import lombok.extern.jbosslog.JBossLog;
 
 @ControllerConfiguration(
@@ -68,6 +74,8 @@ public class AgentController extends BaseController<AgentCustomResource>
     public static class StsDependantResource extends
             CRUDKubernetesDependentResource<StatefulSet, AgentCustomResource> {
 
+        @Inject
+        protected DeployerConfiguration configuration;
 
         public StsDependantResource() {
             super(StatefulSet.class);
@@ -75,7 +83,14 @@ public class AgentController extends BaseController<AgentCustomResource>
 
         @Override
         protected StatefulSet desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
-            return AgentResourcesFactory.generateStatefulSet(primary);
+            final Map<String, Object> codeStorage;
+            if (configuration.codeStorage() == null) {
+                codeStorage = Map.of();
+            } else {
+                codeStorage = SerializationUtil.readYaml(configuration.codeStorage(), Map.class);
+            }
+            log.infof("CodeStorage: %s", configuration.codeStorage());
+            return AgentResourcesFactory.generateStatefulSet(primary, codeStorage);
         }
     }
 

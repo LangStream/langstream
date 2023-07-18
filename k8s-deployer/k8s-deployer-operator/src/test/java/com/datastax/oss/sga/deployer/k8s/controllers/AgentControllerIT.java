@@ -13,6 +13,7 @@ import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
@@ -23,11 +24,12 @@ public class AgentControllerIT {
     @RegisterExtension
     static final OperatorExtension deployment = new OperatorExtension();
 
-    // @Test
-    void testAppController() throws Exception {
-
-
+    @Test
+    void testAgentController() throws Exception {
         final PodAgentConfiguration podConf = new PodAgentConfiguration(
+                "busybox",
+                "IfNotPresent",
+                new PodAgentConfiguration.ResourcesConfiguration(1, 1),
                 Map.of("input", Map.of("is_input", true)),
                 Map.of("output", Map.of("is_output", true)),
                 new PodAgentConfiguration.AgentConfiguration("agent-id", "my-agent", "FUNCTION", Map.of("config", true)),
@@ -43,8 +45,6 @@ public class AgentControllerIT {
                   name: test-agent1
                   namespace: default
                 spec:
-                    image: ubuntu
-                    imagePullPolicy: Always
                     configuration: '%s'
                     tenant: my-tenant
                     applicationId: the-app
@@ -59,19 +59,17 @@ public class AgentControllerIT {
 
         Awaitility.await().untilAsserted(() -> {
             assertEquals(1, client.apps().statefulSets().inNamespace(namespace).list().getItems().size());
+            assertEquals(AgentLifecycleStatus.Status.DEPLOYING,
+                    client.resource(resource).inNamespace(namespace).get().getStatus().getStatus().getStatus());
         });
-        assertEquals(AgentLifecycleStatus.Status.DEPLOYED,
-                client.resource(resource).inNamespace(namespace).get().getStatus().getStatus());
+
         final StatefulSet statefulSet = client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
         final StatefulSetSpec spec = statefulSet.getSpec();
 
-        assertEquals(spec.getTemplate().getMetadata().getLabels().get("app"), "sga-runtime");
-        assertEquals(spec.getTemplate().getMetadata().getLabels().get("tenant"), "my-tenant");
-
         final PodSpec templateSpec = spec.getTemplate().getSpec();
         final Container container = templateSpec.getContainers().get(0);
-        assertEquals("ubuntu", container.getImage());
-        assertEquals("Always", container.getImagePullPolicy());
+        assertEquals("busybox", container.getImage());
+        assertEquals("IfNotPresent", container.getImagePullPolicy());
         assertEquals("runtime", container.getName());
         assertEquals("/app-config", container.getVolumeMounts().get(0).getMountPath());
         assertEquals("app-config", container.getVolumeMounts().get(0).getName());
@@ -81,8 +79,8 @@ public class AgentControllerIT {
         assertEquals("/app-config/config", container.getArgs().get(args++));
 
         final Container initContainer = templateSpec.getInitContainers().get(0);
-        assertEquals("ubuntu", initContainer.getImage());
-        assertEquals("Always", initContainer.getImagePullPolicy());
+        assertEquals("busybox", initContainer.getImage());
+        assertEquals("IfNotPresent", initContainer.getImagePullPolicy());
         assertEquals("runtime-init-config", initContainer.getName());
         assertEquals("/app-config", initContainer.getVolumeMounts().get(0).getMountPath());
         assertEquals("app-config", initContainer.getVolumeMounts().get(0).getName());

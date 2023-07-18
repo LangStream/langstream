@@ -38,7 +38,7 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
                     resource.getFullResourceName(),
                     resource.getMetadata().getName(),
                     throwable.getMessage());
-            result = DeleteControl.defaultDelete()
+            result = DeleteControl.noFinalizerRemoval()
                     .rescheduleAfter(5, TimeUnit.SECONDS);
         }
         return result;

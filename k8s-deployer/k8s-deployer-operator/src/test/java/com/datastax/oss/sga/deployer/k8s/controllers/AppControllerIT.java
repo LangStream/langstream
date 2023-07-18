@@ -23,23 +23,25 @@ public class AppControllerIT {
     @RegisterExtension
     static final OperatorExtension deployment = new OperatorExtension();
 
-    // @Test
+    @Test
     void testAppController() throws Exception {
 
+        final String tenant = "my-tenant";
+        final String namespace = "sga-" + tenant;
+        final String applicationId = "my-app";
         final ApplicationCustomResource resource = getCr("""
                 apiVersion: sga.oss.datastax.com/v1alpha1
                 kind: Application
                 metadata:
-                  name: test-app
-                  namespace: default
+                  name: %s
+                  namespace: %s
                 spec:
-                    image: ubuntu
-                    imagePullPolicy: Always
+                    image: busybox
+                    imagePullPolicy: IfNotPresent
                     application: "{app: true}"
-                    tenant: my-tenant
-                """);
+                    tenant: %s
+                """.formatted(applicationId, namespace, tenant));
         final KubernetesClient client = deployment.getClient();
-        final String namespace = "sga-my-tenant";
         client.resource(new NamespaceBuilder()
                 .withNewMetadata()
                 .withName(namespace)
@@ -48,9 +50,9 @@ public class AppControllerIT {
 
         Awaitility.await().untilAsserted(() -> {
             assertEquals(1, client.batch().v1().jobs().inNamespace(namespace).list().getItems().size());
+            assertEquals(ApplicationLifecycleStatus.Status.DEPLOYING,
+                    client.resource(resource).inNamespace(namespace).get().getStatus().getStatus().getStatus());
         });
-        assertEquals(ApplicationLifecycleStatus.Status.DEPLOYED,
-                client.resource(resource).inNamespace(namespace).get().getStatus().getStatus());
         final Job job = client.batch().v1().jobs().inNamespace(namespace).list().getItems().get(0);
         checkJob(job, false);
 
@@ -61,7 +63,7 @@ public class AppControllerIT {
             assertEquals(2, client.batch().v1().jobs().inNamespace(namespace).list().getItems().size());
         });
         final Job cleanupJob =
-                client.batch().v1().jobs().inNamespace(namespace).withName("sga-runtime-deployer-cleanup-test-app")
+                client.batch().v1().jobs().inNamespace(namespace).withName("sga-runtime-deployer-cleanup-" + applicationId)
                         .get();
 
         assertNotNull(cleanupJob);
@@ -73,9 +75,6 @@ public class AppControllerIT {
 
     private void checkJob(Job job, boolean cleanup) {
         final JobSpec spec = job.getSpec();
-        assertEquals(spec.getTemplate().getMetadata().getLabels().get("app"), "sga");
-        assertEquals(spec.getTemplate().getMetadata().getLabels().get("tenant"), "my-tenant");
-
         final PodSpec templateSpec = spec.getTemplate().getSpec();
         final Container container = templateSpec.getContainers().get(0);
         assertEquals("busybox", container.getImage());
@@ -114,8 +113,8 @@ public class AppControllerIT {
         assertEquals("cluster-runtime-config", initContainer.getVolumeMounts().get(1).getName());
         assertEquals("bash", initContainer.getCommand().get(0));
         assertEquals("-c", initContainer.getCommand().get(1));
-        assertEquals("echo '{\"application\":\"{app: true}\",\"applicationId\":\"test-app\","
-                + "\"tenant\":\"my-tenant\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config", initContainer.getArgs().get(0));
+        assertEquals("echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{app: true}\"}' "
+                + "> /app-config/config && echo '{}' > /cluster-runtime-config/config", initContainer.getArgs().get(0));
     }
 
     private ApplicationCustomResource getCr(String yaml) {

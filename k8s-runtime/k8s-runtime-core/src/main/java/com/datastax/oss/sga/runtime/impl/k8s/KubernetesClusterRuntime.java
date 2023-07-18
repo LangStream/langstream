@@ -56,8 +56,6 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     applicationInstance.getApplicationId(),
                     podAgentConfiguration.agentConfiguration().agentId(),
                     tenant,
-                    configuration.getImage(),
-                    configuration.getImagePullPolicy(),
                     podAgentConfiguration
             );
             client.resource(agentCustomResource).inNamespace(namespace).serverSideApply();
@@ -67,7 +65,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         return configs;
     }
 
-    private static List<PodAgentConfiguration> buildPodAgentConfigurations(ExecutionPlan applicationInstance,
+    private List<PodAgentConfiguration> buildPodAgentConfigurations(ExecutionPlan applicationInstance,
                                                                            StreamingClusterRuntime streamingClusterRuntime,
                                                                            String codeStorageArchiveId) {
         List<PodAgentConfiguration> agents = new ArrayList<>();
@@ -78,7 +76,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         return agents;
     }
 
-    private static void buildPodAgentConfiguration(List<PodAgentConfiguration> agentsCustomResourceDefinitions,
+    private void buildPodAgentConfiguration(List<PodAgentConfiguration> agentsCustomResourceDefinitions,
                                                    AgentNode agent,
                                                    StreamingClusterRuntime streamingClusterRuntime,
                                                    ExecutionPlan applicationInstance,
@@ -109,7 +107,17 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     defaultAgentImplementation.getOutputConnection());
         }
 
+
+        final PodAgentConfiguration.ResourcesConfiguration resources =
+                new PodAgentConfiguration.ResourcesConfiguration(
+                        ((DefaultAgentNode) agent).getResourcesSpec().parallelism(),
+                        ((DefaultAgentNode) agent).getResourcesSpec().size());
+
+
         PodAgentConfiguration crd = new PodAgentConfiguration(
+                configuration.getImage(),
+                configuration.getImagePullPolicy(),
+                resources,
                 inputConfiguration,
                 outputConfiguration,
                 new PodAgentConfiguration.AgentConfiguration(defaultAgentImplementation.getId(),

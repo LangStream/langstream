@@ -1,7 +1,6 @@
 package com.datastax.oss.sga.deployer.k8s.agents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
 import com.datastax.oss.sga.api.model.StreamingCluster;
@@ -61,6 +60,9 @@ class AgentAggregatedStatusTest {
                 .serverSideApply();
 
         final PodAgentConfiguration podConf = new PodAgentConfiguration(
+                "busybox",
+                "IfNotPresent",
+                new PodAgentConfiguration.ResourcesConfiguration(1, 1),
                 Map.of("input", Map.of("is_input", true)),
                 Map.of("output", Map.of("is_output", true)),
                 new PodAgentConfiguration.AgentConfiguration(agentId, "my-agent", "FUNCTION", Map.of("config", true)),
@@ -73,8 +75,6 @@ class AgentAggregatedStatusTest {
                 metadata:
                   name: %s
                 spec:
-                    image: busybox
-                    imagePullPolicy: IfNotPresent
                     configuration: '%s'
                     tenant: %s
                     applicationId: %s
@@ -82,7 +82,8 @@ class AgentAggregatedStatusTest {
                 applicationId));
         resource.getMetadata().setLabels(AgentResourcesFactory.getAgentLabels(agentId, applicationId));
         k3s.getClient().resource(resource).inNamespace(namespace).serverSideApply();
-        final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource, Map.of());
+        final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource, Map.of(),
+                new AgentResourceUnitConfiguration());
         k3s.getClient().resource(statefulSet).inNamespace(namespace).serverSideApply();
     }
 

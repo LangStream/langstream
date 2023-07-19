@@ -38,7 +38,7 @@ class ApplicationCustomResourceTest {
         Awaitility.await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
 
             final ApplicationLifecycleStatus status =
-                    AppResourcesFactory.computeApplicationStatus(k3s.getClient(), cr);
+                    AppResourcesFactory.computeApplicationStatus(k3s.getClient(), k3s.getClient().resource(cr).get());
             System.out.println("got status" + status);
             assertEquals(ApplicationLifecycleStatus.Status.ERROR_DEPLOYING, status.getStatus());
             assertEquals("failed to create containerd task: failed to create shim task: OCI runtime create failed: "
@@ -50,14 +50,14 @@ class ApplicationCustomResourceTest {
 
     @Test
     void testApplicationStatusDeleting() {
-        final String tenant = "my-tenant";
+        final String tenant = genTenant();
         final String applicationId = "my-app";
         final ApplicationCustomResource cr =
                 deployApp(tenant, applicationId, true);
         Awaitility.await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
 
             final ApplicationLifecycleStatus status =
-                    AppResourcesFactory.computeApplicationStatus(k3s.getClient(), cr);
+                    AppResourcesFactory.computeApplicationStatus(k3s.getClient(), k3s.getClient().resource(cr).get());
             System.out.println("got status" + status);
             assertEquals(ApplicationLifecycleStatus.Status.ERROR_DELETING, status.getStatus());
             assertEquals("failed to create containerd task: failed to create shim task: OCI runtime create failed: "
@@ -123,6 +123,9 @@ class ApplicationCustomResourceTest {
                     tenant: %s
                 """.formatted(applicationId, namespace, tenant));
         resource.getMetadata().setLabels(AppResourcesFactory.getLabels(deleteJob, applicationId));
+
+        k3s.getClient().resource(resource).inNamespace(namespace).serverSideApply();
+        resource = k3s.getClient().resource(resource).get();
         final ApplicationStatus status = new ApplicationStatus();
         if (deleteJob) {
             status.setStatus(ApplicationLifecycleStatus.DELETING);
@@ -130,8 +133,7 @@ class ApplicationCustomResourceTest {
             status.setStatus(ApplicationLifecycleStatus.DEPLOYING);
         }
         resource.setStatus(status);
-        k3s.getClient().resource(resource).inNamespace(namespace).serverSideApply();
-        resource = k3s.getClient().resource(resource).get();
+        k3s.getClient().resource(resource).inNamespace(namespace).updateStatus();
         final Job jo = AppResourcesFactory.generateJob(resource, Map.of(), deleteJob);
         k3s.getClient().resource(jo).inNamespace(namespace).serverSideApply();
         return resource;

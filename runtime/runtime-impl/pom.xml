@@ -155,6 +155,52 @@
           </container>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <phase>compile</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <echo>copy python runtime</echo>
+                <mkdir dir="${basedir}/target/python"/>
+                <copydir src="${basedir}/src/main/python/sga_runtime" dest="${basedir}/target/python/sga_runtime"/>
+                <copydir src="${basedir}/src/main/python/tests" dest="${basedir}/target/python/tests"/>
+                <copy file="${basedir}/src/main/python/tox.ini" todir="${basedir}/target/python"/>
+                <copy file="${basedir}/src/main/python/pipfile" todir="${basedir}/target/python"/>
+                <copy file="${basedir}/src/main/python/Pipfile.lock" todir="${basedir}/target/python"/>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>python-test</id>
+            <phase>test</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>tox</executable>
+              <workingDirectory>${project.build.directory}</workingDirectory>
+              <arguments>
+                <argument>-c</argument>
+                <argument>python</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
 
   </build>

@@ -39,4 +39,9 @@ public record KafkaTopic(String name, int partitions, SchemaDefinition keySchema
 
         return configuration;
     }
+
+    @Override
+    public String topicName() {
+        return this.name;
+    }
 }

@@ -41,6 +41,7 @@
     <bouncy-castle.version>1.70</bouncy-castle.version>
     <kindcontainer.version>1.4.1</kindcontainer.version>
     <streaming-ai.version>3.1.1-alpha</streaming-ai.version>
+    <jandex-maven-plugin.version>1.2.3</jandex-maven-plugin.version>
   </properties>
   <modules>
     <module>api</module>
@@ -48,6 +49,7 @@
     <module>core</module>
     <module>pulsar</module>
     <module>kafka</module>
+    <module>kafka-connect</module>
     <module>k8s-runtime</module>
     <module>codestorage-s3</module>
     <module>runtime</module>
@@ -267,6 +269,11 @@
           <configuration>
             <skip>true</skip>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.3.0</version>
         </plugin>
       </plugins>
     </pluginManagement>

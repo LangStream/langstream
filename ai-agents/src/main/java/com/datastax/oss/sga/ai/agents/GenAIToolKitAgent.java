@@ -2,6 +2,7 @@ package com.datastax.oss.sga.ai.agents;
 
 import com.azure.ai.openai.OpenAIClient;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
+import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.streaming.ai.TransformContext;
@@ -29,7 +30,7 @@ import java.util.Map;
 import org.apache.avro.generic.GenericRecord;
 
 @Slf4j
-public class GenAIToolKitAgent implements AgentCode  {
+public class GenAIToolKitAgent implements AgentFunction {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private List<StepPredicatePair> steps;

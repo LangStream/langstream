@@ -4,11 +4,16 @@ import com.datastax.oss.sga.api.codestorage.CodeStorage;
 import com.datastax.oss.sga.api.codestorage.CodeStorageRegistry;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeRegistry;
+import com.datastax.oss.sga.api.runner.code.AgentContext;
+import com.datastax.oss.sga.api.runner.code.AgentFunction;
+import com.datastax.oss.sga.api.runner.code.AgentSink;
+import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import com.datastax.oss.sga.runtime.agent.simple.IdentityAgentProvider;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,8 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFileAttributes;
 import java.util.List;
 
 /**
@@ -97,45 +100,73 @@ public class PodJavaRuntime
 
             AgentCode agentCode = initAgent(configuration);
 
-            TopicConsumer consumer = new TopicConsumer() {
-                @SneakyThrows
-
-                @Override
-                public List<Record> read() {
-                    log.info("Sleeping for 1 second, no records...");
-                    Thread.sleep(1000);
-                    return List.of();
-                }
-            };
+            final TopicConsumer consumer;
             if (configuration.input() != null && !configuration.input().isEmpty()) {
                 consumer = topicConnectionsRuntime.createConsumer(agentId,
                         configuration.streamingCluster(), configuration.input());
+            } else {
+                consumer = new NoopTopicConsumer();
             }
 
-            TopicProducer producer = new TopicProducer() {
-            };
+            final TopicProducer producer;
             if (configuration.output() != null && !configuration.output().isEmpty()) {
                 producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
+            } else {
+                producer = new NoopTopicProducer();
             }
 
-            runMainLoop(consumer, producer, agentCode, maxLoops);
+
+            AgentSource source;
+            if (agentCode instanceof AgentSource agentSource) {
+                source = agentSource;
+            } else {
+                source = new TopicConsumerSource(consumer);
+            }
+
+            AgentSink sink;
+            if (agentCode instanceof AgentSink agentSink) {
+                sink = agentSink;
+            } else {
+                sink = new TopicProducerSink(producer);
+            }
+
+            AgentFunction function;
+            if (agentCode instanceof AgentFunction agentFunction) {
+                function = agentFunction;
+            } else {
+                function = new IdentityAgentProvider.IdentityAgentCode();
+            }
+
+            AgentContext agentContext = new SimpleAgentContext(consumer, producer);
+            log.info("Source: {}", source);
+            log.info("Function: {}", function);
+            log.info("Sink: {}", sink);
+
+            runMainLoop(source, function, sink, agentContext, maxLoops);
         } finally {
             topicConnectionsRuntime.close();
         }
     }
 
-    private static void runMainLoop(TopicConsumer consumer, TopicProducer producer, AgentCode agentCode, int maxLoops) throws Exception {
+    private static void runMainLoop(AgentSource source,
+                                    AgentFunction function,
+                                    AgentSink sink,
+                                    AgentContext agentContext,
+                                    int maxLoops) throws Exception {
         try {
-            consumer.start();
-            producer.start();
-            agentCode.start();
-            // TODO: handle semantics, transactions...
-            List<Record> records = consumer.read();
+            source.setContext(agentContext);
+            sink.setContext(agentContext);
+            function.setContext(agentContext);
+            source.start();
+            sink.start();
+            function.start();
+
+            List<Record> records = source.read();
             while ((maxLoops < 0) || (maxLoops-- > 0)) {
                 if (records != null && !records.isEmpty()) {
                     try {
-                        List<Record> outputRecords = agentCode.process(records);
-                        producer.write(outputRecords);
+                        List<Record> outputRecords = function.process(records);
+                        sink.write(outputRecords);
                     } catch (Exception e) {
                         log.error("Error while processing records", e);
 
@@ -145,13 +176,13 @@ public class PodJavaRuntime
                     }
                     // commit
                 }
-                consumer.commit();
-                records = consumer.read();
+                source.commit();
+                records = source.read();
             }
         } finally {
-            consumer.close();
-            producer.close();
-            agentCode.close();
+            function.close();
+            source.close();
+            sink.close();
         }
     }
 
@@ -168,5 +199,39 @@ public class PodJavaRuntime
 
     public static void setErrorHandler(ErrorHandler errorHandler) {
         PodJavaRuntime.errorHandler = errorHandler;
+    }
+
+    private static class NoopTopicConsumer implements TopicConsumer {
+        @SneakyThrows
+
+        @Override
+        public List<Record> read() {
+            log.info("Sleeping for 1 second, no records...");
+            Thread.sleep(1000);
+            return List.of();
+        }
+    }
+
+    private static class NoopTopicProducer implements TopicProducer {
+    }
+
+    private static class SimpleAgentContext implements AgentContext {
+        private final TopicConsumer consumer;
+        private final TopicProducer producer;
+
+        public SimpleAgentContext(TopicConsumer consumer, TopicProducer producer) {
+            this.consumer = consumer;
+            this.producer = producer;
+        }
+
+        @Override
+        public TopicConsumer getTopicConsumer() {
+            return consumer;
+        }
+
+        @Override
+        public TopicProducer getTopicProducer() {
+            return producer;
+        }
     }
 }

@@ -13,6 +13,10 @@ public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRunt
     }
 
     public record SimpleTopic(String name) implements Topic {
+        @Override
+        public String topicName() {
+            return name;
+        }
     }
     @Override
     public StreamingClusterRuntime getImplementation() {

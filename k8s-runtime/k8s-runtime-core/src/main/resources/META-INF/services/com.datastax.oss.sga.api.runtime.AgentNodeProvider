@@ -1,2 +1,4 @@
 com.datastax.oss.sga.runtime.impl.k8s.agents.GenericAgentProvider
+com.datastax.oss.sga.runtime.impl.k8s.agents.GenericSinkAgentProvider
+com.datastax.oss.sga.runtime.impl.k8s.agents.GenericSourceAgentProvider
 com.datastax.oss.sga.runtime.impl.k8s.agents.ai.KubernetesGenAIToolKitFunctionAgentProvider

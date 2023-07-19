@@ -1,0 +1,5 @@
+streamingCluster:
+  type: kafka
+agent:
+  configuration:
+     className: examples.example.Example

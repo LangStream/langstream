@@ -52,9 +52,9 @@ public class TenantResource {
     @Operation(summary = "Create or update a tenant")
     void putTenant(
             @NotBlank @PathVariable("tenant") String tenant) throws Exception {
-        final TenantConfiguration tenantConfiguration = new TenantConfiguration();
-        tenantConfiguration.setName(tenant);
-        globalMetadataService.putTenant(tenant, tenantConfiguration);
+        globalMetadataService.putTenant(tenant, TenantConfiguration.builder()
+                .name(tenant)
+                .build());
     }
 
     @DeleteMapping("/{tenant}")

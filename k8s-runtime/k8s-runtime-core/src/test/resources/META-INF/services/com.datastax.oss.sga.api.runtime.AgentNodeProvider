@@ -1,0 +1,3 @@
+com.datastax.oss.testagents.TestGenericAgentProvider
+com.datastax.oss.testagents.TestGenericSinkAgentProvider
+com.datastax.oss.testagents.TestGenericSourceAgentProvider

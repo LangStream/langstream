@@ -17,7 +17,7 @@ public class PluginsRegistry {
                 })
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No AgentImplementationProvider found for type " + type
-                        + " for cluster type "+clusterRuntime.getClusterType()));
+                        + " for cluster type "+ clusterRuntime.getClusterType()));
         return agentRuntimeProviderProvider.get();
     }
 

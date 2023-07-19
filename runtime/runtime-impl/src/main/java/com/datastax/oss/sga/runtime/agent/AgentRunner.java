@@ -215,7 +215,7 @@ public class AgentRunner
                     try {
                         List<Record> outputRecords = function.process(records);
                         sink.write(outputRecords);
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error("Error while processing records", e);
 
                         // throw the error

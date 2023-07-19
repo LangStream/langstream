@@ -6,6 +6,10 @@ import java.util.List;
 
 public interface TopicConsumer {
 
+    default Object getNativeConsumer() {
+        return null;
+    }
+
     default void start() throws Exception {}
 
     default void close() throws Exception  {}

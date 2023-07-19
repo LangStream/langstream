@@ -10,7 +10,7 @@ import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
+import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
@@ -132,7 +132,7 @@ class PulsarRunnerDockerTest {
                     .send();
             producer.flush();
 
-            PodJavaRuntime.run(runtimePodConfiguration, 5);
+            AgentRunner.run(runtimePodConfiguration, null, 5);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
             Message<byte[]> record = consumer.receive();

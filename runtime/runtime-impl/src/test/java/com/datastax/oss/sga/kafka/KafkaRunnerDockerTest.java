@@ -1,7 +1,7 @@
 package com.datastax.oss.sga.kafka;
 
 import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
-import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
+import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
@@ -103,7 +103,7 @@ class KafkaRunnerDockerTest {
             producer.send(new org.apache.kafka.clients.producer.ProducerRecord<>("input-topic", "key", "value")).get();
             producer.flush();
 
-            PodJavaRuntime.run(runtimePodConfiguration, 5);
+            AgentRunner.run(runtimePodConfiguration, null, 5);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
             ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(10));

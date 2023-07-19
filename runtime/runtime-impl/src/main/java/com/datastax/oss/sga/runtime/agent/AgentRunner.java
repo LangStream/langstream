@@ -13,6 +13,7 @@ import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import com.datastax.oss.sga.runtime.agent.python.PythonCodeAgentProvider;
 import com.datastax.oss.sga.runtime.agent.simple.IdentityAgentProvider;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
@@ -29,7 +30,7 @@ import java.util.List;
  * This is the main entry point for the pods that run the SGA runtime and Java code.
  */
 @Slf4j
-public class PodJavaRuntime
+public class AgentRunner
 {
     private static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY = new TopicConnectionsRuntimeRegistry();
     private static final AgentCodeRegistry AGENT_CODE_REGISTRY = new AgentCodeRegistry();
@@ -60,7 +61,7 @@ public class PodJavaRuntime
 
             // TODO: set context class loader depending on the agent code type
 
-            run(configuration, -1);
+            run(configuration, podRuntimeConfiguration, codeDirectory, -1);
 
 
         } catch (Throwable error) {
@@ -82,7 +83,10 @@ public class PodJavaRuntime
         return codeDirectory;
     }
 
-    public static void run(RuntimePodConfiguration configuration, int maxLoops) throws Exception {
+    public static void run(RuntimePodConfiguration configuration,
+                           Path podRuntimeConfiguration,
+                           Path codeDirectory,
+                           int maxLoops) throws Exception {
         log.info("Pod Configuration {}", configuration);
 
         // agentId is the identity of the agent in the cluster
@@ -95,57 +99,101 @@ public class PodJavaRuntime
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
 
         log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
-        topicConnectionsRuntime.init(configuration.streamingCluster());
         try {
 
             AgentCode agentCode = initAgent(configuration);
-
-            final TopicConsumer consumer;
-            if (configuration.input() != null && !configuration.input().isEmpty()) {
-                consumer = topicConnectionsRuntime.createConsumer(agentId,
-                        configuration.streamingCluster(), configuration.input());
+            if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode)) {
+                runPythonAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode,
+                        podRuntimeConfiguration, codeDirectory);
             } else {
-                consumer = new NoopTopicConsumer();
-            }
-
-            final TopicProducer producer;
-            if (configuration.output() != null && !configuration.output().isEmpty()) {
-                producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
-            } else {
-                producer = new NoopTopicProducer();
+                runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode);
             }
 
 
-            AgentSource source;
-            if (agentCode instanceof AgentSource agentSource) {
-                source = agentSource;
-            } else {
-                source = new TopicConsumerSource(consumer);
-            }
-
-            AgentSink sink;
-            if (agentCode instanceof AgentSink agentSink) {
-                sink = agentSink;
-            } else {
-                sink = new TopicProducerSink(producer);
-            }
-
-            AgentFunction function;
-            if (agentCode instanceof AgentFunction agentFunction) {
-                function = agentFunction;
-            } else {
-                function = new IdentityAgentProvider.IdentityAgentCode();
-            }
-
-            AgentContext agentContext = new SimpleAgentContext(consumer, producer);
-            log.info("Source: {}", source);
-            log.info("Function: {}", function);
-            log.info("Sink: {}", sink);
-
-            runMainLoop(source, function, sink, agentContext, maxLoops);
         } finally {
             topicConnectionsRuntime.close();
         }
+    }
+
+    private static void runPythonAgent(RuntimePodConfiguration configuration,
+                                     int maxLoops,
+                                     String agentId,
+                                     TopicConnectionsRuntime topicConnectionsRuntime,
+                                     AgentCode agentCode,
+                                     Path podRuntimeConfiguration,
+                                     Path codeDirectory) throws Exception {
+
+        Path pythonCodeDirectory = codeDirectory.resolve("python");
+        log.info("Python code directory {}", pythonCodeDirectory);
+
+
+        // copy input/output to standard input/output of the java process
+        // this allows to use "kubectl logs" easily
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "python", "sga-runtime.py", podRuntimeConfiguration.toAbsolutePath().toString())
+                .inheritIO()
+                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                .redirectError(ProcessBuilder.Redirect.INHERIT);
+        Process process = processBuilder.start();
+
+        int exitCode = process.waitFor();
+        log.info("Python process exited with code {}", exitCode);
+
+        if (exitCode != 0) {
+            throw new Exception("Python code exited with code " + exitCode);
+        }
+    }
+
+    private static void runJavaAgent(RuntimePodConfiguration configuration,
+                                     int maxLoops,
+                                     String agentId,
+                                     TopicConnectionsRuntime topicConnectionsRuntime,
+                                     AgentCode agentCode) throws Exception {
+        topicConnectionsRuntime.init(configuration.streamingCluster());
+
+        final TopicConsumer consumer;
+        if (configuration.input() != null && !configuration.input().isEmpty()) {
+            consumer = topicConnectionsRuntime.createConsumer(agentId,
+                    configuration.streamingCluster(), configuration.input());
+        } else {
+            consumer = new NoopTopicConsumer();
+        }
+
+        final TopicProducer producer;
+        if (configuration.output() != null && !configuration.output().isEmpty()) {
+            producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
+        } else {
+            producer = new NoopTopicProducer();
+        }
+
+
+        AgentSource source;
+        if (agentCode instanceof AgentSource agentSource) {
+            source = agentSource;
+        } else {
+            source = new TopicConsumerSource(consumer);
+        }
+
+        AgentSink sink;
+        if (agentCode instanceof AgentSink agentSink) {
+            sink = agentSink;
+        } else {
+            sink = new TopicProducerSink(producer);
+        }
+
+        AgentFunction function;
+        if (agentCode instanceof AgentFunction agentFunction) {
+            function = agentFunction;
+        } else {
+            function = new IdentityAgentProvider.IdentityAgentCode();
+        }
+
+        AgentContext agentContext = new SimpleAgentContext(consumer, producer);
+        log.info("Source: {}", source);
+        log.info("Function: {}", function);
+        log.info("Sink: {}", sink);
+
+        runMainLoop(source, function, sink, agentContext, maxLoops);
     }
 
     private static void runMainLoop(AgentSource source,
@@ -198,7 +246,7 @@ public class PodJavaRuntime
     }
 
     public static void setErrorHandler(ErrorHandler errorHandler) {
-        PodJavaRuntime.errorHandler = errorHandler;
+        AgentRunner.errorHandler = errorHandler;
     }
 
     private static class NoopTopicConsumer implements TopicConsumer {

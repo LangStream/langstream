@@ -11,16 +11,13 @@ import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
+import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -33,7 +30,6 @@ import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -130,7 +126,7 @@ class KafkaConnectRunnerTest {
                 .get();
             producer.flush();
 
-            PodJavaRuntime.run(runtimePodConfiguration, 5);
+            AgentRunner.run(runtimePodConfiguration, null, 5);
         }
 
     }

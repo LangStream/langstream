@@ -1,6 +1,6 @@
 instance:
   streamingCluster:
-    type: "kafka"
+    type: "pulsar"
     configuration:
       admin:
         serviceUrl: https://pulsar-gcp-useast4.api.dev.streaming.datastax.com

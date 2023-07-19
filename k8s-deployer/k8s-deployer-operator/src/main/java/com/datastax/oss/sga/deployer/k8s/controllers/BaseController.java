@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.deployer.k8s.controllers;
 
 import com.datastax.oss.sga.deployer.k8s.DeployerConfiguration;
+import com.datastax.oss.sga.deployer.k8s.ResolvedDeployerConfiguration;
 import com.datastax.oss.sga.deployer.k8s.api.crds.BaseStatus;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.client.CustomResource;
@@ -22,7 +23,7 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
     protected KubernetesClient client;
 
     @Inject
-    protected DeployerConfiguration configuration;
+    protected ResolvedDeployerConfiguration configuration;
 
     protected abstract UpdateControl<T> patchResources(T resource, Context<T> context);
 
@@ -33,6 +34,10 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
         DeleteControl result;
         try {
             result = cleanupResources(resource, context);
+            log.infof("Reconcilied cleanup for application %s, reschedule: %s, status: %s",
+                    resource.getMetadata().getName(),
+                    String.valueOf(result.getScheduleDelay().isPresent()),
+                    resource.getStatus());
         } catch (Throwable throwable) {
             log.errorf(throwable, "Error during cleanup for resource %s with name %s: %s",
                     resource.getFullResourceName(),

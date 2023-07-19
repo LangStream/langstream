@@ -62,9 +62,7 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
                 .get();
         if (currentJob == null || areSpecChanged(application)) {
             createJob(application, delete);
-            if (delete) {
-                application.getStatus().setStatus(ApplicationLifecycleStatus.DELETING);
-            } else {
+            if (!delete) {
                 application.getStatus().setStatus(ApplicationLifecycleStatus.DEPLOYING);
             }
             return true;
@@ -82,14 +80,7 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
 
     @SneakyThrows
     private void createJob(ApplicationCustomResource applicationCustomResource, boolean delete) {
-
-        final Map<String, Object> clusterRuntime;
-        if (configuration.clusterRuntime() == null) {
-            clusterRuntime = Map.of();
-        } else {
-            clusterRuntime = SerializationUtil.readYaml(configuration.clusterRuntime(), Map.class);
-        }
-        final Job job = AppResourcesFactory.generateJob(applicationCustomResource, clusterRuntime, delete);
+        final Job job = AppResourcesFactory.generateJob(applicationCustomResource, configuration.getClusterRuntime(), delete);
         KubeUtil.patchJob(client, job);
     }
 

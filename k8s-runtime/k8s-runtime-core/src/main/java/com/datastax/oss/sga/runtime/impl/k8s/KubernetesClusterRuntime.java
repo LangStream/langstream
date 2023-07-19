@@ -48,7 +48,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         streamingClusterRuntime.deploy(applicationInstance);
 
         List<PodAgentConfiguration> configs = buildPodAgentConfigurations(applicationInstance, streamingClusterRuntime, codeStorageArchiveId);
-        final String namespace = configuration.getNamespacePrefix() + tenant;
+        final String namespace = computeNamespace(tenant);
 
         for (PodAgentConfiguration podAgentConfiguration : configs) {
 
@@ -134,11 +134,22 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     @Override
     public void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime, String codeStorageArchiveId) {
         List<PodAgentConfiguration> agents = buildPodAgentConfigurations(applicationInstance, streamingClusterRuntime, codeStorageArchiveId);
-        final String namespace = configuration.getNamespacePrefix() + tenant;
+        final String namespace = computeNamespace(tenant);
         for (PodAgentConfiguration agent : agents) {
-            client.resources(AgentCustomResource.class).inNamespace(namespace).withName(agent.agentConfiguration().agentId())
+            final String agentCustomResourceName =
+                    AgentResourcesFactory.getAgentCustomResourceName(applicationInstance.getApplicationId(),
+                            agent.agentConfiguration().agentId());
+            client.resources(AgentCustomResource.class)
+                    .inNamespace(namespace)
+                    .withName(agentCustomResourceName)
                     .delete();
+            log.info("Deleted agent {}", agentCustomResourceName);
 
         }
+    }
+
+    private String computeNamespace(String tenant) {
+        final String namespace = configuration.getNamespacePrefix() + tenant;
+        return namespace;
     }
 }

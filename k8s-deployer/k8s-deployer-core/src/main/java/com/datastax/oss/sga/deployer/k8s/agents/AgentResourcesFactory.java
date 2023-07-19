@@ -182,9 +182,9 @@ public class AgentResourcesFactory {
                                                                   final String tenant,
                                                                   final PodAgentConfiguration podAgentConfiguration) {
         final AgentCustomResource agentCR = new AgentCustomResource();
-        final String agentName = "%s-%s".formatted(applicationId, agentId);
+        final String agentName = getAgentCustomResourceName(applicationId, agentId);
         agentCR.setMetadata(new ObjectMetaBuilder()
-                .withName(sanitizeName(agentName))
+                .withName(agentName)
                 .withLabels(getAgentLabels(agentId, applicationId))
                 .build());
         agentCR.setSpec(AgentSpec.builder()
@@ -193,6 +193,11 @@ public class AgentResourcesFactory {
                 .configuration(SerializationUtil.writeAsJson(podAgentConfiguration))
                 .build());
         return agentCR;
+    }
+
+    public static String getAgentCustomResourceName(String applicationId, String agentId) {
+        final String agentName = "%s-%s".formatted(applicationId, agentId);
+        return sanitizeName(agentName);
     }
 
 

@@ -2,6 +2,7 @@ package com.datastax.oss.sga.runtime.agent.simple;
 
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
+import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.Record;
 
 import java.util.ArrayList;
@@ -18,7 +19,7 @@ public class IdentityAgentProvider implements AgentCodeProvider {
         return new IdentityAgentCode();
     }
 
-    private static class IdentityAgentCode implements AgentCode {
+    public static class IdentityAgentCode implements AgentFunction {
         @Override
         public List<Record> process(List<Record> record) {
             return new ArrayList<>(record);

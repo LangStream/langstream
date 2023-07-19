@@ -3,6 +3,7 @@ package com.datastax.oss.sga.kafka;
 
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeRegistry;
+import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +18,7 @@ class LoadAgentCodeTest {
     @Test
     public void testLoadNoop() throws Exception {
         AgentCodeRegistry registry = new AgentCodeRegistry();
-        AgentCode noop = registry.getAgentCode("noop");
+        AgentFunction noop = (AgentFunction) registry.getAgentCode("noop");
         assertTrue(noop.process(List.of(new Record() {
             @Override
             public Object key() {
@@ -49,7 +50,7 @@ class LoadAgentCodeTest {
     @Test
     public void testLoadIdentity() throws Exception {
         AgentCodeRegistry registry = new AgentCodeRegistry();
-        AgentCode noop = registry.getAgentCode("identity");
+        AgentFunction noop = (AgentFunction) registry.getAgentCode("identity");
         assertEquals(1, noop.process(List.of(new Record() {
             @Override
             public Object key() {

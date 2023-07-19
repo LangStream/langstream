@@ -90,7 +90,7 @@ class KubernetesClusterRuntimeDockerTest {
                 + "\"componentType\":\"FUNCTION\",\"configuration\":{\"mappings\":\"id=value.id,name=value.name,"
                 + "description=value.description,item_vector=value.item_vector\"}},"
                 + "\"streamingCluster\":{\"type\":\"kafka\",\"configuration\":{\"admin\":{\"bootstrap"
-                + ".servers\":\"PLAINTEXT://localhost:%d\"}}},\"codeStorage\":{\"codeStorageArchiveId\":null}}}")
+                + ".servers\":\"PLAINTEXT://localhost:%d\"}}},\"codeStorage\":{\"codeStorageArchiveId\":null}}")
                 .formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
 
 

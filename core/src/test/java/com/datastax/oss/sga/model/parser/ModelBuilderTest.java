@@ -29,7 +29,7 @@ class ModelBuilderTest {
 
     @Test
     void testParseApplication1() throws Exception {
-        Path path = Paths.get("../examples/application1");
-        Application application = ModelBuilder.buildApplicationInstance(Arrays.asList(path));
+        Path path = Paths.get("src/test/resources/application1");
+        ModelBuilder.buildApplicationInstance(Arrays.asList(path));
     }
 }

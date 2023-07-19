@@ -179,6 +179,14 @@
                 <phase>package</phase>
               </execution>
             </executions>
+            <configuration>
+              <extraDirectories>
+                <paths>
+                  <path>src/main/python</path>
+                </paths>
+              </extraDirectories>
+            </configuration>
+
           </plugin>
         </plugins>
       </build>

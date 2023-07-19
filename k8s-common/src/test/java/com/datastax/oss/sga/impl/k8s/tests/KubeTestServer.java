@@ -9,13 +9,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+@Slf4j
 public class KubeTestServer implements AutoCloseable, BeforeEachCallback, BeforeAllCallback, AfterAllCallback {
 
     public static class Server extends KubernetesMockServer {
@@ -49,6 +52,7 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
     @Override
     public void beforeEach(ExtensionContext extensionContext) throws Exception {
         server.reset();
+        currentAgents.clear();
     }
 
     @Override
@@ -61,19 +65,18 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
         start();
     }
 
+
+    private Map<String, AgentCustomResource> currentAgents = new HashMap<>();
+
     public Map<String, AgentCustomResource> spyAgentCustomResources(final String namespace,
                                                                     String... expectedAgents) {
-
-
-        Map<String, AgentCustomResource> agents = new HashMap<>();
         for (String agentId : expectedAgents) {
             final String fullPath =
-                    "/apis/sga.oss.datastax.com/v1alpha1/namespaces/%s/agents/%s?fieldManager=fabric8".formatted(
+                    "/apis/sga.oss.datastax.com/v1alpha1/namespaces/%s/agents/%s".formatted(
                             namespace, agentId);
-            System.out.println("mocking: " + fullPath);
             server.expect()
                     .patch()
-                    .withPath(fullPath)
+                    .withPath(fullPath + "?fieldManager=fabric8")
                     .andReply(
                             HttpURLConnection.HTTP_OK,
                             recordedRequest -> {
@@ -85,15 +88,28 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                                     final AgentCustomResource agent =
                                             mapper.readValue(byteArrayOutputStream.toByteArray(),
                                                     AgentCustomResource.class);
-                                    agents.put(agent.getMetadata().getName(), agent);
+                                    log.info("received patch request for agent {}", agentId);
+                                    currentAgents.put(agentId, agent);
                                     return agent;
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
                                 }
                             }
                     ).always();
+
+            server.expect()
+                    .delete()
+                    .withPath(fullPath)
+                    .andReply(
+                            HttpURLConnection.HTTP_OK,
+                            recordedRequest -> {
+                                log.info("received delete request for agent {}", agentId);
+                                currentAgents.remove(agentId);
+                                return List.of();
+                            }
+                    ).always();
         }
-        return agents;
+        return currentAgents;
     }
 
 }

@@ -93,6 +93,9 @@ class KubernetesClusterRuntimeDockerTest {
                 + ".servers\":\"PLAINTEXT://localhost:%d\"}}},\"codeStorage\":{\"codeStorageArchiveId\":null}}")
                 .formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
 
+        deployer.delete(tenant, implementation, null);
+        assertEquals(0, agentsCRs.size());
+
 
     }
 

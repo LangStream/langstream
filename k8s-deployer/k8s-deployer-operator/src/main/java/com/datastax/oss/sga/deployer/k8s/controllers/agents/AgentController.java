@@ -1,13 +1,11 @@
 package com.datastax.oss.sga.deployer.k8s.controllers.agents;
 
 import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
-import com.datastax.oss.sga.deployer.k8s.DeployerConfiguration;
-import com.datastax.oss.sga.deployer.k8s.agents.AgentResourceUnitConfiguration;
+import com.datastax.oss.sga.deployer.k8s.ResolvedDeployerConfiguration;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.controllers.BaseController;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
-import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -68,11 +66,12 @@ public class AgentController extends BaseController<AgentCustomResource>
     }
 
 
+    @JBossLog
     public static class StsDependantResource extends
             CRUDKubernetesDependentResource<StatefulSet, AgentCustomResource> {
 
         @Inject
-        protected DeployerConfiguration configuration;
+        ResolvedDeployerConfiguration configuration;
 
         public StsDependantResource() {
             super(StatefulSet.class);
@@ -80,10 +79,13 @@ public class AgentController extends BaseController<AgentCustomResource>
 
         @Override
         protected StatefulSet desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
-            final Map<String, Object> codeStorage = SerializationUtil.readYaml(configuration.codeStorage(), Map.class);
-            final AgentResourceUnitConfiguration agentResourceUnitConfiguration = SerializationUtil.readYaml(
-                    configuration.agentResources(), AgentResourceUnitConfiguration.class);
-            return AgentResourcesFactory.generateStatefulSet(primary, codeStorage, agentResourceUnitConfiguration);
+            try {
+                return AgentResourcesFactory.generateStatefulSet(primary, configuration.getCodeStorage(),
+                        configuration.getAgentResources());
+            } catch (Throwable t) {
+                log.errorf(t, "Error while generating StatefulSet for agent %s", primary.getMetadata().getName());
+                throw new RuntimeException(t);
+            }
         }
     }
 

@@ -22,7 +22,8 @@ metadata:
   labels:
     {{- include "sga.deployerLabels" . | nindent 4 }}
 data:
-  DEPLOYER_AGENT_RESOURCES: {{ .Values.deployer.app.config.agentResources }}
+  DEPLOYER_AGENT_RESOURCES: |
+{{ .Values.deployer.app.config.agentResources | toYaml | indent 4 }}
   DEPLOYER_CLUSTER_RUNTIME: |
 {{ .Values.deployer.app.config.clusterRuntime | toYaml | indent 4 }}
   DEPLOYER_CODE_STORAGE: |

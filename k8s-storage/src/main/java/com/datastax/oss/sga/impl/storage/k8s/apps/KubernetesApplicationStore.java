@@ -141,11 +141,10 @@ public class KubernetesApplicationStore implements ApplicationStore {
     public void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveId) {
         final String namespace = tenantToNamespace(tenant);
         final String appJson = mapper.writeValueAsString(new SerializedApplicationInstance(applicationInstance));
-        final ApplicationCustomResource crd = new ApplicationCustomResource();
+        ApplicationCustomResource crd = new ApplicationCustomResource();
         crd.setMetadata(new ObjectMetaBuilder()
                 .withName(applicationId)
                 .withNamespace(namespace)
-
                 .build());
         final ApplicationSpec spec = ApplicationSpec.builder()
                 .tenant(tenant)
@@ -161,10 +160,16 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .inNamespace(namespace)
                 .serverSideApply();
 
+        // need to refresh to get the uid
+        crd = client.resource(crd)
+                .inNamespace(namespace)
+                .get();
+
         final Secret secret = new SecretBuilder()
                 .withNewMetadata()
                 .withName(applicationId)
                 .withNamespace(namespace)
+                .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(crd))
                 .endMetadata()
                 .withData(Map.of("secrets",
                         encodeSecret(mapper.writeValueAsString(applicationInstance.getSecrets()))))
@@ -195,10 +200,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .inNamespace(namespace)
                 .withName(applicationId)
                 .delete();
-        client.resources(Secret.class)
-                .inNamespace(namespace)
-                .withName(applicationId)
-                .delete();
+        // the secret deletion will happen automatically once the app custom resource has been deleted completely
     }
 
     @Override

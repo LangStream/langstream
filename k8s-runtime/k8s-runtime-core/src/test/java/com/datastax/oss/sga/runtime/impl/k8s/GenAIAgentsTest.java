@@ -283,14 +283,14 @@ class GenAIAgentsTest {
                                           expression: "value.field2"                                         
                                   - name: "merge-key-value"
                                     type: "merge-key-value"
-                                  - name: "chat-ai-completions"
-                                    type: "chat-ai-completions"
+                                  - name: "ai-chat-completions"
+                                    type: "ai-chat-completions"
                                     configuration:   
                                       model: "davinci"                                   
-                                      output-field: "value.chatresult"
+                                      completion-field: "value.chatresult"
                                       messages:
-                                         role: user
-                                         message: xxx
+                                         - role: user
+                                           content: xxx
                                   - name: "casttojson"
                                     type: "cast"                                    
                                     output: "output-topic"

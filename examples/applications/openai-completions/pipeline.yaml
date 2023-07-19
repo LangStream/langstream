@@ -6,13 +6,13 @@ topics:
   - name: "output-topic"
     creation-mode: create-if-not-exists
 pipeline:
-  - name: "chat-ai-completions"
-    type: "chat-ai-completions"
+  - name: "ai-chat-completions"
+    type: "ai-chat-completions"
     input: "input-topic"
     output: "output-topic"
     configuration:
       model: "gpt-3.5-turbo"
-      output-field: "value"
+      completion-field: "value"
       messages:
-        role: user
-        message: "What can you tell me about {{% value}} ?"
+        - role: user
+          content: "What can you tell me about {{% value}} ?"

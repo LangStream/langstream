@@ -13,10 +13,12 @@ import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -94,15 +96,32 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                     requiredField(step, agentConfiguration, originalConfiguration, "output-field");
                 }
             },
-            "chat-ai-completions", new StepConfigurationInitializer() {
+            "ai-chat-completions", new StepConfigurationInitializer() {
                 @Override
                 public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration, AgentConfiguration agentConfiguration,
                                           DataSourceConfigurationGenerator dataSourceConfigurationGenerator) {
-                    requiredField(step, agentConfiguration, originalConfiguration, "output-field");
-                    requiredField(step, agentConfiguration, originalConfiguration, "messages");
+                    requiredField(step, agentConfiguration, originalConfiguration, "completion-field");
+                    optionalField(step, agentConfiguration, originalConfiguration, "log-field", null);
+                    Object messages = requiredField(step, agentConfiguration, originalConfiguration, "messages");
+                    if (messages instanceof Collection<?> collection) {
+                        for (Object o : collection) {
+                            if (o instanceof Map map) {
+                                map.keySet().forEach(k -> {
+                                    if (!"role".equals(k) && !"content".equals(k)) {
+                                        throw new IllegalArgumentException("messages must be a list of objects, [{role: 'user', content: 'template'}]");
+                                    }
+                                });
+                            } else {
+                                throw new IllegalArgumentException("messages must be a list of objects, [{role: 'user', content: 'template'}]");
+                            }
+                        }
+                    } else {
+                        throw new IllegalArgumentException("messages must be a list of objects: [{role: 'user', content: 'template'}]");
+                    }
                     requiredField(step, agentConfiguration, originalConfiguration, "model");
                     optionalField(step, agentConfiguration, originalConfiguration, "temperature", null);
                     optionalField(step, agentConfiguration, originalConfiguration, "top-p", null);
+                    optionalField(step, agentConfiguration, originalConfiguration, "logit-bias", null);
                     optionalField(step, agentConfiguration, originalConfiguration, "stop", null);
                     optionalField(step, agentConfiguration, originalConfiguration, "max-tokens", null);
                     optionalField(step, agentConfiguration, originalConfiguration, "presence-penalty", null);
@@ -280,12 +299,14 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         throw new IllegalStateException();
     }
 
-    protected static void requiredField(Map<String, Object> step, AgentConfiguration agentConfiguration, Map<String, Object> originalConfiguration, String name) {
+    protected static <T> T requiredField(Map<String, Object> step, AgentConfiguration agentConfiguration, Map<String, Object> originalConfiguration, String name) {
         if (!originalConfiguration.containsKey(name)) {
             throw new IllegalArgumentException("Missing required field " + name + " in agent definition, type=" + agentConfiguration.getType()
                     + ", name="+agentConfiguration.getName());
         }
-        step.put(name,originalConfiguration.get(name));
+        Object value = originalConfiguration.get(name);
+        step.put(name, value);
+        return (T) value;
     }
 
     protected static void optionalField(Map<String, Object> step, AgentConfiguration agentConfiguration, Map<String, Object> originalConfiguration, String name, Object defaultValue) {

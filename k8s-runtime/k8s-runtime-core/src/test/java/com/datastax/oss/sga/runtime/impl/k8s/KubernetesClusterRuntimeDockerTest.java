@@ -80,18 +80,18 @@ class KubernetesClusterRuntimeDockerTest {
         deployer.deploy(tenant, implementation, null);
         assertEquals(1, agentsCRs.size());
         final AgentCustomResource agent = agentsCRs.values().iterator().next();
-        assertEquals("datastax/sga-generic-agent:latest", agent.getSpec().getImage());
-        assertEquals("Never", agent.getSpec().getImagePullPolicy());
         assertEquals(tenant, agent.getSpec().getTenant());
-        assertEquals("{\"input\":{\"auto.offset.reset\":\"earliest\",\"group.id\":\"sga-agent-sink-1-id\",\"key"
-                + ".deserializer\":\"org.apache.kafka.common.serialization.StringDeserializer\","
-                + "\"topic\":\"input-topic\",\"value.deserializer\":\"org.apache.kafka.common.serialization"
-                + ".StringDeserializer\"},\"output\":{},\"agentConfiguration\":{\"agentId\":\"sink-1-id\","
-                + "\"agentType\":\"generic-agent\",\"componentType\":\"FUNCTION\","
-                + "\"configuration\":{\"mappings\":\"id=value.id,name=value.name,description=value.description,"
-                + "item_vector=value.item_vector\"}},\"streamingCluster\":{\"type\":\"kafka\","
-                + ("\"configuration\":{\"admin\":{\"bootstrap.servers\":\"PLAINTEXT://localhost:%d\"}}},"
-                + "\"codeStorage\":{\"codeStorageArchiveId\":null}}").formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
+        assertEquals(("{\"image\":\"datastax/sga-generic-agent:latest\",\"imagePullPolicy\":\"Never\","
+                + "\"resources\":{\"parallelism\":1,\"size\":1},\"input\":{\"auto.offset.reset\":\"earliest\",\"group"
+                + ".id\":\"sga-agent-sink-1-id\",\"key.deserializer\":\"org.apache.kafka.common.serialization"
+                + ".StringDeserializer\",\"topic\":\"input-topic\",\"value.deserializer\":\"org.apache.kafka.common"
+                + ".serialization.StringDeserializer\"},\"output\":{},"
+                + "\"agentConfiguration\":{\"agentId\":\"sink-1-id\",\"agentType\":\"generic-agent\","
+                + "\"componentType\":\"FUNCTION\",\"configuration\":{\"mappings\":\"id=value.id,name=value.name,"
+                + "description=value.description,item_vector=value.item_vector\"}},"
+                + "\"streamingCluster\":{\"type\":\"kafka\",\"configuration\":{\"admin\":{\"bootstrap"
+                + ".servers\":\"PLAINTEXT://localhost:%d\"}}},\"codeStorage\":{\"codeStorageArchiveId\":null}}")
+                .formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
 
 
     }
@@ -190,15 +190,15 @@ class KubernetesClusterRuntimeDockerTest {
 
         assertEquals(1, agentsCRs.size());
         final AgentCustomResource agent = agentsCRs.values().iterator().next();
-        assertEquals("datastax/sga-generic-agent:latest", agent.getSpec().getImage());
-        assertEquals("Never", agent.getSpec().getImagePullPolicy());
+
         assertEquals(tenant, agent.getSpec().getTenant());
-        assertEquals(("{\"input\":{\"auto.offset.reset\":\"earliest\",\"group.id\":\"sga-agent-step1\",\"key"
-                + ".deserializer\":\"org.apache.kafka.common.serialization.StringDeserializer\","
-                + "\"topic\":\"input-topic\",\"value.deserializer\":\"org.apache.kafka.common.serialization"
-                + ".StringDeserializer\"},\"output\":{\"key.serializer\":\"org.apache.kafka.common.serialization"
-                + ".StringSerializer\",\"topic\":\"output-topic\",\"value.serializer\":\"org.apache.kafka.common"
-                + ".serialization.StringSerializer\"},\"agentConfiguration\":{\"agentId\":\"step1\","
+        assertEquals(agent.getSpec().getConfiguration(), ("{\"image\":\"datastax/sga-generic-agent:latest\",\"imagePullPolicy\":\"Never\","
+                + "\"resources\":{\"parallelism\":1,\"size\":1},\"input\":{\"auto.offset.reset\":\"earliest\",\"group"
+                + ".id\":\"sga-agent-step1\",\"key.deserializer\":\"org.apache.kafka.common.serialization"
+                + ".StringDeserializer\",\"topic\":\"input-topic\",\"value.deserializer\":\"org.apache.kafka.common"
+                + ".serialization.StringDeserializer\"},\"output\":{\"key.serializer\":\"org.apache.kafka.common"
+                + ".serialization.StringSerializer\",\"topic\":\"output-topic\",\"value.serializer\":\"org.apache"
+                + ".kafka.common.serialization.StringSerializer\"},\"agentConfiguration\":{\"agentId\":\"step1\","
                 + "\"agentType\":\"ai-tools\",\"componentType\":\"FUNCTION\","
                 + "\"configuration\":{\"openai\":{\"access-key\":\"xxcxcxc\",\"provider\":\"azure\","
                 + "\"url\":\"http://something\"},\"steps\":[{\"embeddings-field\":\"value.embeddings\","

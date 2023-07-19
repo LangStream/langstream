@@ -36,6 +36,12 @@ class AppResourcesFactoryTest {
                             sga-scope: deploy
                           name: sga-runtime-deployer-test-app
                           namespace: default
+                          ownerReferences:
+                          - apiVersion: sga.oss.datastax.com/v1alpha1
+                            kind: Application
+                            blockOwnerDeletion: true
+                            controller: true
+                            name: test-app
                         spec:
                           template:
                             metadata:
@@ -104,6 +110,12 @@ class AppResourcesFactoryTest {
                             sga-scope: delete
                           name: sga-runtime-deployer-cleanup-test-app
                           namespace: default
+                          ownerReferences:
+                          - apiVersion: sga.oss.datastax.com/v1alpha1
+                            kind: Application
+                            blockOwnerDeletion: true
+                            controller: true
+                            name: test-app
                         spec:
                           template:
                             metadata:

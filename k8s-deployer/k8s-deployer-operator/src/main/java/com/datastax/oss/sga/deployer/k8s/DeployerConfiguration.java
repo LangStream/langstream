@@ -15,15 +15,13 @@
  */
 package com.datastax.oss.sga.deployer.k8s;
 
+import com.datastax.oss.sga.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 
 
 @ConfigMapping(prefix = "deployer")
 public interface DeployerConfiguration {
-
-    @WithDefault("sga-")
-    String namespacePrefix();
 
     // workaround: quarkus doesn't support dynamic maps
     @WithDefault("{}")
@@ -32,6 +30,7 @@ public interface DeployerConfiguration {
     @WithDefault("{}")
     String codeStorage();
 
-
+    @WithDefault("{}")
+    String agentResources();
 
 }

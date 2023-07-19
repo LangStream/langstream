@@ -2,6 +2,7 @@ package com.datastax.oss.sga.deployer.k8s.agents;
 
 import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
+import com.datastax.oss.sga.api.model.ResourcesSpec;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
@@ -17,6 +18,9 @@ import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.EmptyDirVolumeSource;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
@@ -31,7 +35,9 @@ import java.util.stream.Collectors;
 
 public class AgentResourcesFactory {
 
-    public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource, Map<String, Object> codeStoreConfiguration) {
+    public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource,
+                                                  Map<String, Object> codeStoreConfiguration,
+                                                  AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
 
         final AgentSpec spec = agentCustomResource.getSpec();
         final PodAgentConfiguration podAgentConfiguration =
@@ -58,11 +64,11 @@ public class AgentResourcesFactory {
 
         final Container container = new ContainerBuilder()
                 .withName("runtime")
-                .withImage(spec.getImage())
-                .withImagePullPolicy(spec.getImagePullPolicy())
+                .withImage(podAgentConfiguration.image())
+                .withImagePullPolicy(podAgentConfiguration.imagePullPolicy())
 //                .withLivenessProbe(createLivenessProbe())
 //                .withReadinessProbe(createReadinessProbe())
-                // .withResources(spec.getResources())
+                .withResources(convertResources(podAgentConfiguration, agentResourceUnitConfiguration))
                 .withArgs("agent-runtime", "/app-config/config")
                 .withVolumeMounts(new VolumeMountBuilder()
                         .withName("app-config")
@@ -74,8 +80,10 @@ public class AgentResourcesFactory {
 
         final Container initContainer = new ContainerBuilder()
                 .withName("runtime-init-config")
-                .withImage(spec.getImage())
-                .withImagePullPolicy(spec.getImagePullPolicy())
+                .withImage(podAgentConfiguration.image())
+                .withImagePullPolicy(podAgentConfiguration.imagePullPolicy())
+                .withResources(new ResourceRequirementsBuilder().withRequests(Map.of("cpu", Quantity.parse("100m"),
+                        "memory", Quantity.parse("100Mi"))).build())
                 .withCommand("bash", "-c")
                 .withArgs("echo '%s' > /app-config/config".formatted(SerializationUtil.writeAsJson(podConfig)))
                 .withVolumeMounts(new VolumeMountBuilder()
@@ -86,15 +94,17 @@ public class AgentResourcesFactory {
 
         final String tenant = spec.getTenant();
         final Map<String, String> labels = getAgentLabels(agentId, applicationId);
+        computeReplicas(agentResourceUnitConfiguration, podAgentConfiguration);
+
         final StatefulSet statefulSet = new StatefulSetBuilder()
                 .withNewMetadata()
                 .withName(agentCustomResource.getMetadata().getName())
                 .withNamespace(agentCustomResource.getMetadata().getNamespace())
                 .withLabels(labels)
+                .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(agentCustomResource))
                 .endMetadata()
                 .withNewSpec()
-                // TODO: replicas
-                .withReplicas(1)
+                .withReplicas(computeReplicas(agentResourceUnitConfiguration, podAgentConfiguration))
                 .withNewSelector()
                 .withMatchLabels(labels)
                 .endSelector()
@@ -120,6 +130,45 @@ public class AgentResourcesFactory {
         return statefulSet;
     }
 
+    private static int computeReplicas(AgentResourceUnitConfiguration agentResourceUnitConfiguration,
+                                  PodAgentConfiguration podAgentConfiguration) {
+        Integer requestedParallelism = podAgentConfiguration.resources() == null ? null : podAgentConfiguration.resources().parallelism();
+        if (requestedParallelism == null) {
+            requestedParallelism = agentResourceUnitConfiguration.getDefaultInstanceUnits();
+        }
+        if (requestedParallelism > agentResourceUnitConfiguration.getMaxInstanceUnits()) {
+            throw new IllegalArgumentException("Requested %d instances, max is %d".formatted(requestedParallelism, agentResourceUnitConfiguration.getMaxInstanceUnits()));
+        }
+        return requestedParallelism;
+    }
+
+    private static ResourceRequirements convertResources(PodAgentConfiguration podAgentConfiguration, AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+        Integer memCpuUnits = podAgentConfiguration.resources() == null ? null : podAgentConfiguration.resources().size();
+        if (memCpuUnits == null) {
+            memCpuUnits = agentResourceUnitConfiguration.getDefaultCpuMemUnits();
+        }
+
+        Integer instances = podAgentConfiguration.resources() == null ? null : podAgentConfiguration.resources().parallelism();
+        if (instances == null) {
+            instances = agentResourceUnitConfiguration.getDefaultInstanceUnits();
+        }
+
+        if (memCpuUnits > agentResourceUnitConfiguration.getMaxCpuMemUnits()) {
+            throw new IllegalArgumentException("Requested %d cpu/mem units, max is %d".formatted(memCpuUnits, agentResourceUnitConfiguration.getMaxCpuMemUnits()));
+        }
+        if (instances > agentResourceUnitConfiguration.getMaxInstanceUnits()) {
+            throw new IllegalArgumentException("Requested %d instance units, max is %d".formatted(instances, agentResourceUnitConfiguration.getMaxInstanceUnits()));
+        }
+
+        final Map<String, Quantity> requests = new HashMap<>();
+        requests.put("cpu", Quantity.parse("%f".formatted(memCpuUnits * agentResourceUnitConfiguration.getCpuPerUnit())));
+        requests.put("memory", Quantity.parse("%dM".formatted(memCpuUnits * agentResourceUnitConfiguration.getMemPerUnit())));
+
+        return new ResourceRequirementsBuilder()
+                .withRequests(requests)
+                .build();
+    }
+
     public static Map<String, String> getAgentLabels(String agentId, String applicationId) {
         final Map<String, String> labels = Map.of(
                 CRDConstants.COMMON_LABEL_APP, "sga-runtime",
@@ -131,8 +180,6 @@ public class AgentResourcesFactory {
     public static AgentCustomResource generateAgentCustomResource(final String applicationId,
                                                                   final String agentId,
                                                                   final String tenant,
-                                                                  final String image,
-                                                                  final String imagePullPolicy,
                                                                   final PodAgentConfiguration podAgentConfiguration) {
         final AgentCustomResource agentCR = new AgentCustomResource();
         final String agentName = "%s-%s".formatted(applicationId, agentId);
@@ -143,8 +190,6 @@ public class AgentResourcesFactory {
         agentCR.setSpec(AgentSpec.builder()
                 .tenant(tenant)
                 .applicationId(applicationId)
-                .image(image)
-                .imagePullPolicy(imagePullPolicy)
                 .configuration(SerializationUtil.writeAsJson(podAgentConfiguration))
                 .build());
         return agentCR;

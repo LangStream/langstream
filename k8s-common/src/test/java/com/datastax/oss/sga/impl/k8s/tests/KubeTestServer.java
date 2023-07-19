@@ -3,6 +3,7 @@ package com.datastax.oss.sga.impl.k8s.tests;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -79,7 +80,8 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                                 try {
                                     final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                                     recordedRequest.getBody().copyTo(byteArrayOutputStream);
-                                    final ObjectMapper mapper = new ObjectMapper();
+                                    final ObjectMapper mapper = new ObjectMapper()
+                                            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
                                     final AgentCustomResource agent =
                                             mapper.readValue(byteArrayOutputStream.toByteArray(),
                                                     AgentCustomResource.class);

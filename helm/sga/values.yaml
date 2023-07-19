@@ -68,7 +68,7 @@ deployer:
   affinity: {}
   app:
     config:
-      namespacePrefix: sga-
+      agentResources: {}
       clusterRuntime:
         kubernetes:
           namespace-prefix: sga-

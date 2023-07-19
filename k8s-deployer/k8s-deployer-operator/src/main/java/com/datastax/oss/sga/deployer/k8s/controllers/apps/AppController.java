@@ -50,7 +50,7 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
     protected DeleteControl cleanupResources(ApplicationCustomResource resource,
                                              Context<ApplicationCustomResource> context) {
         final boolean reschedule = handleJob(resource, true);
-        return reschedule ? DeleteControl.defaultDelete()
+        return reschedule ? DeleteControl.noFinalizerRemoval()
                 .rescheduleAfter(5, TimeUnit.SECONDS) : DeleteControl.defaultDelete();
     }
 

@@ -2,6 +2,7 @@ package com.datastax.oss.sga.deployer.k8s.controllers.agents;
 
 import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.DeployerConfiguration;
+import com.datastax.oss.sga.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.controllers.BaseController;
@@ -17,11 +18,9 @@ import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
-
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import jakarta.inject.Inject;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.jbosslog.JBossLog;
 
 @ControllerConfiguration(
@@ -44,10 +43,8 @@ public class AgentController extends BaseController<AgentCustomResource>
 
     @Override
     protected UpdateControl<AgentCustomResource> patchResources(AgentCustomResource agent,
-                                                                      Context<AgentCustomResource> context) {
-        final String tenant = agent.getSpec().getTenant();
-
-        final String targetNamespace = configuration.namespacePrefix() + tenant;
+                                                                Context<AgentCustomResource> context) {
+        final String targetNamespace = agent.getMetadata().getNamespace();
         final String name = context.getSecondaryResource(StatefulSet.class).orElseThrow()
                 .getMetadata().getName();
         final StatefulSet current = client.apps().statefulSets()
@@ -83,14 +80,10 @@ public class AgentController extends BaseController<AgentCustomResource>
 
         @Override
         protected StatefulSet desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
-            final Map<String, Object> codeStorage;
-            if (configuration.codeStorage() == null) {
-                codeStorage = Map.of();
-            } else {
-                codeStorage = SerializationUtil.readYaml(configuration.codeStorage(), Map.class);
-            }
-            log.infof("CodeStorage: %s", configuration.codeStorage());
-            return AgentResourcesFactory.generateStatefulSet(primary, codeStorage);
+            final Map<String, Object> codeStorage = SerializationUtil.readYaml(configuration.codeStorage(), Map.class);
+            final AgentResourceUnitConfiguration agentResourceUnitConfiguration = SerializationUtil.readYaml(
+                    configuration.agentResources(), AgentResourceUnitConfiguration.class);
+            return AgentResourcesFactory.generateStatefulSet(primary, codeStorage, agentResourceUnitConfiguration);
         }
     }
 

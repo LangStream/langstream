@@ -25,9 +25,7 @@ public class TopicConnectionsRuntimeRegistry {
         ServiceLoader<TopicConnectionsRuntimeProvider> loader = ServiceLoader.load(TopicConnectionsRuntimeProvider.class);
         ServiceLoader.Provider<TopicConnectionsRuntimeProvider> clusterRuntimeProviderProvider = loader
                 .stream()
-                .filter(p -> {
-                    return p.get().supports(streamingClusterType);
-                })
+                .filter(p -> p.get().supports(streamingClusterType))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No TopicConnectionsRuntimeProvider found for type " + streamingClusterType));
 

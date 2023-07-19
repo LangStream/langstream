@@ -69,7 +69,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
 
         copy.put("enable.auto.commit", "false");
         copy.computeIfAbsent("group.id", key -> "sga-" + agentId);
-        copy.computeIfAbsent("auto.offset.reset", key -> "earliest");
+        copy.putIfAbsent("auto.offset.reset", "earliest");
 
         // producer
         copy.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");

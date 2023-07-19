@@ -69,7 +69,7 @@ secrets:
       access-key: $OPEN_AI_ACCESS_KEY
 """ > /tmp/secrets.yaml
 
-./bin/sga-cli apps deploy test -app examples/applications/app4 -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml 
+./bin/sga-cli apps deploy test -app examples/applications/compute-openai-embeddings -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml 
 ./bin/sga-cli apps get test
 
 kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic

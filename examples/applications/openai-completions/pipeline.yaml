@@ -1,0 +1,18 @@
+module: "module-1"
+id: "pipeline-1"
+topics:
+  - name: "input-topic"
+    creation-mode: create-if-not-exists
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "ai-chat-completions"
+    type: "ai-chat-completions"
+    input: "input-topic"
+    output: "output-topic"
+    configuration:
+      model: "gpt-3.5-turbo"
+      completion-field: "value"
+      messages:
+        - role: user
+          content: "What can you tell me about {{% value}} ?"

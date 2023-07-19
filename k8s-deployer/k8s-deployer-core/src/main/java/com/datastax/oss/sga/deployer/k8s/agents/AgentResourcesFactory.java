@@ -98,7 +98,7 @@ public class AgentResourcesFactory {
 
         final StatefulSet statefulSet = new StatefulSetBuilder()
                 .withNewMetadata()
-                .withName(agentCustomResource.getMetadata().getName())
+                .withName(sanitizeName(agentCustomResource.getMetadata().getName()))
                 .withNamespace(agentCustomResource.getMetadata().getNamespace())
                 .withLabels(labels)
                 .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(agentCustomResource))
@@ -184,7 +184,7 @@ public class AgentResourcesFactory {
         final AgentCustomResource agentCR = new AgentCustomResource();
         final String agentName = "%s-%s".formatted(applicationId, agentId);
         agentCR.setMetadata(new ObjectMetaBuilder()
-                .withName(agentName)
+                .withName(sanitizeName(agentName))
                 .withLabels(getAgentLabels(agentId, applicationId))
                 .build());
         agentCR.setSpec(AgentSpec.builder()
@@ -254,5 +254,24 @@ public class AgentResourcesFactory {
                     return new AbstractMap.SimpleEntry<>(e.getKey(), status);
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    public static String sanitizeName(String name) {
+        // Define the regular expression pattern
+        String pattern = "[^a-z0-9.-]";
+
+        // Remove invalid characters from the name
+        String sanitizedName = name.toLowerCase().replaceAll(pattern, "");
+
+        // Check if the sanitized name starts or ends with a non-alphanumeric character
+        if (!sanitizedName.matches("[a-z0-9].*[a-z0-9]")) {
+            // Add a default prefix and suffix
+            sanitizedName = "default-" + sanitizedName + "-default";
+        }
+
+        // Truncate the name to 63 characters
+        sanitizedName = sanitizedName.substring(0, Math.min(sanitizedName.length(), 63));
+
+        return sanitizedName;
     }
 }

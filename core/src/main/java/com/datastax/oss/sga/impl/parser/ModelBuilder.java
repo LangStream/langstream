@@ -68,8 +68,10 @@ public class ModelBuilder {
             log.info("Parsing directory: {}", directory.toAbsolutePath());
             try (DirectoryStream<Path> paths = Files.newDirectoryStream(directory);) {
                 for (Path path : paths) {
-                    parseFile(path.getFileName().toString(), Files.readString(path, StandardCharsets.UTF_8),
-                            application);
+                    if (Files.isRegularFile(path)) {
+                        parseFile(path.getFileName().toString(), Files.readString(path, StandardCharsets.UTF_8),
+                                application);
+                    }
                 }
             }
         }

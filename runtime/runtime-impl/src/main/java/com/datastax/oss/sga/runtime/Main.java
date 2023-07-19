@@ -1,6 +1,6 @@
 package com.datastax.oss.sga.runtime;
 
-import com.datastax.oss.sga.runtime.agent.PodJavaRuntime;
+import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import com.datastax.oss.sga.runtime.deployer.RuntimeDeployer;
 
 public class Main {
@@ -15,7 +15,7 @@ public class Main {
         System.arraycopy(args, 1, newArgs, 0, newArgs.length);
         switch (command) {
             case "agent-runtime":
-                PodJavaRuntime.main(newArgs);
+                AgentRunner.main(newArgs);
                 break;
             case "deployer-runtime":
                 RuntimeDeployer.main(newArgs);

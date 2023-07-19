@@ -28,7 +28,7 @@ import static com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime.CLU
 public class PythonCodeAgentProvider extends AbstractAgentProvider {
 
     public PythonCodeAgentProvider() {
-        super(Set.of("python-source", "python-sink", "python-function"), List.of(CLUSTER_TYPE));
+        super(Set.of("python-source", "python-sink", "python-function"), List.of(CLUSTER_TYPE, "none"));
     }
 
     @Override

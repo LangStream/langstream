@@ -18,7 +18,7 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-class AgentAggregatedStatusTest {
+class AgentCustomResourceTest {
 
 
     @RegisterExtension
@@ -50,6 +50,25 @@ class AgentAggregatedStatusTest {
         });
     }
 
+    @Test
+    void testStatefulsetBeingDeleted() {
+        deployAgent("tenant", "sga-tenant", "my-agent", "my-app2");
+        assertEquals(1, k3s.getClient().apps().statefulSets().inNamespace("sga-tenant")
+                .list().getItems().size());
+
+        k3s.getClient().resources(AgentCustomResource.class)
+                .inNamespace("sga-tenant")
+                .withName("my-app2-my-agent")
+                .delete();
+
+        Awaitility.await()
+                .untilAsserted(() -> {
+                    assertEquals(0, k3s.getClient().apps().statefulSets().inNamespace("sga-tenant")
+                            .list().getItems().size());
+                });
+
+    }
+
     private void deployAgent(String tenant, String namespace, String agentId, String applicationId) {
         k3s.getClient().resource(new NamespaceBuilder()
                         .withNewMetadata().withName(namespace).endMetadata().build())
@@ -69,7 +88,7 @@ class AgentAggregatedStatusTest {
                 new StreamingCluster("noop", Map.of("config", true)),
                 new PodAgentConfiguration.CodeStorageConfiguration("code-storage-id")
         );
-        final AgentCustomResource resource = getCr("""
+        AgentCustomResource resource = getCr("""
                 apiVersion: sga.oss.datastax.com/v1alpha1
                 kind: Agent
                 metadata:
@@ -82,6 +101,7 @@ class AgentAggregatedStatusTest {
                 applicationId));
         resource.getMetadata().setLabels(AgentResourcesFactory.getAgentLabels(agentId, applicationId));
         k3s.getClient().resource(resource).inNamespace(namespace).serverSideApply();
+        resource = k3s.getClient().resource(resource).inNamespace(namespace).get();
         final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource, Map.of(),
                 new AgentResourceUnitConfiguration());
         k3s.getClient().resource(statefulSet).inNamespace(namespace).serverSideApply();

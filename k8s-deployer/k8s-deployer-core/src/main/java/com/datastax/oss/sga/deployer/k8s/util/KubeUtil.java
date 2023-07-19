@@ -4,6 +4,9 @@ import com.datastax.oss.sga.api.model.ApplicationStatus;
 import io.fabric8.kubernetes.api.model.ContainerState;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.DeletionPropagation;
+import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.OwnerReference;
+import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
@@ -146,5 +149,15 @@ public class KubeUtil {
             return PodStatus.WAITING;
         }
         return null;
+    }
+    public static OwnerReference getOwnerReferenceForResource(HasMetadata resource) {
+        return new OwnerReferenceBuilder()
+                .withApiVersion(resource.getApiVersion())
+                .withKind(resource.getKind())
+                .withName(resource.getMetadata().getName())
+                .withUid(resource.getMetadata().getUid())
+                .withBlockOwnerDeletion(true)
+                .withController(true)
+                .build();
     }
 }

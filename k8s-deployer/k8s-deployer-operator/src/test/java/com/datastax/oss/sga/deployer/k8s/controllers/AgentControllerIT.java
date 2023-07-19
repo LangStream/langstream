@@ -87,9 +87,11 @@ public class AgentControllerIT {
         assertEquals("bash", initContainer.getCommand().get(0));
         assertEquals("-c", initContainer.getCommand().get(1));
         assertEquals("echo '{\"input\":{\"input\":{\"is_input\":true}},\"output\":{\"output\":{\"is_output\":true}},"
-                + "\"agent\":{\"componentType\":\"FUNCTION\",\"agentId\":\"agent-id\",\"applicationId\":\"the-app\",\"agentType\":\"my-agent\","
-                + "\"configuration\":{\"config\":true}},\"streamingCluster\":{\"type\":\"noop\","
-                + "\"configuration\":{\"config\":true}}}' > /app-config/config", initContainer.getArgs().get(0));
+                + "\"agent\":{\"componentType\":\"FUNCTION\",\"tenant\":\"my-tenant\",\"agentId\":\"agent-id\","
+                + "\"applicationId\":\"the-app\",\"agentType\":\"my-agent\",\"configuration\":{\"config\":true}},"
+                + "\"streamingCluster\":{\"type\":\"noop\",\"configuration\":{\"config\":true}},"
+                + "\"codeStorage\":{\"type\":\"none\",\"codeStorageArchiveId\":\"\",\"configuration\":{}}}' > "
+                + "/app-config/config", initContainer.getArgs().get(0));
 
     }
     private AgentCustomResource getCr(String yaml) {

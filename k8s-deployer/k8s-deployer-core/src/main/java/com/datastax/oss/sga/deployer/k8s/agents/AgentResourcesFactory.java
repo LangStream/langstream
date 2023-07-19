@@ -101,6 +101,7 @@ public class AgentResourcesFactory {
                 .withName(agentCustomResource.getMetadata().getName())
                 .withNamespace(agentCustomResource.getMetadata().getNamespace())
                 .withLabels(labels)
+                .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(agentCustomResource))
                 .endMetadata()
                 .withNewSpec()
                 .withReplicas(computeReplicas(agentResourceUnitConfiguration, podAgentConfiguration))

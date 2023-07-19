@@ -89,6 +89,7 @@ public class AppResourcesFactory {
                 .withName(getJobName(applicationId, delete))
                 .withNamespace(applicationCustomResource.getMetadata().getNamespace())
                 .withLabels(labels)
+                .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(applicationCustomResource))
                 .endMetadata()
                 .withNewSpec()
                 .withNewTemplate()

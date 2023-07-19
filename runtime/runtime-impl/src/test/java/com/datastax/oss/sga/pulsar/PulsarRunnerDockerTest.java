@@ -132,7 +132,7 @@ class PulsarRunnerDockerTest {
                     .send();
             producer.flush();
 
-            AgentRunner.run(runtimePodConfiguration, null, 5);
+            AgentRunner.run(runtimePodConfiguration, null, null, 5);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
             Message<byte[]> record = consumer.receive();

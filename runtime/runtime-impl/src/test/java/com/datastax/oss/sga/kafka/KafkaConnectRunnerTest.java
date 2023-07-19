@@ -126,7 +126,7 @@ class KafkaConnectRunnerTest {
                 .get();
             producer.flush();
 
-            AgentRunner.run(runtimePodConfiguration, null, 5);
+            AgentRunner.run(runtimePodConfiguration, null, null, 5);
         }
 
     }

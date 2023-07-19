@@ -142,7 +142,7 @@ class GenIAgentsRunnerTest {
                 .get();
             producer.flush();
 
-            AgentRunner.run(runtimePodConfiguration, null, 5);
+            AgentRunner.run(runtimePodConfiguration, null, null, 5);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
             ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(10));

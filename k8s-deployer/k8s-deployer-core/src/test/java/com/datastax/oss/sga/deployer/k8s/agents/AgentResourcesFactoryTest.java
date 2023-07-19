@@ -48,6 +48,12 @@ class AgentResourcesFactoryTest {
                             sga-application: the-app
                           name: test-agent1
                           namespace: default
+                          ownerReferences:
+                          - apiVersion: sga.oss.datastax.com/v1alpha1
+                            kind: Agent
+                            blockOwnerDeletion: true
+                            controller: true
+                            name: test-agent1
                         spec:
                           podManagementPolicy: Parallel
                           replicas: 1

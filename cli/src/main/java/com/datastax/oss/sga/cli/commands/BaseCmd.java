@@ -26,7 +26,7 @@ public abstract class BaseCmd implements Runnable {
     protected final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
 
     @CommandLine.Spec
-    CommandLine.Model.CommandSpec command;
+    protected CommandLine.Model.CommandSpec command;
     protected abstract RootCmd getRootCmd();
 
     private HttpClient httpClient;

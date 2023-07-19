@@ -11,6 +11,7 @@ import java.net.HttpURLConnection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -37,6 +38,7 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
         }
     }
 
+    @Getter
     private final Server server = new Server();
 
     @SneakyThrows
@@ -110,6 +112,48 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                     ).always();
         }
         return currentAgents;
+    }
+
+    public void expectTenantCreated(String tenant) {
+        final String namespace = "sga-" + tenant;
+
+        server.expect()
+                .patch()
+                .withPath("/api/v1/namespaces/%s?fieldManager=fabric8".formatted(namespace))
+                .andReply(
+                        HttpURLConnection.HTTP_OK,
+                        recordedRequest -> {
+                            return null;
+                        }
+                ).always();
+        server.expect()
+                .patch()
+                .withPath("/api/v1/namespaces/%s/serviceaccounts/%s?fieldManager=fabric8".formatted(namespace, tenant))
+                .andReply(
+                        HttpURLConnection.HTTP_OK,
+                        recordedRequest -> {
+                            return null;
+                        }
+                ).always();
+        server.expect()
+                .patch()
+                .withPath("/apis/rbac.authorization.k8s.io/v1/namespaces/%s/roles/%s?fieldManager=fabric8".formatted(namespace, tenant))
+                .andReply(
+                        HttpURLConnection.HTTP_OK,
+                        recordedRequest -> {
+                            return null;
+                        }
+                ).always();
+
+        server.expect()
+                .patch()
+                .withPath("/apis/rbac.authorization.k8s.io/v1/namespaces/%s/rolebindings/%s?fieldManager=fabric8".formatted(namespace, tenant))
+                .andReply(
+                        HttpURLConnection.HTTP_OK,
+                        recordedRequest -> {
+                            return null;
+                        }
+                ).always();
     }
 
 }

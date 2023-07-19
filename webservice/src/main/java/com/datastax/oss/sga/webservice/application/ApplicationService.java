@@ -5,7 +5,10 @@ import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.webservice.common.GlobalMetadataService;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import lombok.SneakyThrows;
 
 import org.springframework.http.HttpStatus;
@@ -59,6 +62,12 @@ public class ApplicationService {
                     HttpStatus.NOT_FOUND, "tenant not found"
             );
         }
+    }
+
+    @SneakyThrows
+    public List<ApplicationStore.PodLogHandler> getPodLogs(String tenant, String applicationId, ApplicationStore.LogOptions logOptions) {
+        checkTenant(tenant);
+        return applicationStore.logs(tenant, applicationId, logOptions);
     }
 
 }

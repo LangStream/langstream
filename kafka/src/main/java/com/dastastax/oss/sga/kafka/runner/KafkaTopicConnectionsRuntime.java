@@ -209,6 +209,9 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
 
         @Override
         public Object getNativeConsumer() {
+            if (consumer == null) {
+                throw new IllegalStateException("Consumer not started");
+            }
             return consumer;
         }
 

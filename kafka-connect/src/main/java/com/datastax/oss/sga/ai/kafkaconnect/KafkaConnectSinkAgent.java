@@ -74,11 +74,13 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
     private Consumer<?, ?> consumer;
 
+    private AgentContext context;
+
     // has to be the same consumer as used to read records to process,
     // otherwise pause/resume won't work
     @Override
     public void setContext(AgentContext context) throws Exception {
-        this.consumer = (Consumer<?, ?>)context.getTopicConsumer().getNativeConsumer();
+        this.context = context;
     }
 
 
@@ -267,6 +269,9 @@ public class KafkaConnectSinkAgent implements AgentSink {
             log.warn("Agent already started {} / {}", this.getClass(), kafkaConnectorFQClassName);
             return;
         }
+        this.consumer = (Consumer<?, ?>) context.getTopicConsumer().getNativeConsumer();
+        log.info("Getting consumer from context {}", consumer);
+        Objects.requireNonNull(consumer);
 
         Class<?> clazz = Class.forName(kafkaConnectorFQClassName, true, Thread.currentThread().getContextClassLoader());
         connector = (SinkConnector) clazz.getConstructor().newInstance();

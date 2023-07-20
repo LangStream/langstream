@@ -19,6 +19,8 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <pulsar.version>3.0.0</pulsar.version>
     <kafka.version>3.5.0</kafka.version>
+    <!-- same version of Kafka -->
+    <netty.version>4.1.92.Final</netty.version>
     <testcontainers.version>1.18.3</testcontainers.version>
     <junit-jupiter.version>5.9.3</junit-jupiter.version>
     <lombok.version>1.18.28</lombok.version>

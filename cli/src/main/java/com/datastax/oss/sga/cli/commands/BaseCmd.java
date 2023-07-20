@@ -14,6 +14,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
@@ -97,6 +98,7 @@ public abstract class BaseCmd implements Runnable {
     protected synchronized HttpClient getHttpClient() {
         if (httpClient == null) {
             httpClient = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(30))
                     .build();
         }
         return httpClient;

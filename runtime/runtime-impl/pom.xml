@@ -166,6 +166,7 @@
               <goal>run</goal>
             </goals>
             <configuration>
+              <skip>${skipTests}</skip>
               <target>
                 <echo>copy python runtime</echo>
                 <mkdir dir="${basedir}/target/python"/>

@@ -10,6 +10,7 @@ import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 import java.util.UUID;
 import lombok.SneakyThrows;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -76,6 +77,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
     }
 
+    @ToString
     private static class KafkaRecord implements Record {
         private final ConsumerRecord<?, ?> record;
         private final List<Header> headers = new ArrayList<>();
@@ -159,7 +161,9 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
                                 new RecordHeader(header.key(), serializer.serialize(topicName, header.value())));
                         }
                     }
-                    producer.send(new ProducerRecord<>(topicName, null, null, r.key(), r.value(), headers)).get();
+                    ProducerRecord<Object, Object> record = new ProducerRecord<>(topicName, null, null, r.key(), r.value(), headers);
+                    log.info("Sending record {}", record);
+                    producer.send(record).get();
                 }
             }
         };

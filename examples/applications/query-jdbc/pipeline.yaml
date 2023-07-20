@@ -1,0 +1,19 @@
+module: "module-1"
+id: "pipeline-1"
+name: "Index Products on Vector Database"
+topics:
+  - name: "input-topic"
+    creation-mode: create-if-not-exists
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "Execute Query"
+    type: "query"
+    input: "input-topic"
+    output: "output-topic"
+    configuration:
+      datasource: "PGDataSource"
+      query: "SELECT * FROM products WHERE id = ?"
+      fields:
+        - "value.id"
+      output-field: "value.query-result"

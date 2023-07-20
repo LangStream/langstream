@@ -69,7 +69,11 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
         logger.accept("packaging app: %s".formatted(appDirectory.getAbsolutePath()));
         if (appDirectory.isDirectory()) {
             for (File file : appDirectory.listFiles()) {
-                zip.addFile(file);
+                if (file.isDirectory()) {
+                    zip.addFolder(file);
+                } else {
+                    zip.addFile(file);
+                }
             }
         } else {
             zip.addFile(appDirectory);

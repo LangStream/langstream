@@ -52,7 +52,8 @@ class AppsCmdTest extends CommandTestBase {
 
     @Test
     public void testDeploy() throws Exception {
-        final String app = createTempFile("module: module-1");
+        Path sga = Files.createTempDirectory("sga");
+        final String app = createTempFile("module: module-1", sga);
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
@@ -62,7 +63,7 @@ class AppsCmdTest extends CommandTestBase {
                 .withMultipartRequestBody(support.multipartValuePatternBuilder())
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", app, "-i", instance);
+        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", sga.toAbsolutePath().toString(), "-i", instance);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
 

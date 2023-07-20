@@ -116,11 +116,9 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
 
     private boolean checkChecksum(Path fileName, String sha512sum) throws Exception {
         MessageDigest instance = MessageDigest.getInstance("SHA-512");
-        int count = 0;
         try (DigestInputStream inputStream = new DigestInputStream(
                 new BufferedInputStream(Files.newInputStream(fileName)), instance);) {
             while (inputStream.read() != -1) {
-                count++;
             }
         }
         byte[] digest = instance.digest();

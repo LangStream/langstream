@@ -25,7 +25,8 @@ def test_kafka_topic_connection():
             topic: {output_topic}
               
         agent:
-            applicationId: test
+            applicationId: testApplicationId
+            agentId: testAgentId
             configuration:
                 className: tests.test_kafka_connection.TestAgent
         """

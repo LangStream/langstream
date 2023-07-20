@@ -114,8 +114,8 @@ public class AgentRunner
                 Thread.currentThread().setContextClassLoader(customLibClassloader);
                 AgentCode agentCode = initAgent(configuration);
                 if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode)) {
-                    runPythonAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode,
-                            podRuntimeConfiguration, codeDirectory);
+                    runPythonAgent(
+                        podRuntimeConfiguration, codeDirectory);
                 } else {
                     runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode);
                 }
@@ -158,13 +158,7 @@ public class AgentRunner
         return customLibClassloader;
     }
 
-    private static void runPythonAgent(RuntimePodConfiguration configuration,
-                                     int maxLoops,
-                                     String agentId,
-                                     TopicConnectionsRuntime topicConnectionsRuntime,
-                                     AgentCode agentCode,
-                                     Path podRuntimeConfiguration,
-                                     Path codeDirectory) throws Exception {
+    private static void runPythonAgent(Path podRuntimeConfiguration, Path codeDirectory) throws Exception {
 
         Path pythonCodeDirectory = codeDirectory.resolve("python");
         log.info("Python code directory {}", pythonCodeDirectory);

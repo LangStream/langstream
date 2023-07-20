@@ -1,0 +1,10 @@
+configuration:
+  resources:
+    - type: "datasource"
+      name: "PGDataSource"
+      configuration:
+        service: "jdbc"
+        driverClass: "org.postgresql.Driver"
+        url: "jdbc:postgresql://postgresql.default.svc.cluster.local:5432/"
+        user: "postgres"
+        password: "dL3WGSrrpq"

@@ -39,6 +39,10 @@ public class CommandTestBase {
     }
 
     protected String createTempFile(String content) {
+        return createTempFile(content, tempDir);
+    }
+
+    protected String createTempFile(String content, Path tempDir) {
         try {
             Path tempFile = Files.createTempFile(tempDir, "sga-cli-test", ".yaml");
             Files.write(tempFile, content.getBytes(StandardCharsets.UTF_8));

@@ -17,6 +17,7 @@ package com.datastax.oss.sga.impl.parser;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.Dependency;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
@@ -123,7 +124,13 @@ public class ModelBuilder {
                 }
                 application.getResources().put(id, r);
             });
-
+        }
+        if (configurationNode != null && configurationNode.dependencies != null) {
+            List<Dependency> dependencies = configurationNode.dependencies;
+            if (dependencies != null) {
+                application.setDependencies(dependencies);
+                log.info("Dependencies: {}", application.getDependencies());
+            }
         }
         log.info("Configuration: {}", configurationFileModel);
     }
@@ -240,7 +247,7 @@ public class ModelBuilder {
         }
     }
 
-    public record ConfigurationNodeModel(List<Resource> resources) {
+    public record ConfigurationNodeModel(List<Resource> resources, List<Dependency> dependencies) {
     }
 
     public record ConfigurationFileModel(ConfigurationNodeModel configuration) {

@@ -1,18 +1,29 @@
 package com.datastax.oss.sga.cli.commands.applications;
 
+import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.Dependency;
 import com.datastax.oss.sga.cli.commands.BaseCmd;
+
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.URL;
 import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
+
+import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import lombok.SneakyThrows;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
@@ -46,12 +57,89 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
 
         long size = Files.size(tempZip);
         log("deploying application: %s (%d KB)".formatted(name, size / 1024));
+
+        // parse locally the application in order to validate it
+        // and to get the dependencies
+        final Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(List.of(appDirectory.toPath()));
+        downloadDepoendencies(applicationInstance, appDirectory.toPath());
+
         String boundary = new BigInteger(256, new Random()).toString();
         http(newPut(tenantAppPath("/" + name),
                 "multipart/form-data;boundary=%s".formatted(boundary),
                 multiPartBodyPublisher(tempZip, boundary)));
         log("application %s deployed".formatted(name));
 
+    }
+
+    private void downloadDepoendencies(Application applicationInstance, Path directory) throws Exception {
+        if (applicationInstance.getDependencies() != null) {
+            for (Dependency dependency : applicationInstance.getDependencies()) {
+                URL url = new URL(dependency.url());
+
+                String outputPath = switch (dependency.type()) {
+                    case "java-library" -> "java/lib";
+                    default -> throw new RuntimeException("unsupported dependency type: " + dependency.type());
+                };
+                Path output = directory.resolve(outputPath);
+                if (!Files.exists(output)) {
+                    Files.createDirectories(output);
+                }
+                String rawFileName = url.getFile().substring(url.getFile().lastIndexOf('/') + 1);
+                Path fileName = output.resolve(rawFileName);
+
+                if (Files.isRegularFile(fileName)) {
+
+                    if (!checkChecksum(fileName, dependency.sha512sum())) {
+                        log("File seems corrupted, deleting it");
+                        Files.delete(fileName);
+                    } else {
+                        log("Dependency: %s at %s".formatted(fileName, fileName.toAbsolutePath()));
+                        continue;
+                    }
+                }
+
+                log("Downloading dependency: %s to %s".formatted(fileName, fileName.toAbsolutePath()));
+                final HttpRequest request = newDependencyGet(url);
+                http(request, HttpResponse.BodyHandlers.ofFile(fileName));
+
+                if (!checkChecksum(fileName, dependency.sha512sum())) {
+                    log("File still seems corrupted. Please double check the checksum and try again.");
+                    Files.delete(fileName);
+                    throw new IOException("File at " + url + ", seems corrupted");
+                }
+
+                log("dependency downloaded");
+            }
+        }
+    }
+
+    private boolean checkChecksum(Path fileName, String sha512sum) throws Exception {
+        MessageDigest instance = MessageDigest.getInstance("SHA-512");
+        try (DigestInputStream inputStream = new DigestInputStream(
+                new BufferedInputStream(Files.newInputStream(fileName)), instance);) {
+            while (inputStream.read() != -1) {
+            }
+        }
+        byte[] digest = instance.digest();
+        String base16encoded = bytesToHex(digest);
+        if (!sha512sum.equals(base16encoded)) {
+            log("Computed checksum: %s".formatted(base16encoded));
+            log("Expected checksum: %s".formatted(sha512sum));
+        }
+        return sha512sum.equals(base16encoded);
+    }
+
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (int i = 0; i < hash.length; i++) {
+            String hex = Integer.toHexString(0xff & hash[i]);
+            if(hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     public static Path buildZip(File appDirectory, File instanceFile, File secretsFile,

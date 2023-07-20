@@ -8,3 +8,8 @@ configuration:
         url: "jdbc:postgresql://postgresql.default.svc.cluster.local:5432/"
         user: "postgres"
         password: "dL3WGSrrpq"
+  dependencies:
+    - name: "PostGRES JDBC Driver"
+      url: "https://jdbc.postgresql.org/download/postgresql-42.6.0.jar"
+      sha512sum: "ec3b57d8377715ef6286d457b610a2e056aa99dbf036f750c5e07370fc8b01414b2aef5e0232d561c50f22abf0da961ee432e53734cc193a3e9bdaf6231d4fa1"
+      type: "java-library"

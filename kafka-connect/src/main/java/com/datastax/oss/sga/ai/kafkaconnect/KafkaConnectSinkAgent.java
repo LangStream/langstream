@@ -254,7 +254,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
         kafkaSinkConfig = (Map) config;
 
-        kafkaConnectorFQClassName = adapterConfig.get("connector.class");
+        kafkaConnectorFQClassName = (String) config.get("connector.class");
         Objects.requireNonNull(kafkaConnectorFQClassName, "Kafka connector sink class is not set (connector.class)");
 
         log.info("Kafka sink started : \n\t{}\n\t{}", kafkaSinkConfig, adapterConfig);

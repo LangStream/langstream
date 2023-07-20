@@ -44,8 +44,8 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
 
         final Path tempZip = buildZip(appDirectory, instanceFile, secretsFile, s -> log(s));
 
-
-        log("deploying application: %s".formatted(name));
+        long size = Files.size(tempZip);
+        log("deploying application: %s (%d KB)".formatted(name, size / 1024));
         String boundary = new BigInteger(256, new Random()).toString();
         http(newPut(tenantAppPath("/" + name),
                 "multipart/form-data;boundary=%s".formatted(boundary),

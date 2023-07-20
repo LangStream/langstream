@@ -38,6 +38,12 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>streaming-ai</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>java-driver-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>

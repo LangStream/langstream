@@ -20,9 +20,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.connect.connector.Task;
+import org.apache.kafka.connect.sink.SinkConnector;
+import org.apache.kafka.connect.sink.SinkRecord;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DynamicContainer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
@@ -30,9 +36,11 @@ import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -68,9 +76,9 @@ class KafkaConnectRunnerTest {
                                     type: "sink"
                                     input: "input-topic"
                                     configuration:
-                                      connector.class: FileStreamSink                                        
+                                      connector.class: %s                                        
                                       file: /tmp/test.sink.txt
-                                """));
+                                """.formatted(DummySinkConnector.class.getName())));
 
         ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -127,6 +135,12 @@ class KafkaConnectRunnerTest {
             producer.flush();
 
             AgentRunner.run(runtimePodConfiguration, null, null, 5);
+
+            Awaitility.await().untilAsserted(() -> {
+                    DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
+                    assertTrue(DummySink.receivedRecords.size() >= 1);
+            });
+
         }
 
     }
@@ -167,6 +181,60 @@ class KafkaConnectRunnerTest {
         }
         if (kafkaContainer != null) {
             kafkaContainer.close();
+        }
+    }
+
+
+    public static final class DummySinkConnector extends SinkConnector {
+        @Override
+        public void start(Map<String, String> map) {
+        }
+
+        @Override
+        public Class<? extends Task> taskClass() {
+            return DummySink.class;
+        }
+
+        @Override
+        public List<Map<String, String>> taskConfigs(int i) {
+            return List.of(Map.of());
+        }
+
+        @Override
+        public void stop() {
+        }
+
+        @Override
+        public ConfigDef config() {
+            return new ConfigDef();
+        }
+
+        @Override
+        public String version() {
+            return "1.0";
+        }
+    }
+
+    public static final class DummySink extends org.apache.kafka.connect.sink.SinkTask {
+
+        static final List<SinkRecord> receivedRecords = new CopyOnWriteArrayList<>();
+        @Override
+        public void start(Map<String, String> map) {
+        }
+
+        @Override
+        public void put(Collection<SinkRecord> collection) {
+            log.info("Sink records {}", collection);
+            receivedRecords.addAll(collection);
+        }
+
+        @Override
+        public void stop() {
+        }
+
+        @Override
+        public String version() {
+            return "1.0";
         }
     }
 }

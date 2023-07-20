@@ -23,7 +23,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.common.serialization.BooleanSerializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.DoubleSerializer;
@@ -78,7 +81,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
     }
 
     @ToString
-    private static class KafkaRecord implements Record {
+    public static class KafkaRecord implements Record {
         private final ConsumerRecord<?, ?> record;
         private final List<Header> headers = new ArrayList<>();
 
@@ -99,9 +102,29 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
             return record.value();
         }
 
+        public int estimateRecordSize() {
+            return record.serializedKeySize() + record.serializedValueSize();
+        }
+
+        public org.apache.kafka.connect.data.Schema keySchema() {
+            return null;
+        }
+
+        public org.apache.kafka.connect.data.Schema valueSchema() {
+            return null;
+        }
+
         @Override
         public String origin() {
             return record.topic();
+        }
+
+        public int partition() {
+            return record.partition();
+        }
+
+        public long offset() {
+            return record.offset();
         }
 
         @Override
@@ -109,10 +132,15 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
             return record.timestamp();
         }
 
+        public TimestampType timestampType() {
+            return record.timestampType();
+        }
+
         @Override
         public List<Header> headers() {
             return headers;
         }
+
     }
 
     private record KafkaHeader(org.apache.kafka.common.header.Header header) implements Header {
@@ -177,6 +205,14 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         public KafkaConsumerWrapper(Map<String, Object> configuration, String topicName) {
             this.configuration = configuration;
             this.topicName = topicName;
+        }
+
+        @Override
+        public Object getNativeConsumer() {
+            if (consumer == null) {
+                throw new IllegalStateException("Consumer not started");
+            }
+            return consumer;
         }
 
         @Override

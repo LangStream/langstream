@@ -41,7 +41,7 @@ ADD maven/sga_runtime /app/sga_runtime
 
 # install python runtime deps
 RUN cd /app && pipenv requirements > /app/requirements.txt \
-    && python3 -m pip install -r /app/requirements.txt \
+    && python3 -m pip install -r /app/requirements.txt
 
 ENV PYTHONPATH="$PYTHONPATH:/app/sga_runtime"
 WORKDIR /app

@@ -22,6 +22,11 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17.x'
+      - name: 'Setup: Python 3.11'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
       - name: 'Init: cache local Maven repository'
         uses: actions/cache@v2
         with:
@@ -29,8 +34,9 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+      - name: 'Init: install tox'
+        run: pip install -r requirements.txt
       - name: 'Test: run tests'
         run: |
           chmod +x mvnw
           ./mvnw clean verify -Pdocker
-

@@ -130,7 +130,7 @@ public class AgentRunner
         // copy input/output to standard input/output of the java process
         // this allows to use "kubectl logs" easily
         ProcessBuilder processBuilder = new ProcessBuilder(
-                "python", "sga_runtime.py", podRuntimeConfiguration.toAbsolutePath().toString())
+                "python", "-m", "sga_runtime", podRuntimeConfiguration.toAbsolutePath().toString())
                 .inheritIO()
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                 .redirectError(ProcessBuilder.Redirect.INHERIT);

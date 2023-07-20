@@ -1,0 +1,7 @@
+[packages]
+pyYaml = "*"
+confluent-kafka = "*"
+
+[dev-packages]
+tox = "*"
+pytest = "*"

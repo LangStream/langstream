@@ -5,7 +5,7 @@ import time
 
 import yaml
 
-import topic_connections_registry
+from . import topic_connections_registry
 
 
 def run(configuration, max_loops=-1):
@@ -88,7 +88,8 @@ def run_main_loop(source, sink, function, max_loops):
 
 
 class NoopSource(object):
-    def read(self):
+    @staticmethod
+    def read():
         logging.info("Sleeping for 1 second, no records...")
         time.sleep(1)
         return []
@@ -100,15 +101,6 @@ class NoopSink(object):
 
 
 class NoopProcessor(object):
-    def process(self, records):
+    @staticmethod
+    def process(records):
         return records
-
-
-if __name__ == '__main__':
-    if len(sys.argv) != 1:
-        print("Missing pod configuration file argument")
-        sys.exit(1)
-
-    with open(sys.argv[0], 'r') as file:
-        config = yaml.safe_load(file)
-        run(config)

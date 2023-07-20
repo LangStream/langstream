@@ -22,3 +22,5 @@ buildNumber.properties
 .DS_Store
 
 sga-data
+
+__pycache__

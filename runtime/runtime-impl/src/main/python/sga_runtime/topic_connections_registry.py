@@ -1,7 +1,7 @@
-from . import kafka_topic_connections_runtime
+from . import kafka_connection
 
 TOPIC_CONNECTIONS_RUNTIME = {
-    'kafka': kafka_topic_connections_runtime
+    'kafka': kafka_connection
 }
 
 
@@ -14,5 +14,3 @@ def get_topic_connections_runtime(streaming_cluster):
     if streaming_cluster_type not in TOPIC_CONNECTIONS_RUNTIME:
         raise ValueError(f'No TopicConnectionsRuntimeProvider found for type {streaming_cluster_type}')
     return TOPIC_CONNECTIONS_RUNTIME[streaming_cluster_type]
-
-

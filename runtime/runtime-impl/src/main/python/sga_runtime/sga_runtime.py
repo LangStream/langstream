@@ -1,9 +1,6 @@
 import importlib
 import logging
-import sys
 import time
-
-import yaml
 
 from . import topic_connections_registry
 
@@ -14,8 +11,8 @@ def run(configuration, max_loops=-1):
     if 'streamingCluster' not in configuration:
         raise ValueError('streamingCluster cannot be null')
 
-    topic_connections_runtime = topic_connections_registry.get_topic_connections_runtime(
-        configuration['streamingCluster'])
+    streaming_cluster = configuration['streamingCluster']
+    topic_connections_runtime = topic_connections_registry.get_topic_connections_runtime(streaming_cluster)
 
     agent = init_agent(configuration)
 
@@ -23,8 +20,9 @@ def run(configuration, max_loops=-1):
         source = agent
     else:
         if 'input' in configuration and len(configuration['input']) > 0:
-            source = topic_connections_runtime.create_consumer(configuration['streamingCluster'],
-                                                               configuration['input'])
+            source = topic_connections_runtime.create_source(configuration['agent']['applicationId'],
+                                                             streaming_cluster,
+                                                             configuration['input'])
         else:
             source = NoopSource()
 
@@ -32,8 +30,8 @@ def run(configuration, max_loops=-1):
         sink = agent
     else:
         if 'output' in configuration and len(configuration['output']) > 0:
-            sink = topic_connections_runtime.create_producer(configuration['streamingCluster'],
-                                                             configuration['output'])
+            sink = topic_connections_runtime.create_sink(configuration['agent']['applicationId'], streaming_cluster,
+                                                         configuration['output'])
         else:
             sink = NoopSink()
 
@@ -72,15 +70,16 @@ def run_main_loop(source, sink, function, max_loops):
                 max_loops -= 1
             # TODO: handle semantics, transactions...
             records = source.read()
-            if records is not None and len(records) > 0:
+            if records and len(records) > 0:
                 try:
                     output_records = function.process(records)
-                    sink.write(output_records)
+                    if output_records and len(output_records) > 0:
+                        sink.write(output_records)
                 except Exception:
                     # TODO: handle errors
                     logging.exception("Error while processing records")
 
-            call_method_if_exists(source, 'commit')
+                call_method_if_exists(source, 'commit')
 
     finally:
         for component in {source, sink, function}:

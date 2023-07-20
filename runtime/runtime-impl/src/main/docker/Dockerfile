@@ -45,7 +45,7 @@ COPY --from=tarball /app /app
 RUN python3 -m ensurepip && python3 -m pip install pipenv \
     && cd /app && pipenv requirements > /app/requirements.txt \
     && python3 -m pip install -r /app/requirements.txt
-
+ENV PYTHONPATH="$PYTHONPATH:/app/python-runtime"
 WORKDIR /app
 
 # The UID must be non-zero. Otherwise, it is arbitrary. No logic should rely on its specific value.

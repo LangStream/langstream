@@ -166,19 +166,30 @@ public class AgentRunner
                                      Path podRuntimeConfiguration,
                                      Path codeDirectory) throws Exception {
 
+        Files.list(codeDirectory).forEach(path -> {
+            log.info("Code file {}", path.toFile().getAbsolutePath());
+        });
         Path pythonCodeDirectory = codeDirectory.resolve("python");
         log.info("Python code directory {}", pythonCodeDirectory);
 
+        Files.list(pythonCodeDirectory).forEach(path -> {
+            log.info("Python code file {}", path.toFile().getAbsolutePath());
+        });
+
+
+        final String pythonPath = System.getenv("PYTHONPATH");
+        final String newPythonPath = "%s:%s".formatted(pythonPath, pythonCodeDirectory.toAbsolutePath().toString());
 
         // copy input/output to standard input/output of the java process
         // this allows to use "kubectl logs" easily
         ProcessBuilder processBuilder = new ProcessBuilder(
-                "PYTHONPATH=$PYTHONPATH:%s".formatted(pythonCodeDirectory),
-                "python3", "-m", "sga_runtime", podRuntimeConfiguration.toAbsolutePath().toString(),
-                    pythonCodeDirectory.toAbsolutePath().toString())
+                "python3", "-m", "sga_runtime", podRuntimeConfiguration.toAbsolutePath().toString())
                 .inheritIO()
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                 .redirectError(ProcessBuilder.Redirect.INHERIT);
+        processBuilder
+                .environment()
+                .put("PYTHONPATH", newPythonPath);
         Process process = processBuilder.start();
 
         int exitCode = process.waitFor();

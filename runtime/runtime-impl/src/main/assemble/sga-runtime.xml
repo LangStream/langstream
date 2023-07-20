@@ -36,7 +36,7 @@
     <dependencySet>
       <outputDirectory>lib</outputDirectory>
       <unpack>false</unpack>
-      <scope>compile</scope>
+      <scope>runtime</scope>
       <useProjectArtifact>true</useProjectArtifact>
       <outputFileNameMapping>${artifact.groupId}-${artifact.artifactId}-${artifact.version}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
     </dependencySet>

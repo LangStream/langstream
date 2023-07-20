@@ -1,10 +1,3 @@
-FROM busybox as tarball
-ADD maven/lib /app/lib
-ADD maven/entrypoint.sh /app/entrypoint.sh
-ADD maven/Pipfile.lock /app/Pipfile.lock
-ADD maven/sga_runtime /app/sga_runtime
-
-
 FROM ubuntu:22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -19,7 +12,8 @@ RUN echo 'Acquire::http::Timeout "30";\nAcquire::ftp::Timeout "30";\nAcquire::Re
 # Install Python3.11
 RUN apt-get update && add-apt-repository ppa:deadsnakes/ppa \
      && apt-get -y install --no-install-recommends python3.11-full \
-     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
+     && python3 -m ensurepip && python3 -m pip install pipenv
 
 
 # Install Eclipse Temurin Package
@@ -40,11 +34,15 @@ RUN apt-get -y --purge autoremove \
 
 RUN mkdir /app && chmod g+w /app
 
-COPY --from=tarball /app /app
-# Setup python runtime
-RUN python3 -m ensurepip && python3 -m pip install pipenv \
-    && cd /app && pipenv requirements > /app/requirements.txt \
-    && python3 -m pip install -r /app/requirements.txt
+ADD maven/lib /app/lib
+ADD maven/entrypoint.sh /app/entrypoint.sh
+ADD maven/Pipfile.lock /app/Pipfile.lock
+ADD maven/sga_runtime /app/sga_runtime
+
+# install python runtime deps
+RUN cd /app && pipenv requirements > /app/requirements.txt \
+    && python3 -m pip install -r /app/requirements.txt \
+
 ENV PYTHONPATH="$PYTHONPATH:/app/sga_runtime"
 WORKDIR /app
 

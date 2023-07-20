@@ -2,4 +2,4 @@ streamingCluster:
   type: kafka
 agent:
   configuration:
-     className: examples.example.Example
+     className: example.Example

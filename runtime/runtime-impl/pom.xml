@@ -127,34 +127,9 @@
       <scope>test</scope>
       <classifier>tests</classifier>
     </dependency>
-
   </dependencies>
   <build>
     <plugins>
-      <plugin>
-        <groupId>com.google.cloud.tools</groupId>
-        <artifactId>jib-maven-plugin</artifactId>
-        <configuration>
-          <skip>false</skip>
-          <from>
-            <image>eclipse-temurin:17-jre-focal</image>
-            <platforms>
-              <platform>
-                <architecture>amd64</architecture>
-                <os>linux</os>
-              </platform>
-            </platforms>
-          </from>
-          <to>
-            <image>datastax/sga-runtime:latest-dev</image>
-          </to>
-          <container>
-            <mainClass>com.datastax.oss.sga.runtime.Main</mainClass>
-            <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
-            <user>1000</user>
-          </container>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
@@ -204,8 +179,8 @@
         </executions>
       </plugin>
     </plugins>
-
   </build>
+
   <profiles>
     <profile>
       <id>docker</id>
@@ -217,24 +192,30 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>com.google.cloud.tools</groupId>
-            <artifactId>jib-maven-plugin</artifactId>
+            <groupId>io.fabric8</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <configuration>
+              <verbose>true</verbose>
+              <images>
+                <image>
+                  <name>datastax/sga-runtime:latest-dev</name>
+                  <build>
+                    <dockerFile>${project.basedir}/src/main/docker/Dockerfile</dockerFile>
+                    <assembly>
+                      <descriptor>${project.basedir}/src/main/assemble/sga-runtime.xml</descriptor>
+                    </assembly>
+                  </build>
+                </image>
+              </images>
+            </configuration>
             <executions>
               <execution>
-                <goals>
-                  <goal>dockerBuild</goal>
-                </goals>
                 <phase>package</phase>
+                <goals>
+                  <goal>build</goal>
+                </goals>
               </execution>
             </executions>
-            <configuration>
-              <extraDirectories>
-                <paths>
-                  <path>src/main/python</path>
-                </paths>
-              </extraDirectories>
-            </configuration>
-
           </plugin>
         </plugins>
       </build>

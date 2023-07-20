@@ -17,6 +17,9 @@ import java.util.ServiceLoader;
 public class DataSourceProviderRegistry {
 
     public static QueryStepDataSource getQueryStepDataSource(Map<String, Object> dataSourceConfig) {
+        if (dataSourceConfig == null || dataSourceConfig.isEmpty()) {
+            return null;
+        }
         log.info("Loading DataSource implementation for {}", dataSourceConfig);
 
         ServiceLoader<DataSourceProvider> loader = ServiceLoader.load(DataSourceProvider.class);
@@ -26,7 +29,7 @@ public class DataSourceProviderRegistry {
                     return p.get().supports(dataSourceConfig);
                 })
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("No DataSource found for type " + dataSourceConfig));
+                .orElseThrow(() -> new RuntimeException("No DataSource found for resource " + dataSourceConfig));
 
         final QueryStepDataSource implementation = provider.get().createImplementation(dataSourceConfig);
         return implementation;

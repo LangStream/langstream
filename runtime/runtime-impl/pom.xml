@@ -191,6 +191,7 @@
               <goal>exec</goal>
             </goals>
             <configuration>
+              <skip>${skipTests}</skip>
               <executable>tox</executable>
               <workingDirectory>${project.build.directory}</workingDirectory>
               <arguments>

@@ -1,6 +1,5 @@
 package com.datastax.oss.sga.cli.commands;
 
-import com.datastax.oss.sga.cli.SgaCLI;
 import com.datastax.oss.sga.cli.SgaCLIConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -9,6 +8,8 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.ConnectException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -132,6 +133,14 @@ public abstract class BaseCmd implements Runnable {
     protected HttpRequest newGet(String uri) {
         return HttpRequest.newBuilder()
                         .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                .version(HttpClient.Version.HTTP_1_1)
+                .GET()
+                .build();
+    }
+
+    protected HttpRequest newDependencyGet(URL uri) throws URISyntaxException  {
+        return HttpRequest.newBuilder()
+                .uri(uri.toURI())
                 .version(HttpClient.Version.HTTP_1_1)
                 .GET()
                 .build();

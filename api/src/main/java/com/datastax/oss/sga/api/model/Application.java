@@ -18,7 +18,9 @@ package com.datastax.oss.sga.api.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -26,6 +28,7 @@ public class Application {
 
     private Map<String, Resource> resources = new HashMap<>();
     private Map<String, Module> modules = new HashMap<>();
+    private List<Dependency> dependencies = new ArrayList<>();
 
     private Instance instance;
     private Secrets secrets;

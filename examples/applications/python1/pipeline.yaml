@@ -10,6 +10,7 @@ pipeline:
   - name: "Process using Python"
     type: "python-function"
     input: "input-topic"
+    output: "output-topic"
     configuration:
       className: module1.MyFunction
       param1: value1

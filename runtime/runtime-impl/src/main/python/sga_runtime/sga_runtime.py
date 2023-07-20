@@ -15,12 +15,13 @@ def run(configuration, max_loops=-1):
     topic_connections_runtime = topic_connections_registry.get_topic_connections_runtime(streaming_cluster)
 
     agent = init_agent(configuration)
+    agent_id = f"{configuration['agent']['applicationId']}-{configuration['agent']['agentId']}"
 
     if hasattr(agent, 'read'):
         source = agent
     else:
         if 'input' in configuration and len(configuration['input']) > 0:
-            source = topic_connections_runtime.create_source(configuration['agent']['applicationId'],
+            source = topic_connections_runtime.create_source(agent_id,
                                                              streaming_cluster,
                                                              configuration['input'])
         else:

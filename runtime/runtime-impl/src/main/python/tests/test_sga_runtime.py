@@ -10,11 +10,13 @@ def test_simple_agent():
     random_value = ''.join(random.choice(string.ascii_letters) for _ in range(8))
     config_yaml = f"""
         streamingCluster:
-          type: kafka
+            type: kafka
         agent:
-          configuration:
-             className: tests.test_sga_runtime.TestAgent
-             key: {random_value}
+            applicationId: testApplicationId
+            agentId: testAgentId
+            configuration:
+                className: tests.test_sga_runtime.TestAgent
+                key: {random_value}
     """
     config = yaml.safe_load(config_yaml)
     sga_runtime.run(config, 2)

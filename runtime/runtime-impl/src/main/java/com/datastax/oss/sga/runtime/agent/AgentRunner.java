@@ -108,10 +108,9 @@ public class AgentRunner
 
         log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
         try {
-            Path javaLib = codeDirectory.resolve("java").resolve("lib");
             ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
             try {
-                ClassLoader customLibClassloader = buildCustomLibClassloader(javaLib, contextClassLoader);
+                ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, contextClassLoader);
                 Thread.currentThread().setContextClassLoader(customLibClassloader);
                 AgentCode agentCode = initAgent(configuration);
                 if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode)) {
@@ -129,8 +128,12 @@ public class AgentRunner
         }
     }
 
-    private static ClassLoader buildCustomLibClassloader(Path javaLib, ClassLoader contextClassLoader) throws IOException {
+    private static ClassLoader buildCustomLibClassloader(Path codeDirectory, ClassLoader contextClassLoader) throws IOException {
         ClassLoader customLibClassloader = contextClassLoader;
+        if (codeDirectory == null) {
+            return customLibClassloader;
+        }
+        Path javaLib = codeDirectory.resolve("java").resolve("lib");
         log.info("Looking for java lib in {}", javaLib);
         if (Files.exists(javaLib)&& Files.isDirectory(javaLib)) {
             List<URL> jars;

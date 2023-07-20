@@ -4,28 +4,15 @@ import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.google.common.collect.ImmutableMap;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.dsl.LogWatch;
-import io.fabric8.kubernetes.client.dsl.PodResource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import jakarta.ws.rs.QueryParam;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -33,11 +20,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import net.bytebuddy.implementation.bytecode.Throw;
 import net.lingala.zip4j.ZipFile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -50,10 +34,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
-import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 @RestController
@@ -65,6 +47,8 @@ public class ApplicationResource {
 
     ApplicationService applicationService;
     CodeStorageService codeStorageService;
+
+    private final ExecutorService logsThreadPool = Executors.newCachedThreadPool();
 
     @GetMapping("/{tenant}")
     @Operation(summary = "Get all applications")
@@ -146,27 +130,23 @@ public class ApplicationResource {
                                     @NotBlank @PathVariable("name") String name,
                                     @RequestParam("filter") Optional<List<String>> filterReplicas) {
 
-        final ExecutorService service = Executors.newCachedThreadPool();
+
         final List<ApplicationStore.PodLogHandler> podLogs =
                 applicationService.getPodLogs(tenant, name, new ApplicationStore.LogOptions(filterReplicas.orElse(null)));
-        return Flux.create(new Consumer<FluxSink<String>>() {
-
-            @Override
-            public void accept(FluxSink<String> fluxSink) {
-                for (ApplicationStore.PodLogHandler podLog : podLogs) {
-                    service.submit(() -> {
-                        try {
-                            podLog.start(line -> {
-                                fluxSink.next(line);
-                                return true;
-                            });
-                        } catch (Exception e) {
-                            fluxSink.error(e);
-                        }
-                    });
-                }
+        return Flux.create((Consumer<FluxSink<String>>) fluxSink -> {
+            for (ApplicationStore.PodLogHandler podLog : podLogs) {
+                logsThreadPool.submit(() -> {
+                    try {
+                        podLog.start(line -> {
+                            fluxSink.next(line);
+                            return true;
+                        });
+                    } catch (Exception e) {
+                        fluxSink.error(e);
+                    }
+                });
             }
-        }).subscribeOn(Schedulers.fromExecutor(service));
+        }).subscribeOn(Schedulers.fromExecutor(logsThreadPool));
     }
 }
 

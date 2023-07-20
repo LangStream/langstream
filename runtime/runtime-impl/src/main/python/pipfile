@@ -5,3 +5,4 @@ confluent-kafka = "*"
 [dev-packages]
 tox = "*"
 pytest = "*"
+testcontainers-kafka = "*"

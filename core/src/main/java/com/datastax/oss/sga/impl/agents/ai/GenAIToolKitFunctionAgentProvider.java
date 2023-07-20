@@ -133,7 +133,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
     );
     private final String mainAgentType;
     public GenAIToolKitFunctionAgentProvider(String clusterType, String mainAgentType) {
-        super(STEP_TYPES.keySet(), List.of(clusterType));
+        super(STEP_TYPES.keySet(), List.of(clusterType, "none"));
         this.mainAgentType = mainAgentType;
     }
 

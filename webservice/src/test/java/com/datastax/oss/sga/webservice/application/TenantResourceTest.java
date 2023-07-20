@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
 import com.datastax.oss.sga.impl.storage.LocalStore;
+import com.datastax.oss.sga.webservice.WebAppTestConfig;
 import com.datastax.oss.sga.webservice.config.StorageProperties;
 import java.nio.file.Files;
 import java.util.Map;
@@ -19,12 +20,16 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Slf4j
+@Import(WebAppTestConfig.class)
+@DirtiesContext
 class TenantResourceTest {
 
     @Autowired
@@ -32,27 +37,6 @@ class TenantResourceTest {
 
     @RegisterExtension
     static final KubeK3sServer k3s = new KubeK3sServer(true);
-
-    @TestConfiguration
-    public static class TestConfig {
-
-        @Bean
-        @Primary
-        @SneakyThrows
-        public StorageProperties storageProperties() {
-            return new StorageProperties(
-                    new StorageProperties.AppsStoreProperties("kubernetes", Map.of("namespaceprefix", "sga-")),
-                    new StorageProperties.GlobalMetadataStoreProperties("local",
-                            Map.of(
-                                    LocalStore.LOCAL_BASEDIR,
-                                    Files.createTempDirectory("sga-test").toFile().getAbsolutePath()
-                            )
-                    ),
-                    new StorageProperties.CodeStorageProperties()
-            );
-        }
-
-    }
 
 
     @Test

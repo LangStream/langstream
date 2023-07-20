@@ -1,4 +1,4 @@
-package com.datastax.oss.sga.runtime.impl.k8s.agents;
+package com.datastax.oss.testagents;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Module;
@@ -13,12 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime.CLUSTER_TYPE;
+public class TestGenericSourceAgentProvider extends AbstractAgentProvider {
 
-public class GenericSourceAgentProvider extends AbstractAgentProvider {
-
-    public GenericSourceAgentProvider() {
-        super(Set.of("source"), List.of(CLUSTER_TYPE));
+    public TestGenericSourceAgentProvider() {
+        super(Set.of("source"), List.of("none"));
     }
 
     @Override

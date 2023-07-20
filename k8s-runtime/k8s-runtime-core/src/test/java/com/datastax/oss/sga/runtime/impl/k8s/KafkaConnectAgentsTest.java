@@ -34,7 +34,7 @@ class KafkaConnectAgentsTest {
                   streamingCluster:
                     type: "noop"                    
                   computeCluster:
-                    type: "kubernetes"                    
+                    type: "none"                    
                 """;
     }
 

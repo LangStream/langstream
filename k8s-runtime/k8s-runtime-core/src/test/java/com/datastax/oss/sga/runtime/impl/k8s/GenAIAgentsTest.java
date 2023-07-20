@@ -33,7 +33,7 @@ class GenAIAgentsTest {
                   streamingCluster:
                     type: "noop"                    
                   computeCluster:
-                    type: "kubernetes"                    
+                    type: "none"                    
                 """;
     }
 

@@ -9,6 +9,7 @@ import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
+import com.datastax.oss.sga.impl.noop.NoOpComputeClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.noop.NoOpStreamingClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +30,9 @@ class SimpleClusterRuntimeTest {
         return """
                 instance:
                   streamingCluster:
-                    type: "noop"                    
+                    type: "noop"
                   computeCluster:
-                    type: "kubernetes"                    
+                    type: "none"        
                 """;
     }
 

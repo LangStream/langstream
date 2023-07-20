@@ -33,12 +33,14 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Slf4j
 @Import(WebAppTestConfig.class)
+@DirtiesContext
 class ApplicationResourceTest {
 
     @Autowired

@@ -17,9 +17,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.annotation.DirtiesContext;
 
 @SpringBootTest(properties = {"application.tenants.default-tenant.create=false"})
 @Import(WebAppTestConfig.class)
+@DirtiesContext
 class DefaultTenantDisabledTest {
     @Autowired
     GlobalMetadataService service;

@@ -1,6 +1,10 @@
 import logging
 
 from confluent_kafka import Consumer, Producer
+from confluent_kafka.serialization import StringDeserializer, StringSerializer
+
+STRING_DESERIALIZER = StringDeserializer()
+STRING_SERIALIZER = StringSerializer()
 
 
 def apply_default_configuration(streaming_cluster, configs):
@@ -78,19 +82,25 @@ class KafkaSink(object):
         for record in records:
             # TODO: handle send errors
             logging.info(f"Sending record {record}")
-            self.producer.produce(self.topic, value=record.value(), key=record.key(), headers=record.headers())
+            self.producer.produce(
+                self.topic,
+                value=STRING_SERIALIZER(record.value()),
+                key=STRING_SERIALIZER(record.key()),
+                headers=record.headers())
         self.producer.flush()
 
 
 class KafkaRecord(object):
     def __init__(self, consumer_record):
         self.consumer_record = consumer_record
+        self.__key = STRING_DESERIALIZER(self.consumer_record.key())
+        self.__value = STRING_DESERIALIZER(self.consumer_record.value())
 
     def key(self):
-        return self.consumer_record.key()
+        return self.__key
 
     def value(self):
-        return self.consumer_record.value()
+        return self.__value
 
     def origin(self):
         return self.consumer_record.topic()

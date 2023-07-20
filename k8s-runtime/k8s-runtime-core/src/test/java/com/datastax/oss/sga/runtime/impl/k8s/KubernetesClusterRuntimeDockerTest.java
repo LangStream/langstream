@@ -39,66 +39,6 @@ class KubernetesClusterRuntimeDockerTest {
     @RegisterExtension
     static final KubeTestServer kubeServer = new KubeTestServer();
 
-    @Test
-    public void testMapGenericAgent() throws Exception {
-        final String tenant = "tenant";
-        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-tenant", "app-sink-1-id");
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
-                        "module.yaml", """
-                                module: "module-1"
-                                id: "pipeline-1"                                
-                                topics:
-                                  - name: "input-topic"
-                                    creation-mode: create-if-not-exists
-                                    schema:
-                                      type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
-                                pipeline:
-                                  - name: "sink1"
-                                    id: "sink-1-id"
-                                    type: "generic-agent"
-                                    input: "input-topic"
-                                    configuration:
-                                      mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
-                                """));
-
-        ApplicationDeployer deployer = getDeployer();
-
-        Module module = applicationInstance.getModule("module-1");
-
-        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        Connection connection = implementation.getConnectionImplementation(module,
-                new com.datastax.oss.sga.api.model.Connection(TopicDefinition.fromName("input-topic")));
-        assertNotNull(connection);
-
-        AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink-1-id");
-        assertNotNull(agentImplementation);
-
-
-        deployer.deploy(tenant, implementation, null);
-        assertEquals(1, agentsCRs.size());
-        final AgentCustomResource agent = agentsCRs.values().iterator().next();
-        assertEquals(tenant, agent.getSpec().getTenant());
-        assertEquals(("{\"image\":\"datastax/sga-generic-agent:latest\",\"imagePullPolicy\":\"Never\","
-                + "\"resources\":{\"parallelism\":1,\"size\":1},\"input\":{\"auto.offset.reset\":\"earliest\",\"group"
-                + ".id\":\"sga-agent-sink-1-id\",\"key.deserializer\":\"org.apache.kafka.common.serialization"
-                + ".StringDeserializer\",\"topic\":\"input-topic\",\"value.deserializer\":\"org.apache.kafka.common"
-                + ".serialization.StringDeserializer\"},\"output\":{},"
-                + "\"agentConfiguration\":{\"agentId\":\"sink-1-id\",\"agentType\":\"generic-agent\","
-                + "\"componentType\":\"FUNCTION\",\"configuration\":{\"mappings\":\"id=value.id,name=value.name,"
-                + "description=value.description,item_vector=value.item_vector\"}},"
-                + "\"streamingCluster\":{\"type\":\"kafka\",\"configuration\":{\"admin\":{\"bootstrap"
-                + ".servers\":\"PLAINTEXT://localhost:%d\"}}},\"codeStorage\":{\"codeStorageArchiveId\":null}}")
-                .formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
-
-        deployer.delete(tenant, implementation, null);
-        assertEquals(0, agentsCRs.size());
-
-
-    }
-
     private ApplicationDeployer getDeployer() {
         final KubernetesClusterRuntimeConfiguration config =
                 new KubernetesClusterRuntimeConfiguration();

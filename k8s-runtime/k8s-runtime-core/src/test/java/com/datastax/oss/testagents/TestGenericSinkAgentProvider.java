@@ -9,6 +9,7 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.Topic;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
 
+import com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,7 +17,7 @@ import java.util.Set;
 public class TestGenericSinkAgentProvider extends AbstractAgentProvider {
 
     public TestGenericSinkAgentProvider() {
-        super(Set.of("sink"), List.of("none"));
+        super(Set.of("sink"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
     @Override

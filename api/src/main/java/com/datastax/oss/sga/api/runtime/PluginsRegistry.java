@@ -12,11 +12,11 @@ public class PluginsRegistry {
         ServiceLoader.Provider<AgentNodeProvider> agentRuntimeProviderProvider = loader
                 .stream()
                 .filter(p -> {
-                    AgentNodeProvider agentImplementationProvider = p.get();
-                    return agentImplementationProvider.supports(type, clusterRuntime);
+                    AgentNodeProvider agentNodeProvider = p.get();
+                    return agentNodeProvider.supports(type, clusterRuntime);
                 })
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("No AgentImplementationProvider found for type " + type
+                .orElseThrow(() -> new RuntimeException("No AgentNodeProvider found for type " + type
                         + " for cluster type "+ clusterRuntime.getClusterType()));
         return agentRuntimeProviderProvider.get();
     }

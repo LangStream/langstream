@@ -3,7 +3,7 @@ import sys
 
 import yaml
 
-from . import sga_runtime
+import sga_runtime
 
 if __name__ == '__main__':
     print(sys.argv)

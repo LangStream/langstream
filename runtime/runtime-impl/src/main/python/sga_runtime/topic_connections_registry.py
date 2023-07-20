@@ -1,4 +1,4 @@
-from . import kafka_topic_connections_runtime
+import kafka_topic_connections_runtime
 
 TOPIC_CONNECTIONS_RUNTIME = {
     'kafka': kafka_topic_connections_runtime

@@ -5,7 +5,7 @@ import time
 
 import yaml
 
-from . import topic_connections_registry
+import topic_connections_registry
 
 
 def run(configuration, max_loops=-1):

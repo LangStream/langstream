@@ -2,7 +2,7 @@ FROM busybox as tarball
 ADD maven/lib /app/lib
 ADD maven/entrypoint.sh /app/entrypoint.sh
 ADD maven/Pipfile.lock /app/Pipfile.lock
-ADD maven/python-runtime /app/python-runtime
+ADD maven/sga_runtime /app/sga_runtime
 
 
 FROM ubuntu:22.04
@@ -45,7 +45,7 @@ COPY --from=tarball /app /app
 RUN python3 -m ensurepip && python3 -m pip install pipenv \
     && cd /app && pipenv requirements > /app/requirements.txt \
     && python3 -m pip install -r /app/requirements.txt
-ENV PYTHONPATH="$PYTHONPATH:/app/python-runtime"
+ENV PYTHONPATH="$PYTHONPATH:/app/sga_runtime"
 WORKDIR /app
 
 # The UID must be non-zero. Otherwise, it is arbitrary. No logic should rely on its specific value.

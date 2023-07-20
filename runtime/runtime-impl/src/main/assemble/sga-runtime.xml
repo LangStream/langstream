@@ -18,7 +18,7 @@
     </fileSet>
     <fileSet>
       <directory>src/main/python/sga_runtime</directory>
-      <outputDirectory>./python-runtime</outputDirectory>
+      <outputDirectory>./sga_runtime</outputDirectory>
       <lineEnding>unix</lineEnding>
       <fileMode>755</fileMode>
     </fileSet>

@@ -44,8 +44,8 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
 
         final Path tempZip = buildZip(appDirectory, instanceFile, secretsFile, s -> log(s));
 
-
-        log("deploying application: %s".formatted(name));
+        long size = Files.size(tempZip);
+        log("deploying application: %s (%d KB)".formatted(name, size / 1024));
         String boundary = new BigInteger(256, new Random()).toString();
         http(newPut(tenantAppPath("/" + name),
                 "multipart/form-data;boundary=%s".formatted(boundary),
@@ -69,7 +69,11 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
         logger.accept("packaging app: %s".formatted(appDirectory.getAbsolutePath()));
         if (appDirectory.isDirectory()) {
             for (File file : appDirectory.listFiles()) {
-                zip.addFile(file);
+                if (file.isDirectory()) {
+                    zip.addFolder(file);
+                } else {
+                    zip.addFile(file);
+                }
             }
         } else {
             zip.addFile(appDirectory);

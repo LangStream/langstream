@@ -22,9 +22,16 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * This is the main entry point for the pods that run the SGA runtime and Java code.
@@ -45,6 +52,7 @@ public class AgentRunner
         void handleError(Throwable error);
     }
 
+    @SneakyThrows
     public static void main(String ... args) {
         try {
             if (args.length < 1) {
@@ -59,12 +67,12 @@ public class AgentRunner
 
             Path codeDirectory = downloadCustomCode(configuration);
 
-            // TODO: set context class loader depending on the agent code type
-
             run(configuration, podRuntimeConfiguration, codeDirectory, -1);
 
 
         } catch (Throwable error) {
+            log.info("Error, NOW SLEEPING", error);
+            Thread.sleep(60000);
             errorHandler.handleError(error);
         }
     }
@@ -100,19 +108,54 @@ public class AgentRunner
 
         log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
         try {
-
-            AgentCode agentCode = initAgent(configuration);
-            if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode)) {
-                runPythonAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode,
-                        podRuntimeConfiguration, codeDirectory);
-            } else {
-                runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode);
+            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+            try {
+                ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, contextClassLoader);
+                Thread.currentThread().setContextClassLoader(customLibClassloader);
+                AgentCode agentCode = initAgent(configuration);
+                if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode)) {
+                    runPythonAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode,
+                            podRuntimeConfiguration, codeDirectory);
+                } else {
+                    runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode);
+                }
+            } finally {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
-
 
         } finally {
             topicConnectionsRuntime.close();
         }
+    }
+
+    private static ClassLoader buildCustomLibClassloader(Path codeDirectory, ClassLoader contextClassLoader) throws IOException {
+        ClassLoader customLibClassloader = contextClassLoader;
+        if (codeDirectory == null) {
+            return customLibClassloader;
+        }
+        Path javaLib = codeDirectory.resolve("java").resolve("lib");
+        log.info("Looking for java lib in {}", javaLib);
+        if (Files.exists(javaLib)&& Files.isDirectory(javaLib)) {
+            List<URL> jars;
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(javaLib, "*.jar")) {
+                jars = StreamSupport.stream(stream.spliterator(), false)
+                        .map(p -> {
+                            log.info("Adding jar {}", p);
+                            try {
+                                return p.toUri().toURL();
+                            } catch (MalformedURLException e) {
+                                log.error("Error adding jar {}", p, e);
+                                // ignore
+                                return null;
+                            }
+                        })
+                        .filter(p -> p != null)
+                        .collect(Collectors.toList());
+                ;
+            }
+            customLibClassloader = new URLClassLoader(jars.toArray(URL[]::new), contextClassLoader);
+        }
+        return customLibClassloader;
     }
 
     private static void runPythonAgent(RuntimePodConfiguration configuration,
@@ -126,14 +169,19 @@ public class AgentRunner
         Path pythonCodeDirectory = codeDirectory.resolve("python");
         log.info("Python code directory {}", pythonCodeDirectory);
 
+        final String pythonPath = System.getenv("PYTHONPATH");
+        final String newPythonPath = "%s:%s".formatted(pythonPath, pythonCodeDirectory.toAbsolutePath().toString());
 
         // copy input/output to standard input/output of the java process
         // this allows to use "kubectl logs" easily
         ProcessBuilder processBuilder = new ProcessBuilder(
-                "python", "sga_runtime.py", podRuntimeConfiguration.toAbsolutePath().toString())
+                "python3", "-m", "sga_runtime", podRuntimeConfiguration.toAbsolutePath().toString())
                 .inheritIO()
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                 .redirectError(ProcessBuilder.Redirect.INHERIT);
+        processBuilder
+                .environment()
+                .put("PYTHONPATH", newPythonPath);
         Process process = processBuilder.start();
 
         int exitCode = process.waitFor();
@@ -215,7 +263,7 @@ public class AgentRunner
                     try {
                         List<Record> outputRecords = function.process(records);
                         sink.write(outputRecords);
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error("Error while processing records", e);
 
                         // throw the error

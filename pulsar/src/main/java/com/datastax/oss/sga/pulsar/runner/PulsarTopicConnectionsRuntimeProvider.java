@@ -138,6 +138,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
 
             @Override
+            public Object getNativeConsumer() {
+                return consumer;
+            }
+
+            @Override
             public void start() throws Exception {
                 String topic = (String) configuration.remove("topic");
                 consumer = client

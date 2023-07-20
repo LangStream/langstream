@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.ai.agents;
 
 import com.azure.ai.openai.OpenAIClient;
+import com.datastax.oss.sga.ai.agents.datasource.DataSourceProviderRegistry;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.Header;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
@@ -56,9 +58,14 @@ public class GenAIToolKitAgent implements AgentFunction {
 
     @Override
     public void init(Map<String, Object> configuration) {
+        configuration = new HashMap<>(configuration);
+
+        // remove this from the config in order to avoid passing it TransformStepConfig
+        Map<String, Object> datasourceConfiguration =
+                (Map<String, Object>) configuration.remove("datasource");
         config = MAPPER.convertValue(configuration, TransformStepConfig.class);
         OpenAIClient openAIClient = TransformFunctionUtil.buildOpenAIClient(config.getOpenai());
-        dataSource = TransformFunctionUtil.buildDataSource(config.getDatasource());
+        dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
         steps = TransformFunctionUtil.getTransformSteps(config, openAIClient, dataSource);
     }
 

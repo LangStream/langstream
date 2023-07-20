@@ -245,15 +245,17 @@ public class KafkaConnectSinkAgent implements AgentSink {
             log.warn("Agent already started {} / {}", this.getClass(), kafkaConnectorFQClassName);
             return;
         }
+        config = new HashMap<>(config);
 
-        kafkaSinkConfig = (Map<String, String>)config.get("kafkaSinkConfig");
-        Objects.requireNonNull(kafkaSinkConfig, "Kafka sink config is not set");
+        adapterConfig = (Map<String, String>)config.remove("adapterConfig");
+        if (adapterConfig == null) {
+            adapterConfig = new HashMap<>();
+        }
 
-        adapterConfig = (Map<String, String>)config.get("kafkaSinkAdapterConfig");
-        Objects.requireNonNull(adapterConfig, "Kafka adapter config is not set");
+        kafkaSinkConfig = (Map) config;
 
-        kafkaConnectorFQClassName = adapterConfig.get("kafkaConnectorSinkClass");
-        Objects.requireNonNull(kafkaConnectorFQClassName, "Kafka connector sink class is not set");
+        kafkaConnectorFQClassName = adapterConfig.get("connector.class");
+        Objects.requireNonNull(kafkaConnectorFQClassName, "Kafka connector sink class is not set (connector.class)");
 
         log.info("Kafka sink started : \n\t{}\n\t{}", kafkaSinkConfig, adapterConfig);
     }
@@ -266,7 +268,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
             return;
         }
 
-        Class<?> clazz = Class.forName(kafkaConnectorFQClassName);
+        Class<?> clazz = Class.forName(kafkaConnectorFQClassName, true, Thread.currentThread().getContextClassLoader());
         connector = (SinkConnector) clazz.getConstructor().newInstance();
 
         Class<? extends Task> taskClass = connector.taskClass();

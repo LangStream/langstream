@@ -34,16 +34,18 @@ RUN apt-get -y --purge autoremove \
 
 RUN mkdir /app && chmod g+w /app
 
-ADD maven/lib /app/lib
-ADD maven/entrypoint.sh /app/entrypoint.sh
 ADD maven/Pipfile.lock /app/Pipfile.lock
-ADD maven/sga_runtime /app/sga_runtime
 
 # install python runtime deps
 RUN cd /app && pipenv requirements > /app/requirements.txt \
     && python3 -m pip install -r /app/requirements.txt
 
 ENV PYTHONPATH="$PYTHONPATH:/app/sga_runtime"
+
+# Add the runtime code at the end. This optimize docker layers to not depend on artifacts-specific changes.
+ADD maven/lib /app/lib
+ADD maven/entrypoint.sh /app/entrypoint.sh
+ADD maven/sga_runtime /app/sga_runtime
 WORKDIR /app
 
 # The UID must be non-zero. Otherwise, it is arbitrary. No logic should rely on its specific value.

@@ -166,16 +166,8 @@ public class AgentRunner
                                      Path podRuntimeConfiguration,
                                      Path codeDirectory) throws Exception {
 
-        Files.list(codeDirectory).forEach(path -> {
-            log.info("Code file {}", path.toFile().getAbsolutePath());
-        });
         Path pythonCodeDirectory = codeDirectory.resolve("python");
         log.info("Python code directory {}", pythonCodeDirectory);
-
-        Files.list(pythonCodeDirectory).forEach(path -> {
-            log.info("Python code file {}", path.toFile().getAbsolutePath());
-        });
-
 
         final String pythonPath = System.getenv("PYTHONPATH");
         final String newPythonPath = "%s:%s".formatted(pythonPath, pythonCodeDirectory.toAbsolutePath().toString());

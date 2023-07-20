@@ -48,7 +48,7 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>sga-kafka-connect</artifactId>
       <version>${project.version}</version>
-      <scope>runtime</scope>
+      <!-- scope should be runtime but we need it for the tests -->
     </dependency>
 
     <dependency>

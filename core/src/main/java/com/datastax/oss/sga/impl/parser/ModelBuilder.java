@@ -63,6 +63,7 @@ public class ModelBuilder {
         private final Application application;
         private boolean hasInstanceDefinition;
         private boolean hasSecretDefinition;
+        private boolean hasAppDefinition;
     }
 
 
@@ -115,6 +116,7 @@ public class ModelBuilder {
 
         switch (fileName) {
             case "configuration.yaml":
+                applicationWithPackageInfo.hasAppDefinition = true;
                 parseConfiguration(content, applicationWithPackageInfo.getApplication());
                 break;
             case "secrets.yaml":
@@ -126,6 +128,7 @@ public class ModelBuilder {
                 parseInstance(content, applicationWithPackageInfo.getApplication());
                 break;
             default:
+                applicationWithPackageInfo.hasAppDefinition = true;
                 parsePipelineFile(fileName, content, applicationWithPackageInfo.getApplication());
                 break;
         }

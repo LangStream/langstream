@@ -2,10 +2,6 @@ package com.datastax.oss.sga.cli.commands.configure;
 
 import com.datastax.oss.sga.cli.commands.BaseCmd;
 import com.datastax.oss.sga.cli.commands.RootCmd;
-import com.datastax.oss.sga.cli.commands.applications.DeleteApplicationCmd;
-import com.datastax.oss.sga.cli.commands.applications.DeployApplicationCmd;
-import com.datastax.oss.sga.cli.commands.applications.GetApplicationCmd;
-import com.datastax.oss.sga.cli.commands.applications.ListApplicationCmd;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import picocli.CommandLine;

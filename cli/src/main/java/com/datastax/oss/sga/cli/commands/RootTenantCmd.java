@@ -1,9 +1,5 @@
 package com.datastax.oss.sga.cli.commands;
 
-import com.datastax.oss.sga.cli.commands.applications.DeleteApplicationCmd;
-import com.datastax.oss.sga.cli.commands.applications.DeployApplicationCmd;
-import com.datastax.oss.sga.cli.commands.applications.GetApplicationCmd;
-import com.datastax.oss.sga.cli.commands.applications.ListApplicationCmd;
 import com.datastax.oss.sga.cli.commands.tenants.DeleteTenantCmd;
 import com.datastax.oss.sga.cli.commands.tenants.GetTenantCmd;
 import com.datastax.oss.sga.cli.commands.tenants.ListTenantCmd;

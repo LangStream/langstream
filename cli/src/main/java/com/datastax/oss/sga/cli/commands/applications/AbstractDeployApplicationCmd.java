@@ -28,45 +28,150 @@ import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.ZipParameters;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "deploy",
-        description = "Deploy a SGA application")
-public class DeployApplicationCmd extends BaseApplicationCmd {
 
-    @CommandLine.Parameters(description = "Name of the application")
-    private String name;
+public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
-    @CommandLine.Option(names = {"-app", "--application"}, description = "Application directory path", required = true)
-    private String appPath;
+    @CommandLine.Command(name = "deploy",
+            description = "Deploy a SGA application")
+    public static class DeployApplicationCmd extends AbstractDeployApplicationCmd {
 
-    @CommandLine.Option(names = {"-i", "--instance"}, description = "Instance file path. If this is the first deployment of the application, this file is required.")
-    private String instanceFilePath;
+        @CommandLine.Parameters(description = "Name of the application")
+        private String name;
 
-    @CommandLine.Option(names = {"-s", "--secrets"}, description = "Secrets file path")
-    private String secretFilePath;
+        @CommandLine.Option(names = {"-app",
+                "--application"}, description = "Application directory path", required = true)
+        private String appPath;
+
+        @CommandLine.Option(names = {"-i",
+                "--instance"}, description = "Instance file path", required = true)
+        private String instanceFilePath;
+
+        @CommandLine.Option(names = {"-s", "--secrets"}, description = "Secrets file path")
+        private String secretFilePath;
+
+
+        @Override
+        String appName() {
+            return name;
+        }
+
+        @Override
+        String appPath() {
+            return appPath;
+        }
+
+        @Override
+        String instanceFilePath() {
+            return instanceFilePath;
+        }
+
+        @Override
+        String secretFilePath() {
+            return secretFilePath;
+        }
+
+        @Override
+        boolean isUpdate() {
+            return false;
+        }
+    }
+
+
+    @CommandLine.Command(name = "update",
+            description = "Update an existing SGA application")
+    public static class UpdateApplicationCmd extends AbstractDeployApplicationCmd {
+
+        @CommandLine.Parameters(description = "Name of the application")
+        private String name;
+
+        @CommandLine.Option(names = {"-app",
+                "--application"}, description = "Application directory path")
+        private String appPath;
+
+        @CommandLine.Option(names = {"-i",
+                "--instance"}, description = "Instance file path.")
+        private String instanceFilePath;
+
+        @CommandLine.Option(names = {"-s", "--secrets"}, description = "Secrets file path")
+        private String secretFilePath;
+
+
+        @Override
+        String appName() {
+            return name;
+        }
+
+        @Override
+        String appPath() {
+            return appPath;
+        }
+
+        @Override
+        String instanceFilePath() {
+            return instanceFilePath;
+        }
+
+        @Override
+        String secretFilePath() {
+            return secretFilePath;
+        }
+
+        @Override
+        boolean isUpdate() {
+            return true;
+        }
+    }
+
+    abstract String appName();
+
+    abstract String appPath();
+
+    abstract String instanceFilePath();
+
+    abstract String secretFilePath();
+
+    abstract boolean isUpdate();
+
 
     @Override
     @SneakyThrows
     public void run() {
-        final File appDirectory = checkFileExists(appPath);
-        final File instanceFile = checkFileExists(instanceFilePath);
-        final File secretsFile = checkFileExists(secretFilePath);
+        final File appDirectory = checkFileExists(appPath());
+        final File instanceFile = checkFileExists(instanceFilePath());
+        final File secretsFile = checkFileExists(secretFilePath());
+        final String name = appName();
+
+        if (isUpdate() && appDirectory == null && instanceFile == null && secretsFile == null) {
+            throw new IllegalArgumentException("no application, instance or secrets file provided");
+        }
 
         final Path tempZip = buildZip(appDirectory, instanceFile, secretsFile, s -> log(s));
 
         long size = Files.size(tempZip);
         log("deploying application: %s (%d KB)".formatted(name, size / 1024));
 
-        // parse locally the application in order to validate it
-        // and to get the dependencies
-        final Application applicationInstance =
-                ModelBuilder.buildApplicationInstance(List.of(appDirectory.toPath()));
-        downloadDependencies(applicationInstance, appDirectory.toPath());
+        if (appDirectory != null) {
+            // parse locally the application in order to validate it
+            // and to get the dependencies
+            final Application applicationInstance =
+                    ModelBuilder.buildApplicationInstance(List.of(appDirectory.toPath()));
+            downloadDependencies(applicationInstance, appDirectory.toPath());
+        }
 
         String boundary = new BigInteger(256, new Random()).toString();
-        http(newPut(tenantAppPath("/" + name),
-                "multipart/form-data;boundary=%s".formatted(boundary),
-                multiPartBodyPublisher(tempZip, boundary)));
-        log("application %s deployed".formatted(name));
+
+        final String path = tenantAppPath("/" + name);
+        final String contentType = "multipart/form-data;boundary=%s".formatted(boundary);
+        final HttpRequest.BodyPublisher bodyPublisher = multiPartBodyPublisher(tempZip, boundary);
+        if (isUpdate()) {
+            final HttpRequest request = newPut(path, contentType, bodyPublisher);
+            http(request);
+            log("application %s updated".formatted(name));
+        } else {
+            final HttpRequest request = newPost(path, contentType, bodyPublisher);
+            http(request);
+            log("application %s deployed".formatted(name));
+        }
 
     }
 
@@ -132,7 +237,7 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
         StringBuilder hexString = new StringBuilder(2 * hash.length);
         for (int i = 0; i < hash.length; i++) {
             String hex = Integer.toHexString(0xff & hash[i]);
-            if(hex.length() == 1) {
+            if (hex.length() == 1) {
                 hexString.append('0');
             }
             hexString.append(hex);
@@ -152,6 +257,9 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
     }
 
     private static void addApp(File appDirectory, ZipFile zip, Consumer<String> logger) throws ZipException {
+        if (appDirectory == null) {
+            return;
+        }
         logger.accept("packaging app: %s".formatted(appDirectory.getAbsolutePath()));
         if (appDirectory.isDirectory()) {
             for (File file : appDirectory.listFiles()) {

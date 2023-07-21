@@ -24,7 +24,7 @@ import java.util.Map;
  * This is the interface that the SGA framework uses to interact with the StreamingCluster. It is used to
  * model a physical cluster runtime with Brokers (Pulsar, Kafka....)
  */
-public interface StreamingClusterRuntime {
+public interface StreamingClusterRuntime extends AutoCloseable {
 
     /**
      * Deploy the topics on the StreamingCluster
@@ -65,6 +65,10 @@ public interface StreamingClusterRuntime {
      */
     default Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, Connection outputConnection) {
         return Map.of();
+    }
+
+    default void close() {
+
     }
 
 }

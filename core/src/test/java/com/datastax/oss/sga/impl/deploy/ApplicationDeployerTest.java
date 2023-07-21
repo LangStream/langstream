@@ -12,6 +12,7 @@ import com.datastax.oss.sga.impl.noop.NoOpComputeClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 
 import java.util.Map;
+import lombok.Cleanup;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -55,7 +56,7 @@ class ApplicationDeployerTest {
         registry.addClusterRuntime("mock", mockRuntime);
         registry.addStreamingClusterRuntime("mock", mockStreamingRuntime);
 
-        final ApplicationDeployer deployer = ApplicationDeployer
+        final @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .pluginsRegistry(new PluginsRegistry())
                 .registry(registry)

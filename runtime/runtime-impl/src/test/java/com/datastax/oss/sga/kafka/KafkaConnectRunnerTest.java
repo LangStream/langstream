@@ -16,6 +16,7 @@ import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -80,7 +81,7 @@ class KafkaConnectRunnerTest {
                                       file: /tmp/test.sink.txt
                                 """.formatted(DummySinkConnector.class.getName())));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())

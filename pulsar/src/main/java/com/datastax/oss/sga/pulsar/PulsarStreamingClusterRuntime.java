@@ -33,8 +33,6 @@ import static com.datastax.oss.sga.pulsar.PulsarClientUtils.getPulsarClusterRunt
 @Slf4j
 public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
 
-    static final ObjectMapper mapper = new ObjectMapper();
-
     @Override
     @SneakyThrows
     public void deploy(ExecutionPlan applicationInstance) {

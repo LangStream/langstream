@@ -24,7 +24,7 @@ import java.util.Map;
  * This is the interface that the SGA framework uses to interact with the cluster. It is used to
  * model a physical cluster runtime (Pulsar, Kafka....)
  */
-public interface ComputeClusterRuntime {
+public interface ComputeClusterRuntime extends AutoCloseable {
 
     String getClusterType();
 
@@ -56,5 +56,8 @@ public interface ComputeClusterRuntime {
 
     default AgentNodeMetadata computeAgentMetadata(AgentConfiguration agentConfiguration, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         return null;
+    }
+
+    default void close() {
     }
 }

@@ -10,6 +10,7 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -51,7 +52,7 @@ class KafkaClusterRuntimeDockerTest {
                                     partitions: 2                                     
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())

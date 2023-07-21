@@ -10,6 +10,7 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import java.util.Map;
@@ -35,7 +36,7 @@ class KafkaStreamingClusterRuntimeTest {
                                       schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'                               
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())

@@ -12,6 +12,7 @@ import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.noop.NoOpStreamingClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
@@ -76,40 +77,43 @@ class GenAIAgentsTest {
                                       text: "{{% value.name }} {{% value.description }}"
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();
+                .build();) {
 
-        Module module = applicationInstance.getModule("module-1");
+            Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        assertEquals(1, implementation.getAgents().size());
-        assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-        assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+            assertEquals(1, implementation.getAgents().size());
+            assertTrue(implementation.getConnectionImplementation(module,
+                    new Connection(TopicDefinition.fromName(
+                            "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    new Connection(TopicDefinition.fromName(
+                            "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
-        AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
-        assertNotNull(agentImplementation);
-        DefaultAgentNode step =
-                (DefaultAgentNode) agentImplementation;
-        Map<String, Object> configuration = step.getConfiguration();
-        log.info("Configuration: {}", configuration);
-        Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
-        log.info("openAIConfiguration: {}", openAIConfiguration);
-        assertEquals("http://something", openAIConfiguration.get("url"));
-        assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
-        assertEquals("azure", openAIConfiguration.get("provider"));
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
+            assertNotNull(agentImplementation);
+            DefaultAgentNode step =
+                    (DefaultAgentNode) agentImplementation;
+            Map<String, Object> configuration = step.getConfiguration();
+            log.info("Configuration: {}", configuration);
+            Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
+            log.info("openAIConfiguration: {}", openAIConfiguration);
+            assertEquals("http://something", openAIConfiguration.get("url"));
+            assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
+            assertEquals("azure", openAIConfiguration.get("provider"));
 
 
-        List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
-        assertEquals(1, steps.size());
-        Map<String, Object> step1 = steps.get(0);
-        assertEquals("text-embedding-ada-002", step1.get("model"));
-        assertEquals("value.embeddings", step1.get("embeddings-field"));
-        assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
+            List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+            assertEquals(1, steps.size());
+            Map<String, Object> step1 = steps.get(0);
+            assertEquals("text-embedding-ada-002", step1.get("model"));
+            assertEquals("value.embeddings", step1.get("embeddings-field"));
+            assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
+        }
 
 
     }
@@ -159,7 +163,7 @@ class GenAIAgentsTest {
                                       part: "value"
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
@@ -298,7 +302,7 @@ class GenAIAgentsTest {
                                       schema-type: "string"
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
@@ -401,7 +405,7 @@ class GenAIAgentsTest {
                                       schema-type: "string"
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())

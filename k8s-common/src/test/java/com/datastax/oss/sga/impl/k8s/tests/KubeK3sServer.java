@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.impl.k8s.tests;
 
+import static org.mockito.ArgumentMatchers.isNull;
 import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.K3sContainerVersion;
 import com.dajudge.kindcontainer.KubernetesImageSpec;
@@ -21,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
 
@@ -30,6 +33,7 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
     private K3sContainer k3s;
     @Getter
     private KubernetesClient client;
+    private MockedStatic mocked;
 
     private final boolean installCRDs;
 
@@ -46,7 +50,12 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
         if (k3s != null) {
             k3s.stop();
         }
-        KubernetesClientFactory.clear();
+        if (client != null) {
+            client.close();
+        }
+        if (mocked != null) {
+            mocked.close();
+        }
     }
 
     @Override
@@ -72,7 +81,9 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
                 .build();
 
 
-        KubernetesClientFactory.set(null, client);
+        mocked = Mockito.mockStatic(KubernetesClientFactory.class);
+        mocked.when(() -> KubernetesClientFactory.get(isNull())).thenReturn(client);
+        mocked.when(() -> KubernetesClientFactory.create(isNull())).thenReturn(client);
 
         if (installCRDs) {
 

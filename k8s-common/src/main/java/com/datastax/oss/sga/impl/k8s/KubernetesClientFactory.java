@@ -54,30 +54,6 @@ public class KubernetesClientFactory {
         return context;
     }
 
-    /**
-     * Visible for testing
-     *
-     * @param context
-     * @return
-     */
-    public static void set(String context, KubernetesClient client) {
-        context = contextKey(context);
-        final KubernetesClient old = clients.put(context, client);
-        if (old != null) {
-            old.close();
-        }
-    }
-
-    /**
-     * Visible for testing
-     *
-     * @return
-     */
-    public static void clear() {
-        clients.values().forEach(KubernetesClient::close);
-        clients.clear();
-    }
-
     private KubernetesClientFactory() {
     }
 }

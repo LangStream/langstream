@@ -1,9 +1,12 @@
 package com.datastax.oss.sga.impl.k8s.tests;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,23 +21,40 @@ import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.stubbing.OngoingStubbing;
 
 @Slf4j
 public class KubeTestServer implements AutoCloseable, BeforeEachCallback, BeforeAllCallback, AfterAllCallback {
 
     public static class Server extends KubernetesMockServer {
 
+        MockedStatic<KubernetesClientFactory> mocked;
+        NamespacedKubernetesClient client;
+
         @Override
         @SneakyThrows
         public void init() {
             super.init();
-            KubernetesClientFactory.set(null, createClient());
+
+            mocked = Mockito.mockStatic(KubernetesClientFactory.class);
+            client = createClient();
+
+            mocked.when(() -> KubernetesClientFactory.get(isNull())).thenReturn(client);
+            mocked.when(() -> KubernetesClientFactory.create(isNull())).thenReturn(client);
         }
 
         @Override
         public void destroy() {
             super.destroy();
-            KubernetesClientFactory.clear();
+            System.out.println("stop mock");
+            if (mocked != null) {
+                mocked.close();
+            }
+            if (client != null) {
+                client.close();
+            }
         }
     }
 

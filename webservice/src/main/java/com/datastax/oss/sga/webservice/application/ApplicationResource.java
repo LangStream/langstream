@@ -2,8 +2,8 @@ package com.datastax.oss.sga.webservice.application;
 
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.StoredApplication;
+import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.google.common.collect.ImmutableMap;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
@@ -16,10 +16,15 @@ import java.util.AbstractMap;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +34,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.scheduler.Schedulers;
 
 @RestController
 @Tag(name = "applications")
@@ -39,6 +47,8 @@ public class ApplicationResource {
 
     ApplicationService applicationService;
     CodeStorageService codeStorageService;
+
+    private final ExecutorService logsThreadPool = Executors.newCachedThreadPool();
 
     @GetMapping("/{tenant}")
     @Operation(summary = "Get all applications")
@@ -57,7 +67,8 @@ public class ApplicationResource {
         applicationService.deployApplication(tenant, name, instance.getKey(), instance.getValue());
     }
 
-    private Map.Entry<Application, String> parseApplicationInstance(String name, MultipartFile file, String tenant) throws Exception {
+    private Map.Entry<Application, String> parseApplicationInstance(String name, MultipartFile file, String tenant)
+            throws Exception {
         Path tempdir = Files.createTempDirectory("zip-extract");
         final Path tempZip = Files.createTempFile("app", ".zip");
         try {
@@ -113,4 +124,30 @@ public class ApplicationResource {
         return app;
     }
 
+    @GetMapping(value = "/{tenant}/{name}/logs", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @Operation(summary = "Get application logs by name")
+    Flux<String> getApplicationLogs(@NotBlank @PathVariable("tenant") String tenant,
+                                    @NotBlank @PathVariable("name") String name,
+                                    @RequestParam("filter") Optional<List<String>> filterReplicas) {
+
+
+        final List<ApplicationStore.PodLogHandler> podLogs =
+                applicationService.getPodLogs(tenant, name, new ApplicationStore.LogOptions(filterReplicas.orElse(null)));
+        return Flux.create((Consumer<FluxSink<String>>) fluxSink -> {
+            for (ApplicationStore.PodLogHandler podLog : podLogs) {
+                logsThreadPool.submit(() -> {
+                    try {
+                        podLog.start(line -> {
+                            fluxSink.next(line);
+                            return true;
+                        });
+                    } catch (Exception e) {
+                        fluxSink.error(e);
+                    }
+                });
+            }
+        }).subscribeOn(Schedulers.fromExecutor(logsThreadPool));
+    }
 }
+
+

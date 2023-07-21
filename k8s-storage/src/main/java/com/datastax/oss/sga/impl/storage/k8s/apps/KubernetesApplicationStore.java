@@ -30,14 +30,28 @@ import io.fabric8.kubernetes.api.model.rbac.RoleBindingBuilder;
 import io.fabric8.kubernetes.api.model.rbac.RoleBuilder;
 import io.fabric8.kubernetes.api.model.rbac.SubjectBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.LogWatch;
+import io.fabric8.kubernetes.client.dsl.PodResource;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -46,6 +60,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class KubernetesApplicationStore implements ApplicationStore {
+
+    private static final String[] LOG_COLORS = new String[]{"32", "33", "34", "35", "36", "37", "38"};
 
     private static ObjectMapper mapper = new ObjectMapper();
     private KubernetesClient client;
@@ -275,5 +291,56 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     private static String encodeSecret(String value) {
         return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+
+
+    @Override
+    @SneakyThrows
+    public List<PodLogHandler> logs(String tenant, String applicationId, LogOptions logOptions) {
+        final List<String> pods =
+                AgentResourcesFactory.getAgentPods(client, tenantToNamespace(tenant), applicationId);
+
+        return pods
+                .stream()
+                .filter(pod -> {
+                    if (logOptions.getFilterReplicas() != null && !logOptions.getFilterReplicas().isEmpty()) {
+                        return logOptions.getFilterReplicas().contains(pod);
+                    }
+                    return true;
+                })
+                .map(pod -> {
+                    return new PodLogHandler() {
+                        @Override
+                        @SneakyThrows
+                        public void start(LogLineConsumer onLogLine) {
+                            final PodResource podResource =
+                                    client.pods().inNamespace(tenantToNamespace(tenant)).withName(pod);
+                            final int replicas = extractReplicas(pod);
+                            final String color = LOG_COLORS[replicas % LOG_COLORS.length];
+                            try (final LogWatch watchLog = podResource.inContainer("runtime")
+                                    .withPrettyOutput().withReadyWaitTimeout(Integer.MAX_VALUE).watchLog();) {
+                                final InputStream in = watchLog.getOutput();
+                                try (BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
+                                    String line;
+                                    while ((line = br.readLine()) != null) {
+                                        String coloredLog = "\u001B[" + color + "m" + pod + " " + line + "\u001B[0m\n";
+                                        final boolean shallContinue = onLogLine.onLogLine(coloredLog);
+                                        if (!shallContinue) {
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                })
+                .collect(Collectors.toList());
+    }
+
+    private int extractReplicas(String pod) {
+        final String[] split = pod.split("-");
+        final int replicas = Integer.parseInt(split[split.length - 1]);
+        return replicas;
     }
 }

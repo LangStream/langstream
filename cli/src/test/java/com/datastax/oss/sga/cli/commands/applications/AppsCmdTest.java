@@ -112,4 +112,16 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals("{}", result.out());
 
     }
+
+    @Test
+    public void testLogs() throws Exception {
+        wireMock.register(WireMock.get("/api/applications/%s/my-app/logs"
+                .formatted(TENANT)).willReturn(WireMock.ok()));
+
+        CommandResult result = executeCommand("apps", "logs", "my-app");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertEquals("", result.out());
+
+    }
 }

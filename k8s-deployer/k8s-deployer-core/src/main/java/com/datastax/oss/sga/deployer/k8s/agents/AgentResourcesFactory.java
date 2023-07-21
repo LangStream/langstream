@@ -6,6 +6,7 @@ import com.datastax.oss.sga.api.model.ResourcesSpec;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
+import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
@@ -26,10 +27,14 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import java.util.AbstractMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -279,4 +284,21 @@ public class AgentResourcesFactory {
 
         return sanitizedName;
     }
+
+
+    public static List<String> getAgentPods(KubernetesClient client, String namespace, String applicationId) {
+        return client.pods().inNamespace(namespace)
+                .withLabels(new TreeMap<>(Map.of(
+                        CRDConstants.COMMON_LABEL_APP, "sga-runtime",
+                        CRDConstants.AGENT_LABEL_APPLICATION, applicationId)
+                        )
+                )
+                .list()
+                .getItems()
+                .stream()
+                .map(pod -> pod.getMetadata().getName())
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
 }

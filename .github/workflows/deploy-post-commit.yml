@@ -1,0 +1,59 @@
+name: Deploy
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR Public
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registry-type: public
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup jdk
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17.x'
+
+      - name: Init maven repo
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build
+        run: |
+          chmod +x mvnw
+          ./docker/build.sh
+
+      - name: Push to ECR
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+        run: |
+          
+          repo=public.ecr.aws/y3i6u2n7/datastax-public
+          tag_and_push() {
+            image=$1
+            docker tag datastax/$image:latest-dev $repo/$image:latest
+            docker push $repo/$image:latest
+          }
+          tag_and_push sga-runtime
+          tag_and_push sga-deployer
+          tag_and_push sga-control-plane

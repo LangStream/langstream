@@ -13,9 +13,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * The runtime registry is a singleton that holds all the runtime information about the
  * possible implementations of the SGA API.
  */
-public class ClusterRuntimeRegistry {
+public class ClusterRuntimeRegistry implements AutoCloseable {
 
     private final Map<String, Map<String, Object>> computeClusterConfigurations;
+    protected final Map<String, ComputeClusterRuntime> computeClusterImplementations = new ConcurrentHashMap<>();
+    protected final Map<String, StreamingClusterRuntime> streamingClusterImplementations = new ConcurrentHashMap<>();
 
     public ClusterRuntimeRegistry() {
         this(Collections.emptyMap());
@@ -23,9 +25,6 @@ public class ClusterRuntimeRegistry {
     public ClusterRuntimeRegistry(Map<String, Map<String, Object>> computeClusterConfigurations) {
         this.computeClusterConfigurations = Collections.unmodifiableMap(computeClusterConfigurations);
     }
-
-    protected final Map<String, ComputeClusterRuntime> computeClusterImplementations = new ConcurrentHashMap<>();
-    protected final Map<String, StreamingClusterRuntime> streamingClusterImplementations = new ConcurrentHashMap<>();
 
     public ComputeClusterRuntime getClusterRuntime(ComputeCluster computeCluster) {
         Objects.requireNonNull(computeCluster, "computeCluster cannot be null");
@@ -73,4 +72,13 @@ public class ClusterRuntimeRegistry {
         return clusterRuntimeProviderProvider.get().getImplementation();
     }
 
+    @Override
+    public void close() {
+        for (ComputeClusterRuntime computeClusterRuntime : computeClusterImplementations.values()) {
+            computeClusterRuntime.close();
+        }
+        for (StreamingClusterRuntime streamingClusterRuntime : streamingClusterImplementations.values()) {
+            streamingClusterRuntime.close();
+        }
+    }
 }

@@ -37,7 +37,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     @SneakyThrows
     public void initialize(Map<String, Object> configuration) {
         this.configuration = mapper.convertValue(configuration, KubernetesClusterRuntimeConfiguration.class);
-        this.client = KubernetesClientFactory.get(null);
+        this.client = KubernetesClientFactory.create(null);
     }
 
     @Override
@@ -151,5 +151,12 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     private String computeNamespace(String tenant) {
         final String namespace = configuration.getNamespacePrefix() + tenant;
         return namespace;
+    }
+
+    @Override
+    public void close() {
+        if (client != null) {
+            client.close();
+        }
     }
 }

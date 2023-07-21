@@ -12,6 +12,7 @@ import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import java.util.List;
 import java.util.Map;
+import lombok.Cleanup;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
@@ -113,7 +114,7 @@ class ApplicationServiceValidateUpdateTest {
 
     @SneakyThrows
     private static ExecutionPlan buildPlanWithTopics(List<ModelBuilder.TopicDefinitionModel> topics) {
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
@@ -283,7 +284,7 @@ class ApplicationServiceValidateUpdateTest {
 
     @SneakyThrows
     private static ExecutionPlan buildPlanWithModels(List<ModelBuilder.AgentModel> agents) {
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())

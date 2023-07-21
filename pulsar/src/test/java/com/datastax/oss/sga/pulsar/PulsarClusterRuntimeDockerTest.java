@@ -11,6 +11,7 @@ import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -73,7 +74,7 @@ class PulsarClusterRuntimeDockerTest {
                                 pipeline:
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .<ExecutionPlan>builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
@@ -121,7 +122,7 @@ class PulsarClusterRuntimeDockerTest {
                                       mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
@@ -185,7 +186,7 @@ class PulsarClusterRuntimeDockerTest {
                                       sourceType: "data-generator"
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
@@ -237,7 +238,7 @@ class PulsarClusterRuntimeDockerTest {
                                     steps: []
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
@@ -301,7 +302,7 @@ class PulsarClusterRuntimeDockerTest {
                                       text: "{{% value.name }} {{% value.description }}"
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())

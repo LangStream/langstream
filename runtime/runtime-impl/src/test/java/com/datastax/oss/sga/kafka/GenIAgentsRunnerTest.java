@@ -17,6 +17,7 @@ import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
 import java.nio.charset.StandardCharsets;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -79,7 +80,7 @@ class GenIAgentsRunnerTest {
                                         - "description"
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())

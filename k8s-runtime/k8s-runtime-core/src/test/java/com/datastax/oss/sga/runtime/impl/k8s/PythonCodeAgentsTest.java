@@ -13,6 +13,7 @@ import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.noop.NoOpStreamingClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
@@ -69,7 +70,7 @@ class PythonCodeAgentsTest {
                                       config2: value2
                                 """));
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())

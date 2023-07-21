@@ -90,15 +90,16 @@ public class RuntimeDeployer {
                 MAPPER.readValue(applicationConfig, Application.class);
         appInstance.setSecrets(secrets);
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
                 .pluginsRegistry(new PluginsRegistry())
-                .build();
+                .build()) {
 
-        final ExecutionPlan implementation = deployer.createImplementation(applicationId, appInstance);
-        deployer.deploy(configuration.getTenant(), implementation,  configuration.getCodeStorageArchiveId());
-        log.info("Application {} deployed", applicationId);
+            final ExecutionPlan implementation = deployer.createImplementation(applicationId, appInstance);
+            deployer.deploy(configuration.getTenant(), implementation, configuration.getCodeStorageArchiveId());
+            log.info("Application {} deployed", applicationId);
+        }
     }
 
     private static void delete(Map<String, Map<String, Object>> clusterRuntimeConfiguration,
@@ -113,16 +114,17 @@ public class RuntimeDeployer {
                 MAPPER.readValue(applicationConfig, Application.class);
         appInstance.setSecrets(secrets);
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
                 .pluginsRegistry(new PluginsRegistry())
-                .build();
+                .build();) {
 
-        log.info("Deleting application {}", applicationId);
-        final ExecutionPlan implementation = deployer.createImplementation(applicationId, appInstance);
-        deployer.delete(configuration.getTenant(), implementation, configuration.getCodeStorageArchiveId());
-        log.info("Application {} deleted", applicationId);
+            log.info("Deleting application {}", applicationId);
+            final ExecutionPlan implementation = deployer.createImplementation(applicationId, appInstance);
+            deployer.delete(configuration.getTenant(), implementation, configuration.getCodeStorageArchiveId());
+            log.info("Application {} deleted", applicationId);
+        }
     }
 }
 

@@ -15,6 +15,7 @@ import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -46,7 +47,7 @@ class KubernetesClusterRuntimeDockerTest {
         config.setImagePullPolicy("Never");
         config.setNamespacePrefix("sga-");
 
-        ApplicationDeployer deployer = ApplicationDeployer
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry(
                         Map.of("kubernetes", new ObjectMapper().convertValue(config, Map.class))))
@@ -96,7 +97,7 @@ class KubernetesClusterRuntimeDockerTest {
                                       text: "{{% value.name }} {{% value.description }}"
                                 """));
 
-        ApplicationDeployer deployer = getDeployer();
+        @Cleanup ApplicationDeployer deployer = getDeployer();
 
         Module module = applicationInstance.getModule("module-1");
 

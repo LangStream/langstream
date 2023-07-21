@@ -10,7 +10,7 @@ import com.datastax.oss.sga.impl.common.ApplicationPlaceholderResolver;
 import lombok.Builder;
 
 @Builder
-public final class ApplicationDeployer {
+public final class ApplicationDeployer implements AutoCloseable {
 
       private ClusterRuntimeRegistry registry;
       private PluginsRegistry pluginsRegistry;
@@ -53,4 +53,9 @@ public final class ApplicationDeployer {
       StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
       clusterRuntime.delete(tenant, physicalApplicationInstance, streamingClusterRuntime, codeStorageArchiveId);
   }
+
+    @Override
+    public void close() {
+        registry.close();
+    }
 }

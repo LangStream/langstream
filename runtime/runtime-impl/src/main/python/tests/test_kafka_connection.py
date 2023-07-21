@@ -1,5 +1,6 @@
 import yaml
 from confluent_kafka import Consumer, Producer
+from confluent_kafka.serialization import StringDeserializer, StringSerializer
 from testcontainers.kafka import KafkaContainer
 
 from sga_runtime import sga_runtime
@@ -34,7 +35,7 @@ def test_kafka_topic_connection():
         config = yaml.safe_load(config_yaml)
 
         producer = Producer({'bootstrap.servers': bootstrap_server})
-        producer.produce(input_topic, b'verification message', headers=[('prop-key', b'prop-value')])
+        producer.produce(input_topic, StringSerializer()('verification message'), headers=[('prop-key', b'prop-value')])
         producer.flush()
 
         consumer = Consumer({
@@ -48,13 +49,13 @@ def test_kafka_topic_connection():
         for i in range(10):
             sga_runtime.run(config, 1)
             msg = consumer.poll(1.0)
-            if msg.error():
+            if msg is None or msg.error():
                 continue
             if msg:
                 break
 
         assert msg is not None
-        assert msg.value() == b'verification message'
+        assert StringDeserializer()(msg.value()) == 'verification message'
 
 
 class TestAgent(object):

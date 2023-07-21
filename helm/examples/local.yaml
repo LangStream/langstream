@@ -5,6 +5,7 @@ controlPlane:
     tag: "latest-dev"
   app:
     config:
+      logging.level.com.datastax.oss.sga: debug
       application.storage.apps.type: kubernetes
       application.storage.apps.configuration.namespaceprefix: sga-
       application.storage.apps.configuration.deployer-runtime.image: datastax/sga-runtime:latest-dev

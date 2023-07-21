@@ -4,6 +4,7 @@ import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.apps.AppResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.controllers.BaseController;
+import com.datastax.oss.sga.deployer.k8s.util.JSONComparator;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SpecDiffer;
@@ -89,7 +90,13 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
         if (lastApplied == null) {
             return true;
         }
-        return !SpecDiffer.generateDiff(cr.getSpec(), lastApplied).areEquals();
+        final JSONComparator.Result diff = SpecDiffer.generateDiff(lastApplied, cr.getSpec());
+        if (!diff.areEquals()) {
+            log.infof("Spec changed for %s", cr.getMetadata().getName());
+            SpecDiffer.logDetailedSpecDiff(diff);
+            return true;
+        }
+        return false;
     }
 
 }

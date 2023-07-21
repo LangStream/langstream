@@ -16,6 +16,7 @@
 package com.datastax.oss.sga.api.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -23,6 +24,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
+@EqualsAndHashCode(callSuper = true)
 public class TopicDefinition extends Connection.Connectable {
 
     public static final String CREATE_MODE_NONE = "none";

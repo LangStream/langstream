@@ -28,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -56,18 +57,33 @@ public class ApplicationResource {
         return applicationService.getAllApplications(tenant);
     }
 
-    @PutMapping(value = "/{tenant}/{name}", consumes = "multipart/form-data")
+    @PostMapping(value = "/{tenant}/{name}", consumes = "multipart/form-data")
     @Operation(summary = "Create and deploy an application")
     void deployApplication(
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("name") String name,
             @NotNull @RequestParam("file") MultipartFile file) throws Exception {
-        final Map.Entry<Application, String> instance = parseApplicationInstance(name, file, tenant);
-        log.info("Parsed application instance code:{} application:{}", instance.getValue(), instance.getKey());
+        final Map.Entry<ModelBuilder.ApplicationWithPackageInfo, String> instance = parseApplicationInstance(name, file,
+                tenant);
+        log.info("Parsed application instance code: {} application: {}", instance.getValue(),
+                instance.getKey().getApplication());
         applicationService.deployApplication(tenant, name, instance.getKey(), instance.getValue());
     }
 
-    private Map.Entry<Application, String> parseApplicationInstance(String name, MultipartFile file, String tenant)
+    @PutMapping(value = "/{tenant}/{name}", consumes = "multipart/form-data")
+    @Operation(summary = "Update and re-deploy an application")
+    void updateApplication(
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("name") String name,
+            @NotNull @RequestParam("file") MultipartFile file) throws Exception {
+        final Map.Entry<ModelBuilder.ApplicationWithPackageInfo, String> instance = parseApplicationInstance(name, file,
+                tenant);
+        log.info("Parsed application instance code: {} application: {}", instance.getValue(),
+                instance.getKey().getApplication());
+        applicationService.updateApplication(tenant, name, instance.getKey(), instance.getValue());
+    }
+
+    private Map.Entry<ModelBuilder.ApplicationWithPackageInfo, String> parseApplicationInstance(String name, MultipartFile file, String tenant)
             throws Exception {
         Path tempdir = Files.createTempDirectory("zip-extract");
         final Path tempZip = Files.createTempFile("app", ".zip");
@@ -75,10 +91,10 @@ public class ApplicationResource {
             file.transferTo(tempZip);
             try (ZipFile zipFile = new ZipFile(tempZip.toFile());) {
                 zipFile.extractAll(tempdir.toFile().getAbsolutePath());
-                final Application applicationInstance =
-                        ModelBuilder.buildApplicationInstance(List.of(tempdir));
+                final ModelBuilder.ApplicationWithPackageInfo applicationInstance =
+                        ModelBuilder.buildApplicationInstanceWithInfo(List.of(tempdir));
                 String codeArchiveReference = codeStorageService.deployApplicationCodeStorage(tenant, name,
-                        applicationInstance, tempZip);
+                        applicationInstance.getApplication(), tempZip);
                 log.info("Parsed application {} with code archive {}", name, codeArchiveReference);
                 return new AbstractMap.SimpleImmutableEntry<>(applicationInstance, codeArchiveReference);
             }

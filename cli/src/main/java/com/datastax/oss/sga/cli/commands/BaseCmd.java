@@ -164,6 +164,16 @@ public abstract class BaseCmd implements Runnable {
     }
 
 
+    protected HttpRequest newPost(String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
+        return HttpRequest.newBuilder()
+                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                .header("Content-Type", contentType)
+                .version(HttpClient.Version.HTTP_1_1)
+                .POST(bodyPublisher)
+                .build();
+    }
+
+
     protected void log(Object log) {
         command.commandLine().getOut().println(log);
     }

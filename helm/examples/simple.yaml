@@ -1,0 +1,27 @@
+
+controlPlane:
+  image:
+    pullPolicy: Always
+    tag: latest
+    repository: us-central1-docker.pkg.dev/datastax-gcp-pulsar/pulsar/sga-control-plane
+  app:
+    config:
+      application.storage.apps.type: kubernetes
+      application.storage.apps.configuration.namespaceprefix: sga-
+      application.storage.apps.configuration.deployer-runtime.image: us-central1-docker.pkg.dev/datastax-gcp-pulsar/pulsar/sga-runtime
+      application.storage.apps.configuration.deployer-runtime.image-pull-policy: Always
+      application.storage.global.type: kubernetes
+      application.storage.code.type: s3
+      application.storage.code.configuration.endpoint: http://minio.minio-dev.svc.cluster.local:9000
+
+deployer:
+  replicaCount: 1
+  image:
+    repository: us-central1-docker.pkg.dev/datastax-gcp-pulsar/pulsar/sga-deployer
+    pullPolicy: Always
+    tag: latest
+  app:
+    config:
+      codeStorage:
+        type: s3
+        endpoint: http://minio.minio-dev.svc.cluster.local:9000

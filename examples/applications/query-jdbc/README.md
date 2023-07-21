@@ -56,9 +56,9 @@ Insert some data:
 
 ## Deploy the SGA application
 
-
+```
 ./bin/sga-cli apps deploy test -app examples/applications/query-jdbc -i examples/instances/kafka-kubernetes.yaml
-
+```
 
 ## Start a Producer
 ```

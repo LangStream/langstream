@@ -1,10 +1,10 @@
 module: "module-1"
 id: "pipeline-1"
-name: "Index Products on Vector Database"
+name: "Exclamation processor"
 topics:
   - name: "input-topic"
     creation-mode: create-if-not-exists
-  - name: "putput-topic"
+  - name: "output-topic"
     creation-mode: create-if-not-exists
 pipeline:
   - name: "Process using Python"
@@ -12,5 +12,4 @@ pipeline:
     input: "input-topic"
     output: "output-topic"
     configuration:
-      className: module1.MyFunction
-      param1: value1
+      className: example.Exclamation

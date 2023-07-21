@@ -64,11 +64,14 @@ public class GenAIToolKitAgent implements AgentFunction {
     public void init(Map<String, Object> configuration) {
         configuration = new HashMap<>(configuration);
 
+
         // remove this from the config in order to avoid passing it TransformStepConfig
         Map<String, Object> datasourceConfiguration =
                 (Map<String, Object>) configuration.remove("datasource");
-        config = MAPPER.convertValue(configuration, TransformStepConfig.class);
         serviceProvider = ServiceProviderRegistry.getServiceProvider(configuration);
+
+        configuration.remove("vertex");
+        config = MAPPER.convertValue(configuration, TransformStepConfig.class);
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
         steps = TransformFunctionUtil.getTransformSteps(config, serviceProvider, dataSource);
     }

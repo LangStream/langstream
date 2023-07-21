@@ -18,8 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.function.Consumer;
 
 @Slf4j
 public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
@@ -183,25 +181,24 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         void generateDataSourceConfiguration(String resourceId);
     }
 
-
-    private void generateOpenAIConfiguration(Application applicationInstance, Map<String, Object> configuration) {
-        Resource resource = applicationInstance.getResources().values().stream()
-                .filter(r -> r.type().equals("open-ai-configuration"))
-                .findFirst().orElse(null);
-        if (resource != null) {
-            Map<String, Object> openaiConfiguration = new HashMap<>(resource.configuration());
-            configuration.put("openai", openaiConfiguration);
+    private void generateAIProvidersConfiguration(Application applicationInstance, Map<String, Object> configuration) {
+        for (Resource resource : applicationInstance.getResources().values()) {
+            HashMap<String, Object> configurationCopy = new HashMap<>(resource.configuration());
+            switch (resource.type()) {
+                case "vertex-ai-configuration":
+                    configuration.put("vertex", configurationCopy);
+                    break;
+                case "hugging-face-configuration":
+                    configuration.put("huggingface", configurationCopy);
+                    break;
+                case "open-ai-configuration":
+                    configuration.put("openai", configurationCopy);
+                    break;
+                default:
+                    // ignore
+            }
         }
-    }
 
-    private void generateHuggingFaceConfiguration(Application applicationInstance, Map<String, Object> configuration) {
-        Resource resource = applicationInstance.getResources().values().stream()
-                .filter(r -> r.type().equals("hugging-face-configuration"))
-                .findFirst().orElse(null);
-        if (resource != null) {
-            Map<String, Object> huggingfaceConfiguration = new HashMap<>(resource.configuration());
-            configuration.put("huggingface", huggingfaceConfiguration);
-        }
     }
 
     private void generateDataSourceConfiguration(String resourceId, Application applicationInstance, Map<String, Object> configuration) {
@@ -227,8 +224,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         Map<String, Object> originalConfiguration = super.computeAgentConfiguration(agentConfiguration, module, executionPlan, clusterRuntime);
         Map<String, Object> configuration = new HashMap<>();
 
-        generateOpenAIConfiguration(executionPlan.getApplication(), configuration);
-        generateHuggingFaceConfiguration(executionPlan.getApplication(), configuration);
+        generateAIProvidersConfiguration(executionPlan.getApplication(), configuration);
 
         generateSteps(originalConfiguration, configuration, executionPlan.getApplication(), agentConfiguration);
         return configuration;

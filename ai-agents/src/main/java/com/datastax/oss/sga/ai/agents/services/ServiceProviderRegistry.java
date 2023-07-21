@@ -25,7 +25,7 @@ public class ServiceProviderRegistry {
                     return p.get().supports(agentConfiguration);
                 })
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("No DataSource found for resource " + agentConfiguration));
+                .orElseThrow(() -> new RuntimeException("No AI ServiceProvider found for resource " + agentConfiguration));
 
         return provider.get().createImplementation(agentConfiguration);
     }

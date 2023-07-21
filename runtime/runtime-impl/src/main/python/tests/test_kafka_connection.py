@@ -4,6 +4,7 @@ from confluent_kafka.serialization import StringDeserializer, StringSerializer
 from testcontainers.kafka import KafkaContainer
 
 from sga_runtime import sga_runtime
+from sga_runtime.record import Record
 
 
 def test_kafka_topic_connection():
@@ -49,16 +50,31 @@ def test_kafka_topic_connection():
         for i in range(10):
             sga_runtime.run(config, 1)
             msg = consumer.poll(1.0)
-            if msg is None or msg.error():
-                continue
-            if msg:
+            if msg and msg.error() is None:
                 break
 
         assert msg is not None
         assert StringDeserializer()(msg.value()) == 'verification message'
+        assert msg.headers() == [
+            ('prop-key', b'prop-value'),
+            ('string', b'header-string'),
+            ('bytes', b'header-bytes'),
+            ('int', b'\x00\x00\x00\x00\x00\x00\x00\x2A'),
+            ('float', b'\x40\x45\x00\x00\x00\x00\x00\x00'),
+            ('boolean', b'\x01')
+        ]
 
 
 class TestAgent(object):
     @staticmethod
     def process(records):
-        return records
+        new_records = []
+        for record in records:
+            headers = record.headers().copy()
+            headers.append(('string', 'header-string'))
+            headers.append(('bytes', b'header-bytes'))
+            headers.append(('int', 42))
+            headers.append(('float', 42.0))
+            headers.append(('boolean', True))
+            new_records.append(Record(record.value(), headers=headers))
+        return new_records

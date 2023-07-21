@@ -6,6 +6,10 @@ from confluent_kafka.serialization import StringDeserializer, StringSerializer
 STRING_DESERIALIZER = StringDeserializer()
 STRING_SERIALIZER = StringSerializer()
 
+from .kafka_serialization import STRING_SERIALIZER, DOUBLE_SERIALIZER, LONG_SERIALIZER, \
+    BOOLEAN_SERIALIZER
+from .record import Record
+
 
 def apply_default_configuration(streaming_cluster, configs):
     if 'admin' in streaming_cluster['configuration']:
@@ -82,31 +86,34 @@ class KafkaSink(object):
         for record in records:
             # TODO: handle send errors
             logging.info(f"Sending record {record}")
+            headers = []
+            if record.headers():
+                for key, value in record.headers():
+                    if type(value) == bytes:
+                        headers.append((key, value))
+                    elif type(value) == str:
+                        headers.append((key, STRING_SERIALIZER(value)))
+                    elif type(value) == float:
+                        headers.append((key, DOUBLE_SERIALIZER(value)))
+                    elif type(value) == int:
+                        headers.append((key, LONG_SERIALIZER(value)))
+                    elif type(value) == bool:
+                        headers.append((key, BOOLEAN_SERIALIZER(value)))
+                    else:
+                        raise ValueError(f'Unsupported header type {type(value)} for header {(key, value)}')
             self.producer.produce(
                 self.topic,
                 value=STRING_SERIALIZER(record.value()),
                 key=STRING_SERIALIZER(record.key()),
-                headers=record.headers())
+                headers=headers)
         self.producer.flush()
 
 
-class KafkaRecord(object):
+class KafkaRecord(Record):
     def __init__(self, consumer_record):
-        self.consumer_record = consumer_record
-        self.__key = STRING_DESERIALIZER(self.consumer_record.key())
-        self.__value = STRING_DESERIALIZER(self.consumer_record.value())
-
-    def key(self):
-        return self.__key
-
-    def value(self):
-        return self.__value
-
-    def origin(self):
-        return self.consumer_record.topic()
-
-    def timestamp(self):
-        return self.consumer_record.timestamp()
-
-    def headers(self):
-        return self.consumer_record.headers()
+        super().__init__(
+            STRING_DESERIALIZER(consumer_record.value()),
+            key=STRING_DESERIALIZER(consumer_record.key()),
+            origin=consumer_record.topic(),
+            timestamp=consumer_record.timestamp(),
+            headers=consumer_record.headers())

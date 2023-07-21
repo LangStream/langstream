@@ -46,8 +46,8 @@ public class AppResourcesFactory {
                 .withImagePullPolicy(spec.getImagePullPolicy())
                 .withCommand("bash", "-c")
                 .withArgs("echo '%s' > /app-config/config && echo '%s' > /cluster-runtime-config/config".formatted(
-                        SerializationUtil.writeAsJson(config),
-                        SerializationUtil.writeAsJson(clusterRuntimeConfiguration)))
+                        SerializationUtil.writeAsJson(config).replace("'", "'\"'\"'"),
+                        SerializationUtil.writeAsJson(clusterRuntimeConfiguration).replace("'", "'\"'\"'")))
                 .withVolumeMounts(new VolumeMountBuilder()
                                 .withName("app-config")
                                 .withMountPath("/app-config")

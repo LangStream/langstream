@@ -34,6 +34,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         if (adminConfig == null) {
             adminConfig = new HashMap<>();
         }
+        log.info("AdminConfig: {}", adminConfig);
         return KafkaAdminClient.create(adminConfig);
     }
 

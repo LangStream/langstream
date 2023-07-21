@@ -90,7 +90,7 @@ public class AgentResourcesFactory {
                 .withResources(new ResourceRequirementsBuilder().withRequests(Map.of("cpu", Quantity.parse("100m"),
                         "memory", Quantity.parse("100Mi"))).build())
                 .withCommand("bash", "-c")
-                .withArgs("echo '%s' > /app-config/config".formatted(SerializationUtil.writeAsJson(podConfig)))
+                .withArgs("echo '%s' > /app-config/config".formatted(SerializationUtil.writeAsJson(podConfig).replace("'", "'\"'\"'")))
                 .withVolumeMounts(new VolumeMountBuilder()
                         .withName("app-config")
                         .withMountPath("/app-config")

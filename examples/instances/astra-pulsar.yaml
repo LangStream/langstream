@@ -5,7 +5,7 @@ instance:
       admin:
         serviceUrl: https://pulsar-gcp-useast4.api.dev.streaming.datastax.com
         authPluginClassName: org.apache.pulsar.client.impl.auth.AuthenticationToken
-        authParams: "token: {{ secrets.astra-token.token }}"
+        authParams: "token:{{ secrets.astra-token.token }}"
       defaultTenant: "{{ secrets.astra-token.tenant }}"
       defaultNamespace: "{{ secrets.astra-token.namespace }}"
   computeCluster:
@@ -14,6 +14,6 @@ instance:
       admin:
         serviceUrl: https://pulsar-gcp-useast4.api.dev.streaming.datastax.com
         authPluginClassName: org.apache.pulsar.client.impl.auth.AuthenticationToken
-        authParams: "token: {{ secrets.astra-token.token }}"
+        authParams: "token:{{ secrets.astra-token.token }}"
       defaultTenant: "{{ secrets.astra-token.tenant }}"
       defaultNamespace: "{{ secrets.astra-token.namespace }}"

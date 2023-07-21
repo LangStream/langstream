@@ -62,12 +62,13 @@ public class ApplicationResource {
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("name") String name,
             @NotNull @RequestParam("file") MultipartFile file) throws Exception {
-        final Map.Entry<Application, String> instance = parseApplicationInstance(name, file, tenant);
-        log.info("Parsed application instance code:{} application:{}", instance.getValue(), instance.getKey());
+        final Map.Entry<ModelBuilder.ApplicationWithPackageInfo, String> instance = parseApplicationInstance(name, file, tenant);
+        log.info("Parsed application instance code: {} application: {}", instance.getValue(),
+                instance.getKey().getApplication());
         applicationService.deployApplication(tenant, name, instance.getKey(), instance.getValue());
     }
 
-    private Map.Entry<Application, String> parseApplicationInstance(String name, MultipartFile file, String tenant)
+    private Map.Entry<ModelBuilder.ApplicationWithPackageInfo, String> parseApplicationInstance(String name, MultipartFile file, String tenant)
             throws Exception {
         Path tempdir = Files.createTempDirectory("zip-extract");
         final Path tempZip = Files.createTempFile("app", ".zip");
@@ -75,10 +76,10 @@ public class ApplicationResource {
             file.transferTo(tempZip);
             try (ZipFile zipFile = new ZipFile(tempZip.toFile());) {
                 zipFile.extractAll(tempdir.toFile().getAbsolutePath());
-                final Application applicationInstance =
-                        ModelBuilder.buildApplicationInstance(List.of(tempdir));
+                final ModelBuilder.ApplicationWithPackageInfo applicationInstance =
+                        ModelBuilder.buildApplicationInstanceWithInfo(List.of(tempdir));
                 String codeArchiveReference = codeStorageService.deployApplicationCodeStorage(tenant, name,
-                        applicationInstance, tempZip);
+                        applicationInstance.getApplication(), tempZip);
                 log.info("Parsed application {} with code archive {}", name, codeArchiveReference);
                 return new AbstractMap.SimpleImmutableEntry<>(applicationInstance, codeArchiveReference);
             }

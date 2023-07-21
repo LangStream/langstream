@@ -7,10 +7,13 @@ topics:
   - name: "putput-topic"
     creation-mode: create-if-not-exists
 pipeline:
-  - name: "Process using Python"
-    type: "python-function"
+  - name: "Process using Python0"
+    type: "ai-chat-completions"
     input: "input-topic"
-    output: "output-topic"
+    output: "putput-topic"
     configuration:
+      completion-field: "a"
+      messages:  [{role: 'user', content: 'template'}]
+      model: "aa"
       className: module1.MyFunction
       param1: value1

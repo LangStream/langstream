@@ -17,6 +17,7 @@ package com.datastax.oss.sga.api.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -30,6 +31,7 @@ public record Connection(Connectable endpoint) {
             @JsonSubTypes.Type(value = TopicDefinition.class, name = Connectables.TOPIC)})
     @Getter
     @Setter
+    @EqualsAndHashCode
     public abstract static class Connectable {
         protected String connectableType;
 

@@ -8,6 +8,7 @@ import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.Resource;
+import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
@@ -57,11 +58,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class KubernetesApplicationStore implements ApplicationStore {
 
     private static final String[] LOG_COLORS = new String[]{"32", "33", "34", "35", "36", "37", "38"};
+    protected static final String SECRET_KEY = "secrets";
 
     private static ObjectMapper mapper = new ObjectMapper();
     private KubernetesClient client;
@@ -155,6 +158,13 @@ public class KubernetesApplicationStore implements ApplicationStore {
     @Override
     @SneakyThrows
     public void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveId) {
+        final ApplicationCustomResource existing = getApplicationCustomResource(tenant, applicationId);
+        if (existing != null) {
+            if (existing.isMarkedForDeletion()) {
+                throw new IllegalArgumentException("Application " + applicationId + " is marked for deletion. Please retry once the application is deleted.");
+            }
+        }
+
         final String namespace = tenantToNamespace(tenant);
         final String appJson = mapper.writeValueAsString(new SerializedApplicationInstance(applicationInstance));
         ApplicationCustomResource crd = new ApplicationCustomResource();
@@ -187,7 +197,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .withNamespace(namespace)
                 .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(crd))
                 .endMetadata()
-                .withData(Map.of("secrets",
+                .withData(Map.of(SECRET_KEY,
                         encodeSecret(mapper.writeValueAsString(applicationInstance.getSecrets()))))
                 .build();
         client.resource(secret)
@@ -197,6 +207,35 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     @Override
     public StoredApplication get(String tenant, String applicationId) {
+        final ApplicationCustomResource application =
+                getApplicationCustomResource(tenant, applicationId);
+        if (application == null) {
+            return null;
+        }
+        return convertApplicationToResult(applicationId, application);
+    }
+
+    @Override
+    @SneakyThrows
+    public Secrets getSecrets(String tenant, String applicationId) {
+        final Secret secret = client.secrets().inNamespace(tenantToNamespace(tenant))
+                .withName(applicationId)
+                .get();
+        if (secret == null) {
+            return null;
+        }
+
+        if (secret.getData() != null && secret.getData().get(SECRET_KEY) != null) {
+            final String s = secret.getData().get(SECRET_KEY);
+            final String decoded = new String(Base64.getDecoder()
+                    .decode(s), StandardCharsets.UTF_8);
+            return mapper.readValue(decoded, Secrets.class);
+        }
+        return null;
+    }
+
+    @Nullable
+    private ApplicationCustomResource getApplicationCustomResource(String tenant, String applicationId) {
         final String namespace = tenantToNamespace(tenant);
         final ApplicationCustomResource application = client.resources(ApplicationCustomResource.class)
                 .inNamespace(namespace)
@@ -205,7 +244,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
         if (application == null) {
             return null;
         }
-        return convertApplicationToResult(applicationId, application);
+        return application;
     }
 
     @Override
@@ -236,8 +275,6 @@ public class KubernetesApplicationStore implements ApplicationStore {
         final Application instance =
                 mapper.readValue(application.getSpec().getApplication(), SerializedApplicationInstance.class)
                         .toApplicationInstance();
-
-        // TODO: load secrets ?
 
         return StoredApplication.builder()
                 .applicationId(applicationId)

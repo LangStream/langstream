@@ -2,7 +2,6 @@ package com.datastax.oss.sga.cli.commands.applications;
 
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Dependency;
-import com.datastax.oss.sga.cli.commands.BaseCmd;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -18,7 +17,6 @@ import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
@@ -40,7 +38,7 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
     @CommandLine.Option(names = {"-app", "--application"}, description = "Application directory path", required = true)
     private String appPath;
 
-    @CommandLine.Option(names = {"-i", "--instance"}, description = "Instance file path", required = true)
+    @CommandLine.Option(names = {"-i", "--instance"}, description = "Instance file path. If this is the first deployment of the application, this file is required.")
     private String instanceFilePath;
 
     @CommandLine.Option(names = {"-s", "--secrets"}, description = "Secrets file path")
@@ -62,7 +60,7 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
         // and to get the dependencies
         final Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(List.of(appDirectory.toPath()));
-        downloadDepoendencies(applicationInstance, appDirectory.toPath());
+        downloadDependencies(applicationInstance, appDirectory.toPath());
 
         String boundary = new BigInteger(256, new Random()).toString();
         http(newPut(tenantAppPath("/" + name),
@@ -72,7 +70,7 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
 
     }
 
-    private void downloadDepoendencies(Application applicationInstance, Path directory) throws Exception {
+    private void downloadDependencies(Application applicationInstance, Path directory) throws Exception {
         if (applicationInstance.getDependencies() != null) {
             for (Dependency dependency : applicationInstance.getDependencies()) {
                 URL url = new URL(dependency.url());
@@ -170,6 +168,9 @@ public class DeployApplicationCmd extends BaseApplicationCmd {
     }
 
     private static void addInstance(File instanceFile, ZipFile zip, Consumer<String> logger) throws ZipException {
+        if (instanceFile == null) {
+            return;
+        }
         logger.accept("using instance: %s".formatted(instanceFile.getAbsolutePath()));
         final ZipParameters zipParameters = new ZipParameters();
         zipParameters.setFileNameInZip("instance.yaml");

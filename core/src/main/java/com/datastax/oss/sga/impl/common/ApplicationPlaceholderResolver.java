@@ -38,6 +38,9 @@ public class ApplicationPlaceholderResolver {
         if (log.isDebugEnabled()) {
             log.debug("Resolving placeholders with context:\n{}", mapper.writeValueAsString(context));
         }
+        if (log.isDebugEnabled()) {
+            log.debug("Resolve context: {}", context);
+        }
 
 
         instance.setInstance(resolveInstance(instance, context));

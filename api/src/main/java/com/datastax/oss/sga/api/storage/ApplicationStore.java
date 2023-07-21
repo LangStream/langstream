@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.api.storage;
 
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -21,6 +22,8 @@ public interface ApplicationStore extends GenericStore {
     void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveReference);
 
     StoredApplication get(String tenant, String applicationId);
+
+    Secrets getSecrets(String tenant, String applicationId);
 
     void delete(String tenant, String applicationId);
 

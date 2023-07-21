@@ -7,6 +7,7 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource
 import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.Secret;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -79,5 +80,44 @@ class KubernetesApplicationStoreTest {
         });
         store.onTenantDeleted("mytenant");
         assertTrue(k3s.getClient().namespaces().withName("smytenant").get().isMarkedForDeletion());
+    }
+
+    @Test
+    void testBlockDeployWhileDeleting() {
+
+        final KubernetesApplicationStore store = new KubernetesApplicationStore();
+        store.initialize(Map.of("namespaceprefix", "s", "deployer-runtime", Map.of("image", "busybox", "image-pull-policy", "IfNotPresent")));
+
+        store.onTenantCreated("mytenant");
+        final Application app = new Application();
+        store.put("mytenant", "myapp", app, "code-1");
+        ApplicationCustomResource createdCr =
+                k3s.getClient().resources(ApplicationCustomResource.class)
+                        .inNamespace("smytenant")
+                        .withName("myapp")
+                        .get();
+        createdCr.getMetadata().setFinalizers(List.of("test-finalizer"));
+        k3s.getClient().resource(createdCr).update();
+        store.delete("mytenant", "myapp");
+        assertTrue(k3s.getClient().resource(createdCr).get().isMarkedForDeletion());
+
+        try {
+            store.put("mytenant", "myapp", app, "code-1");
+            fail();
+        } catch (IllegalArgumentException aie) {
+            assertEquals("Application myapp is marked for deletion. Please retry once the application is deleted.", aie.getMessage());
+        }
+        createdCr = k3s.getClient().resource(createdCr).get();
+        createdCr.getMetadata().setFinalizers(List.of());
+        k3s.getClient().resource(createdCr).update();
+
+        Awaitility.await().until(() -> {
+            try {
+                store.put("mytenant", "myapp", app, "code-1");
+                return true;
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+        });
     }
 }

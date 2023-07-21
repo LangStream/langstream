@@ -15,6 +15,6 @@ pipeline:
     input: "input-topic"
     output: "output-topic"
     configuration:
-      model: "text-embedding-ada-002"
+      model: "text-embedding-ada-003"
       embeddings-field: "value.embeddings"
       text: "{{% value.name }} {{% value.description }}"

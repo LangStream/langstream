@@ -31,7 +31,10 @@ import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -51,6 +54,17 @@ public class ModelBuilder {
 
     static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
+    @Getter
+    public static class ApplicationWithPackageInfo {
+        public ApplicationWithPackageInfo(Application application) {
+            this.application = application;
+        }
+
+        private final Application application;
+        private boolean hasInstanceDefinition;
+        private boolean hasSecretDefinition;
+    }
+
 
     /**
      * Builds an in memory model of the application from the given directories.
@@ -64,30 +78,35 @@ public class ModelBuilder {
      * @throws Exception
      */
     public static Application buildApplicationInstance(List<Path> directories) throws Exception {
-        Application application = new Application();
+        return buildApplicationInstanceWithInfo(directories).getApplication();
+    }
+
+    public static ApplicationWithPackageInfo buildApplicationInstanceWithInfo(List<Path> directories) throws Exception {
+        final ApplicationWithPackageInfo applicationWithPackageInfo = new ApplicationWithPackageInfo(new Application());
         for (Path directory : directories) {
             log.info("Parsing directory: {}", directory.toAbsolutePath());
             try (DirectoryStream<Path> paths = Files.newDirectoryStream(directory);) {
                 for (Path path : paths) {
                     if (Files.isRegularFile(path)) {
                         parseFile(path.getFileName().toString(), Files.readString(path, StandardCharsets.UTF_8),
-                                application);
+                                applicationWithPackageInfo);
                     }
                 }
             }
         }
-        return application;
+        return applicationWithPackageInfo;
     }
 
     public static Application buildApplicationInstance(Map<String, String> files) throws Exception {
-        Application application = new Application();
+
+        final ApplicationWithPackageInfo applicationWithPackageInfo = new ApplicationWithPackageInfo(new Application());
         for (Map.Entry<String, String> entry : files.entrySet()) {
-            parseFile(entry.getKey(), entry.getValue(), application);
+            parseFile(entry.getKey(), entry.getValue(), applicationWithPackageInfo);
         }
-        return application;
+        return applicationWithPackageInfo.getApplication();
     }
 
-    private static void parseFile(String fileName, String content, Application application) throws IOException {
+    private static void parseFile(String fileName, String content, ApplicationWithPackageInfo applicationWithPackageInfo) throws IOException {
         if (!fileName.endsWith(".yaml")) {
             // skip
             log.info("Skipping {}", fileName);
@@ -96,16 +115,18 @@ public class ModelBuilder {
 
         switch (fileName) {
             case "configuration.yaml":
-                parseConfiguration(content, application);
+                parseConfiguration(content, applicationWithPackageInfo.getApplication());
                 break;
             case "secrets.yaml":
-                parseSecrets(content, application);
+                applicationWithPackageInfo.hasSecretDefinition = true;
+                parseSecrets(content, applicationWithPackageInfo.getApplication());
                 break;
             case "instance.yaml":
-                parseInstance(content, application);
+                applicationWithPackageInfo.hasInstanceDefinition = true;
+                parseInstance(content, applicationWithPackageInfo.getApplication());
                 break;
             default:
-                parsePipelineFile(fileName, content, application);
+                parsePipelineFile(fileName, content, applicationWithPackageInfo.getApplication());
                 break;
         }
     }
@@ -212,6 +233,8 @@ public class ModelBuilder {
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static final class TopicDefinitionModel {
         private String name;
         @JsonProperty("creation-mode")
@@ -225,6 +248,8 @@ public class ModelBuilder {
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static final class AgentModel {
         private String id;
         private String name;

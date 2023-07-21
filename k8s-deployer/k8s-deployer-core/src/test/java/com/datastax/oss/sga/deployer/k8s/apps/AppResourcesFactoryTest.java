@@ -14,7 +14,7 @@ class AppResourcesFactoryTest {
                 apiVersion: sga.oss.datastax.com/v1alpha1
                 kind: Application
                 metadata:
-                  name: test-app
+                  name: test-'app
                   namespace: default
                 spec:
                     image: ubuntu
@@ -32,22 +32,22 @@ class AppResourcesFactoryTest {
                         metadata:
                           labels:
                             app: sga-deployer
-                            sga-application: test-app
+                            sga-application: test-'app
                             sga-scope: deploy
-                          name: sga-runtime-deployer-test-app
+                          name: sga-runtime-deployer-test-'app
                           namespace: default
                           ownerReferences:
                           - apiVersion: sga.oss.datastax.com/v1alpha1
                             kind: Application
                             blockOwnerDeletion: true
                             controller: true
-                            name: test-app
+                            name: test-'app
                         spec:
                           template:
                             metadata:
                               labels:
                                 app: sga-deployer
-                                sga-application: test-app
+                                sga-application: test-'app
                                 sga-scope: deploy
                             spec:
                               containers:
@@ -74,7 +74,7 @@ class AppResourcesFactoryTest {
                                   name: cluster-runtime-config
                               initContainers:
                               - args:
-                                - "echo '{\\"applicationId\\":\\"test-app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
                                 command:
                                 - bash
                                 - -c
@@ -93,7 +93,7 @@ class AppResourcesFactoryTest {
                                 name: app-config
                               - name: app-secrets
                                 secret:
-                                  secretName: test-app
+                                  secretName: test-'app
                               - emptyDir: {}
                                 name: cluster-runtime-config
                         """,
@@ -106,22 +106,22 @@ class AppResourcesFactoryTest {
                         metadata:
                           labels:
                             app: sga-deployer
-                            sga-application: test-app
+                            sga-application: test-'app
                             sga-scope: delete
-                          name: sga-runtime-deployer-cleanup-test-app
+                          name: sga-runtime-deployer-cleanup-test-'app
                           namespace: default
                           ownerReferences:
                           - apiVersion: sga.oss.datastax.com/v1alpha1
                             kind: Application
                             blockOwnerDeletion: true
                             controller: true
-                            name: test-app
+                            name: test-'app
                         spec:
                           template:
                             metadata:
                               labels:
                                 app: sga-deployer
-                                sga-application: test-app
+                                sga-application: test-'app
                                 sga-scope: delete
                             spec:
                               containers:
@@ -148,7 +148,7 @@ class AppResourcesFactoryTest {
                                   name: cluster-runtime-config
                               initContainers:
                               - args:
-                                - "echo '{\\"applicationId\\":\\"test-app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
                                 command:
                                 - bash
                                 - -c
@@ -167,7 +167,7 @@ class AppResourcesFactoryTest {
                                 name: app-config
                               - name: app-secrets
                                 secret:
-                                  secretName: test-app
+                                  secretName: test-'app
                               - emptyDir: {}
                                 name: cluster-runtime-config
                         """,

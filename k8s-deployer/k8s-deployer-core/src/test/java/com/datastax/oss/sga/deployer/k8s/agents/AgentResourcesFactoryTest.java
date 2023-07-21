@@ -34,7 +34,7 @@ class AgentResourcesFactoryTest {
                 spec:
                     configuration: '%s'
                     tenant: my-tenant
-                    applicationId: the-app
+                    applicationId: the-'app
                 """.formatted(SerializationUtil.writeAsJson(podConf)));
         final StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(resource, Map.of(), new AgentResourceUnitConfiguration());
         assertEquals("""
@@ -45,7 +45,7 @@ class AgentResourcesFactoryTest {
                           labels:
                             app: sga-runtime
                             sga-agent: agent-id
-                            sga-application: the-app
+                            sga-application: the-'app
                           name: test-agent1
                           namespace: default
                           ownerReferences:
@@ -61,13 +61,13 @@ class AgentResourcesFactoryTest {
                             matchLabels:
                               app: sga-runtime
                               sga-agent: agent-id
-                              sga-application: the-app
+                              sga-application: the-'app
                           template:
                             metadata:
                               labels:
                                 app: sga-runtime
                                 sga-agent: agent-id
-                                sga-application: the-app
+                                sga-application: the-'app
                             spec:
                               containers:
                               - args:
@@ -86,7 +86,7 @@ class AgentResourcesFactoryTest {
                                   name: app-config
                               initContainers:
                               - args:
-                                - "echo '{\\"input\\":{\\"input\\":{\\"is_input\\":true}},\\"output\\":{\\"output\\":{\\"is_output\\":true}},\\"agent\\":{\\"componentType\\":\\"FUNCTION\\",\\"tenant\\":\\"my-tenant\\",\\"agentId\\":\\"agent-id\\",\\"applicationId\\":\\"the-app\\",\\"agentType\\":\\"my-agent\\",\\"configuration\\":{\\"config\\":true}},\\"streamingCluster\\":{\\"type\\":\\"noop\\",\\"configuration\\":{\\"config\\":true}},\\"codeStorage\\":{\\"type\\":\\"none\\",\\"codeStorageArchiveId\\":\\"code-storage-id\\",\\"configuration\\":{}}}' > /app-config/config"
+                                - "echo '{\\"input\\":{\\"input\\":{\\"is_input\\":true}},\\"output\\":{\\"output\\":{\\"is_output\\":true}},\\"agent\\":{\\"componentType\\":\\"FUNCTION\\",\\"tenant\\":\\"my-tenant\\",\\"agentId\\":\\"agent-id\\",\\"applicationId\\":\\"the-'\\"'\\"'app\\",\\"agentType\\":\\"my-agent\\",\\"configuration\\":{\\"config\\":true}},\\"streamingCluster\\":{\\"type\\":\\"noop\\",\\"configuration\\":{\\"config\\":true}},\\"codeStorage\\":{\\"type\\":\\"none\\",\\"codeStorageArchiveId\\":\\"code-storage-id\\",\\"configuration\\":{}}}' > /app-config/config"
                                 command:
                                 - bash
                                 - -c

@@ -253,7 +253,11 @@ public class AgentRunner
                     }
                     // commit
                 }
-                source.commit();
+                if (sink.handlesCommit()) {
+                    sink.commit();
+                } else {
+                    source.commit();
+                }
                 records = source.read();
             }
         } finally {

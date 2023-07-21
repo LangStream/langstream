@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.record.TimestampType;
@@ -37,6 +38,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.ShortSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.common.serialization.UUIDSerializer;
+import org.apache.kafka.connect.data.Schema;
 
 @Slf4j
 public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
@@ -84,12 +86,18 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
     public static class KafkaRecord implements Record {
         private final ConsumerRecord<?, ?> record;
         private final List<Header> headers = new ArrayList<>();
+        private final TopicPartition topicPartition;
 
         public KafkaRecord(ConsumerRecord<?, ?> record) {
             this.record = record;
+            this.topicPartition = new TopicPartition(record.topic(), record.partition());
             for (org.apache.kafka.common.header.Header header : record.headers()) {
                 headers.add(new KafkaHeader(header));
             }
+        }
+
+        public TopicPartition getTopicPartition() {
+            return topicPartition;
         }
 
         @Override

@@ -297,6 +297,7 @@ public class AgentResourcesFactory {
                 .getItems()
                 .stream()
                 .map(pod -> pod.getMetadata().getName())
+                .sorted()
                 .collect(Collectors.toList());
     }
 

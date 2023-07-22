@@ -12,6 +12,7 @@ eval $(minikube docker-env)
 kubectl apply -f helm/examples/minio-dev.yaml
 
 # Start SGA
+kubectl apply -f helm/sga/crds
 helm install sga helm/sga --values helm/examples/local.yaml || helm upgrade sga helm/sga --values helm/examples/local.yaml
 kubectl wait deployment/sga-control-plane --for condition=available --timeout=60s
 

@@ -6,6 +6,10 @@ import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.controllers.BaseController;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
+import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
+import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
+import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
+import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -15,9 +19,16 @@ import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
+import io.javaoperatorsdk.operator.processing.dependent.external.PerResourcePollingDependentResource;
+import io.javaoperatorsdk.operator.processing.dependent.external.PollingDependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
+import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDependentResource;
+import io.javaoperatorsdk.operator.processing.event.ResourceID;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 import jakarta.inject.Inject;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.jbosslog.JBossLog;
 
@@ -80,12 +91,42 @@ public class AgentController extends BaseController<AgentCustomResource>
         @Override
         protected StatefulSet desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
             try {
+                injectCodeStorageConfigInSecret(primary);
                 return AgentResourcesFactory.generateStatefulSet(primary, configuration.getCodeStorage(),
                         configuration.getAgentResources());
             } catch (Throwable t) {
                 log.errorf(t, "Error while generating StatefulSet for agent %s", primary.getMetadata().getName());
                 throw new RuntimeException(t);
             }
+        }
+
+        /**
+         * TO BE REMOVED: this is a workaround for https://github.com/riptano/streaming-gen-ai/issues/98.
+         * The user's code will be able to grab the code storage config from the agent's config secret!!!
+         * @param primary
+         */
+        @Deprecated
+        private void injectCodeStorageConfigInSecret(AgentCustomResource primary) {
+            final Secret agentSecret = client.secrets()
+                    .inNamespace(primary.getMetadata().getNamespace())
+                    .withName(primary.getSpec().getAgentConfigSecretRef())
+                    .get();
+
+            final String decoded = new String(Base64.getDecoder().decode(agentSecret.getData().get("app-config")),
+                    StandardCharsets.UTF_8);
+
+            RuntimePodConfiguration runtimePodConfiguration =
+                    SerializationUtil.readJson(decoded, RuntimePodConfiguration.class);
+            runtimePodConfiguration = new RuntimePodConfiguration(runtimePodConfiguration.input(),
+                    runtimePodConfiguration.output(),
+                    runtimePodConfiguration.agent(),
+                    runtimePodConfiguration.streamingCluster(),
+                    new CodeStorageConfig(configuration.getCodeStorage().getOrDefault("type", "none").toString(),
+                            runtimePodConfiguration.codeStorage().codeStorageArchiveId(),
+                            configuration.getCodeStorage())
+            );
+            final Secret secret = AgentResourcesFactory.generateAgentSecret(primary.getMetadata().getName(), runtimePodConfiguration);
+            client.resource(secret).inNamespace(primary.getMetadata().getNamespace()).serverSideApply();
         }
     }
 

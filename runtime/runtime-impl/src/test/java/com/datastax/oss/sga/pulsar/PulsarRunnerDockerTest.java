@@ -7,15 +7,14 @@ import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.runtime.agent.AgentRunner;
-import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
-import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
-import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
 import lombok.Cleanup;
+import io.fabric8.kubernetes.api.model.Secret;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -57,6 +56,7 @@ class PulsarRunnerDockerTest {
     public void testRunAITools() throws Exception {
         final String appId = "application";
         kubeServer.spyAgentCustomResources("tenant", appId + "-step1");
+        final Map<String, Secret> secrets = kubeServer.spyAgentCustomResourcesSecrets("tenant", appId + "-step1");
 
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
@@ -92,32 +92,11 @@ class PulsarRunnerDockerTest {
         ExecutionPlan implementation = deployer.createImplementation(appId, applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
-
-        List<PodAgentConfiguration> customResourceDefinitions = (List<PodAgentConfiguration>) deployer.deploy("tenant", implementation, null);
-        Collection<String> topics = admin.topics().getList("public/default");
-        log.info("Topics {}", topics);
-        assertTrue(topics.contains("persistent://public/default/input-topic"));
-        assertTrue(topics.contains("persistent://public/default/output-topic"));
-
-        log.info("CRDS: {}", customResourceDefinitions);
-
-        assertEquals(1, customResourceDefinitions.size());
-        PodAgentConfiguration podAgentConfiguration = customResourceDefinitions.get(0);
-
-
-        RuntimePodConfiguration runtimePodConfiguration = new RuntimePodConfiguration(
-                podAgentConfiguration.input(),
-                podAgentConfiguration.output(),
-                new AgentSpec(AgentSpec.ComponentType.valueOf(
-                        podAgentConfiguration.agentConfiguration().componentType()),
-                        "tenant",
-                        podAgentConfiguration.agentConfiguration().agentId(),
-                        appId,
-                        podAgentConfiguration.agentConfiguration().agentType(),
-                        podAgentConfiguration.agentConfiguration().configuration()),
-                applicationInstance.getInstance().streamingCluster(),
-                new CodeStorageConfig("none", "none", Map.of())
-        );
+        deployer.deploy("tenant", implementation, null);
+        assertEquals(1, secrets.size());
+        final Secret secret = secrets.values().iterator().next();
+        final RuntimePodConfiguration runtimePodConfiguration =
+                AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
 
         try (PulsarClient client = PulsarClientUtils.buildPulsarClient(implementation.getApplication().getInstance().streamingCluster());
              Producer<byte[]> producer = client.newProducer().topic("input-topic").create();

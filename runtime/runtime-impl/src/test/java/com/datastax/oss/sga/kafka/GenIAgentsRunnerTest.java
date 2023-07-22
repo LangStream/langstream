@@ -8,6 +8,8 @@ import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
+import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
@@ -15,7 +17,7 @@ import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
-import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
+import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.charset.StandardCharsets;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +59,7 @@ class GenIAgentsRunnerTest {
     public void testRunAITools() throws Exception {
         String tenant = "tenant";
         kubeServer.spyAgentCustomResources(tenant, "app-step1");
+        final Map<String, Secret> secrets = kubeServer.spyAgentCustomResourcesSecrets(tenant, "app-step1");
 
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
@@ -92,30 +95,12 @@ class GenIAgentsRunnerTest {
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
-        List<PodAgentConfiguration> customResourceDefinitions = (List<PodAgentConfiguration>) deployer.deploy(tenant, implementation, null);
 
-        Set<String> topics = admin.listTopics().names().get();
-        log.info("Topics {}", topics);
-        assertTrue(topics.contains("input-topic"));
-
-        log.info("CRDS: {}", customResourceDefinitions);
-
-        assertEquals(1, customResourceDefinitions.size());
-        PodAgentConfiguration podAgentConfiguration = customResourceDefinitions.get(0);
-
-        RuntimePodConfiguration runtimePodConfiguration = new RuntimePodConfiguration(
-                podAgentConfiguration.input(),
-                podAgentConfiguration.output(),
-                new AgentSpec(AgentSpec.ComponentType.valueOf(
-                        podAgentConfiguration.agentConfiguration().componentType()),
-                        tenant,
-                        podAgentConfiguration.agentConfiguration().agentId(),
-                        "application",
-                        podAgentConfiguration.agentConfiguration().agentType(),
-                        podAgentConfiguration.agentConfiguration().configuration()),
-                applicationInstance.getInstance().streamingCluster(),
-                new CodeStorageConfig("none", "none", Map.of())
-        );
+        deployer.deploy(tenant, implementation, null);
+        assertEquals(1, secrets.size());
+        final Secret secret = secrets.values().iterator().next();
+        final RuntimePodConfiguration runtimePodConfiguration =
+                AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<String, String>(
                 Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),

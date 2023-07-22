@@ -9,14 +9,27 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AgentSpec extends NamespacedSpec {
 
+    public record Resources(int parallelism, int size) {}
+
+    private String agentId;
     private String applicationId;
-    private String configuration;
+    private String image;
+    private String imagePullPolicy;
+    private String agentConfigSecretRef;
+    private String agentConfigSecretRefChecksum;
+    private Resources resources;
+
 
     @Builder
-    public AgentSpec(String tenant, String applicationId, String configuration) {
+    public AgentSpec(String tenant, String agentId, String applicationId, String image, String imagePullPolicy, String agentConfigSecretRef, String agentConfigSecretRefChecksum, Resources resources) {
         super(tenant);
-        this.configuration = configuration;
+        this.agentId = agentId;
         this.applicationId = applicationId;
+        this.image = image;
+        this.imagePullPolicy = imagePullPolicy;
+        this.agentConfigSecretRef = agentConfigSecretRef;
+        this.agentConfigSecretRefChecksum = agentConfigSecretRefChecksum;
+        this.resources = resources;
     }
 
 

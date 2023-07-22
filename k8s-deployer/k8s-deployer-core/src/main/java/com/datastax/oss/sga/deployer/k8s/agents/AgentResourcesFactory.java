@@ -2,35 +2,30 @@ package com.datastax.oss.sga.deployer.k8s.agents;
 
 import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
-import com.datastax.oss.sga.api.model.ResourcesSpec;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
-import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
-import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
-import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.ContainerState;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.EmptyDirVolumeSource;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.PodResource;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
+import java.util.Base64;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -40,66 +35,30 @@ import java.util.stream.Collectors;
 
 public class AgentResourcesFactory {
 
+    protected static final String AGENT_SECRET_DATA_APP = "app-config";
+
     public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource,
                                                   Map<String, Object> codeStoreConfiguration,
                                                   AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
 
         final AgentSpec spec = agentCustomResource.getSpec();
-        final PodAgentConfiguration podAgentConfiguration =
-                SerializationUtil.readJson(spec.getConfiguration(), PodAgentConfiguration.class);
-        final String agentId = podAgentConfiguration.agentConfiguration().agentId();
-        final String applicationId = spec.getApplicationId();
-        RuntimePodConfiguration podConfig = new RuntimePodConfiguration(
-                podAgentConfiguration.input(),
-                podAgentConfiguration.output(),
-                new com.datastax.oss.sga.runtime.api.agent.AgentSpec(
-                        com.datastax.oss.sga.runtime.api.agent.AgentSpec.ComponentType.valueOf(
-                                podAgentConfiguration.agentConfiguration().componentType()),
-                        spec.getTenant(),
-                        agentId,
-                        applicationId,
-                        podAgentConfiguration.agentConfiguration().agentType(),
-                        podAgentConfiguration.agentConfiguration().configuration()
-                ),
-                podAgentConfiguration.streamingCluster(),
-                new CodeStorageConfig(codeStoreConfiguration.getOrDefault("type", "none").toString(),
-                        podAgentConfiguration.codeStorage().codeStorageArchiveId(), codeStoreConfiguration)
-        );
-
-
         final Container container = new ContainerBuilder()
                 .withName("runtime")
-                .withImage(podAgentConfiguration.image())
-                .withImagePullPolicy(podAgentConfiguration.imagePullPolicy())
+                .withImage(spec.getImage())
+                .withImagePullPolicy(spec.getImagePullPolicy())
 //                .withLivenessProbe(createLivenessProbe())
 //                .withReadinessProbe(createReadinessProbe())
-                .withResources(convertResources(podAgentConfiguration, agentResourceUnitConfiguration))
+                .withResources(convertResources(spec.getResources(), agentResourceUnitConfiguration))
                 .withArgs("agent-runtime", "/app-config/config")
                 .withVolumeMounts(new VolumeMountBuilder()
-                        .withName("app-config")
+                        .withName(AGENT_SECRET_DATA_APP)
                         .withMountPath("/app-config")
                         .build()
                 )
                 .withTerminationMessagePolicy("FallbackToLogsOnError")
                 .build();
 
-        final Container initContainer = new ContainerBuilder()
-                .withName("runtime-init-config")
-                .withImage(podAgentConfiguration.image())
-                .withImagePullPolicy(podAgentConfiguration.imagePullPolicy())
-                .withResources(new ResourceRequirementsBuilder().withRequests(Map.of("cpu", Quantity.parse("100m"),
-                        "memory", Quantity.parse("100Mi"))).build())
-                .withCommand("bash", "-c")
-                .withArgs("echo '%s' > /app-config/config".formatted(SerializationUtil.writeAsJson(podConfig).replace("'", "'\"'\"'")))
-                .withVolumeMounts(new VolumeMountBuilder()
-                        .withName("app-config")
-                        .withMountPath("/app-config")
-                        .build())
-                .build();
-
-        final String tenant = spec.getTenant();
-        final Map<String, String> labels = getAgentLabels(agentId, applicationId);
-        computeReplicas(agentResourceUnitConfiguration, podAgentConfiguration);
+        final Map<String, String> labels = getAgentLabels(spec.getAgentId(), spec.getApplicationId());
 
         final StatefulSet statefulSet = new StatefulSetBuilder()
                 .withNewMetadata()
@@ -109,23 +68,29 @@ public class AgentResourcesFactory {
                 .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(agentCustomResource))
                 .endMetadata()
                 .withNewSpec()
-                .withReplicas(computeReplicas(agentResourceUnitConfiguration, podAgentConfiguration))
+                .withReplicas(computeReplicas(agentResourceUnitConfiguration, spec.getResources()))
                 .withNewSelector()
                 .withMatchLabels(labels)
                 .endSelector()
                 .withPodManagementPolicy("Parallel")
                 .withNewTemplate()
                 .withNewMetadata()
+                .withAnnotations(Map.of("sga.com.datastax.oss/config-checksum", spec.getAgentConfigSecretRefChecksum()))
                 .withLabels(labels)
                 .endMetadata()
                 .withNewSpec()
-                .withServiceAccountName(tenant)
                 .withTerminationGracePeriodSeconds(60L)
-                .withInitContainers(List.of(initContainer))
                 .withContainers(List.of(container))
                 .withVolumes(new VolumeBuilder()
-                        .withName("app-config")
-                        .withEmptyDir(new EmptyDirVolumeSource())
+                        .withName(AGENT_SECRET_DATA_APP)
+                        .withNewSecret()
+                        .withSecretName(spec.getAgentConfigSecretRef())
+                        .withItems(new io.fabric8.kubernetes.api.model.KeyToPathBuilder()
+                                .withKey(AGENT_SECRET_DATA_APP)
+                                .withPath("config")
+                                .build()
+                        )
+                        .endSecret()
                         .build()
                 )
                 .endSpec()
@@ -135,39 +100,64 @@ public class AgentResourcesFactory {
         return statefulSet;
     }
 
+    public static Secret generateAgentSecret(String agentFullName, RuntimePodConfiguration runtimePodConfiguration) {
+        return new SecretBuilder()
+                .withNewMetadata()
+                .withName(agentFullName)
+                .endMetadata()
+                .withData(Map.of(AGENT_SECRET_DATA_APP,
+                                Base64.getEncoder().encodeToString(SerializationUtil.writeAsJsonBytes(runtimePodConfiguration))
+                        )
+                )
+                .build();
+    }
+
+    public static RuntimePodConfiguration readRuntimePodConfigurationFromSecret(Secret secret) {
+        final String appConfig = secret.getData()
+                .get(AGENT_SECRET_DATA_APP);
+        return SerializationUtil.readJson(new String(Base64.getDecoder().decode(appConfig), StandardCharsets.UTF_8),
+                RuntimePodConfiguration.class);
+    }
+
     private static int computeReplicas(AgentResourceUnitConfiguration agentResourceUnitConfiguration,
-                                  PodAgentConfiguration podAgentConfiguration) {
-        Integer requestedParallelism = podAgentConfiguration.resources() == null ? null : podAgentConfiguration.resources().parallelism();
+                                       AgentSpec.Resources resources) {
+        Integer requestedParallelism = resources == null ? null : resources.parallelism();
         if (requestedParallelism == null) {
             requestedParallelism = agentResourceUnitConfiguration.getDefaultInstanceUnits();
         }
         if (requestedParallelism > agentResourceUnitConfiguration.getMaxInstanceUnits()) {
-            throw new IllegalArgumentException("Requested %d instances, max is %d".formatted(requestedParallelism, agentResourceUnitConfiguration.getMaxInstanceUnits()));
+            throw new IllegalArgumentException("Requested %d instances, max is %d".formatted(requestedParallelism,
+                    agentResourceUnitConfiguration.getMaxInstanceUnits()));
         }
         return requestedParallelism;
     }
 
-    private static ResourceRequirements convertResources(PodAgentConfiguration podAgentConfiguration, AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
-        Integer memCpuUnits = podAgentConfiguration.resources() == null ? null : podAgentConfiguration.resources().size();
+    private static ResourceRequirements convertResources(AgentSpec.Resources resources,
+                                                         AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+        Integer memCpuUnits = resources == null ? null : resources.size();
         if (memCpuUnits == null) {
             memCpuUnits = agentResourceUnitConfiguration.getDefaultCpuMemUnits();
         }
 
-        Integer instances = podAgentConfiguration.resources() == null ? null : podAgentConfiguration.resources().parallelism();
+        Integer instances = resources == null ? null : resources.parallelism();
         if (instances == null) {
             instances = agentResourceUnitConfiguration.getDefaultInstanceUnits();
         }
 
         if (memCpuUnits > agentResourceUnitConfiguration.getMaxCpuMemUnits()) {
-            throw new IllegalArgumentException("Requested %d cpu/mem units, max is %d".formatted(memCpuUnits, agentResourceUnitConfiguration.getMaxCpuMemUnits()));
+            throw new IllegalArgumentException("Requested %d cpu/mem units, max is %d".formatted(memCpuUnits,
+                    agentResourceUnitConfiguration.getMaxCpuMemUnits()));
         }
         if (instances > agentResourceUnitConfiguration.getMaxInstanceUnits()) {
-            throw new IllegalArgumentException("Requested %d instance units, max is %d".formatted(instances, agentResourceUnitConfiguration.getMaxInstanceUnits()));
+            throw new IllegalArgumentException("Requested %d instance units, max is %d".formatted(instances,
+                    agentResourceUnitConfiguration.getMaxInstanceUnits()));
         }
 
         final Map<String, Quantity> requests = new HashMap<>();
-        requests.put("cpu", Quantity.parse("%f".formatted(memCpuUnits * agentResourceUnitConfiguration.getCpuPerUnit())));
-        requests.put("memory", Quantity.parse("%dM".formatted(memCpuUnits * agentResourceUnitConfiguration.getMemPerUnit())));
+        requests.put("cpu",
+                Quantity.parse("%f".formatted(memCpuUnits * agentResourceUnitConfiguration.getCpuPerUnit())));
+        requests.put("memory",
+                Quantity.parse("%dM".formatted(memCpuUnits * agentResourceUnitConfiguration.getMemPerUnit())));
 
         return new ResourceRequirementsBuilder()
                 .withRequests(requests)
@@ -184,19 +174,16 @@ public class AgentResourcesFactory {
 
     public static AgentCustomResource generateAgentCustomResource(final String applicationId,
                                                                   final String agentId,
-                                                                  final String tenant,
-                                                                  final PodAgentConfiguration podAgentConfiguration) {
+                                                                  final AgentSpec agentSpec) {
         final AgentCustomResource agentCR = new AgentCustomResource();
         final String agentName = getAgentCustomResourceName(applicationId, agentId);
         agentCR.setMetadata(new ObjectMetaBuilder()
                 .withName(agentName)
                 .withLabels(getAgentLabels(agentId, applicationId))
                 .build());
-        agentCR.setSpec(AgentSpec.builder()
-                .tenant(tenant)
-                .applicationId(applicationId)
-                .configuration(SerializationUtil.writeAsJson(podAgentConfiguration))
-                .build());
+        agentSpec.setApplicationId(applicationId);
+        agentSpec.setAgentId(agentId);
+        agentCR.setSpec(agentSpec);
         return agentCR;
     }
 
@@ -289,8 +276,8 @@ public class AgentResourcesFactory {
     public static List<String> getAgentPods(KubernetesClient client, String namespace, String applicationId) {
         return client.pods().inNamespace(namespace)
                 .withLabels(new TreeMap<>(Map.of(
-                        CRDConstants.COMMON_LABEL_APP, "sga-runtime",
-                        CRDConstants.AGENT_LABEL_APPLICATION, applicationId)
+                                CRDConstants.COMMON_LABEL_APP, "sga-runtime",
+                                CRDConstants.AGENT_LABEL_APPLICATION, applicationId)
                         )
                 )
                 .list()

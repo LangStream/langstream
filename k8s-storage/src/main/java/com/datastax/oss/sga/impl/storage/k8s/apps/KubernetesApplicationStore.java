@@ -117,7 +117,12 @@ public class KubernetesApplicationStore implements ApplicationStore {
                                     .withApiGroups("sga.oss.datastax.com")
                                     .withResources("agents")
                                     .withVerbs("*")
-                                    .build()
+                                    .build(),
+                                    new PolicyRuleBuilder()
+                                            .withApiGroups("")
+                                            .withResources("secrets")
+                                            .withVerbs("*")
+                                            .build()
                             ).build())
                     .inNamespace(namespace)
                     .serverSideApply();

@@ -178,7 +178,6 @@ class KubernetesClusterRuntimeDockerTest {
         )), runtimePodConfiguration.agent());
         assertEquals(new StreamingCluster("kafka", Map.of("admin", Map.of("bootstrap.servers", "PLAINTEXT://localhost:%d".formatted(kafkaContainer.getFirstMappedPort())))),
                 runtimePodConfiguration.streamingCluster());
-        assertEquals(new CodeStorageConfig(null, null, Map.of()), runtimePodConfiguration.codeStorage());
     }
 
 

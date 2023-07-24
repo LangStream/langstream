@@ -17,6 +17,8 @@ spec:
         properties:
           spec:
             properties:
+              codeArchiveId:
+                type: string
               resources:
                 properties:
                   parallelism:

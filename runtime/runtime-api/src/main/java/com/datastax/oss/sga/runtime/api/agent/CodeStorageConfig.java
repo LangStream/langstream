@@ -8,5 +8,5 @@ import java.util.Map;
  * @param type the type (i.e. "S3");
  * @param configuration the configuration
  */
-public record CodeStorageConfig (String type, String codeStorageArchiveId, Map<String, Object> configuration){
+public record CodeStorageConfig(String tenant, String type, String codeStorageArchiveId, Map<String, Object> configuration){
 }

@@ -6,7 +6,7 @@ import java.util.function.Consumer;
  * This is an API to interact with the code storage.
  * The CodeStorage component is responsible for storing custom code for an application.
  */
-public interface CodeStorage {
+public interface CodeStorage extends AutoCloseable {
 
     /**
      * Store the code for a given version of the application.
@@ -52,4 +52,6 @@ public interface CodeStorage {
      */
     void deleteApplication(String tenant, String application) throws CodeStorageException;
 
+    @Override
+    void close();
 }

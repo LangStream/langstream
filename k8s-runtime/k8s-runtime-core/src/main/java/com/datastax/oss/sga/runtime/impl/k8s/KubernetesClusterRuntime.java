@@ -142,9 +142,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                         defaultAgentImplementation.getAgentType(),
                         defaultAgentImplementation.getConfiguration()
                 ),
-                applicationInstance.getApplication().getInstance().streamingCluster(),
-                new CodeStorageConfig(null,
-                        codeStorageArchiveId, Map.of())
+                applicationInstance.getApplication().getInstance().streamingCluster()
         );
 
 
@@ -162,6 +160,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 ((DefaultAgentNode) agent).getResourcesSpec().size()
         ));
         agentSpec.setAgentConfigSecretRef(secretName);
+        agentSpec.setCodeArchiveId(codeStorageArchiveId);
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(SerializationUtil.writeAsJsonBytes(secret.getData()));
         agentSpec.setAgentConfigSecretRefChecksum(bytesToHex(hash));

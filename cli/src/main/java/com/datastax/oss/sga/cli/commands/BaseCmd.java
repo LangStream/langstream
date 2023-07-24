@@ -1,7 +1,9 @@
 package com.datastax.oss.sga.cli.commands;
 
 import com.datastax.oss.sga.cli.SgaCLIConfig;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
 import java.io.IOException;
@@ -16,17 +18,38 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Formatter;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
+import org.apache.commons.beanutils.PropertyUtils;
 import picocli.CommandLine;
 
 public abstract class BaseCmd implements Runnable {
 
+    public enum Formats {
+        raw,
+        json,
+        yaml
+    }
 
-    protected final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
+    protected static final ObjectMapper yamlConfigReader = new ObjectMapper(new YAMLFactory());
+    protected static final ObjectMapper jsonPrinter = new ObjectMapper()
+            .enable(SerializationFeature.INDENT_OUTPUT)
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    protected static final ObjectMapper yamlPrinter = new ObjectMapper(new YAMLFactory())
+            .enable(SerializationFeature.INDENT_OUTPUT)
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
 
     @CommandLine.Spec
     protected CommandLine.Model.CommandSpec command;
+
     protected abstract RootCmd getRootCmd();
 
     private HttpClient httpClient;
@@ -50,7 +73,7 @@ public abstract class BaseCmd implements Runnable {
             if (!configFile.exists()) {
                 throw new IllegalStateException("Config file not found: " + configFile);
             }
-            config = objectMapper.readValue(configFile, SgaCLIConfig.class);
+            config = yamlConfigReader.readValue(configFile, SgaCLIConfig.class);
             overrideFromEnv(config);
         }
         return config;
@@ -60,7 +83,7 @@ public abstract class BaseCmd implements Runnable {
     protected void updateConfig(Consumer<SgaCLIConfig> consumer) {
         consumer.accept(getConfig());
         File configFile = computeConfigFile();
-        Files.write(configFile.toPath(), objectMapper.writeValueAsBytes(config));
+        Files.write(configFile.toPath(), yamlConfigReader.writeValueAsBytes(config));
     }
 
     private File computeConfigFile() {
@@ -132,13 +155,13 @@ public abstract class BaseCmd implements Runnable {
 
     protected HttpRequest newGet(String uri) {
         return HttpRequest.newBuilder()
-                        .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
                 .version(HttpClient.Version.HTTP_1_1)
                 .GET()
                 .build();
     }
 
-    protected HttpRequest newDependencyGet(URL uri) throws URISyntaxException  {
+    protected HttpRequest newDependencyGet(URL uri) throws URISyntaxException {
         return HttpRequest.newBuilder()
                 .uri(uri.toURI())
                 .version(HttpClient.Version.HTTP_1_1)
@@ -187,4 +210,100 @@ public abstract class BaseCmd implements Runnable {
             log(log);
         }
     }
+
+    protected void print(Formats format, Object body, String... columnsForRaw) {
+        print(format, body, columnsForRaw, (node, column) -> node.get(column));
+    }
+
+    @SneakyThrows
+    protected void print(Formats format, Object body, String[] columnsForRaw, BiFunction<JsonNode, String, Object> valueSupplier) {
+        if (body == null) {
+            return;
+        }
+        final String stringBody = body.toString();
+
+
+        final JsonNode readValue = jsonPrinter.readValue(stringBody, JsonNode.class);
+        switch (format) {
+            case json:
+                log(jsonPrinter.writeValueAsString(readValue));
+                break;
+            case yaml:
+                log(yamlPrinter.writeValueAsString(readValue));
+                break;
+            case raw:
+            default: {
+                printRawHeader(columnsForRaw);
+                if (readValue.isArray()) {
+                    readValue.elements()
+                            .forEachRemaining(element -> printRawRow(element, columnsForRaw, valueSupplier));
+                } else {
+                    printRawRow(readValue, columnsForRaw, valueSupplier);
+                }
+                break;
+            }
+        }
+    }
+
+    private void printRawHeader(String[] columnsForRaw) {
+        final String template = computeFormatTemplate(columnsForRaw.length);
+        final Object[] columns = Arrays.stream(columnsForRaw)
+                .map(String::toUpperCase)
+                .collect(Collectors.toList()).stream().toArray();
+        final String header = String.format(template, columns);
+        log(header);
+    }
+
+    private void printRawRow(JsonNode readValue, String[] columnsForRaw, BiFunction<JsonNode, String, Object> valueSupplier) {
+        final int numColumns = columnsForRaw.length;
+        String formatTemplate = computeFormatTemplate(numColumns);
+
+        String[] row = new String[numColumns];
+        for (int i = 0; i < numColumns; i++) {
+            final String column = columnsForRaw[i];
+            String strColumn;
+
+            final Object appliedValue = valueSupplier.apply(readValue, column);
+            if (appliedValue instanceof JsonNode) {
+                final JsonNode columnValue = (JsonNode) appliedValue;
+                if (columnValue == null || columnValue.isNull()) {
+                    strColumn = "";
+                } else {
+                    strColumn = columnValue.asText();
+                }
+            } else {
+                if (appliedValue == null) {
+                    strColumn = "";
+                } else {
+                    strColumn = appliedValue.toString();
+                }
+            }
+            row[i] = strColumn;
+        }
+        final String result = String.format(formatTemplate, row);
+        log(result);
+    }
+
+    private String computeFormatTemplate(int numColumns) {
+        String formatTemplate = "";
+        for (int i = 0; i < numColumns; i++) {
+            if (i > 0) {
+                formatTemplate += "  ";
+            }
+            formatTemplate += "%-15.15s";
+        }
+        return formatTemplate;
+    }
+
+
+    @SneakyThrows
+    protected static Object searchValueInJson(Object jsonNode, String path) {
+        return searchValueInJson((Map<String, Object>)jsonPrinter.convertValue(jsonNode, Map.class), path);
+    }
+
+    @SneakyThrows
+    protected static Object searchValueInJson(Map<String, Object> jsonNode, String path) {
+        return PropertyUtils.getProperty(jsonNode, path);
+    }
+
 }

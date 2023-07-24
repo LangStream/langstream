@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +54,8 @@ public class ApplicationResource {
 
     @GetMapping("/{tenant}")
     @Operation(summary = "Get all applications")
-    Map<String, StoredApplication> getApplications(@NotBlank @PathVariable("tenant") String tenant) {
-        return applicationService.getAllApplications(tenant);
+    Collection<StoredApplication> getApplications(@NotBlank @PathVariable("tenant") String tenant) {
+        return applicationService.getAllApplications(tenant).values();
     }
 
     @PostMapping(value = "/{tenant}/{name}", consumes = "multipart/form-data")
@@ -149,6 +150,9 @@ public class ApplicationResource {
 
         final List<ApplicationStore.PodLogHandler> podLogs =
                 applicationService.getPodLogs(tenant, name, new ApplicationStore.LogOptions(filterReplicas.orElse(null)));
+        if (podLogs.isEmpty()) {
+            return Flux.empty();
+        }
         return Flux.create((Consumer<FluxSink<String>>) fluxSink -> {
             for (ApplicationStore.PodLogHandler podLog : podLogs) {
                 logsThreadPool.submit(() -> {

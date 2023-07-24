@@ -2,6 +2,12 @@
 pyYaml = "*"
 confluent-kafka = "*"
 
+[full]
+"openai[embeddings]" = "*"
+"openai[datalib]" = "*"
+"openai[wandb]" = "*"
+langchain = "*"
+
 [dev-packages]
 tox = "*"
 pytest = "*"

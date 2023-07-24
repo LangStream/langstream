@@ -55,12 +55,13 @@ public class AgentCodeDownloader {
         if (codeStorageConfig != null) {
             log.info("Downloading custom code from {}", codeStorageConfig);
             log.info("Custom code is stored in {}", AgentRunner.CODE_DIRECTORY);
-            CodeStorage codeStorage =
-                    CodeStorageRegistry.getCodeStorage(codeStorageConfig.type(), codeStorageConfig.configuration());
-            codeStorage.downloadApplicationCode(codeStorageConfig.tenant(),
-                    codeStorageConfig.codeStorageArchiveId(), (downloadedCodeArchive -> {
-                        downloadedCodeArchive.extractTo(AgentRunner.CODE_DIRECTORY);
-                    }));
+            try (CodeStorage codeStorage =
+                    CodeStorageRegistry.getCodeStorage(codeStorageConfig.type(), codeStorageConfig.configuration());) {
+                codeStorage.downloadApplicationCode(codeStorageConfig.tenant(),
+                        codeStorageConfig.codeStorageArchiveId(), (downloadedCodeArchive -> {
+                            downloadedCodeArchive.extractTo(AgentRunner.CODE_DIRECTORY);
+                        }));
+            }
         }
     }
 }

@@ -53,6 +53,10 @@ public class NoopCodeStorageProvider implements CodeStorageProvider {
             public void deleteApplication(String tenant, String application) throws CodeStorageException {
 
             }
+
+            @Override
+            public void close() {
+            }
         };
     }
 

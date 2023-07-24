@@ -97,14 +97,14 @@ class KubernetesApplicationStoreLogsTest {
     private static AgentCustomResource agentCustomResource(final String tenant, final String applicationId) {
 
         final String agentId = "agent111";
-        final String agentCustomResourceName = AgentResourcesFactory.getAgentCustomResourceName("my-app", "agent-id");
+        final String agentCustomResourceName = AgentResourcesFactory.getAgentCustomResourceName(applicationId, agentId);
 
         k3s.getClient()
                 .resource(AgentResourcesFactory.generateAgentSecret(agentCustomResourceName, new RuntimePodConfiguration(
                         Map.of("input", Map.of("is_input", true)),
                         Map.of("output", Map.of("is_output", true)),
                         new AgentSpec(AgentSpec.ComponentType.FUNCTION, "my-tenant",
-                                "agent-id", "my-app", "fn-type", Map.of("config", true)),
+                                agentId, "my-app", "fn-type", Map.of("config", true)),
                         new StreamingCluster("noop", Map.of("config", true)),
                         new CodeStorageConfig("none", "", Map.of())
 

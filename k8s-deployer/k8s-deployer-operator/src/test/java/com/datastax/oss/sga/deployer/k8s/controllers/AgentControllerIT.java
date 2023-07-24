@@ -29,11 +29,16 @@ public class AgentControllerIT {
 
     @Test
     void testAgentController() throws Exception {
+        final KubernetesClient client = deployment.getClient();
         final String namespace = "sga-my-tenant";
+        client.resource(new NamespaceBuilder()
+                .withNewMetadata()
+                .withName(namespace)
+                .endMetadata().build()).serverSideApply();
 
         final String agentCustomResourceName = AgentResourcesFactory.getAgentCustomResourceName("my-app", "agent-id");
 
-        deployment.getClient()
+        client
                 .resource(AgentResourcesFactory.generateAgentSecret(agentCustomResourceName, new RuntimePodConfiguration(
                         Map.of("input", Map.of("is_input", true)),
                         Map.of("output", Map.of("is_output", true)),
@@ -60,12 +65,9 @@ public class AgentControllerIT {
                     agentConfigSecretRefChecksum: xx
                     tenant: my-tenant
                 """.formatted(agentCustomResourceName, agentCustomResourceName));
-        final KubernetesClient client = deployment.getClient();
 
-        client.resource(new NamespaceBuilder()
-                .withNewMetadata()
-                .withName(namespace)
-                .endMetadata().build()).serverSideApply();
+
+
         client.resource(resource).inNamespace(namespace).create();
 
         Awaitility.await().untilAsserted(() -> {

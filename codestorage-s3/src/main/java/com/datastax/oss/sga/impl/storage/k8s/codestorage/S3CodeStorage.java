@@ -164,10 +164,12 @@ public class S3CodeStorage implements CodeStorage {
         if (httpClient != null) {
             httpClient.dispatcher().executorService().shutdown();
             httpClient.connectionPool().evictAll();
-            try {
-                httpClient.cache().close();
-            } catch (IOException e) {
-                log.error("Error closing okhttpclient", e);
+            if (httpClient.cache() != null) {
+                try {
+                    httpClient.cache().close();
+                } catch (IOException e) {
+                    log.error("Error closing okhttpclient", e);
+                }
             }
         }
 

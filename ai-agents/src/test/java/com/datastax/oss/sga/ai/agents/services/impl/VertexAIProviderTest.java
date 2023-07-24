@@ -11,8 +11,6 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
@@ -24,7 +22,6 @@ class VertexAIProviderTest {
 
     @Test
     void testCallEmbeddings(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-        // The static DSL will be automatically configured for you
         stubFor(post("/v1/projects/the-project/locations/us-central1/publishers/google/models/textembedding-gecko:predict")
                 .willReturn(okJson(""" 
                    {
@@ -42,12 +39,7 @@ class VertexAIProviderTest {
                     }
                 """)));
 
-        // Instance DSL can be obtained from the runtime info parameter
         WireMock wireMock = wmRuntimeInfo.getWireMock();
-        wireMock.register(get("/instance-dsl").willReturn(ok()));
-
-        // Info such as port numbers is also available
-        int port = wmRuntimeInfo.getHttpPort();
 
         VertexAIProvider provider = new VertexAIProvider();
         ServiceProvider implementation = provider.createImplementation(

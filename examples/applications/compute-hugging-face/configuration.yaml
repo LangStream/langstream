@@ -1,0 +1,6 @@
+configuration:
+  resources:
+    - type: "hugging-face-configuration"
+      name: "Hugging Face AI configuration"
+      configuration:
+        access-key: "{{ secrets.hugging-face.access-key }}"

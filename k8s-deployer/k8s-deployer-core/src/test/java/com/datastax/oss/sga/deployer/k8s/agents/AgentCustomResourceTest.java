@@ -99,7 +99,7 @@ class AgentCustomResourceTest {
                     imagePullPolicy: IfNotPresent
                     agentConfigSecretRef: %s
                     agentConfigSecretRefChecksum: xx
-                """.formatted(name, tenant, agentId, name));
+                """.formatted(name, tenant, applicationId, agentId, name));
         resource.getMetadata().setLabels(AgentResourcesFactory.getAgentLabels(agentId, applicationId));
         k3s.getClient().resource(resource).inNamespace(namespace).serverSideApply();
         resource = k3s.getClient().resource(resource).inNamespace(namespace).get();

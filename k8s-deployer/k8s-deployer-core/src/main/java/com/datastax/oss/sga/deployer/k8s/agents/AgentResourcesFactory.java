@@ -254,18 +254,15 @@ public class AgentResourcesFactory {
         Map<String, ApplicationStatus.AgentStatus> agents = new HashMap<>();
 
         for (String declaredAgent : declaredAgents) {
-
-            ApplicationStatus.AgentStatus agentStatus = new ApplicationStatus.AgentStatus();
             final AgentCustomResource cr = agentCustomResources.get(declaredAgent);
             if (cr == null) {
-                agentStatus.setStatus(AgentLifecycleStatus.DEPLOYING);
-            } else {
+                continue;
+            }
+            ApplicationStatus.AgentStatus agentStatus = new ApplicationStatus.AgentStatus();
                 agentStatus.setStatus(cr.getStatus().getStatus());
                 Map<String, ApplicationStatus.AgentWorkerStatus> podStatuses =
                         getPodStatuses(client, applicationId, namespace, declaredAgent);
                 agentStatus.setWorkers(podStatuses);
-
-            }
 
             agents.put(declaredAgent, agentStatus);
         }

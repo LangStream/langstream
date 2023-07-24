@@ -10,6 +10,7 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.concurrent.ExecutionException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -55,8 +56,31 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         }
     }
 
+    @SneakyThrows
     private void deployTopic(AdminClient admin, KafkaTopic topic) {
-        admin.createTopics(List.of(new NewTopic(topic.name(), topic.partitions(), (short) 1)));
+        try {
+            switch (topic.createMode()) {
+                case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
+                    log.info("Creating topic {}", topic.name());
+                    admin.createTopics(List.of(new NewTopic(topic.name(), topic.partitions(), (short) 1)))
+                            .all()
+                            .get();
+                    break;
+                }
+                case TopicDefinition.CREATE_MODE_NONE: {
+                    // do nothing
+                    break;
+                }
+                default:
+                    throw new IllegalArgumentException("Unknown create mode " + topic.createMode());
+            }
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof org.apache.kafka.common.errors.TopicExistsException) {
+                log.info("Topic {} already exists", topic.name());
+            } else {
+                throw e;
+            }
+        }
         // TODO: schema
     }
 

@@ -93,6 +93,8 @@ public class AppResourcesFactory {
                 .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(applicationCustomResource))
                 .endMetadata()
                 .withNewSpec()
+                // only 1 attempt but keep the pod so we debug the logs
+                .withBackoffLimit(1)
                 .withNewTemplate()
                 .withNewMetadata()
                 .withLabels(labels)
@@ -116,7 +118,7 @@ public class AppResourcesFactory {
                 )
                 .withInitContainers(List.of(initContainer))
                 .withContainers(List.of(container))
-                .withRestartPolicy("OnFailure")
+                .withRestartPolicy("Never")
                 .endSpec()
                 .endTemplate()
                 .endSpec()

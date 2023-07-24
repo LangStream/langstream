@@ -104,9 +104,9 @@ public class KubeUtil {
                     .getInitContainerStatuses();
             if (initContainerStatuses != null && !initContainerStatuses.isEmpty()) {
                 for (ContainerStatus containerStatus : initContainerStatuses) {
-                    status = getStatusFromContainerState(containerStatus.getLastState());
+                    status = getStatusFromContainerState(containerStatus.getLastState(), true);
                     if (status == null) {
-                        status = getStatusFromContainerState(containerStatus.getState());
+                        status = getStatusFromContainerState(containerStatus.getState(), true);
                     }
                 }
             }
@@ -119,9 +119,9 @@ public class KubeUtil {
                 } else {
                     // only one container per pod
                     final ContainerStatus containerStatus = containerStatuses.get(0);
-                    status = getStatusFromContainerState(containerStatus.getLastState());
+                    status = getStatusFromContainerState(containerStatus.getLastState(), false);
                     if (status == null) {
-                        status = getStatusFromContainerState(containerStatus.getState());
+                        status = getStatusFromContainerState(containerStatus.getState(), false);
                     }
                     if (status == null) {
                         status = PodStatus.RUNNING;
@@ -135,11 +135,14 @@ public class KubeUtil {
     }
 
 
-    private static PodStatus getStatusFromContainerState(ContainerState state) {
+    private static PodStatus getStatusFromContainerState(ContainerState state, boolean isInit) {
         if (state == null) {
             return null;
         }
         if (state.getTerminated() != null) {
+            if (isInit && state.getTerminated().getReason().equals("Completed")) {
+                return null;
+            }
             if (state.getTerminated().getMessage() != null) {
                 return new PodStatus(PodStatus.State.ERROR, state.getTerminated().getMessage());
             } else {

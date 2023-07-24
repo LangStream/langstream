@@ -215,7 +215,7 @@ class ApplicationResourceTest {
                         get("/api/applications/my-tenant")
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.test.applicationId").value("test"));
+                .andExpect(jsonPath("$.[0].applicationId").value("test"));
 
         mockMvc
                 .perform(

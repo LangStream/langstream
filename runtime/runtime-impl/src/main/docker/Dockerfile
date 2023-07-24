@@ -37,7 +37,7 @@ RUN mkdir /app && chmod g+w /app
 ADD maven/Pipfile.lock /app/Pipfile.lock
 
 # install python runtime deps
-RUN cd /app && pipenv requirements > /app/requirements.txt \
+RUN cd /app && pipenv requirements --categories="packages full" > /app/requirements.txt \
     && python3 -m pip install -r /app/requirements.txt
 
 ENV PYTHONPATH="$PYTHONPATH:/app/sga_runtime"

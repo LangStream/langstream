@@ -1,0 +1,16 @@
+module: "module-1"
+id: "pipeline-1"
+name: "Embeddings processor"
+topics:
+  - name: "input-topic"
+    creation-mode: create-if-not-exists
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "OpenAI Embeddings"
+    type: "python-function"
+    input: "input-topic"
+    output: "output-topic"
+    configuration:
+      className: embeddings.Embedding
+      openaiKey: "{{ secrets.open-ai.access-key }}"

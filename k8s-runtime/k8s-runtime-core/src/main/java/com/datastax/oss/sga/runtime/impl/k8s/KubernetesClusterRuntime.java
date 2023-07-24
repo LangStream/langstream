@@ -5,13 +5,21 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
+import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
+import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
-import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
+import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
+import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Base64;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
@@ -42,45 +50,54 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
 
     @Override
     @SneakyThrows
-    public Object deploy(String tenant, ExecutionPlan applicationInstance,
+    public Object deploy(String tenant,
+                         ExecutionPlan applicationInstance,
                          StreamingClusterRuntime streamingClusterRuntime,
                          String codeStorageArchiveId) {
         streamingClusterRuntime.deploy(applicationInstance);
-
-        List<PodAgentConfiguration> configs = buildPodAgentConfigurations(applicationInstance, streamingClusterRuntime, codeStorageArchiveId);
+        List<AgentCustomResource> agentCustomResources = new ArrayList<>();
+        List<Secret> secrets = new ArrayList<>();
+        collectAgentCustomResourcesAndSecrets(tenant, agentCustomResources, secrets, applicationInstance, streamingClusterRuntime,
+                        codeStorageArchiveId);
         final String namespace = computeNamespace(tenant);
 
-        for (PodAgentConfiguration podAgentConfiguration : configs) {
-
-            final AgentCustomResource agentCustomResource = AgentResourcesFactory.generateAgentCustomResource(
-                    applicationInstance.getApplicationId(),
-                    podAgentConfiguration.agentConfiguration().agentId(),
-                    tenant,
-                    podAgentConfiguration
-            );
-            client.resource(agentCustomResource).inNamespace(namespace).serverSideApply();
-            log.info("Created CRD {} with spec {}",
-                    agentCustomResource.getMetadata().getName(), agentCustomResource.getSpec());
+        for (Secret secret : secrets) {
+            client.resource(secret).inNamespace(namespace).serverSideApply();
+            log.info("Created secret for agent {}",
+                    secret.getMetadata().getName());
         }
-        return configs;
+
+        for (AgentCustomResource agentCustomResource : agentCustomResources) {
+            client.resource(agentCustomResource).inNamespace(namespace).serverSideApply();
+            log.info("Created custom resource for agent {}",
+                    agentCustomResource.getMetadata().getName());
+        }
+        return null;
     }
 
-    private List<PodAgentConfiguration> buildPodAgentConfigurations(ExecutionPlan applicationInstance,
-                                                                           StreamingClusterRuntime streamingClusterRuntime,
-                                                                           String codeStorageArchiveId) {
-        List<PodAgentConfiguration> agents = new ArrayList<>();
+    private void collectAgentCustomResourcesAndSecrets(
+            String tenant,
+            List<AgentCustomResource> agentsCustomResourceDefinitions,
+            List<Secret> secrets,
+            ExecutionPlan applicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime,
+            String codeStorageArchiveId) {
         for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
-            buildPodAgentConfiguration(agents, agentImplementation, streamingClusterRuntime,
+            collectAgentCustomResourceAndSecret(tenant, agentsCustomResourceDefinitions,
+                    secrets, agentImplementation, streamingClusterRuntime,
                     applicationInstance, codeStorageArchiveId);
         }
-        return agents;
     }
 
-    private void buildPodAgentConfiguration(List<PodAgentConfiguration> agentsCustomResourceDefinitions,
-                                                   AgentNode agent,
-                                                   StreamingClusterRuntime streamingClusterRuntime,
-                                                   ExecutionPlan applicationInstance,
-                                                   String codeStorageArchiveId) {
+    @SneakyThrows
+    private void collectAgentCustomResourceAndSecret(
+            String tenant,
+            List<AgentCustomResource> agentsCustomResourceDefinitions,
+            List<Secret> secrets,
+            AgentNode agent,
+            StreamingClusterRuntime streamingClusterRuntime,
+            ExecutionPlan applicationInstance,
+            String codeStorageArchiveId) {
         log.info("Building configuration for Agent {}, codeStorageArchiveId {}", agent, codeStorageArchiveId);
         if (!(agent instanceof DefaultAgentNode)) {
             throw new UnsupportedOperationException("Only default agent implementations are supported");
@@ -107,44 +124,90 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     defaultAgentImplementation.getOutputConnection());
         }
 
-
-        final PodAgentConfiguration.ResourcesConfiguration resources =
-                new PodAgentConfiguration.ResourcesConfiguration(
-                        ((DefaultAgentNode) agent).getResourcesSpec().parallelism(),
-                        ((DefaultAgentNode) agent).getResourcesSpec().size());
+        final String secretName =
+                AgentResourcesFactory.getAgentCustomResourceName(applicationInstance.getApplicationId(), agent.getId());
 
 
-        PodAgentConfiguration crd = new PodAgentConfiguration(
-                configuration.getImage(),
-                configuration.getImagePullPolicy(),
-                resources,
+
+        RuntimePodConfiguration podConfig = new RuntimePodConfiguration(
                 inputConfiguration,
                 outputConfiguration,
-                new PodAgentConfiguration.AgentConfiguration(defaultAgentImplementation.getId(),
+                new com.datastax.oss.sga.runtime.api.agent.AgentSpec(
+                        com.datastax.oss.sga.runtime.api.agent.AgentSpec.ComponentType.valueOf(
+                                defaultAgentImplementation.getComponentType().name()
+                        ),
+                        tenant,
+                        defaultAgentImplementation.getId(),
+                        applicationInstance.getApplicationId(),
                         defaultAgentImplementation.getAgentType(),
-                        defaultAgentImplementation.getComponentType().name(),
-                        defaultAgentImplementation.getConfiguration()),
+                        defaultAgentImplementation.getConfiguration()
+                ),
                 applicationInstance.getApplication().getInstance().streamingCluster(),
-                new PodAgentConfiguration.CodeStorageConfiguration(codeStorageArchiveId)
+                new CodeStorageConfig(null,
+                        codeStorageArchiveId, Map.of())
         );
 
-        agentsCustomResourceDefinitions.add(crd);
+
+        final Secret secret = AgentResourcesFactory.generateAgentSecret(
+                AgentResourcesFactory.getAgentCustomResourceName(applicationInstance.getApplicationId(), agent.getId()),
+                podConfig);
+
+        final AgentSpec agentSpec = new AgentSpec();
+        agentSpec.setTenant(tenant);
+        agentSpec.setApplicationId(applicationInstance.getApplicationId());
+        agentSpec.setImage(configuration.getImage());
+        agentSpec.setImagePullPolicy(configuration.getImagePullPolicy());
+        agentSpec.setResources(new AgentSpec.Resources(
+                ((DefaultAgentNode) agent).getResourcesSpec().parallelism(),
+                ((DefaultAgentNode) agent).getResourcesSpec().size()
+        ));
+        agentSpec.setAgentConfigSecretRef(secretName);
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(SerializationUtil.writeAsJsonBytes(secret.getData()));
+        agentSpec.setAgentConfigSecretRefChecksum(bytesToHex(hash));
+
+
+        final AgentCustomResource agentCustomResource = AgentResourcesFactory.generateAgentCustomResource(
+                applicationInstance.getApplicationId(),
+                agent.getId(),
+                agentSpec
+        );
+
+        agentsCustomResourceDefinitions.add(agentCustomResource);
+        secrets.add(secret);
+    }
+
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (int i = 0; i < hash.length; i++) {
+            String hex = Integer.toHexString(0xff & hash[i]);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     @Override
-    public void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime, String codeStorageArchiveId) {
-        List<PodAgentConfiguration> agents = buildPodAgentConfigurations(applicationInstance, streamingClusterRuntime, codeStorageArchiveId);
+    public void delete(String tenant, ExecutionPlan applicationInstance,
+                       StreamingClusterRuntime streamingClusterRuntime, String codeStorageArchiveId) {
+        List<AgentCustomResource> agentCustomResources = new ArrayList<>();
+        List<Secret> secrets = new ArrayList<>();
+        collectAgentCustomResourcesAndSecrets(tenant, agentCustomResources, secrets, applicationInstance, streamingClusterRuntime,
+                codeStorageArchiveId);
         final String namespace = computeNamespace(tenant);
-        for (PodAgentConfiguration agent : agents) {
-            final String agentCustomResourceName =
-                    AgentResourcesFactory.getAgentCustomResourceName(applicationInstance.getApplicationId(),
-                            agent.agentConfiguration().agentId());
-            client.resources(AgentCustomResource.class)
-                    .inNamespace(namespace)
-                    .withName(agentCustomResourceName)
-                    .delete();
-            log.info("Deleted agent {}", agentCustomResourceName);
 
+        for (Secret secret : secrets) {
+            client.resource(secret).inNamespace(namespace).delete();
+            log.info("Deleted secret for agent {}",
+                    secret.getMetadata().getName());
+        }
+
+        for (AgentCustomResource agentCustomResource : agentCustomResources) {
+            client.resource(agentCustomResource).inNamespace(namespace).delete();
+            log.info("Delete custom resource for agent {}",
+                    agentCustomResource.getMetadata().getName());
         }
     }
 

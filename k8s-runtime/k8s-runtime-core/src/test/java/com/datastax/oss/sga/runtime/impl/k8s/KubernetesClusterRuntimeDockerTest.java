@@ -3,17 +3,23 @@ package com.datastax.oss.sga.runtime.impl.k8s;
 import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Secret;
+import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.Connection;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
+import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
+import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +66,8 @@ class KubernetesClusterRuntimeDockerTest {
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
         final String tenant = "tenant";
         final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-" + tenant, "app-step1");
+        final Map<String, io.fabric8.kubernetes.api.model.Secret> secrets =
+                kubeServer.spyAgentCustomResourcesSecrets("sga-" + tenant, "app-step1");
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -136,22 +144,41 @@ class KubernetesClusterRuntimeDockerTest {
         final AgentCustomResource agent = agentsCRs.values().iterator().next();
 
         assertEquals(tenant, agent.getSpec().getTenant());
-        assertEquals(agent.getSpec().getConfiguration(), ("{\"image\":\"datastax/sga-generic-agent:latest\",\"imagePullPolicy\":\"Never\","
-                + "\"resources\":{\"parallelism\":1,\"size\":1},\"input\":{\"auto.offset.reset\":\"earliest\",\"group"
-                + ".id\":\"sga-agent-step1\",\"key.deserializer\":\"org.apache.kafka.common.serialization"
-                + ".StringDeserializer\",\"topic\":\"input-topic\",\"value.deserializer\":\"org.apache.kafka.common"
-                + ".serialization.StringDeserializer\"},\"output\":{\"key.serializer\":\"org.apache.kafka.common"
-                + ".serialization.StringSerializer\",\"topic\":\"output-topic\",\"value.serializer\":\"org.apache"
-                + ".kafka.common.serialization.StringSerializer\"},\"agentConfiguration\":{\"agentId\":\"step1\","
-                + "\"agentType\":\"ai-tools\",\"componentType\":\"FUNCTION\","
-                + "\"configuration\":{\"openai\":{\"access-key\":\"xxcxcxc\",\"provider\":\"azure\","
-                + "\"url\":\"http://something\"},\"steps\":[{\"embeddings-field\":\"value.embeddings\","
-                + "\"model\":\"text-embedding-ada-002\",\"text\":\"{{ value.name }} {{ value.description }}\","
-                + "\"type\":\"compute-ai-embeddings\"}]}},\"streamingCluster\":{\"type\":\"kafka\","
-                + "\"configuration\":{\"admin\":{\"bootstrap.servers\":\"PLAINTEXT://localhost:%d\"}}},"
-                + "\"codeStorage\":{\"codeStorageArchiveId\":null}}").formatted(kafkaContainer.getFirstMappedPort()), agent.getSpec().getConfiguration());
+        assertEquals("datastax/sga-generic-agent:latest", agent.getSpec().getImage());
+        assertEquals("Never", agent.getSpec().getImagePullPolicy());
+        assertEquals("step1", agent.getSpec().getAgentId());
+        assertEquals("app", agent.getSpec().getApplicationId());
+        assertEquals("app-step1", agent.getSpec().getAgentConfigSecretRef());
 
-
+        assertEquals(1, secrets.size());
+        final RuntimePodConfiguration runtimePodConfiguration =
+                AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secrets.values().iterator().next());
+        assertEquals(Map.of("auto.offset.reset", "earliest",
+                "group.id", "sga-agent-step1",
+                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "topic", "input-topic"), runtimePodConfiguration.input());
+        assertEquals(Map.of(
+                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "topic", "output-topic"
+        ), runtimePodConfiguration.output());
+        assertEquals(new AgentSpec(AgentSpec.ComponentType.FUNCTION, tenant, "step1", "app", "ai-tools", Map.of(
+                "steps", List.of(Map.of(
+                        "type", "compute-ai-embeddings",
+                        "model", "text-embedding-ada-002",
+                        "embeddings-field", "value.embeddings",
+                        "text", "{{ value.name }} {{ value.description }}"
+                )),
+                "openai", Map.of(
+                        "url", "http://something",
+                        "access-key", "xxcxcxc",
+                        "provider", "azure"
+                )
+        )), runtimePodConfiguration.agent());
+        assertEquals(new StreamingCluster("kafka", Map.of("admin", Map.of("bootstrap.servers", "PLAINTEXT://localhost:%d".formatted(kafkaContainer.getFirstMappedPort())))),
+                runtimePodConfiguration.streamingCluster());
+        assertEquals(new CodeStorageConfig(null, null, Map.of()), runtimePodConfiguration.codeStorage());
     }
 
 

@@ -15,7 +15,9 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource
 import com.datastax.oss.sga.deployer.k8s.apps.AppResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
-import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
+import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
+import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
+import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.OwnerReference;
@@ -95,25 +97,37 @@ class KubernetesApplicationStoreLogsTest {
     private static AgentCustomResource agentCustomResource(final String tenant, final String applicationId) {
 
         final String agentId = "agent111";
-        final PodAgentConfiguration podConf = new PodAgentConfiguration(
-                "busybox",
-                "IfNotPresent",
-                new PodAgentConfiguration.ResourcesConfiguration(2, 1),
-                Map.of("input", Map.of("is_input", true)),
-                Map.of("output", Map.of("is_output", true)),
-                new PodAgentConfiguration.AgentConfiguration(agentId, "my-agent", "FUNCTION", Map.of("config", true)),
-                new StreamingCluster("noop", Map.of("config", true)),
-                new PodAgentConfiguration.CodeStorageConfiguration("code-storage-id")
-        );
+        final String agentCustomResourceName = AgentResourcesFactory.getAgentCustomResourceName(applicationId, agentId);
+
+        k3s.getClient()
+                .resource(AgentResourcesFactory.generateAgentSecret(agentCustomResourceName, new RuntimePodConfiguration(
+                        Map.of("input", Map.of("is_input", true)),
+                        Map.of("output", Map.of("is_output", true)),
+                        new AgentSpec(AgentSpec.ComponentType.FUNCTION, "my-tenant",
+                                agentId, "my-app", "fn-type", Map.of("config", true)),
+                        new StreamingCluster("noop", Map.of("config", true)),
+                        new CodeStorageConfig("none", "", Map.of())
+
+                )))
+                .inNamespace("sga-" + tenant)
+                .serverSideApply();
+
         return SerializationUtil.readYaml("""
                 apiVersion: sga.oss.datastax.com/v1alpha1
                 kind: Agent
                 metadata:
                   name: %s
                 spec:
-                    configuration: '%s'
                     tenant: %s
                     applicationId: %s
-                """.formatted(applicationId + "-" + agentId, SerializationUtil.writeAsJson(podConf), tenant, applicationId), AgentCustomResource.class);
+                    agentId: %s
+                    image: "busybox"
+                    imagePullPolicy: IfNotPresent
+                    agentConfigSecretRef: %s
+                    agentConfigSecretRefChecksum: xx
+                    resources:
+                        size: 1
+                        parallelism: 2
+                """.formatted(agentCustomResourceName, tenant, applicationId, agentId, agentCustomResourceName), AgentCustomResource.class);
     }
 }

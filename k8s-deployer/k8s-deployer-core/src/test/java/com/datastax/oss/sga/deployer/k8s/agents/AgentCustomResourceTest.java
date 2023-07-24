@@ -5,9 +5,10 @@ import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
+import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
-import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
+import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.mockito.Mockito;
 
 class AgentCustomResourceTest {
 
@@ -44,7 +46,7 @@ class AgentCustomResourceTest {
                     agentStatus.getWorkers().get("my-app-agent-id-0");
             assertEquals(ApplicationStatus.AgentWorkerStatus.Status.ERROR, workerStatus.getStatus());
             assertEquals("failed to create containerd task: failed to create shim task: OCI runtime create failed: "
-                    + "runc create failed: unable to start container process: exec: \"bash\": executable file not "
+                    + "runc create failed: unable to start container process: exec: \"agent-runtime\": executable file not "
                     + "found in $PATH: unknown", workerStatus.getReason());
 
         });
@@ -78,27 +80,26 @@ class AgentCustomResourceTest {
                 .inNamespace(namespace)
                 .serverSideApply();
 
-        final PodAgentConfiguration podConf = new PodAgentConfiguration(
-                "busybox",
-                "IfNotPresent",
-                new PodAgentConfiguration.ResourcesConfiguration(1, 1),
-                Map.of("input", Map.of("is_input", true)),
-                Map.of("output", Map.of("is_output", true)),
-                new PodAgentConfiguration.AgentConfiguration(agentId, "my-agent", "FUNCTION", Map.of("config", true)),
-                new StreamingCluster("noop", Map.of("config", true)),
-                new PodAgentConfiguration.CodeStorageConfiguration("code-storage-id")
-        );
+        final String name = AgentResourcesFactory.getAgentCustomResourceName(applicationId, agentId);
+
+        k3s.getClient()
+                .resource(AgentResourcesFactory.generateAgentSecret(name, Mockito.mock(RuntimePodConfiguration.class)))
+                .inNamespace(namespace)
+                .serverSideApply();
         AgentCustomResource resource = getCr("""
                 apiVersion: sga.oss.datastax.com/v1alpha1
                 kind: Agent
                 metadata:
                   name: %s
                 spec:
-                    configuration: '%s'
                     tenant: %s
                     applicationId: %s
-                """.formatted(applicationId + "-" + agentId, SerializationUtil.writeAsJson(podConf), tenant,
-                applicationId));
+                    agentId: %s
+                    image: "busybox"
+                    imagePullPolicy: IfNotPresent
+                    agentConfigSecretRef: %s
+                    agentConfigSecretRefChecksum: xx
+                """.formatted(name, tenant, applicationId, agentId, name));
         resource.getMetadata().setLabels(AgentResourcesFactory.getAgentLabels(agentId, applicationId));
         k3s.getClient().resource(resource).inNamespace(namespace).serverSideApply();
         resource = k3s.getClient().resource(resource).inNamespace(namespace).get();

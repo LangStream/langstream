@@ -8,6 +8,7 @@ import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
+import com.datastax.oss.sga.api.runner.code.CommitFunction;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
@@ -30,6 +31,7 @@ import java.net.URLClassLoader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -242,8 +244,14 @@ public class AgentRunner
             while ((maxLoops < 0) || (maxLoops-- > 0)) {
                 if (records != null && !records.isEmpty()) {
                     try {
-                        List<Record> outputRecords = function.process(records);
-                        sink.write(outputRecords);
+                        List<Record> recordBatch = records;
+                        List<Record> outputRecords = function.process(recordBatch);
+                        sink.write(outputRecords, (committedRecords) -> {
+                            // the records passed to the Sink may not be the same read from the source
+                            // as there is a transformation in the middle
+                            List<Record> originalRecords = computeOriginalRecords(recordBatch, committedRecords);
+                            source.commit(originalRecords);
+                        });
                     } catch (Throwable e) {
                         log.error("Error while processing records", e);
 
@@ -253,7 +261,6 @@ public class AgentRunner
                     }
                     // commit
                 }
-                source.commit();
                 records = source.read();
             }
         } finally {
@@ -261,6 +268,19 @@ public class AgentRunner
             source.close();
             sink.close();
         }
+    }
+
+    private static List<Record> computeOriginalRecords(List<Record> originalRecords, List<Record> committedRecords) {
+        List<Record> result = new ArrayList<>();
+        for (Record originalRecord :originalRecords) {
+            for (Record committed : committedRecords) {
+                if (committed == originalRecord || committed.hasBeenOriginatedFrom(originalRecord)) {
+                    result.add(originalRecord);
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
     private static AgentCode initAgent(RuntimePodConfiguration configuration) throws Exception {

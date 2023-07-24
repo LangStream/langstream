@@ -3,9 +3,11 @@ package com.datastax.oss.sga.ai.kafkaconnect;
 import com.dastastax.oss.sga.kafka.runner.KafkaTopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
+import com.datastax.oss.sga.api.runner.code.CommitFunction;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -85,7 +87,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
 
     @Override
-    public void write(List<Record> records) {
+    public void write(List<Record> records, CommitFunction commitFunction) throws Exception {
         if (!isRunning) {
             log.warn("Sink is stopped. Cannot send the records");
             throw new IllegalStateException("Sink is stopped. Cannot send the records");
@@ -116,6 +118,9 @@ public class KafkaConnectSinkAgent implements AgentSink {
 //        while (!flushedQueue.isEmpty()) {
 //            flushedRecords.add(flushedQueue.poll());
 //        }
+
+        // TODO
+        commitFunction.commit(records);
     }
 
     private static int getRecordSize(KafkaTopicConnectionsRuntime.KafkaRecord r) {

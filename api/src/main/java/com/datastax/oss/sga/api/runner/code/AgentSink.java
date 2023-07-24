@@ -12,5 +12,5 @@ public interface AgentSink extends AgentCode {
      * @param records the list of input records
      * @throws Exception if the agent fails to process the records
      */
-    void write(List<Record> records) throws Exception;
+    void write(List<Record> records, CommitFunction commitFunction) throws Exception;
 }

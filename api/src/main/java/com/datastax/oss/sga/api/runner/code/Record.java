@@ -7,4 +7,9 @@ public interface Record {
     String origin();
     Long timestamp();
     Collection<Header> headers();
+
+    default boolean hasBeenOriginatedFrom(Record originalRecord) {
+        // TODO: track this binding in all the functions
+        return false;
+    }
 }

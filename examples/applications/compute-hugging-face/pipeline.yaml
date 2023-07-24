@@ -1,0 +1,20 @@
+module: "module-1"
+id: "pipeline-1"
+topics:
+  - name: "input-topic"
+    creation-mode: create-if-not-exists
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "chat-ai-completions"
+    id: "step1"
+    type: "chat-ai-completions"
+    input: "input-topic"
+    output: "output-topic"
+    configuration:
+      model: "bert-base-uncased"
+      completion-field: "value.chatresult"
+      log-field: "value.request"
+      messages:
+        - role: user
+          content: "The {{value}} arrested the bad [MASK]"

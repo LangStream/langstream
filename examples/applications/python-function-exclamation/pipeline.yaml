@@ -7,9 +7,9 @@ topics:
   - name: "output-topic"
     creation-mode: create-if-not-exists
 pipeline:
-  - name: "Process using Python0"
-    type: "ai-chat-completions"
+  - name: "Process using Python"
+    type: "python-function"
     input: "input-topic"
-    output: "putput-topic"
+    output: "output-topic"
     configuration:
       className: example.Exclamation

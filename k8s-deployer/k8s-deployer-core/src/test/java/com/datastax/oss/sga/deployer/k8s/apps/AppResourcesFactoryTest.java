@@ -43,6 +43,7 @@ class AppResourcesFactoryTest {
                             controller: true
                             name: test-'app
                         spec:
+                          backoffLimit: 1
                           template:
                             metadata:
                               labels:
@@ -117,6 +118,7 @@ class AppResourcesFactoryTest {
                             controller: true
                             name: test-'app
                         spec:
+                          backoffLimit: 1
                           template:
                             metadata:
                               labels:

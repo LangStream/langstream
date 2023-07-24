@@ -125,6 +125,9 @@ class KubernetesApplicationStoreLogsTest {
                     imagePullPolicy: IfNotPresent
                     agentConfigSecretRef: %s
                     agentConfigSecretRefChecksum: xx
+                    resources:
+                        size: 1
+                        parallelism: 2
                 """.formatted(agentCustomResourceName, tenant, applicationId, agentId, agentCustomResourceName), AgentCustomResource.class);
     }
 }

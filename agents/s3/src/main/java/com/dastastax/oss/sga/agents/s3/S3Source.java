@@ -80,8 +80,8 @@ public class S3Source implements AgentSource {
                         .bucket(bucketName)
                         .object(name)
                         .build());
-                String content = new String(objectResponse.readAllBytes(), StandardCharsets.UTF_8);
                 objectsToCommit.add(name);
+                byte[] read = objectResponse.readAllBytes();
                 records.add(new Record() {
                     @Override
                     public Object key() {
@@ -90,7 +90,7 @@ public class S3Source implements AgentSource {
 
                     @Override
                     public Object value() {
-                        return content;
+                        return read;
                     }
 
                     @Override

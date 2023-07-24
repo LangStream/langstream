@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.agents.s3;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
@@ -63,11 +64,11 @@ public class S3SourceTest {
 
         List<Record> read = agentSource.read();
         assertEquals(1, read.size());
-        assertEquals("test-content-0", read.get(0).value());
+        assertArrayEquals("test-content-0".getBytes(StandardCharsets.UTF_8), (byte[]) read.get(0).value());
 
         read = agentSource.read();
         assertEquals(1, read.size());
-        assertEquals("test-content-1", read.get(0).value());
+        assertArrayEquals("test-content-1".getBytes(StandardCharsets.UTF_8), (byte[]) read.get(0).value());
 
         agentSource.commit();
 

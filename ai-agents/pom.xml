@@ -55,6 +55,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <!-- required by Hugging Face -->
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
@@ -87,6 +92,11 @@
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <version>2.2.220</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.tomakehurst</groupId>
+      <artifactId>wiremock</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

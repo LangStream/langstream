@@ -182,17 +182,26 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
     }
 
     private void generateAIProvidersConfiguration(Application applicationInstance, Map<String, Object> configuration) {
+        // let the user force the provider or detect it automatically
+        String service = (String) configuration.remove("service");
         for (Resource resource : applicationInstance.getResources().values()) {
             HashMap<String, Object> configurationCopy = new HashMap<>(resource.configuration());
             switch (resource.type()) {
-                case "vertex-ai-configuration":
+                case "vertex-configuration":
+                    if (service == null || service.equals("vertex")) {
+                        configuration.put("vertex", configurationCopy);
+                    }
                     configuration.put("vertex", configurationCopy);
                     break;
                 case "hugging-face-configuration":
-                    configuration.put("huggingface", configurationCopy);
+                    if (service == null || service.equals("hugging-face")) {
+                        configuration.put("huggingface", configurationCopy);
+                    }
                     break;
                 case "open-ai-configuration":
-                    configuration.put("openai", configurationCopy);
+                    if (service == null || service.equals("open-ai")) {
+                        configuration.put("openai", configurationCopy);
+                    }
                     break;
                 default:
                     // ignore

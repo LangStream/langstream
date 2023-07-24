@@ -1,6 +1,6 @@
 configuration:
   resources:
-    - type: "vertex-ai-configuration"
+    - type: "vertex-configuration"
       name: "Google Vertex AI configuration"
       configuration:
         url: "{{ secrets.vertex-ai.url }}"

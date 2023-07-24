@@ -13,7 +13,6 @@ pipeline:
     input: "input-topic"
     configuration:
       model: "gpt-3"
-      provider: "openai-azure"
       template: "{{name}} {{description}}"
       embeddings-field: "item-vector"
   - name: "Write to Database"

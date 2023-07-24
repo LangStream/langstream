@@ -4,7 +4,6 @@ import com.datastax.oss.sga.ai.agents.services.ServiceProviderProvider;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
-import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
@@ -42,10 +41,10 @@ public class VertexAIProvider implements ServiceProviderProvider {
         String region = (String) config.get("region");
 
 
-        return new MyServiceProvider(url, project, region, token);
+        return new VertexAIServiceProvider(url, project, region, token);
     }
 
-    private static class MyServiceProvider implements ServiceProvider {
+    private static class VertexAIServiceProvider implements ServiceProvider {
 
         final HttpClient httpClient;
         private final String url;
@@ -55,7 +54,7 @@ public class VertexAIProvider implements ServiceProviderProvider {
 
         private final String token;
 
-        public MyServiceProvider(String url, String project, String region, String token) {
+        public VertexAIServiceProvider(String url, String project, String region, String token) {
             if (url == null || url.isEmpty()) {
                 url = "https://" + region + "-aiplatform.googleapis.com";
             }
@@ -76,17 +75,17 @@ public class VertexAIProvider implements ServiceProviderProvider {
         @Override
         public EmbeddingsService getEmbeddingsService(Map<String, Object> map) throws Exception {
             String model = (String) map.getOrDefault("model", "textembedding-gecko");
-            return new MyEmbeddingsService(model);
+            return new VertexAIEmbeddingsService(model);
         }
 
         @Override
         public void close() {
         }
 
-        private class MyEmbeddingsService implements EmbeddingsService {
+        private class VertexAIEmbeddingsService implements EmbeddingsService {
             private final String model;
 
-            public MyEmbeddingsService(String model) {
+            public VertexAIEmbeddingsService(String model) {
                 this.model = model;
             }
 

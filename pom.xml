@@ -44,7 +44,7 @@
     <bouncy-castle.version>1.70</bouncy-castle.version>
     <kindcontainer.version>1.4.1</kindcontainer.version>
     <wiremock.version>3.0.0-beta-10</wiremock.version>
-    <streaming-ai.version>3.1.4-SNAPSHOT</streaming-ai.version>
+    <streaming-ai.version>3.1.4</streaming-ai.version>
     <jandex-maven-plugin.version>1.2.3</jandex-maven-plugin.version>
     <burningwave.version>0.25.5</burningwave.version>
   </properties>

@@ -81,8 +81,7 @@ class KafkaRunnerDockerTest {
                 Map.of("topic", "input-topic"),
                 Map.of("topic", "output-topic"),
                 new AgentSpec(AgentSpec.ComponentType.FUNCTION, "tenant", "agent", "application", "identity", Map.of()),
-                applicationInstance.getInstance().streamingCluster(),
-                new CodeStorageConfig("none", "none", Map.of())
+                applicationInstance.getInstance().streamingCluster()
         );
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<String, String>(

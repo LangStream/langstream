@@ -18,10 +18,18 @@ public class AgentSpec extends NamespacedSpec {
     private String agentConfigSecretRef;
     private String agentConfigSecretRefChecksum;
     private Resources resources;
+    private String codeArchiveId;
 
 
     @Builder
-    public AgentSpec(String tenant, String agentId, String applicationId, String image, String imagePullPolicy, String agentConfigSecretRef, String agentConfigSecretRefChecksum, Resources resources) {
+    public AgentSpec(String tenant, String agentId,
+                     String applicationId,
+                     String image,
+                     String imagePullPolicy,
+                     String agentConfigSecretRef,
+                     String agentConfigSecretRefChecksum,
+                     Resources resources,
+                     String codeArchiveId) {
         super(tenant);
         this.agentId = agentId;
         this.applicationId = applicationId;
@@ -30,6 +38,7 @@ public class AgentSpec extends NamespacedSpec {
         this.agentConfigSecretRef = agentConfigSecretRef;
         this.agentConfigSecretRefChecksum = agentConfigSecretRefChecksum;
         this.resources = resources;
+        this.codeArchiveId = codeArchiveId;
     }
 
 

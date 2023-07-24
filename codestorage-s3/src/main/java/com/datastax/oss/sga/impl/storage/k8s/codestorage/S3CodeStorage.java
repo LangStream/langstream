@@ -12,7 +12,10 @@ import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.MakeBucketArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.S3Base;
+import io.minio.http.HttpUtils;
 import io.minio.messages.Bucket;
+import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import io.minio.MinioClient;
@@ -28,13 +31,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import okhttp3.OkHttpClient;
 
 @Slf4j
 public class S3CodeStorage implements CodeStorage {
 
-    private final static ObjectMapper MAPPER = new ObjectMapper();
-
+    protected static final long DEFAULT_CONNECTION_TIMEOUT = TimeUnit.MINUTES.toMillis(5L);
     private String bucketName;
+    private OkHttpClient httpClient;
     private MinioClient minioClient;
 
     @SneakyThrows
@@ -46,9 +50,11 @@ public class S3CodeStorage implements CodeStorage {
 
         log.info("Connecting to S3 BlobStorage at {} with user {}", endpoint, username);
 
+        httpClient = HttpUtils.newDefaultHttpClient(DEFAULT_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT);
         minioClient =
                 MinioClient.builder()
                         .endpoint(endpoint)
+                        .httpClient(httpClient)
                         .credentials(username, password)
                         .build();
 
@@ -61,6 +67,7 @@ public class S3CodeStorage implements CodeStorage {
                     .bucket(bucketName)
                     .build());
         }
+
     }
 
 
@@ -152,4 +159,17 @@ public class S3CodeStorage implements CodeStorage {
         // TODO
     }
 
+    @Override
+    public void close() {
+        if (httpClient != null) {
+            httpClient.dispatcher().executorService().shutdown();
+            httpClient.connectionPool().evictAll();
+            try {
+                httpClient.cache().close();
+            } catch (IOException e) {
+                log.error("Error closing okhttpclient", e);
+            }
+        }
+
+    }
 }

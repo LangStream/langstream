@@ -44,9 +44,7 @@ public class AgentControllerIT {
                         Map.of("output", Map.of("is_output", true)),
                         new AgentSpec(AgentSpec.ComponentType.FUNCTION, "my-tenant",
                                 "agent-id", "my-app", "fn-type", Map.of("config", true)),
-                        new StreamingCluster("noop", Map.of("config", true)),
-                        new CodeStorageConfig("none", "", Map.of())
-
+                        new StreamingCluster("noop", Map.of("config", true))
                 )))
                 .inNamespace(namespace)
                 .serverSideApply();

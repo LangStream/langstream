@@ -7,6 +7,7 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
+import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
@@ -42,6 +43,43 @@ public class AgentResourcesFactory {
                                                   AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
 
         final AgentSpec spec = agentCustomResource.getSpec();
+
+        final CodeStorageConfig codeStorageConfig =
+                new CodeStorageConfig(spec.getTenant(), codeStoreConfiguration.getOrDefault("type", "none").toString(),
+                        spec.getCodeArchiveId(),
+                        codeStoreConfiguration);
+
+        final String appConfigVolume = "app-config";
+        final String codeConfigVolume = "code-config";
+        final Container injectConfigForDownloadCodeInitContainer = new ContainerBuilder()
+                .withName("code-download-init")
+                .withImage(spec.getImage())
+                .withImagePullPolicy(spec.getImagePullPolicy())
+                .withResources(new ResourceRequirementsBuilder().withRequests(Map.of("cpu", Quantity.parse("100m"),
+                        "memory", Quantity.parse("100Mi"))).build())
+                .withCommand("bash", "-c")
+                .withArgs("echo '%s' > /code-config/config".formatted(SerializationUtil.writeAsJson(codeStorageConfig).replace("'", "'\"'\"'")))
+                .withVolumeMounts(new VolumeMountBuilder()
+                        .withName(codeConfigVolume)
+                        .withMountPath("/code-config")
+                        .build()
+                )
+                .withTerminationMessagePolicy("FallbackToLogsOnError")
+                .build();
+
+        final Container downloadCodeInitContainer = new ContainerBuilder()
+                .withName("code-download")
+                .withImage(spec.getImage())
+                .withImagePullPolicy(spec.getImagePullPolicy())
+                .withArgs("agent-code-download", "/code-config/config")
+                .withVolumeMounts(new VolumeMountBuilder()
+                        .withName(codeConfigVolume)
+                        .withMountPath("/code-config")
+                        .build()
+                )
+                .withTerminationMessagePolicy("FallbackToLogsOnError")
+                .build();
+
         final Container container = new ContainerBuilder()
                 .withName("runtime")
                 .withImage(spec.getImage())
@@ -51,7 +89,7 @@ public class AgentResourcesFactory {
                 .withResources(convertResources(spec.getResources(), agentResourceUnitConfiguration))
                 .withArgs("agent-runtime", "/app-config/config")
                 .withVolumeMounts(new VolumeMountBuilder()
-                        .withName(AGENT_SECRET_DATA_APP)
+                        .withName(appConfigVolume)
                         .withMountPath("/app-config")
                         .build()
                 )
@@ -80,9 +118,10 @@ public class AgentResourcesFactory {
                 .endMetadata()
                 .withNewSpec()
                 .withTerminationGracePeriodSeconds(60L)
+                .withInitContainers(List.of(injectConfigForDownloadCodeInitContainer, downloadCodeInitContainer))
                 .withContainers(List.of(container))
                 .withVolumes(new VolumeBuilder()
-                        .withName(AGENT_SECRET_DATA_APP)
+                        .withName(appConfigVolume)
                         .withNewSecret()
                         .withSecretName(spec.getAgentConfigSecretRef())
                         .withItems(new io.fabric8.kubernetes.api.model.KeyToPathBuilder()
@@ -91,7 +130,11 @@ public class AgentResourcesFactory {
                                 .build()
                         )
                         .endSecret()
-                        .build()
+                        .build(),
+                        new VolumeBuilder()
+                                .withName(codeConfigVolume)
+                                .withNewEmptyDir().endEmptyDir()
+                                .build()
                 )
                 .endSpec()
                 .endTemplate()

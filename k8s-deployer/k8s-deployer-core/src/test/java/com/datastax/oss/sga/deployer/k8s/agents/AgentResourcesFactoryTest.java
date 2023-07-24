@@ -79,6 +79,33 @@ class AgentResourcesFactoryTest {
                                 volumeMounts:
                                 - mountPath: /app-config
                                   name: app-config
+                              initContainers:
+                              - args:
+                                - "echo '{\\"tenant\\":\\"my-tenant\\",\\"type\\":\\"none\\",\\"codeStorageArchiveId\\":null,\\"configuration\\":{}}' > /code-config/config"
+                                command:
+                                - bash
+                                - -c
+                                image: busybox
+                                imagePullPolicy: Never
+                                name: code-download-init
+                                resources:
+                                  requests:
+                                    cpu: 100m
+                                    memory: 100Mi
+                                terminationMessagePolicy: FallbackToLogsOnError
+                                volumeMounts:
+                                - mountPath: /code-config
+                                  name: code-config
+                              - args:
+                                - agent-code-download
+                                - /code-config/config
+                                image: busybox
+                                imagePullPolicy: Never
+                                name: code-download
+                                terminationMessagePolicy: FallbackToLogsOnError
+                                volumeMounts:
+                                - mountPath: /code-config
+                                  name: code-config
                               terminationGracePeriodSeconds: 60
                               volumes:
                               - name: app-config
@@ -87,6 +114,8 @@ class AgentResourcesFactoryTest {
                                   - key: app-config
                                     path: config
                                   secretName: agent-config
+                              - emptyDir: {}
+                                name: code-config
                         """,
                 SerializationUtil.writeAsYaml(statefulSet));
     }

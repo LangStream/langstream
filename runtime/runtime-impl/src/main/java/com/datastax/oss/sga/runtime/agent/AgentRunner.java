@@ -19,6 +19,7 @@ import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import java.io.File;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,6 +44,8 @@ public class AgentRunner
     private static final AgentCodeRegistry AGENT_CODE_REGISTRY = new AgentCodeRegistry();
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
+    public static final Path CODE_DIRECTORY = new File("sga-code-download").toPath();
+
     private static ErrorHandler errorHandler = error -> {
         log.error("Unexpected error", error);
         System.exit(-1);
@@ -61,13 +64,10 @@ public class AgentRunner
             Path podRuntimeConfiguration = Path.of(args[0]);
             log.info("Loading pod configuration from {}", podRuntimeConfiguration);
 
-            // TODO: resolve placeholders and secrets
             RuntimePodConfiguration configuration = MAPPER.readValue(podRuntimeConfiguration.toFile(),
                     RuntimePodConfiguration.class);
 
-            Path codeDirectory = downloadCustomCode(configuration);
-
-            run(configuration, podRuntimeConfiguration, codeDirectory, -1);
+            run(configuration, podRuntimeConfiguration, CODE_DIRECTORY, -1);
 
 
         } catch (Throwable error) {
@@ -77,19 +77,6 @@ public class AgentRunner
         }
     }
 
-    private static Path downloadCustomCode(RuntimePodConfiguration configuration) throws Exception {
-        Path codeDirectory = Files.createTempDirectory("sga-code-");
-        CodeStorageConfig codeStorageConfig = configuration.codeStorage();
-        if (codeStorageConfig != null) {
-            log.info("Downloading custom code from {}", codeStorageConfig);
-            log.info("Custom code is stored in {}", codeDirectory);
-            CodeStorage codeStorage = CodeStorageRegistry.getCodeStorage(codeStorageConfig.type(), codeStorageConfig.configuration());
-            codeStorage.downloadApplicationCode(configuration.agent().tenant(), configuration.codeStorage().codeStorageArchiveId(), (downloadedCodeArchive -> {
-                downloadedCodeArchive.extractTo(codeDirectory);
-            }));
-        }
-        return codeDirectory;
-    }
 
     public static void run(RuntimePodConfiguration configuration,
                            Path podRuntimeConfiguration,

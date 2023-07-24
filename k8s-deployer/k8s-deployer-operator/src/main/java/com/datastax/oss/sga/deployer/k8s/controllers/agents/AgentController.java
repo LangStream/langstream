@@ -91,42 +91,12 @@ public class AgentController extends BaseController<AgentCustomResource>
         @Override
         protected StatefulSet desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
             try {
-                injectCodeStorageConfigInSecret(primary);
                 return AgentResourcesFactory.generateStatefulSet(primary, configuration.getCodeStorage(),
                         configuration.getAgentResources());
             } catch (Throwable t) {
                 log.errorf(t, "Error while generating StatefulSet for agent %s", primary.getMetadata().getName());
                 throw new RuntimeException(t);
             }
-        }
-
-        /**
-         * TO BE REMOVED: this is a workaround for https://github.com/riptano/streaming-gen-ai/issues/98.
-         * The user's code will be able to grab the code storage config from the agent's config secret!!!
-         * @param primary
-         */
-        @Deprecated
-        private void injectCodeStorageConfigInSecret(AgentCustomResource primary) {
-            final Secret agentSecret = client.secrets()
-                    .inNamespace(primary.getMetadata().getNamespace())
-                    .withName(primary.getSpec().getAgentConfigSecretRef())
-                    .get();
-
-            final String decoded = new String(Base64.getDecoder().decode(agentSecret.getData().get("app-config")),
-                    StandardCharsets.UTF_8);
-
-            RuntimePodConfiguration runtimePodConfiguration =
-                    SerializationUtil.readJson(decoded, RuntimePodConfiguration.class);
-            runtimePodConfiguration = new RuntimePodConfiguration(runtimePodConfiguration.input(),
-                    runtimePodConfiguration.output(),
-                    runtimePodConfiguration.agent(),
-                    runtimePodConfiguration.streamingCluster(),
-                    new CodeStorageConfig(configuration.getCodeStorage().getOrDefault("type", "none").toString(),
-                            runtimePodConfiguration.codeStorage().codeStorageArchiveId(),
-                            configuration.getCodeStorage())
-            );
-            final Secret secret = AgentResourcesFactory.generateAgentSecret(primary.getMetadata().getName(), runtimePodConfiguration);
-            client.resource(secret).inNamespace(primary.getMetadata().getNamespace()).serverSideApply();
         }
     }
 

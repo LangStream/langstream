@@ -120,4 +120,8 @@ public class LocalDiskCodeStorage implements CodeStorage {
                 });
     }
 
+    @Override
+    public void close() {
+    }
+
 }

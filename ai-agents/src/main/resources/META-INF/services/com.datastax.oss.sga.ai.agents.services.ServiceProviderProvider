@@ -1,0 +1,3 @@
+com.datastax.oss.sga.ai.agents.services.impl.OpenAIServiceProvider
+com.datastax.oss.sga.ai.agents.services.impl.VertexAIProvider
+com.datastax.oss.sga.ai.agents.services.impl.HuggingFaceProvider

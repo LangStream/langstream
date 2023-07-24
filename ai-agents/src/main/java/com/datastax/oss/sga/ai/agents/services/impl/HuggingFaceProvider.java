@@ -17,6 +17,6 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
 
     @Override
     public ServiceProvider createImplementation(Map<String, Object> agentConfiguration) {
-        return new HuggingFaceServiceProvider(agentConfiguration);
+        return new HuggingFaceServiceProvider((Map<String, Object>) agentConfiguration.get("huggingface"));
     }
 }

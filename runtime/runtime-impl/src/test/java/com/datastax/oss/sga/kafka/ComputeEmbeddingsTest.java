@@ -47,6 +47,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
@@ -68,6 +70,13 @@ class ComputeEmbeddingsTest {
         String model;
         String providerConfiguration;
         Runnable stubMakers;
+
+        @Override
+        public String toString() {
+            return "EmbeddingsConfig{" +
+                    "model='" + model + '\'' +
+                    '}';
+        }
     }
 
 
@@ -96,23 +105,40 @@ class ComputeEmbeddingsTest {
                                 () -> {
                                     stubFor(post("/v1/projects/the-project/locations/us-east1/publishers/google/models/textembedding-gecko:predict")
                                             .willReturn(okJson(""" 
-                   {
-                      "predictions": [
-                        {
-                          "embeddings": {
-                            "statistics": {
-                              "truncated": false,
-                              "token_count": 6
-                            },
-                            "values": [ 1.0, 5.4, 8.7]
-                          }
-                        }
-                      ]
-                    }
+                                               {
+                                                  "predictions": [
+                                                    {
+                                                      "embeddings": {
+                                                        "statistics": {
+                                                          "truncated": false,
+                                                          "token_count": 6
+                                                        },
+                                                        "values": [ 1.0, 5.4, 8.7]
+                                                      }
+                                                    }
+                                                  ]
+                                                }
                 """)));
-                                })
-                )
-        );
+                                })),
+                Arguments.of(new EmbeddingsConfig("some-model", """
+                             configuration:
+                                 resources:
+                                    - type: "hugging-face-configuration"
+                                      name: "Hugging Face API configuration"
+                                      configuration:                                        
+                                        api-url: "%s"
+                                        model-check-url: "%s"                                             
+                                        access-key: "some-token"
+                                        provider: "api"
+                        """.formatted(wireMockRuntimeInfo.getHttpBaseUrl()+"/embeddings/",
+                        wireMockRuntimeInfo.getHttpBaseUrl()+"/modelcheck/"),
+                                () -> {
+                                    stubFor(get("/modelcheck/some-model")
+                                            .willReturn(okJson("{\"modelId\": \"some-model\",\"tags\": [\"sentence-transformers\"]}")));
+                                    stubFor(post("/embeddings/some-model")
+                                            .willReturn(okJson("[[1.0, 5.4, 8.7]]")));
+                                    }
+                )));
     }
 
 

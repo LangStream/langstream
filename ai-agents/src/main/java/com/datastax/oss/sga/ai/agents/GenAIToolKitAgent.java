@@ -1,8 +1,7 @@
 package com.datastax.oss.sga.ai.agents;
 
-import com.azure.ai.openai.OpenAIClient;
 import com.datastax.oss.sga.ai.agents.datasource.DataSourceProviderRegistry;
-import com.datastax.oss.sga.api.runner.code.AgentCode;
+import com.datastax.oss.sga.ai.agents.services.ServiceProviderRegistry;
 import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
@@ -11,6 +10,7 @@ import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
 import com.datastax.oss.streaming.ai.model.TransformSchemaType;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
+import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,6 +24,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Optional;
+
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -38,6 +40,7 @@ public class GenAIToolKitAgent implements AgentFunction {
     private List<StepPredicatePair> steps;
     private TransformStepConfig config;
     private QueryStepDataSource dataSource;
+    private ServiceProvider serviceProvider;
 
     @Override
     public List<Record> process(List<Record> records) throws Exception {
@@ -57,16 +60,20 @@ public class GenAIToolKitAgent implements AgentFunction {
     }
 
     @Override
+    @SneakyThrows
     public void init(Map<String, Object> configuration) {
         configuration = new HashMap<>(configuration);
+
 
         // remove this from the config in order to avoid passing it TransformStepConfig
         Map<String, Object> datasourceConfiguration =
                 (Map<String, Object>) configuration.remove("datasource");
+        serviceProvider = ServiceProviderRegistry.getServiceProvider(configuration);
+
+        configuration.remove("vertex");
         config = MAPPER.convertValue(configuration, TransformStepConfig.class);
-        OpenAIClient openAIClient = TransformFunctionUtil.buildOpenAIClient(config.getOpenai());
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
-        steps = TransformFunctionUtil.getTransformSteps(config, openAIClient, dataSource);
+        steps = TransformFunctionUtil.getTransformSteps(config, serviceProvider, dataSource);
     }
 
     @Override
@@ -76,6 +83,9 @@ public class GenAIToolKitAgent implements AgentFunction {
         }
         for (StepPredicatePair pair : steps) {
             pair.getTransformStep().close();
+        }
+        if (serviceProvider != null) {
+            serviceProvider.close();
         }
     }
 

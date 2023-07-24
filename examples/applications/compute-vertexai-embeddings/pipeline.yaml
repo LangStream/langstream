@@ -1,0 +1,20 @@
+module: "module-1"
+id: "pipeline-1"
+topics:
+  - name: "input-topic"
+    creation-mode: create-if-not-exists
+    schema:
+      type: avro
+      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"}]}}'
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "compute-embeddings"
+    id: "step1"
+    type: "compute-ai-embeddings"
+    input: "input-topic"
+    output: "output-topic"
+    configuration:
+      model: "textembedding-gecko"
+      embeddings-field: "value.embeddings"
+      text: "{{% value.name }} {{% value.description }}"

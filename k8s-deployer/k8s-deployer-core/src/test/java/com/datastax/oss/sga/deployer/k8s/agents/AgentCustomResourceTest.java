@@ -46,7 +46,7 @@ class AgentCustomResourceTest {
                     agentStatus.getWorkers().get("my-app-agent-id-0");
             assertEquals(ApplicationStatus.AgentWorkerStatus.Status.ERROR, workerStatus.getStatus());
             assertEquals("failed to create containerd task: failed to create shim task: OCI runtime create failed: "
-                    + "runc create failed: unable to start container process: exec: \"bash\": executable file not "
+                    + "runc create failed: unable to start container process: exec: \"agent-runtime\": executable file not "
                     + "found in $PATH: unknown", workerStatus.getReason());
 
         });

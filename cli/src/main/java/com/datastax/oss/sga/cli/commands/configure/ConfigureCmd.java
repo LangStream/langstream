@@ -10,18 +10,38 @@ import picocli.CommandLine;
 @Getter
 public class ConfigureCmd extends BaseCmd {
 
+    public enum ConfigKey {
+        webServiceUrl,
+        tenant,
+        token;
+    }
+
     @CommandLine.ParentCommand
     private RootCmd rootCmd;
 
+    @CommandLine.Parameters(description = "Config key to configure")
+    private ConfigKey configKey;
 
-    @CommandLine.Parameters(description = "Tenant to use")
-    private String tenant;
+    @CommandLine.Parameters(description = "Value to set")
+    private String newValue;
 
 
     @Override
     @SneakyThrows
     public void run() {
-        updateConfig(config -> config.setTenant(tenant));
-        log("Config updated, now using tenant: " + tenant);
+        updateConfig(clientConfig -> {
+            switch (configKey) {
+                case tenant:
+                    clientConfig.setTenant(newValue);
+                    break;
+                case webServiceUrl:
+                    clientConfig.setWebServiceUrl(newValue);
+                    break;
+                case token:
+                    clientConfig.setToken(newValue);
+                    break;
+            }
+        });
+        log("Config updated: " + configKey + "=" + newValue);
     }
 }

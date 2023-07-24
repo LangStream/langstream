@@ -20,7 +20,7 @@ public abstract class BaseApplicationCmd extends BaseCmd {
     protected String tenantAppPath(String uri) {
         final String tenant = getConfig().getTenant();
         if (tenant == null) {
-            throw new IllegalStateException("Tenant not set. Run 'sga configure <tenant>' to set it.");
+            throw new IllegalStateException("Tenant not set. Run 'sga configure tenant <tenant>' to set it.");
         }
         debug("Using tenant: %s".formatted(tenant));
         return "/applications/%s%s".formatted(tenant, uri);

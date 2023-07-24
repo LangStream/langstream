@@ -13,4 +13,6 @@ public class SgaCLIConfig {
 
     private String tenant;
 
+    private String token;
+
 }

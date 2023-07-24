@@ -141,9 +141,11 @@ public abstract class BaseCmd implements Runnable {
                 return response;
             }
             if (status >= 400) {
-                err("Request failed: " + response.statusCode());
-                err(response.body());
-                throw new RuntimeException();
+                final T body = response.body();
+                if (body != null) {
+                    err(body);
+                }
+                throw new RuntimeException("Request failed: " + response.statusCode());
             }
             throw new RuntimeException("Unexpected status code: " + status);
         } catch (ConnectException error) {
@@ -153,46 +155,60 @@ public abstract class BaseCmd implements Runnable {
         }
     }
 
+    private HttpRequest.Builder withAuth(HttpRequest.Builder builder) {
+        final String token = getConfig().getToken();
+        if (token == null) {
+            return builder;
+        }
+        return builder.header("Authorization", "Bearer " + token);
+    }
+
     protected HttpRequest newGet(String uri) {
-        return HttpRequest.newBuilder()
-                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
-                .version(HttpClient.Version.HTTP_1_1)
-                .GET()
+        return withAuth(
+                HttpRequest.newBuilder()
+                        .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                        .version(HttpClient.Version.HTTP_1_1)
+                        .GET()
+        )
                 .build();
     }
 
     protected HttpRequest newDependencyGet(URL uri) throws URISyntaxException {
-        return HttpRequest.newBuilder()
+        return withAuth(HttpRequest.newBuilder()
                 .uri(uri.toURI())
                 .version(HttpClient.Version.HTTP_1_1)
                 .GET()
+        )
                 .build();
     }
 
     protected HttpRequest newDelete(String uri) {
-        return HttpRequest.newBuilder()
+        return withAuth(HttpRequest.newBuilder()
                 .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
                 .version(HttpClient.Version.HTTP_1_1)
                 .DELETE()
+        )
                 .build();
     }
 
     protected HttpRequest newPut(String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
-        return HttpRequest.newBuilder()
+        return withAuth(HttpRequest.newBuilder()
                 .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
                 .header("Content-Type", contentType)
                 .version(HttpClient.Version.HTTP_1_1)
                 .PUT(bodyPublisher)
+        )
                 .build();
     }
 
 
     protected HttpRequest newPost(String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
-        return HttpRequest.newBuilder()
+        return withAuth(HttpRequest.newBuilder()
                 .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
                 .header("Content-Type", contentType)
                 .version(HttpClient.Version.HTTP_1_1)
                 .POST(bodyPublisher)
+        )
                 .build();
     }
 
@@ -202,7 +218,11 @@ public abstract class BaseCmd implements Runnable {
     }
 
     protected void err(Object log) {
-        System.err.println(command.commandLine().getColorScheme().errorText(log.toString()));
+        final String error = log.toString();
+        if (error.isBlank()) {
+            return;
+        }
+        System.err.println(command.commandLine().getColorScheme().errorText(error));
     }
 
     protected void debug(Object log) {
@@ -216,7 +236,8 @@ public abstract class BaseCmd implements Runnable {
     }
 
     @SneakyThrows
-    protected void print(Formats format, Object body, String[] columnsForRaw, BiFunction<JsonNode, String, Object> valueSupplier) {
+    protected void print(Formats format, Object body, String[] columnsForRaw,
+                         BiFunction<JsonNode, String, Object> valueSupplier) {
         if (body == null) {
             return;
         }
@@ -254,7 +275,8 @@ public abstract class BaseCmd implements Runnable {
         log(header);
     }
 
-    private void printRawRow(JsonNode readValue, String[] columnsForRaw, BiFunction<JsonNode, String, Object> valueSupplier) {
+    private void printRawRow(JsonNode readValue, String[] columnsForRaw,
+                             BiFunction<JsonNode, String, Object> valueSupplier) {
         final int numColumns = columnsForRaw.length;
         String formatTemplate = computeFormatTemplate(numColumns);
 
@@ -298,7 +320,7 @@ public abstract class BaseCmd implements Runnable {
 
     @SneakyThrows
     protected static Object searchValueInJson(Object jsonNode, String path) {
-        return searchValueInJson((Map<String, Object>)jsonPrinter.convertValue(jsonNode, Map.class), path);
+        return searchValueInJson((Map<String, Object>) jsonPrinter.convertValue(jsonNode, Map.class), path);
     }
 
     @SneakyThrows

@@ -15,6 +15,6 @@ pipeline:
     input: "input-topic"
     output: "output-topic"
     configuration:
-      model: "text-embedding-ada-003"
+      model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings"
       text: "{{% value.name }} {{% value.description }}"

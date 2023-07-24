@@ -28,11 +28,6 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-k8s-runtime-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>sga-runtime-api</artifactId>
       <version>${project.version}</version>
     </dependency>

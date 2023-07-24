@@ -1,8 +1,6 @@
 package com.datastax.oss.sga.kafka;
 
-import com.azure.ai.openai.OpenAIClient;
 import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
-import com.datastax.oss.sga.ai.agents.services.impl.OpenAIServiceProvider;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
@@ -10,18 +8,15 @@ import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.runtime.agent.AgentRunner;
-import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
-import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
-import com.datastax.oss.sga.runtime.k8s.api.PodAgentConfiguration;
-import com.datastax.oss.streaming.ai.model.config.OpenAIConfig;
-import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.fabric8.kubernetes.api.model.Secret;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -32,38 +27,26 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
-
-import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 
 @Slf4j
 @WireMockTest
@@ -156,9 +139,11 @@ class ComputeEmbeddingsTest {
     @ParameterizedTest
     @MethodSource("providers")
     public void testComputeEmbeddings(EmbeddingsConfig config) throws Exception {
+        final String appId = "application-" + UUID.randomUUID();
         config.stubMakers.run();
         String tenant = "tenant";
-        kubeServer.spyAgentCustomResources(tenant, "app-step1");
+        kubeServer.spyAgentCustomResources("tenant", appId + "-step1");
+        final Map<String, Secret> secrets = kubeServer.spyAgentCustomResourcesSecrets("tenant", appId + "-step1");
 
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of(
@@ -194,34 +179,19 @@ class ComputeEmbeddingsTest {
 
         Module module = applicationInstance.getModule("module-1");
 
-        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+        ExecutionPlan implementation = deployer.createImplementation(appId, applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
                 new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
-        List<PodAgentConfiguration> customResourceDefinitions = (List<PodAgentConfiguration>) deployer.deploy(tenant, implementation, null);
+        deployer.deploy(tenant, implementation, null);
+        assertEquals(1, secrets.size());
+        final Secret secret = secrets.values().iterator().next();
+        final RuntimePodConfiguration runtimePodConfiguration =
+                AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
 
         Set<String> topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertTrue(topics.contains("input-topic"));
-
-        log.info("CRDS: {}", customResourceDefinitions);
-
-        assertEquals(1, customResourceDefinitions.size());
-        PodAgentConfiguration podAgentConfiguration = customResourceDefinitions.get(0);
-
-        RuntimePodConfiguration runtimePodConfiguration = new RuntimePodConfiguration(
-                podAgentConfiguration.input(),
-                podAgentConfiguration.output(),
-                new AgentSpec(AgentSpec.ComponentType.valueOf(
-                        podAgentConfiguration.agentConfiguration().componentType()),
-                        tenant,
-                        podAgentConfiguration.agentConfiguration().agentId(),
-                        "application",
-                        podAgentConfiguration.agentConfiguration().agentType(),
-                        podAgentConfiguration.agentConfiguration().configuration()),
-                applicationInstance.getInstance().streamingCluster(),
-                new CodeStorageConfig("none", "none", Map.of())
-        );
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<String, String>(
                 Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),

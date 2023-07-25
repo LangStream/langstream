@@ -1,5 +1,8 @@
 package com.datastax.oss.sga.ai.agents.services.impl;
 
+import com.datastax.oss.streaming.ai.completions.ChatCompletions;
+import com.datastax.oss.streaming.ai.completions.ChatMessage;
+import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -39,8 +42,6 @@ class VertexAIProviderTest {
                     }
                 """)));
 
-        WireMock wireMock = wmRuntimeInfo.getWireMock();
-
         VertexAIProvider provider = new VertexAIProvider();
         ServiceProvider implementation = provider.createImplementation(
                 Map.of("vertex",
@@ -54,6 +55,65 @@ class VertexAIProviderTest {
         log.info("result: {}", result);
         assertEquals(1, result.size());
         assertEquals(List.of(1.d, 5.4d, 8.7d), result.get(0));
+    }
+
+    @Test
+    void testCallCompletion(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+        stubFor(post("/v1/projects/the-project/locations/us-central1/publishers/google/models/chat-bison:predict")
+                .willReturn(okJson(""" 
+                   {
+                     "predictions": [
+                       {
+                         "safetyAttributes": [
+                           {
+                             "blocked": false,
+                             "scores": [],
+                             "categories": []
+                           }
+                         ],
+                         "citationMetadata": [
+                           {
+                             "citations": []
+                           }
+                         ],
+                         "candidates": [
+                           {
+                             "author": "1",
+                             "content": "A car is a wheeled, self-propelled motor vehicle used for transportation."
+                           }
+                         ]
+                       }
+                     ],
+                     "metadata": {
+                       "tokenMetadata": {
+                         "inputTokenCount": {
+                           "totalTokens": 5,
+                           "totalBillableCharacters": 11
+                         },
+                         "outputTokenCount": {
+                           "totalBillableCharacters": 63,
+                           "totalTokens": 15
+                         }
+                       }
+                     }
+                   }
+                """)));
+
+
+        VertexAIProvider provider = new VertexAIProvider();
+        ServiceProvider implementation = provider.createImplementation(
+                Map.of("vertex",
+                        Map.of("url", wmRuntimeInfo.getHttpBaseUrl(),
+                                "project", "the-project",
+                                "region", "us-central1",
+                                "token", "xxxx")));
+        CompletionsService service = implementation.getCompletionsService(Map.of("model", "chat-bison",
+                "max-tokens", 3, "temperature", 0.5, "top-p", 1.0, "top-k", 3.0));
+        ChatCompletions chatCompletions = service.getChatCompletions(
+                List.of(new ChatMessage("user")
+                        .setContent("What is a car?")), Map.of("max_tokens", 3));
+        log.info("result: {}", chatCompletions);
+        assertEquals("A car is a wheeled, self-propelled motor vehicle used for transportation.", chatCompletions.getChoices().get(0).getMessage().getContent());
     }
 
 }

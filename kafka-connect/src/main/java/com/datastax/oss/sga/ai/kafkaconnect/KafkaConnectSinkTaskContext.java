@@ -6,8 +6,8 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 
+import java.util.AbstractMap;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -20,26 +20,19 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
 
     private final Map<String, String> config;
 
-    // because task.open() needs to be called
-    private final java.util.function.Consumer<Collection<TopicPartition>> onPartitionChange;
+    private final java.util.function.Consumer<ConsumerCommand> cqrsConsumer;
     private final Runnable onCommitRequest;
     private final AtomicBoolean runRepartition = new AtomicBoolean(false);
 
     private final ConcurrentHashMap<TopicPartition, Long> currentOffsets = new ConcurrentHashMap<>();
 
-    private final org.apache.kafka.clients.consumer.Consumer<?, ?> consumer;
-    private final Set<TopicPartition> pausedPartitions = new ConcurrentSkipListSet<>();
-
 
     public KafkaConnectSinkTaskContext(Map<String, String> config,
-                                       // has to be the same consumer that is used to read data for the task
-                                       org.apache.kafka.clients.consumer.Consumer<?, ?> consumer,
-                                       java.util.function.Consumer<Collection<TopicPartition>> onPartitionChange,
+                                       java.util.function.Consumer<ConsumerCommand> cqrsConsumer,
                                        Runnable onCommitRequest) {
         this.config = config;
-        this.consumer = consumer;
 
-        this.onPartitionChange = onPartitionChange;
+        this.cqrsConsumer = cqrsConsumer;
         this.onCommitRequest = onCommitRequest;
     }
 
@@ -55,7 +48,7 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
         });
 
         if (runRepartition.compareAndSet(true, false)) {
-            onPartitionChange.accept(currentOffsets.keySet());
+            cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.REPARTITION, currentOffsets.keySet()));
         }
     }
 
@@ -64,7 +57,7 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
         seekAndUpdateOffset(topicPartition, l);
 
         if (runRepartition.compareAndSet(true, false)) {
-            onPartitionChange.accept(currentOffsets.keySet());
+            cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.REPARTITION, currentOffsets.keySet()));
         }
     }
 
@@ -79,19 +72,17 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
         return snapshot;
     }
 
+    public void updateOffset(TopicPartition topicPartition, long offset) {
+        currentOffsets.put(topicPartition, offset);
+    }
+
     private void seekAndUpdateOffset(TopicPartition topicPartition, long offset) {
-        try {
-            consumer.seek(topicPartition, offset);
-        } catch (Throwable e) {
-            log.error("Failed to seek topic {} partition {} offset {}",
-                    topicPartition.topic(), topicPartition.partition(), offset, e);
-            throw new RuntimeException("Failed to seek topic " + topicPartition.topic() + " partition "
-                    + topicPartition.partition() + " offset " + offset, e);
-        }
+
+        cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.SEEK,
+                new AbstractMap.SimpleEntry<>(topicPartition, offset)));
         if (!currentOffsets.containsKey(topicPartition)) {
             runRepartition.set(true);
         }
-        currentOffsets.put(topicPartition, offset);
     }
 
     @Override
@@ -107,17 +98,13 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
     @Override
     public void pause(TopicPartition... partitions) {
         log.debug("Pausing partitions {}.", partitions);
-        consumer.pause(Arrays.asList(partitions));
-        pausedPartitions.addAll(Arrays.asList(partitions));
-        log.debug("Currently paused partitions {}.", pausedPartitions);
+        cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.PAUSE, Arrays.asList(partitions)));
     }
 
     @Override
     public void resume(TopicPartition... partitions) {
         log.debug("Resuming partitions: {}", partitions);
-        consumer.resume(Arrays.asList(partitions));
-        pausedPartitions.removeAll(Arrays.asList(partitions));
-        log.debug("Currently paused partitions {}.", pausedPartitions);
+        cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.RESUME, Arrays.asList(partitions)));
     }
 
     @Override

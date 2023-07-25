@@ -7,8 +7,10 @@ import com.datastax.oss.sga.api.runner.code.Record;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.confluent.connect.avro.AvroData;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.avro.generic.GenericData;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -20,11 +22,14 @@ import org.apache.kafka.connect.sink.SinkConnectorContext;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -65,7 +70,6 @@ public class KafkaConnectSinkAgent implements AgentSink {
                     .setNameFormat("kafka-adaptor-sink-flush-%d")
                     .build());
     protected final ConcurrentLinkedDeque<KafkaTopicConnectionsRuntime.KafkaRecord> pendingFlushQueue = new ConcurrentLinkedDeque<>();
-    //protected final ConcurrentLinkedDeque<KafkaTopicConnectionsRuntime.KafkaRecord> flushedQueue = new ConcurrentLinkedDeque<>();
     private final AtomicBoolean isFlushRunning = new AtomicBoolean(false);
     private volatile boolean isRunning = false;
 
@@ -76,6 +80,9 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
     private AgentContext context;
 
+    private final AvroData avroData = new AvroData(1000);
+    private final ConcurrentLinkedDeque<ConsumerCommand> consumerCqrsQueue = new ConcurrentLinkedDeque<>();
+
     // has to be the same consumer as used to read records to process,
     // otherwise pause/resume won't work
     @Override
@@ -83,6 +90,14 @@ public class KafkaConnectSinkAgent implements AgentSink {
         this.context = context;
     }
 
+    protected void submitCommand(ConsumerCommand cmd) {
+        consumerCqrsQueue.add(cmd);
+    }
+
+    @Override
+    public boolean handlesCommit() {
+        return true;
+    }
 
     @Override
     public void write(List<Record> records) {
@@ -100,22 +115,18 @@ public class KafkaConnectSinkAgent implements AgentSink {
                     .map(x -> {
                         KafkaTopicConnectionsRuntime.KafkaRecord kr = KafkaConnectSinkAgent.getKafkaRecord(x);
                         currentBatchSize.addAndGet(kr.estimateRecordSize());
+                        taskContext.updateOffset(kr.getTopicPartition(),
+                                kr.offset());
                         return kr;
                     })
                     .forEach(pendingFlushQueue::add);
 
         } catch (Exception ex) {
             log.error("Error sending the records {}", records, ex);
-            // todo: how to nack? throw for now
             this.close();
             throw new IllegalStateException("Error sending the records", ex);
         }
         flushIfNeeded(false);
-
-//        List<Record> flushedRecords = Lists.newLinkedList();
-//        while (!flushedQueue.isEmpty()) {
-//            flushedRecords.add(flushedQueue.poll());
-//        }
     }
 
     private static int getRecordSize(KafkaTopicConnectionsRuntime.KafkaRecord r) {
@@ -127,14 +138,32 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
         return new SgaSinkRecord(kr.origin(),
                 kr.partition(),
-                kr.keySchema(),
-                kr.key(),
-                kr.valueSchema(),
-                kr.value(),
+                toKafkaSchema(kr.key(), kr.keySchema()),
+                toKafkaData(kr.key(), kr.keySchema()),
+                toKafkaSchema(kr.value(), kr.valueSchema()),
+                toKafkaData(kr.value(), kr.valueSchema()),
                 kr.offset(),
                 kr.timestamp(),
                 kr.timestampType(),
                 kr.estimateRecordSize());
+    }
+
+    private Schema toKafkaSchema(Object input, Schema schema) {
+        if (input instanceof GenericData.Record rec && schema == null) {
+            return avroData.toConnectSchema(rec.getSchema());
+        }
+        return schema;
+    }
+
+    private Object toKafkaData(Object input, Schema schema) {
+        if (input instanceof GenericData.Record rec) {
+            if (schema == null) {
+                return avroData.toConnectData(rec.getSchema(), rec);
+            } else {
+                return avroData.toConnectData(avroData.fromConnectSchema(schema), rec);
+            }
+        }
+        return input;
     }
 
     private static KafkaTopicConnectionsRuntime.KafkaRecord getKafkaRecord(Record record) {
@@ -183,30 +212,75 @@ public class KafkaConnectSinkAgent implements AgentSink {
             if (log.isDebugEnabled() && !areMapsEqual(committedOffsets, currentOffsets)) {
                 log.debug("committedOffsets {} differ from currentOffsets {}", committedOffsets, currentOffsets);
             }
-            //taskContext.flushOffsets(committedOffsets);
-            ackUntil(lastNotFlushed, committedOffsets, true);
+
+            submitCommand(new ConsumerCommand(ConsumerCommand.Command.COMMIT, committedOffsets));
+            cleanUpFlushQueueAndUpdateBatchSize(lastNotFlushed, committedOffsets);
             log.info("Flush succeeded");
         } catch (Throwable t) {
             log.error("error flushing pending records", t);
-            ackUntil(lastNotFlushed, committedOffsets, false);
-            // todo: how to nack? throw for now
+            submitCommand(new ConsumerCommand(ConsumerCommand.Command.THROW,
+                    new IllegalStateException("Error flushing pending records", t)));
             this.close();
-            throw new IllegalStateException("Error flushing pending records", t);
         } finally {
             isFlushRunning.compareAndSet(true, false);
         }
     }
 
+    // must be called from the same thread as the rest of teh consumer calls
+    @Override
+    public void commit() throws Exception {
+
+        // can pause create deadlock for the runner?
+        while (!consumerCqrsQueue.isEmpty()) {
+            ConsumerCommand cmd = consumerCqrsQueue.poll();
+            if (cmd == null) {
+                break;
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("Executing command {}, ag: {}", cmd.command(), cmd.arg());
+            }
+            switch (cmd.command()) {
+                case COMMIT -> {
+                    Map<TopicPartition, OffsetAndMetadata> offsets = (Map<TopicPartition, OffsetAndMetadata>)cmd.arg();
+                    consumer.commitSync(offsets);
+                }
+                case PAUSE -> {
+                    List<TopicPartition> partitions = (List<TopicPartition>) cmd.arg();
+                    consumer.pause(partitions);
+                }
+                case RESUME -> {
+                    List<TopicPartition> partitions = (List<TopicPartition>) cmd.arg();
+                    consumer.resume(partitions);
+                }
+                case SEEK -> {
+                    AbstractMap.SimpleEntry<TopicPartition, Long> arg =
+                            (AbstractMap.SimpleEntry<TopicPartition, Long>) cmd.arg();
+                    consumer.seek(arg.getKey(), arg.getValue());
+                    taskContext.updateOffset(arg.getKey(), arg.getValue());
+                }
+                case REPARTITION -> {
+                    Collection<TopicPartition> partitions = (Collection<TopicPartition>) cmd.arg();
+                    task.open(partitions);
+                }
+                case THROW -> {
+                    Exception ex = (Exception) cmd.arg();
+                    log.error("Exception throw requested", ex);
+                    throw ex;
+                }
+            }
+        }
+
+    }
+
     @VisibleForTesting
-    protected void ackUntil(KafkaTopicConnectionsRuntime.KafkaRecord lastNotFlushed,
-                            Map<TopicPartition, OffsetAndMetadata> committedOffsets,
-                            boolean wasFlushSuccessful) {
+    protected void cleanUpFlushQueueAndUpdateBatchSize(KafkaTopicConnectionsRuntime.KafkaRecord lastNotFlushed,
+                                                       Map<TopicPartition, OffsetAndMetadata> committedOffsets) {
         // lastNotFlushed is needed in case of default preCommit() implementation
         // which calls flush() and returns currentOffsets passed to it.
         // We don't want to ack messages added to pendingFlushQueue after the preCommit/flush call
 
         for (KafkaTopicConnectionsRuntime.KafkaRecord r : pendingFlushQueue) {
-            OffsetAndMetadata lastCommittedOffset = committedOffsets.get(r.partition());
+            OffsetAndMetadata lastCommittedOffset = committedOffsets.get(r.getTopicPartition());
 
             if (lastCommittedOffset == null) {
                 if (r == lastNotFlushed) {
@@ -222,8 +296,6 @@ public class KafkaConnectSinkAgent implements AgentSink {
                 continue;
             }
 
-            // todo: how to ack/nack?
-            //flushedQueue.add(r);
             pendingFlushQueue.remove(r);
             currentBatchSize.addAndGet(-1 * getRecordSize(r));
             if (r == lastNotFlushed) {
@@ -304,8 +376,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
         task = (SinkTask) taskClass.getConstructor().newInstance();
         taskContext = new KafkaConnectSinkTaskContext(configs.get(0),
-                consumer,
-                task::open,
+                this::submitCommand,
                 () -> KafkaConnectSinkAgent.this.flushIfNeeded(true));
         task.initialize(taskContext);
         task.start(configs.get(0));

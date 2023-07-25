@@ -144,6 +144,12 @@
       <artifactId>tools</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.snowflake</groupId>
+      <artifactId>snowflake-kafka-connector</artifactId>
+      <version>1.7.2</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

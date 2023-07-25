@@ -26,8 +26,8 @@ public class TopicConsumerSource implements AgentSource {
     }
 
     @Override
-    public void commit() throws Exception {
-        consumer.commit();
+    public void commit(List<Record> records) throws Exception {
+        consumer.commit(records);
     }
 
     @Override

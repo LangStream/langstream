@@ -4,7 +4,7 @@ import com.datastax.oss.sga.api.runner.code.Record;
 
 import java.util.List;
 
-public interface TopicProducer {
+public interface TopicProducer extends AutoCloseable {
 
     default void start() {}
 

@@ -16,7 +16,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
     }
 
     @Override
-    public void commit() throws Exception {
+    public void commit(List<Record> records) throws Exception {
         log.info("Committing");
     }
 

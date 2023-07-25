@@ -10,9 +10,15 @@ import java.util.Map;
 public class TopicProducerSink implements AgentSink {
 
     private final TopicProducer producer;
+    private CommitCallback callback;
 
     public TopicProducerSink(TopicProducer producer) {
         this.producer = producer;
+    }
+
+    @Override
+    public void setCommitCallback(CommitCallback callback) {
+        this.callback = callback;
     }
 
     @Override
@@ -33,6 +39,7 @@ public class TopicProducerSink implements AgentSink {
     @Override
     public void write(List<Record> records) throws Exception {
         producer.write(records);
+        callback.commit(records);
     }
 
     @Override

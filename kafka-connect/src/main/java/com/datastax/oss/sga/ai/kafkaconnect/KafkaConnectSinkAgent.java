@@ -1,6 +1,6 @@
 package com.datastax.oss.sga.ai.kafkaconnect;
 
-import com.dastastax.oss.sga.kafka.runner.KafkaTopicConnectionsRuntime;
+import com.dastastax.oss.sga.kafka.runner.KafkaConsumerRecord;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.Record;
@@ -28,8 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -38,6 +36,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+/**
+ * This is an implementation of {@link AgentSink} that allows you to run any Kafka Connect Sinks.
+ * It is a special implementation because it bypasses the SGA Agent APIs and uses directly the
+ * Kafka Consumer. This is needed in order to implement correctly the APIs.
+ * It is not expected that this Sink runs together with a custom Source or a Processor,
+ * it works only if the Source is directly a Kafka Consumer Source.
+ */
 @Slf4j
 public class KafkaConnectSinkAgent implements AgentSink {
 
@@ -69,7 +74,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
             Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                     .setNameFormat("kafka-adaptor-sink-flush-%d")
                     .build());
-    protected final ConcurrentLinkedDeque<KafkaTopicConnectionsRuntime.KafkaRecord> pendingFlushQueue = new ConcurrentLinkedDeque<>();
+    protected final ConcurrentLinkedDeque<KafkaConsumerRecord> pendingFlushQueue = new ConcurrentLinkedDeque<>();
     private final AtomicBoolean isFlushRunning = new AtomicBoolean(false);
     private volatile boolean isRunning = false;
 
@@ -113,7 +118,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
             records.stream()
                     .map(x -> {
-                        KafkaTopicConnectionsRuntime.KafkaRecord kr = KafkaConnectSinkAgent.getKafkaRecord(x);
+                        KafkaConsumerRecord kr = KafkaConnectSinkAgent.getKafkaRecord(x);
                         currentBatchSize.addAndGet(kr.estimateRecordSize());
                         taskContext.updateOffset(kr.getTopicPartition(),
                                 kr.offset());
@@ -129,12 +134,12 @@ public class KafkaConnectSinkAgent implements AgentSink {
         flushIfNeeded(false);
     }
 
-    private static int getRecordSize(KafkaTopicConnectionsRuntime.KafkaRecord r) {
+    private static int getRecordSize(KafkaConsumerRecord r) {
         return r.estimateRecordSize();
     }
 
     private SgaSinkRecord toSinkRecord(Record record) {
-        KafkaTopicConnectionsRuntime.KafkaRecord kr = getKafkaRecord(record);
+        KafkaConsumerRecord kr = getKafkaRecord(record);
 
         return new SgaSinkRecord(kr.origin(),
                 kr.partition(),
@@ -166,10 +171,10 @@ public class KafkaConnectSinkAgent implements AgentSink {
         return input;
     }
 
-    private static KafkaTopicConnectionsRuntime.KafkaRecord getKafkaRecord(Record record) {
-        KafkaTopicConnectionsRuntime.KafkaRecord kr;
-        if (record instanceof KafkaTopicConnectionsRuntime.KafkaRecord) {
-            kr = (KafkaTopicConnectionsRuntime.KafkaRecord) record;
+    private static KafkaConsumerRecord getKafkaRecord(Record record) {
+        KafkaConsumerRecord kr;
+        if (record instanceof KafkaConsumerRecord) {
+            kr = (KafkaConsumerRecord) record;
         } else {
             throw new IllegalArgumentException("Record is not a KafkaRecord");
         }
@@ -200,7 +205,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
             return;
         }
 
-        final KafkaTopicConnectionsRuntime.KafkaRecord lastNotFlushed = pendingFlushQueue.getLast();
+        final KafkaConsumerRecord lastNotFlushed = pendingFlushQueue.getLast();
         Map<TopicPartition, OffsetAndMetadata> committedOffsets = null;
         try {
             Map<TopicPartition, OffsetAndMetadata> currentOffsets = taskContext.currentOffsets();
@@ -273,13 +278,13 @@ public class KafkaConnectSinkAgent implements AgentSink {
     }
 
     @VisibleForTesting
-    protected void cleanUpFlushQueueAndUpdateBatchSize(KafkaTopicConnectionsRuntime.KafkaRecord lastNotFlushed,
+    protected void cleanUpFlushQueueAndUpdateBatchSize(KafkaConsumerRecord lastNotFlushed,
                                                        Map<TopicPartition, OffsetAndMetadata> committedOffsets) {
         // lastNotFlushed is needed in case of default preCommit() implementation
         // which calls flush() and returns currentOffsets passed to it.
         // We don't want to ack messages added to pendingFlushQueue after the preCommit/flush call
 
-        for (KafkaTopicConnectionsRuntime.KafkaRecord r : pendingFlushQueue) {
+        for (KafkaConsumerRecord r : pendingFlushQueue) {
             OffsetAndMetadata lastCommittedOffset = committedOffsets.get(r.getTopicPartition());
 
             if (lastCommittedOffset == null) {
@@ -429,4 +434,8 @@ public class KafkaConnectSinkAgent implements AgentSink {
         log.info("Kafka sink stopped.");
     }
 
+    @Override
+    public void setCommitCallback(CommitCallback callback) {
+        // useless
+    }
 }

@@ -19,5 +19,6 @@ public interface AgentSource extends AgentCode {
      * Called by the framework to indicate that the agent has successfully processed
      * all the records returned by read up to the latest.
      */
-    void commit() throws Exception;
+    void commit(List<Record> records) throws Exception;
+
 }

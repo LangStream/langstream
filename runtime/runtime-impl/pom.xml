@@ -80,6 +80,13 @@
       <scope>runtime</scope>
     </dependency>
 
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sga-agent-tika</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+
 
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>

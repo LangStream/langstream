@@ -18,5 +18,6 @@
     </properties>
     <modules>
         <module>s3</module>
+        <module>tika</module>
     </modules>
 </project>

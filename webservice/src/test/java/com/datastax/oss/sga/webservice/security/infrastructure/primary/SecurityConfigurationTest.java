@@ -2,6 +2,7 @@ package com.datastax.oss.sga.webservice.security.infrastructure.primary;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.webservice.application.ApplicationService;
 import com.datastax.oss.sga.webservice.common.GlobalMetadataService;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,8 @@ class SecurityConfigurationTest {
 
     @MockBean
     GlobalMetadataService globalMetadataService;
+    @MockBean
+    ApplicationStore applicationStore;
 
     @Test
     void shouldBeAuthorized() throws Exception {

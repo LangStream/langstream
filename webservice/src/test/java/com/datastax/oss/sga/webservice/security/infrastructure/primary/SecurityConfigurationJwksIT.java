@@ -4,6 +4,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.jsonwebtoken.Jwts;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -41,6 +43,9 @@ public class SecurityConfigurationJwksIT {
 
     @Autowired
     MockMvc mockMvc;
+
+    @MockBean
+    ApplicationStore applicationStore;
 
     @BeforeEach
     public void beforeEach() throws Exception {

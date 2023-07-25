@@ -26,6 +26,7 @@
     <lombok.version>1.18.28</lombok.version>
     <jackson.version>2.14.2</jackson.version>
     <guava.version>31.0.1-jre</guava.version>
+    <google-api.version>1.33.0</google-api.version>
     <logback.version>1.4.7</logback.version>
     <slf4j.version>2.0.7</slf4j.version>
     <maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
@@ -140,6 +141,11 @@
         <version>${spring-boot.version}</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api-client</groupId>
+        <artifactId>google-api-client</artifactId>
+        <version>${google-api.version}</version>
       </dependency>
       <dependency>
         <groupId>net.lingala.zip4j</groupId>

@@ -7,23 +7,32 @@ import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
-import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.auth.oauth2.CredentialRefreshListener;
+import com.google.api.client.auth.oauth2.TokenErrorResponse;
+import com.google.api.client.auth.oauth2.TokenResponse;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,12 +52,12 @@ public class VertexAIProvider implements ServiceProviderProvider {
 
         Map<String, Object> config = (Map<String, Object>) agentConfiguration.get("vertex");
         String token = (String) config.get("token");
+        String serviceAccountJson = (String) config.get("serviceAccountJson");
         String url = (String) config.get("url");
         String project = (String) config.get("project");
         String region = (String) config.get("region");
 
-
-        return new VertexAIServiceProvider(url, project, region, token);
+        return new VertexAIServiceProvider(url, project, region, token, serviceAccountJson);
     }
 
     private static class VertexAIServiceProvider implements ServiceProvider {
@@ -61,7 +70,11 @@ public class VertexAIProvider implements ServiceProviderProvider {
 
         private final String token;
 
-        public VertexAIServiceProvider(String url, String project, String region, String token) {
+        private final GoogleCredential googleCredential;
+        private final ScheduledExecutorService refreshTokenExecutor;
+
+        @SneakyThrows
+        public VertexAIServiceProvider(String url, String project, String region, String token, String serviceAccountJson) {
             if (url == null || url.isEmpty()) {
                 url = "https://" + region + "-aiplatform.googleapis.com";
             }
@@ -69,8 +82,70 @@ public class VertexAIProvider implements ServiceProviderProvider {
 
             this.project = project;
             this.region = region;
-            this.token = token;
+
+            if (token != null && !token.isEmpty()) {
+                log.info("Using static Access Token to connect to Vertex AI");
+                this.token = token;
+                this.googleCredential = null;
+                this.refreshTokenExecutor = null;
+            } else if (serviceAccountJson != null && !serviceAccountJson.isEmpty()) {
+                log.info("Getting a token using OAuth2 from a Google Service Account");
+                this.token = null;
+                this.refreshTokenExecutor = Executors.newSingleThreadScheduledExecutor();
+                this.googleCredential =
+                        GoogleCredential.fromStream(new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8)))
+                                .createScoped(Set.of("https://www.googleapis.com/auth/cloud-platform"))
+                                .toBuilder()
+                                .addRefreshListener(new CredentialRefreshListener() {
+                                    @Override
+                                    public void onTokenResponse(Credential credential, TokenResponse tokenResponse) throws IOException {
+                                        log.error("Token refreshed {}", tokenResponse);
+                                        Long expire = tokenResponse.getExpiresInSeconds();
+                                        if (expire != null) {
+                                            long refresh = expire - 120;
+                                            log.info("Token will expire in {} seconds, scheduling refresh in {} seconds", expire, refresh);
+                                            scheduleRefreshToken(refresh);
+                                        }
+                                    }
+                                    @Override
+                                    public void onTokenErrorResponse(Credential credential, TokenErrorResponse tokenErrorResponse) throws IOException {
+                                            log.error("Error while refreshing token. {}", tokenErrorResponse);
+                                    }
+                                }).build();
+
+                // get the initial token
+                // an error here fails the pod
+                this.googleCredential.refreshToken();
+            } else {
+                throw new IllegalArgumentException("You have to pass the access token or the service account json file");
+            }
+
             this.httpClient = HttpClient.newHttpClient();
+        }
+
+        private void scheduleRefreshToken(long refresh) {
+            refreshTokenExecutor.schedule(() -> {
+                doRefreshToken();
+            }, refresh, java.util.concurrent.TimeUnit.SECONDS);
+        }
+
+        private void doRefreshToken()  {
+            try {
+                log.info("Refreshing token");
+                googleCredential.refreshToken();
+            } catch (Throwable error) {
+                log.error("Error while refreshing token", error);
+                // schedule again in 60 seconds
+                scheduleRefreshToken(60);
+            }
+        }
+
+
+        protected String getCurrentToken() {
+            if (token != null) {
+                return token;
+            }
+            return googleCredential.getAccessToken();
         }
 
 
@@ -94,9 +169,10 @@ public class VertexAIProvider implements ServiceProviderProvider {
             String request = MAPPER.writeValueAsString(requestEmbeddings);
             log.info("URL: {}", finalUrl);
             log.info("Request: {}", request);
+
             HttpResponse<String> response = httpClient.send(HttpRequest.newBuilder()
                     .uri(URI.create(finalUrl))
-                    .header("Authorization", "Bearer " + token)
+                    .header("Authorization", "Bearer " + getCurrentToken())
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(request))
                     .build(), HttpResponse.BodyHandlers.ofString());

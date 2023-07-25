@@ -9,6 +9,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -114,6 +115,24 @@ class VertexAIProviderTest {
                         .setContent("What is a car?")), Map.of("max_tokens", 3));
         log.info("result: {}", chatCompletions);
         assertEquals("A car is a wheeled, self-propelled motor vehicle used for transportation.", chatCompletions.getChoices().get(0).getMessage().getContent());
+    }
+
+
+    @Test
+    @Disabled
+    void testCallEmbeddingsUsingServiceAccount() throws Exception {
+        VertexAIProvider provider = new VertexAIProvider();
+        ServiceProvider implementation = provider.createImplementation(
+                Map.of("vertex",
+                        Map.of("url", "https://us-central1-aiplatform.googleapis.com",
+                                "project", "datastax-astrastreaming-dev",
+                                "region", "us-central1",
+                                "serviceAccountJson", "PUT-HERE-YOUR-JSON-KEY")));
+
+        EmbeddingsService embeddingsService = implementation.getEmbeddingsService(Map.of("model", "textembedding-gecko"));
+        List<List<Double>> result = embeddingsService.computeEmbeddings(List.of("hello world"));
+        log.info("result: {}", result);
+        assertEquals(1, result.size());
     }
 
 }

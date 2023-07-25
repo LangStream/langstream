@@ -36,6 +36,10 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.google.api-client</groupId>
+      <artifactId>google-api-client</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>streaming-ai</artifactId>
       <exclusions>

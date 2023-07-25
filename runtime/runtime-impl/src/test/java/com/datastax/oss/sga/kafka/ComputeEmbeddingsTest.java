@@ -140,6 +140,8 @@ class ComputeEmbeddingsTest {
     @MethodSource("providers")
     public void testComputeEmbeddings(EmbeddingsConfig config) throws Exception {
         final String appId = "application-" + UUID.randomUUID();
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
         config.stubMakers.run();
         String tenant = "tenant";
         kubeServer.spyAgentCustomResources("tenant", appId + "-step1");
@@ -155,21 +157,21 @@ class ComputeEmbeddingsTest {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
-                                  - name: "output-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "compute-embeddings"
                                     id: "step1"
                                     type: "compute-ai-embeddings"
-                                    input: "input-topic"
-                                    output: "output-topic"
+                                    input: "%s"
+                                    output: "%s"
                                     configuration:                                      
                                       model: "%s"
                                       embeddings-field: "value.embeddings"
                                       text: "something to embed"
-                                """.formatted(config.model)));
+                                """.formatted(inputTopic, outputTopic, inputTopic, outputTopic, config.model)));
 
         ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -181,7 +183,7 @@ class ComputeEmbeddingsTest {
 
         ExecutionPlan implementation = deployer.createImplementation(appId, applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
+                new Connection(TopicDefinition.fromName(inputTopic))) instanceof KafkaTopic);
 
         deployer.deploy(tenant, implementation, null);
         assertEquals(1, secrets.size());
@@ -191,7 +193,7 @@ class ComputeEmbeddingsTest {
 
         Set<String> topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
-        assertTrue(topics.contains("input-topic"));
+        assertTrue(topics.contains(inputTopic));
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<String, String>(
                 Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
@@ -205,13 +207,13 @@ class ComputeEmbeddingsTest {
                     "group.id","testgroup",
                     "auto.offset.reset", "earliest")
         )) {
-            consumer.subscribe(List.of("output-topic"));
+            consumer.subscribe(List.of(outputTopic));
 
 
             // produce one message to the input-topic
             producer
                 .send(new ProducerRecord<>(
-                    "input-topic",
+                    inputTopic,
                     null,
                     "key",
                     "{\"name\": \"some name\", \"description\": \"some description\"}"))
@@ -226,6 +228,8 @@ class ComputeEmbeddingsTest {
             ConsumerRecord<String, String> record = poll.iterator().next();
             assertEquals("{\"name\":\"some name\",\"description\":\"some description\",\"embeddings\":[1.0,5.4,8.7]}", record.value());
         }
+
+        deployer.delete(tenant, implementation, null);
 
     }
 

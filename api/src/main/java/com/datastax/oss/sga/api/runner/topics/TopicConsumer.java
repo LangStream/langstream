@@ -4,7 +4,7 @@ import com.datastax.oss.sga.api.runner.code.Record;
 
 import java.util.List;
 
-public interface TopicConsumer {
+public interface TopicConsumer extends AutoCloseable {
 
     default Object getNativeConsumer() {
         return null;
@@ -18,6 +18,6 @@ public interface TopicConsumer {
         return List.of();
     }
 
-    default void commit() throws Exception {
+    default void commit(List<Record> records) throws Exception {
     }
 }

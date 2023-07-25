@@ -269,8 +269,6 @@ public class AgentRunner
                     // in this case it handles directly the Kafka Consumer
                     // and so we bypass the commit
                     sink.commit();
-                } else {
-                    source.commit(records);
                 }
                 records = source.read();
             }

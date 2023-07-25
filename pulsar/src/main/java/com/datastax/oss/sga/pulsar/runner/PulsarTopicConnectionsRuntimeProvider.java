@@ -129,11 +129,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             private final Map<String, Object> configuration;
             Consumer<GenericRecord> consumer;
 
-            List<MessageId> receivedMessages;
-
             public PulsarTopicConsumer(Map<String, Object> configuration) {
                 this.configuration = configuration;
-                receivedMessages = new ArrayList<>();
             }
 
 
@@ -169,8 +166,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 if (receive == null) {
                     return List.of();
                 }
-                receivedMessages.add(receive.getMessageId());
-
                 Object key = receive.getKey();
                 Object value = receive.getValue().getNativeObject();
                 if (value instanceof KeyValue<?,?> kv) {
@@ -185,11 +180,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             }
 
             @Override
-            public void commit() throws Exception {
-                for (MessageId messageId : receivedMessages) {
-                    consumer.acknowledge(messageId);
+            public void commit(List<Record> records) throws Exception {
+                for (Record record : records) {
+                    PulsarConsumerRecord pulsarConsumerRecord = (PulsarConsumerRecord) record;
+                    consumer.acknowledge(pulsarConsumerRecord.receive.getMessageId());
                 }
-                receivedMessages.clear();
             }
         }
 

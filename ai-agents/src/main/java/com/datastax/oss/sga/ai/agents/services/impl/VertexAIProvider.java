@@ -83,12 +83,12 @@ public class VertexAIProvider implements ServiceProviderProvider {
             this.project = project;
             this.region = region;
 
-            if (token != null && !token.isEmpty()) {
+            if (token != null && !token.trim().isEmpty()) {
                 log.info("Using static Access Token to connect to Vertex AI");
-                this.token = token;
+                this.token = token.trim();
                 this.googleCredential = null;
                 this.refreshTokenExecutor = null;
-            } else if (serviceAccountJson != null && !serviceAccountJson.isEmpty()) {
+            } else if (serviceAccountJson != null && !serviceAccountJson.trim().isEmpty()) {
                 log.info("Getting a token using OAuth2 from a Google Service Account");
                 this.token = null;
                 this.refreshTokenExecutor = Executors.newSingleThreadScheduledExecutor();

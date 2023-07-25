@@ -4,6 +4,7 @@ configuration:
       name: "Google Vertex AI configuration"
       configuration:
         url: "{{ secrets.vertex-ai.url }}"
+        serviceAccountJson: "{{ secrets.vertex-ai.serviceAccountJson }}"
         token: "{{ secrets.vertex-ai.token }}"
         region: "{{ secrets.vertex-ai.region }}"
         project: "{{ secrets.vertex-ai.project }}"

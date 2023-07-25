@@ -12,7 +12,10 @@ public class SgaCLI {
     }
 
     public static int execute(String[] args) {
-        int exitCode = new CommandLine(new RootCmd())
+        final CommandLine cmdLine = new CommandLine(new RootCmd());
+        CommandLine gen = cmdLine.getSubcommands().get("generate-completion");
+        gen.getCommandSpec().usageMessage().hidden(true);
+        int exitCode = cmdLine
                 .setExecutionExceptionHandler((e, commandLine, parseResult) -> {
                     if (e.getMessage() != null) {
                         commandLine.getErr().println(commandLine.getColorScheme().errorText(e.getMessage()));

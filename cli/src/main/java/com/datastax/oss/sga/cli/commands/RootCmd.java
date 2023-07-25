@@ -2,10 +2,11 @@ package com.datastax.oss.sga.cli.commands;
 
 import com.datastax.oss.sga.cli.commands.configure.ConfigureCmd;
 import lombok.Getter;
+import picocli.AutoComplete;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "", mixinStandardHelpOptions = true, description = "Manage SGA",
-        subcommands = { RootAppCmd.class, ConfigureCmd.class, RootTenantCmd.class})
+@CommandLine.Command(name = "sga", mixinStandardHelpOptions = true, description = "Manage SGA",
+        subcommands = { RootAppCmd.class, ConfigureCmd.class, RootTenantCmd.class, AutoComplete.GenerateCompletion.class})
 public class RootCmd {
 
 

@@ -21,6 +21,6 @@ if [ ! -d cli/target/cli ]; then
   ./mvnw clean install -DskipTests -pl cli -am
 fi
 
-"cli/target/cli/bin/cli" "$@"
+"cli/target/cli/bin/sga" "$@"
 
 

@@ -62,11 +62,7 @@ public class S3CodeStorage implements CodeStorage {
 
         List<Bucket> buckets = minioClient.listBuckets();
         log.info("Existing Buckets: {}", buckets.stream().map(Bucket::name).toList());
-<<<<<<< HEAD
-        if (buckets.stream().noneMatch(b->b.name().equals(bucketName))) {
-=======
-        if (!buckets.stream().filter(b -> b.name().equals(bucketName)).findAny().isPresent()) {
->>>>>>> 229abd9 (S3: ensure authentication with s3.amazonaws.com)
+        if (buckets.stream().noneMatch(b -> b.name().equals(bucketName))) {
             log.info("Creating bucket {}", bucketName);
             minioClient.makeBucket(MakeBucketArgs
                     .builder()

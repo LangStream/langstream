@@ -132,6 +132,7 @@ bashrc="${HOME}/.bashrc"
 zshrc="${ZDOTDIR:-${HOME}}/.zshrc"
 init_snipped=$( cat << EOF
 export PATH=\$PATH:$sga_current_symlink/bin
+source <(sga generate-completion)
 EOF
 )
 

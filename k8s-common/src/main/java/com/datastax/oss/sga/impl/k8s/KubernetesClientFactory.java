@@ -14,7 +14,7 @@ public class KubernetesClientFactory {
     private static final Map<String, KubernetesClient> clients = new ConcurrentHashMap<>();
 
     public static KubernetesClient create(String context) {
-        if (context.equals("__null__")) {
+        if ("__null__".equals(context)) {
             context = null;
         }
         final Config config = Config.autoConfigure(context);

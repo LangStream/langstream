@@ -3,9 +3,7 @@ package com.datastax.oss.sga.deployer.k8s.agents;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
-import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
-import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
@@ -15,6 +13,7 @@ import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -28,7 +27,7 @@ class AgentCustomResourceTest {
 
     @Test
     void testAggregatePodStatus() {
-        final String tenant = "my-tenant";
+        final String tenant = genTenant();
         final String namespace = "sga-%s".formatted(tenant);
         final String agentId = "agent-id";
         final String applicationId = "my-app";
@@ -46,7 +45,8 @@ class AgentCustomResourceTest {
                     agentStatus.getWorkers().get("my-app-agent-id-0");
             assertEquals(ApplicationStatus.AgentWorkerStatus.Status.ERROR, workerStatus.getStatus());
             assertEquals("failed to create containerd task: failed to create shim task: OCI runtime create failed: "
-                    + "runc create failed: unable to start container process: exec: \"agent-runtime\": executable file not "
+                    + "runc create failed: unable to start container process: exec: \"agent-runtime\": executable "
+                    + "file not "
                     + "found in $PATH: unknown", workerStatus.getReason());
 
         });
@@ -54,20 +54,33 @@ class AgentCustomResourceTest {
 
     @Test
     void testStatefulsetBeingDeleted() {
-        deployAgent("tenant", "sga-tenant", "my-agent", "my-app2");
-        assertEquals(1, k3s.getClient().apps().statefulSets().inNamespace("sga-tenant")
+        final String applicationId = "my-app2";
+        final String agentId = "my-agent";
+        final String tenant = genTenant();
+        final String namespace = "sga-" + tenant;
+        deployAgent(tenant, namespace, agentId, applicationId);
+        assertEquals(1, k3s.getClient().apps().statefulSets().inNamespace(namespace)
                 .list().getItems().size());
 
         k3s.getClient().resources(AgentCustomResource.class)
-                .inNamespace("sga-tenant")
-                .withName("my-app2-my-agent")
+                .inNamespace(namespace)
+                .withName(AgentResourcesFactory.getAgentCustomResourceName(applicationId, agentId))
                 .delete();
+        assertEquals(0, k3s.getClient().resources(AgentCustomResource.class)
+                .inNamespace(namespace)
+                .list().getItems().size());
 
         Awaitility.await()
                 .untilAsserted(() -> {
-                    assertEquals(0, k3s.getClient().apps().statefulSets().inNamespace("sga-tenant")
+                    assertEquals(0, k3s.getClient().apps().statefulSets().inNamespace(namespace)
                             .list().getItems().size());
                 });
+
+    }
+
+    static AtomicInteger counter = new AtomicInteger(0);
+    private static String genTenant() {
+        return "tenant-" + counter.incrementAndGet();
 
     }
 

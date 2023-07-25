@@ -5,6 +5,7 @@ import com.datastax.oss.sga.api.codestorage.CodeStorage;
 import com.datastax.oss.sga.api.codestorage.CodeStorageException;
 import com.datastax.oss.sga.api.codestorage.LocalZipFileArchiveFile;
 import com.datastax.oss.sga.api.codestorage.UploadableCodeArchive;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.DownloadObjectArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
@@ -32,6 +33,7 @@ import okhttp3.OkHttpClient;
 @Slf4j
 public class S3CodeStorage implements CodeStorage {
 
+    private static final ObjectMapper mapper = new ObjectMapper();
     protected static final long DEFAULT_CONNECTION_TIMEOUT = TimeUnit.MINUTES.toMillis(5L);
     private String bucketName;
     private OkHttpClient httpClient;
@@ -39,24 +41,28 @@ public class S3CodeStorage implements CodeStorage {
 
     @SneakyThrows
     public S3CodeStorage(Map<String, Object> configuration) {
-        bucketName = configuration.getOrDefault("bucketName", "sga-code-storage").toString();
-        String endpoint = configuration.getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090").toString();
-        String username =  configuration.getOrDefault("username", "minioadmin").toString();
-        String password =  configuration.getOrDefault("password", "minioadmin").toString();
+        final S3CodeStorageConfiguration s3CodeStorageConfiguration =
+                mapper.convertValue(configuration, S3CodeStorageConfiguration.class);
 
-        log.info("Connecting to S3 BlobStorage at {} with user {}", endpoint, username);
+        bucketName = s3CodeStorageConfiguration.getBucketName();
+        final String endpoint = s3CodeStorageConfiguration.getEndpoint();
+        final String accessKey = s3CodeStorageConfiguration.getAccessKey();
+        final String secretKey = s3CodeStorageConfiguration.getSecretKey();
 
-        httpClient = HttpUtils.newDefaultHttpClient(DEFAULT_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT);
+        log.info("Connecting to S3 BlobStorage at {} with accessKey {}", endpoint, accessKey);
+
+        httpClient = HttpUtils.newDefaultHttpClient(DEFAULT_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT,
+                DEFAULT_CONNECTION_TIMEOUT);
         minioClient =
                 MinioClient.builder()
                         .endpoint(endpoint)
                         .httpClient(httpClient)
-                        .credentials(username, password)
+                        .credentials(accessKey, secretKey)
                         .build();
 
         List<Bucket> buckets = minioClient.listBuckets();
         log.info("Existing Buckets: {}", buckets.stream().map(Bucket::name).toList());
-        if (buckets.stream().noneMatch(b->b.name().equals(bucketName))) {
+        if (buckets.stream().noneMatch(b -> b.name().equals(bucketName))) {
             log.info("Creating bucket {}", bucketName);
             minioClient.makeBucket(MakeBucketArgs
                     .builder()
@@ -67,16 +73,17 @@ public class S3CodeStorage implements CodeStorage {
     }
 
 
-
     @Override
-    public CodeArchiveMetadata storeApplicationCode(String tenant, String applicationId, String version, UploadableCodeArchive codeArchive) throws CodeStorageException {
+    public CodeArchiveMetadata storeApplicationCode(String tenant, String applicationId, String version,
+                                                    UploadableCodeArchive codeArchive) throws CodeStorageException {
 
         try {
             Path tempFile = Files.createTempFile("sga", "upload");
             try {
                 Files.copy(codeArchive.getData(), tempFile, StandardCopyOption.REPLACE_EXISTING);
                 String codeStoreId = tenant + "_" + applicationId + "_" + version + "_" + UUID.randomUUID();
-                log.info("Storing code archive {} for tenant {} and application {} with version {}", codeStoreId, tenant, applicationId, version);
+                log.info("Storing code archive {} for tenant {} and application {} with version {}", codeStoreId,
+                        tenant, applicationId, version);
 
                 minioClient.uploadObject(
                         UploadObjectArgs.builder()
@@ -101,15 +108,16 @@ public class S3CodeStorage implements CodeStorage {
     }
 
     @Override
-    public void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive) throws CodeStorageException {
+    public void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive)
+            throws CodeStorageException {
         try {
             Path tempFile = Files.createTempDirectory("sga-download-code");
             Path zipFile = tempFile.resolve("code.zip");
             try {
                 minioClient.downloadObject(DownloadObjectArgs.builder()
-                                .bucket(bucketName)
-                                .filename(zipFile.toAbsolutePath().toString())
-                                .object(tenant +"/" + codeStoreId)
+                        .bucket(bucketName)
+                        .filename(zipFile.toAbsolutePath().toString())
+                        .object(tenant + "/" + codeStoreId)
                         .build());
                 codeArchive.accept(new LocalZipFileArchiveFile(zipFile));
             } finally {

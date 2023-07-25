@@ -1,6 +1,5 @@
 package com.datastax.oss.sga.api.codestorage;
 
-import java.util.function.Consumer;
 
 /**
  * This is an API to interact with the code storage.

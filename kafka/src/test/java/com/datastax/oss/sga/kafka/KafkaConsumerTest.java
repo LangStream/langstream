@@ -10,6 +10,7 @@ import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
+import com.datastax.oss.sga.api.runner.code.SimpleRecord;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
@@ -108,7 +109,7 @@ class KafkaConsumerTest {
             for (int i = 0; i < 10; i++) {
 
                 for (int j = 0; j < 2; j++) {
-                    MyRecord record1 = generateRecord("record" + i + "_" + j);
+                    Record record1 = generateRecord("record" + i + "_" + j);
                     producer.write(List.of(record1));
                 }
 
@@ -118,7 +119,7 @@ class KafkaConsumerTest {
 
             // partial acks, this is an error
             for (int j = 0; j < 4; j++) {
-                MyRecord record1 = generateRecord("record_" + j);
+                Record record1 = generateRecord("record_" + j);
                 producer.write(List.of(record1));
             }
 
@@ -143,12 +144,12 @@ class KafkaConsumerTest {
         return readFromConsumer;
     }
 
-    private static MyRecord generateRecord(String value) {
-        return new MyRecord(value, value, "origin", System.currentTimeMillis(), List.of());
-    }
-
-
-    private static record MyRecord (Object key, Object value, String origin, Long timestamp, Collection<Header> headers) implements Record {
+    private static Record generateRecord(String value) {
+        return SimpleRecord.builder().key(value)
+                .value(value)
+                .origin("origin")
+                .timestamp(System.currentTimeMillis())
+                .build();
     }
 
     private static String buildInstanceYaml() {

@@ -2,7 +2,6 @@ package com.datastax.oss.sga.ai.agents;
 
 import com.datastax.oss.sga.ai.agents.datasource.DataSourceProviderRegistry;
 import com.datastax.oss.sga.ai.agents.services.ServiceProviderRegistry;
-import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;

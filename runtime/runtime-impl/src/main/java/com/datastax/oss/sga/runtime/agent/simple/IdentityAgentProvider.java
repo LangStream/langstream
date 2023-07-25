@@ -2,11 +2,9 @@ package com.datastax.oss.sga.runtime.agent.simple;
 
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
-import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class IdentityAgentProvider implements AgentCodeProvider {

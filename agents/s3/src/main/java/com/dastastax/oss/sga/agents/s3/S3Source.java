@@ -29,6 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import lombok.AllArgsConstructor;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -82,48 +85,78 @@ public class S3Source implements AgentSource {
                         .build());
                 objectsToCommit.add(name);
                 byte[] read = objectResponse.readAllBytes();
-                records.add(new Record() {
-                    @Override
-                    public Object key() {
-                        return null;
-                    }
-
-                    @Override
-                    public Object value() {
-                        return read;
-                    }
-
-                    @Override
-                    public String origin() {
-                        return null;
-                    }
-
-                    @Override
-                    public Long timestamp() {
-                        return System.currentTimeMillis();
-                    }
-
-                    @Override
-                    public Collection<Header> headers() {
-                        return null;
-                    }
-                });
+                records.add(new S3SourceRecord(read, name));
                 break;
+            } else {
+                log.info("Skipping already processed object {}", name);
             }
         }
         return records;
     }
 
     @Override
-    public void commit() throws Exception {
-        for (Iterator<String> iterator = objectsToCommit.iterator(); iterator.hasNext(); ) {
-            String objectName = iterator.next();
+    public void commit(List<Record> records) throws Exception {
+        for (Record record : records) {
+            S3SourceRecord s3SourceRecord = (S3SourceRecord) record;
+            String objectName = s3SourceRecord.name;
             minioClient.removeObject(
                 RemoveObjectArgs.builder()
                     .bucket(bucketName)
                     .object(objectName)
                     .build());
-            iterator.remove();
+            objectsToCommit.remove(objectName);
+        }
+    }
+
+    private static class S3SourceRecord implements Record {
+        private final byte[] read;
+        private final String name;
+
+        public S3SourceRecord(byte[] read, String name) {
+            this.read = read;
+            this.name = name;
+        }
+
+        @Override
+        public Object key() {
+            return null;
+        }
+
+        @Override
+        public Object value() {
+            return read;
+        }
+
+        @Override
+        public String origin() {
+            return null;
+        }
+
+        @Override
+        public Long timestamp() {
+            return System.currentTimeMillis();
+        }
+
+        @Override
+        public Collection<Header> headers() {
+            return List.of(new S3RecordHeader("name", name));
+        }
+
+        @AllArgsConstructor
+        @ToString
+        private class S3RecordHeader implements Header {
+
+            final String key;
+            final String value;
+            @Override
+            public String key() {
+                return key;
+            }
+
+            @Override
+            public String value() {
+                return value;
+            }
         }
     }
 }

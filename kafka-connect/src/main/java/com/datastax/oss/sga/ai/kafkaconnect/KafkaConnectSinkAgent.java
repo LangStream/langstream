@@ -28,8 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -38,6 +36,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+/**
+ * This is an implementation of {@link AgentSink} that allows you to run any Kafka Connect Sinks.
+ * It is a special implementation because it bypasses the SGA Agent APIs and uses directly the
+ * Kafka Consumer. This is needed in order to implement correctly the APIs.
+ * It is not expected that this Sink runs together with a custom Source or a Processor,
+ * it works only if the Source is directly a Kafka Consumer Source.
+ */
 @Slf4j
 public class KafkaConnectSinkAgent implements AgentSink {
 
@@ -429,4 +434,8 @@ public class KafkaConnectSinkAgent implements AgentSink {
         log.info("Kafka sink stopped.");
     }
 
+    @Override
+    public void setCommitCallback(CommitCallback callback) {
+        // useless
+    }
 }

@@ -1,7 +1,5 @@
 package com.datastax.oss.sga.runtime.agent;
 
-import com.datastax.oss.sga.api.codestorage.CodeStorage;
-import com.datastax.oss.sga.api.codestorage.CodeStorageRegistry;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeRegistry;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
@@ -15,7 +13,6 @@ import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 import com.datastax.oss.sga.runtime.agent.python.PythonCodeAgentProvider;
 import com.datastax.oss.sga.runtime.agent.simple.IdentityAgentProvider;
-import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -30,7 +27,11 @@ import java.net.URLClassLoader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -216,7 +217,6 @@ public class AgentRunner
         } else {
             function = new IdentityAgentProvider.IdentityAgentCode();
         }
-
         AgentContext agentContext = new SimpleAgentContext(consumer, producer);
         log.info("Source: {}", source);
         log.info("Function: {}", function);
@@ -238,12 +238,23 @@ public class AgentRunner
             sink.start();
             function.start();
 
+            SourceRecordTracker sourceRecordTracker =
+                    new SourceRecordTracker(source);
+            sink.setCommitCallback(sourceRecordTracker);
+
             List<Record> records = source.read();
             while ((maxLoops < 0) || (maxLoops-- > 0)) {
                 if (records != null && !records.isEmpty()) {
                     try {
-                        List<Record> outputRecords = function.process(records);
-                        sink.write(outputRecords);
+                        // the function maps the record coming from the Source to records to be sent to the Sink
+                        Map<Record, List<Record>> sinkRecords = function.process(records);
+
+                        sourceRecordTracker.track(sinkRecords);
+
+                        List<Record> forTheSink = new ArrayList<>();
+                        sinkRecords.values().forEach(forTheSink::addAll);
+
+                        sink.write(forTheSink);
                     } catch (Throwable e) {
                         log.error("Error while processing records", e);
 
@@ -254,9 +265,12 @@ public class AgentRunner
                     // commit
                 }
                 if (sink.handlesCommit()) {
+                    // this is the case for the Kafka Connect Sink
+                    // in this case it handles directly the Kafka Consumer
+                    // and so we bypass the commit
                     sink.commit();
                 } else {
-                    source.commit();
+                    source.commit(records);
                 }
                 records = source.read();
             }
@@ -315,4 +329,5 @@ public class AgentRunner
             return producer;
         }
     }
+
 }

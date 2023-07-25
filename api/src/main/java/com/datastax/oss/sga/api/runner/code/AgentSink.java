@@ -14,6 +14,12 @@ public interface AgentSink extends AgentCode {
      */
     void write(List<Record> records) throws Exception;
 
+    interface CommitCallback {
+        void commit(List<Record> records);
+    }
+    
+    void setCommitCallback(CommitCallback callback);
+
     /**
      * @return true if the agent handles commit of consumed record (e.g. in case of batching)
      */

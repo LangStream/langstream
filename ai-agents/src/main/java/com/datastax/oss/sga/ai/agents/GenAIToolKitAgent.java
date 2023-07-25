@@ -5,6 +5,7 @@ import com.datastax.oss.sga.ai.agents.services.ServiceProviderRegistry;
 import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
@@ -34,7 +35,7 @@ import java.util.Map;
 import org.apache.avro.generic.GenericRecord;
 
 @Slf4j
-public class GenAIToolKitAgent implements AgentFunction {
+public class GenAIToolKitAgent extends SingleRecordAgentFunction {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private List<StepPredicatePair> steps;
@@ -43,20 +44,17 @@ public class GenAIToolKitAgent implements AgentFunction {
     private ServiceProvider serviceProvider;
 
     @Override
-    public List<Record> process(List<Record> records) throws Exception {
-        log.info("Processing {}", records);
-        List<Record> output = new ArrayList<>();
-        for (Record record : records) {
-            TransformContext context = recordToTransformContext(record);
-            if (config.isAttemptJsonConversion()) {
-                context.setKeyObject(TransformFunctionUtil.attemptJsonConversion(context.getKeyObject()));
-                context.setValueObject(TransformFunctionUtil.attemptJsonConversion(context.getValueObject()));
-            }
-            TransformFunctionUtil.processTransformSteps(context, steps);
-            context.convertMapToStringOrBytes();
-            transformContextToRecord(context, record.headers()).ifPresent(output::add);
+    public List<Record> processRecord(Record record) throws Exception {
+        log.info("Processing {}", record);
+        TransformContext context = recordToTransformContext(record);
+        if (config.isAttemptJsonConversion()) {
+            context.setKeyObject(TransformFunctionUtil.attemptJsonConversion(context.getKeyObject()));
+            context.setValueObject(TransformFunctionUtil.attemptJsonConversion(context.getValueObject()));
         }
-        return output;
+        TransformFunctionUtil.processTransformSteps(context, steps);
+        context.convertMapToStringOrBytes();
+        Optional<Record> recordResult = transformContextToRecord(context, record.headers());
+        return recordResult.isPresent() ? List.of(recordResult.get()) : List.of();
     }
 
     @Override

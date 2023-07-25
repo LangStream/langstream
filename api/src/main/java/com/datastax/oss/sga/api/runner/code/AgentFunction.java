@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.api.runner.code;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Body of the agent
@@ -14,5 +15,5 @@ public interface AgentFunction extends AgentCode {
      * @return the list of output records
      * @throws Exception if the agent fails to process the records
      */
-    List<Record> process(List<Record> records) throws Exception;
+    Map<Record, List<Record>> process(List<Record> records) throws Exception;
 }

@@ -15,6 +15,7 @@ import io.minio.Result;
 import io.minio.messages.Item;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -66,11 +67,16 @@ public class S3SourceTest {
         assertEquals(1, read.size());
         assertArrayEquals("test-content-0".getBytes(StandardCharsets.UTF_8), (byte[]) read.get(0).value());
 
-        read = agentSource.read();
-        assertEquals(1, read.size());
-        assertArrayEquals("test-content-1".getBytes(StandardCharsets.UTF_8), (byte[]) read.get(0).value());
+        // DO NOT COMMIT, the source should not return the same objects
 
-        agentSource.commit();
+        List<Record> read2 = agentSource.read();
+
+        assertEquals(1, read2.size());
+        assertArrayEquals("test-content-1".getBytes(StandardCharsets.UTF_8), (byte[]) read2.get(0).value());
+
+        // COMMIT (out of order)
+        agentSource.commit(read2);
+        agentSource.commit(read);
 
         Iterator<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build()).iterator();
         for (int i = 2; i < 10; i++) {
@@ -78,19 +84,22 @@ public class S3SourceTest {
             assertEquals("test-" + i, item.get().objectName());
         }
 
+        List<Record> all = new ArrayList<>();
         for (int i = 0; i < 8; i++) {
-            agentSource.read();
+            all.addAll(agentSource.read());
         }
 
-        agentSource.commit();
+        agentSource.commit(all);
+        all.clear();
+
         results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build()).iterator();
         assertFalse(results.hasNext());
 
         for (int i = 0; i < 10; i++) {
-            agentSource.read();
+            all.addAll(agentSource.read());
         }
-        agentSource.commit();
-        agentSource.commit();
+        agentSource.commit(all);
+        agentSource.commit(List.of());
     }
 
     @Test
@@ -98,12 +107,13 @@ public class S3SourceTest {
         String bucket = "sga-test-" + UUID.randomUUID();
         AgentSource agentSource = buildAgentSource(bucket);
         assertFalse(minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build()).iterator().hasNext());
-        agentSource.commit();
+        agentSource.commit(List.of());
+        List<Record> read = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            agentSource.read();
+            read.addAll(agentSource.read());
         }
         assertFalse(minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build()).iterator().hasNext());
-        agentSource.commit();
+        agentSource.commit(read);
     }
 
     @Test
@@ -117,9 +127,9 @@ public class S3SourceTest {
                 .object("test")
                 .stream(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), content.length(), -1)
                 .build());
-        agentSource.read();
+        List<Record> read = agentSource.read();
         minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object("test").build());
-        agentSource.commit();
+        agentSource.commit(read);
     }
 
     private AgentSource buildAgentSource(String bucket) throws Exception {

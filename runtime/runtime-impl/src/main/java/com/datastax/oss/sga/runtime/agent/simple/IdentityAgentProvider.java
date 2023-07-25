@@ -4,6 +4,7 @@ import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
 import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.Record;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,10 +20,12 @@ public class IdentityAgentProvider implements AgentCodeProvider {
         return new IdentityAgentCode();
     }
 
-    public static class IdentityAgentCode implements AgentFunction {
+    public static class IdentityAgentCode extends SingleRecordAgentFunction {
+
         @Override
-        public List<Record> process(List<Record> record) {
-            return new ArrayList<>(record);
+        public List<Record> processRecord(Record record) throws Exception {
+            return List.of(record);
         }
+
     }
 }

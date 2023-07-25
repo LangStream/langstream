@@ -72,6 +72,14 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- main implementation for the Agents -->
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sga-agent-s3</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+
 
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>

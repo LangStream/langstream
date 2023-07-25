@@ -12,15 +12,13 @@ public class AgentCodeRegistry {
     public AgentCode getAgentCode(String agentType) {
         Objects.requireNonNull(agentType, "agentType cannot be null");
         ServiceLoader<AgentCodeProvider> loader = ServiceLoader.load(AgentCodeProvider.class);
-        ServiceLoader.Provider<AgentCodeProvider> clusterRuntimeProviderProvider = loader
+        ServiceLoader.Provider<AgentCodeProvider> agentCodeProviderProvider = loader
                 .stream()
-                .filter(p -> {
-                    return p.get().supports(agentType);
-                })
+                .filter(p -> p.get().supports(agentType))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No AgentCodeProvider found for type " + agentType));
 
-        return clusterRuntimeProviderProvider.get().createInstance(agentType);
+        return agentCodeProviderProvider.get().createInstance(agentType);
     }
 
 }

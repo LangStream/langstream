@@ -3,16 +3,13 @@ package com.datastax.oss.sga.impl.storage.k8s.codestorage;
 import com.datastax.oss.sga.api.codestorage.CodeArchiveMetadata;
 import com.datastax.oss.sga.api.codestorage.CodeStorage;
 import com.datastax.oss.sga.api.codestorage.CodeStorageException;
-import com.datastax.oss.sga.api.codestorage.DownloadedCodeArchive;
 import com.datastax.oss.sga.api.codestorage.LocalZipFileArchiveFile;
 import com.datastax.oss.sga.api.codestorage.UploadableCodeArchive;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.DownloadObjectArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.MakeBucketArgs;
 import io.minio.RemoveObjectArgs;
-import io.minio.S3Base;
 import io.minio.http.HttpUtils;
 import io.minio.messages.Bucket;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +27,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Consumer;
 import okhttp3.OkHttpClient;
 
 @Slf4j
@@ -60,7 +56,7 @@ public class S3CodeStorage implements CodeStorage {
 
         List<Bucket> buckets = minioClient.listBuckets();
         log.info("Existing Buckets: {}", buckets.stream().map(Bucket::name).toList());
-        if (!buckets.stream().filter(b->b.name().equals(bucketName)).findAny().isPresent()) {
+        if (buckets.stream().noneMatch(b->b.name().equals(bucketName))) {
             log.info("Creating bucket {}", bucketName);
             minioClient.makeBucket(MakeBucketArgs
                     .builder()

@@ -22,7 +22,7 @@ public class GenericPulsarSourceAgentProvider extends AbstractPulsarAgentProvide
         String sourceType = (String)configuration.getConfiguration()
                 .get("sourceType");
         if (sourceType == null) {
-            throw new IllegalArgumentException("For the generic pulsar-source you must configured the sourceType configuration property");
+            throw new IllegalArgumentException("For the generic pulsar-source you must configure the sourceType configuration property");
         }
         return sourceType;
     }

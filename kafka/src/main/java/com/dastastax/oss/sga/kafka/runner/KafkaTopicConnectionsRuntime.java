@@ -78,8 +78,8 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.putIfAbsent("auto.offset.reset", "earliest");
 
         // producer
-        copy.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        copy.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        copy.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        copy.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
     }
 
     @ToString
@@ -171,7 +171,10 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
 
         return new TopicProducer() {
 
-            KafkaProducer<Object, Object> producer;
+            KafkaProducer<byte[], byte[]> producer;
+            Serializer keySerializer = null;
+            Serializer valueSerializer = null;
+            Serializer headerSerializer = null;
 
             @Override
             public void start() {
@@ -190,14 +193,34 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
             public void write(List<Record> records) {
                 for (Record r : records) {
                     List<org.apache.kafka.common.header.Header> headers = new ArrayList<>();
-                    for (Header header : r.headers()) {
-                        Serializer serializer = SERIALIZERS.get(header.value().getClass());
-                        if (serializer != null) {
-                            headers.add(
-                                new RecordHeader(header.key(), serializer.serialize(topicName, header.value())));
+                    byte[] key = null;
+                    if (r.key() != null) {
+                        if (keySerializer == null) {
+                            keySerializer = SERIALIZERS.get(r.key().getClass());
+                        }
+                        key = keySerializer.serialize(topicName, r.key());
+                    }
+                    byte[] value = null;
+                    if (r.value() != null) {
+                        if (valueSerializer == null) {
+                            valueSerializer = SERIALIZERS.get(r.value().getClass());
+                        }
+                        value = valueSerializer.serialize(topicName, r.value());
+                    }
+                    if (r.headers() != null) {
+                        for (Header header : r.headers()) {
+                            Object headerValue = header.value();
+                            byte[] serializedHeader = null;
+                            if (headerValue != null) {
+                                if (headerSerializer == null) {
+                                    headerSerializer = SERIALIZERS.get(headerValue.getClass());
+                                }
+                                serializedHeader = headerSerializer.serialize(topicName, headerValue);
+                            }
+                            headers.add(new RecordHeader(header.key(), serializedHeader));
                         }
                     }
-                    ProducerRecord<Object, Object> record = new ProducerRecord<>(topicName, null, null, r.key(), r.value(), headers);
+                    ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topicName, null, null, key, value, headers);
                     log.info("Sending record {}", record);
                     producer.send(record).get();
                 }

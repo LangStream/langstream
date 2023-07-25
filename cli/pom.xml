@@ -89,7 +89,7 @@
           <programs>
             <program>
               <mainClass>com.datastax.oss.sga.cli.SgaCLI</mainClass>
-              <id>cli</id>
+              <id>sga</id>
               <platforms>
                 <platform>unix</platform>
               </platforms>
@@ -102,6 +102,24 @@
             <goals>
               <goal>assemble</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <appendAssemblyId>false</appendAssemblyId>
+              <descriptors>
+                <descriptor>src/main/assembly/cli.xml</descriptor>
+              </descriptors>
+            </configuration>
           </execution>
         </executions>
       </plugin>

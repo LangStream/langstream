@@ -221,6 +221,11 @@
                     <assembly>
                       <descriptor>${project.basedir}/src/main/assemble/sga-runtime.xml</descriptor>
                     </assembly>
+                    <buildx>
+                      <platforms>
+                        <platform>linux/amd64</platform>
+                      </platforms>
+                    </buildx>
                   </build>
                 </image>
               </images>

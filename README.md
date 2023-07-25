@@ -17,11 +17,13 @@ brew install minikube
 minikube start
 ```
 
-Build docker images in the minikube environment
+Build docker images and push them into the minikube environment
 
 ```
-eval $(minikube docker-env)
 ./docker/build.sh
+minikube image load datastax/sga-deployer:latest-dev
+minikube image load datastax/sga-control-plane:latest-dev
+minikube image load datastax/sga-runtime:latest-dev
 ```
 
 Deploy MinIO (S3 BlobStorage implementation for local testing)

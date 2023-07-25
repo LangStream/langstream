@@ -5,8 +5,10 @@ cd $(dirname $0)/..
 set -ex
 # This script bootstraps a local K8S based stack with SGA from the current code
 
-eval $(minikube docker-env)
-./docker/build.sh
+. ./docker/build.sh
+minikube image load datastax/sga-deployer:latest-dev
+minikube image load datastax/sga-control-plane:latest-dev
+minikube image load datastax/sga-runtime:latest-dev
 
 # Start MinIO (S3 blobstorage)
 kubectl apply -f helm/examples/minio-dev.yaml

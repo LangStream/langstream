@@ -11,7 +11,7 @@ pipeline:
     input: "input-topic"
     output: "output-topic"
     configuration:
-      model: "gpt-3.5-turbo"
+      model: "gpt-35-turbo" # This needs to be set to the model deployment name, not the base name
       completion-field: "value"
       messages:
         - role: user

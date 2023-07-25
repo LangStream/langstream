@@ -7,4 +7,10 @@ public interface Record {
     String origin();
     Long timestamp();
     Collection<Header> headers();
+
+    default Header getHeader(String key) {
+        return headers()
+                .stream()
+                .filter(h -> h.key().equals(key)).findFirst().orElse(null);
+    }
 }

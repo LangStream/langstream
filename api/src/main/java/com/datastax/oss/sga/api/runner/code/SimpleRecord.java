@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.api.runner.code;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -43,5 +44,41 @@ public final class SimpleRecord implements Record {
     @Override
     public Collection<Header> headers() {
         return headers;
+    }
+
+    /**
+     * Copy all fields from {@link Record} to new {@link SimpleRecordBuilder}.
+     * @param record
+     * @return
+     */
+    public static SimpleRecordBuilder copyFrom(Record record) {
+        return builder()
+                .key(record.key())
+                .value(record.value())
+                .origin(record.origin())
+                .headers(record.headers())
+                .timestamp(record.timestamp());
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class SimpleHeader implements Header {
+
+        public static SimpleHeader of(String key, String value) {
+            return new SimpleHeader(key, value);
+        }
+
+        final String key;
+        final String value;
+
+        @Override
+        public String key() {
+            return key;
+        }
+
+        @Override
+        public String value() {
+            return value;
+        }
     }
 }

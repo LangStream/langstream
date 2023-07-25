@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello WebSocket</title>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+    <script>
+
+        const websocket = new WebSocket("ws://localhost:8091/gs-guide-websocket")
+        const stompClient = new StompJs.Client({
+            brokerURL: 'ws://localhost:8091/gs-guide-websocket'
+        });
+
+        stompClient.onConnect = (frame) => {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/topic/greetings', (greeting) => {
+                alert(greeting.body)
+            });
+        };
+
+        stompClient.onWebSocketError = (error) => {
+            console.error('Error with websocket', error);
+        };
+
+        stompClient.onStompError = (frame) => {
+            console.error('Broker reported error: ' + frame.headers['message']);
+            console.error('Additional details: ' + frame.body);
+        };
+
+        function connect() {
+            stompClient.activate();
+        }
+
+        function disconnect() {
+            stompClient.deactivate();
+            console.log("Disconnected");
+        }
+
+        function send() {
+            stompClient.publish({
+                destination: "/app/hello",
+                body: JSON.stringify({message: document.getElementById("name").value})
+            });
+        }
+
+        window.onload = function() {
+            document.getElementById("connect").onclick = connect
+            document.getElementById("disconnect").onclick = disconnect
+            document.getElementById("send").onclick = send
+        }
+
+    </script>
+</head>
+<body>
+<button id="connect"  type="button" >Connect</button>
+<button id="disconnect"  type="button" >Disconnect</button>
+<hr>
+<input type="text" id="name">
+<button id="send" type="button" >Send</button>
+</body>
+</html>

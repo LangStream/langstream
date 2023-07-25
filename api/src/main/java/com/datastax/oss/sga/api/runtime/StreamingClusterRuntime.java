@@ -15,10 +15,13 @@
  */
 package com.datastax.oss.sga.api.runtime;
 
+import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This is the interface that the SGA framework uses to interact with the StreamingCluster. It is used to
@@ -69,6 +72,14 @@ public interface StreamingClusterRuntime extends AutoCloseable {
 
     default void close() {
 
+    }
+
+    default void writeMessage(StreamingCluster streamingCluster, TopicDefinition topic, String message) {
+        throw new UnsupportedOperationException();
+    }
+
+    default String receiveMessage(StreamingCluster streamingCluster, TopicDefinition topic, Duration duration) {
+        throw new UnsupportedOperationException();
     }
 
 }

@@ -10,9 +10,14 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.KafkaClient;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.DeleteTopicsOptions;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
@@ -21,6 +26,13 @@ import org.apache.kafka.clients.admin.NewTopic;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 
 @Slf4j
 public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
@@ -39,7 +51,8 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         return KafkaAdminClient.create(adminConfig);
     }
 
-    public static KafkaClusterRuntimeConfiguration getKafkaClusterRuntimeConfiguration(StreamingCluster streamingCluster) {
+    public static KafkaClusterRuntimeConfiguration getKafkaClusterRuntimeConfiguration(
+            StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
         return mapper.convertValue(configuration, KafkaClusterRuntimeConfiguration.class);
     }
@@ -138,5 +151,55 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         // TODO: handle other configurations
 
         return configuration;
+    }
+
+    @Override
+    public String receiveMessage(StreamingCluster streamingCluster, TopicDefinition topic, Duration duration) {
+        Map<String, Object> configuration = new HashMap<>();
+        configuration.put("enable.auto.commit", "true");
+        configuration.put("group.id", "sga-" + System.nanoTime());
+        configuration.put("auto.offset.reset", "latest");
+        configuration.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        configuration.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+
+        final KafkaClusterRuntimeConfiguration kafkaClusterRuntimeConfiguration =
+                getKafkaClusterRuntimeConfiguration(streamingCluster);
+        final String bootstrapServers = (String) kafkaClusterRuntimeConfiguration.getAdmin()
+                .get("bootstrap.servers");
+        log.info("Connecting to {}", bootstrapServers);
+        configuration.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(configuration);
+        consumer.subscribe(Arrays.asList(topic.getName()));
+        ConsumerRecords<String, String> records =
+                consumer.poll(duration);
+
+        for (ConsumerRecord<String, String> record : records) {
+            return record.value();
+        }
+        return null;
+    }
+
+    @Override
+    public void writeMessage(StreamingCluster streamingCluster, TopicDefinition topic, String message) {
+        Map<String, Object> configuration = new HashMap<>();
+        configuration.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        configuration.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+
+
+        final KafkaClusterRuntimeConfiguration kafkaClusterRuntimeConfiguration =
+                getKafkaClusterRuntimeConfiguration(streamingCluster);
+        final String bootstrapServers = (String) kafkaClusterRuntimeConfiguration.getAdmin()
+                .get("bootstrap.servers");
+        log.info("Connecting to {}", bootstrapServers);
+        configuration.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        KafkaProducer<byte[], byte[]> producer = new KafkaProducer<>(configuration);
+        ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic.getName(),
+                null,
+                null, null
+                , message.getBytes(
+                StandardCharsets.UTF_8),
+                null);
+
+        producer.send(record);
     }
 }

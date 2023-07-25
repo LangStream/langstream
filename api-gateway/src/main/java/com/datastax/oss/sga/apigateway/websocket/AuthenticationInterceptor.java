@@ -4,6 +4,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
@@ -11,6 +12,7 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
+@Slf4j
 public class AuthenticationInterceptor implements HandshakeInterceptor {
 
     @Override
@@ -29,7 +31,8 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
                         httpRequest.getURI().getPath());
         attributes.put("token", token);
         attributes.put("tenant", vars.get("tenant"));
-        System.out.println("got token " + attributes);
+        log.info("Authentication tenant {} with token {}", vars.get("tenant"), token);
+        // TODO: implement authentication
         return true;
     }
 

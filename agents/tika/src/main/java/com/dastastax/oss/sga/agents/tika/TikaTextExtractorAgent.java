@@ -48,12 +48,7 @@ public class TikaTextExtractorAgent extends SingleRecordAgentFunction {
         }
         AutoDetectParser parser = new AutoDetectParser();
         Object value = record.value();
-        final InputStream stream;
-        if (value instanceof byte[] array) {
-            stream = new ByteArrayInputStream(array);
-        } else {
-            stream = new ByteArrayInputStream(value.toString().getBytes(StandardCharsets.UTF_8));
-        }
+        final InputStream stream = Utils.toStream(value);
         Metadata metadata = new Metadata();
         ParseContext parseContext = new ParseContext();
         Reader reader = new ParsingReader(parser, stream, metadata, parseContext);

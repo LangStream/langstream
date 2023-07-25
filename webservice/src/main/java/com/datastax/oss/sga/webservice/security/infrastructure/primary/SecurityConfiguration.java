@@ -1,5 +1,7 @@
 package com.datastax.oss.sga.webservice.security.infrastructure.primary;
 
+import com.datastax.oss.sga.webservice.config.AuthTokenProperties;
+import lombok.AllArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,27 +18,26 @@ import org.springframework.web.filter.CorsFilter;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true)
+@AllArgsConstructor
 public class SecurityConfiguration {
 
   private final CorsFilter corsFilter;
-
-  public SecurityConfiguration(CorsFilter corsFilter) {
-    this.corsFilter = corsFilter;
-  }
+  private final AuthTokenProperties properties;
 
   @Bean
-  @ConditionalOnProperty(name = "application.security.enabled", havingValue = "false")
+  @ConditionalOnProperty(name = "application.security.enabled", havingValue = "false", matchIfMissing = true)
   public WebSecurityCustomizer webSecurityCustomizer() {
     return web -> web.ignoring().anyRequest();
   }
 
   @Bean
-  @ConditionalOnProperty(name = "application.security.enabled", havingValue = "true", matchIfMissing = true)
+  @ConditionalOnProperty(name = "application.security.enabled", havingValue = "true")
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     // @formatter:off
     return http
         .csrf().disable()
         .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(new TokenAuthFilter(properties), UsernamePasswordAuthenticationFilter.class)
         .formLogin().disable()
         .httpBasic().disable()
         .sessionManagement()
@@ -47,6 +48,7 @@ public class SecurityConfiguration {
           .requestMatchers("/swagger-ui/**").permitAll()
           .requestMatchers("/swagger-ui.html").permitAll()
           .requestMatchers("/v3/api-docs/**").permitAll()
+          .requestMatchers("/api/tenants/**").hasAuthority("ROLE_ADMIN")
           .requestMatchers("/api/**").authenticated()
           .requestMatchers("/management/health").permitAll()
           .requestMatchers("/management/health/**").permitAll()

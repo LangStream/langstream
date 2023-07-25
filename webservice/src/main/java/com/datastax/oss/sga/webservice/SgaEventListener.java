@@ -22,7 +22,6 @@ public class SgaEventListener implements
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        System.out.println("->" + tenantProperties);
         if (tenantProperties.getDefaultTenant() != null &&
                 tenantProperties.getDefaultTenant().isCreate()) {
             final String name = tenantProperties.getDefaultTenant().getName();

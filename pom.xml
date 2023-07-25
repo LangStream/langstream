@@ -48,6 +48,9 @@
     <streaming-ai.version>3.1.4</streaming-ai.version>
     <jandex-maven-plugin.version>1.2.3</jandex-maven-plugin.version>
     <burningwave.version>0.25.5</burningwave.version>
+    <jjwt.version>0.11.5</jjwt.version>
+    <commons-codec.version>1.16.0</commons-codec.version>
+    <commons-io.version>2.13.0</commons-io.version>
   </properties>
   <modules>
     <module>api</module>
@@ -219,6 +222,31 @@
         <groupId>org.burningwave</groupId>
         <artifactId>tools</artifactId>
         <version>${burningwave.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-api</artifactId>
+        <version>${jjwt.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-impl</artifactId>
+        <version>${jjwt.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-jackson</artifactId>
+        <version>${jjwt.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${commons-codec.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${commons-io.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

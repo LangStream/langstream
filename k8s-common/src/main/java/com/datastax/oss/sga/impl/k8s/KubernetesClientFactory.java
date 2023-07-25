@@ -14,6 +14,9 @@ public class KubernetesClientFactory {
     private static final Map<String, KubernetesClient> clients = new ConcurrentHashMap<>();
 
     public static KubernetesClient create(String context) {
+        if (context.equals("__null__")) {
+            context = null;
+        }
         final Config config = Config.autoConfigure(context);
         try {
             log.info("Creating kubernetes client for server {}", config.getMasterUrl());

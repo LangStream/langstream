@@ -1,5 +1,7 @@
 package com.datastax.oss.sga.api.runner.code;
 
+import lombok.Getter;
+
 import java.util.List;
 import java.util.Map;
 
@@ -15,5 +17,16 @@ public interface AgentFunction extends AgentCode {
      * @return the list of output records
      * @throws Exception if the agent fails to process the records
      */
-    Map<Record, List<Record>> process(List<Record> records) throws Exception;
+    List<SourceRecordAndResult> process(List<Record> records) throws Exception;
+
+    @Getter
+    static class SourceRecordAndResult {
+        public final Record sourceRecord;
+        public final List<Record> resultRecords;
+
+        public SourceRecordAndResult(Record sourceRecord, List<Record> resultRecords) {
+            this.sourceRecord = sourceRecord;
+            this.resultRecords = resultRecords;
+        }
+    }
 }

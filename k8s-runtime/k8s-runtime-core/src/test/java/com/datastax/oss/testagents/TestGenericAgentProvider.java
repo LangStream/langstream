@@ -2,6 +2,7 @@ package com.datastax.oss.testagents;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
@@ -17,8 +18,8 @@ public class TestGenericAgentProvider extends AbstractAgentProvider {
     }
 
     @Override
-    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, ExecutionPlan physicalApplicationInstance, ComputeClusterRuntime clusterRuntime) {
-        Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
+    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, Pipeline pipeline,  ExecutionPlan physicalApplicationInstance, ComputeClusterRuntime clusterRuntime) {
+        Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, pipeline, physicalApplicationInstance, clusterRuntime);
         // TODO.....
         return copy;
     }

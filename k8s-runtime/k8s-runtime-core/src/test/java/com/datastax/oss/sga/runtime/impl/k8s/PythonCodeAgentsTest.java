@@ -80,6 +80,7 @@ class PythonCodeAgentsTest {
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertEquals(3, implementation.getAgents().size());
+        log.info("topics {}", implementation.getTopics().keySet().stream().map(TopicDefinition::getName).toList());
         assertEquals(2, implementation.getTopics().size());
 
         {

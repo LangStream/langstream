@@ -11,4 +11,5 @@ public interface AgentNode extends Connection {
     ComponentType getComponentType();
 
     String getAgentType();
+
 }

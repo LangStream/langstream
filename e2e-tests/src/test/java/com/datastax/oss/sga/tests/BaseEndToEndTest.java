@@ -22,12 +22,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.BindMode;
@@ -37,6 +39,8 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 public abstract class BaseEndToEndTest {
+
+    protected static final String TENANT_NAMESPACE_PREFIX = "sga-tenant-";
 
     interface KubeServer {
         void start();
@@ -166,7 +170,7 @@ public abstract class BaseEndToEndTest {
                             - >-
                               set -e &&
                               echo 'bootstrap.servers=my-cluster-kafka-bootstrap.kafka:9092\\n' >> consumer-props.conf &&
-                              kafka-consumer-perf-test --topic %s --timeout 240000 --consumer.config consumer-props.conf --print-metrics --from-earliest --messages %d --show-detailed-stats --reporting-interval 1000
+                              kafka-consumer-perf-test  --bootstrap-server my-cluster-kafka-bootstrap.kafka:9092 --topic %s --timeout 240000 --consumer.config consumer-props.conf --print-metrics --messages %d --show-detailed-stats --reporting-interval 1000
                 """.formatted(topic, count));
 
         client.batch().v1()
@@ -260,7 +264,7 @@ public abstract class BaseEndToEndTest {
     @BeforeAll
     @SneakyThrows
     public static void setup() {
-        namespace = "sga-" + UUID.randomUUID().toString().substring(0, 8);
+        namespace = "sga-test-" + UUID.randomUUID().toString().substring(0, 8);
 
         // kubeServer = new LocalK3sContainer();
         kubeServer = new PythonFunctionIT.RunningHostCluster();
@@ -270,9 +274,20 @@ public abstract class BaseEndToEndTest {
                 .withConfig(Config.fromKubeconfig(kubeServer.getKubeConfig()))
                 .build();
 
+        // cleanup previous runs
+        client.namespaces().withLabel("app", "sga-test")
+                        .delete();
+        client.namespaces()
+                .list()
+                .getItems()
+                .stream().filter(ns -> ns.getMetadata().getName().startsWith(TENANT_NAMESPACE_PREFIX)).forEach(ns -> {
+                    client.namespaces().withName(ns.getMetadata().getName()).delete();
+                });
+
         client.resource(new NamespaceBuilder()
                         .withNewMetadata()
                         .withName(namespace)
+                        .withLabels(Map.of("app", "sga-test"))
                         .endMetadata()
                         .build())
                 .serverSideApply();
@@ -334,7 +349,7 @@ public abstract class BaseEndToEndTest {
                   app:
                     config:
                       application.storage.apps.type: kubernetes
-                      application.storage.apps.configuration.namespaceprefix: sga-
+                      application.storage.apps.configuration.namespaceprefix: %s
                       application.storage.apps.configuration.deployer-runtime.image: datastax/sga-runtime:latest-dev
                       application.storage.apps.configuration.deployer-runtime.image-pull-policy: Never
                       application.storage.global.type: kubernetes
@@ -347,12 +362,15 @@ public abstract class BaseEndToEndTest {
                   replicaCount: 1
                   app:
                     config:
+                      clusterRuntime:
+                          kubernetes:
+                            namespace-prefix: %s
                       codeStorage:
                         type: s3
                         endpoint: http://minio.minio-dev.svc.cluster.local:9000
                         access-key: minioadmin
                         secret-key: minioadmin
-                """;
+                """.formatted(TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX);
         final Path tempFile = Files.createTempFile("sga-test", ".yaml");
         Files.write(tempFile, values.getBytes(StandardCharsets.UTF_8));
 
@@ -371,7 +389,7 @@ public abstract class BaseEndToEndTest {
 
         client.apps().deployments().inNamespace(namespace).withName("sga-control-plane")
                 .waitUntilCondition(
-                        d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 60,
+                        d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 120,
                         TimeUnit.SECONDS);
         log.info("control plane ready, port forwarding");
 

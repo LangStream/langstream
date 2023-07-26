@@ -29,3 +29,13 @@ deployer:
         endpoint: http://minio.minio-dev.svc.cluster.local:9000
         access-key: minioadmin
         secret-key: minioadmin
+
+apiGateway:
+  image:
+    pullPolicy: Never
+    tag: "latest-dev"
+  app:
+    config:
+      logging.level.com.datastax.oss.sga: debug
+      application.storage.apps.type: kubernetes
+      application.storage.apps.configuration.namespaceprefix: sga-

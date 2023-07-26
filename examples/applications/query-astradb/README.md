@@ -42,7 +42,7 @@ VALUES (
 ## Deploy the SGA application
 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/query-cassandra -i examples/instances/kafka-kubernetes.yaml
+./bin/sga-cli apps deploy test -app examples/applications/query-cassandra -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Start a Producer

@@ -44,8 +44,6 @@ public abstract class BaseEndToEndTest {
         void stop();
 
         String getKubeConfig();
-
-        Helm3Container setupHelmContainer();
     }
 
     static class RunningHostCluster implements PythonFunctionIT.KubeServer {
@@ -71,13 +69,6 @@ public abstract class BaseEndToEndTest {
         public String getKubeConfig() {
             final String kubeConfig = Config.getKubeconfigFilename();
             return Files.readString(Paths.get(kubeConfig), StandardCharsets.UTF_8);
-        }
-
-        @Override
-        public Helm3Container setupHelmContainer() {
-            final Helm3Container helm3Container = new Helm3Container(DockerImageName.parse("alpine/helm:3.7.2"),
-                    () -> kubeServer.getKubeConfig());
-            return helm3Container;
         }
     }
 
@@ -139,14 +130,6 @@ public abstract class BaseEndToEndTest {
         @Override
         public String getKubeConfig() {
             return container.getKubeconfig();
-        }
-
-        @Override
-        public Helm3Container setupHelmContainer() {
-            final Helm3Container helm3Container = new Helm3Container(DockerImageName.parse("alpine/helm:3.7.2"),
-                    () -> kubeServer.getKubeConfig());
-            PythonFunctionIT.helm3Container.withNetworkMode("container:" + container.getContainerId());
-            return helm3Container;
         }
     }
 
@@ -325,27 +308,6 @@ public abstract class BaseEndToEndTest {
 
     }
 
-    @SneakyThrows
-    private static void installSgaAndPrepareControlPlaneUrl0() {
-        helm3Container = kubeServer.setupHelmContainer();
-        final String hostPath = Paths.get("..", "helm", "sga").toFile().getAbsolutePath();
-        log.info("installing sga with helm, using chart from {}", hostPath);
-        helm3Container.withFileSystemBind(hostPath, "/charts", BindMode.READ_ONLY);
-        helm3Container.start();
-        helm3Container.copyFileToContainer(Transferable.of("""
-                """), "/test-values.yaml");
-        final String cmd =
-                "helm install --debug --timeout 360s %s -n %s %s --values /test-values.yaml".formatted(
-                        "sga", namespace, "/charts");
-        log.info("Running {}", cmd);
-        final Container.ExecResult exec = helm3Container.execInContainer(cmd.split(" "));
-        if (exec.getExitCode() != 0) {
-            throw new RuntimeException("Helm installation failed: " + exec.getStderr());
-        }
-        log.info("Helm install completed");
-
-    }
-
     private static void awaitControlPlaneReady() {
         log.info("waiting for control plane to be ready");
 
@@ -370,8 +332,13 @@ public abstract class BaseEndToEndTest {
     @SneakyThrows
     private static void installKafka() {
         log.info("installing kafka");
-        runProcess("kubectl create namespace kafka".split(" "));
-        runProcess("kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka".split(" "));
+        client.resource(new NamespaceBuilder()
+                .withNewMetadata()
+                .withName("kafka")
+                .endMetadata()
+                .build())
+                        .serverSideApply();
+        runProcess("kubectl apply -f https://strimzi.io/install/latest?namespace=kafka -n kafka".split(" "));
         runProcess("kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka".split(" "));
         log.info("waiting kafka to be ready");
         runProcess("kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka".split(" "));

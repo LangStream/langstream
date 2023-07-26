@@ -235,6 +235,10 @@ public abstract class BaseEndToEndTest {
         String[] allArgs = new String[args.length + 1];
         allArgs[0] = "bin/sga-cli";
         System.arraycopy(args, 0, allArgs, 1, args.length);
+        runProcess(allArgs);
+    }
+
+    private static void runProcess(String[] allArgs) throws InterruptedException, IOException {
         ProcessBuilder processBuilder = new ProcessBuilder(allArgs)
                 .directory(Paths.get("..").toFile())
                 .inheritIO()
@@ -306,6 +310,23 @@ public abstract class BaseEndToEndTest {
 
     @SneakyThrows
     private static void installSgaAndPrepareControlPlaneUrl() {
+        final String hostPath = Paths.get("..", "helm", "sga").toFile().getAbsolutePath();
+        log.info("installing sga with helm, using chart from {}", hostPath);
+        final String deleteCmd =
+                "helm delete %s -n %s".formatted("sga", namespace);
+        log.info("Running {}", deleteCmd);
+        runProcess(deleteCmd.split(" "));
+        final String cmd =
+                "helm install --debug --timeout 360s %s -n %s %s".formatted(
+                        "sga", namespace, hostPath);
+        log.info("Running {}", cmd);
+        runProcess(cmd.split(" "));
+        log.info("Helm install completed");
+
+    }
+
+    @SneakyThrows
+    private static void installSgaAndPrepareControlPlaneUrl0() {
         helm3Container = kubeServer.setupHelmContainer();
         final String hostPath = Paths.get("..", "helm", "sga").toFile().getAbsolutePath();
         log.info("installing sga with helm, using chart from {}", hostPath);
@@ -349,27 +370,11 @@ public abstract class BaseEndToEndTest {
     @SneakyThrows
     private static void installKafka() {
         log.info("installing kafka");
-        final Path tempFile = Files.createTempFile("sga-test", ".yaml");
-
-        try (final OutputStream fout = Files.newOutputStream(tempFile);
-             final InputStream in =
-                     new URL("https://strimzi.io/install/latest?namespace=%s".formatted(namespace)).openStream();) {
-            in.transferTo(fout);
-        }
-
-        client.load(Files.newInputStream(tempFile))
-                .inNamespace(namespace)
-                .serverSideApply();
-
-        final Path tempFile2 = Files.createTempFile("sga-test", ".yaml");
-        try (final OutputStream fout = Files.newOutputStream(tempFile2);
-             final InputStream in =
-                     new URL("https://strimzi.io/install/latest?namespace=%s".formatted(namespace)).openStream();) {
-            in.transferTo(fout);
-        }
-        client.load(Files.newInputStream(tempFile2))
-                .inNamespace(namespace)
-                .serverSideApply();
+        runProcess("kubectl create namespace kafka".split(" "));
+        runProcess("kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka".split(" "));
+        runProcess("kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka".split(" "));
+        log.info("waiting kafka to be ready");
+        runProcess("kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka".split(" "));
         log.info("kafka installed");
     }
 

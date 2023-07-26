@@ -157,6 +157,11 @@ public class S3Source implements AgentSource {
             public String value() {
                 return value;
             }
+
+            @Override
+            public String valueAsString() {
+                return value;
+            }
         }
     }
 }

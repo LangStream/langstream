@@ -16,12 +16,44 @@ import lombok.SneakyThrows;
 @ClientEndpoint
 public class TestWebSocketClient implements AutoCloseable {
 
+
+    public static final Handler NOOP = new Handler() {
+        @Override
+        public void onMessage(String msg) {
+
+        }
+
+        @Override
+        public void onClose(CloseReason closeReason) {
+
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+
+        }
+    };
+
+    public interface Handler {
+
+        default void onOpen(Session session) {
+        }
+        void onMessage(String msg);
+
+        void onClose(CloseReason closeReason);
+
+        default void onError(Throwable throwable) {
+            throw new RuntimeException(throwable);
+        };
+    }
+
     protected WebSocketContainer container;
     protected Session userSession = null;
-    private final Consumer<String> onMessage;
+    private final Handler eventHandler;
 
-    public TestWebSocketClient(Consumer<String> onMessage) {
-        this.onMessage = onMessage;
+
+    public TestWebSocketClient(Handler eventHandler) {
+        this.eventHandler = eventHandler;
         container = ContainerProvider.getWebSocketContainer();
     }
 
@@ -38,22 +70,22 @@ public class TestWebSocketClient implements AutoCloseable {
 
     @OnOpen
     public void onOpen(Session session) {
-        System.out.println("onOpen" + session);
+        eventHandler.onOpen(session);
     }
 
     @OnClose
     public void onClose(Session session, CloseReason closeReason) {
-        System.out.println("onClose" + closeReason);
+        eventHandler.onClose(closeReason);
     }
 
     @OnMessage
     public void onMessage(String msg) {
-        onMessage.accept(msg);
+        eventHandler.onMessage(msg);
     }
 
     @OnError
     public void onError(Throwable throwable) {
-        throwable.printStackTrace();
+        eventHandler.onError(throwable);
     }
 
     @Override

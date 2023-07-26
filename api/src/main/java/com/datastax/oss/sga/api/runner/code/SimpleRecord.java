@@ -80,5 +80,10 @@ public final class SimpleRecord implements Record {
         public String value() {
             return value;
         }
+
+        @Override
+        public String valueAsString() {
+            return value;
+        }
     }
 }

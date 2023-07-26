@@ -35,8 +35,7 @@ kubectl apply -f helm/examples/minio-dev.yaml
 Deploy the control plane and the operator:
 
 ```
-helm install sga helm/sga --values helm/examples/local.yaml
-kubectl wait deployment/sga-control-plane --for condition=available --timeout=60s
+helm install sga helm/sga --values helm/examples/local.yaml --wait --timeout 60s
 ```
 
 Port forward control plane to localhost:

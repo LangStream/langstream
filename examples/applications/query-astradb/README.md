@@ -17,10 +17,12 @@ Update the secrets.yaml file with those values.
 
 ## Create a "products" table
 
-Enter the PG shell:
+You can follow this documentation in order to create a table with Vector Search support:
+https://docs.datastax.com/en/astra-serverless/docs/vector-search/cql.html
+
+Enter the AstraDB Database CQLSH shell.
 
 Create the table:
-
 ```
 CREATE TABLE IF NOT EXISTS mykeyspace.products (
   id int PRIMARY KEY,

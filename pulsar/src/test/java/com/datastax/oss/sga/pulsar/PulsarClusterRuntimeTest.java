@@ -311,8 +311,8 @@ class PulsarClusterRuntimeTest {
 
         {
             assertTrue(implementation.getConnectionImplementation(module, Connection.from(
-                    TopicDefinition.fromName("agent-function-1-id-output"))) instanceof PulsarTopic);
-            PulsarName pulsarName = new PulsarName("public", "default", "agent-function-1-id-output");
+                    TopicDefinition.fromName("agent-function-2-id-input"))) instanceof PulsarTopic);
+            PulsarName pulsarName = new PulsarName("public", "default", "agent-function-2-id-input");
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((PulsarTopic) t).name().equals(pulsarName)));
         }
 

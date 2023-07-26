@@ -250,7 +250,7 @@ class PulsarClusterRuntimeDockerTest {
         // verify that the topics exist
         admin.topics().getStats("output-topic-fn");
         admin.topics().getStats("input-topic-fn");
-        admin.topics().getStats("agent-function-1-id-output");
+        admin.topics().getStats("agent-function-2-id-input");
 
 
         // verify that we have the functions1

@@ -72,15 +72,15 @@ class TikaAgentsRunnerTest {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "input-topic-a"
                                     creation-mode: create-if-not-exists
-                                  - name: "output-topic"
+                                  - name: "output-topic-a"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "text-extractor"
                                     id: "step1"
                                     type: "text-extractor"
-                                    input: "input-topic"                                    
+                                    input: "input-topic-a"                                    
                                     configuration:                                      
                                       param1: "value1"
                                   - name: "language-detector"
@@ -91,7 +91,7 @@ class TikaAgentsRunnerTest {
                                   - name: "keep-only-english"
                                     id: "keep-only-english"
                                     type: "drop"             
-                                    output: "output-topic"
+                                    output: "output-topic-a"
                                     configuration:                                      
                                       when: "properties.language != 'en'"
                                 """));
@@ -107,7 +107,9 @@ class TikaAgentsRunnerTest {
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         log.info("Implementation {}", implementation);
         assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
+                Connection.from(TopicDefinition.fromName("input-topic-a"))) instanceof KafkaTopic);
+        assertTrue(implementation.getConnectionImplementation(module,
+                Connection.from(TopicDefinition.fromName("output-topic-a"))) instanceof KafkaTopic);
 
 
         deployer.deploy(tenant, implementation, null);
@@ -132,13 +134,13 @@ class TikaAgentsRunnerTest {
                     "group.id","testgroup",
                     "auto.offset.reset", "earliest")
         )) {
-            consumer.subscribe(List.of("output-topic"));
+            consumer.subscribe(List.of("output-topic-a"));
 
 
             // produce two messages to the input-topic
             producer
                 .send(new ProducerRecord<>(
-                    "input-topic",
+                    "input-topic-a",
                     null,
                     "key",
                     "Questo testo è scritto in Italiano.",
@@ -146,7 +148,7 @@ class TikaAgentsRunnerTest {
                 .get();
             producer
                     .send(new ProducerRecord<>(
-                            "input-topic",
+                            "input-topic-a",
                             null,
                             "key",
                             "This text is written in English",

@@ -22,7 +22,7 @@ public class LanguageDetectorTest {
     public void textDetect() throws Exception {
         TikaAgentsCodeProvider provider = new TikaAgentsCodeProvider();
         SingleRecordAgentFunction instance = provider.createInstance("language-detector");
-        instance.init(Map.of("field", "detected-language"));
+        instance.init(Map.of("property", "detected-language"));
 
 
         assertEquals("en", detectLanguage(instance, "This is a English"));

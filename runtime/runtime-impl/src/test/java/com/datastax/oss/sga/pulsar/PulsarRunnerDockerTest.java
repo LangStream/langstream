@@ -91,7 +91,7 @@ class PulsarRunnerDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation(appId, applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
+                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
         deployer.deploy("tenant", implementation, null);
         assertEquals(1, secrets.size());
         final Secret secret = secrets.values().iterator().next();

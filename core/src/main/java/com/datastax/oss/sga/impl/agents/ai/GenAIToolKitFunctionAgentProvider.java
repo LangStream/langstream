@@ -3,6 +3,7 @@ package com.datastax.oss.sga.impl.agents.ai;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.Resource;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ComponentType;
@@ -228,9 +229,10 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
     @Override
     protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module,
+                                                            Pipeline pipeline,
                                                             ExecutionPlan executionPlan,
                                                             ComputeClusterRuntime clusterRuntime) {
-        Map<String, Object> originalConfiguration = super.computeAgentConfiguration(agentConfiguration, module, executionPlan, clusterRuntime);
+        Map<String, Object> originalConfiguration = super.computeAgentConfiguration(agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
         Map<String, Object> configuration = new HashMap<>();
 
         generateAIProvidersConfiguration(executionPlan.getApplication(), configuration);
@@ -294,7 +296,10 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             result.putAll(configurationWithoutSteps1);
             result.put("steps", mergedSteps);
 
-            agent1.overrideConfigurationAfterMerge(result, agent2.getOutputConnection());
+            log.info("Discarding topic {}", agent1.getInputConnection());
+            applicationInstance.discardTopic(agent1.getOutputConnection());
+
+            agent1.overrideConfigurationAfterMerge(agent1.getAgentType(), result, agent2.getOutputConnection());
             log.info("Agent 1 modified: {}", agent1);
 
             log.info("Discarding topic {}", agent2.getInputConnection());

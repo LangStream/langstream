@@ -2,6 +2,7 @@ package com.datastax.oss.sga.pulsar.agents;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
 import com.datastax.oss.sga.api.runtime.Connection;
@@ -29,12 +30,12 @@ public class CassandraSinkAgentProvider extends AbstractPulsarAgentProvider {
     }
 
     @Override
-    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module,
-                                                            ExecutionPlan physicalApplicationInstance, ComputeClusterRuntime clusterRuntime) {
-        Map<String, Object> configuration = super.computeAgentConfiguration(agentConfiguration, module, physicalApplicationInstance, clusterRuntime);
+    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, Pipeline pipeline,
+                                                            ExecutionPlan applicationInstance, ComputeClusterRuntime clusterRuntime) {
+        Map<String, Object> configuration = super.computeAgentConfiguration(agentConfiguration, module, pipeline, applicationInstance, clusterRuntime);
 
         // We have to automatically compute the list of topics (this is an additional configuration in the Sink that must match the input topics list)
-        Connection connection = physicalApplicationInstance.getConnectionImplementation(module, agentConfiguration.getInput());
+        Connection connection = applicationInstance.getConnectionImplementation(module, agentConfiguration.getInput());
         if (connection instanceof Topic topic) {
             configuration.put("topics", topic.topicName());
         }

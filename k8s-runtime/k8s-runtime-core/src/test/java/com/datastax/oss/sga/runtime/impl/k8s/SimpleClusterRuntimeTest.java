@@ -80,19 +80,19 @@ class SimpleClusterRuntimeTest {
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
-                    new Connection(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                    Connection.from(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((NoOpStreamingClusterRuntimeProvider.SimpleTopic) t).name().equals("input-topic")));
         }
         {
             assertTrue(implementation.getConnectionImplementation(module,
-                    new Connection(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                    Connection.from(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((NoOpStreamingClusterRuntimeProvider.SimpleTopic) t).name().equals("output-topic")));
         }
 
         {
-            assertTrue(implementation.getConnectionImplementation(module, new Connection(
-                    TopicDefinition.fromName("agent-function-1-id-output"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((NoOpStreamingClusterRuntimeProvider.SimpleTopic) t).name().equals("agent-function-1-id-output")));
+            assertTrue(implementation.getConnectionImplementation(module, Connection.from(
+                    TopicDefinition.fromName("agent-function-2-id-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((NoOpStreamingClusterRuntimeProvider.SimpleTopic) t).name().equals("agent-function-2-id-input")));
         }
 
 

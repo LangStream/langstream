@@ -18,6 +18,8 @@ package com.datastax.oss.sga.api.runtime;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
+
 import java.util.Map;
 
 /**
@@ -46,7 +48,12 @@ public interface ComputeClusterRuntime extends AutoCloseable {
      * @param connection
      * @return the connection implementation
      */
-    Connection getConnectionImplementation(Module module, com.datastax.oss.sga.api.model.Connection connection, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime);
+    Connection getConnectionImplementation(Module module,
+                                           Pipeline pipeline,
+                                           com.datastax.oss.sga.api.model.Connection connection,
+                                           Connection.ConnectionDirection direction,
+                                           ExecutionPlan applicationInstance,
+                                           StreamingClusterRuntime streamingClusterRuntime);
 
     Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
                   String codeStorageArchiveId);

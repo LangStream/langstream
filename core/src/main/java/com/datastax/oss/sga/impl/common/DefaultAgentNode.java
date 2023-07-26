@@ -14,7 +14,7 @@ import java.util.Map;
 @ToString
 public class DefaultAgentNode implements AgentNode {
     private final String id;
-    private final String agentType;
+    private String agentType;
     private final ComponentType componentType;
     private Map<String, Object> configuration;
     private final Object customMetadata;
@@ -42,7 +42,8 @@ public class DefaultAgentNode implements AgentNode {
         return (T) customMetadata;
     }
 
-    public void overrideConfigurationAfterMerge(Map<String, Object> newConfiguration, Connection newOutput) {
+    public void overrideConfigurationAfterMerge(String agentType, Map<String, Object> newConfiguration, Connection newOutput) {
+        this.agentType = agentType;
         this.configuration = new HashMap<>(newConfiguration);
         this.outputConnection = newOutput;
     }

@@ -28,7 +28,7 @@ elif [ "$only_image" == "api-gateway" ]; then
   build_docker_image api-gateway
 else
   ./mvnw package -am -DskipTests -Pdocker -T 1C -Ddocker.platforms="$(docker_platforms)"
-  docker images | head -n 4
+  docker images | head -n 5
 fi
 
 

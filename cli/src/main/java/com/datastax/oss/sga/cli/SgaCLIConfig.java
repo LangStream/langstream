@@ -11,6 +11,8 @@ public class SgaCLIConfig {
     @JsonProperty(required = true)
     private String webServiceUrl;
 
+    private String apiGatewayUrl;
+
     private String tenant;
 
     private String token;

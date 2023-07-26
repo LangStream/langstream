@@ -21,20 +21,15 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
         final ServletServerHttpRequest httpRequest = (ServletServerHttpRequest) request;
         final String queryString = httpRequest.getServletRequest()
                 .getQueryString();
-        final Map<String, String> parsed = parseQuerystring(queryString);
-        final String token = parsed.get("token");
+        attributes.put("queryString", parseQuerystring(queryString));
 
 
         final AntPathMatcher antPathMatcher = new AntPathMatcher();
         final Map<String, String> vars =
                 antPathMatcher.extractUriTemplateVariables("/v1/{action}/{tenant}/{application}/{topic}",
                         httpRequest.getURI().getPath());
-        attributes.put("token", token);
         attributes.put("tenant", vars.get("tenant"));
-        log.info("Authentication tenant {} with token {}", vars.get("tenant"), token);
-        log.info("Failing authentication since it's not implemented");
-        // TODO: implement authentication
-        return false;
+        return true;
     }
 
     @Override

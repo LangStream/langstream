@@ -29,6 +29,7 @@ public class Application {
     private Map<String, Resource> resources = new HashMap<>();
     private Map<String, Module> modules = new HashMap<>();
     private List<Dependency> dependencies = new ArrayList<>();
+    private Gateways gateways;
 
     private Instance instance;
     private Secrets secrets;

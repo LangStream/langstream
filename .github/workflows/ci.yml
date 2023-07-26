@@ -67,6 +67,7 @@ jobs:
       - name: 'Build and test'
         run: |
           chmod +x mvnw
+          uname -m
           eval $(minikube docker-env)
           ./docker/build.sh
           ./mvnw verify -pl e2e-tests          

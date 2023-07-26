@@ -25,7 +25,7 @@ elif [ "$only_image" == "operator" ]; then
 elif [ "$only_image" == "runtime" ]; then
   build_docker_image runtime/runtime-impl
 else
-  ./mvnw package -am -DskipTests -Pdocker -T 1C
+  ./mvnw package -am -DskipTests -Pdocker -T 1C -Ddocker.platforms="$(docker_platforms)"
   docker images | head -n 4
 fi
 

@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.DockerClientFactory;
@@ -59,6 +60,11 @@ public abstract class BaseEndToEndTest {
 
         @Override
         public void stop() {
+            try (final KubernetesClient client = new KubernetesClientBuilder()
+                    .withConfig(Config.fromKubeconfig(kubeServer.getKubeConfig()))
+                    .build();) {
+                client.namespaces().withName(namespace).delete();
+            }
         }
 
         @Override
@@ -241,6 +247,20 @@ public abstract class BaseEndToEndTest {
         }
     }
 
+    @AfterAll
+    @SneakyThrows
+    public static void destroy() {
+        if (client != null) {
+            client.close();
+        }
+        if (helm3Container != null) {
+            helm3Container.close();
+        }
+        if (kubeServer != null) {
+            kubeServer.stop();
+        }
+    }
+
 
     @BeforeAll
     @SneakyThrows
@@ -295,7 +315,6 @@ public abstract class BaseEndToEndTest {
         helm3Container.start();
         helm3Container.copyFileToContainer(Transferable.of("""
                 """), "/test-values.yaml");
-        Thread.sleep(Long.MAX_VALUE);
         final String cmd =
                 "helm install --debug --timeout 360s %s -n %s %s --values /test-values.yaml".formatted(
                         "sga", namespace, "/chart");

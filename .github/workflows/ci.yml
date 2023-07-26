@@ -67,12 +67,7 @@ jobs:
         with:
           version: v3.7.0
 
-      - name: 'Prepare kubectl'
-        run: |
-          echo "KUBECONFIG_B64=$(cat $HOME/.kube/config | base64)" >> $GITHUB_ENV
-      - uses: tale/kubectl-action@v1
-        with:
-          base64-kube-config: ${{ env.KUBECONFIG_B64 }}
+      - uses: azure/setup-kubectl@v3
 
       - name: 'Build and test'
         run: |

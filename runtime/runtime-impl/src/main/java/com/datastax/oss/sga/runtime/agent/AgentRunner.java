@@ -43,8 +43,6 @@ public class AgentRunner
     private static final AgentCodeRegistry AGENT_CODE_REGISTRY = new AgentCodeRegistry();
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
-    public static final Path CODE_DIRECTORY = new File("sga-code-download").toPath();
-
     private static ErrorHandler errorHandler = error -> {
         log.error("Unexpected error", error);
         System.exit(-1);
@@ -66,7 +64,10 @@ public class AgentRunner
             RuntimePodConfiguration configuration = MAPPER.readValue(podRuntimeConfiguration.toFile(),
                     RuntimePodConfiguration.class);
 
-            run(configuration, podRuntimeConfiguration, CODE_DIRECTORY, -1);
+
+            Path codeDirectory = Path.of(args[1]);
+            log.info("Loading code from {}", codeDirectory);
+            run(configuration, podRuntimeConfiguration, codeDirectory, -1);
 
 
         } catch (Throwable error) {

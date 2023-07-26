@@ -2,10 +2,19 @@
 set -e
 only_image=$1
 
+docker_platforms() {
+  if [ "$(uname -m)" == "arm64" ]; then
+    echo "linux/amd64"
+  else
+    echo ""
+  fi
+}
+
+
 build_docker_image() {
   module=$1
   ./mvnw install -am -DskipTests -pl $module -T 1C
-  ./mvnw package -DskipTests -Pdocker -pl $module
+  ./mvnw package -DskipTests -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)"
   docker images | head -n 2
 }
 

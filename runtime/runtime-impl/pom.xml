@@ -11,6 +11,11 @@
 
   <artifactId>sga-runtime-impl</artifactId>
 
+  <properties>
+    <docker.platforms>linux/amd64</docker.platforms>
+  </properties>
+
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -244,7 +249,7 @@
                     </assembly>
                     <buildx>
                       <platforms>
-                        <platform>linux/amd64</platform>
+                        <platform>${docker.platforms}</platform>
                       </platforms>
                     </buildx>
                   </build>

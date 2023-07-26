@@ -42,24 +42,24 @@ public class AgentCodeDownloader {
             log.info("Loading code config config from {}", codeConfigPath);
             final CodeStorageConfig codeStorageConfig =
                     MAPPER.readValue(codeConfigPath.toFile(), CodeStorageConfig.class);
-            downloadCustomCode(codeStorageConfig);
-            log.info("Code downloaded to {}", AgentRunner.CODE_DIRECTORY);
+            Path codeDownloadPath = Path.of(args[1]);
+            downloadCustomCode(codeStorageConfig, codeDownloadPath);
+            log.info("Code downloaded to {}", codeDownloadPath);
         } catch (Throwable error) {
             errorHandler.handleError(error);
             return;
         }
     }
 
-    private static void downloadCustomCode(CodeStorageConfig codeStorageConfig) throws Exception {
-        AgentRunner.CODE_DIRECTORY.toFile().mkdirs();
+    private static void downloadCustomCode(CodeStorageConfig codeStorageConfig, Path codeDownloadPath) throws Exception {
         if (codeStorageConfig != null) {
             log.info("Downloading custom code from {}", codeStorageConfig);
-            log.info("Custom code is stored in {}", AgentRunner.CODE_DIRECTORY);
+            log.info("Custom code is stored in {}", codeDownloadPath);
             try (CodeStorage codeStorage =
                     CodeStorageRegistry.getCodeStorage(codeStorageConfig.type(), codeStorageConfig.configuration());) {
                 codeStorage.downloadApplicationCode(codeStorageConfig.tenant(),
                         codeStorageConfig.codeStorageArchiveId(), (downloadedCodeArchive -> {
-                            downloadedCodeArchive.extractTo(AgentRunner.CODE_DIRECTORY);
+                            downloadedCodeArchive.extractTo(codeDownloadPath);
                         }));
             }
         }

@@ -8,13 +8,10 @@ import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import lombok.Getter;
@@ -25,12 +22,12 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.testcontainers.containers.output.OutputFrame;
-import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAllCallback {
 
-    private K3sContainer k3s;
+    @Getter
+    private K3sContainer k3sContainer;
     @Getter
     private KubernetesClient client;
     private MockedStatic mocked;
@@ -47,8 +44,8 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
 
     @Override
     public void close() throws Exception {
-        if (k3s != null) {
-            k3s.stop();
+        if (k3sContainer != null) {
+            k3sContainer.stop();
         }
         if (client != null) {
             client.close();
@@ -67,17 +64,17 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
 
-        k3s = new K3sContainer(new KubernetesImageSpec<>(K3sContainerVersion.VERSION_1_25_0)
+        k3sContainer = new K3sContainer(new KubernetesImageSpec<>(K3sContainerVersion.VERSION_1_25_0)
                 .withImage("rancher/k3s:v1.25.3-k3s1"));
-        k3s.withLogConsumer(
+        k3sContainer.withLogConsumer(
                 (Consumer<OutputFrame>) outputFrame -> log.debug("k3s> {}", outputFrame.getUtf8String().trim()));
-        k3s.start();
+        k3sContainer.start();
         final Path tempFile = Files.createTempFile("sga-test-kube", ".yaml");
         Files.write(tempFile,
-                k3s.getKubeconfig().getBytes(StandardCharsets.UTF_8));
+                k3sContainer.getKubeconfig().getBytes(StandardCharsets.UTF_8));
         System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
         client = new KubernetesClientBuilder()
-                .withConfig(Config.fromKubeconfig(k3s.getKubeconfig()))
+                .withConfig(Config.fromKubeconfig(k3sContainer.getKubeconfig()))
                 .build();
 
 

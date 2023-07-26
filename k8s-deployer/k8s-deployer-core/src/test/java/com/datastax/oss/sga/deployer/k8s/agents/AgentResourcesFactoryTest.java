@@ -68,6 +68,7 @@ class AgentResourcesFactoryTest {
                               - args:
                                 - agent-runtime
                                 - /app-config/config
+                                - /app-code-download
                                 image: busybox
                                 imagePullPolicy: Never
                                 name: runtime
@@ -79,6 +80,8 @@ class AgentResourcesFactoryTest {
                                 volumeMounts:
                                 - mountPath: /app-config
                                   name: app-config
+                                - mountPath: /app-code-download
+                                  name: code-download
                               initContainers:
                               - args:
                                 - "echo '{\\"tenant\\":\\"my-tenant\\",\\"type\\":\\"none\\",\\"codeStorageArchiveId\\":null,\\"configuration\\":{}}' > /code-config/config"
@@ -99,6 +102,7 @@ class AgentResourcesFactoryTest {
                               - args:
                                 - agent-code-download
                                 - /code-config/config
+                                - /app-code-download
                                 image: busybox
                                 imagePullPolicy: Never
                                 name: code-download
@@ -106,6 +110,8 @@ class AgentResourcesFactoryTest {
                                 volumeMounts:
                                 - mountPath: /code-config
                                   name: code-config
+                                - mountPath: /app-code-download
+                                  name: code-download
                               terminationGracePeriodSeconds: 60
                               volumes:
                               - name: app-config
@@ -116,6 +122,8 @@ class AgentResourcesFactoryTest {
                                   secretName: agent-config
                               - emptyDir: {}
                                 name: code-config
+                              - emptyDir: {}
+                                name: code-download
                         """,
                 SerializationUtil.writeAsYaml(statefulSet));
     }

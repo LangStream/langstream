@@ -7,6 +7,9 @@ import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
+import io.confluent.connect.avro.AvroConverter;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -167,7 +170,16 @@ public class KafkaConnectSourceAgent implements AgentSource {
                 .asSubclass(Converter.class)
                 .getDeclaredConstructor()
                 .newInstance();
-        // todo: avro converter, schema registry
+
+        // todo: actual schema registry if configured?
+        if (keyConverter instanceof AvroConverter) {
+            keyConverter = new AvroConverter(new MockSchemaRegistryClient());
+            stringConfig.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "mock");
+        }
+        if (valueConverter instanceof AvroConverter) {
+            valueConverter = new AvroConverter(new MockSchemaRegistryClient());
+            stringConfig.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "mock");
+        }
 
         keyConverter.configure(configuration, true);
         valueConverter.configure(configuration, false);
@@ -177,7 +189,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
     public void setContext(AgentContext context) throws Exception {
         this.consumer = (Consumer<byte[], byte[]>) context.getTopicConsumer().getNativeConsumer();
         this.producer = (Producer<byte[], byte[]>) context.getTopicProducer().getNativeProducer();
-        this.topicAdmin = (TopicAdmin) context.getTopicAdmin();
+        this.topicAdmin = (TopicAdmin) context.getTopicAdmin().getNativeTopicAdmin();
     }
 
     @Override

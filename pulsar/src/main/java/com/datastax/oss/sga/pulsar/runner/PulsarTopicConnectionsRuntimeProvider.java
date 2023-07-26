@@ -3,6 +3,7 @@ package com.datastax.oss.sga.pulsar.runner;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
+import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeProvider;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
@@ -73,6 +74,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
         public TopicProducer createProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
             return new PulsarTopicProducer(copy);
+        }
+
+        @Override
+        public TopicAdmin createTopicAdmin(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+            return null;
         }
 
         private static class PulsarConsumerRecord implements Record {

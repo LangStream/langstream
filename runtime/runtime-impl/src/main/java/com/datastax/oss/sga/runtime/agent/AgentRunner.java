@@ -7,6 +7,7 @@ import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
+import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
@@ -225,8 +226,10 @@ public class AgentRunner
         if (sink == null) {
             sink = new TopicProducerSink(producer);
         }
-
-        AgentContext agentContext = new SimpleAgentContext(consumer, producer);
+        TopicAdmin topicAdmin = topicConnectionsRuntime.createTopicAdmin(agentId,
+                configuration.streamingCluster(),
+                configuration.output());
+        AgentContext agentContext = new SimpleAgentContext(consumer, producer, topicAdmin);
         log.info("Source: {}", source);
         log.info("Processor: {}",  mainProcessor);
         log.info("Sink: {}", sink);
@@ -326,10 +329,12 @@ public class AgentRunner
     private static class SimpleAgentContext implements AgentContext {
         private final TopicConsumer consumer;
         private final TopicProducer producer;
+        private final TopicAdmin topicAdmin;
 
-        public SimpleAgentContext(TopicConsumer consumer, TopicProducer producer) {
+        public SimpleAgentContext(TopicConsumer consumer, TopicProducer producer, TopicAdmin topicAdmin) {
             this.consumer = consumer;
             this.producer = producer;
+            this.topicAdmin = topicAdmin;
         }
 
         @Override
@@ -341,6 +346,10 @@ public class AgentRunner
         public TopicProducer getTopicProducer() {
             return producer;
         }
-    }
 
+        @Override
+        public TopicAdmin getTopicAdmin() {
+            return topicAdmin;
+        }
+    }
 }

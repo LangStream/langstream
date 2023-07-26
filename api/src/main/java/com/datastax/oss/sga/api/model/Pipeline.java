@@ -43,4 +43,12 @@ public class Pipeline {
     public void addAgentConfiguration(AgentConfiguration a) {
         agents.add(a);
     }
+
+    public AgentConfiguration getAgent(String definition) {
+        return agents
+                .stream()
+                .filter(a -> a.getId().equals(definition))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Agent not found: " + definition));
+    }
 }

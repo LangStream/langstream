@@ -16,8 +16,6 @@
 package com.datastax.oss.sga.api.runtime;
 
 import com.datastax.oss.sga.api.model.TopicDefinition;
-
-import java.util.HashMap;
 import java.util.Map;
 
 /**

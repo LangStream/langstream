@@ -14,6 +14,8 @@ import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -31,6 +33,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.avro.generic.GenericRecord;
 
 @Slf4j
@@ -50,6 +54,22 @@ public class GenAIToolKitAgent extends SingleRecordAgentFunction {
             context.setKeyObject(TransformFunctionUtil.attemptJsonConversion(context.getKeyObject()));
             context.setValueObject(TransformFunctionUtil.attemptJsonConversion(context.getValueObject()));
         }
+        // the headers must be Strings, this is a tentative conversion
+        // in the future we need a better way to handle headers
+        context.setProperties(record
+                .headers()
+                .stream()
+                .filter(h -> h.key() != null && h.value() != null)
+                .collect(Collectors.toMap(Header::key, (h -> {
+                    if (h.value() == null) {
+                        return null;
+                    }
+                    if (h.value() instanceof byte[]) {
+                        return new String((byte[]) h.value(), StandardCharsets.UTF_8);
+                    } else {
+                        return h.value().toString();
+                    }
+                }))));
         TransformFunctionUtil.processTransformSteps(context, steps);
         context.convertMapToStringOrBytes();
         Optional<Record> recordResult = transformContextToRecord(context, record.headers());

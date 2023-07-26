@@ -71,7 +71,7 @@ class KafkaConnectAgentsTest {
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertEquals(1, implementation.getAgents().size());
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
@@ -117,7 +117,7 @@ class KafkaConnectAgentsTest {
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertEquals(1, implementation.getAgents().size());
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                Connection.from(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);

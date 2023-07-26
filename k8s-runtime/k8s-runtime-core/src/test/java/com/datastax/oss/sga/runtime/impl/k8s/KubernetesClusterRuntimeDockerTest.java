@@ -2,13 +2,13 @@ package com.datastax.oss.sga.runtime.impl.k8s;
 
 import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Secret;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.Connection;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
@@ -111,10 +111,10 @@ class KubernetesClusterRuntimeDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new com.datastax.oss.sga.api.model.Connection(
+                Connection.from(
                         TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new com.datastax.oss.sga.api.model.Connection(
+                Connection.from(
                         TopicDefinition.fromName("output-topic"))) instanceof KafkaTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");

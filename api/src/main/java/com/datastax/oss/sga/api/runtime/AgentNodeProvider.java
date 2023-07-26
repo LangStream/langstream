@@ -2,6 +2,7 @@ package com.datastax.oss.sga.api.runtime;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
 
 public interface AgentNodeProvider {
 
@@ -17,6 +18,7 @@ public interface AgentNodeProvider {
      */
     AgentNode createImplementation(AgentConfiguration agentConfiguration,
                                    Module module,
+                                   Pipeline pipeline,
                                    ExecutionPlan physicalApplicationInstance,
                                    ComputeClusterRuntime clusterRuntime,
                                    PluginsRegistry pluginsRegistry,

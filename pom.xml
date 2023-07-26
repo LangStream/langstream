@@ -70,6 +70,7 @@
     <module>k8s-deployer</module>
     <module>k8s-common</module>
     <module>e2e-tests</module>
+    <module>api-gateway</module>
   </modules>
 
   <dependencyManagement>

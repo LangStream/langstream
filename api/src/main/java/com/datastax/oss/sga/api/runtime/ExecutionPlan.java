@@ -15,7 +15,6 @@
  */
 package com.datastax.oss.sga.api.runtime;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.TopicDefinition;
@@ -59,18 +58,10 @@ public final class ExecutionPlan {
      * @return the connection implementation
      */
     public Connection getConnectionImplementation(Module module, com.datastax.oss.sga.api.model.Connection connection) {
-        com.datastax.oss.sga.api.model.Connection.Connectable endpoint = connection.endpoint();
-        if (endpoint.getConnectableType() == null) {
-            throw new IllegalArgumentException("Connection " + connection + " has no connectable endpoint");
-        }
-        switch (endpoint.getConnectableType()) {
-            case com.datastax.oss.sga.api.model.Connection.Connectables.AGENT:
-                return getAgentImplementation(module, ((AgentConfiguration) endpoint).getId());
-            case com.datastax.oss.sga.api.model.Connection.Connectables.TOPIC:
-                return getTopicByName(((TopicDefinition) endpoint).getName());
-            default:
-                throw new IllegalArgumentException("Unknown connectable type " + endpoint.getConnectableType());
-        }
+        return switch (connection.connectionType()) {
+            case AGENT -> getAgentImplementation(module, connection.definition());
+            case TOPIC -> getTopicByName(connection.definition());
+        };
     }
 
     /**
@@ -97,7 +88,11 @@ public final class ExecutionPlan {
     public void discardTopic(Connection topicImplementation) {
         topics.entrySet()
                 .stream()
-                .filter(e -> e.getValue().equals(topicImplementation)).findFirst()
+                .filter(e -> {
+                    boolean res = e.getValue().equals(topicImplementation);
+                    log.info("Compare {} with {}: {}", topicImplementation, e.getValue(), res);
+                    return res;
+                }).findFirst()
                 .ifPresent(e -> topics.remove(e.getKey()));
     }
 

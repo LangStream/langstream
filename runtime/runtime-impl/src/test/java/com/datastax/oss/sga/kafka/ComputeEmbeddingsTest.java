@@ -183,7 +183,7 @@ class ComputeEmbeddingsTest {
 
         ExecutionPlan implementation = deployer.createImplementation(appId, applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName(inputTopic))) instanceof KafkaTopic);
+                Connection.from(TopicDefinition.fromName(inputTopic))) instanceof KafkaTopic);
 
         deployer.deploy(tenant, implementation, null);
         assertEquals(1, secrets.size());

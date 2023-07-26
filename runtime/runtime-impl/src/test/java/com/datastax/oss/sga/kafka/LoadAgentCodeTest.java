@@ -20,7 +20,7 @@ class LoadAgentCodeTest {
         AgentCodeRegistry registry = new AgentCodeRegistry();
         AgentFunction noop = (AgentFunction) registry.getAgentCode("noop");
         MyRecord myRecord = new MyRecord();
-        assertTrue(noop.process(List.of(myRecord)).get(myRecord).isEmpty());
+        assertTrue(noop.process(List.of(myRecord)).isEmpty());
     }
 
     @Test
@@ -28,8 +28,9 @@ class LoadAgentCodeTest {
         AgentCodeRegistry registry = new AgentCodeRegistry();
         AgentFunction noop = (AgentFunction) registry.getAgentCode("identity");
         MyRecord myRecord = new MyRecord();
-        assertEquals(1, noop.process(List.of(myRecord)).get(myRecord).size());
-        assertSame(myRecord, noop.process(List.of(myRecord)).get(myRecord).get(0));
+        assertEquals(1, noop.process(List.of(myRecord)).get(0).getResultRecords().size());
+        assertSame(myRecord, noop.process(List.of(myRecord)).get(0).getResultRecords().get(0));
+        assertSame(myRecord, noop.process(List.of(myRecord)).get(0).getSourceRecord());
     }
 
     private static class MyRecord implements Record {

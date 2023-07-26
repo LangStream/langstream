@@ -36,9 +36,12 @@ RUN mkdir /app && chmod g+w /app
 
 ADD maven/Pipfile.lock /app/Pipfile.lock
 
+ENV NLTK_DATA="/app/nltk_data"
+
 # install python runtime deps
 RUN cd /app && pipenv requirements --categories="packages full" > /app/requirements.txt \
-    && python3 -m pip install -r /app/requirements.txt
+    && python3 -m pip install -r /app/requirements.txt \
+    && python3 -m nltk.downloader -d /app/nltk_data punkt averaged_perceptron_tagger
 
 ENV PYTHONPATH="$PYTHONPATH:/app/sga_runtime"
 

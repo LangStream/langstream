@@ -24,6 +24,8 @@ elif [ "$only_image" == "operator" ]; then
   build_docker_image k8s-deployer/k8s-deployer-operator
 elif [ "$only_image" == "runtime" ]; then
   build_docker_image runtime/runtime-impl
+elif [ "$only_image" == "api-gateway" ]; then
+  build_docker_image api-gateway
 else
   ./mvnw package -am -DskipTests -Pdocker -T 1C -Ddocker.platforms="$(docker_platforms)"
   docker images | head -n 4

@@ -33,7 +33,7 @@ spec:
           imagePullPolicy: {{ .Values.controlPlane.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 8090
+              containerPort: {{ .Values.controlPlane.service.port }}
               protocol: TCP
           livenessProbe:
             httpGet:

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sga.apiGatewayFullname" . }}
+  labels:
+    {{- include "sga.apiGatewayLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.apiGateway.service.type }}
+  ports:
+    - port: {{ .Values.apiGateway.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "sga.apiGatewaySelectorLabels" . | nindent 4 }}

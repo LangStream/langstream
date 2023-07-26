@@ -192,14 +192,19 @@ public class ModelBuilder {
                 }
 
                 if (agent.getInput() != null) {
-                    agentConfiguration.setInput(new Connection(module.resolveTopic(agent.getInput())));
+                    agentConfiguration.setInput(Connection.from(module.resolveTopic(agent.getInput())));
                 }
                 if (agent.getOutput() != null) {
-                    agentConfiguration.setOutput(new Connection(module.resolveTopic(agent.getOutput())));
+                    agentConfiguration.setOutput(Connection.from(module.resolveTopic(agent.getOutput())));
                 }
                 if (last != null && agentConfiguration.getInput() == null) {
                     // assume that the previous agent is the output of this one
-                    agentConfiguration.setInput(new Connection(last));
+                    agentConfiguration.setInput(Connection.from(last));
+
+                    // if the previous agent does not have an output, bind to this agent
+                    if (last.getOutput() == null) {
+                        last.setOutput(Connection.from(agentConfiguration));
+                    }
                 }
 
 

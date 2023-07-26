@@ -24,15 +24,14 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-@EqualsAndHashCode(callSuper = true)
-public class TopicDefinition extends Connection.Connectable {
+@EqualsAndHashCode
+public class TopicDefinition  {
 
     public static final String CREATE_MODE_NONE = "none";
     public static final String CREATE_MODE_CREATE_IF_NOT_EXISTS = "create-if-not-exists";
 
     public TopicDefinition() {
         creationMode = CREATE_MODE_NONE;
-        connectableType = Connection.Connectables.TOPIC;
     }
 
     public static TopicDefinition fromName(String name) {

@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.runtime.agent;
 
+import com.datastax.oss.sga.api.runner.code.AgentFunction;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
@@ -40,14 +41,15 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
         sinkRecords.forEach(sinkToSourceMapping::remove);
     }
 
-    public void track(Map<Record, List<Record>> sinkRecords) {
+    public void track(List<AgentFunction.SourceRecordAndResult> sinkRecords) {
 
         // map each sink record to the original source record
-        sinkRecords.forEach((sourceRecord, recordList) -> {
+        sinkRecords.forEach((sourceRecordAndResult) -> {
 
-            remainingSinkRecordsForSourceRecord.put(sourceRecord, new AtomicInteger(recordList.size()));
-
-            recordList.forEach(sinkRecord -> {
+            Record sourceRecord = sourceRecordAndResult.getSourceRecord();
+            List<Record> resultRecords = sourceRecordAndResult.getResultRecords();
+            remainingSinkRecordsForSourceRecord.put(sourceRecord, new AtomicInteger(resultRecords.size()));
+            sourceRecordAndResult.resultRecords.forEach(sinkRecord -> {
                 sinkToSourceMapping.put(sinkRecord, sourceRecord);
             });
         });

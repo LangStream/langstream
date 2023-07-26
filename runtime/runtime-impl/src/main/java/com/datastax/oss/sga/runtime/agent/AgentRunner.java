@@ -163,6 +163,9 @@ public class AgentRunner
         processBuilder
                 .environment()
                 .put("PYTHONPATH", newPythonPath);
+        processBuilder
+                .environment()
+                .put("NLTK_DATA", "/app/nltk_data");
         Process process = processBuilder.start();
 
         int exitCode = process.waitFor();
@@ -246,12 +249,14 @@ public class AgentRunner
                 if (records != null && !records.isEmpty()) {
                     try {
                         // the function maps the record coming from the Source to records to be sent to the Sink
-                        Map<Record, List<Record>> sinkRecords = function.process(records);
+                        List<AgentFunction.SourceRecordAndResult> sinkRecords = function.process(records);
 
                         sourceRecordTracker.track(sinkRecords);
 
                         List<Record> forTheSink = new ArrayList<>();
-                        sinkRecords.values().forEach(forTheSink::addAll);
+                        sinkRecords.forEach(sourceRecordAndResult -> {
+                            sourceRecordAndResult.getResultRecords().forEach(forTheSink::add);
+                        });
 
                         sink.write(forTheSink);
                     } catch (Throwable e) {
@@ -280,8 +285,12 @@ public class AgentRunner
 
     private static AgentCode initAgent(RuntimePodConfiguration configuration) throws Exception {
         log.info("Bootstrapping agent with configuration {}", configuration.agent());
-        AgentCode agentCode = AGENT_CODE_REGISTRY.getAgentCode(configuration.agent().agentType());
-        agentCode.init(configuration.agent().configuration());
+        return initAgent(configuration.agent().agentType(), configuration.agent().configuration());
+    }
+
+    public static AgentCode initAgent(String agentType, Map<String, Object> configuration) throws Exception {
+        AgentCode agentCode = AGENT_CODE_REGISTRY.getAgentCode(agentType);
+        agentCode.init(configuration);
         return agentCode;
     }
 

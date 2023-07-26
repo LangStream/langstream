@@ -118,7 +118,7 @@ class KafkaConnectRunnerTest {
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
+                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
         deployer.deploy(tenant, implementation, null);
         assertEquals(1, secrets.size());
@@ -183,7 +183,7 @@ class KafkaConnectRunnerTest {
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
+                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
         deployer.deploy(tenant, implementation, null);
         assertEquals(1, secrets.size());

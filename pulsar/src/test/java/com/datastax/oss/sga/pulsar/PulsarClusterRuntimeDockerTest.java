@@ -250,7 +250,7 @@ class PulsarClusterRuntimeDockerTest {
         // verify that the topics exist
         admin.topics().getStats("output-topic-fn");
         admin.topics().getStats("input-topic-fn");
-        admin.topics().getStats("agent-function-1-id-output");
+        admin.topics().getStats("agent-function-2-id-input");
 
 
         // verify that we have the functions1
@@ -312,9 +312,9 @@ class PulsarClusterRuntimeDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
+                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                new Connection(TopicDefinition.fromName("output-topic"))) instanceof PulsarTopic);
+                Connection.from(TopicDefinition.fromName("output-topic"))) instanceof PulsarTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         // use the standard toolkit

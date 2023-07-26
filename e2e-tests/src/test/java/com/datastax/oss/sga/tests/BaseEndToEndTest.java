@@ -327,6 +327,10 @@ public abstract class BaseEndToEndTest {
 
         final String values = """
                 controlPlane:
+                  resources:
+                    requests:
+                      cpu: 500m
+                      memory: 512Mi
                   app:
                     config:
                       application.storage.apps.type: kubernetes

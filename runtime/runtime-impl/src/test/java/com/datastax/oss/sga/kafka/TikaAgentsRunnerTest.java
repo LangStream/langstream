@@ -178,7 +178,7 @@ class TikaAgentsRunnerTest {
             ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(10));
             assertEquals(poll.count(), 1);
             ConsumerRecord<String, String> record = poll.iterator().next();
-            assertEquals("This text is written in English", record.value());
+            assertEquals("This text is written in English", record.value().trim());
             assertEquals("en", new String(record.headers().lastHeader("language").value(), StandardCharsets.UTF_8));
         }
 

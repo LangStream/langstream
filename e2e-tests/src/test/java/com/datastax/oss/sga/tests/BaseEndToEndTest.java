@@ -27,7 +27,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.Container;
@@ -296,7 +295,7 @@ public abstract class BaseEndToEndTest {
         imagesFutures.add(CompletableFuture.runAsync(() ->
                 kubeServer.ensureImage( "datastax/sga-deployer:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage( "datastax/sga-runtime:latest-dev")));
+                kubeServer.ensureImage("datastax/sga-runtime:latest-dev")));
 
         final CompletableFuture<Void> sgaFuture =
                 CompletableFuture.runAsync(() -> installSgaAndPrepareControlPlaneUrl());
@@ -307,9 +306,9 @@ public abstract class BaseEndToEndTest {
 
     @SneakyThrows
     private static void installSgaAndPrepareControlPlaneUrl() {
+        log.info("installing sga with helm");
         helm3Container = kubeServer.setupHelmContainer();
         final String hostPath = Paths.get("..", "helm", "sga").normalize().toRealPath().toFile().getAbsolutePath();
-        log.info("Binding path {}", hostPath);
         helm3Container.withFileSystemBind(hostPath,
                 "/chart", BindMode.READ_WRITE);
         helm3Container.start();
@@ -318,19 +317,23 @@ public abstract class BaseEndToEndTest {
         final String cmd =
                 "helm install --debug --timeout 360s %s -n %s %s --values /test-values.yaml".formatted(
                         "sga", namespace, "/chart");
+        log.info("Running {}", cmd);
         final Container.ExecResult exec = helm3Container.execInContainer(cmd.split(" "));
         if (exec.getExitCode() != 0) {
             throw new RuntimeException("Helm installation failed: " + exec.getStderr());
         }
+        log.info("Helm install completed");
 
     }
 
     private static void awaitControlPlaneReady() {
+        log.info("waiting for control plane to be ready");
 
         client.apps().deployments().inNamespace(namespace).withName("sga-control-plane")
                 .waitUntilCondition(
                         d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 60,
                         TimeUnit.SECONDS);
+        log.info("control plane ready, port forwarding");
 
         final String podName = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "sga-control-plane")
                 .list()
@@ -346,6 +349,7 @@ public abstract class BaseEndToEndTest {
 
     @SneakyThrows
     private static void installKafka() {
+        log.info("installing kafka");
         client.load(new URL("https://strimzi.io/install/latest?namespace=%s".formatted(namespace)).openStream())
                 .inNamespace(namespace)
                 .serverSideApply();
@@ -353,6 +357,7 @@ public abstract class BaseEndToEndTest {
         client.load(new URL("https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml").openStream())
                 .inNamespace(namespace)
                 .serverSideApply();
+        log.info("kafka installed");
     }
 
 

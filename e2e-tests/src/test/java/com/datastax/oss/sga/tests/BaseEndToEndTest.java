@@ -5,6 +5,8 @@ import com.dajudge.kindcontainer.K3sContainerVersion;
 import com.dajudge.kindcontainer.KubernetesImageSpec;
 import com.dajudge.kindcontainer.helm.Helm3Container;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.rbac.ClusterRole;
+import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
@@ -211,6 +213,10 @@ public abstract class BaseEndToEndTest {
                 .inNamespace(namespace)
                 .serverSideApply();
     }
+    protected static void applyManifestNoNamespace(String manifest) {
+        client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
+                .serverSideApply();
+    }
 
     protected void executeCliCommand(String... args)
             throws InterruptedException, IOException {
@@ -220,15 +226,18 @@ public abstract class BaseEndToEndTest {
         System.arraycopy(args, 0, allArgs, 1, args.length);
         runProcess(allArgs);
     }
-
     private static void runProcess(String[] allArgs) throws InterruptedException, IOException {
+        runProcess(allArgs, false);
+    }
+
+    private static void runProcess(String[] allArgs, boolean allowFailures) throws InterruptedException, IOException {
         ProcessBuilder processBuilder = new ProcessBuilder(allArgs)
                 .directory(Paths.get("..").toFile())
                 .inheritIO()
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                 .redirectError(ProcessBuilder.Redirect.INHERIT);
         final int exitCode = processBuilder.start().waitFor();
-        if (exitCode != 0) {
+        if (exitCode != 0 && !allowFailures) {
             throw new RuntimeException();
         }
     }
@@ -275,6 +284,7 @@ public abstract class BaseEndToEndTest {
         System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
 
         final CompletableFuture<Void> kafkaFuture = CompletableFuture.runAsync(() -> installKafka());
+        final CompletableFuture<Void> minioFuture = CompletableFuture.runAsync(() -> installMinio());
         List<CompletableFuture<Void>> imagesFutures = new ArrayList<>();
 
         imagesFutures.add(CompletableFuture.runAsync(() ->
@@ -286,7 +296,7 @@ public abstract class BaseEndToEndTest {
 
         final CompletableFuture<Void> sgaFuture =
                 CompletableFuture.runAsync(() -> installSgaAndPrepareControlPlaneUrl());
-        CompletableFuture.allOf(kafkaFuture, imagesFutures.get(0), imagesFutures.get(1), imagesFutures.get(2),
+        CompletableFuture.allOf(kafkaFuture, minioFuture, imagesFutures.get(0), imagesFutures.get(1), imagesFutures.get(2),
                 sgaFuture).join();
         awaitControlPlaneReady();
     }
@@ -294,14 +304,58 @@ public abstract class BaseEndToEndTest {
     @SneakyThrows
     private static void installSgaAndPrepareControlPlaneUrl() {
         final String hostPath = Paths.get("..", "helm", "sga").toFile().getAbsolutePath();
+
+        client.resources(ClusterRole.class)
+                        .withName("sga-deployer")
+                        .delete();
+        client.resources(ClusterRole.class)
+                .withName("sga-control-plane")
+                .delete();
+        client.resources(ClusterRoleBinding.class)
+                .withName("sga-control-plane-role-binding")
+                .delete();
+        client.resources(ClusterRoleBinding.class)
+                .withName("sga-deployer-role-binding")
+                .delete();
+
+
         log.info("installing sga with helm, using chart from {}", hostPath);
         final String deleteCmd =
                 "helm delete %s -n %s".formatted("sga", namespace);
         log.info("Running {}", deleteCmd);
-        runProcess(deleteCmd.split(" "));
+        runProcess(deleteCmd.split(" "), true);
+
+        final String values = """
+                controlPlane:
+                  app:
+                    config:
+                      application.storage.apps.type: kubernetes
+                      application.storage.apps.configuration.namespaceprefix: sga-
+                      application.storage.apps.configuration.deployer-runtime.image: datastax/sga-runtime:latest-dev
+                      application.storage.apps.configuration.deployer-runtime.image-pull-policy: Never
+                      application.storage.global.type: kubernetes
+                      application.storage.code.type: s3
+                      application.storage.code.configuration.endpoint: http://minio.minio-dev.svc.cluster.local:9000
+                      application.storage.code.configuration.access-key: minioadmin
+                      application.storage.code.configuration.secret-key: minioadmin
+                                
+                deployer:
+                  replicaCount: 1
+                  app:
+                    config:
+                      codeStorage:
+                        type: s3
+                        endpoint: http://minio.minio-dev.svc.cluster.local:9000
+                        access-key: minioadmin
+                        secret-key: minioadmin
+                """;
+        final Path tempFile = Files.createTempFile("sga-test", ".yaml");
+        Files.write(tempFile, values.getBytes(StandardCharsets.UTF_8));
+
+
         final String cmd =
-                "helm install --debug --timeout 360s %s -n %s %s".formatted(
-                        "sga", namespace, hostPath);
+                "helm install --debug --timeout 360s %s -n %s %s --values %s".formatted(
+                        "sga", namespace, hostPath, tempFile.toFile().getAbsolutePath());
         log.info("Running {}", cmd);
         runProcess(cmd.split(" "));
         log.info("Helm install completed");
@@ -360,6 +414,77 @@ public abstract class BaseEndToEndTest {
                 }
             }
         }
+    }
+
+
+    static void installMinio() {
+        applyManifestNoNamespace("""
+                # Deploys a new Namespace for the MinIO Pod
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: minio-dev # Change this value if you want a different namespace name
+                  labels:
+                    name: minio-dev # Change this value to match metadata.name
+                ---
+                # Deploys a new MinIO Pod into the metadata.namespace Kubernetes namespace
+                #
+                # The `spec.containers[0].args` contains the command run on the pod
+                # The `/data` directory corresponds to the `spec.containers[0].volumeMounts[0].mountPath`
+                # That mount path corresponds to a Kubernetes HostPath which binds `/data` to a local drive or volume on the worker node where the pod runs
+                #\s
+                apiVersion: v1
+                kind: Pod
+                metadata:
+                  labels:
+                    app: minio
+                  name: minio
+                  namespace: minio-dev # Change this value to match the namespace metadata.name
+                spec:
+                  containers:
+                  - name: minio
+                    image: quay.io/minio/minio:latest
+                    command:
+                    - /bin/bash
+                    - -c
+                    args:\s
+                    - minio server /data --console-address :9090
+                    volumeMounts:
+                    - mountPath: /data
+                      name: localvolume # Corresponds to the `spec.volumes` Persistent Volume
+                    ports:
+                      -  containerPort: 9090
+                         protocol: TCP
+                         name: console
+                      -  containerPort: 9000
+                         protocol: TCP
+                         name: s3
+                  volumes:
+                  - name: localvolume
+                    hostPath: # MinIO generally recommends using locally-attached volumes
+                      path: /mnt/disk1/data # Specify a path to a local drive or volume on the Kubernetes worker node
+                      type: DirectoryOrCreate # The path to the last directory must exist
+                ---
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  labels:
+                    app: minio
+                  name: minio
+                  namespace: minio-dev # Change this value to match the namespace metadata.name
+                spec:
+                  ports:
+                    - port: 9090
+                      protocol: TCP
+                      targetPort: 9090
+                      name: console
+                    - port: 9000
+                      protocol: TCP
+                      targetPort: 9000
+                      name: s3
+                  selector:
+                    app: minio
+                """);
     }
 
 

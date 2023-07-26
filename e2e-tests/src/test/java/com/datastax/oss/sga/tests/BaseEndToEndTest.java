@@ -307,16 +307,15 @@ public abstract class BaseEndToEndTest {
     @SneakyThrows
     private static void installSgaAndPrepareControlPlaneUrl() {
         helm3Container = kubeServer.setupHelmContainer();
-        final String hostPath = Paths.get("..", "helm", "sga").normalize().toRealPath().toFile().getAbsolutePath();
+        final String hostPath = Paths.get("..", "helm", "sga").toFile().getAbsolutePath();
         log.info("installing sga with helm, using chart from {}", hostPath);
-        helm3Container.withFileSystemBind(hostPath,
-                "/chart", BindMode.READ_WRITE);
+        helm3Container.withFileSystemBind(hostPath, "/charts", BindMode.READ_ONLY);
         helm3Container.start();
         helm3Container.copyFileToContainer(Transferable.of("""
                 """), "/test-values.yaml");
         final String cmd =
                 "helm install --debug --timeout 360s %s -n %s %s --values /test-values.yaml".formatted(
-                        "sga", namespace, "/chart");
+                        "sga", namespace, "/charts");
         log.info("Running {}", cmd);
         final Container.ExecResult exec = helm3Container.execInContainer(cmd.split(" "));
         if (exec.getExitCode() != 0) {

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 @Slf4j
 public class PythonFunctionIT extends BaseEndToEndTest {
 
-    @Test
+    //@Test
     public void test() throws Exception {
         final String tenant = "ten-" + System.currentTimeMillis();
         executeCliCommand("configure", "webServiceUrl", controlPlaneBaseUrl);

@@ -55,7 +55,7 @@ kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
 Create a sample app using the CLI:
 ```
 ./bin/sga-cli tenants put test
-./bin/sga-cli configure test
+./bin/sga-cli configure tenant test
 ./bin/sga-cli apps list
 
 

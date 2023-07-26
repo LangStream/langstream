@@ -1,5 +1,7 @@
 streamingCluster:
   type: kafka
 agent:
+  applicationId: "example-application"
+  agentId: "example-agent"
   configuration:
     className: examples.example.Example

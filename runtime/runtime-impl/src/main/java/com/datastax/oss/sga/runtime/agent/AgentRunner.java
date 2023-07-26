@@ -163,6 +163,9 @@ public class AgentRunner
         processBuilder
                 .environment()
                 .put("PYTHONPATH", newPythonPath);
+        processBuilder
+                .environment()
+                .put("NLTK_DATA", "/app/nltk_data");
         Process process = processBuilder.start();
 
         int exitCode = process.waitFor();

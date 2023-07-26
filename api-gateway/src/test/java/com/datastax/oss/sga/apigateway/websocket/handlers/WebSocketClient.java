@@ -5,6 +5,7 @@ import jakarta.websocket.CloseReason;
 import jakarta.websocket.ContainerProvider;
 import jakarta.websocket.DeploymentException;
 import jakarta.websocket.OnClose;
+import jakarta.websocket.OnError;
 import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
@@ -14,9 +15,24 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.Test;
 
 @ClientEndpoint
 public class WebSocketClient implements AutoCloseable {
+
+
+    public static class W {
+        @Test
+        public void test() throws Exception {
+            new WebSocketClient(msg -> {
+                System.out.println("got message: " + msg);
+            })
+                    .connect(URI.create("ws://localhost:8091/v1/consume/default/gw/consume-input"));
+            System.out.println("connected");
+            Thread.sleep(Long.MAX_VALUE);
+
+        }
+    }
 
     protected WebSocketContainer container;
     protected Session userSession = null;
@@ -40,15 +56,22 @@ public class WebSocketClient implements AutoCloseable {
 
     @OnOpen
     public void onOpen(Session session) {
+        System.out.println("onOpen" + session);
     }
 
     @OnClose
     public void onClose(Session session, CloseReason closeReason) {
+        System.out.println("onOpen" + closeReason);
     }
 
     @OnMessage
-    public void onMessage(Session session, String msg) {
+    public void onMessage(String msg) {
         onMessage.accept(msg);
+    }
+
+    @OnError
+    public void onError(Throwable throwable) {
+        throwable.printStackTrace();
     }
 
     @Override

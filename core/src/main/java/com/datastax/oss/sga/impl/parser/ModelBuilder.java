@@ -165,9 +165,9 @@ public class ModelBuilder {
     }
 
     private static void parseGateways(String content, Application application) throws IOException {
-        GatewaysFileModel gatewaysFileModel = mapper.readValue(content, GatewaysFileModel.class);
+        Gateways gatewaysFileModel = mapper.readValue(content, Gateways.class);
         log.info("Gateways: {}", gatewaysFileModel);
-        application.setGateways(gatewaysFileModel.gateways());
+        application.setGateways(gatewaysFileModel);
     }
 
     private static void parsePipelineFile(String filename, String content, Application application) throws IOException {
@@ -302,8 +302,6 @@ public class ModelBuilder {
 
     public record InstanceFileModel(Instance instance) {
     }
-
-    public record GatewaysFileModel(Gateways gateways) {}
 
 }
 

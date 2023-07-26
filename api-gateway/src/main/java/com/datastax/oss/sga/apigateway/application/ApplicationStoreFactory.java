@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class ApplicationStoreFactory {
 
     @Bean
-    public ApplicationStore applicationStoreFactory(StorageProperties storageProperties) {
+    public ApplicationStore store(StorageProperties storageProperties) {
         final StorageProperties.AppsStoreProperties apps = storageProperties.getApps();
         Objects.requireNonNull(apps);
         return ApplicationStoreRegistry.loadStore(apps.getType(), apps.getConfiguration());

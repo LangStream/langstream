@@ -16,7 +16,4 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         return cmd.getRootCmd();
     }
 
-    protected String pathForTenant(String tenant) {
-        return "/tenants/%s".formatted(tenant);
-    }
 }

@@ -4,24 +4,36 @@ import jakarta.websocket.ClientEndpoint;
 import jakarta.websocket.CloseReason;
 import jakarta.websocket.ContainerProvider;
 import jakarta.websocket.OnClose;
+import jakarta.websocket.OnError;
 import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
 import java.net.URI;
-import java.util.function.Consumer;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 @ClientEndpoint
+@Slf4j
 public class WebSocketClient implements AutoCloseable {
+
+    public interface Handler {
+        void onMessage(String msg);
+
+        void onClose(CloseReason closeReason);
+
+        void onError(Throwable throwable);
+    }
 
     protected WebSocketContainer container;
     protected Session userSession = null;
-    private final Consumer<String> onMessage;
+    private final Handler eventHandler;
 
-    public WebSocketClient(Consumer<String> onMessage) {
-        this.onMessage = onMessage;
+    public WebSocketClient(Handler eventHandler) {
+        this.eventHandler = eventHandler;
         container = ContainerProvider.getWebSocketContainer();
+        container.setDefaultMaxBinaryMessageBufferSize(32768);
+        container.setDefaultMaxTextMessageBufferSize(32768);
     }
 
     @SneakyThrows
@@ -41,11 +53,17 @@ public class WebSocketClient implements AutoCloseable {
 
     @OnClose
     public void onClose(Session session, CloseReason closeReason) {
+        eventHandler.onClose(closeReason);
+    }
+
+    @OnError
+    public void onError(Throwable throwable) {
+        eventHandler.onError(throwable);
     }
 
     @OnMessage
     public void onMessage(Session session, String msg) {
-        onMessage.accept(msg);
+        eventHandler.onMessage(msg);
     }
 
     @Override

@@ -14,15 +14,19 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 @Slf4j
 public class ConsumeHandler extends AbstractHandler {
 
+    TopicConsumer consumer;
+
     public ConsumeHandler(ApplicationStore applicationStore) {
         super(applicationStore);
     }
+
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -107,4 +111,15 @@ public class ConsumeHandler extends AbstractHandler {
 
     }
 
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        if (consumer != null) {
+            consumer.close();
+        }
+    }
+
+    @Override
+    public boolean supportsPartialMessages() {
+        return true;
+    }
 }

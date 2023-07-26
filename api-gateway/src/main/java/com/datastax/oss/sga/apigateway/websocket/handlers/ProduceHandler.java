@@ -24,8 +24,10 @@ import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -112,6 +114,7 @@ public class ProduceHandler extends AbstractHandler {
                     topicConnectionsRuntime.createProducer("ag-" + session.getId(), streamingCluster,
                             Map.of("topic", topicName));
             producer.start();
+            log.info("Started produced for gateway {}/{}/{} on topic {}", tenant, applicationId, gatewayId, topicName);
         } catch (Throwable tt) {
             log.error("Error while establishing connection", tt);
             session.close(SERVER_ERROR);
@@ -135,6 +138,7 @@ public class ProduceHandler extends AbstractHandler {
             final ProduceHandlerRecord record =
                     new ProduceHandlerRecord(produceRequest.key(), produceRequest.value(), recordHeaders);
             producer.write(List.of(record));
+            log.info("Produced record {}", record);
         } catch (Throwable tt) {
             log.error("Error while writing message", tt);
             session.close();
@@ -142,6 +146,7 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @AllArgsConstructor
+    @ToString
     private static class ProduceHandlerRecord implements com.datastax.oss.sga.api.runner.code.Record {
         private final Object key;
         private final Object value;
@@ -172,5 +177,12 @@ public class ProduceHandler extends AbstractHandler {
             return headers;
         }
 
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        if (producer != null) {
+            producer.close();
+        }
     }
 }

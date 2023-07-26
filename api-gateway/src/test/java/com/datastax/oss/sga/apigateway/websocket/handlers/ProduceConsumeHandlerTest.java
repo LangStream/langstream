@@ -42,7 +42,7 @@ class ProduceConsumeHandlerTest {
 
         @Bean
         @Primary
-        public ApplicationStore applicationStoreFactory() {
+        public ApplicationStore store() {
             final ApplicationStore mock = Mockito.mock(ApplicationStore.class);
             doAnswer(new Answer() {
                 @Override
@@ -72,7 +72,7 @@ class ProduceConsumeHandlerTest {
     int port;
 
     @Autowired
-    ApplicationStore applicationStoreFactory;
+    ApplicationStore store;
 
     @Test
     void testSimpleProduceConsume() throws Exception {

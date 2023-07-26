@@ -51,3 +51,6 @@ class Record(AbstractRecord):
     def __str__(self):
         return f"Record(value={self._value}, key={self._key}, origin={self._origin}, timestamp={self._timestamp}, " \
                f"headers={self._headers})"
+
+    def __repr__(self):
+        return self.__str__()

@@ -7,6 +7,8 @@ confluent-kafka = "*"
 "openai[datalib]" = "*"
 "openai[wandb]" = "*"
 langchain = "*"
+boto3 = "*"
+unstructured = "*"
 
 [dev-packages]
 tox = "*"

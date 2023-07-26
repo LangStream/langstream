@@ -32,8 +32,9 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
         attributes.put("token", token);
         attributes.put("tenant", vars.get("tenant"));
         log.info("Authentication tenant {} with token {}", vars.get("tenant"), token);
+        log.info("Failing authentication since it's not implemented");
         // TODO: implement authentication
-        return true;
+        return false;
     }
 
     @Override

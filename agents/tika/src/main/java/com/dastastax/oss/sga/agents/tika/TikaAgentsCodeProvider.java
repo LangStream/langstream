@@ -10,7 +10,8 @@ public class TikaAgentsCodeProvider implements AgentCodeProvider {
 
     private static Map<String, Supplier<SingleRecordAgentFunction>> FACTORIES = Map.of(
             "text-extractor", () -> new TikaTextExtractorAgent(),
-            "language-detector", () -> new LanguageDetectorAgent()
+            "language-detector", () -> new LanguageDetectorAgent(),
+            "text-chunker", () -> new TextChunkerAgent()
     );
 
     @Override

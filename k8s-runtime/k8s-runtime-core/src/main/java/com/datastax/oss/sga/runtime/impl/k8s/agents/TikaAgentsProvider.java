@@ -22,7 +22,7 @@ import static com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime.CLU
 @Slf4j
 public class TikaAgentsProvider extends AbstractComposableAgentProvider {
 
-    private static final Set<String> SUPPORTED_AGENT_TYPES = Set.of("text-extractor", "language-detector");
+    private static final Set<String> SUPPORTED_AGENT_TYPES = Set.of("text-extractor", "language-detector", "text-chunker");
 
     public TikaAgentsProvider() {
         super(SUPPORTED_AGENT_TYPES, List.of(CLUSTER_TYPE, "none"));

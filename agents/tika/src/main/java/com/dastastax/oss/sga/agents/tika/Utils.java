@@ -4,6 +4,9 @@ import com.datastax.oss.sga.api.runner.code.Header;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,6 +21,17 @@ public class Utils {
             stream = new ByteArrayInputStream(value.toString().getBytes(StandardCharsets.UTF_8));
         }
         return stream;
+    }
+
+    public static Reader toReader(Object value) {
+        if (value == null) {
+            return new StringReader("");
+        }
+        if (value instanceof byte[] array) {
+            return new InputStreamReader(new ByteArrayInputStream(array), StandardCharsets.UTF_8);
+        } else {
+            return new StringReader(value.toString());
+        }
     }
 
     public static String toText(Object value) {

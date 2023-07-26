@@ -1,0 +1,10 @@
+configuration:
+  resources:
+    - type: "datasource"
+      name: "AstraDatasource"
+      configuration:
+        service: "astra"
+        username: "{{{ secrets.astra.username }}}"
+        password: "{{{ secrets.astra.password }}}"
+        secureBundle: "{{{ secrets.astra.secureBundle }}}"
+

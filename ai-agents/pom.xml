@@ -40,6 +40,11 @@
       <artifactId>google-api-client</artifactId>
     </dependency>
     <dependency>
+      <!-- AstraDB DataSource -->
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>streaming-ai</artifactId>
       <exclusions>

@@ -306,9 +306,9 @@ public abstract class BaseEndToEndTest {
 
     @SneakyThrows
     private static void installSgaAndPrepareControlPlaneUrl() {
-        log.info("installing sga with helm");
         helm3Container = kubeServer.setupHelmContainer();
         final String hostPath = Paths.get("..", "helm", "sga").normalize().toRealPath().toFile().getAbsolutePath();
+        log.info("installing sga with helm, using chart from {}", hostPath);
         helm3Container.withFileSystemBind(hostPath,
                 "/chart", BindMode.READ_WRITE);
         helm3Container.start();
@@ -350,11 +350,25 @@ public abstract class BaseEndToEndTest {
     @SneakyThrows
     private static void installKafka() {
         log.info("installing kafka");
-        client.load(new URL("https://strimzi.io/install/latest?namespace=%s".formatted(namespace)).openStream())
+        final Path tempFile = Files.createTempFile("sga-test", ".yaml");
+
+        try (final OutputStream fout = Files.newOutputStream(tempFile);
+             final InputStream in =
+                     new URL("https://strimzi.io/install/latest?namespace=%s".formatted(namespace)).openStream();) {
+            in.transferTo(fout);
+        }
+
+        client.load(Files.newInputStream(tempFile))
                 .inNamespace(namespace)
                 .serverSideApply();
 
-        client.load(new URL("https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml").openStream())
+        final Path tempFile2 = Files.createTempFile("sga-test", ".yaml");
+        try (final OutputStream fout = Files.newOutputStream(tempFile2);
+             final InputStream in =
+                     new URL("https://strimzi.io/install/latest?namespace=%s".formatted(namespace)).openStream();) {
+            in.transferTo(fout);
+        }
+        client.load(Files.newInputStream(tempFile2))
                 .inNamespace(namespace)
                 .serverSideApply();
         log.info("kafka installed");

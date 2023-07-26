@@ -70,4 +70,5 @@ jobs:
           uname -m
           eval $(minikube docker-env)
           ./docker/build.sh
+          ./mvnw install -pl e2e-tests -am -DskipTests
           ./mvnw verify -pl e2e-tests          

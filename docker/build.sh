@@ -2,10 +2,19 @@
 set -e
 only_image=$1
 
+docker_platforms() {
+  if [ "$(uname -m)" == "arm64" ]; then
+    echo "linux/amd64"
+  else
+    echo ""
+  fi
+}
+
+
 build_docker_image() {
   module=$1
   ./mvnw install -am -DskipTests -pl $module -T 1C
-  ./mvnw package -DskipTests -Pdocker -pl $module
+  ./mvnw package -DskipTests -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)"
   docker images | head -n 2
 }
 
@@ -18,7 +27,7 @@ elif [ "$only_image" == "runtime" ]; then
 elif [ "$only_image" == "api-gateway" ]; then
   build_docker_image api-gateway
 else
-  ./mvnw package -am -DskipTests -Pdocker -T 1C
+  ./mvnw package -am -DskipTests -Pdocker -T 1C -Ddocker.platforms="$(docker_platforms)"
   docker images | head -n 4
 fi
 

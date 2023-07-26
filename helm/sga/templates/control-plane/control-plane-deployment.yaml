@@ -39,10 +39,16 @@ spec:
             httpGet:
               path: /management/health
               port: http
+            initialDelaySeconds: {{ .Values.controlPlane.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.controlPlane.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.controlPlane.liveness.timeoutSeconds }}
           readinessProbe:
             httpGet:
               path: /management/health
               port: http
+            initialDelaySeconds: {{ .Values.controlPlane.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.controlPlane.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.controlPlane.readiness.timeoutSeconds }}
           resources:
             {{- toYaml .Values.controlPlane.resources | nindent 12 }}
           env:

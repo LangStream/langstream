@@ -51,6 +51,7 @@ public class AgentResourcesFactory {
 
         final String appConfigVolume = "app-config";
         final String codeConfigVolume = "code-config";
+        final String downloadedCodeVolume = "code-download";
         final Container injectConfigForDownloadCodeInitContainer = new ContainerBuilder()
                 .withName("code-download-init")
                 .withImage(spec.getImage())
@@ -71,11 +72,16 @@ public class AgentResourcesFactory {
                 .withName("code-download")
                 .withImage(spec.getImage())
                 .withImagePullPolicy(spec.getImagePullPolicy())
-                .withArgs("agent-code-download", "/code-config/config")
-                .withVolumeMounts(new VolumeMountBuilder()
+                .withArgs("agent-code-download", "/code-config/config", "/app-code-download")
+                .withVolumeMounts(
+                        new VolumeMountBuilder()
                         .withName(codeConfigVolume)
                         .withMountPath("/code-config")
-                        .build()
+                        .build(),
+                        new VolumeMountBuilder()
+                                .withName(downloadedCodeVolume)
+                                .withMountPath("/app-code-download")
+                                .build()
                 )
                 .withTerminationMessagePolicy("FallbackToLogsOnError")
                 .build();
@@ -87,11 +93,15 @@ public class AgentResourcesFactory {
 //                .withLivenessProbe(createLivenessProbe())
 //                .withReadinessProbe(createReadinessProbe())
                 .withResources(convertResources(spec.getResources(), agentResourceUnitConfiguration))
-                .withArgs("agent-runtime", "/app-config/config")
+                .withArgs("agent-runtime", "/app-config/config", "/app-code-download")
                 .withVolumeMounts(new VolumeMountBuilder()
                         .withName(appConfigVolume)
                         .withMountPath("/app-config")
-                        .build()
+                        .build(),
+                        new VolumeMountBuilder()
+                                .withName(downloadedCodeVolume)
+                                .withMountPath("/app-code-download")
+                                .build()
                 )
                 .withTerminationMessagePolicy("FallbackToLogsOnError")
                 .build();
@@ -133,6 +143,10 @@ public class AgentResourcesFactory {
                         .build(),
                         new VolumeBuilder()
                                 .withName(codeConfigVolume)
+                                .withNewEmptyDir().endEmptyDir()
+                                .build(),
+                        new VolumeBuilder()
+                                .withName(downloadedCodeVolume)
                                 .withNewEmptyDir().endEmptyDir()
                                 .build()
                 )

@@ -28,6 +28,14 @@ controlPlane:
     requests:
        cpu: 200m
        memory: 256Mi
+  liveness:
+    initialDelaySeconds: 20
+    timeoutSeconds: 5
+    periodSeconds: 30
+  readiness:
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 5
   nodeSelector: {}
   tolerations: []
   affinity: {}

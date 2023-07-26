@@ -15,6 +15,16 @@ Prepare some PDF files and upload them to a bucket in S3.
 
 ./bin/sga-cli apps deploy test -app examples/applications/text-processing -i examples/instances/kafka-kubernetes.yaml
 
+## Write a document in the S3 bucket
+
+```
+# Activate port forwarding of  the MinIO service in order to be able to upload files to the S3 bucket
+kubectl -n minio-dev port-forward minio 9000:9000 &
+
+# Upload a document to the S3 bucket
+dev/s3_upload.sh documents examples/applications/text-processing/simple.pdf
+```
+
 ## Start a Consumer
 
 Start a Kafka Consumer on a terminal and see the results.

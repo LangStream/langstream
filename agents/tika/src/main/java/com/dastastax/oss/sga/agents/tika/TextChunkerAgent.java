@@ -30,8 +30,7 @@ public class TextChunkerAgent extends SingleRecordAgentFunction {
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
-        int chunkSize = (int) configuration.getOrDefault("chunkSize", 1000);
-
+        chunkSize = Integer.parseInt(configuration.getOrDefault("chunkSize", "1000").toString());
     }
 
     @Override

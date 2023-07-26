@@ -25,6 +25,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.awaitility.Awaitility;
 import org.checkerframework.checker.units.qual.C;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -180,6 +181,145 @@ class TikaAgentsRunnerTest {
             ConsumerRecord<String, String> record = poll.iterator().next();
             assertEquals("This text is written in English", record.value().trim());
             assertEquals("en", new String(record.headers().lastHeader("language").value(), StandardCharsets.UTF_8));
+        }
+
+    }
+
+
+    @Test
+    public void testFullLanguageProcessingPipiline() throws Exception {
+        String tenant = "tenant";
+        kubeServer.spyAgentCustomResources(tenant, "app-text-extractor1");
+        final Map<String, Secret> secrets = kubeServer.spyAgentCustomResourcesSecrets(tenant,  "app-text-extractor1");
+
+        Application applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        buildInstanceYaml(),
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:    
+                                  - name: "Extract text"
+                                    type: "text-extractor"
+                                    input: "input-topic"
+                                  - name: "Detect language"
+                                    type: "language-detector"
+                                    configuration:
+                                       allowedLanguages: ["en"]
+                                       property: "language"
+                                  - name: "Split into chunks"
+                                    type: "text-chunker"
+                                    configuration:
+                                      chunkSize: 60
+                                  - name: "Normalise text"
+                                    type: "text-normaliser"
+                                    output: "output-topic"
+                                    configuration:
+                                        makeLowercase: true
+                                        trimSpaces: true
+                                """));
+
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+        log.info("Implementation {}", implementation);
+        assertTrue(implementation.getConnectionImplementation(module,
+                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
+
+
+        deployer.deploy(tenant, implementation, null);
+        assertEquals(1, secrets.size());
+        List<RuntimePodConfiguration> pods = new ArrayList<>();
+        secrets.values().forEach(secret -> {
+            RuntimePodConfiguration runtimePodConfiguration =
+                    AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
+            log.info("Pod configuration {}", runtimePodConfiguration);
+            pods.add(runtimePodConfiguration);
+        });
+
+        try (KafkaProducer<String, String> producer = new KafkaProducer<String, String>(
+                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                        "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                        "value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+        );
+             KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(
+                     Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                             "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                             "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                             "group.id","testgroup",
+                             "auto.offset.reset", "earliest")
+             )) {
+            consumer.subscribe(List.of("output-topic"));
+
+
+            // produce two messages to the input-topic
+            producer
+                    .send(new ProducerRecord<>(
+                            "input-topic",
+                            null,
+                            "key",
+                            "Questo testo è scritto in Italiano.",
+                            List.of()))
+                    .get();
+            producer
+                    .send(new ProducerRecord<>(
+                            "input-topic",
+                            null,
+                            "key",
+                            "This text is written in English, but it is very long,\nso you may want to split it into chunks.",
+                            List.of()))
+                    .get();
+            producer.flush();
+
+            // execute all the pods
+            ExecutorService executorService = Executors.newCachedThreadPool();
+            List<CompletableFuture> futures = new ArrayList<>();
+            for (RuntimePodConfiguration podConfiguration : pods) {
+                CompletableFuture<?> handle = new CompletableFuture<>();
+                executorService.submit(() -> {
+                    Thread.currentThread().setName(podConfiguration.agent().agentId() + "runner");
+                    try {
+                        AgentRunner.run(podConfiguration, null, null, 10);
+                        handle.complete(null);
+                    } catch (Throwable error) {
+                        log.error("Error {}", error);
+                        handle.completeExceptionally(error);
+                    }
+                });
+            }
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            executorService.shutdown();
+            executorService.awaitTermination(5, TimeUnit.SECONDS);
+
+
+            List<String> received = new ArrayList<>();
+
+            Awaitility.await().until(() -> {
+                    ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(2));
+                    for (ConsumerRecord record : poll) {
+                        log.info("Received message {}", record);
+                        received.add(record.value().toString());
+                    }
+                    return received.size() >= 2;
+                }
+            );
+            log.info("Result: {}", received);
+            received.forEach(r -> {
+                log.info("Received |{}|", r);
+            });
+            assertEquals(List.of("this text is written in english, but it is very long,",
+                    "so you may want to split it into chunks."), received);
         }
 
     }

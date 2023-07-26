@@ -1,0 +1,30 @@
+module: "module-1"
+id: "pipeline-1"
+name: "Extract and manipulate text"
+topics:
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "Read from S3"
+    type: "s3-source"
+    output: "output-topic"
+    configuration:
+      bucketName: documents
+      endpoint: "http://minio.minio-dev.svc.cluster.local:9000"
+  - name: "Extract text"
+    type: "text-extractor"
+  - name: "Normalise text"
+    type: "text-normaliser"
+    configuration:
+        makeLowercase: true
+  - name: "Detect language"
+    type: "language-detector"
+    configuration:
+       allowedLanguages: ["en"]
+       property: "language"
+  - name: "Split into chunks"
+    type: "text-chunker"
+    output: "output-topic"
+    configuration:
+      chunkSize: 1000
+

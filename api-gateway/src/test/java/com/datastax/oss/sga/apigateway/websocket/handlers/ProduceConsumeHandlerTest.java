@@ -78,11 +78,11 @@ class ProduceConsumeHandlerTest {
     void testSimpleProduceConsume() throws Exception {
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
-        try (final WebSocketClient consumer = new WebSocketClient(message -> {
+        try (final TestWebSocketClient consumer = new TestWebSocketClient(message -> {
             assertEquals("this is a message", message);
             countDownLatch.countDown();
         }).connect(URI.create("ws://localhost:%d/v1/consume/tenant1/application1/consume".formatted(port)));) {
-            try (final WebSocketClient producer = new WebSocketClient(message -> {
+            try (final TestWebSocketClient producer = new TestWebSocketClient(message -> {
             }).connect(URI.create("ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(port)));) {
                 final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message", null);
                 final String json = new ObjectMapper().writeValueAsString(produceRequest);

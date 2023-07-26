@@ -1,6 +1,6 @@
 package com.datastax.oss.sga.ai.kafkaconnect;
 
-import com.dastastax.oss.sga.kafka.runner.KafkaConsumerRecord;
+import com.dastastax.oss.sga.kafka.runner.KafkaRecord;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.Record;
@@ -74,7 +74,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
             Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                     .setNameFormat("kafka-adaptor-sink-flush-%d")
                     .build());
-    protected final ConcurrentLinkedDeque<KafkaConsumerRecord> pendingFlushQueue = new ConcurrentLinkedDeque<>();
+    protected final ConcurrentLinkedDeque<KafkaRecord> pendingFlushQueue = new ConcurrentLinkedDeque<>();
     private final AtomicBoolean isFlushRunning = new AtomicBoolean(false);
     private volatile boolean isRunning = false;
 
@@ -118,10 +118,17 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
             records.stream()
                     .map(x -> {
-                        KafkaConsumerRecord kr = KafkaConnectSinkAgent.getKafkaRecord(x);
-                        currentBatchSize.addAndGet(kr.estimateRecordSize());
-                        taskContext.updateOffset(kr.getTopicPartition(),
-                                kr.offset());
+                        KafkaRecord kr = KafkaConnectSinkAgent.getKafkaRecord(x);
+                        if (kr instanceof KafkaRecord.KafkaConsumerOffsetProvider op) {
+                            currentBatchSize.addAndGet(getRecordSize(op));
+                            taskContext.updateOffset(kr.getTopicPartition(),
+                                    op.offset());
+                        } else {
+                            log.error("Record {} does not provide offset. " +
+                                    "Cannot update offset", kr);
+                            throw new IllegalArgumentException("Record " + kr +
+                                    " does not provide offset. Cannot update offset");
+                        }
                         return kr;
                     })
                     .forEach(pendingFlushQueue::add);
@@ -134,12 +141,12 @@ public class KafkaConnectSinkAgent implements AgentSink {
         flushIfNeeded(false);
     }
 
-    private static int getRecordSize(KafkaConsumerRecord r) {
+    private static int getRecordSize(KafkaRecord.KafkaConsumerOffsetProvider r) {
         return r.estimateRecordSize();
     }
 
     private SgaSinkRecord toSinkRecord(Record record) {
-        KafkaConsumerRecord kr = getKafkaRecord(record);
+        KafkaRecord kr = getKafkaRecord(record);
 
         return new SgaSinkRecord(kr.origin(),
                 kr.partition(),
@@ -147,10 +154,10 @@ public class KafkaConnectSinkAgent implements AgentSink {
                 toKafkaData(kr.key(), kr.keySchema()),
                 toKafkaSchema(kr.value(), kr.valueSchema()),
                 toKafkaData(kr.value(), kr.valueSchema()),
-                kr.offset(),
+                ((KafkaRecord.KafkaConsumerOffsetProvider)kr).offset(),
                 kr.timestamp(),
                 kr.timestampType(),
-                kr.estimateRecordSize());
+                ((KafkaRecord.KafkaConsumerOffsetProvider)kr).estimateRecordSize());
     }
 
     private Schema toKafkaSchema(Object input, Schema schema) {
@@ -171,10 +178,10 @@ public class KafkaConnectSinkAgent implements AgentSink {
         return input;
     }
 
-    private static KafkaConsumerRecord getKafkaRecord(Record record) {
-        KafkaConsumerRecord kr;
-        if (record instanceof KafkaConsumerRecord) {
-            kr = (KafkaConsumerRecord) record;
+    private static KafkaRecord getKafkaRecord(Record record) {
+        KafkaRecord kr;
+        if (record instanceof KafkaRecord) {
+            kr = (KafkaRecord) record;
         } else {
             throw new IllegalArgumentException("Record is not a KafkaRecord");
         }
@@ -205,7 +212,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
             return;
         }
 
-        final KafkaConsumerRecord lastNotFlushed = pendingFlushQueue.getLast();
+        final KafkaRecord lastNotFlushed = pendingFlushQueue.getLast();
         Map<TopicPartition, OffsetAndMetadata> committedOffsets = null;
         try {
             Map<TopicPartition, OffsetAndMetadata> currentOffsets = taskContext.currentOffsets();
@@ -278,13 +285,13 @@ public class KafkaConnectSinkAgent implements AgentSink {
     }
 
     @VisibleForTesting
-    protected void cleanUpFlushQueueAndUpdateBatchSize(KafkaConsumerRecord lastNotFlushed,
+    protected void cleanUpFlushQueueAndUpdateBatchSize(KafkaRecord lastNotFlushed,
                                                        Map<TopicPartition, OffsetAndMetadata> committedOffsets) {
         // lastNotFlushed is needed in case of default preCommit() implementation
         // which calls flush() and returns currentOffsets passed to it.
         // We don't want to ack messages added to pendingFlushQueue after the preCommit/flush call
 
-        for (KafkaConsumerRecord r : pendingFlushQueue) {
+        for (KafkaRecord r : pendingFlushQueue) {
             OffsetAndMetadata lastCommittedOffset = committedOffsets.get(r.getTopicPartition());
 
             if (lastCommittedOffset == null) {
@@ -294,7 +301,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
                 continue;
             }
 
-            if (r.offset() > lastCommittedOffset.offset()) {
+            if (((KafkaRecord.KafkaConsumerOffsetProvider)r).offset() > lastCommittedOffset.offset()) {
                 if (r == lastNotFlushed) {
                     break;
                 }
@@ -302,7 +309,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
             }
 
             pendingFlushQueue.remove(r);
-            currentBatchSize.addAndGet(-1 * getRecordSize(r));
+            currentBatchSize.addAndGet(-1 * getRecordSize((KafkaRecord.KafkaConsumerOffsetProvider)r));
             if (r == lastNotFlushed) {
                 break;
             }

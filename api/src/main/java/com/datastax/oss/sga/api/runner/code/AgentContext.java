@@ -7,4 +7,8 @@ public interface AgentContext {
     TopicConsumer getTopicConsumer();
 
     TopicProducer getTopicProducer();
+
+    default Object getTopicAdmin() {
+        return null;
+    }
 }

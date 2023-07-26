@@ -214,6 +214,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             }
 
             @Override
+            public Object getNativeProducer() {
+                return producer;
+            }
+
+            @Override
             @SneakyThrows
             public void close() {
                 if (producer != null) {

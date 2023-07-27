@@ -25,10 +25,20 @@ public abstract class AbstractComposableAgentProvider extends AbstractAgentProvi
     }
 
     @Override
+    protected boolean isComposable(AgentConfiguration agentConfiguration) {
+        return true;
+    }
+
+    @Override
     public boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation) {
-        // all this kind of Agents can be merged
-        return (getSupportedTypes().contains(previousAgent.getAgentType()) || previousAgent.getAgentType().equals(CompositeAgentProvider.AGENT_TYPE))
-                && getSupportedTypes().contains(agentImplementation.getAgentType());
+        boolean result =  (previousAgent instanceof DefaultAgentNode agent1
+                && agent1.isComposable()
+                && agentImplementation instanceof DefaultAgentNode agent2
+                && agent2.isComposable());
+        log.info("canMerge {}", previousAgent);
+        log.info("canMerge {}", agentImplementation);
+        log.info("canMerge RESULT: {}", result);
+        return result;
     }
 
     @Override

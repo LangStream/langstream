@@ -27,6 +27,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         copy.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         copy.put("group.id", "");
+        copy.put("max.poll.records", 1);
         String topicName = (String) copy.remove("topic");
         return new KafkaReaderWrapper(copy, topicName, initialPosition);
     }

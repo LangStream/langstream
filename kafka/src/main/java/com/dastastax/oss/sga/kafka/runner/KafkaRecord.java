@@ -10,6 +10,7 @@ import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -51,6 +52,10 @@ public abstract class KafkaRecord implements Record {
             }
         }
 
+        @Override
+        public String valueAsString() {
+            return this.value != null ? new String(value, StandardCharsets.UTF_8) : null;
+        }
     }
 
     public interface KafkaSourceOffsetProvider {

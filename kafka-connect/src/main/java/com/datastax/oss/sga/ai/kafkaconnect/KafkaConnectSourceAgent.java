@@ -1,15 +1,12 @@
 package com.datastax.oss.sga.ai.kafkaconnect;
 
 import com.dastastax.oss.sga.kafka.runner.KafkaRecord;
-import com.dastastax.oss.sga.kafka.runner.KafkaTopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumerProvider;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.Futures;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
@@ -20,10 +17,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.errors.ConnectException;
-import org.apache.kafka.connect.runtime.TaskConfig;
 import org.apache.kafka.connect.runtime.WorkerConfig;
-import org.apache.kafka.connect.runtime.distributed.Crypto;
-import org.apache.kafka.connect.runtime.distributed.DistributedConfig;
 import org.apache.kafka.connect.sink.SinkConnectorContext;
 import org.apache.kafka.connect.source.SourceConnector;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -135,7 +129,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
 
     @Override
     public void commit(List<Record> records) throws Exception {
-        log.info("Committing");
+        log.info("Committing {}", records);
         try {
             if (!offsetWriter.beginFlush()) {
                 log.info("No offsets to commit");

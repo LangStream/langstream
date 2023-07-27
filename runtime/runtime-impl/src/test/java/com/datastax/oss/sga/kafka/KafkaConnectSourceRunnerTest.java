@@ -52,7 +52,6 @@ class KafkaConnectSourceRunnerTest {
     static final KubeTestServer kubeServer = new KubeTestServer();
 
     @Test
-    @Disabled
     public void testRunKafkaConnectSource() throws Exception {
         String tenant = "tenant";
         kubeServer.spyAgentCustomResources(tenant, "app-step1");

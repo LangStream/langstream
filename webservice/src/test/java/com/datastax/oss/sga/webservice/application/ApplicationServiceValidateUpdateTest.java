@@ -22,72 +22,72 @@ class ApplicationServiceValidateUpdateTest {
     @Test
     void testTopics() throws Exception {
         checkTopics(
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null)),
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null)),
                 true);
 
         checkTopics(
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null)),
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic1", null, null, 0, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic1", null, null, 0, null, null, null)),
                 false);
 
         checkTopics(
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null)),
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null),
-                        new ModelBuilder.TopicDefinitionModel("input-topic1", null, null, 0, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null),
+                        new ModelBuilder.TopicDefinitionModel("input-topic1", null, null, 0, null, null, null)),
                 false);
 
         checkTopics(
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null),
-                        new ModelBuilder.TopicDefinitionModel("input-topic1", null, null, 0, null)),
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null),
+                        new ModelBuilder.TopicDefinitionModel("input-topic1", null, null, 0, null, null, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null)),
                 false);
 
         checkTopics(
                 List.of(new ModelBuilder.TopicDefinitionModel("input-topic",
                         TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS, null, 0,
-                        null)),
+                        null, null, null)),
                 List.of(new ModelBuilder.TopicDefinitionModel("input-topic",
                         TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS, null, 0,
-                        null)),
+                        null, null, null)),
                 true);
 
 
         checkTopics(
                 List.of(new ModelBuilder.TopicDefinitionModel("input-topic", TopicDefinition.CREATE_MODE_NONE, null, 0,
-                        null)),
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null)),
+                        null, null, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null)),
                 true);
 
         checkTopics(
                 List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null,
-                        new SchemaDefinition("avro", "{}", null), 0, null)),
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null)),
+                        new SchemaDefinition("avro", "{}", null), 0, null, null, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null)),
                 false);
 
         checkTopics(
                 List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null,
-                        new SchemaDefinition("avro", "{}", null), 0, null)),
+                        new SchemaDefinition("avro", "{}", null), 0, null, null, null)),
                 List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null,
-                        new SchemaDefinition("json", "{}", null), 0, null)),
+                        new SchemaDefinition("json", "{}", null), 0, null, null, null)),
                 false);
 
         checkTopics(
                 List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null,
-                        new SchemaDefinition("avro", "{}", null), 0, null)),
+                        new SchemaDefinition("avro", "{}", null), 0, null, null, null)),
                 List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null,
                         new SchemaDefinition("avro", "{schema:true}", null),
-                        0, null)),
+                        0, null, null, null)),
                 false);
 
         checkTopics(
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 1, null)),
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 1, null, null, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null)),
                 false);
 
         checkTopics(
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 1, null)),
-                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 2, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 1, null, null, null)),
+                List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 2, null, null, null)),
                 false);
 
 
@@ -294,8 +294,8 @@ class ApplicationServiceValidateUpdateTest {
         pipelineFileModel.setId("pi");
         pipelineFileModel.setModule("mod");
         pipelineFileModel.setTopics(List.of(
-                new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null),
-                new ModelBuilder.TopicDefinitionModel("output-topic", null, null, 0, null)));
+                new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null),
+                new ModelBuilder.TopicDefinitionModel("output-topic", null, null, 0, null, null, null)));
         pipelineFileModel.setPipeline(agents);
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",

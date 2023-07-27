@@ -7,6 +7,7 @@ import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -24,7 +25,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 @Slf4j
 public abstract class AbstractHandler extends TextWebSocketHandler {
     protected static final ObjectMapper mapper = new ObjectMapper();
-    protected static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY = new TopicConnectionsRuntimeRegistry();
+    protected static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY =
+            new TopicConnectionsRuntimeRegistry();
     protected final ApplicationStore applicationStore;
 
 
@@ -36,6 +38,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
     interface RequestDetails {
         Map<String, String> getUserParameters();
+
         Map<String, String> getOptions();
     }
 
@@ -56,7 +59,12 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         if (throwable instanceof IllegalArgumentException) {
             status = CloseStatus.POLICY_VIOLATION;
         }
-        session.close(status.withReason(throwable.getMessage()));
+        try {
+            session.close(status.withReason(throwable.getMessage()));
+        } finally {
+            closeCloseableResources(session);
+            session.getAttributes().put("closed", true);
+        }
     }
 
     @Override
@@ -77,6 +85,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         } catch (Throwable throwable) {
             log.error("[{}] error while closing websocket", session.getId(), throwable);
         }
+        closeCloseableResources(session);
     }
 
 
@@ -105,14 +114,16 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             }
         }
         if (selectedGateway == null) {
-            throw new IllegalArgumentException("gateway" + gatewayId + " of type " + type + " is not defined in the application");
+            throw new IllegalArgumentException(
+                    "gateway " + gatewayId + " of type " + type + " is not defined in the application");
         }
         return selectedGateway;
     }
 
 
     protected RequestDetails validateQueryStringAndOptions(WebSocketSession webSocketSession, Gateway gateway) {
-        final Map<String, String> querystring = (Map<String, String>) webSocketSession.getAttributes().get("queryString");
+        final Map<String, String> querystring =
+                (Map<String, String>) webSocketSession.getAttributes().get("queryString");
         Map<String, String> options = new HashMap<>();
         Map<String, String> userParameters = new HashMap<>();
 
@@ -154,5 +165,34 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 return options;
             }
         };
+    }
+
+
+    protected void recordCloseableResource(WebSocketSession webSocketSession, AutoCloseable... closeables) {
+        List<AutoCloseable> currentCloseable =
+                (List<AutoCloseable>) webSocketSession.getAttributes().get("closeables");
+
+        if (currentCloseable == null) {
+            currentCloseable = new ArrayList<>();
+        }
+        for (AutoCloseable closeable : closeables) {
+            currentCloseable.add(closeable);
+        }
+        webSocketSession.getAttributes().put("closeables", currentCloseable);
+    }
+
+    private void closeCloseableResources(WebSocketSession webSocketSession) {
+        List<AutoCloseable> currentCloseable =
+                (List<AutoCloseable>) webSocketSession.getAttributes().get("closeables");
+
+        if (currentCloseable != null) {
+            for (AutoCloseable autoCloseable : currentCloseable) {
+                try {
+                    autoCloseable.close();
+                } catch (Throwable e) {
+                    log.error("error while closing resource", e);
+                }
+            }
+        }
     }
 }

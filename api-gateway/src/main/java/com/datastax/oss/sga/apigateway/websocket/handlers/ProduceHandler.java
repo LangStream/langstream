@@ -62,6 +62,7 @@ public class ProduceHandler extends AbstractHandler {
         final TopicProducer producer =
                 topicConnectionsRuntime.createProducer("ag-" + webSocketSession.getId(), streamingCluster,
                         Map.of("topic", topicName));
+        recordCloseableResource(webSocketSession, producer);
         producer.start();
 
         webSocketSession.getAttributes().put("producer", producer);
@@ -132,10 +133,6 @@ public class ProduceHandler extends AbstractHandler {
 
     @Override
     public void onClose(WebSocketSession webSocketSession, CloseStatus status) throws Exception {
-        final TopicProducer topicProducer = getTopicProducer(webSocketSession, false);
-        if (topicProducer != null) {
-            topicProducer.close();
-        }
     }
 
     private List<Header> getCommonHeaders(Gateway selectedGateway, Map<String, String> passedParameters) {

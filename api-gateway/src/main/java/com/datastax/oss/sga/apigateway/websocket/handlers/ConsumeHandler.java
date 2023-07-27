@@ -48,10 +48,6 @@ public class ConsumeHandler extends AbstractHandler {
 
     @Override
     public void onClose(WebSocketSession webSocketSession, CloseStatus closeStatus) throws Exception {
-        final TopicConsumer consumer = (TopicConsumer) webSocketSession.getAttributes().get("consumer");
-        if (consumer != null) {
-            consumer.close();
-        }
     }
 
     private void setupConsumer(WebSocketSession session, String gatewayId, String tenant, String applicationId)
@@ -72,12 +68,17 @@ public class ConsumeHandler extends AbstractHandler {
         final TopicConsumer consumer =
                 topicConnectionsRuntime.createConsumer("ag-" + session.getId(), streamingCluster,
                         Map.of("topic", topicName));
+        recordCloseableResource(session, consumer);
         consumer.start();
         log.info("[{}] Started consumer for gateway {}/{}/{}", session.getId(), tenant, applicationId, gatewayId);
         session.getAttributes().put("consumer", consumer);
 
 
         while (true) {
+            final boolean closed = Boolean.parseBoolean(session.getAttributes().getOrDefault("closed", false) + "");
+            if (!session.isOpen() || closed) {
+                break;
+            }
             final List<Record> records = consumer.read();
             for (Record record : records) {
                 boolean skip = false;

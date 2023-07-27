@@ -11,7 +11,10 @@ import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
+import com.datastax.oss.sga.apigateway.websocket.api.ConsumePushMessage;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -58,7 +61,7 @@ public class ConsumeHandler extends AbstractHandler {
     private void setupConsumer(WebSocketSession session, String gatewayId, String tenant, String applicationId)
             throws Exception {
         final StoredApplication application = applicationStore.get(tenant, applicationId);
-        Gateway selectedGateway = extractGateway(gatewayId, application);
+        Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.consume);
 
         final Map<String, String> passedParameters = verifyParameters(session, selectedGateway);
 
@@ -72,7 +75,8 @@ public class ConsumeHandler extends AbstractHandler {
 
         final String topicName = selectedGateway.topic();
         final TopicConsumer consumer =
-                topicConnectionsRuntime.createConsumer("ag-" + session.getId(), streamingCluster, Map.of("topic", topicName));
+                topicConnectionsRuntime.createConsumer("ag-" + session.getId(), streamingCluster,
+                        Map.of("topic", topicName));
         consumer.start();
         log.info("[{}] Started consumer for gateway {}/{}/{}", session.getId(), tenant, applicationId, gatewayId);
         session.getAttributes().put("consumer", consumer);
@@ -89,14 +93,24 @@ public class ConsumeHandler extends AbstractHandler {
                     }
                 }
                 if (!skip) {
-                    session.sendMessage(new TextMessage(String.valueOf(record.value())));
+                    final Collection<Header> headers = record.headers();
+                    final Map<String, String> messageHeaders;
+                    if (headers == null) {
+                        messageHeaders = Map.of();
+                    } else {
+                        messageHeaders = new HashMap<>();
+                        headers.stream().forEach(h -> messageHeaders.put(h.key(), h.valueAsString()));
+                    }
+                    final String message = mapper.writeValueAsString(new ConsumePushMessage(
+                            new ConsumePushMessage.Record(record.key(), record.value(), messageHeaders)));
+                    session.sendMessage(new TextMessage(message));
                 }
             }
         }
     }
 
     private List<Function<Record, Boolean>> createMessageFilters(Gateway selectedGateway,
-                                                         Map<String, String> passedParameters) {
+                                                                 Map<String, String> passedParameters) {
         List<Function<Record, Boolean>> filters = new ArrayList<>();
 
         if (selectedGateway.consumeOptions() != null) {

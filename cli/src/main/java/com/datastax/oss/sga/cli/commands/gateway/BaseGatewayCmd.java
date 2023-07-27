@@ -3,10 +3,16 @@ package com.datastax.oss.sga.cli.commands.gateway;
 import com.datastax.oss.sga.cli.commands.BaseCmd;
 import com.datastax.oss.sga.cli.commands.RootCmd;
 import com.datastax.oss.sga.cli.commands.RootGatewayCmd;
-import com.datastax.oss.sga.cli.commands.RootTenantCmd;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URLEncoder;
+import java.util.Map;
+import java.util.stream.Collectors;
+import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 public abstract class BaseGatewayCmd extends BaseCmd {
+
+    protected static final ObjectMapper messageMapper = new ObjectMapper();
 
     @CommandLine.ParentCommand
     private RootGatewayCmd cmd;
@@ -15,5 +21,24 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     protected RootCmd getRootCmd() {
         return cmd.getRootCmd();
     }
+
+
+    protected String computeQueryString(Map<String, String> queryStringParams) {
+        if (queryStringParams == null || queryStringParams.isEmpty()) {
+            return "";
+        }
+        return queryStringParams.entrySet()
+                .stream()
+                .map(e -> encodeParam(e))
+                .collect(Collectors.joining("&"));
+
+    }
+
+
+    @SneakyThrows
+    private String encodeParam(Map.Entry<String, String> e) {
+        return "%s=%s".formatted(e.getKey(), URLEncoder.encode(e.getValue(), "UTF-8"));
+    }
+
 
 }

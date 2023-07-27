@@ -5,6 +5,8 @@ import com.datastax.oss.sga.api.model.Gateways;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +22,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 @AllArgsConstructor
 @Slf4j
 public abstract class AbstractHandler extends TextWebSocketHandler {
+    protected static final ObjectMapper mapper = new ObjectMapper();
     protected static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY = new TopicConnectionsRuntimeRegistry();
     protected final ApplicationStore applicationStore;
 
@@ -76,7 +79,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         return true;
     }
 
-    protected Gateway extractGateway(String gatewayId, StoredApplication application) {
+    protected Gateway extractGateway(String gatewayId, StoredApplication application, Gateway.GatewayType type) {
         final Gateways gatewaysObj = application.getInstance().getGateways();
         if (gatewaysObj == null) {
             throw new IllegalArgumentException("no gateways defined for the application");
@@ -90,13 +93,13 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
 
         for (Gateway gateway : gateways) {
-            if (gateway.id().equals(gatewayId)) {
+            if (gateway.id().equals(gatewayId) && type == gateway.type()) {
                 selectedGateway = gateway;
                 break;
             }
         }
         if (selectedGateway == null) {
-            throw new IllegalArgumentException("gateway" + gatewayId + " is not defined in the application");
+            throw new IllegalArgumentException("gateway" + gatewayId + " of type " + type + " is not defined in the application");
         }
         return selectedGateway;
     }

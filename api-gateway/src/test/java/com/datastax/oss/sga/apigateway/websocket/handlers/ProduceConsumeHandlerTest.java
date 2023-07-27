@@ -13,6 +13,7 @@ import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.apigateway.websocket.api.ProduceRequest;
+import com.datastax.oss.sga.apigateway.websocket.api.ProduceResponse;
 import com.datastax.oss.sga.kafka.extensions.KafkaContainerExtension;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.SneakyThrows;
 import org.awaitility.Awaitility;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,9 +99,10 @@ class ProduceConsumeHandlerTest {
 
     @Test
     void testSimpleProduceConsume() throws Exception {
+        final String topic = genTopic();
         testGateways = new Gateways(List.of(
-                new Gateway("produce", "produce", "my-topic", List.of(), null, null),
-                new Gateway("consume", "consume", "my-topic", List.of(), null, null)
+                new Gateway("produce", "produce", topic, List.of(), null, null),
+                new Gateway("consume", "consume", topic, List.of(), null, null)
         ));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -132,8 +135,10 @@ class ProduceConsumeHandlerTest {
     @ParameterizedTest
     @ValueSource(strings = {"consume", "produce"})
     void testParametersRequired(String type) throws Exception {
+        final String topic = genTopic();
+
         testGateways = new Gateways(List.of(
-                new Gateway("gw", type, "my-topic", List.of("session-id"), null, null)
+                new Gateway("gw", type, topic, List.of("session-id"), null, null)
         ));
         connectAndExpectClose(URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw".formatted(port, type)),
                 new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "missing required parameter session-id"));
@@ -154,12 +159,13 @@ class ProduceConsumeHandlerTest {
 
     @Test
     void testFilterOutMessagesByFixedValue() throws Exception {
+        final String topic = genTopic();
         testGateways = new Gateways(List.of(
-                new Gateway("produce", "produce", "my-topic", List.of("session-id"), new Gateway.ProduceOptions(
+                new Gateway("produce", "produce", topic, List.of("session-id"), new Gateway.ProduceOptions(
                         List.of(new Gateway.KeyValueComparison("header1", "sga", null))
                 ), null),
-                new Gateway("produce-non-sga", "produce", "my-topic", List.of("session-id"), null, null),
-                new Gateway("consume", "consume", "my-topic", List.of("session-id"), null, new Gateway.ConsumeOptions(
+                new Gateway("produce-non-sga", "produce", topic, List.of("session-id"), null, null),
+                new Gateway("consume", "consume", topic, List.of("session-id"), null, new Gateway.ConsumeOptions(
                         new Gateway.ConsumeOptionsFilters(
                                 List.of(new Gateway.KeyValueComparison("header1", "sga", null))
                         )
@@ -196,9 +202,9 @@ class ProduceConsumeHandlerTest {
         }
 
         Awaitility.await()
-                .untilAsserted(() -> assertEquals(List.of("this is a message for everyone"), user1Messages));
+                .untilAsserted(() -> assertEquals(List.of("{\"record\":{\"key\":null,\"value\":\"this is a message for everyone\",\"headers\":{\"header1\":\"sga\"}}}"), user1Messages));
         Awaitility.await()
-                .untilAsserted(() -> assertEquals(List.of("this is a message for everyone"), user2Messages));
+                .untilAsserted(() -> assertEquals(List.of("{\"record\":{\"key\":null,\"value\":\"this is a message for everyone\",\"headers\":{\"header1\":\"sga\"}}}"), user2Messages));
     }
 
     private void produce(ProduceRequest produceRequest, TestWebSocketClient producer) throws JsonProcessingException {
@@ -208,11 +214,12 @@ class ProduceConsumeHandlerTest {
 
     @Test
     void testFilterOutMessagesByParamValue() throws Exception {
+        final String topic = genTopic();
         testGateways = new Gateways(List.of(
-                new Gateway("produce", "produce", "my-topic", List.of("session-id"), new Gateway.ProduceOptions(
+                new Gateway("produce", "produce", topic, List.of("session-id"), new Gateway.ProduceOptions(
                         List.of(new Gateway.KeyValueComparison("header1", null, "session-id"))
                 ), null),
-                new Gateway("consume", "consume", "my-topic", List.of("session-id"), null, new Gateway.ConsumeOptions(
+                new Gateway("consume", "consume", topic, List.of("session-id"), null, new Gateway.ConsumeOptions(
                         new Gateway.ConsumeOptionsFilters(
                                 List.of(new Gateway.KeyValueComparison("header1", null, "session-id"))
                         )
@@ -239,7 +246,8 @@ class ProduceConsumeHandlerTest {
             produce(produceRequest, producer);
         }
         Awaitility.await()
-                .untilAsserted(() -> assertEquals(List.of("this is a message for user1"), user1Messages));
+                .untilAsserted(() -> assertEquals(List.of("{\"record\":{\"key\":null,\"value\":\"this is a message "
+                        + "for user1\",\"headers\":{\"header1\":\"user1\"}}}"), user1Messages));
         assertEquals(List.of(), user2Messages);
 
         try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
@@ -251,7 +259,9 @@ class ProduceConsumeHandlerTest {
             produce(produceRequest, producer);
         }
         Awaitility.await()
-                .untilAsserted(() -> assertEquals(List.of("this is a message for user1", "this is a message for user1, again"), user1Messages));
+                .untilAsserted(() -> assertEquals(List.of("{\"record\":{\"key\":null,\"value\":\"this is a message "
+                        + "for user1\",\"headers\":{\"header1\":\"user1\"}}}", "{\"record\":{\"key\":null,"
+                        + "\"value\":\"this is a message for user1, again\",\"headers\":{\"header1\":\"user1\"}}}"), user1Messages));
         assertEquals(List.of(), user2Messages);
 
         try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
@@ -264,10 +274,58 @@ class ProduceConsumeHandlerTest {
         }
 
         Awaitility.await()
-                .untilAsserted(() -> assertEquals(List.of("this is a message for user2"), user2Messages));
-        assertEquals(List.of("this is a message for user1", "this is a message for user1, again"), user1Messages);
+                .untilAsserted(() -> assertEquals(List.of("{\"record\":{\"key\":null,\"value\":\"this is a message "
+                                + "for user2\",\"headers\":{\"header1\":\"user2\"}}}"), user2Messages));
+        Awaitility.await()
+                .untilAsserted(() -> assertEquals(List.of("{\"record\":{\"key\":null,\"value\":\"this is a message "
+                        + "for user1\",\"headers\":{\"header1\":\"user1\"}}}", "{\"record\":{\"key\":null,"
+                        + "\"value\":\"this is a message for user1, again\",\"headers\":{\"header1\":\"user1\"}}}"), user1Messages));
 
 
+    }
+
+    @Test
+    void testProduce() throws Exception {
+        testGateways = new Gateways(List.of(
+                new Gateway("gw", "produce", genTopic(), List.of("session-id"), new Gateway.ProduceOptions(
+                        List.of(new Gateway.KeyValueComparison("header1", null, "session-id"))
+                ), null)
+        ));
+        ProduceResponse response = connectAndProduce(URI.create(
+                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?session-id=s".formatted(port)),
+                new ProduceRequest(null, "hello", Map.of("header0", "value0", "header2", "value2")));
+
+        assertEquals(ProduceResponse.Status.OK, response.status());
+
+
+        response = connectAndProduce(URI.create(
+                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?session-id=s".formatted(port)),
+                new ProduceRequest(null, "hello", Map.of("header1", "value1")));
+
+        assertEquals(ProduceResponse.Status.BAD_REQUEST, response.status());
+        assertEquals("Header header1 is configured as parameter-level header.", response.reason());
+
+        response = connectAndProduce(URI.create(
+                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?session-id=s".formatted(port)),
+                "{}");
+
+        assertEquals(ProduceResponse.Status.BAD_REQUEST, response.status());
+        assertEquals("Either key or value must be set.", response.reason());
+
+        response = connectAndProduce(URI.create(
+                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?session-id=s".formatted(port)),
+                "invalid-json");
+
+        assertEquals(ProduceResponse.Status.BAD_REQUEST, response.status());
+        assertEquals("Unrecognized token 'invalid': was expecting (JSON String, Number, Array, Object or token "
+                + "'null', 'true' or 'false')\n"
+                + " at [Source: (String)\"invalid-json\"; line: 1, column: 8]", response.reason());
+
+    }
+
+    static AtomicInteger topicCounter = new AtomicInteger();
+    private static String genTopic() {
+        return "topic" + topicCounter.incrementAndGet();
     }
 
     @SneakyThrows
@@ -326,6 +384,46 @@ class ProduceConsumeHandlerTest {
             client.send("message");
             countDownLatch.await();
             assertNull(closeReason.get());
+        }
+
+
+    }
+
+    @SneakyThrows
+    private ProduceResponse connectAndProduce(URI connectTo, ProduceRequest produceRequest) {
+        return connectAndProduce(connectTo, new ObjectMapper().writeValueAsString(produceRequest));
+
+    }
+    @SneakyThrows
+    private ProduceResponse connectAndProduce(URI connectTo, String json) {
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        AtomicReference<ProduceResponse> response = new AtomicReference<>();
+
+        AtomicReference<CloseReason> closeReason = new AtomicReference<>();
+        try (final TestWebSocketClient client = new TestWebSocketClient(new TestWebSocketClient.Handler() {
+            @Override
+            public void onOpen(Session session) {
+                TestWebSocketClient.Handler.super.onOpen(session);
+            }
+
+            @Override
+            @SneakyThrows
+            public void onMessage(String msg) {
+                response.set(new ObjectMapper().readValue(msg, ProduceResponse.class));
+                countDownLatch.countDown();
+            }
+
+            @Override
+            public void onClose(CloseReason cr) {
+                closeReason.set(cr);
+                countDownLatch.countDown();
+            }
+
+        }).connect(connectTo);) {
+            client.send(json);
+            countDownLatch.await();
+            assertNull(closeReason.get());
+            return response.get();
         }
     }
 

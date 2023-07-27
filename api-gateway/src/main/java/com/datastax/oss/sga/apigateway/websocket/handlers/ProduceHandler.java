@@ -10,12 +10,17 @@ import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.apigateway.websocket.api.ProduceRequest;
+import com.datastax.oss.sga.apigateway.websocket.api.ProduceResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -26,8 +31,6 @@ import org.springframework.web.socket.WebSocketSession;
 
 @Slf4j
 public class ProduceHandler extends AbstractHandler {
-
-    static final ObjectMapper mapper = new ObjectMapper();
 
     public ProduceHandler(ApplicationStore applicationStore) {
         super(applicationStore);
@@ -46,7 +49,7 @@ public class ProduceHandler extends AbstractHandler {
 
 
         final StoredApplication application = applicationStore.get(tenant, applicationId);
-        Gateway selectedGateway = extractGateway(gatewayId, application);
+        Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.produce);
 
 
         final Map<String, String> passedParameters = verifyParameters(webSocketSession, selectedGateway);
@@ -71,20 +74,50 @@ public class ProduceHandler extends AbstractHandler {
     @Override
     public void onMessage(WebSocketSession webSocketSession, TextMessage message) throws Exception {
         final TopicProducer topicProducer = getTopicProducer(webSocketSession, true);
+        final ProduceRequest produceRequest;
+        try {
+            produceRequest = mapper.readValue(message.getPayload(), ProduceRequest.class);
+        } catch (JsonProcessingException err) {
+            sendResponse(webSocketSession, ProduceResponse.Status.BAD_REQUEST, err.getMessage());
+            return;
+        }
+        if (produceRequest.value() == null && produceRequest.key() == null) {
+            sendResponse(webSocketSession, ProduceResponse.Status.BAD_REQUEST, "Either key or value must be set.");
+            return;
+        }
 
-        final ProduceRequest produceRequest = mapper.readValue(message.getPayload(), ProduceRequest.class);
         final Collection<Header> headers =
                 new ArrayList<>((List<Header>) webSocketSession.getAttributes().get("headers"));
         if (produceRequest.headers() != null) {
-            headers.addAll(
-                    produceRequest.headers().entrySet().stream()
-                            .map(e -> SimpleRecord.SimpleHeader.of(e.getKey(), e.getValue())).toList()
-            );
+            final Set<String> configuredHeaders = headers.stream().map(Header::key).collect(Collectors.toSet());
+            log.info("configuredHeaders: {} passed {}", configuredHeaders, produceRequest.headers());
+            for (Map.Entry<String, String> messageHeader : produceRequest.headers().entrySet()) {
+                if (configuredHeaders.contains(messageHeader.getKey())) {
+                    sendResponse(webSocketSession, ProduceResponse.Status.BAD_REQUEST,
+                            "Header " + messageHeader.getKey() +
+                                    " is configured as parameter-level header.");
+                    return;
+                }
+                headers.add(SimpleRecord.SimpleHeader.of(messageHeader.getKey(), messageHeader.getValue()));
+            }
         }
-        final ProduceHandlerRecord record =
-                new ProduceHandlerRecord(produceRequest.key(), produceRequest.value(), headers);
-        topicProducer.write(List.of(record));
-        log.info("[{}] Produced record {}", webSocketSession.getId(), record);
+        try {
+            final ProduceHandlerRecord record =
+                    new ProduceHandlerRecord(produceRequest.key(), produceRequest.value(), headers);
+            topicProducer.write(List.of(record));
+            log.info("[{}] Produced record {}", webSocketSession.getId(), record);
+        } catch (Throwable tt) {
+            sendResponse(webSocketSession, ProduceResponse.Status.PRODUCER_ERROR,
+                    tt.getMessage());
+            return;
+        }
+
+        webSocketSession.sendMessage(new TextMessage(mapper.writeValueAsString(ProduceResponse.OK)));
+    }
+
+    private void sendResponse(WebSocketSession webSocketSession, ProduceResponse.Status status, String reason)
+            throws IOException {
+        webSocketSession.sendMessage(new TextMessage(mapper.writeValueAsString(new ProduceResponse(status, reason))));
     }
 
     private TopicProducer getTopicProducer(WebSocketSession webSocketSession, boolean throwIfNotFound) {

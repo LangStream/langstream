@@ -155,12 +155,8 @@ class KubernetesClusterRuntimeDockerTest {
                 AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secrets.values().iterator().next());
         assertEquals(Map.of("auto.offset.reset", "earliest",
                 "group.id", "sga-agent-step1",
-                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
-                "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
                 "topic", "input-topic"), runtimePodConfiguration.input());
         assertEquals(Map.of(
-                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
-                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer",
                 "topic", "output-topic"
         ), runtimePodConfiguration.output());
         assertEquals(new AgentSpec(AgentSpec.ComponentType.FUNCTION, tenant, "step1", "app", "ai-tools", Map.of(

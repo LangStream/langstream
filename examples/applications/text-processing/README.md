@@ -29,8 +29,8 @@ dev/s3_upload.sh documents examples/applications/text-processing/simple.pdf
 
 ## Start a Consumer
 
-Start a Kafka Consumer on a terminal and see the results.
+Use the gateway to start a consumer that will read the output of the application.
 
 ```
-kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
+./bin/sga-cli gateway consume test consume-output
 ```

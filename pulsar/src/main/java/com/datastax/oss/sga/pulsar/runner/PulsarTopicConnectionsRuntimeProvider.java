@@ -78,7 +78,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
         @Override
         public TopicAdmin createTopicAdmin(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
-            return null;
+            return new TopicAdmin() {
+            };
         }
 
         private static class PulsarConsumerRecord implements Record {

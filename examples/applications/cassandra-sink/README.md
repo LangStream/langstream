@@ -36,7 +36,16 @@ Update the same file and set username, password and the other parameters.
 ./bin/sga-cli apps deploy test -app examples/applications/cassandra-sink -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 
 
-## Start a Producer
+## Write to the topic
+
+You can use the CLI to write to the input-topic
+
+```
+bin/sga-cli gateway produce test produce-input -v '{"id": 10, "name": "test", "description": "test"}'
+```
+
+Alternatively you can use the Kafka console producer:
+
 ```
 kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic
 ```

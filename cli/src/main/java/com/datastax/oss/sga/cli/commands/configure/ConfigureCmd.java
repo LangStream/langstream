@@ -12,6 +12,7 @@ public class ConfigureCmd extends BaseCmd {
 
     public enum ConfigKey {
         webServiceUrl,
+        apiGatewayUrl,
         tenant,
         token;
     }
@@ -36,6 +37,9 @@ public class ConfigureCmd extends BaseCmd {
                     break;
                 case webServiceUrl:
                     clientConfig.setWebServiceUrl(newValue);
+                    break;
+                case apiGatewayUrl:
+                    clientConfig.setApiGatewayUrl(newValue);
                     break;
                 case token:
                     clientConfig.setToken(newValue);

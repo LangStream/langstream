@@ -24,8 +24,8 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 @AllArgsConstructor
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    public static final String CONSUME_PATH = "/v1/consume/{tenant}/{application}/{topic}";
-    public static final String PRODUCE_PATH = "/v1/produce/{tenant}/{application}/{topic}";
+    public static final String CONSUME_PATH = "/v1/consume/{tenant}/{application}/{gateway}";
+    public static final String PRODUCE_PATH = "/v1/produce/{tenant}/{application}/{gateway}";
 
     private final ApplicationStore applicationStore;
 
@@ -41,10 +41,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Bean
     public ServletServerContainerFactoryBean createWebSocketContainer() {
-        ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
-        container.setMaxTextMessageBufferSize(8192);
-        container.setMaxBinaryMessageBufferSize(8192);
-        return container;
+        return new ServletServerContainerFactoryBean();
     }
 
 }

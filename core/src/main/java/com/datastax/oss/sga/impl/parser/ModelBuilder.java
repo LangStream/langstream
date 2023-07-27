@@ -18,6 +18,7 @@ package com.datastax.oss.sga.impl.parser;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Dependency;
+import com.datastax.oss.sga.api.model.Gateways;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
@@ -119,6 +120,10 @@ public class ModelBuilder {
                 applicationWithPackageInfo.hasAppDefinition = true;
                 parseConfiguration(content, applicationWithPackageInfo.getApplication());
                 break;
+            case "gateways.yaml":
+                applicationWithPackageInfo.hasAppDefinition = true;
+                parseGateways(content, applicationWithPackageInfo.getApplication());
+                break;
             case "secrets.yaml":
                 applicationWithPackageInfo.hasSecretDefinition = true;
                 parseSecrets(content, applicationWithPackageInfo.getApplication());
@@ -157,6 +162,12 @@ public class ModelBuilder {
             }
         }
         log.info("Configuration: {}", configurationFileModel);
+    }
+
+    private static void parseGateways(String content, Application application) throws IOException {
+        Gateways gatewaysFileModel = mapper.readValue(content, Gateways.class);
+        log.info("Gateways: {}", gatewaysFileModel);
+        application.setGateways(gatewaysFileModel);
     }
 
     private static void parsePipelineFile(String filename, String content, Application application) throws IOException {
@@ -291,5 +302,6 @@ public class ModelBuilder {
 
     public record InstanceFileModel(Instance instance) {
     }
+
 }
 

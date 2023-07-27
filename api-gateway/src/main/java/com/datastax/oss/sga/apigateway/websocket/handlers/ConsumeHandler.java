@@ -1,6 +1,8 @@
 package com.datastax.oss.sga.apigateway.websocket.handlers;
 
 import static com.datastax.oss.sga.apigateway.websocket.WebSocketConfig.CONSUME_PATH;
+import com.datastax.oss.sga.api.model.Gateway;
+import com.datastax.oss.sga.api.model.Gateways;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
@@ -12,15 +14,19 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 @Slf4j
 public class ConsumeHandler extends AbstractHandler {
 
+    TopicConsumer consumer;
+
     public ConsumeHandler(ApplicationStore applicationStore) {
         super(applicationStore);
     }
+
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -31,31 +37,52 @@ public class ConsumeHandler extends AbstractHandler {
                     antPathMatcher.extractUriTemplateVariables(CONSUME_PATH,
                             session.getUri().getPath());
             session.getAttributes().put("application", vars.get("application"));
-            final String topic = vars.get("topic");
-            session.getAttributes().put("topic", topic);
+            final String gateway = vars.get("gateway");
+            session.getAttributes().put("topic", gateway);
 
             final String tenant = (String) session.getAttributes().get("tenant");
             final String applicationId = (String) session.getAttributes().get("application");
-            setupConsumer(session, topic, tenant, applicationId);
+            setupConsumer(session, gateway, tenant, applicationId);
         } catch (Throwable tt) {
             log.error("Error while setting up consumer", tt);
             session.close();
         }
     }
 
-    private void setupConsumer(WebSocketSession session, String topic, String tenant, String applicationId)
+    private void setupConsumer(WebSocketSession session, String gatewayId, String tenant, String applicationId)
             throws Exception {
         final StoredApplication application = applicationStore.get(tenant, applicationId);
-        TopicDefinition topicDefinition = null;
-        for (com.datastax.oss.sga.api.model.Module module : application.getInstance().getModules().values()) {
-            final TopicDefinition moduleTopicDef = module.getTopics().get(topic);
-            if (moduleTopicDef != null) {
-                topicDefinition = moduleTopicDef;
+        final Gateways gatewaysObj = application.getInstance().getGateways();
+        if (gatewaysObj == null) {
+            throw new IllegalArgumentException("no gateways defined for the application");
+        }
+        final List<Gateway> gateways = gatewaysObj.gateways();
+        if (gateways == null) {
+            throw new IllegalArgumentException("no gateways defined for the application");
+        }
+
+        Gateway selectedGateway = null;
+
+
+        for (Gateway gateway : gateways) {
+            if (gateway.id().equals(gatewayId)) {
+                selectedGateway = gateway;
                 break;
             }
         }
-        if (topicDefinition == null) {
-            throw new IllegalArgumentException("topic" + topic + " is not defined in the application");
+        if (selectedGateway == null) {
+            throw new IllegalArgumentException("gateway" + gatewayId + " is not defined in the application");
+        }
+
+        final String topicName = selectedGateway.topic();
+        final List<String> requiredParameters = selectedGateway.parameters();
+        final Map<String, String> querystring = (Map<String, String>)session.getAttributes().get("queryString");
+        if (requiredParameters != null) {
+            for (String requiredParameter : requiredParameters) {
+                if (!querystring.containsKey(requiredParameter)) {
+                    throw new IllegalArgumentException("missing required parameter " + requiredParameter);
+                }
+            }
         }
         final StreamingCluster streamingCluster = application
                 .getInstance()
@@ -66,12 +93,13 @@ public class ConsumeHandler extends AbstractHandler {
 
 
         final TopicConsumer consumer =
-                topicConnectionsRuntime.createConsumer("ag-" + session.getId(), streamingCluster, Map.of("topic", topicDefinition.getName()));
+                topicConnectionsRuntime.createConsumer("ag-" + session.getId(), streamingCluster, Map.of("topic", topicName));
         consumer.start();
 
 
         while (true) {
             final List<Record> records = consumer.read();
+            // TODO: filter out records by filters
             for (Record record : records) {
                 session.sendMessage(new TextMessage(String.valueOf(record.value())));
             }
@@ -83,4 +111,15 @@ public class ConsumeHandler extends AbstractHandler {
 
     }
 
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        if (consumer != null) {
+            consumer.close();
+        }
+    }
+
+    @Override
+    public boolean supportsPartialMessages() {
+        return true;
+    }
 }

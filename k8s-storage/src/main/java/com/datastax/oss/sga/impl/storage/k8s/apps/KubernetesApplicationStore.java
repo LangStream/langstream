@@ -4,6 +4,7 @@ import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
+import com.datastax.oss.sga.api.model.Gateways;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
@@ -315,17 +316,20 @@ public class KubernetesApplicationStore implements ApplicationStore {
             this.resources = applicationInstance.getResources();
             this.modules = applicationInstance.getModules();
             this.instance = applicationInstance.getInstance();
+            this.gateways = applicationInstance.getGateways();
         }
 
         private Map<String, Resource> resources = new HashMap<>();
         private Map<String, Module> modules = new HashMap<>();
         private Instance instance;
+        private Gateways gateways;
 
         public Application toApplicationInstance() {
             final Application app = new Application();
             app.setInstance(instance);
             app.setModules(modules);
             app.setResources(resources);
+            app.setGateways(gateways);
             return app;
         }
 

@@ -10,20 +10,16 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.datastax.oss.sga.kafka.extensions.KafkaContainerExtension;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.TopicDescription;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.output.OutputFrame;
-import org.testcontainers.utility.DockerImageName;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -32,12 +28,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Slf4j
 class KafkaClusterRuntimeDockerTest {
 
-    private static KafkaContainer kafkaContainer;
-    private static AdminClient admin;
 
+    @RegisterExtension
+    static final KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
 
     @Test
     public void testMapKafkaTopics() throws Exception {
+        final AdminClient admin = kafkaContainer.getAdmin();
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -71,7 +68,8 @@ class KafkaClusterRuntimeDockerTest {
         assertTrue(topics.contains("input-topic"));
         assertTrue(topics.contains("input-topic-2-partitions"));
 
-        Map<String, TopicDescription> stats = admin.describeTopics(Set.of("input-topic", "input-topic-2-partitions")).all().get();
+        Map<String, TopicDescription> stats =
+                admin.describeTopics(Set.of("input-topic", "input-topic-2-partitions")).all().get();
         assertEquals(1, stats.get("input-topic").partitions().size());
         assertEquals(2, stats.get("input-topic-2-partitions").partitions().size());
 
@@ -94,31 +92,5 @@ class KafkaClusterRuntimeDockerTest {
                   computeCluster:
                      type: "none"
                 """.formatted(kafkaContainer.getBootstrapServers());
-    }
-
-
-    @BeforeAll
-    public static void setup() throws Exception {
-        kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
-                .withLogConsumer(new Consumer<OutputFrame>() {
-                    @Override
-                    public void accept(OutputFrame outputFrame) {
-                        log.info("kafka> {}", outputFrame.getUtf8String().trim());
-                    }
-                });
-        // start Pulsar and wait for it to be ready to accept requests
-        kafkaContainer.start();
-        admin =
-                AdminClient.create(Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers()));
-    }
-
-    @AfterAll
-    public static void teardown() {
-        if (admin != null) {
-            admin.close();
-        }
-        if (kafkaContainer != null) {
-            kafkaContainer.close();
-        }
     }
 }

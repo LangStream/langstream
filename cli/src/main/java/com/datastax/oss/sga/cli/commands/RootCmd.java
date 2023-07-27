@@ -6,7 +6,7 @@ import picocli.AutoComplete;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "sga", mixinStandardHelpOptions = true, description = "Manage SGA",
-        subcommands = { RootAppCmd.class, ConfigureCmd.class, RootTenantCmd.class, AutoComplete.GenerateCompletion.class})
+        subcommands = { RootAppCmd.class, ConfigureCmd.class, RootTenantCmd.class, RootGatewayCmd.class, AutoComplete.GenerateCompletion.class})
 public class RootCmd {
 
 

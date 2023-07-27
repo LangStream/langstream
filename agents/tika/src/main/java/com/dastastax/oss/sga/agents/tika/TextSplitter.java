@@ -1,0 +1,142 @@
+package com.dastastax.oss.sga.agents.tika;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public abstract class TextSplitter {
+    protected int chunkSize;
+    protected int chunkOverlap;
+    protected java.util.function.Function<String, Integer> lengthFunction;
+    protected boolean keepSeparator;
+    protected boolean addStartIndex;
+
+    public TextSplitter(
+            int chunkSize,
+            int chunkOverlap,
+            java.util.function.Function<String, Integer> lengthFunction,
+            boolean keepSeparator,
+            boolean addStartIndex
+    ) {
+        if (chunkOverlap > chunkSize) {
+            throw new IllegalArgumentException(
+                    "Got a larger chunk overlap (" + chunkOverlap + ") than chunk size (" + chunkSize + "), should be smaller."
+            );
+        }
+        this.chunkSize = chunkSize;
+        this.chunkOverlap = chunkOverlap;
+        this.lengthFunction = lengthFunction;
+        this.keepSeparator = keepSeparator;
+        this.addStartIndex = addStartIndex;
+    }
+
+    public abstract List<String> splitText(String text);
+
+    public List<Document> createDocuments(List<String> texts, List<Map<String, Object>> metadatas) {
+        List<Map<String, Object>> _metadatas = metadatas != null ? metadatas : new ArrayList<>();
+        List<Document> documents = new ArrayList<>();
+        for (int i = 0; i < texts.size(); i++) {
+            String text = texts.get(i);
+            int index = -1;
+            for (String chunk : splitText(text)) {
+                Map<String, Object> metadata = new HashMap<>(_metadatas.get(i));
+                if (addStartIndex) {
+                    index = text.indexOf(chunk, index + 1);
+                    metadata.put("start_index", index);
+                }
+                Document newDoc = new Document(chunk, metadata);
+                documents.add(newDoc);
+            }
+        }
+        return documents;
+    }
+
+    public List<Document> splitDocuments(Iterable<Document> documents) {
+        List<String> texts = new ArrayList<>();
+        List<Map<String, Object>> metadatas = new ArrayList<>();
+        for (Document doc : documents) {
+            texts.add(doc.pageContent());
+            metadatas.add(doc.metadata());
+        }
+        return createDocuments(texts, metadatas);
+    }
+
+    protected String joinDocs(List<String> docs, String separator) {
+        String text = String.join(separator, docs);
+        text = text.trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    protected List<String> mergeSplits(List<String> splits, String separator) {
+        List<String> docs = new ArrayList<>();
+        List<String> currentDoc = new ArrayList<>();
+        int total = 0;
+        int separatorLen = lengthFunction.apply(separator);
+
+        for (String d : splits) {
+            int len = lengthFunction.apply(d);
+            if (total + len + (currentDoc.size() > 0 ? separatorLen : 0) > chunkSize) {
+                if (total > chunkSize) {
+                    System.out.println("Created a chunk of size " + total + ", which is longer than the specified " + chunkSize);
+                }
+                if (!currentDoc.isEmpty()) {
+                    String doc = joinDocs(currentDoc, separator);
+                    if (doc != null) {
+                        docs.add(doc);
+                    }
+                    while (total > chunkOverlap ||
+                            (total + len + (currentDoc.size() > 1 ? separatorLen : 0) > chunkSize && total > 0)) {
+                        total -= lengthFunction.apply(currentDoc.get(0)) + (currentDoc.size() > 1 ? separatorLen : 0);
+                        currentDoc.remove(0);
+                    }
+                }
+            }
+            currentDoc.add(d);
+            total += len + (currentDoc.size() > 1 ? separatorLen : 0);
+        }
+
+        String doc = joinDocs(currentDoc, separator);
+        if (doc != null) {
+            docs.add(doc);
+        }
+
+        return docs;
+    }
+
+    public static List<String> splitTextWithRegex(String text, String separator, boolean keepSeparator) {
+        List<String> splits = new ArrayList<>();
+        if (separator != null && !separator.isEmpty()) {
+            if (keepSeparator) {
+                Pattern pattern = Pattern.compile("(" + Pattern.quote(separator) + ")");
+                Matcher matcher = pattern.matcher(text);
+                int lastMatchEnd = 0;
+                while (matcher.find()) {
+                    splits.add(text.substring(lastMatchEnd, matcher.start()));
+                    splits.add(matcher.group(1));
+                    lastMatchEnd = matcher.end();
+                }
+                splits.add(text.substring(lastMatchEnd));
+            } else {
+                splits.addAll(Arrays.asList(text.split(Pattern.quote(separator))));
+            }
+        } else {
+            // If separator is empty, split the text into individual characters
+            for (char c : text.toCharArray()) {
+                splits.add(Character.toString(c));
+            }
+        }
+
+        // Remove any empty splits
+        splits.removeIf(String::isEmpty);
+        return splits;
+    }
+
+    record Document(String pageContent, Map<String, Object> metadata) {
+    }
+
+
+}

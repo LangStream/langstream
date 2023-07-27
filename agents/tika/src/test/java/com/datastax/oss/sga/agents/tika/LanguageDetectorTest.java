@@ -31,7 +31,6 @@ public class LanguageDetectorTest {
 
     }
 
-    @NotNull
     private static String detectLanguage(SingleRecordAgentFunction instance, String text) throws Exception {
         Record fromSource = SimpleRecord
                 .builder()

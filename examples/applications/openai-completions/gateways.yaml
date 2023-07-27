@@ -1,7 +1,7 @@
 gateways:
   - id: produce-input
     type: produce
-    topic: input-topic2
+    topic: input-topic
     parameters:
       - sessionId
     produceOptions:
@@ -11,7 +11,7 @@ gateways:
 
   - id: consume-output
     type: consume
-    topic: output-topic2
+    topic: output-topic
     parameters:
       - sessionId
     consumeOptions:

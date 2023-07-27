@@ -6,11 +6,12 @@ import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +33,11 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     public abstract void onMessage(WebSocketSession webSocketSession, TextMessage message) throws Exception;
 
     public abstract void onClose(WebSocketSession webSocketSession, CloseStatus status) throws Exception;
+
+    interface RequestDetails {
+        Map<String, String> getUserParameters();
+        Map<String, String> getOptions();
+    }
 
 
     @Override
@@ -105,21 +111,48 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     }
 
 
-    protected Map<String, String> verifyParameters(WebSocketSession session, Gateway selectedGateway) {
-        final List<String> requiredParameters = selectedGateway.parameters();
-        final Map<String, String> passedParameters = new HashMap<>();
-        final Map<String, String> querystring = (Map<String, String>) session.getAttributes().get("queryString");
+    protected RequestDetails validateQueryStringAndOptions(WebSocketSession webSocketSession, Gateway gateway) {
+        final Map<String, String> querystring = (Map<String, String>) webSocketSession.getAttributes().get("queryString");
+        Map<String, String> options = new HashMap<>();
+        Map<String, String> userParameters = new HashMap<>();
+
+
+        for (Map.Entry<String, String> entry : querystring.entrySet()) {
+            if (entry.getKey().startsWith("option:")) {
+                options.put(entry.getKey().substring("option:".length()), entry.getValue());
+            } else if (entry.getKey().startsWith("param:")) {
+                userParameters.put(entry.getKey().substring("param:".length()), entry.getValue());
+            } else {
+                throw new IllegalArgumentException("invalid query parameter " + entry.getKey() + ". "
+                        + "To specify a gateway parameter, use the format param:<parameter_name>."
+                        + "To specify a option, use the format option:<option_name>.");
+            }
+        }
+
+        final List<String> requiredParameters = gateway.parameters();
+        Set<String> allUserParameterKeys = new HashSet<>(userParameters.keySet());
         if (requiredParameters != null) {
             for (String requiredParameter : requiredParameters) {
-                final String value = querystring.get(requiredParameter);
+                final String value = userParameters.get(requiredParameter);
                 if (StringUtils.isBlank(value)) {
                     throw new IllegalArgumentException("missing required parameter " + requiredParameter);
                 }
-                passedParameters.put(requiredParameter, value);
+                allUserParameterKeys.remove(requiredParameter);
             }
         }
-        return passedParameters;
+        if (!allUserParameterKeys.isEmpty()) {
+            throw new IllegalArgumentException("unknown parameters: " + allUserParameterKeys);
+        }
+        return new RequestDetails() {
+            @Override
+            public Map<String, String> getUserParameters() {
+                return userParameters;
+            }
+
+            @Override
+            public Map<String, String> getOptions() {
+                return options;
+            }
+        };
     }
-
-
 }

@@ -1,12 +1,17 @@
 package com.datastax.oss.sga.cli.commands.gateway;
 
 import com.datastax.oss.sga.cli.websocket.WebSocketClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.websocket.CloseReason;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
@@ -28,13 +33,15 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
     public void run() {
         final String consumePath = "%s/v1/consume/%s/%s/%s?%s"
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, consumeFromGatewayId,
-                        computeQueryString(params));
+                        computeQueryString(params, "param:"));
         final String producePath = "%s/v1/produce/%s/%s/%s?%s"
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, produceToGatewayId,
-                        computeQueryString(params));
+                        computeQueryString(params, "param:"));
 
         AtomicBoolean waitingProduceResponse = new AtomicBoolean(false);
         AtomicBoolean waitingConsumeMessage = new AtomicBoolean(false);
+
+        final AtomicReference<CompletableFuture<Void>> loop = new AtomicReference<>();
 
         final WebSocketClient.Handler produceHandler = new WebSocketClient.Handler() {
             @Override
@@ -52,6 +59,12 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
 
             @Override
             public void onClose(CloseReason closeReason) {
+                if (closeReason.getCloseCode() != CloseReason.CloseCodes.NORMAL_CLOSURE) {
+                    err("Server closed connection with unexpected code: %s %s".formatted(closeReason.getCloseCode(),
+                            closeReason.getReasonPhrase()));
+                }
+                final CompletableFuture<Void> future = loop.get();
+                future.cancel(true);
             }
 
             @Override
@@ -73,7 +86,14 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
             }
 
             @Override
+            @SneakyThrows
             public void onClose(CloseReason closeReason) {
+                if (closeReason.getCloseCode() != CloseReason.CloseCodes.NORMAL_CLOSURE) {
+                    err("Server closed connection with unexpected code: %s %s".formatted(closeReason.getCloseCode(),
+                            closeReason.getReasonPhrase()));
+                }
+                final CompletableFuture<Void> future = loop.get();
+                future.cancel(true);
             }
 
             @Override
@@ -88,32 +108,47 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                     URI.create(producePath))) {
                 log("Connected to %s".formatted(producePath));
 
-                Scanner scanner = new Scanner(System.in);
-                while (true) {
-                    logUser("\nYou:");
-                    logUserNoNewLine("> ");
-                    String line = scanner.nextLine();
-                    produceClient.send(
-                            messageMapper.writeValueAsString(
-                            new ProduceGatewayCmd.ProduceRequest(null, line, Map.of()))
-                    );
-                    waitingProduceResponse.set(true);
-                    waitingConsumeMessage.set(true);
-                    while (waitingProduceResponse.get()) {
-                        Thread.sleep(500);
-                        if (waitingProduceResponse.get()) {
-                            logUserNoNewLine(".");
-                        }
 
-                    }
-                    while (waitingConsumeMessage.get()) {
-                        Thread.sleep(500);
-                        if (waitingConsumeMessage.get()) {
-                            logUserNoNewLine(".");
-                        }
-                    }
+                final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    try {
+                        Scanner scanner = new Scanner(System.in);
+                        while (true) {
+                            logUser("\nYou:");
+                            logUserNoNewLine("> ");
+                            String line = scanner.nextLine();
+                            produceClient.send(
+                                    messageMapper.writeValueAsString(
+                                            new ProduceGatewayCmd.ProduceRequest(null, line, Map.of()))
+                            );
+                            waitingProduceResponse.set(true);
+                            waitingConsumeMessage.set(true);
+                            while (waitingProduceResponse.get()) {
+                                Thread.sleep(500);
+                                if (waitingProduceResponse.get()) {
+                                    logUserNoNewLine(".");
+                                }
 
+                            }
+                            while (waitingConsumeMessage.get()) {
+                                Thread.sleep(500);
+                                if (waitingConsumeMessage.get()) {
+                                    logUserNoNewLine(".");
+                                }
+                            }
+
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                loop.set(future);
+                try {
+                    future.join();
+                } catch (CancellationException cancel) {
                 }
+
             }
         }
     }

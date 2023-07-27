@@ -101,16 +101,19 @@ class ProduceConsumeHandlerTest {
     void testSimpleProduceConsume() throws Exception {
         final String topic = genTopic();
         testGateways = new Gateways(List.of(
-                new Gateway("produce", "produce", topic, List.of(), null, null),
-                new Gateway("consume", "consume", topic, List.of(), null, null)
+                new Gateway("produce", Gateway.GatewayType.produce, topic, List.of(), null, null),
+                new Gateway("consume", Gateway.GatewayType.consume, topic, List.of(), null, null)
         ));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
         try (final TestWebSocketClient consumer = new TestWebSocketClient(new TestWebSocketClient.Handler() {
             @Override
             public void onMessage(String msg) {
-                assertEquals("this is a message", msg);
-                countDownLatch.countDown();
+                try {
+                    assertEquals("{\"record\":{\"key\":null,\"value\":\"this is a message\",\"headers\":{}}}", msg);
+                } finally {
+                    countDownLatch.countDown();
+                }
             }
 
             @Override
@@ -138,21 +141,25 @@ class ProduceConsumeHandlerTest {
         final String topic = genTopic();
 
         testGateways = new Gateways(List.of(
-                new Gateway("gw", type, topic, List.of("session-id"), null, null)
+                new Gateway("gw", Gateway.GatewayType.valueOf(type), topic, List.of("session-id"), null, null)
         ));
         connectAndExpectClose(URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw".formatted(port, type)),
                 new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "missing required parameter session-id"));
         connectAndExpectClose(
-                URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw?otherparam=1".formatted(port, type)),
+                URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw?param:otherparam=1".formatted(port, type)),
                 new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "missing required parameter session-id"));
         connectAndExpectClose(
-                URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw?session-id=".formatted(port, type)),
+                URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw?param:session-id=".formatted(port, type)),
                 new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "missing required parameter session-id"));
 
+        connectAndExpectClose(
+                URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw?param:session-id=ok&param:another-non-declared=y".formatted(port, type)),
+                new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "unknown parameters: [another-non-declared]"));
+
         connectAndExpectRunning(
-                URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw?session-id=1".formatted(port, type)));
+                URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw?param:session-id=1".formatted(port, type)));
         connectAndExpectRunning(URI.create(
-                "ws://localhost:%d/v1/%s/tenant1/application1/gw?session-id=string-value".formatted(port, type)));
+                "ws://localhost:%d/v1/%s/tenant1/application1/gw?param:session-id=string-value".formatted(port, type)));
 
     }
 
@@ -161,11 +168,11 @@ class ProduceConsumeHandlerTest {
     void testFilterOutMessagesByFixedValue() throws Exception {
         final String topic = genTopic();
         testGateways = new Gateways(List.of(
-                new Gateway("produce", "produce", topic, List.of("session-id"), new Gateway.ProduceOptions(
+                new Gateway("produce", Gateway.GatewayType.produce, topic, List.of("session-id"), new Gateway.ProduceOptions(
                         List.of(new Gateway.KeyValueComparison("header1", "sga", null))
                 ), null),
-                new Gateway("produce-non-sga", "produce", topic, List.of("session-id"), null, null),
-                new Gateway("consume", "consume", topic, List.of("session-id"), null, new Gateway.ConsumeOptions(
+                new Gateway("produce-non-sga", Gateway.GatewayType.produce, topic, List.of("session-id"), null, null),
+                new Gateway("consume", Gateway.GatewayType.consume, topic, List.of("session-id"), null, new Gateway.ConsumeOptions(
                         new Gateway.ConsumeOptionsFilters(
                                 List.of(new Gateway.KeyValueComparison("header1", "sga", null))
                         )
@@ -177,16 +184,16 @@ class ProduceConsumeHandlerTest {
         List<String> user2Messages = new ArrayList<>();
 
         final ClientSession client1 = connectAndCollectMessages(URI.create(
-                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?session-id=user1".formatted(port)),
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user1".formatted(port)),
                 user1Messages);
         final ClientSession client2 = connectAndCollectMessages(URI.create(
-                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?session-id=user2".formatted(port)),
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user2".formatted(port)),
                 user2Messages);
 
         try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
                 .connect(
                         URI.create(
-                                "ws://localhost:%d/v1/produce/tenant1/application1/produce-non-sga?session-id=user1".formatted(
+                                "ws://localhost:%d/v1/produce/tenant1/application1/produce-non-sga?param:session-id=user1".formatted(
                                         port)));) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message non from sga", null);
             produce(produceRequest, producer);
@@ -195,7 +202,7 @@ class ProduceConsumeHandlerTest {
         try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
                 .connect(
                         URI.create(
-                                "ws://localhost:%d/v1/produce/tenant1/application1/produce?session-id=user1".formatted(
+                                "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user1".formatted(
                                         port)));) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message for everyone", null);
             produce(produceRequest, producer);
@@ -216,10 +223,10 @@ class ProduceConsumeHandlerTest {
     void testFilterOutMessagesByParamValue() throws Exception {
         final String topic = genTopic();
         testGateways = new Gateways(List.of(
-                new Gateway("produce", "produce", topic, List.of("session-id"), new Gateway.ProduceOptions(
+                new Gateway("produce", Gateway.GatewayType.produce, topic, List.of("session-id"), new Gateway.ProduceOptions(
                         List.of(new Gateway.KeyValueComparison("header1", null, "session-id"))
                 ), null),
-                new Gateway("consume", "consume", topic, List.of("session-id"), null, new Gateway.ConsumeOptions(
+                new Gateway("consume", Gateway.GatewayType.consume, topic, List.of("session-id"), null, new Gateway.ConsumeOptions(
                         new Gateway.ConsumeOptionsFilters(
                                 List.of(new Gateway.KeyValueComparison("header1", null, "session-id"))
                         )
@@ -231,16 +238,16 @@ class ProduceConsumeHandlerTest {
         List<String> user2Messages = new ArrayList<>();
 
         final ClientSession client1 = connectAndCollectMessages(URI.create(
-                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?session-id=user1".formatted(port)),
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user1".formatted(port)),
                 user1Messages);
         final ClientSession client2 = connectAndCollectMessages(URI.create(
-                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?session-id=user2".formatted(port)),
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user2".formatted(port)),
                 user2Messages);
 
         try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
                 .connect(
                         URI.create(
-                                "ws://localhost:%d/v1/produce/tenant1/application1/produce?session-id=user1".formatted(
+                                "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user1".formatted(
                                         port)));) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message for user1", null);
             produce(produceRequest, producer);
@@ -253,7 +260,7 @@ class ProduceConsumeHandlerTest {
         try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
                 .connect(
                         URI.create(
-                                "ws://localhost:%d/v1/produce/tenant1/application1/produce?session-id=user1".formatted(
+                                "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user1".formatted(
                                         port)));) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message for user1, again", null);
             produce(produceRequest, producer);
@@ -267,7 +274,7 @@ class ProduceConsumeHandlerTest {
         try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
                 .connect(
                         URI.create(
-                                "ws://localhost:%d/v1/produce/tenant1/application1/produce?session-id=user2".formatted(
+                                "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user2".formatted(
                                         port)));) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message for user2", null);
             produce(produceRequest, producer);
@@ -287,33 +294,33 @@ class ProduceConsumeHandlerTest {
     @Test
     void testProduce() throws Exception {
         testGateways = new Gateways(List.of(
-                new Gateway("gw", "produce", genTopic(), List.of("session-id"), new Gateway.ProduceOptions(
+                new Gateway("gw", Gateway.GatewayType.produce, genTopic(), List.of("session-id"), new Gateway.ProduceOptions(
                         List.of(new Gateway.KeyValueComparison("header1", null, "session-id"))
                 ), null)
         ));
         ProduceResponse response = connectAndProduce(URI.create(
-                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?session-id=s".formatted(port)),
+                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?param:session-id=s".formatted(port)),
                 new ProduceRequest(null, "hello", Map.of("header0", "value0", "header2", "value2")));
 
         assertEquals(ProduceResponse.Status.OK, response.status());
 
 
         response = connectAndProduce(URI.create(
-                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?session-id=s".formatted(port)),
+                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?param:session-id=s".formatted(port)),
                 new ProduceRequest(null, "hello", Map.of("header1", "value1")));
 
         assertEquals(ProduceResponse.Status.BAD_REQUEST, response.status());
         assertEquals("Header header1 is configured as parameter-level header.", response.reason());
 
         response = connectAndProduce(URI.create(
-                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?session-id=s".formatted(port)),
+                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?param:session-id=s".formatted(port)),
                 "{}");
 
         assertEquals(ProduceResponse.Status.BAD_REQUEST, response.status());
         assertEquals("Either key or value must be set.", response.reason());
 
         response = connectAndProduce(URI.create(
-                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?session-id=s".formatted(port)),
+                        "ws://localhost:%d/v1/produce/tenant1/application1/gw?param:session-id=s".formatted(port)),
                 "invalid-json");
 
         assertEquals(ProduceResponse.Status.BAD_REQUEST, response.status());

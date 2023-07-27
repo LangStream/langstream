@@ -2,10 +2,8 @@ package com.datastax.oss.sga.apigateway.websocket.handlers;
 
 import static com.datastax.oss.sga.apigateway.websocket.WebSocketConfig.CONSUME_PATH;
 import com.datastax.oss.sga.api.model.Gateway;
-import com.datastax.oss.sga.api.model.Gateways;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.model.StreamingCluster;
-import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
@@ -17,9 +15,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
-import java.util.logging.Filter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.socket.CloseStatus;
@@ -63,10 +59,9 @@ public class ConsumeHandler extends AbstractHandler {
         final StoredApplication application = applicationStore.get(tenant, applicationId);
         Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.consume);
 
-        final Map<String, String> passedParameters = verifyParameters(session, selectedGateway);
-
+        final RequestDetails requestOptions = validateQueryStringAndOptions(session, selectedGateway);
         List<Function<Record, Boolean>> filters =
-                createMessageFilters(selectedGateway, passedParameters);
+                createMessageFilters(selectedGateway, requestOptions.getUserParameters());
 
         final StreamingCluster streamingCluster = application.getInstance().getInstance().streamingCluster();
 

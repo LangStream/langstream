@@ -23,21 +23,21 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     }
 
 
-    protected String computeQueryString(Map<String, String> queryStringParams) {
+    protected String computeQueryString(Map<String, String> queryStringParams, String prefix) {
         if (queryStringParams == null || queryStringParams.isEmpty()) {
             return "";
         }
         return queryStringParams.entrySet()
                 .stream()
-                .map(e -> encodeParam(e))
+                .map(e -> encodeParam(e, prefix))
                 .collect(Collectors.joining("&"));
 
     }
 
 
     @SneakyThrows
-    private String encodeParam(Map.Entry<String, String> e) {
-        return "%s=%s".formatted(e.getKey(), URLEncoder.encode(e.getValue(), "UTF-8"));
+    private String encodeParam(Map.Entry<String, String> e, String prefix) {
+        return "%s=%s".formatted(prefix + e.getKey(), URLEncoder.encode(e.getValue(), "UTF-8"));
     }
 
 

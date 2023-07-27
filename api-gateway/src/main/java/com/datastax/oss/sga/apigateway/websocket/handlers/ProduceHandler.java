@@ -12,7 +12,6 @@ import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.apigateway.websocket.api.ProduceRequest;
 import com.datastax.oss.sga.apigateway.websocket.api.ProduceResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,8 +51,8 @@ public class ProduceHandler extends AbstractHandler {
         Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.produce);
 
 
-        final Map<String, String> passedParameters = verifyParameters(webSocketSession, selectedGateway);
-        final List<Header> headers = getCommonHeaders(selectedGateway, passedParameters);
+        final RequestDetails requestDetails = validateQueryStringAndOptions(webSocketSession, selectedGateway);
+        final List<Header> headers = getCommonHeaders(selectedGateway, requestDetails.getUserParameters());
         final StreamingCluster streamingCluster = application.getInstance().getInstance().streamingCluster();
 
         final TopicConnectionsRuntime topicConnectionsRuntime =

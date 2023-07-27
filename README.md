@@ -24,6 +24,7 @@ Build docker images and push them into the minikube environment
 minikube image load datastax/sga-deployer:latest-dev
 minikube image load datastax/sga-control-plane:latest-dev
 minikube image load datastax/sga-runtime:latest-dev
+minikube image load datastax/sga-api-gateway:latest-dev
 ```
 
 Deploy MinIO (S3 BlobStorage implementation for local testing)

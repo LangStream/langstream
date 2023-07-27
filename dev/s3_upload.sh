@@ -10,7 +10,8 @@ url=http://localhost:9000
 s3_key=minioadmin
 s3_secret=minioadmin
 
-resource="/${bucket}/${file}"
+fileWithoutPath=$(basename $file)
+resource="/${bucket}/${fileWithoutPath}"
 content_type="application/octet-stream"
 date=`date -R`
 _signature="PUT\n\n${content_type}\n${date}\n${resource}"

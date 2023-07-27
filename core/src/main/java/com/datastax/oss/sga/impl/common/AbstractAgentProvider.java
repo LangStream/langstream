@@ -32,6 +32,10 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
         this.supportedClusterTypes = Collections.unmodifiableList(supportedClusterTypes);
     }
 
+    protected boolean isComposable(AgentConfiguration agentConfiguration) {
+        return false;
+    }
+
     protected Connection computeInput(AgentConfiguration agentConfiguration,
                                       Module module,
                                       Pipeline pipeline,
@@ -103,10 +107,12 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
         // we create the output connection first to make sure that the topic is created
         Connection output = computeOutput(agentConfiguration, module, pipeline, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
         Connection input = computeInput(agentConfiguration, module, pipeline, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
+        boolean composable = isComposable(agentConfiguration);
         return new DefaultAgentNode(agentConfiguration.getId(),
                 agentType,
                 componentType,
                 configuration,
+                composable,
                 metadata, input, output,
                 agentConfiguration.getResources());
     }

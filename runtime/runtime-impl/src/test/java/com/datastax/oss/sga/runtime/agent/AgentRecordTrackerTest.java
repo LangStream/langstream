@@ -1,13 +1,11 @@
 package com.datastax.oss.sga.runtime.agent;
 
 import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentFunction;
+import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import org.junit.jupiter.api.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,7 +61,7 @@ public class AgentRecordTrackerTest {
         Record sourceRecord = new MyRecord("key", "sourceValue", "origin", 0L, null);
         Record sinkRecord = new MyRecord("key", "sinkValue", "origin", 0L, null);
 
-        tracker.track(List.of(new AgentFunction.SourceRecordAndResult(sourceRecord, List.of(sinkRecord))));
+        tracker.track(List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(sinkRecord))));
 
         tracker.commit(List.of(sinkRecord));
 
@@ -82,7 +80,7 @@ public class AgentRecordTrackerTest {
         Record sinkRecord = new MyRecord("key", "sinkValue", "origin", 0L, null);
         Record sinkRecord2 = new MyRecord("key", "sinkValue2", "origin", 0L, null);
 
-        tracker.track(List.of(new AgentFunction.SourceRecordAndResult(sourceRecord, List.of(sinkRecord, sinkRecord2))));
+        tracker.track(List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(sinkRecord, sinkRecord2))));
 
         // the sink commits only 1 of the 2 records
         tracker.commit(List.of(sinkRecord));

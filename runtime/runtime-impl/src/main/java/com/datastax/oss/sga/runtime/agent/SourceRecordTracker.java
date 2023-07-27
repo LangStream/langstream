@@ -1,17 +1,15 @@
 package com.datastax.oss.sga.runtime.agent;
 
-import com.datastax.oss.sga.api.runner.code.AgentFunction;
+import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 import lombok.SneakyThrows;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class SourceRecordTracker implements AgentSink.CommitCallback {
@@ -41,7 +39,7 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
         sinkRecords.forEach(sinkToSourceMapping::remove);
     }
 
-    public void track(List<AgentFunction.SourceRecordAndResult> sinkRecords) {
+    public void track(List<AgentProcessor.SourceRecordAndResult> sinkRecords) {
 
         // map each sink record to the original source record
         sinkRecords.forEach((sourceRecordAndResult) -> {

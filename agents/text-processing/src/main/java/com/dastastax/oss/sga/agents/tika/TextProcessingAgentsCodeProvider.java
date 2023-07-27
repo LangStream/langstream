@@ -12,7 +12,8 @@ public class TextProcessingAgentsCodeProvider implements AgentCodeProvider {
             "text-extractor", () -> new TikaTextExtractorAgent(),
             "language-detector", () -> new LanguageDetectorAgent(),
             "text-splitter", () -> new TextSplitterAgent(),
-            "text-normaliser", () -> new TextNormaliserAgent()
+            "text-normaliser", () -> new TextNormaliserAgent(),
+            "document-to-json", () -> new DocumentToJsonAgent()
     );
 
     @Override

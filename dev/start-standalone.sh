@@ -6,9 +6,10 @@ set -ex
 # This script bootstraps a local K8S based stack with SGA from the current code
 
 . ./docker/build.sh
-minikube image load datastax/sga-deployer:latest-dev
-minikube image load datastax/sga-control-plane:latest-dev
-minikube image load datastax/sga-runtime:latest-dev
+minikube image load --overwrite datastax/sga-deployer:latest-dev
+minikube image load --overwrite datastax/sga-control-plane:latest-dev
+minikube image load --overwrite datastax/sga-runtime:latest-dev
+minikube image load --overwrite datastax/sga-api-gateway:latest-dev
 
 # Start MinIO (S3 blobstorage)
 kubectl apply -f helm/examples/minio-dev.yaml

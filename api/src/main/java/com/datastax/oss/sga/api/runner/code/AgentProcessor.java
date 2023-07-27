@@ -3,12 +3,11 @@ package com.datastax.oss.sga.api.runner.code;
 import lombok.Getter;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Body of the agent
  */
-public interface AgentFunction extends AgentCode {
+public interface AgentProcessor extends AgentCode {
 
     /**
      * The agent processes records and returns a list of records.

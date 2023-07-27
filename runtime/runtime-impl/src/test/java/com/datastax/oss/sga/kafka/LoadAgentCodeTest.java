@@ -2,7 +2,7 @@ package com.datastax.oss.sga.kafka;
 
 
 import com.datastax.oss.sga.api.runner.code.AgentCodeRegistry;
-import com.datastax.oss.sga.api.runner.code.AgentFunction;
+import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ class LoadAgentCodeTest {
     @Test
     public void testLoadNoop() throws Exception {
         AgentCodeRegistry registry = new AgentCodeRegistry();
-        AgentFunction noop = (AgentFunction) registry.getAgentCode("noop");
+        AgentProcessor noop = (AgentProcessor) registry.getAgentCode("noop");
         MyRecord myRecord = new MyRecord();
         assertTrue(noop.process(List.of(myRecord)).isEmpty());
     }
@@ -26,7 +26,7 @@ class LoadAgentCodeTest {
     @Test
     public void testLoadIdentity() throws Exception {
         AgentCodeRegistry registry = new AgentCodeRegistry();
-        AgentFunction noop = (AgentFunction) registry.getAgentCode("identity");
+        AgentProcessor noop = (AgentProcessor) registry.getAgentCode("identity");
         MyRecord myRecord = new MyRecord();
         assertEquals(1, noop.process(List.of(myRecord)).get(0).getResultRecords().size());
         assertSame(myRecord, noop.process(List.of(myRecord)).get(0).getResultRecords().get(0));

@@ -1,5 +1,7 @@
 package com.datastax.oss.sga.runtime.impl.k8s.agents;
 
+import com.datastax.oss.sga.api.model.AgentConfiguration;
+import com.datastax.oss.sga.api.runtime.ComponentType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -20,5 +22,10 @@ public class TextProcessingAgentsProvider extends AbstractComposableAgentProvide
 
     public TextProcessingAgentsProvider() {
         super(SUPPORTED_AGENT_TYPES, List.of(CLUSTER_TYPE, "none"));
+    }
+
+    @Override
+    protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
+        return ComponentType.FUNCTION;
     }
 }

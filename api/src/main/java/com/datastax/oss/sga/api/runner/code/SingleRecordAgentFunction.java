@@ -1,11 +1,9 @@
 package com.datastax.oss.sga.api.runner.code;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-public abstract class SingleRecordAgentFunction implements AgentFunction {
+public abstract class SingleRecordAgentFunction implements AgentProcessor {
 
     public abstract List<Record> processRecord(Record record) throws Exception;
 

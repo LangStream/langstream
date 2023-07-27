@@ -1,37 +1,71 @@
 package com.datastax.oss.sga.runtime.agent;
 
-import com.datastax.oss.sga.api.runner.code.AgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentFunction;
+import com.datastax.oss.sga.api.runner.code.AgentProcessor;
+import com.datastax.oss.sga.api.runner.code.AgentSink;
+import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * This is a special processor that executes a pipeline of Agents in memory.
  */
-public class CompositeAgentProcessor implements AgentFunction {
+public class CompositeAgentProcessor implements AgentProcessor {
 
-    private final List<AgentFunction> agents = new ArrayList<>();
+    private AgentSource source;
+    private final List<AgentProcessor> processors = new ArrayList<>();
+    private AgentSink sink;
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
-        List<Map<String, Object>> agentsDefinitions = null;
-        if (configuration.containsKey("agents")) {
-            agentsDefinitions = (List<Map<String, Object>>) configuration.get("agents");
+        List<Map<String, Object>> processorsDefinition = null;
+        if (configuration.containsKey("processors")) {
+            processorsDefinition = (List<Map<String, Object>>) configuration.get("processorss");
         }
-        if (agentsDefinitions == null || agentsDefinitions.isEmpty()) {
-            throw new IllegalArgumentException("No agents defined");
+        if (processorsDefinition == null) {
+            processorsDefinition = List.of();
         }
-        for (Map<String, Object> agentDefinition : agentsDefinitions) {
+        Map<String, Object> sourceDefinition = (Map<String, Object>) configuration.get("source");
+        if (sourceDefinition == null) {
+            sourceDefinition = Map.of();
+        }
+        Map<String, Object> sinkDefinition = (Map<String, Object>) configuration.get("sink");
+        if (sinkDefinition == null) {
+            sinkDefinition = Map.of();
+        }
+
+        if (!sourceDefinition.isEmpty()) {
+            String agentType = (String) sourceDefinition.get("agentType");
+            Map<String, Object> agentConfiguration = (Map<String, Object>) sourceDefinition.get("configuration");
+            source = (AgentSource) AgentRunner.initAgent(agentType, agentConfiguration);
+        }
+
+        for (Map<String, Object> agentDefinition : processorsDefinition) {
             String agentType = (String) agentDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) agentDefinition.get("configuration");
-            AgentFunction agent = (AgentFunction) AgentRunner.initAgent(agentType, agentConfiguration);
-            agents.add(agent);
+            AgentProcessor agent = (AgentProcessor) AgentRunner.initAgent(agentType, agentConfiguration);
+            processors.add(agent);
         }
+
+        if (!sinkDefinition.isEmpty()) {
+            String agentType = (String) sinkDefinition.get("agentType");
+            Map<String, Object> agentConfiguration = (Map<String, Object>) sinkDefinition.get("configuration");
+            sink = (AgentSink) AgentRunner.initAgent(agentType, agentConfiguration);
+        }
+    }
+
+    public AgentSource getSource() {
+        return source;
+    }
+
+    public List<AgentProcessor> getProcessors() {
+        return processors;
+    }
+
+    public AgentSink getSink() {
+        return sink;
     }
 
     @Override
@@ -43,14 +77,14 @@ public class CompositeAgentProcessor implements AgentFunction {
 
     @Override
     public void start() throws Exception {
-        for (AgentFunction agent : agents) {
+        for (AgentProcessor agent : processors) {
             agent.start();
         }
     }
 
     @Override
     public void close() throws Exception {
-        for (AgentFunction agent : agents) {
+        for (AgentProcessor agent : processors) {
             agent.close();
         }
     }
@@ -59,15 +93,15 @@ public class CompositeAgentProcessor implements AgentFunction {
     public List<SourceRecordAndResult> process(List<Record> records) throws Exception {
 
         int current = 0;
-        AgentFunction currentAgent = agents.get(current++);
+        AgentProcessor currentAgent = processors.get(current++);
         List<SourceRecordAndResult> currentResults = currentAgent.process(records);
 
         // we must preserve the original mapping to the Source Record
         // each SourceRecord generates some SinkRecords
-        while (current < agents.size()) {
+        while (current < processors.size()) {
             List<SourceRecordAndResult>  nextStageResults = new ArrayList<>();
 
-            currentAgent = agents.get(current++);
+            currentAgent = processors.get(current++);
             for (SourceRecordAndResult entry : currentResults) {
                 // we pass to the next agent only records generated by the same SourceRecord
                 // this reduces a lot the complexity of the code, but it defeats micro-batching

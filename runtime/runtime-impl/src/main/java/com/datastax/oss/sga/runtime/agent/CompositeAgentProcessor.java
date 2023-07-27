@@ -22,7 +22,7 @@ public class CompositeAgentProcessor implements AgentProcessor {
     public void init(Map<String, Object> configuration) throws Exception {
         List<Map<String, Object>> processorsDefinition = null;
         if (configuration.containsKey("processors")) {
-            processorsDefinition = (List<Map<String, Object>>) configuration.get("processorss");
+            processorsDefinition = (List<Map<String, Object>>) configuration.get("processors");
         }
         if (processorsDefinition == null) {
             processorsDefinition = List.of();
@@ -91,6 +91,12 @@ public class CompositeAgentProcessor implements AgentProcessor {
 
     @Override
     public List<SourceRecordAndResult> process(List<Record> records) throws Exception {
+        if (processors.isEmpty()) {
+            return records
+                    .stream()
+                    .map(r -> new SourceRecordAndResult(r, List.of(r)))
+                    .toList();
+        }
 
         int current = 0;
         AgentProcessor currentAgent = processors.get(current++);

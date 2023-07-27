@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 public class WebSocketClient implements AutoCloseable {
 
     public interface Handler {
+        default void onOpen() {};
+
         void onMessage(String msg);
 
         void onClose(CloseReason closeReason);
@@ -49,6 +51,7 @@ public class WebSocketClient implements AutoCloseable {
 
     @OnOpen
     public void onOpen(Session session) {
+        eventHandler.onOpen();
     }
 
     @OnClose

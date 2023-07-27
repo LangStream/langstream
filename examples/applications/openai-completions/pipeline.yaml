@@ -1,15 +1,15 @@
 module: "module-1"
 id: "pipeline-1"
 topics:
-  - name: "input-topic"
+  - name: "input-topic2"
     creation-mode: create-if-not-exists
-  - name: "output-topic"
+  - name: "output-topic2"
     creation-mode: create-if-not-exists
 pipeline:
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
-    input: "input-topic"
-    output: "output-topic"
+    input: "input-topic2"
+    output: "output-topic2"
     configuration:
       model: "gpt-35-turbo" # This needs to be set to the model deployment name, not the base name
       completion-field: "value"

@@ -39,7 +39,7 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
     public void run() {
         final String producePath = "%s/v1/produce/%s/%s/%s?%s"
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, gatewayId,
-                        computeQueryString(params, "param:"));
+                        computeQueryString(params, Map.of()));
         CountDownLatch countDownLatch = new CountDownLatch(1);
         try (final WebSocketClient client = new WebSocketClient(new WebSocketClient.Handler() {
             @Override

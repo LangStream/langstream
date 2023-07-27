@@ -120,6 +120,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         return selectedGateway;
     }
 
+    abstract void validateOptions(Map<String, String> options);
+
 
     protected RequestDetails validateQueryStringAndOptions(WebSocketSession webSocketSession, Gateway gateway) {
         final Map<String, String> querystring =
@@ -154,6 +156,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         if (!allUserParameterKeys.isEmpty()) {
             throw new IllegalArgumentException("unknown parameters: " + allUserParameterKeys);
         }
+        validateOptions(options);
         return new RequestDetails() {
             @Override
             public Map<String, String> getUserParameters() {

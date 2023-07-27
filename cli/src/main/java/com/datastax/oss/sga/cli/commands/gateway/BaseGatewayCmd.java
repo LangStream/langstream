@@ -5,6 +5,8 @@ import com.datastax.oss.sga.cli.commands.RootCmd;
 import com.datastax.oss.sga.cli.commands.RootGatewayCmd;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
@@ -23,15 +25,25 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     }
 
 
-    protected String computeQueryString(Map<String, String> queryStringParams, String prefix) {
-        if (queryStringParams == null || queryStringParams.isEmpty()) {
-            return "";
-        }
-        return queryStringParams.entrySet()
-                .stream()
-                .map(e -> encodeParam(e, prefix))
-                .collect(Collectors.joining("&"));
+    protected String computeQueryString(Map<String, String> userParams, Map<String, String> options) {
+        String paramsPart = "";
+        String optionsPart = "";
+        if (userParams != null) {
+            paramsPart = userParams.entrySet()
+                    .stream()
+                    .map(e -> encodeParam(e, "param:"))
+                    .collect(Collectors.joining("&"));
 
+        }
+
+        if (options != null) {
+            optionsPart = options.entrySet()
+                    .stream()
+                    .map(e -> encodeParam(e, "option:"))
+                    .collect(Collectors.joining("&"));
+        }
+        return List.of(paramsPart, optionsPart)
+                .stream().collect(Collectors.joining("&"));
     }
 
 

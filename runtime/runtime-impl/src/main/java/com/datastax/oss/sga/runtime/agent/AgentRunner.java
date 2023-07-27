@@ -183,6 +183,7 @@ public class AgentRunner
                                      AgentCode agentCode) throws Exception {
         topicConnectionsRuntime.init(configuration.streamingCluster());
 
+        // this is closed by the TopicSource
         final TopicConsumer consumer;
         if (configuration.input() != null && !configuration.input().isEmpty()) {
             consumer = topicConnectionsRuntime.createConsumer(agentId,
@@ -191,6 +192,7 @@ public class AgentRunner
             consumer = new NoopTopicConsumer();
         }
 
+        // this is closed by the TopicSink
         final TopicProducer producer;
         if (configuration.output() != null && !configuration.output().isEmpty()) {
             producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
@@ -198,43 +200,49 @@ public class AgentRunner
             producer = new NoopTopicProducer();
         }
 
-
-        AgentProcessor mainProcessor;
-        if (agentCode instanceof AgentProcessor agentProcessor) {
-             mainProcessor = agentProcessor;
-        } else {
-             mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
-        }
-
-        AgentSource source = null;
-        if (agentCode instanceof AgentSource agentSource) {
-            source = agentSource;
-        } else if (agentCode instanceof  CompositeAgentProcessor compositeAgentProcessor) {
-            source = compositeAgentProcessor.getSource();
-        }
-        if (source == null) {
-            source = new TopicConsumerSource(consumer);
-        }
-
-        AgentSink sink = null;
-        if (agentCode instanceof AgentSink agentSink) {
-            sink = agentSink;
-        } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
-            sink = compositeAgentProcessor.getSink();
-        }
-
-        if (sink == null) {
-            sink = new TopicProducerSink(producer);
-        }
         TopicAdmin topicAdmin = topicConnectionsRuntime.createTopicAdmin(agentId,
                 configuration.streamingCluster(),
                 configuration.output());
-        AgentContext agentContext = new SimpleAgentContext(consumer, producer, topicAdmin);
-        log.info("Source: {}", source);
-        log.info("Processor: {}",  mainProcessor);
-        log.info("Sink: {}", sink);
 
-        runMainLoop(source,  mainProcessor, sink, agentContext, maxLoops);
+        try {
+
+            AgentProcessor mainProcessor;
+            if (agentCode instanceof AgentProcessor agentProcessor) {
+                mainProcessor = agentProcessor;
+            } else {
+                mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
+            }
+
+            AgentSource source = null;
+            if (agentCode instanceof AgentSource agentSource) {
+                source = agentSource;
+            } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
+                source = compositeAgentProcessor.getSource();
+            }
+            if (source == null) {
+                source = new TopicConsumerSource(consumer);
+            }
+
+            AgentSink sink = null;
+            if (agentCode instanceof AgentSink agentSink) {
+                sink = agentSink;
+            } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
+                sink = compositeAgentProcessor.getSink();
+            }
+
+            if (sink == null) {
+                sink = new TopicProducerSink(producer);
+            }
+
+            AgentContext agentContext = new SimpleAgentContext(consumer, producer, topicAdmin);
+            log.info("Source: {}", source);
+            log.info("Processor: {}", mainProcessor);
+            log.info("Sink: {}", sink);
+
+            runMainLoop(source, mainProcessor, sink, agentContext, maxLoops);
+        } finally {
+            topicAdmin.close();
+        }
     }
 
     private static void runMainLoop(AgentSource source,

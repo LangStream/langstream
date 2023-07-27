@@ -10,6 +10,7 @@ pipeline:
     configuration:
       bucketName: documents
       endpoint: "http://minio.minio-dev.svc.cluster.local:9000"
+      idle-time: 5
   - name: "Extract text"
     type: "text-extractor"
   - name: "Normalise text"

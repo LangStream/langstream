@@ -13,10 +13,9 @@ Prepare some PDF files and upload them to a bucket in S3.
 
 ## Deploy the SGA application
 
+```
 ./bin/sga-cli apps deploy test -app examples/applications/text-processing -i examples/instances/kafka-kubernetes.yaml
-
-The application deploys one single Agent in a pod
-./bin/sga-cli apps get test
+```
 
 ## Write a document in the S3 bucket
 

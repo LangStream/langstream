@@ -39,6 +39,7 @@ public class S3Source implements AgentSource {
     private String bucketName;
     private MinioClient minioClient;
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
+    private int idleTime;
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
@@ -46,6 +47,7 @@ public class S3Source implements AgentSource {
         String endpoint = configuration.getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090").toString();
         String username =  configuration.getOrDefault("username", "minioadmin").toString();
         String password =  configuration.getOrDefault("password", "minioadmin").toString();
+        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
 
         log.info("Connecting to S3 BlobStorage at {} with user {}", endpoint, username);
 
@@ -82,6 +84,7 @@ public class S3Source implements AgentSource {
             log.error("Error listing objects on bucket {}", bucketName, e);
             throw e;
         }
+        boolean somethingFound = false;
         for (Result<Item> object : results) {
             Item item = object.get();
             String name = item.objectName();
@@ -100,6 +103,7 @@ public class S3Source implements AgentSource {
                     objectsToCommit.add(name);
                     byte[] read = objectResponse.readAllBytes();
                     records.add(new S3SourceRecord(read, name));
+                    somethingFound = true;
                 } catch (Exception e) {
                     log.error("Error reading object {}", name, e);
                     throw e;
@@ -108,6 +112,10 @@ public class S3Source implements AgentSource {
             } else {
                 log.info("Skipping already processed object {}", name);
             }
+        }
+        if (!somethingFound) {
+            log.info("Nothing found, sleeping for {} seconds", idleTime);
+            Thread.sleep(idleTime * 1000);
         }
         return records;
     }

@@ -15,6 +15,9 @@ Prepare some PDF files and upload them to a bucket in S3.
 
 ./bin/sga-cli apps deploy test -app examples/applications/text-processing -i examples/instances/kafka-kubernetes.yaml
 
+The application deploys one single Agent in a pod
+./bin/sga-cli apps get test
+
 ## Write a document in the S3 bucket
 
 ```
@@ -30,5 +33,5 @@ dev/s3_upload.sh documents examples/applications/text-processing/simple.pdf
 Start a Kafka Consumer on a terminal and see the results.
 
 ```
-kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning`
+kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
 ```

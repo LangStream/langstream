@@ -27,10 +27,10 @@ pipeline:
     output: "output-topic"
     configuration:
       splitter_type: "RecursiveCharacterTextSplitter"
-      chunk_size: 200
+      chunk_size: 1000
       separators: ["\n\n", "\n", " ", ""]
       keep_separator: false
-      chunk_overlap: 1000
+      chunk_overlap: 200
       length_function: "cl100k_base"
 
 

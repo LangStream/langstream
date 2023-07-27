@@ -20,6 +20,7 @@ import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -60,6 +61,8 @@ public interface ComputeClusterRuntime extends AutoCloseable {
 
     void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
                 String codeStorageArchiveId);
+
+    List<ExecutionPlanOptimiser> getExecutionPlanOptimisers();
 
     default AgentNodeMetadata computeAgentMetadata(AgentConfiguration agentConfiguration, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
         return null;

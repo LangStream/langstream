@@ -2,24 +2,25 @@ package com.datastax.oss.sga.runtime.impl.k8s;
 
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
+import com.datastax.oss.sga.api.runtime.ExecutionPlanOptimiser;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
+import com.datastax.oss.sga.impl.agents.ai.GenAIToolKitExecutionPlanOptimizer;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
-import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
+import com.datastax.oss.sga.impl.agents.ComposableAgentExecutionPlanOptimiser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.Secret;
-import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import java.nio.charset.StandardCharsets;
+
 import java.security.MessageDigest;
-import java.util.Base64;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
@@ -32,6 +33,10 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     static final ObjectMapper mapper = new ObjectMapper()
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
     public static final String CLUSTER_TYPE = "kubernetes";
+
+    static final List<ExecutionPlanOptimiser> OPTIMISERS = List.of(
+            new ComposableAgentExecutionPlanOptimiser(),
+            new GenAIToolKitExecutionPlanOptimizer());
 
     private KubernetesClusterRuntimeConfiguration configuration;
     private KubernetesClient client;
@@ -220,5 +225,10 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         if (client != null) {
             client.close();
         }
+    }
+
+    @Override
+    public List<ExecutionPlanOptimiser> getExecutionPlanOptimisers() {
+        return OPTIMISERS;
     }
 }

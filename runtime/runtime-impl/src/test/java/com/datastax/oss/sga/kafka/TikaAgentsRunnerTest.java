@@ -215,9 +215,7 @@ class TikaAgentsRunnerTest {
                                        allowedLanguages: ["en"]
                                        property: "language"
                                   - name: "Split into chunks"
-                                    type: "text-chunker"
-                                    configuration:
-                                      chunkSize: 60
+                                    type: "text-splitter"
                                   - name: "Normalise text"
                                     type: "text-normaliser"
                                     output: "output-topic"

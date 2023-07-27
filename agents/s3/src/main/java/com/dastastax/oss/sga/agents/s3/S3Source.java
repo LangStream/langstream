@@ -39,6 +39,7 @@ public class S3Source implements AgentSource {
     private String bucketName;
     private MinioClient minioClient;
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
+    private int idleTime;
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
@@ -46,6 +47,7 @@ public class S3Source implements AgentSource {
         String endpoint = configuration.getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090").toString();
         String username =  configuration.getOrDefault("username", "minioadmin").toString();
         String password =  configuration.getOrDefault("password", "minioadmin").toString();
+        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
 
         log.info("Connecting to S3 BlobStorage at {} with user {}", endpoint, username);
 
@@ -75,21 +77,45 @@ public class S3Source implements AgentSource {
     @Override
     public List<Record> read() throws Exception {
         List<Record> records = new ArrayList<>();
-        for (Result<Item> object : minioClient.listObjects(ListObjectsArgs.builder().bucket(bucketName).build())) {
-            String name = object.get().objectName();
+        Iterable<Result<Item>> results;
+        try {
+            results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
+        } catch (Exception e) {
+            log.error("Error listing objects on bucket {}", bucketName, e);
+            throw e;
+        }
+        boolean somethingFound = false;
+        for (Result<Item> object : results) {
+            Item item = object.get();
+            String name = item.objectName();
+            if (item.isDir()) {
+                log.info("Skipping directory {}", name);
+                continue;
+            }
             if (!objectsToCommit.contains(name)) {
-                GetObjectResponse objectResponse = minioClient.getObject(
-                    GetObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(name)
-                        .build());
-                objectsToCommit.add(name);
-                byte[] read = objectResponse.readAllBytes();
-                records.add(new S3SourceRecord(read, name));
+                log.info("Found new object {}, size {} KB", item.objectName(), item.size() / 1024);
+                try {
+                    GetObjectResponse objectResponse = minioClient.getObject(
+                            GetObjectArgs.builder()
+                                    .bucket(bucketName)
+                                    .object(name)
+                                    .build());
+                    objectsToCommit.add(name);
+                    byte[] read = objectResponse.readAllBytes();
+                    records.add(new S3SourceRecord(read, name));
+                    somethingFound = true;
+                } catch (Exception e) {
+                    log.error("Error reading object {}", name, e);
+                    throw e;
+                }
                 break;
             } else {
                 log.info("Skipping already processed object {}", name);
             }
+        }
+        if (!somethingFound) {
+            log.info("Nothing found, sleeping for {} seconds", idleTime);
+            Thread.sleep(idleTime * 1000);
         }
         return records;
     }
@@ -99,6 +125,7 @@ public class S3Source implements AgentSource {
         for (Record record : records) {
             S3SourceRecord s3SourceRecord = (S3SourceRecord) record;
             String objectName = s3SourceRecord.name;
+            log.info("Removing object {}", objectName);
             minioClient.removeObject(
                 RemoveObjectArgs.builder()
                     .bucket(bucketName)

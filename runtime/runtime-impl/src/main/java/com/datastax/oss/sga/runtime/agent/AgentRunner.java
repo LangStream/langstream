@@ -3,7 +3,7 @@ package com.datastax.oss.sga.runtime.agent;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeRegistry;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentFunction;
+import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
@@ -16,7 +16,6 @@ import com.datastax.oss.sga.runtime.agent.simple.IdentityAgentProvider;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import java.io.File;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -199,36 +198,44 @@ public class AgentRunner
         }
 
 
-        AgentSource source;
+        AgentProcessor mainProcessor;
+        if (agentCode instanceof AgentProcessor agentProcessor) {
+             mainProcessor = agentProcessor;
+        } else {
+             mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
+        }
+
+        AgentSource source = null;
         if (agentCode instanceof AgentSource agentSource) {
             source = agentSource;
-        } else {
+        } else if (agentCode instanceof  CompositeAgentProcessor compositeAgentProcessor) {
+            source = compositeAgentProcessor.getSource();
+        }
+        if (source == null) {
             source = new TopicConsumerSource(consumer);
         }
 
-        AgentSink sink;
+        AgentSink sink = null;
         if (agentCode instanceof AgentSink agentSink) {
             sink = agentSink;
-        } else {
+        } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
+            sink = compositeAgentProcessor.getSink();
+        }
+
+        if (sink == null) {
             sink = new TopicProducerSink(producer);
         }
 
-        AgentFunction function;
-        if (agentCode instanceof AgentFunction agentFunction) {
-            function = agentFunction;
-        } else {
-            function = new IdentityAgentProvider.IdentityAgentCode();
-        }
         AgentContext agentContext = new SimpleAgentContext(consumer, producer);
         log.info("Source: {}", source);
-        log.info("Function: {}", function);
+        log.info("Processor: {}",  mainProcessor);
         log.info("Sink: {}", sink);
 
-        runMainLoop(source, function, sink, agentContext, maxLoops);
+        runMainLoop(source,  mainProcessor, sink, agentContext, maxLoops);
     }
 
     private static void runMainLoop(AgentSource source,
-                                    AgentFunction function,
+                                    AgentProcessor function,
                                     AgentSink sink,
                                     AgentContext agentContext,
                                     int maxLoops) throws Exception {
@@ -249,7 +256,7 @@ public class AgentRunner
                 if (records != null && !records.isEmpty()) {
                     try {
                         // the function maps the record coming from the Source to records to be sent to the Sink
-                        List<AgentFunction.SourceRecordAndResult> sinkRecords = function.process(records);
+                        List<AgentProcessor.SourceRecordAndResult> sinkRecords = function.process(records);
 
                         sourceRecordTracker.track(sinkRecords);
 

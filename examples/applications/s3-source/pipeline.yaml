@@ -13,3 +13,4 @@ pipeline:
       endpoint: "https://s3.eu-west-2.amazonaws.com"
       username: "{{ secrets.s3.username }}"
       password: "{{ secrets.s3.password }}"
+      idle-time: 5

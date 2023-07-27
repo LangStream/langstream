@@ -32,4 +32,8 @@ public class CompositeAgentProvider extends AbstractAgentProvider {
         return ComponentType.FUNCTION;
     }
 
+    @Override
+    protected boolean isComposable(AgentConfiguration agentConfiguration) {
+        return true;
+    }
 }

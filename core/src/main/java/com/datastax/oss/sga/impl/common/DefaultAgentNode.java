@@ -23,12 +23,17 @@ public class DefaultAgentNode implements AgentNode {
 
     private final Connection inputConnection;
     private Connection outputConnection;
+    private final boolean composable;
 
-    DefaultAgentNode(String id, String agentType, ComponentType componentType, Map<String, Object> configuration, Object runtimeMetadata,
+    DefaultAgentNode(String id, String agentType,
+                     ComponentType componentType,
+                     Map<String, Object> configuration,
+                     boolean composable, Object runtimeMetadata,
                             Connection inputConnection,
                             Connection outputConnection,
                             ResourcesSpec resourcesSpec) {
         this.agentType = agentType;
+        this.composable = composable;
         this.id = id;
         this.componentType = componentType;
         this.configuration = configuration;

@@ -90,8 +90,16 @@ public class ModelBuilder {
             try (DirectoryStream<Path> paths = Files.newDirectoryStream(directory);) {
                 for (Path path : paths) {
                     if (Files.isRegularFile(path)) {
-                        parseFile(path.getFileName().toString(), Files.readString(path, StandardCharsets.UTF_8),
-                                applicationWithPackageInfo);
+                        String filename = path.getFileName().toString();
+                        if (filename.endsWith(".yaml") || filename.endsWith(".yml")) {
+                            try {
+                                String text = Files.readString(path, StandardCharsets.UTF_8);
+                                parseFile(path.getFileName().toString(), text,
+                                        applicationWithPackageInfo);
+                            } catch (java.nio.charset.MalformedInputException e) {
+                                log.warn("Skipping file {} due to encoding error", path);
+                            }
+                        }
                     }
                 }
             }

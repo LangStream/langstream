@@ -19,6 +19,10 @@ public class SgaCLI {
                 .setExecutionExceptionHandler((e, commandLine, parseResult) -> {
                     if (e.getMessage() != null) {
                         commandLine.getErr().println(commandLine.getColorScheme().errorText(e.getMessage()));
+                        RootCmd rootCmd = cmdLine.getCommand();
+                        if (rootCmd.isVerbose()) {
+                            e.printStackTrace(commandLine.getErr());
+                        }
                     } else {
                         commandLine.getErr().println(commandLine.getColorScheme().errorText("Internal error " + e ));
                     }

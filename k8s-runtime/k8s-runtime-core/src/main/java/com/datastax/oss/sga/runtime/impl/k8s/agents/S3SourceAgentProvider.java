@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
  * Implements support for S3 Source Agents.
  */
 @Slf4j
-public class S3SourceAgentProvider extends AbstractAgentProvider {
+public class S3SourceAgentProvider extends AbstractComposableAgentProvider {
 
     public S3SourceAgentProvider() {
         super(Set.of("s3-source"), List.of(CLUSTER_TYPE, "none"));

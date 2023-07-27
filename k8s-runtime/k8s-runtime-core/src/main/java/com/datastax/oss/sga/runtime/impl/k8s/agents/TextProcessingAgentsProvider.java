@@ -18,7 +18,8 @@ public class TextProcessingAgentsProvider extends AbstractComposableAgentProvide
     private static final Set<String> SUPPORTED_AGENT_TYPES = Set.of("text-extractor",
             "language-detector",
             "text-splitter",
-            "text-normaliser");
+            "text-normaliser",
+            "document-to-json");
 
     public TextProcessingAgentsProvider() {
         super(SUPPORTED_AGENT_TYPES, List.of(CLUSTER_TYPE, "none"));

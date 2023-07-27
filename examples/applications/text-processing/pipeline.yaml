@@ -25,7 +25,6 @@ pipeline:
        property: "language"
   - name: "Split into chunks"
     type: "text-splitter"
-    output: "output-topic"
     configuration:
       splitter_type: "RecursiveCharacterTextSplitter"
       chunk_size: 1000
@@ -33,5 +32,11 @@ pipeline:
       keep_separator: false
       chunk_overlap: 200
       length_function: "cl100k_base"
+  - name: "Convert to structured data"
+    type: "document-to-json"
+    output: "output-topic"
+    configuration:
+        text-field: text
+        copy-properties: true
 
 

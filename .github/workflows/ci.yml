@@ -14,6 +14,12 @@ jobs:
     name: tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Runtime
+          - name: Other
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
@@ -34,12 +40,24 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: 'Init: install tox'
-        run: pip install -r requirements.txt
       - name: 'Test: run tests'
         run: |
           chmod +x mvnw
-          ./mvnw clean verify -Pdocker -pl !:e2e-tests
+          ./mvnw clean install -Pdocker -DskipTests
+
+      - name: 'Init: install tox'
+        if: ${{ matrix.name == 'Runtime' }}
+        run: pip install -r requirements.txt
+
+      - name: 'Test: run tests'
+        if: ${{ matrix.name == 'Runtime' }}
+        run: |
+          ./mvnw verify -pl ":sga-runtime-impl"
+
+      - name: 'Test: run tests'
+        if: ${{ matrix.name == 'Other' }}
+        run: |
+          ./mvnw verify -pl "!:sga-runtime-impl"
   e2e-tests:
     name: e2e-tests
     runs-on: ubuntu-latest

@@ -7,9 +7,11 @@ import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
+import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
+import com.datastax.oss.sga.api.runner.topics.TopicConnectionProvider;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 import com.datastax.oss.sga.runtime.agent.python.PythonCodeAgentProvider;
 import com.datastax.oss.sga.runtime.agent.simple.IdentityAgentProvider;
@@ -182,6 +184,7 @@ public class AgentRunner
                                      AgentCode agentCode) throws Exception {
         topicConnectionsRuntime.init(configuration.streamingCluster());
 
+        // this is closed by the TopicSource
         final TopicConsumer consumer;
         if (configuration.input() != null && !configuration.input().isEmpty()) {
             consumer = topicConnectionsRuntime.createConsumer(agentId,
@@ -190,6 +193,7 @@ public class AgentRunner
             consumer = new NoopTopicConsumer();
         }
 
+        // this is closed by the TopicSink
         final TopicProducer producer;
         if (configuration.output() != null && !configuration.output().isEmpty()) {
             producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
@@ -197,41 +201,61 @@ public class AgentRunner
             producer = new NoopTopicProducer();
         }
 
+        TopicAdmin topicAdmin = topicConnectionsRuntime.createTopicAdmin(agentId,
+                configuration.streamingCluster(),
+                configuration.output());
 
-        AgentProcessor mainProcessor;
-        if (agentCode instanceof AgentProcessor agentProcessor) {
-             mainProcessor = agentProcessor;
-        } else {
-             mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
+        try {
+
+            AgentProcessor mainProcessor;
+            if (agentCode instanceof AgentProcessor agentProcessor) {
+                mainProcessor = agentProcessor;
+            } else {
+                mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
+            }
+
+            AgentSource source = null;
+            if (agentCode instanceof AgentSource agentSource) {
+                source = agentSource;
+            } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
+                source = compositeAgentProcessor.getSource();
+            }
+            if (source == null) {
+                source = new TopicConsumerSource(consumer);
+            }
+
+            AgentSink sink = null;
+            if (agentCode instanceof AgentSink agentSink) {
+                sink = agentSink;
+            } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
+                sink = compositeAgentProcessor.getSink();
+            }
+
+            if (sink == null) {
+                sink = new TopicProducerSink(producer);
+            }
+
+            topicAdmin.start();
+            AgentContext agentContext = new SimpleAgentContext(agentId, consumer, producer, topicAdmin,
+                    new TopicConnectionProvider() {
+                        @Override
+                        public TopicConsumer createConsumer(String agentId, Map<String, Object> config) {
+                            return topicConnectionsRuntime.createConsumer(agentId, configuration.streamingCluster(), config);
+                        }
+
+                        @Override
+                        public TopicProducer createProducer(String agentId, Map<String, Object> config) {
+                            return topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), config);
+                        }
+                    });
+            log.info("Source: {}", source);
+            log.info("Processor: {}", mainProcessor);
+            log.info("Sink: {}", sink);
+
+            runMainLoop(source, mainProcessor, sink, agentContext, maxLoops);
+        } finally {
+            topicAdmin.close();
         }
-
-        AgentSource source = null;
-        if (agentCode instanceof AgentSource agentSource) {
-            source = agentSource;
-        } else if (agentCode instanceof  CompositeAgentProcessor compositeAgentProcessor) {
-            source = compositeAgentProcessor.getSource();
-        }
-        if (source == null) {
-            source = new TopicConsumerSource(consumer);
-        }
-
-        AgentSink sink = null;
-        if (agentCode instanceof AgentSink agentSink) {
-            sink = agentSink;
-        } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
-            sink = compositeAgentProcessor.getSink();
-        }
-
-        if (sink == null) {
-            sink = new TopicProducerSink(producer);
-        }
-
-        AgentContext agentContext = new SimpleAgentContext(consumer, producer);
-        log.info("Source: {}", source);
-        log.info("Processor: {}",  mainProcessor);
-        log.info("Sink: {}", sink);
-
-        runMainLoop(source,  mainProcessor, sink, agentContext, maxLoops);
     }
 
     private static void runMainLoop(AgentSource source,
@@ -326,10 +350,23 @@ public class AgentRunner
     private static class SimpleAgentContext implements AgentContext {
         private final TopicConsumer consumer;
         private final TopicProducer producer;
+        private final TopicAdmin topicAdmin;
+        private final String agentId;
 
-        public SimpleAgentContext(TopicConsumer consumer, TopicProducer producer) {
+        private final TopicConnectionProvider topicConnectionProvider;
+
+        public SimpleAgentContext(String agentId, TopicConsumer consumer, TopicProducer producer, TopicAdmin topicAdmin,
+                                  TopicConnectionProvider topicConnectionProvider) {
             this.consumer = consumer;
             this.producer = producer;
+            this.topicAdmin = topicAdmin;
+            this.agentId = agentId;
+            this.topicConnectionProvider = topicConnectionProvider;
+        }
+
+        @Override
+        public String getAgentId() {
+            return agentId;
         }
 
         @Override
@@ -341,6 +378,15 @@ public class AgentRunner
         public TopicProducer getTopicProducer() {
             return producer;
         }
-    }
 
+        @Override
+        public TopicAdmin getTopicAdmin() {
+            return topicAdmin;
+        }
+
+        @Override
+        public TopicConnectionProvider getTopicConnectionProvider() {
+            return topicConnectionProvider;
+        }
+    }
 }

@@ -16,6 +16,7 @@ import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.Topic;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -164,7 +165,8 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
         log.info("Automatically creating topic {} in order to connect as " + suffix + " for agent {}", name, agentConfiguration.getId());
         // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
         String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
-        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS, null, null);
+        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS, null, null,
+                Map.of(), Map.of());
         Topic topicImplementation = streamingClusterRuntime.createTopicImplementation(topicDefinition, physicalApplicationInstance);
         physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);
 

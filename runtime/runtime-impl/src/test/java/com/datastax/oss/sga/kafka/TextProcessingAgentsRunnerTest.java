@@ -175,23 +175,9 @@ class TextProcessingAgentsRunnerTest {
             executorService.awaitTermination(5, TimeUnit.SECONDS);
 
 
-            List<String> received = new ArrayList<>();
-
-            Awaitility.await().untilAsserted(() -> {
-                    ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(2));
-                    for (ConsumerRecord record : poll) {
-                        log.info("Received message {}", record);
-                        received.add(record.value().toString());
-                    }
-                log.info("Result: {}", received);
-                received.forEach(r -> {
-                    log.info("Received |{}|", r);
-                });
-                assertEquals(List.of("this   text   is   written   in   english,   but",
-                        "it   is   very   long,",
-                        "so you may want to split it into chunks."), received);
-                }
-            );
+            TestUtils.waitForMessages(consumer, List.of("this   text   is   written   in   english,   but",
+                    "it   is   very   long,",
+                    "so you may want to split it into chunks."));
 
         }
 

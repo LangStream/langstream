@@ -7,7 +7,8 @@ import com.datastax.oss.sga.api.runtime.Topic;
 import java.util.HashMap;
 import java.util.Map;
 
-public record KafkaTopic(String name, int partitions, SchemaDefinition keySchema, SchemaDefinition valueSchema, String createMode)
+public record KafkaTopic(String name, int partitions, int replicationFactor, SchemaDefinition keySchema, SchemaDefinition valueSchema, String createMode,
+                         Map<String, Object> config)
         implements Connection, Topic {
     public Map<String,Object> createConsumerConfiguration() {
         Map<String, Object> configuration = new HashMap<>();
@@ -15,10 +16,6 @@ public record KafkaTopic(String name, int partitions, SchemaDefinition keySchema
 
         // this is for the Agent
         configuration.put("topic", name);
-
-        // default
-        configuration.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        configuration.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 
         // TODO: handle schema
 
@@ -30,10 +27,6 @@ public record KafkaTopic(String name, int partitions, SchemaDefinition keySchema
 
         // this is for the Agent
         configuration.put("topic", name);
-
-        // default
-        configuration.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        configuration.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
         // TODO: handle schema
 

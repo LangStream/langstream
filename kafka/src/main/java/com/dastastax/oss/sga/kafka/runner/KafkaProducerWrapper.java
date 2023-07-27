@@ -66,6 +66,11 @@ class KafkaProducerWrapper implements TopicProducer {
     }
 
     @Override
+    public Object getNativeProducer() {
+        return producer;
+    }
+
+    @Override
     @SneakyThrows
     public void write(List<Record> records) {
         for (Record r : records) {

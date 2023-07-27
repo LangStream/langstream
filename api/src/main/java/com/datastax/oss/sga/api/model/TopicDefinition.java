@@ -21,6 +21,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.Map;
+
 @Getter
 @Setter
 @ToString
@@ -35,7 +37,7 @@ public class TopicDefinition  {
     }
 
     public static TopicDefinition fromName(String name) {
-        return new TopicDefinition(name, CREATE_MODE_NONE, 0, null, null);
+        return new TopicDefinition(name, CREATE_MODE_NONE, 0, null, null, Map.of(), Map.of());
     }
 
 
@@ -43,7 +45,9 @@ public class TopicDefinition  {
                            String creationMode,
                            int partitions,
                            SchemaDefinition keySchema,
-                           SchemaDefinition valueSchema) {
+                           SchemaDefinition valueSchema,
+                           Map<String, Object> options,
+                           Map<String, Object> config) {
         this();
         this.name = name;
         if (creationMode == null) {
@@ -54,6 +58,8 @@ public class TopicDefinition  {
         this.partitions = partitions;
         this.keySchema = keySchema;
         this.valueSchema = valueSchema;
+        this.options = options;
+        this.config = config;
         validateCreationMode();
     }
 
@@ -61,6 +67,9 @@ public class TopicDefinition  {
 
     @JsonProperty("creation-mode")
     private String creationMode;
+    // Kafka Admin special configuration options
+    private Map<String, Object> config;
+    private Map<String, Object> options;
     private SchemaDefinition keySchema;
     private SchemaDefinition valueSchema;
     private int partitions;

@@ -11,4 +11,9 @@ public interface TopicProducer extends AutoCloseable {
     default void close() {}
 
     default void write(List<Record> records) {}
+
+    default Object getNativeProducer() {
+        return null;
+    }
+
 }

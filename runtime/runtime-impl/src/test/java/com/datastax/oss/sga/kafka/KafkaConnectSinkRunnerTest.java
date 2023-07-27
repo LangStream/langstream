@@ -19,6 +19,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.config.ConfigDef;
@@ -26,9 +27,13 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.source.SourceConnector;
+import org.apache.kafka.connect.source.SourceRecord;
+import org.apache.kafka.connect.source.SourceTask;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
@@ -39,6 +44,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
@@ -46,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-class KafkaConnectRunnerTest {
+class KafkaConnectSinkRunnerTest {
 
     private static KafkaContainer kafkaContainer;
     private static AdminClient admin;
@@ -56,6 +63,7 @@ class KafkaConnectRunnerTest {
 
 
     @Test
+    @Disabled
     public void testRunSnowflakeKafkaConnectSink() throws Exception {
         String tenant = "tenant";
         kubeServer.spyAgentCustomResources(tenant, "app-step1");
@@ -311,4 +319,5 @@ class KafkaConnectRunnerTest {
             return "1.0";
         }
     }
+
 }

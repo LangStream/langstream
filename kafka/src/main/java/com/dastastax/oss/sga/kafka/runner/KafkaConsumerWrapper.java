@@ -40,7 +40,9 @@ class KafkaConsumerWrapper implements TopicConsumer {
     @Override
     public void start() {
         consumer = new KafkaConsumer(configuration);
-        consumer.subscribe(List.of(topicName));
+        if (topicName != null) {
+            consumer.subscribe(List.of(topicName));
+        }
     }
 
     @Override
@@ -55,7 +57,7 @@ class KafkaConsumerWrapper implements TopicConsumer {
         ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(1));
         List<Record> result = new ArrayList<>(poll.count());
         for (ConsumerRecord<?, ?> record : poll) {
-            result.add(new KafkaConsumerRecord(record));
+            result.add(KafkaRecord.fromKafkaConsumerRecord(record));
         }
         log.info("Received {} records from Kafka topics {}: {}", result.size(), consumer.assignment(), result);
         return result;
@@ -64,7 +66,7 @@ class KafkaConsumerWrapper implements TopicConsumer {
     @Override
     public void commit(List<Record> records) {
         for (Record record :records) {
-            KafkaConsumerRecord kafkaRecord = (KafkaConsumerRecord) record;
+            KafkaRecord.KafkaConsumerOffsetProvider kafkaRecord = (KafkaRecord.KafkaConsumerOffsetProvider) record;
             TopicPartition topicPartition = kafkaRecord.getTopicPartition();
             long offset = kafkaRecord.offset();
             log.info("Committing offset {} on partition {} (record: {})", offset, topicPartition, kafkaRecord);

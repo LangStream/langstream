@@ -21,6 +21,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
@@ -62,7 +63,16 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
             switch (topic.createMode()) {
                 case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
                     log.info("Creating topic {}", topic.name());
-                    admin.createTopics(List.of(new NewTopic(topic.name(), topic.partitions(), (short) 1)))
+                    NewTopic newTopic = new NewTopic(topic.name(), topic.partitions(), (short) 1);
+                    if (topic.config() != null) {
+                        newTopic.configs(topic
+                                .config()
+                                .entrySet()
+                                .stream()
+                                .filter(e -> e.getValue() != null)
+                                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
+                    }
+                    admin.createTopics(List.of(newTopic))
                             .all()
                             .get();
                     break;
@@ -104,11 +114,19 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     public Topic createTopicImplementation(TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
         String name = topicDefinition.getName();
         String creationMode = topicDefinition.getCreationMode();
+        Map<String, Object> options = topicDefinition.getOptions();
+        if (options == null) {
+            options = new HashMap<>();
+        }
+        int replicationFactor = Integer.parseInt(options.getOrDefault("replication-factor", "1").toString());
+        Map<String, Object> configs = topicDefinition.getConfig();
         KafkaTopic kafkaTopic = new KafkaTopic(name,
                 topicDefinition.getPartitions() <= 0 ? 1 : topicDefinition.getPartitions(),
+                replicationFactor,
                 topicDefinition.getKeySchema(),
                 topicDefinition.getValueSchema(),
-                creationMode);
+                creationMode,
+                configs);
         return kafkaTopic;
     }
 

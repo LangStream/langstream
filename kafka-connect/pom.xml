@@ -43,6 +43,11 @@
     </dependency>
 
     <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>connect-runtime</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro</artifactId>
       <version>${avro.version}</version>
@@ -63,6 +68,12 @@
       <scope>compile</scope>
     </dependency>
 
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-connect-avro-converter</artifactId>
+      <version>7.4.0</version>
+      <scope>compile</scope>
+    </dependency>
 
     <!-- Kafka Connect provides Netty on the Classpath -->
     <dependency>

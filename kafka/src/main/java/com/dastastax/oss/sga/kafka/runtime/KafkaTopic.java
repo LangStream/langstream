@@ -17,10 +17,6 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
         // this is for the Agent
         configuration.put("topic", name);
 
-        // default
-        configuration.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        configuration.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-
         // TODO: handle schema
 
         return configuration;
@@ -31,10 +27,6 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
 
         // this is for the Agent
         configuration.put("topic", name);
-
-        // default
-        configuration.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        configuration.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
         // TODO: handle schema
 

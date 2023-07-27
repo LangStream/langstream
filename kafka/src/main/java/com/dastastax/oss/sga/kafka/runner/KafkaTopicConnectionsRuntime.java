@@ -32,16 +32,16 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.putAll(configuration.getAdmin());
 
         // consumer
-        copy.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        copy.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        copy.putIfAbsent("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        copy.putIfAbsent("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 
-        copy.put("enable.auto.commit", "false");
-        copy.computeIfAbsent("group.id", key -> "sga-" + agentId);
+        copy.putIfAbsent("enable.auto.commit", "false");
+        copy.putIfAbsent("group.id", "sga-" + agentId);
         copy.putIfAbsent("auto.offset.reset", "earliest");
 
         // producer
-        copy.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
-        copy.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        copy.putIfAbsent("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        copy.putIfAbsent("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
     }
 
     @Override

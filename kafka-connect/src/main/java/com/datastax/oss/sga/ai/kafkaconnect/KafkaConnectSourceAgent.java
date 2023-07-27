@@ -5,7 +5,8 @@ import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
-import com.datastax.oss.sga.api.runner.topics.TopicConsumerProvider;
+import com.datastax.oss.sga.api.runner.topics.TopicConnectionProvider;
+import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -32,13 +33,10 @@ import org.apache.kafka.connect.storage.OffsetStorageWriter;
 import org.apache.kafka.connect.util.TopicAdmin;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -69,7 +67,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
 
     private Producer<byte[], byte[]> producer;
     private Consumer<byte[], byte[]> consumer;
-    private TopicConsumerProvider topicConsumerProvider;
+    private TopicConnectionProvider topicConnectionProvider;
     private TopicAdmin topicAdmin;
     private String agentId;
 
@@ -84,7 +82,8 @@ public class KafkaConnectSourceAgent implements AgentSource {
     Map<String, String> adapterConfig;
     Map<String, String> stringConfig;
 
-    TopicConsumer topicConsumer;
+    TopicConsumer topicConsumerFromOffsetStore;
+    TopicProducer topicProducerToOffsetStore;
 
     // just to get access to baseConfigDef()
     class WorkerConfigImpl extends org.apache.kafka.connect.runtime.WorkerConfig {
@@ -145,6 +144,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
         try {
             offsetWriter.doFlush((ex, res) -> completedFlushOffset(flushFuture, ex, res));
         } catch (Throwable t) {
+            log.error("Internal error while committing records {}", records, t);
             completedFlushOffset(flushFuture, t, null);
         }
         flushFuture.get();
@@ -226,10 +226,9 @@ public class KafkaConnectSourceAgent implements AgentSource {
     }
 
     public void setContext(AgentContext context) throws Exception {
-        this.producer = (Producer<byte[], byte[]>) context.getTopicProducer().getNativeProducer();
         this.topicAdmin = (TopicAdmin) context.getTopicAdmin().getNativeTopicAdmin();
         this.agentId = context.getAgentId();
-        this.topicConsumerProvider = context.getTopicConsumerProvider();
+        this.topicConnectionProvider = context.getTopicConnectionProvider();
     }
 
     @Override
@@ -261,9 +260,18 @@ public class KafkaConnectSourceAgent implements AgentSource {
         final Map<String, String> taskConfig = configs.get(0);
 
         String offsetTopic = stringConfig.get(OFFSET_STORAGE_TOPIC_CONFIG);
-        topicConsumer = topicConsumerProvider.createConsumer(agentId, Map.of());
-        topicConsumer.start();
-        consumer = (Consumer<byte[], byte[]>) topicConsumer.getNativeConsumer();
+        topicConsumerFromOffsetStore = topicConnectionProvider.createConsumer(agentId, Map.of(
+                "key.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer",
+                    "value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer"));
+
+        topicConsumerFromOffsetStore.start();
+        consumer = (Consumer<byte[], byte[]>) topicConsumerFromOffsetStore.getNativeConsumer();
+
+        topicProducerToOffsetStore = topicConnectionProvider.createProducer(agentId, Map.of("topic", offsetTopic,
+                "key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer",
+                "value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer"));
+        topicProducerToOffsetStore.start();
+        producer = (Producer<byte[], byte[]>) topicProducerToOffsetStore.getNativeProducer();
 
         offsetStore = KafkaOffsetBackingStore.forTask(stringConfig.get(OFFSET_STORAGE_TOPIC_CONFIG),
                 this.producer, this.consumer, this.topicAdmin, keyConverter);
@@ -317,8 +325,12 @@ public class KafkaConnectSourceAgent implements AgentSource {
             offsetStore = null;
         }
 
-        if (topicConsumer != null) {
-            topicConsumer.close();
+        if (topicConsumerFromOffsetStore != null) {
+            topicConsumerFromOffsetStore.close();
+        }
+
+        if (topicProducerToOffsetStore != null) {
+            topicProducerToOffsetStore.close();
         }
     }
 }

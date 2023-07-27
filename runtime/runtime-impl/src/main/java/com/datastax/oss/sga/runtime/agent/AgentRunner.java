@@ -11,7 +11,7 @@ import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
-import com.datastax.oss.sga.api.runner.topics.TopicConsumerProvider;
+import com.datastax.oss.sga.api.runner.topics.TopicConnectionProvider;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 import com.datastax.oss.sga.runtime.agent.python.PythonCodeAgentProvider;
 import com.datastax.oss.sga.runtime.agent.simple.IdentityAgentProvider;
@@ -237,10 +237,15 @@ public class AgentRunner
 
             topicAdmin.start();
             AgentContext agentContext = new SimpleAgentContext(agentId, consumer, producer, topicAdmin,
-                    new TopicConsumerProvider() {
+                    new TopicConnectionProvider() {
                         @Override
                         public TopicConsumer createConsumer(String agentId, Map<String, Object> config) {
                             return topicConnectionsRuntime.createConsumer(agentId, configuration.streamingCluster(), config);
+                        }
+
+                        @Override
+                        public TopicProducer createProducer(String agentId, Map<String, Object> config) {
+                            return topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), config);
                         }
                     });
             log.info("Source: {}", source);
@@ -348,15 +353,15 @@ public class AgentRunner
         private final TopicAdmin topicAdmin;
         private final String agentId;
 
-        private final TopicConsumerProvider topicConsumerProvider;
+        private final TopicConnectionProvider topicConnectionProvider;
 
         public SimpleAgentContext(String agentId, TopicConsumer consumer, TopicProducer producer, TopicAdmin topicAdmin,
-                                  TopicConsumerProvider topicConsumerProvider) {
+                                  TopicConnectionProvider topicConnectionProvider) {
             this.consumer = consumer;
             this.producer = producer;
             this.topicAdmin = topicAdmin;
             this.agentId = agentId;
-            this.topicConsumerProvider = topicConsumerProvider;
+            this.topicConnectionProvider = topicConnectionProvider;
         }
 
         @Override
@@ -380,8 +385,8 @@ public class AgentRunner
         }
 
         @Override
-        public TopicConsumerProvider getTopicConsumerProvider() {
-            return topicConsumerProvider;
+        public TopicConnectionProvider getTopicConnectionProvider() {
+            return topicConnectionProvider;
         }
     }
 }

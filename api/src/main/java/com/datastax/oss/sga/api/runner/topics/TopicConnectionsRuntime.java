@@ -31,7 +31,9 @@ public interface TopicConnectionsRuntime {
 
     TopicProducer createProducer(String agentId,StreamingCluster streamingCluster, Map<String, Object> configuration);
 
-    TopicAdmin createTopicAdmin(String agentId,StreamingCluster streamingCluster, Map<String, Object> configuration);
+    default TopicAdmin createTopicAdmin(String agentId,StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        return new TopicAdmin() {};
+    }
 
     default void close(){
     }

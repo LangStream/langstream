@@ -38,20 +38,7 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
         @SneakyThrows
         public void init() {
             super.init();
-            prepareMock();
-        }
 
-        public void refreshClient() {
-            if (mocked != null) {
-                mocked.close();
-                if (client != null) {
-                    client.close();
-                }
-                prepareMock();
-            }
-        }
-
-        private void prepareMock() {
             mocked = Mockito.mockStatic(KubernetesClientFactory.class);
             client = createClient();
 
@@ -88,7 +75,6 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
     @Override
     public void beforeEach(ExtensionContext extensionContext) throws Exception {
         server.reset();
-        server.refreshClient();
         currentAgents.clear();
         currentAgentsSecrets.clear();
     }

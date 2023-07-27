@@ -119,6 +119,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                             public String value() {
                                 return e.getValue();
                             }
+
+                            @Override
+                            public String valueAsString() {
+                                return e.getValue();
+                            }
                         })
                         .collect(Collectors.toList());
             }

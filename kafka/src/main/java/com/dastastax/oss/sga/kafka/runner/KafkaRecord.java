@@ -61,6 +61,8 @@ public abstract class KafkaRecord implements Record {
     public interface KafkaConsumerOffsetProvider {
         long offset();
         int estimateRecordSize();
+
+        TopicPartition getTopicPartition();
     }
 
     @EqualsAndHashCode
@@ -126,7 +128,7 @@ public abstract class KafkaRecord implements Record {
         private final SourceRecord record;
         public KafkaSourceRecord(SourceRecord record) {
             super(KafkaHeader.fromKafkaHeaders(record.headers()),
-                    new TopicPartition(record.topic(), record.kafkaPartition()));
+                    new TopicPartition(record.topic(), record.kafkaPartition() != null ? record.kafkaPartition() :  0));
             this.record = record;
         }
 

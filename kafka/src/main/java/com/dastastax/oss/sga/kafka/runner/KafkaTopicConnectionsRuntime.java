@@ -55,12 +55,14 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
 
     @Override
     public TopicAdmin createTopicAdmin(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        Map<String, Object> copy = new HashMap<>(configuration);
+        applyDefaultConfiguration(agentId, streamingCluster, copy);
         return new TopicAdmin() {
 
             org.apache.kafka.connect.util.TopicAdmin topicAdmin;
             @Override
             public void start() {
-                topicAdmin = new org.apache.kafka.connect.util.TopicAdmin(configuration);
+                topicAdmin = new org.apache.kafka.connect.util.TopicAdmin(copy);
             }
 
             @Override

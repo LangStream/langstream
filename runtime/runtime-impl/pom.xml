@@ -38,14 +38,27 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>sga-kafka</artifactId>
       <version>${project.version}</version>
-      <scope>runtime</scope>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>sga-pulsar</artifactId>
       <version>${project.version}</version>
-      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>connect-runtime</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>ch.qos.reload4j</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- implementation for Kafka Connect -->
@@ -164,12 +177,12 @@
       <artifactId>tools</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
+    <!-- <dependency>
       <groupId>com.snowflake</groupId>
       <artifactId>snowflake-kafka-connector</artifactId>
       <version>1.7.2</version>
       <scope>test</scope>
-    </dependency>
+    </dependency> -->
   </dependencies>
   <build>
     <plugins>

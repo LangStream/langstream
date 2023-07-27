@@ -1,6 +1,5 @@
 package com.datastax.oss.sga.kafka;
 
-import com.dastastax.oss.sga.kafka.runner.KafkaConsumerRecord;
 import com.dastastax.oss.sga.kafka.runner.KafkaTopicConnectionsRuntime;
 import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
 import com.datastax.oss.sga.api.model.Application;
@@ -8,7 +7,6 @@ import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
@@ -25,20 +23,13 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.output.OutputFrame;
-import org.testcontainers.utility.DockerImageName;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

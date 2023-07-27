@@ -5,6 +5,9 @@ import com.dastastax.oss.sga.kafka.runner.KafkaTopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
+import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
+import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
+import com.datastax.oss.sga.api.runner.topics.TopicConsumerProvider;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import io.confluent.connect.avro.AvroConverter;
@@ -14,10 +17,13 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.runtime.TaskConfig;
 import org.apache.kafka.connect.runtime.WorkerConfig;
+import org.apache.kafka.connect.runtime.distributed.Crypto;
+import org.apache.kafka.connect.runtime.distributed.DistributedConfig;
 import org.apache.kafka.connect.sink.SinkConnectorContext;
 import org.apache.kafka.connect.source.SourceConnector;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -31,6 +37,7 @@ import org.apache.kafka.connect.storage.OffsetStorageReaderImpl;
 import org.apache.kafka.connect.storage.OffsetStorageWriter;
 import org.apache.kafka.connect.util.TopicAdmin;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -42,13 +49,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.kafka.connect.runtime.TopicCreationConfig.PARTITIONS_VALIDATOR;
+import static org.apache.kafka.connect.runtime.TopicCreationConfig.REPLICATION_FACTOR_VALIDATOR;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.CONFIG_TOPIC_CONFIG;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.GROUP_ID_CONFIG;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.OFFSET_STORAGE_PARTITIONS_CONFIG;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.OFFSET_STORAGE_REPLICATION_FACTOR_CONFIG;
 import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.OFFSET_STORAGE_TOPIC_CONFIG;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.STATUS_STORAGE_TOPIC_CONFIG;
 
 @Slf4j
 public class KafkaConnectSourceAgent implements AgentSource {
 
-    public static final String ADAPTER_CONFIG = "adapterConfig";
-    public static final String CONNECTOR_CLASS = "kafkaConnectorSourceClass";
+    public static final String CONNECTOR_CLASS = "connector.class";
 
     private static final String DEFAULT_CONVERTER = "org.apache.kafka.connect.json.JsonConverter";
     private static final String OFFSET_NAMESPACE = "sga-offset-ns";
@@ -62,9 +75,12 @@ public class KafkaConnectSourceAgent implements AgentSource {
 
     private Producer<byte[], byte[]> producer;
     private Consumer<byte[], byte[]> consumer;
+    private TopicConsumerProvider topicConsumerProvider;
     private TopicAdmin topicAdmin;
+    private String agentId;
 
     private OffsetBackingStore offsetStore;
+    private boolean offsetStoreStarted;
     private OffsetStorageReader offsetReader;
     @Getter
     public OffsetStorageWriter offsetWriter;
@@ -74,10 +90,27 @@ public class KafkaConnectSourceAgent implements AgentSource {
     Map<String, String> adapterConfig;
     Map<String, String> stringConfig;
 
+    TopicConsumer topicConsumer;
+
     // just to get access to baseConfigDef()
     class WorkerConfigImpl extends org.apache.kafka.connect.runtime.WorkerConfig {
         public WorkerConfigImpl(Map<String, String> props) {
-            super(baseConfigDef(), props);
+            super(baseConfigDef().define(OFFSET_STORAGE_TOPIC_CONFIG,
+                            ConfigDef.Type.STRING,
+                            ConfigDef.Importance.HIGH,
+                            "")
+                    .define(OFFSET_STORAGE_PARTITIONS_CONFIG,
+                            ConfigDef.Type.INT,
+                            25,
+                            PARTITIONS_VALIDATOR,
+                            ConfigDef.Importance.LOW,
+                            "")
+                    .define(OFFSET_STORAGE_REPLICATION_FACTOR_CONFIG,
+                            ConfigDef.Type.SHORT,
+                            (short) 1,
+                            REPLICATION_FACTOR_VALIDATOR,
+                            ConfigDef.Importance.LOW,
+                            ""), props);
         }
     }
 
@@ -153,11 +186,23 @@ public class KafkaConnectSourceAgent implements AgentSource {
     public void init(Map<String, Object> configuration) throws Exception {
         log.info("Starting Kafka Connect Source Agent with configuration: {}", configuration);
 
-        adapterConfig = (Map<String, String>) configuration.remove(ADAPTER_CONFIG);
-        Objects.requireNonNull(adapterConfig, "Adapter configuration is required");
+        adapterConfig = (Map) configuration;
         Objects.requireNonNull(adapterConfig.get(CONNECTOR_CLASS), "Connector class is required");
 
-        stringConfig = Maps.transformValues(configuration, Object::toString);
+        stringConfig = new HashMap<>(Maps.transformValues(configuration, Object::toString));
+
+        stringConfig.putIfAbsent(WorkerConfig.KEY_CONVERTER_CLASS_CONFIG, DEFAULT_CONVERTER);
+        stringConfig.putIfAbsent(WorkerConfig.VALUE_CONVERTER_CLASS_CONFIG, DEFAULT_CONVERTER);
+        stringConfig.putIfAbsent(OFFSET_STORAGE_PARTITIONS_CONFIG, "1");
+        stringConfig.putIfAbsent(GROUP_ID_CONFIG, agentId);
+
+        stringConfig.putIfAbsent(CONFIG_TOPIC_CONFIG, "youdont'needthis");
+        stringConfig.putIfAbsent(STATUS_STORAGE_TOPIC_CONFIG, "youdont'needthis");
+
+
+        Objects.requireNonNull(stringConfig.get(OFFSET_STORAGE_TOPIC_CONFIG),
+                "offset storage topic must be configured");
+
 
         // initialize the key and value converter
         keyConverter = Class.forName(stringConfig
@@ -187,9 +232,10 @@ public class KafkaConnectSourceAgent implements AgentSource {
     }
 
     public void setContext(AgentContext context) throws Exception {
-        this.consumer = (Consumer<byte[], byte[]>) context.getTopicConsumer().getNativeConsumer();
         this.producer = (Producer<byte[], byte[]>) context.getTopicProducer().getNativeProducer();
         this.topicAdmin = (TopicAdmin) context.getTopicAdmin().getNativeTopicAdmin();
+        this.agentId = context.getAgentId();
+        this.topicConsumerProvider = context.getTopicConsumerProvider();
     }
 
     @Override
@@ -220,14 +266,18 @@ public class KafkaConnectSourceAgent implements AgentSource {
         checkArgument(configs.size() == 1);
         final Map<String, String> taskConfig = configs.get(0);
 
-        Objects.requireNonNull(taskConfig.get(OFFSET_STORAGE_TOPIC_CONFIG),
-                "offset storage topic must be configured");
-        offsetStore = KafkaOffsetBackingStore.forTask(taskConfig.get(OFFSET_STORAGE_TOPIC_CONFIG),
+        String offsetTopic = stringConfig.get(OFFSET_STORAGE_TOPIC_CONFIG);
+        topicConsumer = topicConsumerProvider.createConsumer(agentId, Map.of());
+        topicConsumer.start();
+        consumer = (Consumer<byte[], byte[]>) topicConsumer.getNativeConsumer();
+
+        offsetStore = KafkaOffsetBackingStore.forTask(stringConfig.get(OFFSET_STORAGE_TOPIC_CONFIG),
                 this.producer, this.consumer, this.topicAdmin, keyConverter);
 
         WorkerConfig workerConfig = new WorkerConfigImpl(stringConfig);
         offsetStore.configure(workerConfig);
         offsetStore.start();
+        offsetStoreStarted = true;
 
         offsetReader = new OffsetStorageReaderImpl(offsetStore,
                 OFFSET_NAMESPACE,
@@ -267,8 +317,14 @@ public class KafkaConnectSourceAgent implements AgentSource {
         }
 
         if (offsetStore != null) {
-            offsetStore.stop();
+            if (offsetStoreStarted) { // Prevent NPE
+                offsetStore.stop();
+            }
             offsetStore = null;
+        }
+
+        if (topicConsumer != null) {
+            topicConsumer.close();
         }
     }
 }

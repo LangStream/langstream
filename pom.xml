@@ -81,6 +81,11 @@
         <version>${kafka.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>connect-runtime</artifactId>
+        <version>${kafka.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.pulsar</groupId>
         <artifactId>pulsar-client-admin</artifactId>
         <version>${pulsar.version}</version>

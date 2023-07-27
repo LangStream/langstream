@@ -195,7 +195,8 @@ public class ModelBuilder {
             for (TopicDefinitionModel topicDefinition : pipelineConfiguration.getTopics()) {
                 module.addTopic(new TopicDefinition(topicDefinition.getName(),
                         topicDefinition.getCreationMode(), topicDefinition.getPartitions(),
-                        topicDefinition.getKeySchema(), topicDefinition.getSchema()));
+                        topicDefinition.getKeySchema(), topicDefinition.getSchema(),
+                        topicDefinition.getOptions(), topicDefinition.getConfig()));
             }
         }
 
@@ -271,6 +272,8 @@ public class ModelBuilder {
         private int partitions = 0;
 
         private SchemaDefinition keySchema;
+        private Map<String, Object> options;
+        private Map<String, Object> config;
 
     }
 

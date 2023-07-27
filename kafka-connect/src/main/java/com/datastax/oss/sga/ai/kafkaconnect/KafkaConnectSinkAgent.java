@@ -180,10 +180,11 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
     private static KafkaRecord getKafkaRecord(Record record) {
         KafkaRecord kr;
+        log.info("Record is a {}", record.getClass());
         if (record instanceof KafkaRecord) {
             kr = (KafkaRecord) record;
         } else {
-            throw new IllegalArgumentException("Record is not a KafkaRecord");
+            throw new IllegalArgumentException("Record is not a KafkaRecord but a " + record.getClass());
         }
         return kr;
     }

@@ -45,8 +45,6 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>connect-runtime</artifactId>
-      <version>${kafka.version}</version>
-      <scope>compile</scope>
     </dependency>
 
     <dependency>

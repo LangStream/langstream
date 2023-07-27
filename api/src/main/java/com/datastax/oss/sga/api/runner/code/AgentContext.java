@@ -1,7 +1,9 @@
 package com.datastax.oss.sga.api.runner.code;
 
 import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
+import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
+import com.datastax.oss.sga.api.runner.topics.TopicConsumerProvider;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 
 public interface AgentContext {
@@ -9,7 +11,9 @@ public interface AgentContext {
 
     TopicProducer getTopicProducer();
 
-    default TopicAdmin getTopicAdmin() {
-        return new TopicAdmin() { };
-    }
+    String getAgentId();
+
+    TopicAdmin getTopicAdmin();
+
+    TopicConsumerProvider getTopicConsumerProvider();
 }

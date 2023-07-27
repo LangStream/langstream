@@ -12,8 +12,8 @@ pipeline:
       connector.class: com.datastax.oss.kafka.sink.CassandraSinkConnector
       key.converter: org.apache.kafka.connect.storage.StringConverter
       value.converter: org.apache.kafka.connect.storage.StringConverter
-      cloud.secureConnectBundle: "{{ secrets.cassandra.secure-connect-bundle }}"
-      auth.username: "{{ secrets.cassandra.username }}"
-      auth.password: "{{ secrets.cassandra.password }}"
+      cloud.secureConnectBundle: "{{{ secrets.cassandra.secure-connect-bundle }}}"
+      auth.username: "{{{ secrets.cassandra.username }}}"
+      auth.password: "{{{ secrets.cassandra.password }}}"
       topic.input-topic.vsearch.products.mapping: "id=value.id,description=value.description,name=value.name"
       name: cassandra-sink

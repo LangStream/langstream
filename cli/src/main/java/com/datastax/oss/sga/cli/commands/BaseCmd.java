@@ -123,6 +123,7 @@ public abstract class BaseCmd implements Runnable {
         if (httpClient == null) {
             httpClient = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(30))
+                    .followRedirects(HttpClient.Redirect.ALWAYS)
                     .build();
         }
         return httpClient;

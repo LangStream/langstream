@@ -191,7 +191,7 @@
                 <copydir src="${basedir}/src/main/python/sga_runtime" dest="${basedir}/target/python/sga_runtime"/>
                 <copydir src="${basedir}/src/main/python/tests" dest="${basedir}/target/python/tests"/>
                 <copy file="${basedir}/src/main/python/tox.ini" todir="${basedir}/target/python"/>
-                <copy file="${basedir}/src/main/python/pipfile" todir="${basedir}/target/python"/>
+                <copy file="${basedir}/src/main/python/Pipfile" todir="${basedir}/target/python"/>
                 <copy file="${basedir}/src/main/python/Pipfile.lock" todir="${basedir}/target/python"/>
               </target>
             </configuration>

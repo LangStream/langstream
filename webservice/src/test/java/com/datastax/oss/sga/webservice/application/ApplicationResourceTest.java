@@ -188,6 +188,7 @@ class ApplicationResourceTest {
                               }
                             },
                             "dependencies" : [ ],
+                            "gateways" : null,
                             "instance" : {
                               "streamingCluster" : {
                                 "type" : "pulsar",

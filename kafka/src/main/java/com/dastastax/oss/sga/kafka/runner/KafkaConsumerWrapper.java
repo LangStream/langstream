@@ -69,24 +69,18 @@ class KafkaConsumerWrapper implements TopicConsumer {
             long offset = kafkaRecord.offset();
             log.info("Committing offset {} on partition {} (record: {})", offset, topicPartition, kafkaRecord);
             committed.compute(topicPartition, (key, existing) -> {
-               log.info("Committing on partition {}: previous offset {}, new offset {}", key, existing, offset);
-               if (existing == null) {
-                   return new OffsetAndMetadata(offset);
-               } else if (existing.offset() != offset - 1) {
-                   throw new IllegalStateException("There is an hole in the commit sequence for partition " + key);
-               } else {
-                   return new OffsetAndMetadata(Math.max(offset, existing.offset()));
-               }
+                log.info("Committing on partition {}: previous offset {}, new offset {}", key, existing, offset);
+                if (existing != null && offset != existing.offset() + 1) {
+                    throw new IllegalStateException("There is an hole in the commit sequence for partition " + key);
+                }
+                return new OffsetAndMetadata(offset);
             });
         }
-        consumer.commitAsync(committed, new OffsetCommitCallback() {
-            @Override
-            public void onComplete(Map<TopicPartition, OffsetAndMetadata> map, Exception e) {
-                if (e != null) {
-                    log.error("Error committing offsets", e);
-                } else {
-                    log.info("Offsets committed: {}", map);
-                }
+        consumer.commitAsync(committed, (map, e) -> {
+            if (e != null) {
+                log.error("Error committing offsets", e);
+            } else {
+                log.info("Offsets committed: {}", map);
             }
         });
     }

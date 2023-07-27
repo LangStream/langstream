@@ -1,4 +1,4 @@
-from sga_runtime.record import Record
+from sga_runtime.simplerecord import SimpleRecord
 import openai
 import json
 from openai.embeddings_utils import get_embedding
@@ -15,5 +15,5 @@ class Embedding(object):
       embedding = get_embedding(record.value(), engine='text-embedding-ada-002')
       result = {"input": str(record.value()), "embedding": embedding}
       new_value = json.dumps(result)
-      processed_records.append(Record(value=new_value))
+      processed_records.append((record, [SimpleRecord(value=new_value)]))
     return processed_records

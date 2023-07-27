@@ -10,9 +10,12 @@ class Example(object):
         print(f'read {records}')
         return records
 
+    def set_commit_callback(self, cb):
+        pass
+
     def process(self, records):
         print(f'process {records}')
-        return records
+        return [(record, [record]) for record in records]
 
     def write(self, records):
         print(f'write {records}')

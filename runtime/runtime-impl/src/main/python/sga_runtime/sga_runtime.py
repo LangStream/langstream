@@ -3,6 +3,8 @@ import logging
 import time
 
 from . import topic_connections_registry
+from .api import Source, Sink, Processor, CommitCallback
+from .source_record_tracker import SourceRecordTracker
 
 
 def run(configuration, max_loops=-1):
@@ -51,7 +53,7 @@ def init_agent(configuration):
     module_name = full_class_name[:-len(class_name) - 1]
     module = importlib.import_module(module_name)
     agent = getattr(module, class_name)()
-    call_method_if_exists(agent, 'init', config=agent_config)
+    call_method_if_exists(agent, 'init', agent_config)
     return agent
 
 
@@ -61,46 +63,52 @@ def call_method_if_exists(klass, method, *args, **kwargs):
         method(*args, **kwargs)
 
 
-def run_main_loop(source, sink, function, max_loops):
+def run_main_loop(source: Source, sink: Sink, function: Processor, max_loops: int):
     for component in {source, sink, function}:
         call_method_if_exists(component, 'start')
 
     try:
+        source_record_tracker = SourceRecordTracker(source)
+        sink.set_commit_callback(source_record_tracker)
         while max_loops < 0 or max_loops > 0:
             if max_loops > 0:
                 max_loops -= 1
-            # TODO: handle semantics, transactions...
             records = source.read()
             if records and len(records) > 0:
                 try:
-                    output_records = function.process(records)
-                    if output_records and len(output_records) > 0:
-                        sink.write(output_records)
+                    # the function maps the record coming from the Source to records to be sent to the Sink
+                    sink_records = function.process(records)
+                    source_record_tracker.track(sink_records)
+
+                    for_the_sink = []
+                    for records in sink_records:
+                        for_the_sink.extend(records[1])
+
+                    sink.write(for_the_sink)
                 except Exception:
                     # TODO: handle errors
                     logging.exception("Error while processing records")
-
-                call_method_if_exists(source, 'commit')
 
     finally:
         for component in {source, sink, function}:
             call_method_if_exists(component, 'close')
 
 
-class NoopSource(object):
-    @staticmethod
-    def read():
+class NoopSource(Source):
+    def read(self):
         logging.info("Sleeping for 1 second, no records...")
         time.sleep(1)
         return []
 
 
-class NoopSink(object):
+class NoopSink(Sink):
+    def set_commit_callback(self, cb):
+        pass
+
     def write(self, records):
         pass
 
 
-class NoopProcessor(object):
-    @staticmethod
-    def process(records):
-        return records
+class NoopProcessor(Processor):
+    def process(self, records):
+        return [(record, [record]) for record in records]

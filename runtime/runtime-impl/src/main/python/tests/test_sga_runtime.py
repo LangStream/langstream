@@ -4,6 +4,7 @@ import string
 import yaml
 
 from sga_runtime import sga_runtime
+from sga_runtime.api import Source, Sink, Processor, CommitCallback
 
 
 def test_simple_agent():
@@ -24,6 +25,7 @@ def test_simple_agent():
         'config': [{'className': 'tests.test_sga_runtime.TestAgent', 'key': random_value}],
         'start': 1,
         'close': 1,
+        'set_commit_callback': 1,
         'records': ['some record 0 processed', 'some record 1 processed']
     }
     assert expected == TEST_RESULTS[random_value]
@@ -32,16 +34,17 @@ def test_simple_agent():
 TEST_RESULTS = {}
 
 
-class TestAgent(object):
-
+class TestAgent(Source, Sink, Processor):
     def __init__(self):
         self.context = {
             'config': [],
             'start': 0,
             'close': 0,
+            'set_commit_callback': 0,
             'records': []
         }
         self.key = None
+        self.commit_callback = None
 
     def init(self, config):
         self.context['config'].append(config)
@@ -57,9 +60,11 @@ class TestAgent(object):
     def read(self):
         return ['some record ' + str(len(self.context['records']))]
 
+    def set_commit_callback(self, commit_callback: CommitCallback):
+        self.context['set_commit_callback'] += 1
+
     def write(self, records):
         self.context['records'].extend(records)
 
-    @staticmethod
-    def process(records):
-        return [record + ' processed' for record in records]
+    def process(self, records):
+        return [(record, [record + ' processed']) for record in records]

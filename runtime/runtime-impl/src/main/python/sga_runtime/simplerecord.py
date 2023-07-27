@@ -1,30 +1,9 @@
-from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
 
-
-class AbstractRecord(ABC):
-    @abstractmethod
-    def key(self):
-        pass
-
-    @abstractmethod
-    def value(self):
-        pass
-
-    @abstractmethod
-    def origin(self) -> str:
-        pass
-
-    @abstractmethod
-    def timestamp(self) -> int:
-        pass
-
-    @abstractmethod
-    def headers(self) -> List[Tuple[str, Any]]:
-        pass
+from .api import Record
 
 
-class Record(AbstractRecord):
+class SimpleRecord(Record):
     def __init__(self, value, key=None, origin: str = None, timestamp: int = None,
                  headers: List[Tuple[str, Any]] = None):
         self._value = value

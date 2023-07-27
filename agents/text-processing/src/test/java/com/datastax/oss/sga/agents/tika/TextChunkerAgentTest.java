@@ -23,10 +23,10 @@ class TextChunkerAgentTest {
     public void testChunks(int chunkSize, int chunkOverlap, String text, String length_function, List<String> expected) throws Exception {
 
         TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
-        SingleRecordAgentFunction instance = provider.createInstance("text-chunker");
+        SingleRecordAgentFunction instance = provider.createInstance("text-splitter");
         instance.init(Map.of("splitter_type", "RecursiveCharacterTextSplitter",
         "separators", List.of("\n\n", "\n", " ", ""),
-                "keep_separator", "false",
+                "keep_separator", "true",
                 "chunk_size", chunkSize,
                 "chunk_overlap", chunkOverlap,
                 "length_function", length_function));

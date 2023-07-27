@@ -10,6 +10,7 @@ import com.datastax.oss.sga.api.runtime.AgentNodeProvider;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
 import com.datastax.oss.sga.api.runtime.Connection;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
+import com.datastax.oss.sga.api.runtime.ExecutionPlanOptimiser;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.Topic;
@@ -100,12 +101,19 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
         AgentNode agentImplementation = agentImplementationProvider
                 .createImplementation(agentConfiguration, module, pipeline, result, this, pluginsRegistry, streamingClusterRuntime );
 
-        if (previousAgent != null && agentImplementationProvider.canMerge(previousAgent, agentImplementation)) {
-            agentImplementation = agentImplementationProvider.mergeAgents(previousAgent, agentImplementation, result);
-        } else {
+        boolean merged = false;
+        if (previousAgent != null) {
+            for (ExecutionPlanOptimiser optimiser : getExecutionPlanOptimisers()) {
+                if (optimiser.canMerge(previousAgent, agentImplementation)) {
+                    agentImplementation = optimiser.mergeAgents(previousAgent, agentImplementation, result);
+                    merged = true;
+                    break;
+                }
+            }
+        }
+        if (!merged) {
             result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
         }
-
         return agentImplementation;
     }
 

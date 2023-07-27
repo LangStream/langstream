@@ -3,7 +3,8 @@ package com.datastax.oss.sga.runtime.impl.k8s.agents;
 import static com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime.CLUSTER_TYPE;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.runtime.ComponentType;
-import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
+import com.datastax.oss.sga.impl.agents.AbstractComposableAgentProvider;
+
 import java.util.List;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;

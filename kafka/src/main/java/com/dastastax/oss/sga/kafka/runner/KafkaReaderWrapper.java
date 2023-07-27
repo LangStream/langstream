@@ -81,7 +81,7 @@ class KafkaReaderWrapper implements TopicReader {
         ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(5));
         List<Record> records = new ArrayList<>(poll.count());
         for (ConsumerRecord<?, ?> record : poll) {
-            records.add(new KafkaConsumerRecord(record));
+            records.add(KafkaRecord.fromKafkaConsumerRecord(record));
         }
         final Set assignment = consumer.assignment();
         log.info("Received {} records from Kafka topics {}: {}", records.size(), assignment, records);

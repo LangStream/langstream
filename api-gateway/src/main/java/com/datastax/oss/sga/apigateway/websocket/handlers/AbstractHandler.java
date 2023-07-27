@@ -1,10 +1,12 @@
 package com.datastax.oss.sga.apigateway.websocket.handlers;
 
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Gateway;
 import com.datastax.oss.sga.api.model.Gateways;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
+import com.datastax.oss.sga.impl.common.ApplicationPlaceholderResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -96,8 +98,18 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         return true;
     }
 
-    protected Gateway extractGateway(String gatewayId, StoredApplication application, Gateway.GatewayType type) {
-        final Gateways gatewaysObj = application.getInstance().getGateways();
+    protected Application getResolvedApplication(String tenant, String applicationId) {
+        final Application application = applicationStore.getSpecs(tenant, applicationId);
+        if (application == null) {
+            throw new IllegalArgumentException("application " + applicationId + " not found");
+        }
+        application.setSecrets(applicationStore.getSecrets(tenant, applicationId));
+        return ApplicationPlaceholderResolver
+                .resolvePlaceholders(application);
+    }
+
+    protected Gateway extractGateway(String gatewayId, Application application, Gateway.GatewayType type) {
+        final Gateways gatewaysObj = application.getGateways();
         if (gatewaysObj == null) {
             throw new IllegalArgumentException("no gateways defined for the application");
         }

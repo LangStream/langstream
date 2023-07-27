@@ -139,14 +139,14 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                             while (waitingProduceResponse.get()) {
                                 Thread.sleep(500);
                                 if (waitingProduceResponse.get()) {
-                                    logUserNoNewLine(".-");
+                                    logUserNoNewLine(".");
                                 }
 
                             }
                             while (waitingConsumeMessage.get()) {
                                 Thread.sleep(500);
                                 if (waitingConsumeMessage.get()) {
-                                    logUserNoNewLine(".+");
+                                    logUserNoNewLine(".");
                                 }
                             }
 

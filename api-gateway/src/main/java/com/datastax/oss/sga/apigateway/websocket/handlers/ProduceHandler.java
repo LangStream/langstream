@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.apigateway.websocket.handlers;
 
 import static com.datastax.oss.sga.apigateway.websocket.WebSocketConfig.PRODUCE_PATH;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Gateway;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.model.StreamingCluster;
@@ -53,14 +54,14 @@ public class ProduceHandler extends AbstractHandler {
         final String applicationId = vars.get("application");
 
 
-        final StoredApplication application = applicationStore.get(tenant, applicationId);
+        final Application application = getResolvedApplication(tenant, applicationId);
         Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.produce);
 
 
         final RequestDetails requestDetails = validateQueryStringAndOptions(
                 (Map<String, String>) webSocketSession.getAttributes().get("queryString"), selectedGateway);
         final List<Header> headers = getCommonHeaders(selectedGateway, requestDetails.getUserParameters());
-        final StreamingCluster streamingCluster = application.getInstance().getInstance().streamingCluster();
+        final StreamingCluster streamingCluster = application.getInstance().streamingCluster();
 
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);

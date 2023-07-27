@@ -6,6 +6,7 @@ import com.datastax.oss.sga.api.codestorage.CodeStorageException;
 import com.datastax.oss.sga.api.codestorage.LocalZipFileArchiveFile;
 import com.datastax.oss.sga.api.codestorage.UploadableCodeArchive;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.minio.BucketExistsArgs;
 import io.minio.DownloadObjectArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
@@ -32,6 +33,14 @@ import okhttp3.OkHttpClient;
 
 @Slf4j
 public class S3CodeStorage implements CodeStorage {
+
+    public static void main(String[] args) {
+        new S3CodeStorage(Map.of(
+                "secretkey", "S/N3J+j59PSrtLnPmmCeFXmdLUbfvZBQecWJIBkl",
+                "accesskey", "AKIA3ESI4IJDYJPTYLXD",
+                "bucketname", "as-sgai-dev-us-east2"
+                ));
+    }
 
     private static final ObjectMapper mapper = new ObjectMapper();
     protected static final long DEFAULT_CONNECTION_TIMEOUT = TimeUnit.MINUTES.toMillis(5L);
@@ -60,16 +69,17 @@ public class S3CodeStorage implements CodeStorage {
                         .credentials(accessKey, secretKey)
                         .build();
 
-        List<Bucket> buckets = minioClient.listBuckets();
-        log.info("Existing Buckets: {}", buckets.stream().map(Bucket::name).toList());
-        if (buckets.stream().noneMatch(b -> b.name().equals(bucketName))) {
+        if (!minioClient.bucketExists(BucketExistsArgs.builder()
+                .bucket(bucketName)
+                .build())) {
             log.info("Creating bucket {}", bucketName);
             minioClient.makeBucket(MakeBucketArgs
                     .builder()
                     .bucket(bucketName)
                     .build());
+        } else {
+            log.info("Bucket {} already exists", bucketName);
         }
-
     }
 
 

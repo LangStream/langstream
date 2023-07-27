@@ -18,6 +18,7 @@ package com.datastax.oss.sga.impl.parser;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Dependency;
+import com.datastax.oss.sga.api.model.Gateway;
 import com.datastax.oss.sga.api.model.Gateways;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
@@ -174,8 +175,55 @@ public class ModelBuilder {
 
     private static void parseGateways(String content, Application application) throws IOException {
         Gateways gatewaysFileModel = mapper.readValue(content, Gateways.class);
+        if (gatewaysFileModel.gateways() != null) {
+            gatewaysFileModel.gateways().forEach(ModelBuilder::validateGateway);
+        }
         log.info("Gateways: {}", gatewaysFileModel);
         application.setGateways(gatewaysFileModel);
+    }
+
+    private static void validateGateway(Gateway gateway) {
+        if (gateway.id() == null || gateway.id().isBlank()) {
+            throw new IllegalArgumentException("Gateway id is required");
+        }
+        if (gateway.type() == null) {
+            throw new IllegalArgumentException("Gateway type is required");
+        }
+        if (gateway.type() == Gateway.GatewayType.consume) {
+            if (gateway.produceOptions() != null) {
+                throw new IllegalArgumentException("Gateway of type 'consume' cannot have produce options");
+            }
+            if (gateway.consumeOptions() != null) {
+                if (gateway.consumeOptions().filters() != null) {
+                    final Gateway.ConsumeOptionsFilters filters = gateway.consumeOptions().filters();
+                    if (filters.headers() != null) {
+                        filters.headers().forEach(ModelBuilder::validateGatewayKeyValueComparison);
+                    }
+                }
+
+            }
+        } else if (gateway.type() == Gateway.GatewayType.produce) {
+            if (gateway.consumeOptions() != null) {
+                throw new IllegalArgumentException("Gateway of type 'produce' cannot have consume options");
+            }
+        }
+
+
+    }
+
+    private static void validateGatewayKeyValueComparison(Gateway.KeyValueComparison keyValueComparison) {
+        if (keyValueComparison.key() == null || keyValueComparison.key().isBlank()) {
+            throw new IllegalArgumentException("'key' is required for filter");
+        }
+        if (keyValueComparison.value() != null && keyValueComparison.valueFromParameters() != null) {
+            throw new IllegalArgumentException("Only one of 'value' or 'valueFromParameters' can be specified for filter");
+        }
+        if (keyValueComparison.value() != null && keyValueComparison.value().isBlank()) {
+            throw new IllegalArgumentException("'value' cannot be blank for filter");
+        }
+        if (keyValueComparison.valueFromParameters() != null && keyValueComparison.valueFromParameters().isBlank()) {
+            throw new IllegalArgumentException("'valueFromParameters' cannot be blank for filter");
+        }
     }
 
     private static void parsePipelineFile(String filename, String content, Application application) throws IOException {

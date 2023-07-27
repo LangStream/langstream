@@ -2,5 +2,5 @@ com.datastax.oss.sga.runtime.impl.k8s.agents.python.PythonCodeAgentProvider
 com.datastax.oss.sga.runtime.impl.k8s.agents.ai.KubernetesGenAIToolKitFunctionAgentProvider
 com.datastax.oss.sga.runtime.impl.k8s.agents.S3SourceAgentProvider
 com.datastax.oss.sga.runtime.impl.k8s.agents.TextProcessingAgentsProvider
-com.datastax.oss.sga.runtime.impl.k8s.agents.CompositeAgentProvider
 com.datastax.oss.sga.runtime.impl.k8s.agents.KafkaConnectAgentsProvider
+com.datastax.oss.sga.runtime.impl.k8s.agents.KubernetesCompositeAgentProvider

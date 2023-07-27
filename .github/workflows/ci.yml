@@ -13,7 +13,7 @@ jobs:
   tests:
     name: tests
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
@@ -43,7 +43,7 @@ jobs:
   e2e-tests:
     name: e2e-tests
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2

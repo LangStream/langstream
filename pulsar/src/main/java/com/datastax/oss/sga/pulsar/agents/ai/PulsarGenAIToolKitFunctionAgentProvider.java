@@ -13,7 +13,7 @@ import com.datastax.oss.sga.pulsar.agents.AbstractPulsarAgentProvider;
 public class PulsarGenAIToolKitFunctionAgentProvider extends GenAIToolKitFunctionAgentProvider {
 
     public PulsarGenAIToolKitFunctionAgentProvider() {
-        super(PulsarClusterRuntime.CLUSTER_TYPE, "ai-tools");
+        super(PulsarClusterRuntime.CLUSTER_TYPE, GenAIToolKitFunctionAgentProvider.AGENT_TYPE);
     }
 
     @Override

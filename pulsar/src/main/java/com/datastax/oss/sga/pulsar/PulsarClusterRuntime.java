@@ -3,7 +3,9 @@ package com.datastax.oss.sga.pulsar;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
+import com.datastax.oss.sga.api.runtime.ExecutionPlanOptimiser;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
+import com.datastax.oss.sga.impl.agents.ai.GenAIToolKitExecutionPlanOptimizer;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.pulsar.agents.PulsarAgentNodeMetadata;
@@ -25,6 +27,9 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
     static final ObjectMapper mapper = new ObjectMapper();
 
     public static final String CLUSTER_TYPE = "pulsar";
+
+    static final List<ExecutionPlanOptimiser> OPTIMISERS = List.of(
+            new GenAIToolKitExecutionPlanOptimizer());
 
     @Override
     public String getClusterType() {
@@ -204,5 +209,10 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
             }
         }
         throw new IllegalArgumentException("Unsupported Agent type " + agent.getClass().getName());
+    }
+
+    @Override
+    public List<ExecutionPlanOptimiser> getExecutionPlanOptimisers() {
+        return OPTIMISERS;
     }
 }

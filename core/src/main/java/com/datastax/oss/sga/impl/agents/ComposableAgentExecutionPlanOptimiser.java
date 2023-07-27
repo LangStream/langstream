@@ -1,10 +1,9 @@
-package com.datastax.oss.sga.runtime.impl.k8s.agents;
+package com.datastax.oss.sga.impl.agents;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
+import com.datastax.oss.sga.api.runtime.ExecutionPlanOptimiser;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -12,26 +11,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-/**
- * Implements support for agents that can be composed into a single Composable Agent.
- */
 @Slf4j
-public abstract class AbstractComposableAgentProvider extends AbstractAgentProvider {
-
-    public AbstractComposableAgentProvider(Set<String> supportedTypes, List<String> supportedRuntimes) {
-        super(supportedTypes, supportedRuntimes);
-    }
-
-    @Override
-    protected boolean isComposable(AgentConfiguration agentConfiguration) {
-        return true;
-    }
+public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPlanOptimiser {
 
     @Override
     public boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation) {
-        boolean result =  (previousAgent instanceof DefaultAgentNode agent1
+        boolean result = (previousAgent instanceof DefaultAgentNode agent1
                 && agent1.isComposable()
                 && agentImplementation instanceof DefaultAgentNode agent2
                 && agent2.isComposable());
@@ -46,7 +32,7 @@ public abstract class AbstractComposableAgentProvider extends AbstractAgentProvi
         if (previousAgent instanceof DefaultAgentNode agent1
                 && agentImplementation instanceof DefaultAgentNode agent2) {
 
-            if (agent1.getAgentType().equals(CompositeAgentProvider.AGENT_TYPE)) {
+            if (agent1.getAgentType().equals(AbstractCompositeAgentProvider.AGENT_TYPE)) {
                 // merge "composite-agent" with a Composable Agent
 
                 Map<String, Object> configurationAgent2 = new HashMap<>();
@@ -73,7 +59,7 @@ public abstract class AbstractComposableAgentProvider extends AbstractAgentProvi
 
                 log.info("Discarding topic {}", agent1.getOutputConnection());
                 instance.discardTopic(agent1.getOutputConnection());
-                agent1.overrideConfigurationAfterMerge(CompositeAgentProvider.AGENT_TYPE, newAgent1Configuration, agent2.getOutputConnection());
+                agent1.overrideConfigurationAfterMerge(AbstractCompositeAgentProvider.AGENT_TYPE, newAgent1Configuration, agent2.getOutputConnection());
             } else {
                 List<Map<String, Object>> processors = new ArrayList<>();
                 Map<String, Object> source = new HashMap<>();
@@ -115,7 +101,7 @@ public abstract class AbstractComposableAgentProvider extends AbstractAgentProvi
                     log.info("Discarding topic {}", agent1.getOutputConnection());
                     instance.discardTopic(agent1.getOutputConnection());
                 }
-                agent1.overrideConfigurationAfterMerge(CompositeAgentProvider.AGENT_TYPE, result, agent2.getOutputConnection());
+                agent1.overrideConfigurationAfterMerge(AbstractCompositeAgentProvider.AGENT_TYPE, result, agent2.getOutputConnection());
             }
             log.info("Agent 1 modified: {}", agent1);
             if (agent2.getInputConnection() != null) {

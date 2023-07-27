@@ -189,7 +189,7 @@ class TikaAgentsRunnerTest {
 
 
     @Test
-    public void testFullLanguageProcessingPipiline() throws Exception {
+    public void testFullLanguageProcessingPipeline() throws Exception {
         String tenant = "tenant";
         kubeServer.spyAgentCustomResources(tenant, "app-text-extractor1");
         final Map<String, Secret> secrets = kubeServer.spyAgentCustomResourcesSecrets(tenant,  "app-text-extractor1");
@@ -216,6 +216,11 @@ class TikaAgentsRunnerTest {
                                        property: "language"
                                   - name: "Split into chunks"
                                     type: "text-splitter"
+                                    configuration:
+                                      chunk_size: 50
+                                      chunk_overlap: 0
+                                      keep_separator: true
+                                      length_function: "length"
                                   - name: "Normalise text"
                                     type: "text-normaliser"
                                     output: "output-topic"
@@ -305,21 +310,22 @@ class TikaAgentsRunnerTest {
 
             List<String> received = new ArrayList<>();
 
-            Awaitility.await().until(() -> {
+            Awaitility.await().untilAsserted(() -> {
                     ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(2));
                     for (ConsumerRecord record : poll) {
                         log.info("Received message {}", record);
                         received.add(record.value().toString());
                     }
-                    return received.size() >= 2;
+                log.info("Result: {}", received);
+                received.forEach(r -> {
+                    log.info("Received |{}|", r);
+                });
+                assertEquals(List.of("this   text   is   written   in   english,   but",
+                        "it   is   very   long,",
+                        "so you may want to split it into chunks."), received);
                 }
             );
-            log.info("Result: {}", received);
-            received.forEach(r -> {
-                log.info("Received |{}|", r);
-            });
-            assertEquals(List.of("this text is written in english, but it is very long,",
-                    "so you may want to split it into chunks."), received);
+
         }
 
     }

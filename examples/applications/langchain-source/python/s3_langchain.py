@@ -1,19 +1,27 @@
-import boto3
 import tempfile
 import time
+from typing import List
+
+import boto3
 from langchain.docstore.document import Document
 from langchain.document_loaders.base import BaseLoader
 from langchain.document_loaders.unstructured import UnstructuredFileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from sga_runtime.record import Record
-from typing import List
+
+from sga_runtime.api import Source, Record
+from sga_runtime.simplerecord import SimpleRecord
 
 
-class S3LangChain(object):
+class S3Record(SimpleRecord):
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = name
+
+
+class S3LangChain(Source):
     def __init__(self):
         self.loader = None
         self.bucket = None
-        self.objs_to_commit = set()
 
     def init(self, config):
         bucket_name = config.get('bucketName', 'sga-s3-langchain')
@@ -27,7 +35,7 @@ class S3LangChain(object):
         self.loader = S3DirectoryLoader(bucket_name, endpoint_url=endpoint_url, aws_access_key_id=aws_access_key_id,
                                         aws_secret_access_key=aws_secret_access_key)
 
-    def read(self):
+    def read(self) -> List[Record]:
         time.sleep(1)
         text_splitter = RecursiveCharacterTextSplitter(
             # Set a really small chunk size, just to show.
@@ -37,14 +45,10 @@ class S3LangChain(object):
             add_start_index=False,
         )
         docs = self.loader.load_and_split(text_splitter=text_splitter)
-        for doc in docs:
-            self.objs_to_commit.add(doc.metadata['s3_object_key'])
-        return [Record(doc.page_content) for doc in docs]
+        return [S3Record(doc.metadata['s3_object_key'], value=doc.page_content) for doc in docs]
 
-    def commit(self):
-        objects_to_delete = []
-        for key in set(self.objs_to_commit):
-            objects_to_delete.append({'Key': f'{key}'})
+    def commit(self, records: List[S3Record]):
+        objects_to_delete = [{'Key': f'{record.name}'} for record in records]
         self.bucket.delete_objects(Delete={'Objects': objects_to_delete})
 
 

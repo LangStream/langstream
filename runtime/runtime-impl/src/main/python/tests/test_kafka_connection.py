@@ -1,10 +1,15 @@
+import time
+
+import pytest
+import waiting
 import yaml
-from confluent_kafka import Consumer, Producer
+from confluent_kafka import Consumer, Producer, TopicPartition
 from confluent_kafka.serialization import StringDeserializer, StringSerializer
 from testcontainers.kafka import KafkaContainer
 
-from sga_runtime import sga_runtime
-from sga_runtime.record import Record
+from sga_runtime import sga_runtime, kafka_connection
+from sga_runtime.api import Processor
+from sga_runtime.simplerecord import SimpleRecord
 
 
 def test_kafka_topic_connection():
@@ -65,9 +70,41 @@ def test_kafka_topic_connection():
         ]
 
 
-class TestAgent(object):
-    @staticmethod
-    def process(records):
+def test_kafka_commit():
+    with KafkaContainer(image='confluentinc/cp-kafka:7.4.0') as container:
+        input_topic = 'input-topic'
+        bootstrap_server = container.get_bootstrap_server()
+
+        config_yaml = f"""
+        streamingCluster:
+            type: kafka
+            configuration:
+                admin:
+                    bootstrap.servers: {bootstrap_server}
+        """
+
+        config = yaml.safe_load(config_yaml)
+        source = kafka_connection.create_source("id", config['streamingCluster'], {'topic': input_topic})
+        source.start()
+
+        producer = Producer({'bootstrap.servers': bootstrap_server})
+        for _ in range(4):
+            producer.produce(input_topic, b'message')
+        producer.flush()
+
+        records = [source.read()[0], source.read()[0]]
+        source.commit(records)
+        waiting.wait(lambda: source.consumer.committed([TopicPartition(input_topic, partition=0)])[0].offset == 1,
+                     timeout_seconds=5, sleep_seconds=0.1)
+
+        # Commit unordered fails
+        source.read()
+        with pytest.raises(Exception):
+            source.commit([source.read()[0]])
+
+
+class TestAgent(Processor):
+    def process(self, records):
         new_records = []
         for record in records:
             headers = record.headers().copy()
@@ -76,5 +113,5 @@ class TestAgent(object):
             headers.append(('int', 42))
             headers.append(('float', 42.0))
             headers.append(('boolean', True))
-            new_records.append(Record(record.value(), headers=headers))
+            new_records.append((record, [SimpleRecord(record.value(), headers=headers)]))
         return new_records

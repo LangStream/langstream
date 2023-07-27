@@ -1,16 +1,13 @@
 package com.datastax.oss.sga.agents.tika;
 
-import com.dastastax.oss.sga.agents.tika.TikaAgentsCodeProvider;
+import com.dastastax.oss.sga.agents.tika.TextProcessingAgentsCodeProvider;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
 import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,7 +17,7 @@ public class LanguageDetectorTest {
 
     @Test
     public void textDetect() throws Exception {
-        TikaAgentsCodeProvider provider = new TikaAgentsCodeProvider();
+        TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
         SingleRecordAgentFunction instance = provider.createInstance("language-detector");
         instance.init(Map.of("property", "detected-language"));
 

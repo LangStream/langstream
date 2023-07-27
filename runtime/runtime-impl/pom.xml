@@ -87,7 +87,7 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-agent-tika</artifactId>
+      <artifactId>sga-agents-text-processing</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

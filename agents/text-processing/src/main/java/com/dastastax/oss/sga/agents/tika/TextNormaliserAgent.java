@@ -21,8 +21,8 @@ public class TextNormaliserAgent extends SingleRecordAgentFunction {
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
-        makeLowercase = Boolean.parseBoolean(configuration.getOrDefault("makeLowercase", "true").toString());
-        trimSpaces = Boolean.parseBoolean(configuration.getOrDefault("trimSpaces", "true").toString());
+        makeLowercase = Boolean.parseBoolean(configuration.getOrDefault("make-lowercase", "true").toString());
+        trimSpaces = Boolean.parseBoolean(configuration.getOrDefault("trim-spaces", "true").toString());
     }
 
     @Override

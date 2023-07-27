@@ -1,6 +1,6 @@
 package com.datastax.oss.sga.agents.tika;
 
-import com.dastastax.oss.sga.agents.tika.TikaAgentsCodeProvider;
+import com.dastastax.oss.sga.agents.tika.TextProcessingAgentsCodeProvider;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
 import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -19,7 +18,7 @@ public class TextExtractorTest {
 
     @Test
     public void textExtractFromText() throws Exception {
-        TikaAgentsCodeProvider provider = new TikaAgentsCodeProvider();
+        TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
         SingleRecordAgentFunction instance = provider.createInstance("text-extractor");
 
         Record fromSource = SimpleRecord
@@ -38,7 +37,7 @@ public class TextExtractorTest {
 
     @Test
     public void textExtractFromPdf() throws Exception {
-        TikaAgentsCodeProvider provider = new TikaAgentsCodeProvider();
+        TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
         SingleRecordAgentFunction instance = provider.createInstance("text-extractor");
 
         byte[] content = Files.readAllBytes(Paths.get("src/test/resources/simple.pdf"));
@@ -60,7 +59,7 @@ public class TextExtractorTest {
 
     @Test
     public void textExtractFromWord() throws Exception {
-        TikaAgentsCodeProvider provider = new TikaAgentsCodeProvider();
+        TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
         SingleRecordAgentFunction instance = provider.createInstance("text-extractor");
 
         byte[] content = Files.readAllBytes(Paths.get("src/test/resources/simple.docx"));

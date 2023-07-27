@@ -23,7 +23,7 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>sga-agent-tika</artifactId>
+  <artifactId>sga-agents-text-processing</artifactId>
   <packaging>jar</packaging>
   <name>Streaming GenAI - Apache Tika Agents</name>
   <properties>

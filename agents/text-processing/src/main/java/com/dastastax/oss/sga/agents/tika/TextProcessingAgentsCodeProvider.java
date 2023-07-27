@@ -6,12 +6,12 @@ import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class TikaAgentsCodeProvider implements AgentCodeProvider {
+public class TextProcessingAgentsCodeProvider implements AgentCodeProvider {
 
     private static Map<String, Supplier<SingleRecordAgentFunction>> FACTORIES = Map.of(
             "text-extractor", () -> new TikaTextExtractorAgent(),
             "language-detector", () -> new LanguageDetectorAgent(),
-            "text-chunker", () -> new TextChunkerAgent(),
+            "text-splitter", () -> new TextSplitterAgent(),
             "text-normaliser", () -> new TextNormaliserAgent()
     );
 

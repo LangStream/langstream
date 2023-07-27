@@ -1,6 +1,6 @@
 package com.datastax.oss.sga.agents.tika;
 
-import com.dastastax.oss.sga.agents.tika.TikaAgentsCodeProvider;
+import com.dastastax.oss.sga.agents.tika.TextProcessingAgentsCodeProvider;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
 import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
@@ -22,7 +22,7 @@ class TextChunkerAgentTest {
     @MethodSource("testChunks")
     public void testChunks(int chunkSize, int chunkOverlap, String text, String length_function, List<String> expected) throws Exception {
 
-        TikaAgentsCodeProvider provider = new TikaAgentsCodeProvider();
+        TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
         SingleRecordAgentFunction instance = provider.createInstance("text-chunker");
         instance.init(Map.of("splitter_type", "RecursiveCharacterTextSplitter",
         "separators", List.of("\n\n", "\n", " ", ""),

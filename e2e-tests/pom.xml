@@ -22,11 +22,6 @@
       <artifactId>kindcontainer</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.dajudge.kindcontainer</groupId>
-      <artifactId>kindcontainer</artifactId>
-      <scope>test</scope>
-    </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>

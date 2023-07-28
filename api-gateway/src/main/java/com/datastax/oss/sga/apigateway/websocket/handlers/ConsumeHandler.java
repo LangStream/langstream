@@ -6,18 +6,26 @@ import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
+import com.datastax.oss.sga.api.runner.topics.OffsetPerPartition;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
-import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
+import com.datastax.oss.sga.api.runner.topics.TopicReadResult;
+import com.datastax.oss.sga.api.runner.topics.TopicReader;
+import com.datastax.oss.sga.api.runner.topics.TopicOffsetPosition;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.apigateway.websocket.api.ConsumePushMessage;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.AntPathMatcher;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -30,16 +38,67 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    public void onOpen(WebSocketSession webSocketSession) throws Exception {
-        final String tenant = (String) webSocketSession.getAttributes().get("tenant");
+    public String path() {
+        return CONSUME_PATH;
+    }
 
-        final AntPathMatcher antPathMatcher = new AntPathMatcher();
-        final Map<String, String> vars =
-                antPathMatcher.extractUriTemplateVariables(CONSUME_PATH,
-                        webSocketSession.getUri().getPath());
-        final String gateway = vars.get("gateway");
-        final String applicationId = vars.get("application");
-        setupConsumer(webSocketSession, gateway, tenant, applicationId);
+    @Override
+    public void onBeforeHandshakeCompleted(Map<String, Object> attributes) throws Exception {
+        final String tenant = (String) attributes.get("tenant");
+        final String gatewayId = (String) attributes.get("gateway");
+        final String applicationId = (String) attributes.get("application");
+        final StoredApplication application = applicationStore.get(tenant, applicationId);
+        Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.consume);
+
+
+        final RequestDetails requestOptions = validateQueryStringAndOptions(
+                (Map<String, String>) attributes.get("queryString"), selectedGateway);
+        List<Function<Record, Boolean>> filters =
+                createMessageFilters(selectedGateway, requestOptions.getUserParameters());
+        attributes.put("consumeFilters", filters);
+
+        final StreamingCluster streamingCluster = application.getInstance().getInstance().streamingCluster();
+
+        final TopicConnectionsRuntime topicConnectionsRuntime =
+                TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
+
+        final String topicName = selectedGateway.topic();
+
+        final String positionParameter = requestOptions.getOptions().getOrDefault("position", "latest");
+        TopicOffsetPosition position = switch (positionParameter) {
+            case "latest" -> TopicOffsetPosition.LATEST;
+            case "earliest" -> TopicOffsetPosition.EARLIEST;
+            default -> TopicOffsetPosition.absolute(new String(
+                    Base64.getDecoder().decode(positionParameter), StandardCharsets.UTF_8));
+        };
+        TopicReader reader =
+                topicConnectionsRuntime.createReader(streamingCluster,
+                        Map.of("topic", topicName), position);
+        reader.start();
+        attributes.put("topicReader", reader);
+    }
+
+    @Override
+    public void onOpen(WebSocketSession session) throws Exception {
+        // we must return the caller thread to the thread pool
+        final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+            final Map<String, Object> attributes = session.getAttributes();
+            TopicReader reader = (TopicReader) attributes.get("topicReader");
+            final String tenant = (String) attributes.get("tenant");
+            final String gatewayId = (String) attributes.get("gateway");
+            final String applicationId = (String) attributes.get("application");
+            try {
+                log.info("[{}] Started reader for gateway {}/{}/{}", session.getId(), tenant, applicationId, gatewayId);
+                readMessages(session, (List<Function<Record, Boolean>>) attributes.get("consumeFilters"), reader);
+            } catch (InterruptedException | CancellationException ex) {
+                // ignore
+            } catch (Throwable ex) {
+                log.error(ex.getMessage(), ex);
+            } finally {
+                closeReader(reader);
+            }
+        });
+        session.getAttributes().put("future", future);
     }
 
     @Override
@@ -48,62 +107,102 @@ public class ConsumeHandler extends AbstractHandler {
 
     @Override
     public void onClose(WebSocketSession webSocketSession, CloseStatus closeStatus) throws Exception {
+        final CompletableFuture<Void> future = (CompletableFuture<Void>) webSocketSession.getAttributes().get("future");
+        if (future != null && !future.isDone()) {
+            future.cancel(true);
+        }
     }
 
-    private void setupConsumer(WebSocketSession session, String gatewayId, String tenant, String applicationId)
-            throws Exception {
-        final StoredApplication application = applicationStore.get(tenant, applicationId);
-        Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.consume);
-
-        final RequestDetails requestOptions = validateQueryStringAndOptions(session, selectedGateway);
-        List<Function<Record, Boolean>> filters =
-                createMessageFilters(selectedGateway, requestOptions.getUserParameters());
-
-        final StreamingCluster streamingCluster = application.getInstance().getInstance().streamingCluster();
-
-        final TopicConnectionsRuntime topicConnectionsRuntime =
-                TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
-
-        final String topicName = selectedGateway.topic();
-        final TopicConsumer consumer =
-                topicConnectionsRuntime.createConsumer("ag-" + session.getId(), streamingCluster,
-                        Map.of("topic", topicName));
-        recordCloseableResource(session, consumer);
-        consumer.start();
-        log.info("[{}] Started consumer for gateway {}/{}/{}", session.getId(), tenant, applicationId, gatewayId);
-        session.getAttributes().put("consumer", consumer);
-
-
-        while (true) {
-            final boolean closed = Boolean.parseBoolean(session.getAttributes().getOrDefault("closed", false) + "");
-            if (!session.isOpen() || closed) {
-                break;
+    @Override
+    void validateOptions(Map<String, String> options) {
+        for (Map.Entry<String, String> option : options.entrySet()) {
+            switch (option.getKey()) {
+                case "position":
+                    if (StringUtils.isBlank(option.getValue())) {
+                        throw new IllegalArgumentException("'position' cannot be blank");
+                    }
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown option " + option.getKey());
             }
-            final List<Record> records = consumer.read();
+        }
+    }
+
+    private void setupConsumer(Map<String, String> queryString, String gatewayId, String tenant, String applicationId)
+            throws Exception {
+
+    }
+
+    private void closeReader(TopicReader reader) {
+        if (reader == null) {
+            return;
+        }
+        try {
+            reader.close();
+        } catch (Exception e) {
+            log.error("error closing reader", e);
+        }
+    }
+
+
+    private void readMessages(WebSocketSession session, List<Function<Record, Boolean>> filters, TopicReader reader)
+            throws Exception {
+        while (true) {
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
+            if (!session.isOpen()) {
+                return;
+            }
+            final TopicReadResult readResult = reader.read();
+            final List<Record> records = readResult.records();
             for (Record record : records) {
+                log.debug("[{}] Received record {}", session.getId(), record);
                 boolean skip = false;
                 for (Function<Record, Boolean> filter : filters) {
                     if (!filter.apply(record)) {
                         skip = true;
+                        log.debug("[{}] Skipping record {}", session.getId(), record);
                         break;
                     }
                 }
                 if (!skip) {
-                    final Collection<Header> headers = record.headers();
-                    final Map<String, String> messageHeaders;
-                    if (headers == null) {
-                        messageHeaders = Map.of();
-                    } else {
-                        messageHeaders = new HashMap<>();
-                        headers.stream().forEach(h -> messageHeaders.put(h.key(), h.valueAsString()));
-                    }
-                    final String message = mapper.writeValueAsString(new ConsumePushMessage(
-                            new ConsumePushMessage.Record(record.key(), record.value(), messageHeaders)));
-                    session.sendMessage(new TextMessage(message));
+                    final Map<String, String> messageHeaders = computeMessageHeaders(record);
+                    final String offset = computeOffset(readResult);
+
+                    final ConsumePushMessage message = new ConsumePushMessage(
+                            new ConsumePushMessage.Record(record.key(), record.value(), messageHeaders),
+                            offset
+                    );
+                    final String jsonMessage = mapper.writeValueAsString(message);
+                    session.sendMessage(new TextMessage(jsonMessage));
                 }
             }
         }
     }
+
+    private Map<String, String> computeMessageHeaders(Record record) {
+        final Collection<Header> headers = record.headers();
+        final Map<String, String> messageHeaders;
+        if (headers == null) {
+            messageHeaders = Map.of();
+        } else {
+            messageHeaders = new HashMap<>();
+            headers.stream().forEach(h -> messageHeaders.put(h.key(), h.valueAsString()));
+        }
+        return messageHeaders;
+    }
+
+    private String computeOffset(TopicReadResult readResult) throws JsonProcessingException {
+        final OffsetPerPartition offsetPerPartition = readResult.partitionsOffsets();
+        if (offsetPerPartition == null) {
+            return null;
+        }
+        final String offsets = Base64.getEncoder().encodeToString(mapper.writeValueAsBytes(offsetPerPartition));
+        return offsets;
+    }
+
+    public record Offset(String partition, String offset) {}
 
     private List<Function<Record, Boolean>> createMessageFilters(Gateway selectedGateway,
                                                                  Map<String, String> passedParameters) {

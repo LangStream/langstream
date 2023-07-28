@@ -29,6 +29,9 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             new TopicConnectionsRuntimeRegistry();
     protected final ApplicationStore applicationStore;
 
+    public abstract String path();
+
+    public void onBeforeHandshakeCompleted(Map<String, Object> attributes) throws Exception {};
 
     public abstract void onOpen(WebSocketSession webSocketSession) throws Exception;
 
@@ -63,7 +66,6 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             session.close(status.withReason(throwable.getMessage()));
         } finally {
             closeCloseableResources(session);
-            session.getAttributes().put("closed", true);
         }
     }
 
@@ -120,15 +122,15 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         return selectedGateway;
     }
 
+    abstract void validateOptions(Map<String, String> options);
 
-    protected RequestDetails validateQueryStringAndOptions(WebSocketSession webSocketSession, Gateway gateway) {
-        final Map<String, String> querystring =
-                (Map<String, String>) webSocketSession.getAttributes().get("queryString");
+
+    protected RequestDetails validateQueryStringAndOptions(Map<String, String> queryString, Gateway gateway) {
         Map<String, String> options = new HashMap<>();
         Map<String, String> userParameters = new HashMap<>();
 
 
-        for (Map.Entry<String, String> entry : querystring.entrySet()) {
+        for (Map.Entry<String, String> entry : queryString.entrySet()) {
             if (entry.getKey().startsWith("option:")) {
                 options.put(entry.getKey().substring("option:".length()), entry.getValue());
             } else if (entry.getKey().startsWith("param:")) {
@@ -154,6 +156,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         if (!allUserParameterKeys.isEmpty()) {
             throw new IllegalArgumentException("unknown parameters: " + allUserParameterKeys);
         }
+        validateOptions(options);
         return new RequestDetails() {
             @Override
             public Map<String, String> getUserParameters() {

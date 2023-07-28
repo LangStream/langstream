@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.websocket.CloseReason;
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.CancellationException;
@@ -33,13 +34,14 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
     public void run() {
         final String consumePath = "%s/v1/consume/%s/%s/%s?%s"
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, consumeFromGatewayId,
-                        computeQueryString(params, "param:"));
+                        computeQueryString(params, Map.of("position", "earliest")));
         final String producePath = "%s/v1/produce/%s/%s/%s?%s"
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, produceToGatewayId,
-                        computeQueryString(params, "param:"));
+                        computeQueryString(params, Map.of()));
 
         AtomicBoolean waitingProduceResponse = new AtomicBoolean(false);
         AtomicBoolean waitingConsumeMessage = new AtomicBoolean(false);
+        CountDownLatch consumerReady = new CountDownLatch(1);
 
         final AtomicReference<CompletableFuture<Void>> loop = new AtomicReference<>();
 
@@ -74,15 +76,26 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
         };
 
         final WebSocketClient.Handler consumeHandler = new WebSocketClient.Handler() {
+
+            @Override
+            public void onOpen() {
+                consumerReady.countDown();
+            }
+
             @Override
             @SneakyThrows
             public void onMessage(String msg) {
-                final Map response = messageMapper.readValue(msg, Map.class);
-                final Map<String, Object> record = (Map<String, Object>) response.get("record");
-                logServer("\n");
-                logServer("Server:");
-                log(String.valueOf(record.get("value")));
                 waitingConsumeMessage.set(false);
+                try {
+                    final Map response = messageMapper.readValue(msg, Map.class);
+                    final Map<String, Object> record = (Map<String, Object>) response.get("record");
+                    logServer("\n");
+                    logServer("Server:");
+                    log(String.valueOf(record.get("value")));
+                } catch (Throwable e) {
+                    err("Error consuming message: %s".formatted(msg));
+                }
+
             }
 
             @Override
@@ -103,6 +116,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
         };
         try (final WebSocketClient consumeClient = new WebSocketClient(consumeHandler)
                 .connect(URI.create(consumePath))) {
+            consumerReady.await();
             log("Connected to %s".formatted(consumePath));
             try (final WebSocketClient produceClient = new WebSocketClient(produceHandler).connect(
                     URI.create(producePath))) {
@@ -125,14 +139,14 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                             while (waitingProduceResponse.get()) {
                                 Thread.sleep(500);
                                 if (waitingProduceResponse.get()) {
-                                    logUserNoNewLine(".");
+                                    logUserNoNewLine(".-");
                                 }
 
                             }
                             while (waitingConsumeMessage.get()) {
                                 Thread.sleep(500);
                                 if (waitingConsumeMessage.get()) {
-                                    logUserNoNewLine(".");
+                                    logUserNoNewLine(".+");
                                 }
                             }
 

@@ -7,6 +7,8 @@ import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import com.datastax.oss.sga.api.runner.topics.TopicReader;
+import com.datastax.oss.sga.api.runner.topics.TopicOffsetPosition;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 
@@ -16,6 +18,21 @@ import java.util.Map;
 @Slf4j
 public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
 
+    @Override
+    public TopicReader createReader(StreamingCluster streamingCluster,
+                                    Map<String, Object> configuration,
+                                    TopicOffsetPosition initialPosition) {
+        Map<String, Object> copy = new HashMap<>(configuration);
+        copy.putAll(KafkaStreamingClusterRuntime.getKafkaClusterRuntimeConfiguration(streamingCluster).getAdmin());
+        copy.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        copy.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        // do not use group id for reader. "group.id" default value is null, which is not accepted by KafkaConsumer.
+        copy.put("group.id", "");
+        // only read one record at the time to have consistent offsets.
+        copy.put("max.poll.records", 1);
+        String topicName = (String) copy.remove("topic");
+        return new KafkaReaderWrapper(copy, topicName, initialPosition);
+    }
 
     @Override
     public TopicConsumer createConsumer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {

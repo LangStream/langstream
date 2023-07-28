@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.apigateway.websocket;
 
+import com.datastax.oss.sga.apigateway.websocket.handlers.AbstractHandler;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.handler.ExceptionWebSocketHandlerDecorator;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
 @Slf4j
@@ -23,18 +25,23 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
                 .getQueryString();
         attributes.put("queryString", parseQuerystring(queryString));
 
+        final WebSocketHandler delegate = ((ExceptionWebSocketHandlerDecorator) wsHandler)
+                .getLastHandler();
+        final AbstractHandler handler = (AbstractHandler) delegate;
 
         final AntPathMatcher antPathMatcher = new AntPathMatcher();
-        final Map<String, String> vars =
-                antPathMatcher.extractUriTemplateVariables("/v1/{action}/{tenant}/{application}/{topic}",
-                        httpRequest.getURI().getPath());
-        attributes.put("tenant", vars.get("tenant"));
+        final String path = httpRequest.getURI().getPath();
+        final Map<String, String> vars = antPathMatcher
+                .extractUriTemplateVariables(handler.path(), path);
+        attributes.putAll(vars);
+        handler.onBeforeHandshakeCompleted(attributes);
         return true;
     }
 
     @Override
     public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
                                Exception exception) {
+        log.info("afterHandsjare {}", wsHandler.getClass().getName());
 
     }
 

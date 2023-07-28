@@ -7,13 +7,19 @@ on:
     branches:
       - main
 jobs:
-  #--------------------------------------------------
-  # Build and Tests the project on Linux
-  #--------------------------------------------------
   tests:
-    name: tests
+    name: Unit tests (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Runtime
+          - name: Deployer
+          - name: Api Gateway
+          - name: Control plane
+          - name: Other
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
@@ -34,14 +40,42 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: 'Init: install tox'
-        run: pip install -r requirements.txt
-      - name: 'Test: run tests'
+      - name: 'Init: build project'
         run: |
           chmod +x mvnw
-          ./mvnw clean verify -Pdocker -pl !:e2e-tests
+          ./mvnw clean install -DskipTests
+
+      - name: 'Init: install tox'
+        if: ${{ matrix.name == 'Runtime' }}
+        run: pip install -r requirements.txt
+
+      - name: 'Test: Runtime'
+        if: ${{ matrix.name == 'Runtime' }}
+        run: |
+          ./mvnw verify -pl ":sga-runtime-impl" -Pdocker
+
+      - name: 'Test: Api Gateway'
+        if: ${{ matrix.name == 'Api Gateway' }}
+        run: |
+          ./mvnw verify -pl ":api-gateway" -Pdocker
+
+      - name: 'Test: Deployer'
+        if: ${{ matrix.name == 'Deployer' }}
+        run: |
+          ./mvnw verify -f k8s-deployer -Pdocker
+
+      - name: 'Test: Control plane'
+        if: ${{ matrix.name == 'Control plane' }}
+        run: |
+          ./mvnw verify -pl webservice -Pdocker
+
+      - name: 'Test: Other'
+        if: ${{ matrix.name == 'Other' }}
+        run: |
+          #/bin/bash
+          ./mvnw verify -PtestSuiteOthers
   e2e-tests:
-    name: e2e-tests
+    name: End to End tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

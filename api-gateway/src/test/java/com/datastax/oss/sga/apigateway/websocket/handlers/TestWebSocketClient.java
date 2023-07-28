@@ -12,8 +12,10 @@ import jakarta.websocket.WebSocketContainer;
 import java.net.URI;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 @ClientEndpoint
+@Slf4j
 public class TestWebSocketClient implements AutoCloseable {
 
 
@@ -34,9 +36,11 @@ public class TestWebSocketClient implements AutoCloseable {
         }
     };
 
+
     public interface Handler {
 
         default void onOpen(Session session) {
+            log.info("onOpen client: {}", session.getId());
         }
         void onMessage(String msg);
 

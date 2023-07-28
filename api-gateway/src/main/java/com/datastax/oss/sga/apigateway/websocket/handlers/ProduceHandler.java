@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -33,6 +34,11 @@ public class ProduceHandler extends AbstractHandler {
 
     public ProduceHandler(ApplicationStore applicationStore) {
         super(applicationStore);
+    }
+
+    @Override
+    public String path() {
+        return PRODUCE_PATH;
     }
 
     @Override
@@ -51,7 +57,8 @@ public class ProduceHandler extends AbstractHandler {
         Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.produce);
 
 
-        final RequestDetails requestDetails = validateQueryStringAndOptions(webSocketSession, selectedGateway);
+        final RequestDetails requestDetails = validateQueryStringAndOptions(
+                (Map<String, String>) webSocketSession.getAttributes().get("queryString"), selectedGateway);
         final List<Header> headers = getCommonHeaders(selectedGateway, requestDetails.getUserParameters());
         final StreamingCluster streamingCluster = application.getInstance().getInstance().streamingCluster();
 
@@ -133,6 +140,16 @@ public class ProduceHandler extends AbstractHandler {
 
     @Override
     public void onClose(WebSocketSession webSocketSession, CloseStatus status) throws Exception {
+    }
+
+    @Override
+    void validateOptions(Map<String, String> options) {
+        for (Map.Entry<String, String> option : options.entrySet()) {
+            switch (option.getKey()) {
+                default:
+                    throw new IllegalArgumentException("Unknown option " + option.getKey());
+            }
+        }
     }
 
     private List<Header> getCommonHeaders(Gateway selectedGateway, Map<String, String> passedParameters) {

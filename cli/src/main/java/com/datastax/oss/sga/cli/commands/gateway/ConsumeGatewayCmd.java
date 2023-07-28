@@ -5,6 +5,7 @@ import jakarta.websocket.CloseReason;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -26,14 +27,24 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
     @CommandLine.Option(names = {"-p", "--param"}, description = "Gateway parameters. Format: key=value")
     private Map<String, String> params;
 
+    @CommandLine.Option(names = {"--position"}, description = "Initial position of the consumer. \"latest\", \"earliest\" or a offset value. "
+            + "The offset value can be retrieved after consuming a message of the same topic.")
+    private String initialPosition;
+
 
 
     @Override
     @SneakyThrows
     public void run() {
+        Map<String, String> options = new HashMap<>();
+        if (initialPosition != null) {
+            options.put("position", initialPosition);
+        }
+
+
         final String consumePath = "%s/v1/consume/%s/%s/%s?%s"
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, gatewayId,
-                        computeQueryString(params, "param:"));
+                        computeQueryString(params, options));
 
         CountDownLatch latch = new CountDownLatch(1);
         try (final WebSocketClient client = new WebSocketClient(new WebSocketClient.Handler() {

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <project
-  xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
 >
   <modelVersion>4.0.0</modelVersion>
 
@@ -53,25 +53,7 @@
     <commons-codec.version>1.16.0</commons-codec.version>
     <commons-io.version>2.13.0</commons-io.version>
   </properties>
-  <modules>
-    <module>api</module>
-    <module>cli</module>
-    <module>core</module>
-    <module>agents</module>
-    <module>pulsar</module>
-    <module>kafka</module>
-    <module>kafka-connect</module>
-    <module>k8s-runtime</module>
-    <module>codestorage-s3</module>
-    <module>runtime</module>
-    <module>ai-agents</module>
-    <module>webservice</module>
-    <module>k8s-storage</module>
-    <module>k8s-deployer</module>
-    <module>k8s-common</module>
-    <module>e2e-tests</module>
-    <module>api-gateway</module>
-  </modules>
+
 
   <dependencyManagement>
     <dependencies>
@@ -96,7 +78,7 @@
         <version>${streaming-ai.version}</version>
       </dependency>
       <dependency>
-       <groupId>org.projectlombok</groupId>
+        <groupId>org.projectlombok</groupId>
         <artifactId>lombok</artifactId>
         <version>${lombok.version}</version>
         <scope>provided</scope>
@@ -481,4 +463,58 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>main</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <modules>
+        <module>api</module>
+        <module>cli</module>
+        <module>core</module>
+        <module>agents</module>
+        <module>pulsar</module>
+        <module>kafka</module>
+        <module>kafka-connect</module>
+        <module>k8s-runtime</module>
+        <module>codestorage-s3</module>
+        <module>runtime</module>
+        <module>ai-agents</module>
+        <module>webservice</module>
+        <module>k8s-storage</module>
+        <module>k8s-deployer</module>
+        <module>k8s-common</module>
+        <module>e2e-tests</module>
+        <module>api-gateway</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>testSuiteOthers</id>
+      <activation>
+        <property>
+          <name>testSuiteOthers</name>
+        </property>
+      </activation>
+      <modules>
+        <module>api</module>
+        <module>cli</module>
+        <module>core</module>
+        <module>agents</module>
+        <module>pulsar</module>
+        <module>kafka</module>
+        <module>kafka-connect</module>
+        <module>k8s-runtime</module>
+        <module>codestorage-s3</module>
+<!--        <module>runtime</module>-->
+        <module>ai-agents</module>
+<!--        <module>webservice</module>-->
+        <module>k8s-storage</module>
+<!--        <module>k8s-deployer</module>-->
+        <module>k8s-common</module>
+<!--        <module>e2e-tests</module>-->
+<!--        <module>api-gateway</module>-->
+      </modules>
+    </profile>
+  </profiles>
 </project>

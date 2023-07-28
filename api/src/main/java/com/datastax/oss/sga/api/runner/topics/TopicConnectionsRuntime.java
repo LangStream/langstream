@@ -24,10 +24,13 @@ import java.util.Map;
  */
 public interface TopicConnectionsRuntime {
 
+
     default void init(StreamingCluster streamingCluster){
     }
 
     TopicConsumer createConsumer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration);
+
+    TopicReader createReader(StreamingCluster streamingCluster, Map<String, Object> configuration, TopicOffsetPosition initialPosition);
 
     TopicProducer createProducer(String agentId,StreamingCluster streamingCluster, Map<String, Object> configuration);
 

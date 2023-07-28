@@ -3,19 +3,21 @@ package com.datastax.oss.sga.pulsar.runner;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
+import com.datastax.oss.sga.api.runner.topics.OffsetPerPartition;
 import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeProvider;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import com.datastax.oss.sga.api.runner.topics.TopicReadResult;
+import com.datastax.oss.sga.api.runner.topics.TopicReader;
+import com.datastax.oss.sga.api.runner.topics.TopicOffsetPosition;
 import com.datastax.oss.sga.pulsar.PulsarClientUtils;
 import com.datastax.oss.sga.pulsar.PulsarClusterRuntime;
-import com.datastax.oss.sga.pulsar.PulsarClusterRuntimeConfiguration;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
-import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.Schema;
@@ -62,6 +64,51 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             if (client != null) {
                 client.close();
             }
+        }
+
+        @Override
+        public TopicReader createReader(StreamingCluster streamingCluster,
+                                        Map<String, Object> configuration,
+                                        TopicOffsetPosition initialPosition) {
+            Map<String, Object> copy = new HashMap<>(configuration);
+            final TopicConsumer consumer = createConsumer(null, streamingCluster, configuration);
+            switch (initialPosition.position()) {
+                case Earliest:
+                    copy.put("subscriptionInitialPosition", SubscriptionInitialPosition.Earliest);
+                    break;
+                case Latest:
+                    copy.put("subscriptionInitialPosition", SubscriptionInitialPosition.Latest);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported initial position: " + initialPosition.position());
+            }
+            return new TopicReader() {
+                @Override
+                public void start() throws Exception {
+                    consumer.start();
+                }
+
+                @Override
+                public void close() throws Exception {
+                    consumer.close();
+                }
+
+                @Override
+                public TopicReadResult read() throws Exception {
+                    final List<Record> records = consumer.read();
+                    return new TopicReadResult() {
+                        @Override
+                        public List<Record> records() {
+                            return records;
+                        }
+
+                        @Override
+                        public OffsetPerPartition partitionsOffsets() {
+                            return null;
+                        }
+                    };
+                }
+            };
         }
 
         @Override
@@ -156,10 +203,10 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 String topic = (String) configuration.remove("topic");
                 consumer = client
                         .newConsumer(Schema.AUTO_CONSUME())
+                        .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                         .loadConf(configuration)
                         .topic(topic)
                         .subscriptionType(SubscriptionType.Failover)
-                        .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                         .ackTimeout(60000, java.util.concurrent.TimeUnit.MILLISECONDS)
                         .subscribe();
 

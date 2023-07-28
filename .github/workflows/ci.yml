@@ -7,11 +7,8 @@ on:
     branches:
       - main
 jobs:
-  #--------------------------------------------------
-  # Build and Tests the project on Linux
-  #--------------------------------------------------
   tests:
-    name: tests
+    name: Unit tests (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -40,7 +37,7 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: 'Test: run tests'
+      - name: 'Init: build project and docker images'
         run: |
           chmod +x mvnw
           ./mvnw clean install -Pdocker -DskipTests
@@ -49,17 +46,17 @@ jobs:
         if: ${{ matrix.name == 'Runtime' }}
         run: pip install -r requirements.txt
 
-      - name: 'Test: run tests'
+      - name: 'Test: Runtime'
         if: ${{ matrix.name == 'Runtime' }}
         run: |
           ./mvnw verify -pl ":sga-runtime-impl"
 
-      - name: 'Test: run tests'
+      - name: 'Test: Other'
         if: ${{ matrix.name == 'Other' }}
         run: |
           ./mvnw verify -pl "!:sga-runtime-impl"
   e2e-tests:
-    name: e2e-tests
+    name: End to End tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

@@ -71,6 +71,7 @@ class AgentCustomResourceTest {
                 .list().getItems().size());
 
         Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
                     assertEquals(0, k3s.getClient().apps().statefulSets().inNamespace(namespace)
                             .list().getItems().size());

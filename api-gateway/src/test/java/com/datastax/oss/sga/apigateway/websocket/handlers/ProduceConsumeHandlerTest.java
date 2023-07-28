@@ -129,7 +129,7 @@ class ProduceConsumeHandlerTest {
     }
 
     @AfterAll
-    public void afterAll() {
+    public static void afterAll() {
         Awaitility.reset();
     }
 

@@ -183,7 +183,7 @@ class ComputeEmbeddingsTest extends AbstractApplicationRunner {
             assertTrue(implementation.getConnectionImplementation(module,
                     Connection.from(TopicDefinition.fromName(inputTopic))) instanceof KafkaTopic);
 
-            Set<String> topics = admin.listTopics().names().get();
+            Set<String> topics = kafkaContainer.getAdmin().listTopics().names().get();
             log.info("Topics {}", topics);
             assertTrue(topics.contains(inputTopic));
 

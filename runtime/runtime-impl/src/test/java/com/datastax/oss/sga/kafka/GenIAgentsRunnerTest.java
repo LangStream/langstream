@@ -48,8 +48,7 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
 
         try (KafkaProducer<String, String> producer = createProducer();
                      KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
-
-
+            
             sendMessage("input-topic","{\"name\": \"some name\", \"description\": \"some description\"}",
                     List.of(new RecordHeader("header-key", "header-value".getBytes(StandardCharsets.UTF_8))),
                     producer);

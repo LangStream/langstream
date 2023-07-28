@@ -8,6 +8,7 @@ import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.datastax.oss.sga.kafka.extensions.KafkaContainerExtension;
 import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
@@ -47,8 +48,8 @@ public class AbstractApplicationRunner {
     @RegisterExtension
     protected static final KubeTestServer kubeServer = new KubeTestServer();
 
-    protected static KafkaContainer kafkaContainer;
-    protected static AdminClient admin;
+    @RegisterExtension
+    protected static final KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
 
 
     protected record ApplicationRuntime(String tenant, String applicationId, Application applicationInstance, ExecutionPlan implementation, Map<String, Secret> secrets,
@@ -98,23 +99,6 @@ public class AbstractApplicationRunner {
                      type: "kubernetes"
                 """.formatted(kafkaContainer.getBootstrapServers());
     }
-
-
-    @BeforeAll
-    public static void setup() throws Exception {
-        kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
-                .withLogConsumer(new Consumer<OutputFrame>() {
-                    @Override
-                    public void accept(OutputFrame outputFrame) {
-                        log.info("kafka> {}", outputFrame.getUtf8String().trim());
-                    }
-                });
-        // start Pulsar and wait for it to be ready to accept requests
-        kafkaContainer.start();
-        admin =
-                AdminClient.create(Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers()));
-    }
-
 
     protected KafkaProducer createProducer() {
         return new KafkaProducer<String, String>(
@@ -208,13 +192,4 @@ public class AbstractApplicationRunner {
         return consumer;
     }
 
-    @AfterAll
-    public static void teardown() {
-        if (admin != null) {
-            admin.close();
-        }
-        if (kafkaContainer != null) {
-            kafkaContainer.close();
-        }
-    }
 }

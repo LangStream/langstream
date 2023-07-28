@@ -36,7 +36,7 @@ public class RecursiveCharacterTextSplitter extends TextSplitter {
         }
         List<String> splits = splitTextWithRegex(text, separator, keepSeparator);
         List<String> goodSplits = new ArrayList<>();
-        String separatorToUse = keepSeparator ? separator : "";
+        String separatorToUse = keepSeparator ?  "" : separator;
 
         for (String s : splits) {
             if (lengthFunction.apply(s) < chunkSize) {

@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class TextSplitter {
     protected int chunkSize;
     protected int chunkOverlap;
@@ -81,15 +83,19 @@ public abstract class TextSplitter {
             int len = lengthFunction.apply(d);
             if (total + len + (currentDoc.size() > 0 ? separatorLen : 0) > chunkSize) {
                 if (total > chunkSize) {
-                    System.out.println("Created a chunk of size " + total + ", which is longer than the specified " + chunkSize);
+                    log.warn(
+                        "Created a chunk of size %d, which is longer than the specified %d".formatted(total, chunkSize));
                 }
                 if (!currentDoc.isEmpty()) {
                     String doc = joinDocs(currentDoc, separator);
                     if (doc != null) {
                         docs.add(doc);
                     }
+                    // Keep on popping if:
+                    // - we have a larger chunk than in the chunk overlap
+                    // - or if we still have any chunks and the length is long
                     while (total > chunkOverlap ||
-                            (total + len + (currentDoc.size() > 1 ? separatorLen : 0) > chunkSize && total > 0)) {
+                            (total + len + (currentDoc.size() > 0 ? separatorLen : 0) > chunkSize && total > 0)) {
                         total -= lengthFunction.apply(currentDoc.get(0)) + (currentDoc.size() > 1 ? separatorLen : 0);
                         currentDoc.remove(0);
                     }
@@ -111,17 +117,25 @@ public abstract class TextSplitter {
         List<String> splits = new ArrayList<>();
         if (separator != null && !separator.isEmpty()) {
             if (keepSeparator) {
-                Pattern pattern = Pattern.compile("(" + Pattern.quote(separator) + ")");
+                Pattern pattern = Pattern.compile("(" + separator + ")");
                 Matcher matcher = pattern.matcher(text);
-                int lastMatchEnd = 0;
-                while (matcher.find()) {
-                    splits.add(text.substring(lastMatchEnd, matcher.start()));
-                    splits.add(matcher.group(1));
-                    lastMatchEnd = matcher.end();
+                if (matcher.find()) {
+                    if (matcher.start() != 0) {
+                        splits.add(text.substring(0, matcher.start()));
+                    }
+                    String lastMatch = matcher.group();
+                    int lastMatchEnd = matcher.end();
+                    while (matcher.find()) {
+                        splits.add(lastMatch + text.substring(lastMatchEnd, matcher.start()));
+                        lastMatchEnd = matcher.end();
+                        lastMatch = matcher.group();
+                    }
+                    splits.add(lastMatch + text.substring(lastMatchEnd));
+                } else {
+                    splits.add(text);
                 }
-                splits.add(text.substring(lastMatchEnd));
             } else {
-                splits.addAll(Arrays.asList(text.split(Pattern.quote(separator))));
+                splits.addAll(Arrays.asList(text.split(separator)));
             }
         } else {
             // If separator is empty, split the text into individual characters

@@ -58,9 +58,7 @@ class TextProcessingAgentsRunnerTest extends AbstractApplicationRunner {
                 sendMessage("input-topic","This text is written in English, but it is very long,\nso you may want to split it into chunks.", producer);
 
                 executeAgentRunners(applicationRuntime);
-                waitForMessages(consumer, List.of("this   text   is   written   in   english,   but",
-                        "it   is   very   long,",
-                        "so you may want to split it into chunks."));
+                waitForMessages(consumer, List.of("this text is written in english, but it is very", "long,", "so you may want to split it into chunks."));
             }
         }
 

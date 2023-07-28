@@ -76,8 +76,8 @@ class ErrorHandlingTest {
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                     options:
-                                      # we want to read one error at a time
-                                      consumer.max.poll.records: 1
+                                      # we want to read more than one record at a time
+                                      consumer.max.poll.records: 10
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
                                 errors:

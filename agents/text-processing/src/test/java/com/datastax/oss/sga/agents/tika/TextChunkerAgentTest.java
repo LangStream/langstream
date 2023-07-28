@@ -5,6 +5,7 @@ import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
 import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -25,8 +26,8 @@ class TextChunkerAgentTest {
         TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
         SingleRecordAgentProcessor instance = provider.createInstance("text-splitter");
         instance.init(Map.of("splitter_type", "RecursiveCharacterTextSplitter",
-        "separators", List.of("\n\n", "\n", " ", ""),
-                "keep_separator", "true",
+                "separators", List.of("\n\n", "\n", " ", ""),
+                "keep_separator", false,
                 "chunk_size", chunkSize,
                 "chunk_overlap", chunkOverlap,
                 "length_function", length_function));
@@ -54,15 +55,53 @@ class TextChunkerAgentTest {
 
     public static Stream<Arguments> testChunks() {
         return Stream.of(
-                Arguments.of(20, 5, "Hello world", "length", List.of("Hello   world"))
-            /*    Arguments.of(15, 5, "Hello world. This is a great day", "length", List.of("Hello   world.", "This   is   a", "a   great", "day")),
+                Arguments.of(20, 5, "Hello world", "length", List.of("Hello world")),
+                Arguments.of(15, 5, "Hello world. This is a great day", "length", List.of("Hello world.", "This is a great", "great day")),
                 Arguments.of(20, 5, "", "length", List.of()),
-                Arguments.of(20, 5, " ", "length", List.of(),
-                Arguments.of(25, 5, "length", "This is a very long text, please split me", List.of("This   is   a   very"," long   text", "   please, ", " split   me"))),
-                Arguments.of(20, 5, "Hello world", "cl100k_base", List.of("Hello   world")),
-                Arguments.of(20, 10, "Hello world, I would like to see some overlap here", "cl100k_base", List.of("Hello   world,   I   would   like",
-                        " would   like   to   see   some", " to   see   some   overlap   here")) */
+                Arguments.of(20, 5, " ", "length", List.of()),
+                Arguments.of(20, 5, "Hello world", "cl100k_base", List.of("Hello world")),
+                Arguments.of(10, 2, "Hello world, I would like to see some overlap here", "cl100k_base", List.of("Hello world, I would like",
+                        "like to see some overlap", "overlap here"))
         );
     }
 
+    @Test
+    public void testChunksKeepSeparator() throws Exception {
+        TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
+        SingleRecordAgentProcessor instance = provider.createInstance("text-splitter");
+        instance.init(Map.of("splitter_type", "RecursiveCharacterTextSplitter",
+            "separators", List.of("\n\n", "\n", " ", ""),
+            "keep_separator", true,
+            "chunk_size", 15,
+            "chunk_overlap", 5,
+            "length_function", "length"));
+
+        List<String> chunks = doChunking(instance, "Hello world. This is a great day");
+        List<String> expected = List.of("Hello world.", "This is a", "is a great day");
+        assertEquals(expected.size(), chunks.size(), "Bad number of chunks: "+  expected + " vs " + chunks);
+        int i = 0;
+        for (String expectedChunk : expected) {
+            assertEquals(expectedChunk, chunks.get(i++));
+        }
+    }
+
+    @Test
+    public void testChunksRegexSeparator() throws Exception {
+        TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
+        SingleRecordAgentProcessor instance = provider.createInstance("text-splitter");
+        instance.init(Map.of("splitter_type", "RecursiveCharacterTextSplitter",
+            "separators", List.of("\\d+"),
+            "keep_separator", true,
+            "chunk_size", 15,
+            "chunk_overlap", 5,
+            "length_function", "length"));
+
+        List<String> chunks = doChunking(instance, "Hello1world.2This3is4a5great6day");
+        List<String> expected = List.of("Hello1world.", "2This3is4a", "3is4a5great6day");
+        assertEquals(expected.size(), chunks.size(), "Bad number of chunks: "+  expected + " vs " + chunks);
+        int i = 0;
+        for (String expectedChunk : expected) {
+            assertEquals(expectedChunk, chunks.get(i++));
+        }
+    }
 }

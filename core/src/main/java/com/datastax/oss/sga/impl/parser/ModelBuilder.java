@@ -208,22 +208,31 @@ public class ModelBuilder {
                 throw new IllegalArgumentException("Gateway of type 'produce' cannot have consume options");
             }
         }
-
-
     }
 
     private static void validateGatewayKeyValueComparison(Gateway.KeyValueComparison keyValueComparison) {
         if (keyValueComparison.key() == null || keyValueComparison.key().isBlank()) {
             throw new IllegalArgumentException("'key' is required for filter");
         }
+        if (keyValueComparison.value() == null
+                && keyValueComparison.valueFromParameters() == null
+                && keyValueComparison.valueFromAuthentication() == null) {
+            throw new IllegalArgumentException("One of 'value', 'valueFromParameters' or 'valueFromAuthentication' must be specified for filter");
+        }
         if (keyValueComparison.value() != null && keyValueComparison.valueFromParameters() != null) {
-            throw new IllegalArgumentException("Only one of 'value' or 'valueFromParameters' can be specified for filter");
+            throw new IllegalArgumentException("Only one of 'value', 'valueFromParameters' or 'valueFromAuthentication' can be specified for filter");
+        }
+        if (keyValueComparison.value() != null && keyValueComparison.valueFromAuthentication() != null) {
+            throw new IllegalArgumentException("Only one of 'value', 'valueFromParameters' or 'valueFromAuthentication' can be specified for filter");
         }
         if (keyValueComparison.value() != null && keyValueComparison.value().isBlank()) {
             throw new IllegalArgumentException("'value' cannot be blank for filter");
         }
         if (keyValueComparison.valueFromParameters() != null && keyValueComparison.valueFromParameters().isBlank()) {
             throw new IllegalArgumentException("'valueFromParameters' cannot be blank for filter");
+        }
+        if (keyValueComparison.valueFromAuthentication() != null && keyValueComparison.valueFromAuthentication().isBlank()) {
+            throw new IllegalArgumentException("'valueFromAuthentication' cannot be blank for filter");
         }
     }
 

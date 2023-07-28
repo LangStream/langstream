@@ -25,7 +25,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     }
 
 
-    protected String computeQueryString(Map<String, String> userParams, Map<String, String> options) {
+    protected String computeQueryString(String credentials, Map<String, String> userParams, Map<String, String> options) {
         String paramsPart = "";
         String optionsPart = "";
         if (userParams != null) {
@@ -42,14 +42,25 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                     .map(e -> encodeParam(e, "option:"))
                     .collect(Collectors.joining("&"));
         }
-        return List.of(paramsPart, optionsPart)
+
+        String credentialsPart = "";
+        if (credentials != null) {
+            credentialsPart = encodeParam("credentials", credentials, "");
+        }
+
+        return List.of(credentialsPart, paramsPart, optionsPart)
                 .stream().collect(Collectors.joining("&"));
     }
 
 
-    @SneakyThrows
+
     private String encodeParam(Map.Entry<String, String> e, String prefix) {
-        return "%s=%s".formatted(prefix + e.getKey(), URLEncoder.encode(e.getValue(), "UTF-8"));
+        return encodeParam(e.getKey(), e.getValue(), prefix);
+    }
+
+    @SneakyThrows
+    private String encodeParam(String key, String value, String prefix) {
+        return "%s=%s".formatted(prefix + key, URLEncoder.encode(value, "UTF-8"));
     }
 
 

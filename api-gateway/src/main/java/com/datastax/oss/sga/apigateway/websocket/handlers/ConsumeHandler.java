@@ -3,7 +3,6 @@ package com.datastax.oss.sga.apigateway.websocket.handlers;
 import static com.datastax.oss.sga.apigateway.websocket.WebSocketConfig.CONSUME_PATH;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Gateway;
-import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
@@ -13,6 +12,7 @@ import com.datastax.oss.sga.api.runner.topics.TopicReadResult;
 import com.datastax.oss.sga.api.runner.topics.TopicReader;
 import com.datastax.oss.sga.api.runner.topics.TopicOffsetPosition;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
+import com.datastax.oss.sga.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.datastax.oss.sga.apigateway.websocket.api.ConsumePushMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.nio.charset.StandardCharsets;
@@ -44,28 +44,42 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    public void onBeforeHandshakeCompleted(Map<String, Object> attributes) throws Exception {
-        final String tenant = (String) attributes.get("tenant");
-        final String gatewayId = (String) attributes.get("gateway");
-        final String applicationId = (String) attributes.get("application");
-        final Application application = getResolvedApplication(tenant, applicationId);
-        Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.consume);
+    Gateway.GatewayType gatewayType() {
+        return Gateway.GatewayType.consume;
+    }
 
+    @Override
+    String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+        return parsedPath.get("tenant");
+    }
 
-        final RequestDetails requestOptions = validateQueryStringAndOptions(
-                (Map<String, String>) attributes.get("queryString"), selectedGateway);
+    @Override
+    String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+        return parsedPath.get("application");
+    }
+
+    @Override
+    String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+        return parsedPath.get("gateway");
+    }
+
+    @Override
+    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext context) throws Exception {
+        final Gateway gateway = context.gateway();
+        final Application application = context.application();
         List<Function<Record, Boolean>> filters =
-                createMessageFilters(selectedGateway, requestOptions.getUserParameters());
-        attributes.put("consumeFilters", filters);
+                createMessageFilters(gateway, context.userParameters(), context.principalValues());
+
+        context.attributes().put("consumeFilters", filters);
 
         final StreamingCluster streamingCluster = application.getInstance().streamingCluster();
 
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
 
-        final String topicName = selectedGateway.topic();
+        final String topicName = gateway.topic();
 
-        final String positionParameter = requestOptions.getOptions().getOrDefault("position", "latest");
+        final String positionParameter = context.options().getOrDefault("position", "latest");
         TopicOffsetPosition position = switch (positionParameter) {
             case "latest" -> TopicOffsetPosition.LATEST;
             case "earliest" -> TopicOffsetPosition.EARLIEST;
@@ -76,18 +90,18 @@ public class ConsumeHandler extends AbstractHandler {
                 topicConnectionsRuntime.createReader(streamingCluster,
                         Map.of("topic", topicName), position);
         reader.start();
-        attributes.put("topicReader", reader);
+        context.attributes().put("topicReader", reader);
     }
 
     @Override
-    public void onOpen(WebSocketSession session) throws Exception {
+    public void onOpen(WebSocketSession session, AuthenticatedGatewayRequestContext context) throws Exception {
         // we must return the caller thread to the thread pool
         final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             final Map<String, Object> attributes = session.getAttributes();
             TopicReader reader = (TopicReader) attributes.get("topicReader");
-            final String tenant = (String) attributes.get("tenant");
-            final String gatewayId = (String) attributes.get("gateway");
-            final String applicationId = (String) attributes.get("application");
+            final String tenant = context.tenant();
+            final String gatewayId = context.gateway().id();
+            final String applicationId = context.applicationId();
             try {
                 log.info("[{}] Started reader for gateway {}/{}/{}", session.getId(), tenant, applicationId, gatewayId);
                 readMessages(session, (List<Function<Record, Boolean>>) attributes.get("consumeFilters"), reader);
@@ -103,11 +117,11 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    public void onMessage(WebSocketSession webSocketSession, TextMessage message) throws Exception {
+    public void onMessage(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, TextMessage message) throws Exception {
     }
 
     @Override
-    public void onClose(WebSocketSession webSocketSession, CloseStatus closeStatus) throws Exception {
+    public void onClose(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, CloseStatus closeStatus) throws Exception {
         final CompletableFuture<Void> future = (CompletableFuture<Void>) webSocketSession.getAttributes().get("future");
         if (future != null && !future.isDone()) {
             future.cancel(true);
@@ -201,7 +215,8 @@ public class ConsumeHandler extends AbstractHandler {
     public record Offset(String partition, String offset) {}
 
     private List<Function<Record, Boolean>> createMessageFilters(Gateway selectedGateway,
-                                                                 Map<String, String> passedParameters) {
+                                                                 Map<String, String> passedParameters,
+                                                                 Map<String, String> principalValues) {
         List<Function<Record, Boolean>> filters = new ArrayList<>();
 
         if (selectedGateway.consumeOptions() != null) {
@@ -226,6 +241,9 @@ public class ConsumeHandler extends AbstractHandler {
                                 String value = comparison.value();
                                 if (value == null && comparison.valueFromParameters() != null) {
                                     value = passedParameters.get(comparison.valueFromParameters());
+                                }
+                                if (value == null && comparison.valueFromAuthentication() != null) {
+                                    value = principalValues.get(comparison.valueFromAuthentication());
                                 }
                                 if (value == null) {
                                     return false;

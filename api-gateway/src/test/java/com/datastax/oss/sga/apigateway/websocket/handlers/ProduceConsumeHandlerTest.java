@@ -241,13 +241,13 @@ class ProduceConsumeHandlerTest {
         testGateways = new Gateways(List.of(
                 new Gateway("produce", Gateway.GatewayType.produce, topic, List.of("session-id"),
                         new Gateway.ProduceOptions(
-                                List.of(new Gateway.KeyValueComparison("header1", "sga", null))
+                                List.of(Gateway.KeyValueComparison.value("header1", "sga"))
                         ), null),
                 new Gateway("produce-non-sga", Gateway.GatewayType.produce, topic, List.of("session-id"), null, null),
                 new Gateway("consume", Gateway.GatewayType.consume, topic, List.of("session-id"), null,
                         new Gateway.ConsumeOptions(
                                 new Gateway.ConsumeOptionsFilters(
-                                        List.of(new Gateway.KeyValueComparison("header1", "sga", null))
+                                        List.of(Gateway.KeyValueComparison.value("header1", "sga"))
                                 )
                         ))
         ));
@@ -295,6 +295,28 @@ class ProduceConsumeHandlerTest {
                         ), user2Messages));
     }
 
+    @Test
+    void testAuthentication() throws Exception {
+        final String topic = genTopic();
+        prepareTopicsForTest(topic);
+
+        testGateways = new Gateways(List.of(
+                new Gateway("gw", Gateway.GatewayType.produce,
+                        topic, new Gateway.Authentication("test-auth", Map.of()), List.of(), null, null)
+        ));
+
+
+        connectAndExpectClose(URI.create("ws://localhost:%d/v1/produce/tenant1/application1/gw".formatted(port)),
+                new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "missing required parameter session-id"));
+        connectAndExpectClose(URI.create("ws://localhost:%d/v1/produce/tenant1/application1/gw?credentials=".formatted(port)),
+                new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "missing required parameter session-id"));
+        connectAndExpectClose(URI.create("ws://localhost:%d/v1/produce/tenant1/application1/gw?credentials=error".formatted(port)),
+                new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "missing required parameter session-id"));
+        connectAndExpectRunning(
+                URI.create("ws://localhost:%d/v1/produce/tenant1/application1/gw?credentials=test-user-password".formatted(port))
+        );
+    }
+
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {
     }
@@ -325,12 +347,12 @@ class ProduceConsumeHandlerTest {
         testGateways = new Gateways(List.of(
                 new Gateway("produce", Gateway.GatewayType.produce, topic, List.of("session-id"),
                         new Gateway.ProduceOptions(
-                                List.of(new Gateway.KeyValueComparison("header1", null, "session-id"))
+                                List.of(Gateway.KeyValueComparison.valueFromParameters("header1", "session-id"))
                         ), null),
                 new Gateway("consume", Gateway.GatewayType.consume, topic, List.of("session-id"), null,
                         new Gateway.ConsumeOptions(
                                 new Gateway.ConsumeOptionsFilters(
-                                        List.of(new Gateway.KeyValueComparison("header1", null, "session-id"))
+                                        List.of(Gateway.KeyValueComparison.valueFromParameters("header1", "session-id"))
                                 )
                         ))
         ));
@@ -411,7 +433,7 @@ class ProduceConsumeHandlerTest {
         testGateways = new Gateways(List.of(
                 new Gateway("gw", Gateway.GatewayType.produce, topic, List.of("session-id"),
                         new Gateway.ProduceOptions(
-                                List.of(new Gateway.KeyValueComparison("header1", null, "session-id"))
+                                List.of(Gateway.KeyValueComparison.valueFromParameters("header1", "session-id"))
                         ), null)
         ));
         ProduceResponse response = connectAndProduce(URI.create(

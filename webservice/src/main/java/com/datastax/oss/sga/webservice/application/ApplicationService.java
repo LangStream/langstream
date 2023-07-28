@@ -2,6 +2,7 @@ package com.datastax.oss.sga.webservice.application;
 
 import com.datastax.oss.sga.api.codestorage.CodeStorage;
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.Gateway;
 import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.model.TopicDefinition;
@@ -15,11 +16,13 @@ import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.webservice.common.GlobalMetadataService;
+import com.datastax.oss.sga.webservice.config.ApplicationDeployProperties;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +33,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Slf4j
+@AllArgsConstructor
 public class ApplicationService {
     private final ApplicationDeployer deployer = ApplicationDeployer
             .builder()
@@ -39,15 +43,8 @@ public class ApplicationService {
 
     private final GlobalMetadataService globalMetadataService;
     private final ApplicationStore applicationStore;
+    private final ApplicationDeployProperties applicationDeployProperties;
 
-    private CodeStorage codeStorage;
-
-    public ApplicationService(
-            GlobalMetadataService globalMetadataService,
-            ApplicationStore store) {
-        this.globalMetadataService = globalMetadataService;
-        this.applicationStore = store;
-    }
 
 
     @SneakyThrows
@@ -64,8 +61,27 @@ public class ApplicationService {
         if (applicationStore.get(tenant, applicationId) != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Application already exists");
         }
+
+        validateApplicationModel(applicationInstance.getApplication());
         validateExecutionPlan(applicationId, applicationInstance.getApplication());
         applicationStore.put(tenant, applicationId, applicationInstance.getApplication(), codeArchiveReference);
+    }
+
+    private void validateApplicationModel(Application application) {
+        validateGateways(application);
+    }
+
+    private void validateGateways(Application application) {
+        if (applicationDeployProperties.gateway().requireAuthentication()) {
+            if (application.getGateways() != null
+            && application.getGateways().gateways() != null) {
+                for (Gateway gateway : application.getGateways().gateways()) {
+                    if (gateway.authentication() == null) {
+                        throw new IllegalArgumentException("Gateway " + gateway.id() + " is missing authentication");
+                    }
+                }
+            }
+        }
     }
 
     @SneakyThrows

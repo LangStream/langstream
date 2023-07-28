@@ -13,12 +13,14 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true)
 @AllArgsConstructor
-public class SecurityConfiguration {
+public class SecurityConfiguration implements WebMvcConfigurer {
 
   private final CorsFilter corsFilter;
 
@@ -54,5 +56,10 @@ public class SecurityConfiguration {
           .and()
       .build();
     // @formatter:on
+  }
+
+  @Override
+  public void addCorsMappings(CorsRegistry registry) {
+    registry.addMapping("/**").allowedMethods("*");
   }
 }

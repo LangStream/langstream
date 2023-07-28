@@ -671,7 +671,6 @@ class ProduceConsumeHandlerTest {
         final TestWebSocketClient client = new TestWebSocketClient(new TestWebSocketClient.Handler() {
             @Override
             public void onOpen(Session session) {
-                System.out.println("client onOpen");
                 countDownLatch.countDown();
             }
 

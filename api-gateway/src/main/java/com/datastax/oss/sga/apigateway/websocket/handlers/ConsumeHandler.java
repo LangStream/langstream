@@ -26,7 +26,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -81,7 +80,6 @@ public class ConsumeHandler extends AbstractHandler {
 
     @Override
     public void onOpen(WebSocketSession session) throws Exception {
-        log.info("inizio onOpen");
         // we must return the caller thread to the thread pool
         final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             final Map<String, Object> attributes = session.getAttributes();
@@ -101,7 +99,6 @@ public class ConsumeHandler extends AbstractHandler {
             }
         });
         session.getAttributes().put("future", future);
-        log.info("finito onOpen");
     }
 
     @Override

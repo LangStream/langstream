@@ -282,7 +282,7 @@ class ProduceConsumeHandlerTest {
     }
 
 
-    private record MsgRecord(Object key, Object vlaue, Map<String, String> headers) {
+    private record MsgRecord(Object key, Object value, Map<String, String> headers) {
     }
 
 

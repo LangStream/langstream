@@ -37,6 +37,11 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
+    public String path() {
+        return PRODUCE_PATH;
+    }
+
+    @Override
     public void onOpen(WebSocketSession webSocketSession) throws Exception {
         final String tenant = (String) webSocketSession.getAttributes().get("tenant");
 
@@ -52,7 +57,8 @@ public class ProduceHandler extends AbstractHandler {
         Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.produce);
 
 
-        final RequestDetails requestDetails = validateQueryStringAndOptions(webSocketSession, selectedGateway);
+        final RequestDetails requestDetails = validateQueryStringAndOptions(
+                (Map<String, String>) webSocketSession.getAttributes().get("queryString"), selectedGateway);
         final List<Header> headers = getCommonHeaders(selectedGateway, requestDetails.getUserParameters());
         final StreamingCluster streamingCluster = application.getInstance().getInstance().streamingCluster();
 

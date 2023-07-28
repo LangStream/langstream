@@ -490,10 +490,10 @@
       </modules>
     </profile>
     <profile>
-      <id>skipRuntimeTests</id>
+      <id>testSuiteOthers</id>
       <activation>
         <property>
-          <name>skipRuntimeTests</name>
+          <name>testSuiteOthers</name>
         </property>
       </activation>
       <modules>
@@ -506,13 +506,14 @@
         <module>kafka-connect</module>
         <module>k8s-runtime</module>
         <module>codestorage-s3</module>
+<!--        <module>runtime</module>-->
         <module>ai-agents</module>
-        <module>webservice</module>
+<!--        <module>webservice</module>-->
         <module>k8s-storage</module>
-        <module>k8s-deployer</module>
+<!--        <module>k8s-deployer</module>-->
         <module>k8s-common</module>
-        <module>e2e-tests</module>
-        <module>api-gateway</module>
+<!--        <module>e2e-tests</module>-->
+<!--        <module>api-gateway</module>-->
       </modules>
     </profile>
   </profiles>

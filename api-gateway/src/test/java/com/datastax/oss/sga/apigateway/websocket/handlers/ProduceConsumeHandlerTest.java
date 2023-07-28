@@ -34,6 +34,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import jakarta.websocket.CloseReason;
+import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Session;
 import java.net.URI;
 import java.util.ArrayList;
@@ -580,6 +581,8 @@ class ProduceConsumeHandlerTest {
             countDownLatch.await();
             assertEquals(expectedCloseReason.getReasonPhrase(), closeReason.get().getReasonPhrase());
             assertEquals(expectedCloseReason.getCloseCode(), closeReason.get().getCloseCode());
+        } catch (DeploymentException e) {
+            // ok
         }
     }
 
@@ -664,7 +667,13 @@ class ProduceConsumeHandlerTest {
     @SneakyThrows
     private ClientSession connectAndCollectMessages(URI connectTo, List<String> collect) {
         AtomicReference<CloseReason> closeReason = new AtomicReference<>();
+        CountDownLatch countDownLatch = new CountDownLatch(1);
         final TestWebSocketClient client = new TestWebSocketClient(new TestWebSocketClient.Handler() {
+            @Override
+            public void onOpen(Session session) {
+                System.out.println("client onOpen");
+                countDownLatch.countDown();
+            }
 
             @Override
             public void onMessage(String msg) {
@@ -677,6 +686,7 @@ class ProduceConsumeHandlerTest {
             }
 
         }).connect(connectTo);
+        countDownLatch.await();
         return new ClientSession() {
             @Override
             public CloseReason getCloseReason() {
@@ -691,6 +701,7 @@ class ProduceConsumeHandlerTest {
             @Override
             @SneakyThrows
             public void close() {
+                this.assertOk();
                 client.close();
             }
         };

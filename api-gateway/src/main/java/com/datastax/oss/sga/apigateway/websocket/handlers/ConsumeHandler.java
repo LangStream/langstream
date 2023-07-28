@@ -39,16 +39,69 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    public void onOpen(WebSocketSession webSocketSession) throws Exception {
-        final String tenant = (String) webSocketSession.getAttributes().get("tenant");
+    public String path() {
+        return CONSUME_PATH;
+    }
 
-        final AntPathMatcher antPathMatcher = new AntPathMatcher();
-        final Map<String, String> vars =
-                antPathMatcher.extractUriTemplateVariables(CONSUME_PATH,
-                        webSocketSession.getUri().getPath());
-        final String gateway = vars.get("gateway");
-        final String applicationId = vars.get("application");
-        setupConsumer(webSocketSession, gateway, tenant, applicationId);
+    @Override
+    public void onBeforeHandshakeCompleted(Map<String, Object> attributes) throws Exception {
+        final String tenant = (String) attributes.get("tenant");
+        final String gatewayId = (String) attributes.get("gateway");
+        final String applicationId = (String) attributes.get("application");
+        final StoredApplication application = applicationStore.get(tenant, applicationId);
+        Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.consume);
+
+
+        final RequestDetails requestOptions = validateQueryStringAndOptions(
+                (Map<String, String>) attributes.get("queryString"), selectedGateway);
+        List<Function<Record, Boolean>> filters =
+                createMessageFilters(selectedGateway, requestOptions.getUserParameters());
+        attributes.put("consumeFilters", filters);
+
+        final StreamingCluster streamingCluster = application.getInstance().getInstance().streamingCluster();
+
+        final TopicConnectionsRuntime topicConnectionsRuntime =
+                TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
+
+        final String topicName = selectedGateway.topic();
+
+        final String positionParameter = requestOptions.getOptions().getOrDefault("position", "latest");
+        TopicOffsetPosition position = switch (positionParameter) {
+            case "latest" -> TopicOffsetPosition.LATEST;
+            case "earliest" -> TopicOffsetPosition.EARLIEST;
+            default -> TopicOffsetPosition.absolute(new String(
+                    Base64.getDecoder().decode(positionParameter), StandardCharsets.UTF_8));
+        };
+        TopicReader reader =
+                topicConnectionsRuntime.createReader(streamingCluster,
+                        Map.of("topic", topicName), position);
+        reader.start();
+        attributes.put("topicReader", reader);
+    }
+
+    @Override
+    public void onOpen(WebSocketSession session) throws Exception {
+        log.info("inizio onOpen");
+        // we must return the caller thread to the thread pool
+        final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+            final Map<String, Object> attributes = session.getAttributes();
+            TopicReader reader = (TopicReader) attributes.get("topicReader");
+            final String tenant = (String) attributes.get("tenant");
+            final String gatewayId = (String) attributes.get("gateway");
+            final String applicationId = (String) attributes.get("application");
+            try {
+                log.info("[{}] Started reader for gateway {}/{}/{}", session.getId(), tenant, applicationId, gatewayId);
+                readMessages(session, (List<Function<Record, Boolean>>) attributes.get("consumeFilters"), reader);
+            } catch (InterruptedException | CancellationException ex) {
+                // ignore
+            } catch (Throwable ex) {
+                log.error(ex.getMessage(), ex);
+            } finally {
+                closeReader(reader);
+            }
+        });
+        session.getAttributes().put("future", future);
+        log.info("finito onOpen");
     }
 
     @Override
@@ -78,49 +131,9 @@ public class ConsumeHandler extends AbstractHandler {
         }
     }
 
-    private void setupConsumer(WebSocketSession session, String gatewayId, String tenant, String applicationId)
+    private void setupConsumer(Map<String, String> queryString, String gatewayId, String tenant, String applicationId)
             throws Exception {
-        final StoredApplication application = applicationStore.get(tenant, applicationId);
-        Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.consume);
 
-        final RequestDetails requestOptions = validateQueryStringAndOptions(session, selectedGateway);
-        List<Function<Record, Boolean>> filters =
-                createMessageFilters(selectedGateway, requestOptions.getUserParameters());
-
-        final StreamingCluster streamingCluster = application.getInstance().getInstance().streamingCluster();
-
-        final TopicConnectionsRuntime topicConnectionsRuntime =
-                TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
-
-        final String topicName = selectedGateway.topic();
-
-        final String positionParameter = requestOptions.getOptions().getOrDefault("position", "latest");
-        TopicOffsetPosition position = switch (positionParameter) {
-            case "latest" -> TopicOffsetPosition.LATEST;
-            case "earliest" -> TopicOffsetPosition.EARLIEST;
-            default -> TopicOffsetPosition.absolute(new String(
-                    Base64.getDecoder().decode(positionParameter), StandardCharsets.UTF_8));
-        };
-
-        // we must return the caller thread to the thread pool
-         final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            TopicReader reader = null;
-            try {
-                reader =
-                        topicConnectionsRuntime.createReader(streamingCluster,
-                                Map.of("topic", topicName), position);
-                reader.start();
-                log.info("[{}] Started reader for gateway {}/{}/{}", session.getId(), tenant, applicationId, gatewayId);
-                readMessages(session, filters, reader);
-            } catch (InterruptedException | CancellationException ex) {
-                // ignore
-            } catch (Throwable ex) {
-                log.error(ex.getMessage(), ex);
-            } finally {
-                closeReader(reader);
-            }
-        });
-        session.getAttributes().put("future", future);
     }
 
     private void closeReader(TopicReader reader) {

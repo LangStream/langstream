@@ -40,12 +40,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -123,6 +125,12 @@ class ProduceConsumeHandlerTest {
     public void beforeEach() {
         testGateways = null;
         topics = null;
+        Awaitility.setDefaultTimeout(30, TimeUnit.SECONDS);
+    }
+
+    @AfterAll
+    public void afterAll() {
+        Awaitility.reset();
     }
 
     @Test

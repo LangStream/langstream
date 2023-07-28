@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.impl.common;
 
+import com.datastax.oss.sga.api.model.ErrorsSpec;
 import com.datastax.oss.sga.api.model.ResourcesSpec;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ComponentType;
@@ -20,6 +21,7 @@ public class DefaultAgentNode implements AgentNode {
     private final Object customMetadata;
 
     private final ResourcesSpec resourcesSpec;
+    private final ErrorsSpec errorsSpec;
 
     private final Connection inputConnection;
     private Connection outputConnection;
@@ -31,7 +33,8 @@ public class DefaultAgentNode implements AgentNode {
                      boolean composable, Object runtimeMetadata,
                             Connection inputConnection,
                             Connection outputConnection,
-                            ResourcesSpec resourcesSpec) {
+                            ResourcesSpec resourcesSpec,
+                            ErrorsSpec errorsSpec) {
         this.agentType = agentType;
         this.composable = composable;
         this.id = id;
@@ -41,6 +44,7 @@ public class DefaultAgentNode implements AgentNode {
         this.inputConnection = inputConnection;
         this.outputConnection = outputConnection;
         this.resourcesSpec = resourcesSpec != null ? resourcesSpec : ResourcesSpec.DEFAULT;
+        this.errorsSpec = errorsSpec != null ? errorsSpec : ErrorsSpec.DEFAULT;
     }
 
     public <T> T getCustomMetadata() {

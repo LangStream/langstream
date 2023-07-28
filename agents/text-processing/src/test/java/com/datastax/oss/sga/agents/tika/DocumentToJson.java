@@ -3,7 +3,7 @@ package com.datastax.oss.sga.agents.tika;
 import com.dastastax.oss.sga.agents.tika.TextProcessingAgentsCodeProvider;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +19,7 @@ public class DocumentToJson {
     @Test
     public void textConvertToJson() throws Exception {
         TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
-        SingleRecordAgentFunction instance = provider.createInstance("document-to-json");
+        SingleRecordAgentProcessor instance = provider.createInstance("document-to-json");
         instance.init(Map.of("text-field", "document", "copy-properties", "true"));
 
         assertEquals("{\"detected-language\":\"en\",\"document\":\"This is a English\"}",
@@ -30,7 +30,7 @@ public class DocumentToJson {
 
     }
 
-    private static String convertToJson(SingleRecordAgentFunction instance, String text) throws Exception {
+    private static String convertToJson(SingleRecordAgentProcessor instance, String text) throws Exception {
         Record fromSource = SimpleRecord
                 .builder()
                 .key("filename.txt")

@@ -201,6 +201,8 @@ public class AgentRunner
             producer = new NoopTopicProducer();
         }
 
+        ErrorsHandler errorsHandler = new StandardErrorsHandler(configuration.agent().errorHandlerConfiguration());
+
         TopicAdmin topicAdmin = topicConnectionsRuntime.createTopicAdmin(agentId,
                 configuration.streamingCluster(),
                 configuration.output());
@@ -252,7 +254,7 @@ public class AgentRunner
             log.info("Processor: {}", mainProcessor);
             log.info("Sink: {}", sink);
 
-            runMainLoop(source, mainProcessor, sink, agentContext, maxLoops);
+            runMainLoop(source, mainProcessor, sink, agentContext, errorsHandler, maxLoops);
         } finally {
             topicAdmin.close();
         }
@@ -262,6 +264,7 @@ public class AgentRunner
                                     AgentProcessor function,
                                     AgentSink sink,
                                     AgentContext agentContext,
+                                    ErrorsHandler errorsHandler,
                                     int maxLoops) throws Exception {
         try {
             source.setContext(agentContext);
@@ -278,39 +281,82 @@ public class AgentRunner
             List<Record> records = source.read();
             while ((maxLoops < 0) || (maxLoops-- > 0)) {
                 if (records != null && !records.isEmpty()) {
-                    try {
-                        // the function maps the record coming from the Source to records to be sent to the Sink
-                        List<AgentProcessor.SourceRecordAndResult> sinkRecords = function.process(records);
+                    // in case of permanent FAIL this method will throw an exception
+                    List<AgentProcessor.SourceRecordAndResult> sinkRecords
+                            = runProcessorAgent(function, records, errorsHandler, source);
+                    // sinkRecord == null is the SKIP case
 
-                        sourceRecordTracker.track(sinkRecords);
+                    // in this case we do not send the records to the sink
+                    // and the source has already committed the records
+                    // This won't for the Kafka Connect Sink, because it does handle the commit
+                    // itself, but on the otherhand in the case of the Connect Sink we can see here
+                    // only the IdentityAgentCode that is not supposed to fail
 
-                        List<Record> forTheSink = new ArrayList<>();
-                        sinkRecords.forEach(sourceRecordAndResult -> {
-                            sourceRecordAndResult.getResultRecords().forEach(forTheSink::add);
-                        });
+                    if (sinkRecords != null) {
+                        try {
+                            // the function maps the record coming from the Source to records to be sent to the Sink
+                            sourceRecordTracker.track(sinkRecords);
 
-                        sink.write(forTheSink);
-                    } catch (Throwable e) {
-                        log.error("Error while processing records", e);
+                            List<Record> forTheSink = new ArrayList<>();
+                            sinkRecords.forEach(sourceRecordAndResult -> {
+                                sourceRecordAndResult.getResultRecords().forEach(forTheSink::add);
+                            });
 
-                        // throw the error
-                        // this way the consumer will not commit the records
-                        throw new RuntimeException("Error while processing records", e);
+                            sink.write(forTheSink);
+                        } catch (Throwable e) {
+                            log.error("Error while processing records", e);
+
+                            // throw the error
+                            // this way the consumer will not commit the records
+                            throw new RuntimeException("Error while processing records", e);
+                        }
                     }
-                    // commit
                 }
+
+                // commit (Kafka Connect Sink)
                 if (sink.handlesCommit()) {
                     // this is the case for the Kafka Connect Sink
                     // in this case it handles directly the Kafka Consumer
                     // and so we bypass the commit
                     sink.commit();
                 }
+
                 records = source.read();
             }
         } finally {
             function.close();
             source.close();
             sink.close();
+        }
+    }
+
+
+    private static List<AgentProcessor.SourceRecordAndResult> runProcessorAgent(AgentProcessor processor,
+                                                                                List<Record> records,
+                                                                                ErrorsHandler errorsHandler,
+                                                                                AgentSource source) throws Exception {
+        while (true) {
+            try {
+                return processor.process(records);
+            } catch (Exception error) {
+                // handle error
+                ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(records, error);
+                switch (action) {
+                    case SKIP:
+                        log.error("Unrecoverable error while processing the records, skipping", error);
+                        source.commit(records);
+                        // returning null means that the record are fully processed, nothing to be done anymore
+                        return null;
+                    case RETRY:
+                        log.error("Retryable error while processing the records, retrying", error);
+                        // retry
+                        break;
+                    case FAIL:
+                        log.error("Unrecoverable error while processing the records, failing", error);
+                        // fail
+                        throw error;
+                }
+            }
         }
     }
 
@@ -389,4 +435,5 @@ public class AgentRunner
             return topicConnectionProvider;
         }
     }
+
 }

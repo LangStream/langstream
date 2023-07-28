@@ -1,14 +1,14 @@
 package com.dastastax.oss.sga.agents.tika;
 
 import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 
 import java.util.Map;
 import java.util.function.Supplier;
 
 public class TextProcessingAgentsCodeProvider implements AgentCodeProvider {
 
-    private static Map<String, Supplier<SingleRecordAgentFunction>> FACTORIES = Map.of(
+    private static Map<String, Supplier<SingleRecordAgentProcessor>> FACTORIES = Map.of(
             "text-extractor", () -> new TikaTextExtractorAgent(),
             "language-detector", () -> new LanguageDetectorAgent(),
             "text-splitter", () -> new TextSplitterAgent(),
@@ -22,7 +22,7 @@ public class TextProcessingAgentsCodeProvider implements AgentCodeProvider {
     }
 
     @Override
-    public SingleRecordAgentFunction createInstance(String agentType) {
+    public SingleRecordAgentProcessor createInstance(String agentType) {
         return FACTORIES.get(agentType).get();
     }
 }

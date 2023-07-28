@@ -3,7 +3,7 @@ package com.datastax.oss.sga.api.runner.code;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class SingleRecordAgentFunction implements AgentProcessor {
+public abstract class SingleRecordAgentProcessor implements AgentProcessor {
 
     public abstract List<Record> processRecord(Record record) throws Exception;
 

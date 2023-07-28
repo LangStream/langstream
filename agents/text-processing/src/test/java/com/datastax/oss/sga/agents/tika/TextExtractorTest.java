@@ -3,7 +3,7 @@ package com.datastax.oss.sga.agents.tika;
 import com.dastastax.oss.sga.agents.tika.TextProcessingAgentsCodeProvider;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +19,7 @@ public class TextExtractorTest {
     @Test
     public void textExtractFromText() throws Exception {
         TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
-        SingleRecordAgentFunction instance = provider.createInstance("text-extractor");
+        SingleRecordAgentProcessor instance = provider.createInstance("text-extractor");
 
         Record fromSource = SimpleRecord
                 .builder()
@@ -38,7 +38,7 @@ public class TextExtractorTest {
     @Test
     public void textExtractFromPdf() throws Exception {
         TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
-        SingleRecordAgentFunction instance = provider.createInstance("text-extractor");
+        SingleRecordAgentProcessor instance = provider.createInstance("text-extractor");
 
         byte[] content = Files.readAllBytes(Paths.get("src/test/resources/simple.pdf"));
 
@@ -60,7 +60,7 @@ public class TextExtractorTest {
     @Test
     public void textExtractFromWord() throws Exception {
         TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
-        SingleRecordAgentFunction instance = provider.createInstance("text-extractor");
+        SingleRecordAgentProcessor instance = provider.createInstance("text-extractor");
 
         byte[] content = Files.readAllBytes(Paths.get("src/test/resources/simple.docx"));
 

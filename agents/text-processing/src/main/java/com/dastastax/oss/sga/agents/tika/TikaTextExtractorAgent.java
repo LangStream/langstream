@@ -3,18 +3,16 @@ package com.dastastax.oss.sga.agents.tika;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.ParsingReader;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -22,7 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
-public class TikaTextExtractorAgent extends SingleRecordAgentFunction {
+public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {

@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public record KafkaTopic(String name, int partitions, int replicationFactor, SchemaDefinition keySchema, SchemaDefinition valueSchema, String createMode,
-                         Map<String, Object> config)
+                         Map<String, Object> config, Map<String, Object> options)
         implements Connection, Topic {
     public Map<String,Object> createConsumerConfiguration() {
         Map<String, Object> configuration = new HashMap<>();
@@ -16,6 +16,14 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
 
         // this is for the Agent
         configuration.put("topic", name);
+
+        if (options != null) {
+            options.forEach((key, value) -> {
+                if (key.startsWith("consumer.")) {
+                    configuration.put(key.substring("consumer.".length()), value);
+                }
+            });
+        }
 
         // TODO: handle schema
 
@@ -27,6 +35,14 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
 
         // this is for the Agent
         configuration.put("topic", name);
+
+        if (options != null) {
+            options.forEach((key, value) -> {
+                if (key.startsWith("producer.")) {
+                    configuration.put(key.substring("producer.".length()), value);
+                }
+            });
+        }
 
         // TODO: handle schema
 

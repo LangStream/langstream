@@ -4,7 +4,7 @@ import com.datastax.oss.sga.ai.agents.datasource.DataSourceProviderRegistry;
 import com.datastax.oss.sga.ai.agents.services.ServiceProviderRegistry;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericRecord;
 
 @Slf4j
-public class GenAIToolKitAgent extends SingleRecordAgentFunction {
+public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private List<StepPredicatePair> steps;

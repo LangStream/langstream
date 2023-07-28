@@ -30,4 +30,5 @@ public class AgentConfiguration {
     private Connection output;
     private Map<String, Object> configuration = new HashMap<>();
     private ResourcesSpec resources;
+    private ErrorsSpec errors;
 }

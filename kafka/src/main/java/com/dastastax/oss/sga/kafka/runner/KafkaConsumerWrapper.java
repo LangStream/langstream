@@ -14,12 +14,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 class KafkaConsumerWrapper implements TopicConsumer {
     private final Map<String, Object> configuration;
     private final String topicName;
     KafkaConsumer consumer;
+
+    AtomicInteger pendingCommits = new AtomicInteger(0);
+    AtomicReference<Throwable> commitFailure = new AtomicReference();
 
     private final Map<TopicPartition, OffsetAndMetadata> committed = new ConcurrentHashMap<>();
 
@@ -46,6 +52,8 @@ class KafkaConsumerWrapper implements TopicConsumer {
 
     @Override
     public void close() {
+        log.info("Closing consumer to {} with {} pending commits", topicName, pendingCommits.get());
+
         if (consumer != null) {
             consumer.close();
         }
@@ -53,6 +61,9 @@ class KafkaConsumerWrapper implements TopicConsumer {
 
     @Override
     public List<Record> read() {
+        if (commitFailure.get() != null) {
+            throw new RuntimeException("latest commit failed", commitFailure.get());
+        }
         ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(1));
         List<Record> result = new ArrayList<>(poll.count());
         for (ConsumerRecord<?, ?> record : poll) {
@@ -77,9 +88,12 @@ class KafkaConsumerWrapper implements TopicConsumer {
                 return new OffsetAndMetadata(offset);
             });
         }
+        pendingCommits.incrementAndGet();
         consumer.commitAsync(committed, (map, e) -> {
+            pendingCommits.decrementAndGet();
             if (e != null) {
                 log.error("Error committing offsets", e);
+                commitFailure.compareAndSet(null, e);
             } else {
                 log.info("Offsets committed: {}", map);
             }

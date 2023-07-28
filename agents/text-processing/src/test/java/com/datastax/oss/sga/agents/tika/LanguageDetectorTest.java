@@ -3,7 +3,7 @@ package com.datastax.oss.sga.agents.tika;
 import com.dastastax.oss.sga.agents.tika.TextProcessingAgentsCodeProvider;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +18,7 @@ public class LanguageDetectorTest {
     @Test
     public void textDetect() throws Exception {
         TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
-        SingleRecordAgentFunction instance = provider.createInstance("language-detector");
+        SingleRecordAgentProcessor instance = provider.createInstance("language-detector");
         instance.init(Map.of("property", "detected-language"));
 
 
@@ -28,7 +28,7 @@ public class LanguageDetectorTest {
 
     }
 
-    private static String detectLanguage(SingleRecordAgentFunction instance, String text) throws Exception {
+    private static String detectLanguage(SingleRecordAgentProcessor instance, String text) throws Exception {
         Record fromSource = SimpleRecord
                 .builder()
                 .key("filename.txt")

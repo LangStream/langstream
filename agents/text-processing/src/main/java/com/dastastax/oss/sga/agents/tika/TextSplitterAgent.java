@@ -5,7 +5,7 @@ import java.util.List;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
  * Perform text splitting tasks.
  */
 @Slf4j
-public class TextSplitterAgent extends SingleRecordAgentFunction {
+public class TextSplitterAgent extends SingleRecordAgentProcessor {
 
     /**
      * Number of characters per chunk.

@@ -3,7 +3,7 @@ package com.datastax.oss.sga.agents.tika;
 import com.dastastax.oss.sga.agents.tika.TextProcessingAgentsCodeProvider;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -23,7 +23,7 @@ class TextChunkerAgentTest {
     public void testChunks(int chunkSize, int chunkOverlap, String text, String length_function, List<String> expected) throws Exception {
 
         TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
-        SingleRecordAgentFunction instance = provider.createInstance("text-splitter");
+        SingleRecordAgentProcessor instance = provider.createInstance("text-splitter");
         instance.init(Map.of("splitter_type", "RecursiveCharacterTextSplitter",
         "separators", List.of("\n\n", "\n", " ", ""),
                 "keep_separator", "true",
@@ -39,7 +39,7 @@ class TextChunkerAgentTest {
         }
     }
 
-    private static List<String> doChunking(SingleRecordAgentFunction instance, String text) throws Exception {
+    private static List<String> doChunking(SingleRecordAgentProcessor instance, String text) throws Exception {
         Record fromSource = SimpleRecord
                 .builder()
                 .key("filename.txt")

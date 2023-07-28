@@ -3,18 +3,15 @@ package com.dastastax.oss.sga.agents.tika;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.Reader;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
-public class TextNormaliserAgent extends SingleRecordAgentFunction {
+public class TextNormaliserAgent extends SingleRecordAgentProcessor {
 
     private boolean makeLowercase = true;
     private boolean trimSpaces = true;

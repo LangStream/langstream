@@ -8,12 +8,16 @@ public abstract class SingleRecordAgentProcessor implements AgentProcessor {
     public abstract List<Record> processRecord(Record record) throws Exception;
 
     @Override
-    public final List<SourceRecordAndResult> process(List<Record> records) throws Exception {
+    public final List<SourceRecordAndResult> process(List<Record> records) {
         List<SourceRecordAndResult> result = new ArrayList<>();
         for (Record record : records) {
-            List<Record> process = processRecord(record);
-            if (!process.isEmpty()) {
-                result.add(new SourceRecordAndResult(record, process));
+            try {
+                List<Record> process = processRecord(record);
+                if (!process.isEmpty()) {
+                    result.add(new SourceRecordAndResult(record, process, null));
+                }
+            } catch (Throwable error) {
+                result.add(new SourceRecordAndResult(record, null, error));
             }
         }
         return result;

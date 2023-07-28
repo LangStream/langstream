@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.runtime.agent;
 
 import com.datastax.oss.sga.api.runner.code.Record;
+import net.bytebuddy.implementation.bytecode.Throw;
 
 import java.util.List;
 
@@ -12,5 +13,5 @@ public interface ErrorsHandler {
         FAIL
     }
 
-    ErrorsProcessingOutcome handleErrors(List<Record> records, Exception error);
+    ErrorsProcessingOutcome handleErrors(Record sourceRecord, Throwable error);
 }

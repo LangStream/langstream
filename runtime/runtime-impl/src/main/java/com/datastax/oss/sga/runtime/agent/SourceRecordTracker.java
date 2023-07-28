@@ -47,7 +47,7 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
             Record sourceRecord = sourceRecordAndResult.getSourceRecord();
             List<Record> resultRecords = sourceRecordAndResult.getResultRecords();
             remainingSinkRecordsForSourceRecord.put(sourceRecord, new AtomicInteger(resultRecords.size()));
-            sourceRecordAndResult.resultRecords.forEach(sinkRecord -> {
+            sourceRecordAndResult.getResultRecords().forEach(sinkRecord -> {
                 sinkToSourceMapping.put(sinkRecord, sourceRecord);
             });
         });

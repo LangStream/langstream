@@ -27,11 +27,11 @@ class StandardErrorsHandler implements ErrorsHandler {
     }
 
     @Override
-    public ErrorsProcessingOutcome handleErrors(List<Record> records, Exception error) {
+    public ErrorsProcessingOutcome handleErrors(Record sourceRecord, Throwable error) {
         // no stacktrace here, it's too verbose
         int currentFailures = failures.incrementAndGet();
-        log.info("Handling error {} in records {}, errors count {} (max retries {})", error + "",
-                records, currentFailures, retries);
+        log.info("Handling error {} for source record {}, errors count {} (max retries {})", error + "",
+                sourceRecord, currentFailures, retries);
         if (currentFailures >= retries) {
             switch (onFailureAction) {
                 case SKIP:

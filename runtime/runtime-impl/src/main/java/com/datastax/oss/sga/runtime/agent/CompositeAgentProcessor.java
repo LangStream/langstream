@@ -90,17 +90,26 @@ public class CompositeAgentProcessor implements AgentProcessor {
     }
 
     @Override
-    public List<SourceRecordAndResult> process(List<Record> records) throws Exception {
+    public List<SourceRecordAndResult> process(List<Record> records) {
         if (processors.isEmpty()) {
             return records
                     .stream()
-                    .map(r -> new SourceRecordAndResult(r, List.of(r)))
+                    .map(r -> new SourceRecordAndResult(r, List.of(r), null))
                     .toList();
         }
 
         int current = 0;
         AgentProcessor currentAgent = processors.get(current++);
-        List<SourceRecordAndResult> currentResults = currentAgent.process(records);
+        List<SourceRecordAndResult> currentResults;
+        try {
+            currentResults = currentAgent.process(records);
+        } catch (Throwable error) {
+            // first stage errored out
+            return records
+                    .stream()
+                    .map(r -> new SourceRecordAndResult(r, null, error))
+                    .toList();
+        }
 
         // we must preserve the original mapping to the Source Record
         // each SourceRecord generates some SinkRecords
@@ -114,12 +123,22 @@ public class CompositeAgentProcessor implements AgentProcessor {
                 // this algorithm can be improved in the future
                 Record sourceRecord = entry.getSourceRecord();
                 List<Record> sinkRecords = entry.getResultRecords();
-                List<SourceRecordAndResult> processed = currentAgent.process(sinkRecords);
-                nextStageResults.add(new SourceRecordAndResult(sourceRecord,
-                        processed
-                                .stream()
-                                .map(SourceRecordAndResult::getResultRecords)
-                                .flatMap(List::stream).toList()));
+                if (entry.getError() != null) {
+                    nextStageResults.add(new SourceRecordAndResult(sourceRecord,
+                            null, entry.getError()));
+                } else {
+                    try {
+                        List<SourceRecordAndResult> processed = currentAgent.process(sinkRecords);
+                        nextStageResults.add(new SourceRecordAndResult(sourceRecord,
+                                processed
+                                        .stream()
+                                        .map(SourceRecordAndResult::getResultRecords)
+                                        .flatMap(List::stream).toList(), null));
+                    } catch (Throwable error) {
+                        nextStageResults.add(new SourceRecordAndResult(sourceRecord,
+                                null, error));
+                    }
+                }
 
             }
             currentResults = nextStageResults;

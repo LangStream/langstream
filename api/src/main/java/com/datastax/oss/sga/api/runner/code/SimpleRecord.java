@@ -60,6 +60,13 @@ public final class SimpleRecord implements Record {
                 .timestamp(record.timestamp());
     }
 
+    public static SimpleRecord of(Object key, Object value) {
+        return builder()
+                .key(key)
+                .value(value)
+                .build();
+    }
+
     @Data
     @AllArgsConstructor
     public static class SimpleHeader implements Header {

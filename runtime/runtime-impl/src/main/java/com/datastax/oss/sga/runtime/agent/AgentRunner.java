@@ -29,6 +29,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,12 +45,12 @@ public class AgentRunner
     private static final AgentCodeRegistry AGENT_CODE_REGISTRY = new AgentCodeRegistry();
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
-    private static ErrorHandler errorHandler = error -> {
+    private static MainErrorHandler mainErrorHandler = error -> {
         log.error("Unexpected error", error);
         System.exit(-1);
     };
 
-    public interface  ErrorHandler {
+    public interface MainErrorHandler {
         void handleError(Throwable error);
     }
 
@@ -74,7 +75,7 @@ public class AgentRunner
         } catch (Throwable error) {
             log.info("Error, NOW SLEEPING", error);
             Thread.sleep(60000);
-            errorHandler.handleError(error);
+            mainErrorHandler.handleError(error);
         }
     }
 
@@ -260,7 +261,7 @@ public class AgentRunner
         }
     }
 
-    private static void runMainLoop(AgentSource source,
+    static void runMainLoop(AgentSource source,
                                     AgentProcessor function,
                                     AgentSink sink,
                                     AgentContext agentContext,
@@ -289,20 +290,23 @@ public class AgentRunner
                     // in this case we do not send the records to the sink
                     // and the source has already committed the records
                     // This won't for the Kafka Connect Sink, because it does handle the commit
-                    // itself, but on the otherhand in the case of the Connect Sink we can see here
+                    // itself, but on the other hand in the case of the Connect Sink we can see here
                     // only the IdentityAgentCode that is not supposed to fail
 
                     if (sinkRecords != null) {
                         try {
                             // the function maps the record coming from the Source to records to be sent to the Sink
                             sourceRecordTracker.track(sinkRecords);
-
-                            List<Record> forTheSink = new ArrayList<>();
-                            sinkRecords.forEach(sourceRecordAndResult -> {
-                                sourceRecordAndResult.getResultRecords().forEach(forTheSink::add);
-                            });
-
-                            sink.write(forTheSink);
+                            for (AgentProcessor.SourceRecordAndResult sourceRecordAndResult : sinkRecords) {
+                                if (sourceRecordAndResult.getError() != null) {
+                                    // commit skipped records
+                                    source.commit(List.of(sourceRecordAndResult.getSourceRecord()));
+                                } else {
+                                    List<Record> forTheSink = new ArrayList<>();
+                                    forTheSink.addAll(sourceRecordAndResult.getResultRecords());
+                                    sink.write(forTheSink);
+                                }
+                            }
                         } catch (Throwable e) {
                             log.error("Error while processing records", e);
 
@@ -332,31 +336,68 @@ public class AgentRunner
 
 
     private static List<AgentProcessor.SourceRecordAndResult> runProcessorAgent(AgentProcessor processor,
-                                                                                List<Record> records,
+                                                                                List<Record> sourceRecords,
                                                                                 ErrorsHandler errorsHandler,
                                                                                 AgentSource source) throws Exception {
-        while (true) {
-            try {
-                return processor.process(records);
-            } catch (Exception error) {
-                // handle error
-                ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(records, error);
-                switch (action) {
-                    case SKIP:
-                        log.error("Unrecoverable error while processing the records, skipping", error);
-                        source.commit(records);
-                        // returning null means that the record are fully processed, nothing to be done anymore
-                        return null;
-                    case RETRY:
-                        log.error("Retryable error while processing the records, retrying", error);
-                        // retry
-                        break;
-                    case FAIL:
-                        log.error("Unrecoverable error while processing the records, failing", error);
-                        // fail
-                        throw error;
+        List<Record> recordToProcess = sourceRecords;
+        Map<Record, AgentProcessor.SourceRecordAndResult> resultsByRecord = new HashMap<>();
+        int trialNumber = 0;
+        while (!recordToProcess.isEmpty()) {
+            log.info("runProcessor on {} records (trial #{})", recordToProcess.size(), trialNumber++);
+            List<AgentProcessor.SourceRecordAndResult> results = safeProcessRecords(processor, recordToProcess);
+
+            recordToProcess = new ArrayList<>();
+            List<AgentProcessor.SourceRecordAndResult> sinkRecords = new ArrayList<>();
+            for (AgentProcessor.SourceRecordAndResult result : results) {
+                Record sourceRecord = result.getSourceRecord();
+                resultsByRecord.put(sourceRecord, result);
+                if (result.getError() != null) {
+                    Throwable error = result.getError();
+                    // handle error
+                    ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(sourceRecord, result.getError());
+                    switch (action) {
+                        case SKIP:
+                            log.error("Unrecoverable error while processing the records, skipping", error);
+                            resultsByRecord.put(sourceRecord,
+                                    new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
+                            break;
+                        case RETRY:
+                            log.error("Retryable error while processing the records, retrying", error);
+                            // retry
+                            recordToProcess.add(sourceRecord);
+                            break;
+                        case FAIL:
+                            log.error("Unrecoverable error while processing some the records, failing", error);
+                            // fail
+                            throw new PermanentFailureException(error);
+                    }
                 }
             }
+        }
+
+        List<AgentProcessor.SourceRecordAndResult> finalResult = new ArrayList<>(sourceRecords.size());
+        for (Record sourceRecord : sourceRecords) {
+            finalResult.add(resultsByRecord.get(sourceRecord));
+        }
+        return finalResult;
+    }
+
+    private static List<AgentProcessor.SourceRecordAndResult> safeProcessRecords(AgentProcessor processor, List<Record> recordToProcess) {
+        List<AgentProcessor.SourceRecordAndResult> results;
+        try {
+            results =  processor.process(recordToProcess);
+        } catch (Throwable error) {
+            results = recordToProcess
+                    .stream()
+                    .map(r -> new AgentProcessor.SourceRecordAndResult(r, null, error))
+                    .toList();
+        }
+        return results;
+    }
+
+    public static final class PermanentFailureException extends Exception {
+        public PermanentFailureException(Throwable cause) {
+            super(cause);
         }
     }
 
@@ -371,12 +412,12 @@ public class AgentRunner
         return agentCode;
     }
 
-    public static ErrorHandler getErrorHandler() {
-        return errorHandler;
+    public static MainErrorHandler getErrorHandler() {
+        return mainErrorHandler;
     }
 
-    public static void setErrorHandler(ErrorHandler errorHandler) {
-        AgentRunner.errorHandler = errorHandler;
+    public static void setErrorHandler(MainErrorHandler mainErrorHandler) {
+        AgentRunner.mainErrorHandler = mainErrorHandler;
     }
 
     private static class NoopTopicConsumer implements TopicConsumer {

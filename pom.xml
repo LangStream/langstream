@@ -481,4 +481,33 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>skipRuntimeTests</id>
+      <activation>
+        <property>
+          <name>skipRuntimeTests</name>
+        </property>
+      </activation>
+      <modules>
+        <module>api</module>
+        <module>cli</module>
+        <module>core</module>
+        <module>agents</module>
+        <module>pulsar</module>
+        <module>kafka</module>
+        <module>kafka-connect</module>
+        <module>k8s-runtime</module>
+        <module>codestorage-s3</module>
+        <module>ai-agents</module>
+        <module>webservice</module>
+        <module>k8s-storage</module>
+        <module>k8s-deployer</module>
+        <module>k8s-common</module>
+        <module>e2e-tests</module>
+        <module>api-gateway</module>
+      </modules>
+    </profile>
+      
+  </profiles>
 </project>

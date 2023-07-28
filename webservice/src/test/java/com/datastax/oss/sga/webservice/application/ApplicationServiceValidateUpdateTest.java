@@ -152,113 +152,113 @@ class ApplicationServiceValidateUpdateTest {
     void testAgents() throws Exception {
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 true);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 List.of(new ModelBuilder.AgentModel("agent1", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 false);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent1", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 false);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null),
+                        "output-topic", Map.of(), null, null),
                         new ModelBuilder.AgentModel("agent2", "My Agent", "drop", "input-topic",
-                                "output-topic", Map.of(), null)),
+                                "output-topic", Map.of(), null, null)),
                 false);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent1", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null),
+                        "output-topic", Map.of(), null, null),
                         new ModelBuilder.AgentModel("agent2", "My Agent", "drop", "input-topic",
-                                "output-topic", Map.of(), null)),
+                                "output-topic", Map.of(), null, null)),
                 List.of(new ModelBuilder.AgentModel("agent1", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 false);
 
 
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent - another name", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 true);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop-fields", "input-topic",
-                        "output-topic", Map.of("fields", "f"), null)),
+                        "output-topic", Map.of("fields", "f"), null, null)),
                 false);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), null)),
+                        "output-topic", Map.of(), null, null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "output-topic",
-                        "input-topic", Map.of(), null)),
+                        "input-topic", Map.of(), null, null)),
                 false);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of("config1", true), null)),
+                        "output-topic", Map.of("config1", true), null, null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of("config1", false), null)),
+                        "output-topic", Map.of("config1", false), null, null)),
                 true);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of("config1", true), null)),
+                        "output-topic", Map.of("config1", true), null, null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of("newConfig", false), null)),
+                        "output-topic", Map.of("newConfig", false), null, null)),
                 true);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), new ResourcesSpec(1, 1))),
+                        "output-topic", Map.of(), new ResourcesSpec(1, 1), null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), new ResourcesSpec(1, 1))),
+                        "output-topic", Map.of(), new ResourcesSpec(1, 1), null)),
                 true);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), new ResourcesSpec(1, 1))),
+                        "output-topic", Map.of(), new ResourcesSpec(1, 1), null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), new ResourcesSpec(2, 1))),
+                        "output-topic", Map.of(), new ResourcesSpec(2, 1), null)),
                 true);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), new ResourcesSpec(1, 1))),
+                        "output-topic", Map.of(), new ResourcesSpec(1, 1), null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), new ResourcesSpec(1, 2))),
+                        "output-topic", Map.of(), new ResourcesSpec(1, 2), null)),
                 true);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), new ResourcesSpec(1, 1))),
+                        "output-topic", Map.of(), new ResourcesSpec(1, 1), null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), new ResourcesSpec(2, 2))),
+                        "output-topic", Map.of(), new ResourcesSpec(2, 2), null)),
                 true);
 
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), new ResourcesSpec(2, 2))),
+                        "output-topic", Map.of(), new ResourcesSpec(2, 2), null)),
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
-                        "output-topic", Map.of(), new ResourcesSpec(1, 1))),
+                        "output-topic", Map.of(), new ResourcesSpec(1, 1), null)),
                 true);
     }
 

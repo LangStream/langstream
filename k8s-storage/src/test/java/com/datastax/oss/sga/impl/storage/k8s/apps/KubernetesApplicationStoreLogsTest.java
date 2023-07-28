@@ -104,7 +104,7 @@ class KubernetesApplicationStoreLogsTest {
                         Map.of("input", Map.of("is_input", true)),
                         Map.of("output", Map.of("is_output", true)),
                         new AgentSpec(AgentSpec.ComponentType.FUNCTION, "my-tenant",
-                                agentId, "my-app", "fn-type", Map.of("config", true)),
+                                agentId, "my-app", "fn-type", Map.of("config", true), Map.of()),
                         new StreamingCluster("noop", Map.of("config", true))
                 )))
                 .inNamespace("sga-" + tenant)

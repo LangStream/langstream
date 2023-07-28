@@ -43,7 +43,7 @@ public class AgentControllerIT {
                         Map.of("input", Map.of("is_input", true)),
                         Map.of("output", Map.of("is_output", true)),
                         new AgentSpec(AgentSpec.ComponentType.FUNCTION, "my-tenant",
-                                "agent-id", "my-app", "fn-type", Map.of("config", true)),
+                                "agent-id", "my-app", "fn-type", Map.of("config", true), Map.of()),
                         new StreamingCluster("noop", Map.of("config", true))
                 )))
                 .inNamespace(namespace)

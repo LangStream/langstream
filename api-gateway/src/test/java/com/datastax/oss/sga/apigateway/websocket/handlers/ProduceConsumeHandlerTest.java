@@ -326,7 +326,7 @@ class ProduceConsumeHandlerTest {
         List<String> user2Messages = new ArrayList<>();
 
         @Cleanup final ClientSession client1 = connectAndCollectMessages(URI.create(
-                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user1".formatted(port)),
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user1&option:position=earliest".formatted(port)),
                 user1Messages);
         @Cleanup final ClientSession client2 = connectAndCollectMessages(URI.create(
                         "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user2".formatted(port)),

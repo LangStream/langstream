@@ -179,7 +179,7 @@ public class ProduceHandler extends AbstractHandler {
                 }
                 if (value == null) {
                     throw new IllegalArgumentException(
-                            "Value cannot be empty (tried 'value' and 'valueFromParameters')");
+                            mapping.key() + "header cannot be empty");
                 }
 
                 headers.add(SimpleRecord.SimpleHeader.of(

@@ -301,20 +301,48 @@ class ProduceConsumeHandlerTest {
         prepareTopicsForTest(topic);
 
         testGateways = new Gateways(List.of(
-                new Gateway("gw", Gateway.GatewayType.produce,
-                        topic, new Gateway.Authentication("test-auth", Map.of()), List.of(), null, null)
+                new Gateway("produce", Gateway.GatewayType.produce,
+                        topic, new Gateway.Authentication("test-auth", Map.of()), List.of(), new Gateway.ProduceOptions(
+                                List.of(Gateway.KeyValueComparison.valueFromAuthentication("header1", "user-id"))
+                ), null),
+                new Gateway("consume", Gateway.GatewayType.consume,
+                        topic, new Gateway.Authentication("test-auth", Map.of()), List.of(), null, new Gateway.ConsumeOptions(
+                                new Gateway.ConsumeOptionsFilters(
+                                        List.of(Gateway.KeyValueComparison.valueFromAuthentication("header1", "user-id"))
+                                )))
         ));
 
 
-        connectAndExpectClose(URI.create("ws://localhost:%d/v1/produce/tenant1/application1/gw".formatted(port)),
+        connectAndExpectClose(URI.create("ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(port)),
                 new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "missing required parameter session-id"));
-        connectAndExpectClose(URI.create("ws://localhost:%d/v1/produce/tenant1/application1/gw?credentials=".formatted(port)),
+        connectAndExpectClose(URI.create("ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials=".formatted(port)),
                 new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "missing required parameter session-id"));
-        connectAndExpectClose(URI.create("ws://localhost:%d/v1/produce/tenant1/application1/gw?credentials=error".formatted(port)),
+        connectAndExpectClose(URI.create("ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials=error".formatted(port)),
                 new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "missing required parameter session-id"));
         connectAndExpectRunning(
-                URI.create("ws://localhost:%d/v1/produce/tenant1/application1/gw?credentials=test-user-password".formatted(port))
+                URI.create("ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials=test-user-password".formatted(port))
         );
+
+        List<String> user1Messages = new ArrayList<>();
+        List<String> user2Messages = new ArrayList<>();
+
+        @Cleanup final ClientSession client1 = connectAndCollectMessages(URI.create(
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?credentials=test-user-password&option:position=earliest".formatted(port)),
+                user1Messages);
+        @Cleanup final ClientSession client2 = connectAndCollectMessages(URI.create(
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?credentials=test-user-password-2&option:position=earliest".formatted(port)),
+                user2Messages);
+
+        ProduceResponse response = connectAndProduce(URI.create(
+                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials=test-user-password".formatted(port)),
+                new ProduceRequest(null, "hello user", null));
+
+        Awaitility.await()
+                .untilAsserted(() ->
+                        assertMessagesContent(List.of(
+                                new MsgRecord(null, "hello user", Map.of("header1", "test-user-password"))
+                        ), user1Messages));
+        assertEquals(List.of(), user2Messages);
     }
 
 

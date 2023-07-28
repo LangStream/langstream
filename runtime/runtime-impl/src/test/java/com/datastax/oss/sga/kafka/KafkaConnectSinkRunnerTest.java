@@ -1,73 +1,33 @@
 package com.datastax.oss.sga.kafka;
 
-import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.Connection;
-import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.PluginsRegistry;
-import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
-import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
-import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
-import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.datastax.oss.sga.runtime.agent.AgentRunner;
-import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
+import com.datastax.oss.sga.common.AbstractApplicationRunner;
 import com.google.common.base.Strings;
-import io.fabric8.kubernetes.api.model.Secret;
-import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.apache.kafka.connect.source.SourceConnector;
-import org.apache.kafka.connect.source.SourceRecord;
-import org.apache.kafka.connect.source.SourceTask;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.output.OutputFrame;
-import org.testcontainers.utility.DockerImageName;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-class KafkaConnectSinkRunnerTest {
-
-    private static KafkaContainer kafkaContainer;
-    private static AdminClient admin;
-
-    @RegisterExtension
-    static final KubeTestServer kubeServer = new KubeTestServer();
+class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
 
 
     @Test
     @Disabled
     public void testRunSnowflakeKafkaConnectSink() throws Exception {
         String tenant = "tenant";
-        kubeServer.spyAgentCustomResources(tenant, "app-step1");
-        final Map<String, Secret> secrets = kubeServer.spyAgentCustomResourcesSecrets(tenant, "app-step1");
+        String[] expectedAgents = {"app-step1"};
 
         String sfUrl = System.getProperty("sf.url", "dmb76871.us-east-1.snowflakecomputing.com:443");
         String sfUser = System.getProperty("sf.user", "test_connector_user_1");
@@ -80,8 +40,7 @@ class KafkaConnectSinkRunnerTest {
             return;
         }
 
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
+        Map<String, String> application = Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
@@ -114,56 +73,28 @@ class KafkaConnectSinkRunnerTest {
                                         batchSize: 2
                                         lingerTimeMs: 1000
                                 """.formatted(sfUrl, sfUser, sfKey, sfDatabase, sfSchema)
-                ));
+                );
 
-        ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer()) {
+                for (int i = 0; i < 20; i++) {
+                    sendMessage("input-topic", "{\"name\": \"some json name " + i + "\", \"description\": \"some description\"}", producer);
+                }
+                producer.flush();
 
-        Module module = applicationInstance.getModule("module-1");
-
-        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
-
-        deployer.deploy(tenant, implementation, null);
-        assertEquals(1, secrets.size());
-        final Secret secret = secrets.values().iterator().next();
-        final RuntimePodConfiguration runtimePodConfiguration =
-                AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
-
-        try (KafkaProducer<String, String> producer = new KafkaProducer<String, String>(
-                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
-                        "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
-                        "value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-        )) {
-
-            for (int i = 0; i < 20; i++) {
-                producer
-                        .send(new ProducerRecord<>(
-                                "input-topic",
-                                0,
-                                "key",
-                                "{\"name\": \"some json name " + i + "\", \"description\": \"some description\"}"))
-                        .get();
+                executeAgentRunners(applicationRuntime);
             }
-            producer.flush();
-
-            AgentRunner.run(runtimePodConfiguration, null, null, 5);
         }
         //TODO: validate snowflake automatically
     }
 
     @Test
     public void testRunKafkaConnectSink() throws Exception {
-        String tenant = "tenant";
-        kubeServer.spyAgentCustomResources(tenant, "app-step1");
-        final Map<String, Secret> secrets = kubeServer.spyAgentCustomResourcesSecrets(tenant, "app-step1");
 
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+
+        Map<String, String> application = Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
                                 module: "module-1"
@@ -179,93 +110,20 @@ class KafkaConnectSinkRunnerTest {
                                     configuration:
                                       connector.class: %s                                        
                                       file: /tmp/test.sink.txt
-                                """.formatted(DummySinkConnector.class.getName())));
+                                """.formatted(DummySinkConnector.class.getName()));
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
-
-        Module module = applicationInstance.getModule("module-1");
-
-        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
-
-        deployer.deploy(tenant, implementation, null);
-        assertEquals(1, secrets.size());
-        final Secret secret = secrets.values().iterator().next();
-        final RuntimePodConfiguration runtimePodConfiguration =
-                AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
-
-        try (KafkaProducer<String, String> producer = new KafkaProducer<String, String>(
-                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
-                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
-                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-        )) {
-
-            // produce one message to the input-topic
-            producer
-                .send(new ProducerRecord<>(
-                    "input-topic",
-                    null,
-                    "key",
-                    "{\"name\": \"some name\", \"description\": \"some description\"}",
-                    List.of(new RecordHeader("header-key", "header-value".getBytes(StandardCharsets.UTF_8)))))
-                .get();
-            producer.flush();
-
-            AgentRunner.run(runtimePodConfiguration, null, null, 5);
-
-            Awaitility.await().untilAsserted(() -> {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer()) {
+                sendMessage("input-topic", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
+                executeAgentRunners(applicationRuntime);
+                Awaitility.await().untilAsserted(() -> {
                     DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
                     assertTrue(DummySink.receivedRecords.size() >= 1);
-            });
-
-        }
-
-    }
-
-    private static String buildInstanceYaml() {
-        return """
-                instance:
-                  streamingCluster:
-                    type: "kafka"
-                    configuration:
-                      admin:
-                        bootstrap.servers: "%s"
-                  computeCluster:
-                     type: "kubernetes"
-                """.formatted(kafkaContainer.getBootstrapServers());
-    }
-
-
-    @BeforeAll
-    public static void setup() throws Exception {
-        kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
-                .withLogConsumer(new Consumer<OutputFrame>() {
-                    @Override
-                    public void accept(OutputFrame outputFrame) {
-                        log.info("kafka> {}", outputFrame.getUtf8String().trim());
-                    }
                 });
-        // start Pulsar and wait for it to be ready to accept requests
-        kafkaContainer.start();
-        admin =
-                AdminClient.create(Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers()));
-    }
-
-    @AfterAll
-    public static void teardown() {
-        if (admin != null) {
-            admin.close();
+            }
         }
-        if (kafkaContainer != null) {
-            kafkaContainer.close();
-        }
-    }
 
+    }
 
     public static final class DummySinkConnector extends SinkConnector {
         @Override

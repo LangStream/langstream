@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.apigateway.websocket.handlers;
 
 import static com.datastax.oss.sga.apigateway.websocket.WebSocketConfig.CONSUME_PATH;
+import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Gateway;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.model.StreamingCluster;
@@ -25,7 +26,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -47,7 +48,7 @@ public class ConsumeHandler extends AbstractHandler {
         final String tenant = (String) attributes.get("tenant");
         final String gatewayId = (String) attributes.get("gateway");
         final String applicationId = (String) attributes.get("application");
-        final StoredApplication application = applicationStore.get(tenant, applicationId);
+        final Application application = getResolvedApplication(tenant, applicationId);
         Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.consume);
 
 
@@ -57,7 +58,7 @@ public class ConsumeHandler extends AbstractHandler {
                 createMessageFilters(selectedGateway, requestOptions.getUserParameters());
         attributes.put("consumeFilters", filters);
 
-        final StreamingCluster streamingCluster = application.getInstance().getInstance().streamingCluster();
+        final StreamingCluster streamingCluster = application.getInstance().streamingCluster();
 
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
@@ -118,7 +119,7 @@ public class ConsumeHandler extends AbstractHandler {
         for (Map.Entry<String, String> option : options.entrySet()) {
             switch (option.getKey()) {
                 case "position":
-                    if (StringUtils.isBlank(option.getValue())) {
+                    if (!StringUtils.hasText(option.getValue())) {
                         throw new IllegalArgumentException("'position' cannot be blank");
                     }
                     break;
@@ -126,11 +127,6 @@ public class ConsumeHandler extends AbstractHandler {
                     throw new IllegalArgumentException("Unknown option " + option.getKey());
             }
         }
-    }
-
-    private void setupConsumer(Map<String, String> queryString, String gatewayId, String tenant, String applicationId)
-            throws Exception {
-
     }
 
     private void closeReader(TopicReader reader) {

@@ -23,6 +23,8 @@ public interface ApplicationStore extends GenericStore {
 
     StoredApplication get(String tenant, String applicationId);
 
+    Application getSpecs(String tenant, String applicationId);
+
     Secrets getSecrets(String tenant, String applicationId);
 
     void delete(String tenant, String applicationId);

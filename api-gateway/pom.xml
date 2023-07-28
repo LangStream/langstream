@@ -71,12 +71,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-text</artifactId>
-			<version>1.9</version>
-		</dependency>
-
-		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sga-kafka</artifactId>
 			<version>${project.version}</version>
@@ -87,6 +81,12 @@
 			<groupId>org.testcontainers</groupId>
 			<artifactId>kafka</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.datastax.oss</groupId>
+			<artifactId>core</artifactId>
+			<version>${project.version}</version>
+			<scope>compile</scope>
 		</dependency>
 
 	</dependencies>

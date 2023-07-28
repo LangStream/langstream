@@ -3,6 +3,7 @@ package com.dastastax.oss.sga.agents.s3;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
+import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.ListObjectsArgs;
@@ -57,20 +58,22 @@ public class S3Source implements AgentSource {
                 .credentials(username, password)
                 .build();
 
-        List<Bucket> buckets = minioClient.listBuckets();
-        log.info("Existing Buckets: {}", buckets.stream().map(Bucket::name).toList());
-        makeBucketIfNotExists(buckets, bucketName);
+        makeBucketIfNotExists(bucketName);
     }
 
-    private void makeBucketIfNotExists(List<Bucket> buckets, String bucketName)
+    private void makeBucketIfNotExists(String bucketName)
         throws ServerException, InsufficientDataException, ErrorResponseException, IOException,
         NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
-        if (buckets.stream().noneMatch(b->b.name().equals(bucketName))) {
+        if (!minioClient.bucketExists(BucketExistsArgs.builder()
+                .bucket(bucketName)
+                .build())) {
             log.info("Creating bucket {}", bucketName);
             minioClient.makeBucket(MakeBucketArgs
-                .builder()
-                .bucket(bucketName)
-                .build());
+                    .builder()
+                    .bucket(bucketName)
+                    .build());
+        } else {
+            log.info("Bucket {} already exists", bucketName);
         }
     }
 

@@ -19,6 +19,7 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.apps.AppResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -222,6 +223,16 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @Override
+    public Application getSpecs(String tenant, String applicationId) {
+        final ApplicationCustomResource application =
+                getApplicationCustomResource(tenant, applicationId);
+        if (application == null) {
+            return null;
+        }
+        return getApplicationFromCr(application);
+    }
+
+    @Override
     @SneakyThrows
     public Secrets getSecrets(String tenant, String applicationId) {
         final Secret secret = client.secrets().inNamespace(tenantToNamespace(tenant))
@@ -278,15 +289,21 @@ public class KubernetesApplicationStore implements ApplicationStore {
     @SneakyThrows
     private StoredApplication convertApplicationToResult(String applicationId,
                                                          ApplicationCustomResource application) {
-        final Application instance =
-                mapper.readValue(application.getSpec().getApplication(), SerializedApplicationInstance.class)
-                        .toApplicationInstance();
+        final Application instance = getApplicationFromCr(application);
 
         return StoredApplication.builder()
                 .applicationId(applicationId)
                 .instance(instance)
                 .status(computeApplicationStatus(applicationId, instance, application))
                 .build();
+    }
+
+    @SneakyThrows
+    private Application getApplicationFromCr(ApplicationCustomResource application) {
+        final Application instance =
+                mapper.readValue(application.getSpec().getApplication(), SerializedApplicationInstance.class)
+                        .toApplicationInstance();
+        return instance;
     }
 
 

@@ -21,6 +21,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -55,6 +57,10 @@ public class ConsumeHandler extends AbstractHandler {
 
     @Override
     public void onClose(WebSocketSession webSocketSession, CloseStatus closeStatus) throws Exception {
+        final CompletableFuture<Void> future = (CompletableFuture<Void>) webSocketSession.getAttributes().get("future");
+        if (future != null && !future.isDone()) {
+            future.cancel(true);
+        }
     }
 
     @Override
@@ -96,17 +102,47 @@ public class ConsumeHandler extends AbstractHandler {
                     Base64.getDecoder().decode(positionParameter), StandardCharsets.UTF_8));
         };
 
-        final TopicReader reader =
-                topicConnectionsRuntime.createReader(streamingCluster,
-                        Map.of("topic", topicName), position);
-        recordCloseableResource(session, reader);
-        reader.start();
-        log.info("[{}] Started reader for gateway {}/{}/{}", session.getId(), tenant, applicationId, gatewayId);
+        // we must return the caller thread to the thread pool
+         final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+            TopicReader reader = null;
+            try {
+                reader =
+                        topicConnectionsRuntime.createReader(streamingCluster,
+                                Map.of("topic", topicName), position);
+                reader.start();
+                log.info("[{}] Started reader for gateway {}/{}/{}", session.getId(), tenant, applicationId, gatewayId);
+                readMessages(session, filters, reader);
+            } catch (InterruptedException | CancellationException ex) {
+                // ignore
+            } catch (Throwable ex) {
+                log.error(ex.getMessage(), ex);
+            } finally {
+                closeReader(reader);
+            }
+        });
+        session.getAttributes().put("future", future);
+    }
 
+    private void closeReader(TopicReader reader) {
+        if (reader == null) {
+            return;
+        }
+        try {
+            reader.close();
+        } catch (Exception e) {
+            log.error("error closing reader", e);
+        }
+    }
+
+
+    private void readMessages(WebSocketSession session, List<Function<Record, Boolean>> filters, TopicReader reader)
+            throws Exception {
         while (true) {
-            final boolean closed = Boolean.parseBoolean(session.getAttributes().getOrDefault("closed", false) + "");
-            if (!session.isOpen() || closed) {
-                break;
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
+            if (!session.isOpen()) {
+                return;
             }
             final TopicReadResult readResult = reader.read();
             final List<Record> records = readResult.records();

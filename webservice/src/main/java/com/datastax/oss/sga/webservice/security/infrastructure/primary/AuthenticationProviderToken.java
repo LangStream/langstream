@@ -135,7 +135,6 @@ public class AuthenticationProviderToken {
     private static byte[] readKeyFromUrl(String keyConfUrl) throws IOException {
         if (!keyConfUrl.startsWith("data:") && !keyConfUrl.startsWith("file:")) {
             if (Files.exists(Paths.get(keyConfUrl), new LinkOption[0])) {
-                System.out.println("reading " + keyConfUrl + " from file");
                 return Files.readAllBytes(Paths.get(keyConfUrl));
             } else if (Base64.isBase64(keyConfUrl.getBytes())) {
                 try {
@@ -183,7 +182,6 @@ public class AuthenticationProviderToken {
 
     private static PublicKey decodePublicKey(byte[] key, SignatureAlgorithm algType) throws IOException {
         try {
-            System.out.println("decoding using" + algType);
             X509EncodedKeySpec spec = new X509EncodedKeySpec(key);
             KeyFactory kf = KeyFactory.getInstance(keyTypeForSignatureAlgorithm(algType));
             return kf.generatePublic(spec);

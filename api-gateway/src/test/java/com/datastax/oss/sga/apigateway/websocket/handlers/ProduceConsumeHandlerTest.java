@@ -135,23 +135,22 @@ class ProduceConsumeHandlerTest {
         ));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
+        List<String> messages = new ArrayList<>();
         try (final TestWebSocketClient consumer = new TestWebSocketClient(new TestWebSocketClient.Handler() {
             @Override
             public void onMessage(String msg) {
-                try {
-                    assertEquals("{\"record\":{\"key\":null,\"value\":\"this is a message\",\"headers\":{}}}", msg);
-                } finally {
-                    countDownLatch.countDown();
-                }
+                messages.add(msg);
+                countDownLatch.countDown();
             }
 
             @Override
             public void onClose(CloseReason closeReason) {
+                countDownLatch.countDown();
             }
 
             @Override
             public void onError(Throwable throwable) {
-                fail(throwable);
+                countDownLatch.countDown();
             }
         }).connect(URI.create("ws://localhost:%d/v1/consume/tenant1/application1/consume".formatted(port)));) {
             try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
@@ -161,6 +160,9 @@ class ProduceConsumeHandlerTest {
                 produce(produceRequest, producer);
             }
             countDownLatch.await();
+            assertMessagesContent(List.of(
+                    new MsgRecord(null, "this is a message", Map.of())
+            ), messages);
         }
     }
 
@@ -468,7 +470,8 @@ class ProduceConsumeHandlerTest {
 
         List<String> messagesFromOffset = new ArrayList<>();
         @Cleanup final ClientSession client1Offset = connectAndCollectMessages(URI.create(
-                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?option:position=%s".formatted(port, msg1Offset)),
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?option:position=%s".formatted(port,
+                                msg1Offset)),
                 messagesFromOffset);
 
         Awaitility.await()

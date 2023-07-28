@@ -63,7 +63,6 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             session.close(status.withReason(throwable.getMessage()));
         } finally {
             closeCloseableResources(session);
-            session.getAttributes().put("closed", true);
         }
     }
 

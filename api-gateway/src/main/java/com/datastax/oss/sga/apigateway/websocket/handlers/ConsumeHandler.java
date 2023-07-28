@@ -26,7 +26,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -119,7 +119,7 @@ public class ConsumeHandler extends AbstractHandler {
         for (Map.Entry<String, String> option : options.entrySet()) {
             switch (option.getKey()) {
                 case "position":
-                    if (StringUtils.isBlank(option.getValue())) {
+                    if (!StringUtils.hasText(option.getValue())) {
                         throw new IllegalArgumentException("'position' cannot be blank");
                     }
                     break;

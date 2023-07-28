@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 import org.awaitility.Awaitility;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -87,33 +88,45 @@ class ProduceConsumeHandlerTest {
                 @Override
                 public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
                     final StoredApplication storedApplication = new StoredApplication();
-
-                    final Map<String, Object> module = Map.of("module", "mod1", "id", "p", "topics", topics.stream()
-                            .map(t -> Map.of("name", t, "creation-mode", "create-if-not-exists"))
-                            .collect(Collectors.toList()));
-
-                    final Application application = ModelBuilder
-                            .buildApplicationInstance(Map.of("instance.yaml",
-                                    """
-                                            instance:
-                                              streamingCluster:
-                                                type: "kafka"
-                                                configuration:
-                                                  admin:                                      
-                                                    bootstrap.servers: "%s"                  
-                                              computeCluster:
-                                                 type: "none"
-                                            """.formatted(kafkaContainer.getBootstrapServers()),
-                                    "module.yaml", new ObjectMapper(new YAMLFactory())
-                                            .writeValueAsString(module)));
-                    application.setGateways(testGateways);
+                    final Application application = buildApp();
                     storedApplication.setInstance(application);
                     return storedApplication;
                 }
             }).when(mock).get(anyString(), anyString());
+            doAnswer(new Answer() {
+                @Override
+                public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                    return buildApp();
+                }
+            }).when(mock).getSpecs(anyString(), anyString());
+
             return mock;
 
         }
+    }
+
+    @NotNull
+    private static Application buildApp() throws Exception {
+        final Map<String, Object> module = Map.of("module", "mod1", "id", "p", "topics", topics.stream()
+                .map(t -> Map.of("name", t, "creation-mode", "create-if-not-exists"))
+                .collect(Collectors.toList()));
+
+        final Application application = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        """
+                                instance:
+                                  streamingCluster:
+                                    type: "kafka"
+                                    configuration:
+                                      admin:                                      
+                                        bootstrap.servers: "%s"                  
+                                  computeCluster:
+                                     type: "none"
+                                """.formatted(kafkaContainer.getBootstrapServers()),
+                        "module.yaml", new ObjectMapper(new YAMLFactory())
+                                .writeValueAsString(module)));
+        application.setGateways(testGateways);
+        return application;
     }
 
     @LocalServerPort

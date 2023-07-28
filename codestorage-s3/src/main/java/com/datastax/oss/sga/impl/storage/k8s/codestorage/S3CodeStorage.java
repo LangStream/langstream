@@ -34,14 +34,6 @@ import okhttp3.OkHttpClient;
 @Slf4j
 public class S3CodeStorage implements CodeStorage {
 
-    public static void main(String[] args) {
-        new S3CodeStorage(Map.of(
-                "secretkey", "S/N3J+j59PSrtLnPmmCeFXmdLUbfvZBQecWJIBkl",
-                "accesskey", "AKIA3ESI4IJDYJPTYLXD",
-                "bucketname", "as-sgai-dev-us-east2"
-                ));
-    }
-
     private static final ObjectMapper mapper = new ObjectMapper();
     protected static final long DEFAULT_CONNECTION_TIMEOUT = TimeUnit.MINUTES.toMillis(5L);
     private String bucketName;

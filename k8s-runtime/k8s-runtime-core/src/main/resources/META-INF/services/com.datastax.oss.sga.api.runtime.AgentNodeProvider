@@ -4,3 +4,4 @@ com.datastax.oss.sga.runtime.impl.k8s.agents.S3SourceAgentProvider
 com.datastax.oss.sga.runtime.impl.k8s.agents.TextProcessingAgentsProvider
 com.datastax.oss.sga.runtime.impl.k8s.agents.KafkaConnectAgentsProvider
 com.datastax.oss.sga.runtime.impl.k8s.agents.KubernetesCompositeAgentProvider
+com.datastax.oss.sga.runtime.impl.k8s.agents.IdentityAgentProvider

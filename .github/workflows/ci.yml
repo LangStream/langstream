@@ -16,6 +16,9 @@ jobs:
       matrix:
         include:
           - name: Runtime
+          - name: Deployer
+          - name: Api Gateway
+          - name: Control plane
           - name: Other
     steps:
       - name: 'Setup: checkout project'
@@ -37,10 +40,10 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: 'Init: build project and docker images'
+      - name: 'Init: build project'
         run: |
           chmod +x mvnw
-          ./mvnw clean install -Pdocker -DskipTests
+          ./mvnw clean install -DskipTests
 
       - name: 'Init: install tox'
         if: ${{ matrix.name == 'Runtime' }}
@@ -49,12 +52,27 @@ jobs:
       - name: 'Test: Runtime'
         if: ${{ matrix.name == 'Runtime' }}
         run: |
-          ./mvnw verify -pl ":sga-runtime-impl"
+          ./mvnw verify -pl ":sga-runtime-impl" -Pdocker
+
+      - name: 'Test: Api Gateway'
+        if: ${{ matrix.name == 'Api Gateway' }}
+        run: |
+          ./mvnw verify -pl ":api-gateway" -Pdocker
+
+      - name: 'Test: Deployer'
+        if: ${{ matrix.name == 'Deployer' }}
+        run: |
+          ./mvnw verify -f k8s-deployer -Pdocker
+
+      - name: 'Test: Control plane'
+        if: ${{ matrix.name == 'Control plane' }}
+        run: |
+          ./mvnw verify -pl webservice -Pdocker
 
       - name: 'Test: Other'
         if: ${{ matrix.name == 'Other' }}
         run: |
-          ./mvnw verify -pl "!:sga-runtime-impl"
+          ./mvnw verify -pl "!:sga-runtime-impl,:api-gateway,:k8s-deployer,:webservice" -Pdocker
   e2e-tests:
     name: End to End tests
     runs-on: ubuntu-latest

@@ -60,16 +60,20 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
     }
 
     @Getter
-    private final Server server = new Server();
+    private Server server;
 
     @SneakyThrows
     public void start() {
+        server = new Server();
         server.init();
     }
 
     @Override
     public void close() throws Exception {
-        server.destroy();
+        if (server != null) {
+            server.destroy();
+            server = null;
+        }
     }
 
     @Override
@@ -80,13 +84,13 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
     }
 
     @Override
-    public void afterAll(ExtensionContext extensionContext) throws Exception {
-        close();
+    public void beforeAll(ExtensionContext extensionContext) throws Exception {
+        start();
     }
 
     @Override
-    public void beforeAll(ExtensionContext extensionContext) throws Exception {
-        start();
+    public void afterAll(ExtensionContext extensionContext) throws Exception {
+        close();
     }
 
 

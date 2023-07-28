@@ -33,7 +33,6 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
         final GoogleAuthenticationProviderConfiguration config =
                 mapper.convertValue(configuration, GoogleAuthenticationProviderConfiguration.class);
         final String clientId = config.getClientId();
-        System.out.println("initialing google auth" + clientId);
         if (clientId == null || clientId.isBlank()) {
             throw new IllegalArgumentException("clientId is required for Google Authentication.");
         }
@@ -45,7 +44,6 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
     @Override
     public GatewayAuthenticationResult authenticate(GatewayRequestContext context) {
         try {
-            System.out.println("verify google auth" + context.credentials());
             GoogleIdToken idToken = verifier.verify(context.credentials());
             if (idToken != null) {
                 final GoogleIdToken.Payload payload = idToken.getPayload();
@@ -56,12 +54,9 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
                 result.put(FIELD_LOCALE, (String) payload.get("locale"));
                 return GatewayAuthenticationResult.authenticationSuccessful(result);
             } else {
-                System.out.println("fallito...");
                 return GatewayAuthenticationResult.authenticationFailed("Invalid token.");
             }
         } catch (Exception e) {
-            System.out.println("ex" + e);
-            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }

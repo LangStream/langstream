@@ -3,14 +3,14 @@ package com.dastastax.oss.sga.agents.tika;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.langdetect.tika.LanguageIdentifier;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
-public class LanguageDetectorAgent extends SingleRecordAgentFunction {
+public class LanguageDetectorAgent extends SingleRecordAgentProcessor {
 
     private String property = "language";
     private List<String> allowedLanguages;

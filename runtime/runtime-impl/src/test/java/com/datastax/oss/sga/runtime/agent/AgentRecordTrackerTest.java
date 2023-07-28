@@ -61,7 +61,7 @@ public class AgentRecordTrackerTest {
         Record sourceRecord = new MyRecord("key", "sourceValue", "origin", 0L, null);
         Record sinkRecord = new MyRecord("key", "sinkValue", "origin", 0L, null);
 
-        tracker.track(List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(sinkRecord))));
+        tracker.track(List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(sinkRecord), null)));
 
         tracker.commit(List.of(sinkRecord));
 
@@ -80,7 +80,7 @@ public class AgentRecordTrackerTest {
         Record sinkRecord = new MyRecord("key", "sinkValue", "origin", 0L, null);
         Record sinkRecord2 = new MyRecord("key", "sinkValue2", "origin", 0L, null);
 
-        tracker.track(List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(sinkRecord, sinkRecord2))));
+        tracker.track(List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(sinkRecord, sinkRecord2), null)));
 
         // the sink commits only 1 of the 2 records
         tracker.commit(List.of(sinkRecord));

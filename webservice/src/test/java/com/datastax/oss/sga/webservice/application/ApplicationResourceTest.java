@@ -181,6 +181,11 @@ class ApplicationResourceTest {
                                       "parallelism" : 1,
                                       "size" : 1
                                     },
+                                    "errors" : {
+                                      "retries" : 0,
+                                      "on-failure" : "fail",
+                                      "dead-letter-topic" : null
+                                    },
                                     "agents" : [ ]
                                   }
                                 },

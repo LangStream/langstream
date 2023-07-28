@@ -3,17 +3,16 @@ package com.dastastax.oss.sga.agents.tika;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
-public class DocumentToJsonAgent extends SingleRecordAgentFunction {
+public class DocumentToJsonAgent extends SingleRecordAgentProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private String textField;

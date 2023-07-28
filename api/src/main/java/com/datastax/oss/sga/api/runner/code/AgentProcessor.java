@@ -20,12 +20,14 @@ public interface AgentProcessor extends AgentCode {
 
     @Getter
     static class SourceRecordAndResult {
-        public final Record sourceRecord;
-        public final List<Record> resultRecords;
+        final Record sourceRecord;
+        final List<Record> resultRecords;
+        final Throwable error;
 
-        public SourceRecordAndResult(Record sourceRecord, List<Record> resultRecords) {
+        public SourceRecordAndResult(Record sourceRecord, List<Record> resultRecords, Throwable error) {
             this.sourceRecord = sourceRecord;
             this.resultRecords = resultRecords;
+            this.error = error;
         }
     }
 }

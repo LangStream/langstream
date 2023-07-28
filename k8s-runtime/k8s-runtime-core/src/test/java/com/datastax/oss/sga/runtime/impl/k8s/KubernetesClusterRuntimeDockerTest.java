@@ -4,7 +4,6 @@ import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.model.Secret;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentNode;
@@ -18,7 +17,6 @@ import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
-import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Cleanup;
@@ -31,6 +29,7 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -159,6 +158,10 @@ class KubernetesClusterRuntimeDockerTest {
         assertEquals(Map.of(
                 "topic", "output-topic"
         ), runtimePodConfiguration.output());
+        Map<String, Object> defaultErrorsAsMap = new HashMap<>();
+        defaultErrorsAsMap.put("deadLetterTopic", null);
+        defaultErrorsAsMap.put("onFailure", "fail");
+        defaultErrorsAsMap.put("retries", 0);
         assertEquals(new AgentSpec(AgentSpec.ComponentType.FUNCTION, tenant, "step1", "app", "ai-tools", Map.of(
                 "steps", List.of(Map.of(
                         "type", "compute-ai-embeddings",
@@ -171,7 +174,7 @@ class KubernetesClusterRuntimeDockerTest {
                         "access-key", "xxcxcxc",
                         "provider", "azure"
                 )
-        )), runtimePodConfiguration.agent());
+        ), defaultErrorsAsMap), runtimePodConfiguration.agent());
         assertEquals(new StreamingCluster("kafka", Map.of("admin", Map.of("bootstrap.servers", "PLAINTEXT://localhost:%d".formatted(kafkaContainer.getFirstMappedPort())))),
                 runtimePodConfiguration.streamingCluster());
     }

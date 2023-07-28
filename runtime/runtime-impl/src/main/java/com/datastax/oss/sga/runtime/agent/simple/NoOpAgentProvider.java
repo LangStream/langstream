@@ -3,7 +3,7 @@ package com.datastax.oss.sga.runtime.agent.simple;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
 import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentFunction;
+import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 
 import java.util.List;
 
@@ -18,7 +18,7 @@ public class NoOpAgentProvider implements AgentCodeProvider {
         return new NoOpAgentCode();
     }
 
-    private static class NoOpAgentCode extends SingleRecordAgentFunction {
+    private static class NoOpAgentCode extends SingleRecordAgentProcessor {
 
         @Override
         public List<Record> processRecord(Record record) throws Exception {

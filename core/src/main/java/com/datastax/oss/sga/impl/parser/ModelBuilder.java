@@ -18,6 +18,7 @@ package com.datastax.oss.sga.impl.parser;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Dependency;
+import com.datastax.oss.sga.api.model.ErrorsSpec;
 import com.datastax.oss.sga.api.model.Gateway;
 import com.datastax.oss.sga.api.model.Gateways;
 import com.datastax.oss.sga.api.model.Instance;
@@ -237,6 +238,8 @@ public class ModelBuilder {
         Pipeline pipeline = module.addPipeline(id);
         pipeline.setName(pipelineConfiguration.getName());
         pipeline.setResources(pipelineConfiguration.getResources() != null ? pipelineConfiguration.getResources().withDefaultsFrom(ResourcesSpec.DEFAULT) : ResourcesSpec.DEFAULT);
+        pipeline.setErrors(pipelineConfiguration.getErrors() != null ? pipelineConfiguration.getErrors().withDefaultsFrom(ErrorsSpec.DEFAULT) : ErrorsSpec.DEFAULT);
+        validateErrorsSpec(pipeline.getErrors());
         AgentConfiguration last = null;
 
         if (pipelineConfiguration.getTopics() != null) {
@@ -252,6 +255,7 @@ public class ModelBuilder {
         if (pipelineConfiguration.getPipeline() != null) {
             for (AgentModel agent : pipelineConfiguration.getPipeline()) {
                 AgentConfiguration agentConfiguration = agent.toAgentConfiguration(pipeline);
+                validateErrorsSpec(agentConfiguration.getErrors());
                 if (agentConfiguration.getId() == null) {
                     // ensure that we always have a name
                     // please note that this algorithm should not be changed in order to not break
@@ -306,6 +310,7 @@ public class ModelBuilder {
         private List<TopicDefinitionModel> topics = new ArrayList<>();
 
         private ResourcesSpec resources;
+        private ErrorsSpec errors;
     }
 
     @Data
@@ -337,6 +342,7 @@ public class ModelBuilder {
         private Map<String, Object> configuration = new HashMap<>();
 
         private ResourcesSpec resources;
+        private ErrorsSpec errors;
 
         AgentConfiguration toAgentConfiguration(Pipeline pipeline) {
             AgentConfiguration res = new AgentConfiguration();
@@ -346,6 +352,8 @@ public class ModelBuilder {
             res.setConfiguration(configuration);
             res.setResources(resources == null ?
                     pipeline.getResources() : resources.withDefaultsFrom(pipeline.getResources()));
+            res.setErrors(errors == null ?
+                    pipeline.getErrors() : errors.withDefaultsFrom(pipeline.getErrors()));
             return res;
         }
     }
@@ -360,6 +368,22 @@ public class ModelBuilder {
     }
 
     public record InstanceFileModel(Instance instance) {
+    }
+
+
+    static void validateErrorsSpec(ErrorsSpec errorsSpec) {
+        if (errorsSpec.getRetries() != null && errorsSpec.getRetries() < 0) {
+            throw new IllegalArgumentException("retries must be a positive integer (bad value retries: " + errorsSpec.getRetries() + ")");
+        }
+        if (errorsSpec.getOnFailure() != null) {
+            switch (errorsSpec.getOnFailure()) {
+                case "fail":
+                case "skip":
+                    break;
+                default:
+                    throw new IllegalArgumentException("on-failure must be one of 'fail' or 'skip' (bad value on-failure: " + errorsSpec.getOnFailure() + ")");
+            }
+        }
     }
 
 }

@@ -114,7 +114,8 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                 configuration,
                 composable,
                 metadata, input, output,
-                agentConfiguration.getResources());
+                agentConfiguration.getResources(),
+                agentConfiguration.getErrors());
     }
 
     @Override

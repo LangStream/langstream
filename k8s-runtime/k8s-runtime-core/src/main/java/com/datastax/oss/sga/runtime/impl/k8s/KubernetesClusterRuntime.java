@@ -1,5 +1,6 @@
 package com.datastax.oss.sga.runtime.impl.k8s;
 
+import com.datastax.oss.sga.api.model.ErrorsSpec;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.ExecutionPlanOptimiser;
@@ -109,15 +110,6 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         }
         DefaultAgentNode defaultAgentImplementation = (DefaultAgentNode) agent;
 
-        Map<String, Object> agentConfiguration = new HashMap<>();
-        agentConfiguration.putAll(defaultAgentImplementation.getConfiguration());
-        agentConfiguration.put("agentId", defaultAgentImplementation.getId());
-        agentConfiguration.put("agentType", defaultAgentImplementation.getAgentType());
-
-        if (defaultAgentImplementation.getCustomMetadata() != null) {
-            agentConfiguration.put("metadata", defaultAgentImplementation.getCustomMetadata());
-        }
-
         Map<String, Object> inputConfiguration = new HashMap<>();
         if (defaultAgentImplementation.getInputConnection() != null) {
             inputConfiguration = streamingClusterRuntime.createConsumerConfiguration(defaultAgentImplementation,
@@ -133,6 +125,17 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 AgentResourcesFactory.getAgentCustomResourceName(applicationInstance.getApplicationId(), agent.getId());
 
 
+        Map<String, Object> errorsConfiguration = new HashMap<>();
+        ErrorsSpec errorsSpec = defaultAgentImplementation.getErrorsSpec();
+        if (errorsSpec == null) {
+            errorsSpec = ErrorsSpec.DEFAULT;
+        } else {
+            errorsSpec = errorsSpec.withDefaultsFrom(ErrorsSpec.DEFAULT);
+        }
+        // set StandardErrorHandler
+        errorsConfiguration.put("retries", errorsSpec.getRetries());
+        errorsConfiguration.put("deadLetterTopic", errorsSpec.getDeadLetterTopic());
+        errorsConfiguration.put("onFailure", errorsSpec.getOnFailure());
 
         RuntimePodConfiguration podConfig = new RuntimePodConfiguration(
                 inputConfiguration,
@@ -145,7 +148,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                         defaultAgentImplementation.getId(),
                         applicationInstance.getApplicationId(),
                         defaultAgentImplementation.getAgentType(),
-                        defaultAgentImplementation.getConfiguration()
+                        defaultAgentImplementation.getConfiguration(),
+                        errorsConfiguration
                 ),
                 applicationInstance.getApplication().getInstance().streamingCluster()
         );

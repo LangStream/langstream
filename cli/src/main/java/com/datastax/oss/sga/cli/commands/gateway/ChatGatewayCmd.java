@@ -28,16 +28,18 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
     private String produceToGatewayId;
     @CommandLine.Option(names = {"-p", "--param"}, description = "Gateway parameters. Format: key=value")
     private Map<String, String> params;
+    @CommandLine.Option(names = {"-c", "--credentials"}, description = "Credentials for the gateway. Required if the gateway requires authentication.")
+    private String credentials;
 
     @Override
     @SneakyThrows
     public void run() {
         final String consumePath = "%s/v1/consume/%s/%s/%s?%s"
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, consumeFromGatewayId,
-                        computeQueryString(params, Map.of("position", "earliest")));
+                        computeQueryString(credentials, params, Map.of("position", "earliest")));
         final String producePath = "%s/v1/produce/%s/%s/%s?%s"
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, produceToGatewayId,
-                        computeQueryString(params, Map.of()));
+                        computeQueryString(credentials, params, Map.of()));
 
         AtomicBoolean waitingProduceResponse = new AtomicBoolean(false);
         AtomicBoolean waitingConsumeMessage = new AtomicBoolean(false);

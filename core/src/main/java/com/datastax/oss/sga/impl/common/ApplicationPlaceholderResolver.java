@@ -3,6 +3,8 @@ package com.datastax.oss.sga.impl.common;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.ComputeCluster;
+import com.datastax.oss.sga.api.model.Gateway;
+import com.datastax.oss.sga.api.model.Gateways;
 import com.datastax.oss.sga.api.model.Instance;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
@@ -46,8 +48,11 @@ public class ApplicationPlaceholderResolver {
         instance.setInstance(resolveInstance(instance, context));
         instance.setResources(resolveResources(instance, context));
         instance.setModules(resolveModules(instance, context));
+        instance.setGateways(resolveGateways(instance, context));
         return instance;
     }
+
+
 
     static Map<String, Object> createContext(Application application) throws IOException {
         Map<String, Object> context = new HashMap<>();
@@ -125,6 +130,22 @@ public class ApplicationPlaceholderResolver {
             );
         }
         return newResources;
+    }
+
+    private static Gateways resolveGateways(Application instance, Map<String, Object> context) {
+        if (instance.getGateways() == null || instance.getGateways().gateways() == null) {
+            return instance.getGateways();
+        }
+        List<Gateway> newGateways = new ArrayList<>();
+        for (Gateway gateway : instance.getGateways().gateways()) {
+            Gateway.Authentication authentication = gateway.authentication();
+            if (gateway.authentication() != null && gateway.authentication().configuration() != null) {
+                authentication = new Gateway.Authentication(authentication.provider(), resolveMap(context, gateway.authentication().configuration()));
+            }
+            newGateways.add(new Gateway(gateway.id(), gateway.type(),
+                    gateway.topic(), authentication, gateway.parameters(), gateway.produceOptions(), gateway.consumeOptions()));
+        }
+        return new Gateways(newGateways);
     }
 
     static Map<String, Object> resolveMap(Map<String, Object> context, Map<String, Object> config) {

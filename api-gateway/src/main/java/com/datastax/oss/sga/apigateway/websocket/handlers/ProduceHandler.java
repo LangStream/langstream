@@ -1,15 +1,16 @@
 package com.datastax.oss.sga.apigateway.websocket.handlers;
 
 import static com.datastax.oss.sga.apigateway.websocket.WebSocketConfig.PRODUCE_PATH;
+import com.datastax.oss.sga.api.gateway.GatewayRequestContext;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Gateway;
-import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
+import com.datastax.oss.sga.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.datastax.oss.sga.apigateway.websocket.api.ProduceRequest;
 import com.datastax.oss.sga.apigateway.websocket.api.ProduceResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -42,25 +43,31 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
-    public void onOpen(WebSocketSession webSocketSession) throws Exception {
-        final String tenant = (String) webSocketSession.getAttributes().get("tenant");
+    Gateway.GatewayType gatewayType() {
+        return Gateway.GatewayType.produce;
+    }
 
-        final AntPathMatcher antPathMatcher = new AntPathMatcher();
-        final Map<String, String> vars =
-                antPathMatcher.extractUriTemplateVariables(PRODUCE_PATH,
-                        webSocketSession.getUri().getPath());
-        final String gatewayId = vars.get("gateway");
-        final String applicationId = vars.get("application");
+    @Override
+    String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+        return parsedPath.get("tenant");
+    }
 
+    @Override
+    String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+        return parsedPath.get("application");
+    }
 
-        final Application application = getResolvedApplication(tenant, applicationId);
-        Gateway selectedGateway = extractGateway(gatewayId, application, Gateway.GatewayType.produce);
+    @Override
+    String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+        return parsedPath.get("gateway");
+    }
 
+    @Override
+    public void onOpen(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) throws Exception {
+        Gateway selectedGateway = context.gateway();
 
-        final RequestDetails requestDetails = validateQueryStringAndOptions(
-                (Map<String, String>) webSocketSession.getAttributes().get("queryString"), selectedGateway);
-        final List<Header> headers = getCommonHeaders(selectedGateway, requestDetails.getUserParameters());
-        final StreamingCluster streamingCluster = application.getInstance().streamingCluster();
+        final List<Header> headers = getCommonHeaders(selectedGateway, context.userParameters(), context.principalValues());
+        final StreamingCluster streamingCluster = context.application().getInstance().streamingCluster();
 
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
@@ -75,11 +82,12 @@ public class ProduceHandler extends AbstractHandler {
         webSocketSession.getAttributes().put("producer", producer);
         webSocketSession.getAttributes().put("headers", Collections.unmodifiableList(headers));
 
-        log.info("Started produced for gateway {}/{}/{} on topic {}", tenant, applicationId, gatewayId, topicName);
+        log.info("Started produced for gateway {}/{}/{} on topic {}", context.tenant(), context.applicationId(),
+                context.gateway().id(), topicName);
     }
 
     @Override
-    public void onMessage(WebSocketSession webSocketSession, TextMessage message) throws Exception {
+    public void onMessage(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, TextMessage message) throws Exception {
         final TopicProducer topicProducer = getTopicProducer(webSocketSession, true);
         final ProduceRequest produceRequest;
         try {
@@ -139,7 +147,7 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
-    public void onClose(WebSocketSession webSocketSession, CloseStatus status) throws Exception {
+    public void onClose(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, CloseStatus status) throws Exception {
     }
 
     @Override
@@ -152,7 +160,9 @@ public class ProduceHandler extends AbstractHandler {
         }
     }
 
-    private List<Header> getCommonHeaders(Gateway selectedGateway, Map<String, String> passedParameters) {
+    private List<Header> getCommonHeaders(Gateway selectedGateway,
+                                          Map<String, String> passedParameters,
+                                          Map<String, String> principalValues) {
         final List<Header> headers = new ArrayList<>();
         if (selectedGateway.produceOptions() != null && selectedGateway.produceOptions().headers() != null) {
             final List<Gateway.KeyValueComparison> headersConfig = selectedGateway.produceOptions().headers();
@@ -164,9 +174,12 @@ public class ProduceHandler extends AbstractHandler {
                 if (value == null && mapping.valueFromParameters() != null) {
                     value = passedParameters.get(mapping.valueFromParameters());
                 }
+                if (value == null && mapping.valueFromAuthentication() != null) {
+                    value = principalValues.get(mapping.valueFromAuthentication());
+                }
                 if (value == null) {
                     throw new IllegalArgumentException(
-                            "Value cannot be empty (tried 'value' and 'valueFromParameters')");
+                            mapping.key() + "header cannot be empty");
                 }
 
                 headers.add(SimpleRecord.SimpleHeader.of(

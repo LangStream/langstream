@@ -24,6 +24,9 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
     @CommandLine.Option(names = {"-p", "--param"}, description = "Gateway parameters. Format: key=value")
     private Map<String, String> params;
 
+    @CommandLine.Option(names = {"-c", "--credentials"}, description = "Credentials for the gateway. Required if the gateway requires authentication.")
+    private String credentials;
+
     @CommandLine.Option(names = {"-v", "--value"}, description = "Message value")
     private String messageValue;
 
@@ -39,7 +42,7 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
     public void run() {
         final String producePath = "%s/v1/produce/%s/%s/%s?%s"
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, gatewayId,
-                        computeQueryString(params, Map.of()));
+                        computeQueryString(credentials, params, Map.of()));
         CountDownLatch countDownLatch = new CountDownLatch(1);
         try (final WebSocketClient client = new WebSocketClient(new WebSocketClient.Handler() {
             @Override

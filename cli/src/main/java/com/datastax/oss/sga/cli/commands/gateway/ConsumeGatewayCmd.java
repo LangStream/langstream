@@ -26,6 +26,8 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
 
     @CommandLine.Option(names = {"-p", "--param"}, description = "Gateway parameters. Format: key=value")
     private Map<String, String> params;
+    @CommandLine.Option(names = {"-c", "--credentials"}, description = "Credentials for the gateway. Required if the gateway requires authentication.")
+    private String credentials;
 
     @CommandLine.Option(names = {"--position"}, description = "Initial position of the consumer. \"latest\", \"earliest\" or a offset value. "
             + "The offset value can be retrieved after consuming a message of the same topic.")
@@ -44,7 +46,7 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
 
         final String consumePath = "%s/v1/consume/%s/%s/%s?%s"
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, gatewayId,
-                        computeQueryString(params, options));
+                        computeQueryString(credentials, params, options));
 
         CountDownLatch latch = new CountDownLatch(1);
         try (final WebSocketClient client = new WebSocketClient(new WebSocketClient.Handler() {

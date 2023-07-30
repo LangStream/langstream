@@ -50,7 +50,7 @@ public class TextNormaliserAgent extends SingleRecordAgentProcessor {
             stream = stream.trim();
         }
         return List.of(SimpleRecord
-                .builder()
+                .copyFrom(record)
                 .value(stream)
                 .build());
 

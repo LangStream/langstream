@@ -57,12 +57,8 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
                     .collect(Collectors.toMap(Function.identity(), metadata::get)), valueAsString);
             reader.transferTo(valueAsString);
             return List.of(SimpleRecord
-                    .builder()
-                    .key(record.key())
+                    .copyFrom(record)
                     .value(valueAsString.toString())
-                    .origin(record.origin())
-                    .timestamp(record.timestamp())
-                    .headers(record.headers())
                     .build());
         } finally {
             reader.close();

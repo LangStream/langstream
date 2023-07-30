@@ -34,9 +34,21 @@ pipeline:
       length_function: "cl100k_base"
   - name: "Convert to structured data"
     type: "document-to-json"
-    output: "output-topic"
     configuration:
         text-field: text
         copy-properties: true
-
-
+  - name: "prepare-structure"
+    type: "compute"
+    configuration:
+      fields:
+         - name: "value.filename"
+           expression: "properties.name"
+           type: STRING
+  - name: "compute-embeddings"
+    id: "step1"
+    type: "compute-ai-embeddings"
+    output: "output-topic"
+    configuration:
+      model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
+      embeddings-field: "value.item-vector"
+      text: "{{% value.text }}"

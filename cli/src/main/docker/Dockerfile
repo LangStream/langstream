@@ -9,13 +9,6 @@ RUN echo 'Acquire::http::Timeout "30";\nAcquire::ftp::Timeout "30";\nAcquire::Re
      && apt-get -y install --no-install-recommends vim netcat dnsutils less procps iputils-ping \
                  curl ca-certificates wget apt-transport-https software-properties-common gpg-agent
 
-# Install Python3.11
-RUN apt-get update && add-apt-repository ppa:deadsnakes/ppa \
-     && apt-get -y install --no-install-recommends python3.11-full \
-     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
-     && python3 -m ensurepip && python3 -m pip install pipenv
-
-
 # Install Eclipse Temurin Package
 RUN mkdir -p /etc/apt/keyrings \
      && wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc \
@@ -34,23 +27,9 @@ RUN apt-get -y --purge autoremove \
 
 RUN mkdir /app && chmod g+w /app
 
-ADD maven/Pipfile.lock /app/Pipfile.lock
-
-ENV NLTK_DATA="/app/nltk_data"
-
-# install python runtime deps
-RUN cd /app && pipenv requirements --categories="packages full" > /app/requirements.txt \
-    && python3 -m pip install -r /app/requirements.txt \
-    && python3 -m nltk.downloader -d /app/nltk_data punkt averaged_perceptron_tagger
-
-ENV PYTHONPATH="$PYTHONPATH:/app/sga_runtime"
-
 # Add the runtime code at the end. This optimize docker layers to not depend on artifacts-specific changes.
-ADD maven/lib /app/lib
-ADD maven/entrypoint.sh /app/entrypoint.sh
-ADD maven/sga_runtime /app/sga_runtime
+ADD maven /app
 WORKDIR /app
 
 # The UID must be non-zero. Otherwise, it is arbitrary. No logic should rely on its specific value.
 USER 10000
-ENTRYPOINT ["/app/entrypoint.sh"]

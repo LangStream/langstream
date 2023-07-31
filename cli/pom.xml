@@ -29,6 +29,7 @@
   <properties>
     <build.dir>${project.build.directory}</build.dir>
     <wiremock.version>3.0.0-beta-10</wiremock.version>
+    <docker.platforms>linux/amd64</docker.platforms>
   </properties>
   <dependencies>
     <dependency>
@@ -129,4 +130,49 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>docker</id>
+      <activation>
+        <property>
+          <name>docker</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <configuration>
+              <verbose>true</verbose>
+              <images>
+                <image>
+                  <name>datastax/sga-cli:latest-dev</name>
+                  <build>
+                    <dockerFile>${project.basedir}/src/main/docker/Dockerfile</dockerFile>
+                    <assembly>
+                      <descriptor>${project.basedir}/src/main/assembly/cli.xml</descriptor>
+                    </assembly>
+                    <buildx>
+                      <platforms>
+                        <platform>${docker.platforms}</platform>
+                      </platforms>
+                    </buildx>
+                  </build>
+                </image>
+              </images>
+            </configuration>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>build</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

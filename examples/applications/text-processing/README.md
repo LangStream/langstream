@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS documents (
   embeddings_vector VECTOR<FLOAT, 1536>,
   PRIMARY KEY (filename, chunk_id)
 );
+CREATE CUSTOM INDEX IF NOT EXISTS ann_index 
+  ON documents(embeddings_vector) USING 'StorageAttachedIndex';
 ```
 
 

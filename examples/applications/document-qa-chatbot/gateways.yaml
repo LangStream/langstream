@@ -1,0 +1,22 @@
+gateways:
+  - id: produce-input
+    type: produce
+    topic: input-topic
+    parameters:
+      - sessionId
+    produceOptions:
+      headers:
+        - key: sga-client-session-id
+          valueFromParameters: sessionId
+
+  - id: consume-output
+    type: consume
+    topic: output-topic
+    parameters:
+      - sessionId
+    consumeOptions:
+      filters:
+        headers:
+          - key: sga-client-session-id
+            valueFromParameters: sessionId
+

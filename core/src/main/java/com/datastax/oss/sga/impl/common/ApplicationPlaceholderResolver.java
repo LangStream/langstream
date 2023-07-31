@@ -178,12 +178,22 @@ public class ApplicationPlaceholderResolver {
     }
 
     static String resolveValue(Map<String, Object> context, String template) {
-        final String escaped = template.replace("{{% ", "{__MUSTACHE_ESCAPING_PREFIX ");
+        Map<String, String> special = new HashMap<>();
+        special.put("{{% ", "{__MUSTACHE_ESCAPING_PREFIX ");
+        special.put("{{%# ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPSTART ");
+        special.put("{{%/ ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPEND ");
+        String escaped = template;
+        for (Map.Entry<String, String> entry : special.entrySet()) {
+            escaped = escaped.replace(entry.getKey(), entry.getValue());
+        }
         final String result = Mustache.compiler()
                 .compile(escaped)
                 .execute(context);
-        return result.
-                replace("{__MUSTACHE_ESCAPING_PREFIX ", "{{ ");
+        String finalResult = result;
+        for (Map.Entry<String, String> entry : special.entrySet()) {
+            finalResult = finalResult.replace(entry.getValue(), entry.getKey());
+        }
+        return finalResult;
     }
 
     private static Application deepCopy(Application instance) throws IOException {

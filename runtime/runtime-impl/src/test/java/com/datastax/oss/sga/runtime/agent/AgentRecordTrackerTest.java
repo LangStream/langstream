@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class AgentRecordTrackerTest {
 
     private static record MyRecord (Object key, Object value, String origin, Long timestamp, Collection<Header> headers) implements Record {
@@ -69,6 +71,9 @@ public class AgentRecordTrackerTest {
         assertEquals(sourceRecord, agentSource.committed.get(0));
         agentSource.committed.clear();
 
+        // ensure no leaks
+        assertTrue(tracker.remainingSinkRecordsForSourceRecord.isEmpty());
+        assertTrue(tracker.sinkToSourceMapping.isEmpty());
     }
 
     @Test
@@ -91,6 +96,31 @@ public class AgentRecordTrackerTest {
         assertEquals(1, agentSource.committed.size());
         assertEquals(sourceRecord, agentSource.committed.get(0));
         agentSource.committed.clear();
+        // ensure no leaks
+        assertTrue(tracker.remainingSinkRecordsForSourceRecord.isEmpty());
+        assertTrue(tracker.sinkToSourceMapping.isEmpty());
+    }
+
+    @Test
+    public void testSkippedRecord() throws Exception {
+
+        MySource agentSource = new MySource();
+        SourceRecordTracker tracker = new SourceRecordTracker(agentSource);
+
+        Record sourceRecord = new MyRecord("key", "sourceValue", "origin", 0L, null);
+        Record sinkRecord = new MyRecord("key", "sinkValue", "origin", 0L, null);
+
+        tracker.track(List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), null)));
+
+        tracker.commit(List.of(sinkRecord));
+
+        assertEquals(1, agentSource.committed.size());
+        assertEquals(sourceRecord, agentSource.committed.get(0));
+        agentSource.committed.clear();
+        // ensure no leaks
+        assertTrue(tracker.remainingSinkRecordsForSourceRecord.isEmpty());
+        assertTrue(tracker.sinkToSourceMapping.isEmpty());
+
     }
 
 }

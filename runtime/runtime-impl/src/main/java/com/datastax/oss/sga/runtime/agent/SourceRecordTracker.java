@@ -5,6 +5,7 @@ import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 import lombok.SneakyThrows;
+import org.apache.kafka.connect.source.SourceRecord;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,8 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class SourceRecordTracker implements AgentSink.CommitCallback {
-    private final Map<Record, Record> sinkToSourceMapping = new ConcurrentHashMap<>();
-    private final Map<Record, AtomicInteger> remainingSinkRecordsForSourceRecord = new ConcurrentHashMap<>();
+    final Map<Record, Record> sinkToSourceMapping = new ConcurrentHashMap<>();
+    final Map<Record, AtomicInteger> remainingSinkRecordsForSourceRecord = new ConcurrentHashMap<>();
     private final AgentSource source;
 
     public SourceRecordTracker(AgentSource source) {
@@ -29,11 +30,16 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
             Record sourceRecord = sinkToSourceMapping.get(record);
             if (sourceRecord != null) {
                 AtomicInteger remaining = remainingSinkRecordsForSourceRecord.get(sourceRecord);
-                if (remaining.decrementAndGet() == 0) {
-                    sourceRecordsToCommit.add(sourceRecord);
-                }
+                remaining.decrementAndGet();
             }
         }
+        remainingSinkRecordsForSourceRecord.forEach((sourceRecord, remaining) -> {
+            if (remaining.get() == 0) {
+                sourceRecordsToCommit.add(sourceRecord);
+            }
+        });
+        sourceRecordsToCommit.forEach(remainingSinkRecordsForSourceRecord::remove);
+
         source.commit(sourceRecordsToCommit);
         // forget about this batch SinkRecords
         sinkRecords.forEach(sinkToSourceMapping::remove);

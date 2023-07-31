@@ -2,14 +2,17 @@ module: "module-1"
 id: "pipeline-1"
 name: "Extract and manipulate text"
 topics:
-  - name: "output-topic"
+  - name: "chunks-topic"
     creation-mode: create-if-not-exists
 pipeline:
   - name: "Read from S3"
     type: "s3-source"
     configuration:
-      bucketName: documents
-      endpoint: "http://minio.minio-dev.svc.cluster.local:9000"
+      bucketName: "{{{secrets.s3-credentials.bucket-name}}}"
+      endpoint: "{{{secrets.s3-credentials.endpoint}}}"
+      access-key: "{{{secrets.s3-credentials.access-key}}}"
+      secret-key: "{{{secrets.s3-credentials.secret}}}"
+      region: "{{{secrets.s3-credentials.region}}}"
       idle-time: 5
   - name: "Extract text"
     type: "text-extractor"
@@ -44,11 +47,20 @@ pipeline:
          - name: "value.filename"
            expression: "properties.name"
            type: STRING
+         - name: "value.chunk_id"
+           expression: "properties.chunk_id"
+           type: STRING
+         - name: "value.language"
+           expression: "properties.language"
+           type: STRING
+         - name: "value.chunk_num_tokens"
+           expression: "properties.chunk_num_tokens"
+           type: STRING
   - name: "compute-embeddings"
     id: "step1"
     type: "compute-ai-embeddings"
-    output: "output-topic"
+    output: "chunks-topic"
     configuration:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
-      embeddings-field: "value.item-vector"
+      embeddings-field: "value.embeddings_vector"
       text: "{{% value.text }}"

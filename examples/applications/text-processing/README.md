@@ -1,15 +1,44 @@
 # Preprocessing Text 
 
-This sample application shows how to use some common NLP techniques to preprocess text data:
+This sample application shows how to use some common NLP techniques to preprocess text data and then write the results to a Vector Database.
+
+We have two pipelines:
+
+The extract-text.yaml file defines a pipeline that will:
 
 - Extract text from document files (PDF, Word...)
 - Detect the language and filter out non-English documents
 - Normalize the text
 - Split the text into chunks
 
+The write-to-db.yaml file defines a pipeline that will:
+- Write the chunks to a Vector Database, in this case DataStax Astra DB
+
+You could write a single pipeline file, but in this example we are keeping them as separate files
+for demonstration purposes.
+
+When you deploy the application all the files are deployed to the cluster as a single unit. 
+
 ## Prerequisites
 
 Prepare some PDF files and upload them to a bucket in S3.
+
+Create a table in Astra DB with the following schema.
+This example assumes that you have a KEYSPACE named `documents` and a TABLE named `documents`.
+
+```
+USE documents;
+CREATE TABLE IF NOT EXISTS documents (  
+  filename TEXT,
+  chunk_id int,
+  num_tokens int,
+  language TEXT,  
+  text TEXT,
+  embeddings_vector VECTOR<FLOAT, 1536>,
+  PRIMARY KEY (filename, chunk_id)
+);
+```
+
 
 ## Deploy the SGA application
 
@@ -32,5 +61,5 @@ dev/s3_upload.sh documents examples/applications/text-processing/simple.pdf
 Use the gateway to start a consumer that will read the output of the application.
 
 ```
-./bin/sga-cli gateway consume test consume-output
+./bin/sga-cli gateway consume test consume-chunks
 ```

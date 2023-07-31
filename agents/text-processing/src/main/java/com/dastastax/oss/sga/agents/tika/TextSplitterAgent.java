@@ -1,8 +1,10 @@
 package com.dastastax.oss.sga.agents.tika;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
+import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
 import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
@@ -22,16 +24,19 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
      * Number of characters per chunk.
      */
     private TextSplitter textSplitter;
+    private LengthFunction lengthFunction;
 
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
-        textSplitter = initTextSplitter(configuration);
+        initTextSplitter(configuration);
     }
 
-    private static TextSplitter initTextSplitter(Map<String, Object> configuration) {
+    private void initTextSplitter(Map<String, Object> configuration) {
         String splitterType = configuration.getOrDefault("splitter_type",
                 "RecursiveCharacterTextSplitter").toString();
+        TextSplitter newTextSplitter;
+        LengthFunction newLengthFunction;
         switch (splitterType) {
             case "RecursiveCharacterTextSplitter":
                 List<String> separators = (List<String>) configuration.getOrDefault("separators",
@@ -39,19 +44,21 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
                 boolean keepSeparator = Boolean.parseBoolean(configuration.getOrDefault("keep_separator", "false").toString());
                 int chunkSize = Integer.parseInt(configuration.getOrDefault("chunk_size", "200").toString());
                 int chunkOverlap = Integer.parseInt(configuration.getOrDefault("chunk_overlap", "100").toString());
-                LengthFunction lengthFunction;
                 String lengthFunctionName = configuration.getOrDefault("length_function", "cl100k_base").toString();
                 switch (lengthFunctionName) {
                     case "length":
-                        lengthFunction = String::length;
+                        newLengthFunction = String::length;
                         break;
                     default:
-                        lengthFunction = new TikTokLengthFunction(lengthFunctionName);
+                        newLengthFunction = new TikTokLengthFunction(lengthFunctionName);
                 }
-                return new RecursiveCharacterTextSplitter(separators, keepSeparator, chunkSize, chunkOverlap,  lengthFunction::length);
+                newTextSplitter = new RecursiveCharacterTextSplitter(separators, keepSeparator, chunkSize, chunkOverlap,  newLengthFunction::length);
+                break;
             default:
                 throw new IllegalArgumentException("Unknown splitter type: " + splitterType +", only RecursiveCharacterTextSplitter is supported");
         }
+        this.textSplitter = newTextSplitter;
+        this.lengthFunction = newLengthFunction;
     }
 
     @Override
@@ -75,18 +82,27 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
         Object value = record.value();
         String text = Utils.toText(value);
         List<String> chunks = textSplitter.splitText(text);
-        return chunks
-                .stream()
-                .map( chunk -> SimpleRecord
-                .builder()
-                .key(record.key())
-                .value(chunk)
-                .origin(record.origin())
-                .timestamp(record.timestamp())
-                .headers(record.headers())
-                .build())
-                .collect(Collectors.toList());
+        int chunkId = 0;
+        List<Record> result = new ArrayList<>();
+        for (String chunk : chunks) {
+            List<Header> chunkHeaders = new ArrayList<>(record.headers());
+            chunkHeaders.add(new SimpleRecord.SimpleHeader("chunk_id", String.valueOf(chunkId++)));
+            chunkHeaders.add(new SimpleRecord.SimpleHeader("chunk_text_length", String.valueOf(chunk.length())));
+            int numTokens = lengthFunction.length(chunk);
+            chunkHeaders.add(new SimpleRecord.SimpleHeader("chunk_num_tokens", String.valueOf(numTokens)));
 
+            // here we are setting as key the original key
+            // this is to ensure that all the chunks will be processed in order downstream
+            // it is important to not enable compaction on this topic
+            SimpleRecord chunkRecord = SimpleRecord
+                    .copyFrom(record)
+                    .key(record.key())
+                    .value(chunk)
+                    .headers(chunkHeaders)
+                    .build();
+            result.add(chunkRecord);
+        }
+        return result;
     }
 
 

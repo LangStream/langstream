@@ -1,4 +1,4 @@
 gateways:
-  - id: consume-output
+  - id: "consume-chunks"
     type: consume
-    topic: output-topic
+    topic: "chunks-topic"

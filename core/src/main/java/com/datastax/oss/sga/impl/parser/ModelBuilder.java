@@ -258,7 +258,8 @@ public class ModelBuilder {
         if (pipelineConfiguration.getTopics() != null) {
             for (TopicDefinitionModel topicDefinition : pipelineConfiguration.getTopics()) {
                 module.addTopic(new TopicDefinition(topicDefinition.getName(),
-                        topicDefinition.getCreationMode(), topicDefinition.getPartitions(),
+                        topicDefinition.getCreationMode(), false,
+                        topicDefinition.getPartitions(),
                         topicDefinition.getKeySchema(), topicDefinition.getSchema(),
                         topicDefinition.getOptions(), topicDefinition.getConfig()));
             }

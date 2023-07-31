@@ -1,5 +1,8 @@
 package com.datastax.oss.sga.api.runtime;
 
+import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
+
 /**
  * Optimises the execution plan of a Pipeline.
  */
@@ -10,5 +13,5 @@ public interface ExecutionPlanOptimiser {
      */
     boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation);
 
-    AgentNode mergeAgents(AgentNode previousAgent, AgentNode agentImplementation, ExecutionPlan instance);
+    AgentNode mergeAgents(Module module, Pipeline pipeline, AgentNode previousAgent, AgentNode agentImplementation, ExecutionPlan instance);
 }

@@ -37,12 +37,13 @@ public class TopicDefinition  {
     }
 
     public static TopicDefinition fromName(String name) {
-        return new TopicDefinition(name, CREATE_MODE_NONE, 0, null, null, Map.of(), Map.of());
+        return new TopicDefinition(name, CREATE_MODE_NONE,false, 0, null, null, Map.of(), Map.of());
     }
 
 
     public TopicDefinition(String name,
                            String creationMode,
+                           boolean implicit,
                            int partitions,
                            SchemaDefinition keySchema,
                            SchemaDefinition valueSchema,
@@ -55,6 +56,7 @@ public class TopicDefinition  {
         } else {
             this.creationMode = creationMode;
         }
+        this.implicit = implicit;
         this.partitions = partitions;
         this.keySchema = keySchema;
         this.valueSchema = valueSchema;
@@ -73,6 +75,10 @@ public class TopicDefinition  {
     private SchemaDefinition keySchema;
     private SchemaDefinition valueSchema;
     private int partitions;
+    /**
+     * If true, the topic is not declared in the application, but is expected to exist.
+     */
+    private boolean implicit;
 
     private void validateCreationMode() {
         switch (creationMode) {

@@ -104,13 +104,38 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
         boolean merged = false;
         if (previousAgent != null) {
-            for (ExecutionPlanOptimiser optimiser : getExecutionPlanOptimisers()) {
-                if (optimiser.canMerge(previousAgent, agentImplementation)) {
-                    agentImplementation = optimiser.mergeAgents(previousAgent, agentImplementation, result);
-                    merged = true;
-                    break;
+
+            boolean consecutiveAgentsWithImplictTopic = false;
+            if (agentImplementation instanceof DefaultAgentNode agent2
+                    && previousAgent instanceof DefaultAgentNode agent1) {
+
+                Connection agent1OutputConnection = agent1.getOutputConnection();
+                if (agent1OutputConnection.equals(agent2.getInputConnection())
+                    && agent1OutputConnection instanceof Topic topic
+                    && topic.implicit()) {
+                    log.info("Agent {} Output connection is {}", agent1.getId(), agent1OutputConnection);
+                    log.info("Agent {} Input connection is {}", agent2.getId(), agent2.getInputConnection());
+                    log.info("Agent {} the two agents are consecutive with an implicit topic in the pipeline", agentConfiguration.getId());
+
+                    consecutiveAgentsWithImplictTopic = true;
+                } else {
+                    log.info("Agent {} Output connection is {}", agent1.getId(), agent1OutputConnection);
+                    log.info("Agent {} Input connection is {}", agent2.getId(), agent2.getInputConnection());
+                    log.info("Agent {} the two agents are NOT consecutive in the pipeline", agentConfiguration.getId());
+                    consecutiveAgentsWithImplictTopic = false;
                 }
             }
+
+            if (consecutiveAgentsWithImplictTopic) {
+                for (ExecutionPlanOptimiser optimiser : getExecutionPlanOptimisers()) {
+                    if (optimiser.canMerge(previousAgent, agentImplementation)) {
+                        agentImplementation = optimiser.mergeAgents(module, pipeline, previousAgent, agentImplementation, result);
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+
         }
         if (!merged) {
             result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
@@ -119,7 +144,8 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
     }
 
     @Override
-    public Connection getConnectionImplementation(Module module, Pipeline pipeline, com.datastax.oss.sga.api.model.Connection connection,
+    public Connection getConnectionImplementation(Module module, Pipeline pipeline,
+                                                  com.datastax.oss.sga.api.model.Connection connection,
                                                   Connection.ConnectionDirection direction,
                                                   ExecutionPlan physicalApplicationInstance,
                                                   StreamingClusterRuntime streamingClusterRuntime) {
@@ -142,7 +168,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                         .getAgent(connection.definition());
                 yield switch (direction) {
                     case OUTPUT -> {
-                        Connection result = buildImplicitTopicForAgent(physicalApplicationInstance, agentConfiguration, "input", streamingClusterRuntime);
+                        Connection result = buildImplicitTopicForAgent(physicalApplicationInstance, agentConfiguration,  streamingClusterRuntime);
                         yield result;
                     }
                     case INPUT -> {
@@ -158,14 +184,13 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
     protected Connection buildImplicitTopicForAgent(ExecutionPlan physicalApplicationInstance,
                                                     AgentConfiguration agentConfiguration,
-                                                    String suffix,
                                                     StreamingClusterRuntime streamingClusterRuntime) {
         // connecting two agents requires an intermediate topic
-        String name = "agent-" + agentConfiguration.getId() + "-" + suffix;
-        log.info("Automatically creating topic {} in order to connect as " + suffix + " for agent {}", name, agentConfiguration.getId());
+        String name = "agent-" + agentConfiguration.getId() + "-input";
+        log.info("Automatically creating topic {} in order to connect as input for agent {}", name, agentConfiguration.getId());
         // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
         String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
-        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS, null, null,
+        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, true, DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS, null, null,
                 Map.of(), Map.of());
         Topic topicImplementation = streamingClusterRuntime.createTopicImplementation(topicDefinition, physicalApplicationInstance);
         physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);

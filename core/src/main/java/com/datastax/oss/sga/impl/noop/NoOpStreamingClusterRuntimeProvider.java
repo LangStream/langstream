@@ -12,10 +12,15 @@ public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRunt
         return "noop".equals(type);
     }
 
-    public record SimpleTopic(String name) implements Topic {
+    public record SimpleTopic(String name, boolean implicit) implements Topic {
         @Override
         public String topicName() {
             return name;
+        }
+
+        @Override
+        public boolean implicit() {
+            return this.implicit;
         }
     }
     @Override
@@ -23,7 +28,7 @@ public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRunt
         return new StreamingClusterRuntime() {
             @Override
             public Topic createTopicImplementation(TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
-                return new SimpleTopic(topicDefinition.getName());
+                return new SimpleTopic(topicDefinition.getName(), topicDefinition.isImplicit());
             }
         };
     }

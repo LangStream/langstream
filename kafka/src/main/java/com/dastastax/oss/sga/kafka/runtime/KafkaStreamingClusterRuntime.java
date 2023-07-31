@@ -126,6 +126,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
                 topicDefinition.getKeySchema(),
                 topicDefinition.getValueSchema(),
                 creationMode,
+                topicDefinition.isImplicit(),
                 configs,
                 options);
         return kafkaTopic;

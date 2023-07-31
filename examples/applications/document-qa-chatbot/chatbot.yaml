@@ -5,8 +5,6 @@ topics:
     creation-mode: create-if-not-exists
   - name: "answers-topic"
     creation-mode: create-if-not-exists
-  - name: "log-topic"
-    creation-mode: create-if-not-exists
 errors:
     on-failure: "skip"
 pipeline:
@@ -50,14 +48,12 @@ pipeline:
           content: "{{% value.question}}"
   - name: "cleanup-response"
     type: "drop-fields"
-    output: "log-topic"
     configuration:
       fields:
         - "question_embeddings"
         - "related_documents"
   - name: "keep-only-the-answer"
     type: "compute"
-    input: "log-topic"
     output: "answers-topic"
     configuration:
       fields:

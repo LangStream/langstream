@@ -46,17 +46,20 @@ public class S3Source implements AgentSource {
     public void init(Map<String, Object> configuration) throws Exception {
         bucketName = configuration.getOrDefault("bucketName", "sga-source").toString();
         String endpoint = configuration.getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090").toString();
-        String username =  configuration.getOrDefault("username", "minioadmin").toString();
-        String password =  configuration.getOrDefault("password", "minioadmin").toString();
+        String username =  configuration.getOrDefault("access-key", "minioadmin").toString();
+        String password =  configuration.getOrDefault("secret-key", "minioadmin").toString();
+        String region = configuration.getOrDefault("region", "").toString();
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
 
-        log.info("Connecting to S3 BlobStorage at {} with user {}", endpoint, username);
+        log.info("Connecting to S3 Bucket at {} in region {} with user {}", endpoint, region, username);
 
-        minioClient =
-            MinioClient.builder()
+        MinioClient.Builder builder = MinioClient.builder()
                 .endpoint(endpoint)
-                .credentials(username, password)
-                .build();
+                .credentials(username, password);
+        if (!region.isBlank()) {
+            builder.region(region);
+        }
+        minioClient = builder.build();
 
         makeBucketIfNotExists(bucketName);
     }
@@ -147,9 +150,14 @@ public class S3Source implements AgentSource {
             this.name = name;
         }
 
+        /**
+         * the key is used for routing, so it is better to set it to something meaningful.
+         * In case of retransmission the message will be sent to the same partition.
+         * @return
+         */
         @Override
         public Object key() {
-            return null;
+            return name;
         }
 
         @Override

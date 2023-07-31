@@ -1,0 +1,19 @@
+module: "module-1"
+id: "pipeline-2"
+name: "Write to AstraDB"
+topics:
+  - name: "chunks-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "Write to AstraDB"
+    type: "sink"
+    input: "chunks-topic"
+    configuration:
+      connector.class: com.datastax.oss.kafka.sink.CassandraSinkConnector
+      key.converter: org.apache.kafka.connect.storage.StringConverter
+      value.converter: org.apache.kafka.connect.storage.StringConverter
+      cloud.secureConnectBundle: "{{{ secrets.cassandra.secure-connect-bundle }}}"
+      auth.username: "{{{ secrets.cassandra.username }}}"
+      auth.password: "{{{ secrets.cassandra.password }}}"
+      topic.chunks-topic.documents.documents.mapping: "filename=value.filename, chunk_id=value.chunk_id, language=value.language, text=value.text, embeddings_vector=value.embeddings_vector, num_tokens=value.chunk_num_tokens"
+      name: cassandra-sink

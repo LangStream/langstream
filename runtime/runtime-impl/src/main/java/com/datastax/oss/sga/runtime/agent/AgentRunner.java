@@ -347,7 +347,6 @@ public class AgentRunner
             List<AgentProcessor.SourceRecordAndResult> results = safeProcessRecords(processor, recordToProcess);
 
             recordToProcess = new ArrayList<>();
-            List<AgentProcessor.SourceRecordAndResult> sinkRecords = new ArrayList<>();
             for (AgentProcessor.SourceRecordAndResult result : results) {
                 Record sourceRecord = result.getSourceRecord();
                 resultsByRecord.put(sourceRecord, result);

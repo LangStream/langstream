@@ -32,6 +32,7 @@ import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.AllArgsConstructor;
@@ -100,6 +101,9 @@ public class ModelBuilder {
                                         applicationWithPackageInfo);
                             } catch (java.nio.charset.MalformedInputException e) {
                                 log.warn("Skipping file {} due to encoding error", path);
+                            } catch (JsonMappingException e) {
+                                log.error("Error parsing file {}", path, e);
+                                throw new IllegalArgumentException("The file " + path + " is not valid YAML ("+ e.getMessage() + ")", e);
                             }
                         }
                     }

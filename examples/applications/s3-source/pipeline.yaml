@@ -9,8 +9,9 @@ pipeline:
     type: "s3-source"
     output: "output-topic"
     configuration:
-      bucketName: sga-source
-      endpoint: "https://s3.eu-west-2.amazonaws.com"
-      username: "{{ secrets.s3.username }}"
-      password: "{{ secrets.s3.password }}"
+      bucketName: "{{{secrets.s3-credentials.bucket-name}}}"
+      endpoint: "{{{secrets.s3-credentials.endpoint}}}"
+      access-key: "{{{secrets.s3-credentials.access-key}}}"
+      secret-key: "{{{secrets.s3-credentials.secret}}}"
+      region: "{{{secrets.s3-credentials.region}}}"
       idle-time: 5

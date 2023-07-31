@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public record KafkaTopic(String name, int partitions, int replicationFactor, SchemaDefinition keySchema, SchemaDefinition valueSchema, String createMode,
+                         boolean implicit,
                          Map<String, Object> config, Map<String, Object> options)
         implements Connection, Topic {
     public Map<String,Object> createConsumerConfiguration() {
@@ -52,5 +53,10 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
     @Override
     public String topicName() {
         return this.name;
+    }
+
+    @Override
+    public boolean implicit() {
+        return this.implicit;
     }
 }

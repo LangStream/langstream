@@ -48,3 +48,11 @@ Since the application opens a gateway, we can use the gateway API to send and co
 ```
 
 
+
+## Debug what you are sending to the LLM
+
+```
+./bin/sga-cli gateway consume chat-bot debug
+```
+
+

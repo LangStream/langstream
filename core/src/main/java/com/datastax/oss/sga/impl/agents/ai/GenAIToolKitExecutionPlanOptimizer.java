@@ -1,5 +1,7 @@
 package com.datastax.oss.sga.impl.agents.ai;
 
+import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.ExecutionPlanOptimiser;
@@ -47,7 +49,7 @@ public final class GenAIToolKitExecutionPlanOptimizer implements ExecutionPlanOp
     }
 
     @Override
-    public AgentNode mergeAgents(AgentNode previousAgent, AgentNode agentImplementation,
+    public AgentNode mergeAgents(Module module, Pipeline pipeline, AgentNode previousAgent, AgentNode agentImplementation,
                                  ExecutionPlan applicationInstance) {
         if (Objects.equals(previousAgent.getAgentType(), agentImplementation.getAgentType())
                 && previousAgent instanceof DefaultAgentNode agent1
@@ -75,7 +77,6 @@ public final class GenAIToolKitExecutionPlanOptimizer implements ExecutionPlanOp
             applicationInstance.discardTopic(agent1.getOutputConnection());
 
             agent1.overrideConfigurationAfterMerge(agent1.getAgentType(), result, agent2.getOutputConnection());
-            log.info("Agent 1 modified: {}", agent1);
 
             log.info("Discarding topic {}", agent2.getInputConnection());
             applicationInstance.discardTopic(agent2.getInputConnection());

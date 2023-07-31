@@ -178,7 +178,8 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
                 topicDefinition.getPartitions(),
                 keySchema,
                 valueSchema,
-                creationMode);
+                creationMode,
+                topicDefinition.isImplicit());
         return pulsarTopic;
     }
 

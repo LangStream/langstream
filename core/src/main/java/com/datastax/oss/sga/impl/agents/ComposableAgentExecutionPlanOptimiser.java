@@ -1,5 +1,7 @@
 package com.datastax.oss.sga.impl.agents;
 
+import com.datastax.oss.sga.api.model.Module;
+import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
@@ -28,7 +30,7 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
     }
 
     @Override
-    public AgentNode mergeAgents(AgentNode previousAgent, AgentNode agentImplementation, ExecutionPlan instance) {
+    public AgentNode mergeAgents(Module module, Pipeline pipeline, AgentNode previousAgent, AgentNode agentImplementation, ExecutionPlan instance) {
         if (previousAgent instanceof DefaultAgentNode agent1
                 && agentImplementation instanceof DefaultAgentNode agent2) {
 

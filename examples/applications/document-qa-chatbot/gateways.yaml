@@ -19,3 +19,7 @@ gateways:
         headers:
           - key: sga-client-session-id
             valueFromParameters: sessionId
+
+  - id: "debug"
+    type: consume
+    topic: "log-topic"

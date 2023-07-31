@@ -168,10 +168,10 @@ class ApplicationPlaceholderResolverTest {
 
     @Test
     void testEscapeMustache() throws Exception {
-        Assertions.assertEquals("{{% do not resolve }} resolved\n" +
-                        "{{%# value.related_documents}}\n" +
-                        "{{% text}}\n" +
-                        "{{%/ value.related_documents}}",
+        Assertions.assertEquals("{{ do not resolve }} resolved\n" +
+                        "{{# value.related_documents}}\n" +
+                        "{{ text}}\n" +
+                        "{{/ value.related_documents}}",
                 ApplicationPlaceholderResolver.resolveValue(Map.of("test", "resolved"),
                         "{{% do not resolve }} {{ test }}" +
                                 "\n" +

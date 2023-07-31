@@ -177,21 +177,24 @@ public class ApplicationPlaceholderResolver {
         }
     }
 
+    private record Placeholder(String key, String value, String finalReplacement) {
+    }
+
     static String resolveValue(Map<String, Object> context, String template) {
-        Map<String, String> special = new HashMap<>();
-        special.put("{{% ", "{__MUSTACHE_ESCAPING_PREFIX ");
-        special.put("{{%# ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPSTART ");
-        special.put("{{%/ ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPEND ");
+        List<Placeholder> placeholders = new ArrayList<>();
+        placeholders.add(new Placeholder("{{% ", "{__MUSTACHE_ESCAPING_PREFIX ", "{{ "));
+        placeholders.add(new Placeholder("{{%# ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPSTART ", "{{# "));
+        placeholders.add(new Placeholder("{{%/ ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPEND ", "{{/ "));
         String escaped = template;
-        for (Map.Entry<String, String> entry : special.entrySet()) {
-            escaped = escaped.replace(entry.getKey(), entry.getValue());
+        for (Placeholder placeholder : placeholders) {
+            escaped = escaped.replace(placeholder.key, placeholder.value);
         }
         final String result = Mustache.compiler()
                 .compile(escaped)
                 .execute(context);
         String finalResult = result;
-        for (Map.Entry<String, String> entry : special.entrySet()) {
-            finalResult = finalResult.replace(entry.getValue(), entry.getKey());
+        for (Placeholder placeholder : placeholders) {
+            finalResult = finalResult.replace(placeholder.value, placeholder.finalReplacement);
         }
         return finalResult;
     }

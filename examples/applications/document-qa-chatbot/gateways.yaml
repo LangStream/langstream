@@ -1,7 +1,7 @@
 gateways:
-  - id: produce-input
+  - id: "user-input"
     type: produce
-    topic: input-topic
+    topic: "questions-topic"
     parameters:
       - sessionId
     produceOptions:
@@ -9,9 +9,9 @@ gateways:
         - key: sga-client-session-id
           valueFromParameters: sessionId
 
-  - id: consume-output
+  - id: "bot-output"
     type: consume
-    topic: output-topic
+    topic: "answers-topic"
     parameters:
       - sessionId
     consumeOptions:

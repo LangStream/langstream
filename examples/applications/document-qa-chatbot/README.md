@@ -44,7 +44,7 @@ and OpenAI APIs.
 Since the application opens a gateway, we can use the gateway API to send and consume messages.
 
 ```
-./bin/sga-cli gateway chat test -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
+./bin/sga-cli gateway chat chat-bot -cg bot-output -pg user-input -p sessionId=$(uuidgen)
 ```
 
 

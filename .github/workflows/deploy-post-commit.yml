@@ -55,6 +55,7 @@ jobs:
             docker push $repo/$image:latest
           }
           tag_and_push sga-runtime
+          tag_and_push sga-cli
           tag_and_push sga-deployer
           tag_and_push sga-control-plane
           tag_and_push sga-api-gateway

@@ -454,4 +454,82 @@ class GenAIAgentsTest {
 
     }
 
+    @Test
+    public void testEmbeddingsThanQuery() throws Exception {
+        Application applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        buildInstanceYaml(),
+                        "configuration.yaml",
+                        """
+                                configuration:  
+                                  resources:
+                                    - name: open-ai
+                                      type: open-ai-configuration
+                                      configuration:
+                                        url: "http://something"                                
+                                        access-key: "xxcxcxc"
+                                        provider: "azure"
+                                    - name: my-database-1
+                                      type: datasource
+                                      configuration:
+                                        connectionUrl: localhost:1544
+                                  """,
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists                                    
+                                pipeline:
+                                  - name: "compute-embeddings"
+                                    id: "step1"
+                                    type: "compute-ai-embeddings"
+                                    input: "input-topic"                                    
+                                    configuration:                                      
+                                      model: "text-embedding-ada-002"
+                                      embeddings-field: "value.embeddings"
+                                      text: "{{% value.name }} {{% value.description }}"                                  
+                                  - name: "query1"
+                                    id: query1
+                                    type: "query"                                    
+                                    configuration:
+                                      datasource: "my-database-1"         
+                                      query: "select * from table"
+                                      output-field: "value.queryresult"                             
+                                      fields:
+                                        - "value.field1"                                          
+                                        - "key.field2"
+                                  - name: "casttojson"
+                                    type: "cast"                                    
+                                    output: "output-topic"
+                                    configuration:                                      
+                                      schema-type: "string"
+                                """));
+
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+        log.info("Agents: {}", implementation.getAgents());
+        assertEquals(1, implementation.getAgents().size());
+
+        {
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
+            DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
+            Map<String, Object> configuration = step.getConfiguration();
+            log.info("Configuration: {}", configuration);
+            Map<String, Object> datasourceConfiguration1 = (Map<String, Object>) configuration.get("datasource");
+            assertEquals("localhost:1544", datasourceConfiguration1.get("connectionUrl"));
+            List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+            assertEquals(3, steps.size());
+        }
+    }
+
 }

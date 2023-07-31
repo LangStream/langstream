@@ -16,6 +16,7 @@
 package com.datastax.oss.sga.model.parser;
 
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.impl.common.ApplicationPlaceholderResolver;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,9 @@ class ModelBuilderTest {
     @Test
     void testParseApplication1() throws Exception {
         Path path = Paths.get("src/test/resources/application1");
-        ModelBuilder.buildApplicationInstance(Arrays.asList(path));
+        Application application = ModelBuilder.buildApplicationInstance(Arrays.asList(path));
+        log.info("Parsed {}", application);
+        Application resolved = ApplicationPlaceholderResolver.resolvePlaceholders(application);
+        log.info("Resolved {}", resolved);
     }
 }

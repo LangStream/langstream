@@ -5,17 +5,18 @@ topics:
     creation-mode: create-if-not-exists
   - name: "answers-topic"
     creation-mode: create-if-not-exists
+errors:
+    on-failure: "skip"
 pipeline:
   - name: "convert-to-structure"
     id: "convert-to-structure"
     type: "document-to-json"
     input: "questions-topic"
     configuration:
-      field: "question"
+      text-field: "question"
   - name: "compute-embeddings"
     id: "compute-embeddings"
     type: "compute-ai-embeddings"
-    input: "questions-topic"
     configuration:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.question_embeddings"

@@ -13,11 +13,10 @@ pipeline:
     input: "input-topic"
     configuration:
       model: "gpt-3"
-      template: "{{name}} {{description}}"
+      template: "{{% name}} {{% description}}"
       embeddings-field: "item-vector"
   - name: "Write to Database"
     type: "cassandra-sink"
     configuration:
-      credentials: "#secrets.db-credentials"
-      table: "#globals.tableName"
+      table: "{{globals.tableName}}"
       mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"

@@ -68,6 +68,7 @@ public final class GenAIToolKitExecutionPlanOptimizer implements ExecutionPlanOp
 
             Map<String, Object> result = new HashMap<>();
             result.putAll(configurationWithoutSteps1);
+            result.putAll(configurationWithoutSteps2);
             result.put("steps", mergedSteps);
 
             log.info("Discarding topic {}", agent1.getInputConnection());

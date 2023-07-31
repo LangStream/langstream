@@ -1,0 +1,15 @@
+configuration:
+  resources:
+    - type: "open-ai-configuration"
+      name: "OpenAI Azure configuration"
+      configuration:
+        url: "{{ secrets.open-ai.url }}"
+        access-key: "{{ secrets.open-ai.access-key }}"
+        provider: "azure"
+    - type: "datasource"
+      name: "AstraDatasource"
+      configuration:
+        service: "astra"
+        username: "{{{ secrets.astra.username }}}"
+        password: "{{{ secrets.astra.password }}}"
+        secureBundle: "{{{ secrets.astra.secureBundle }}}"

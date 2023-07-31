@@ -1,0 +1,21 @@
+gateways:
+  - id: "user-input"
+    type: produce
+    topic: "questions-topic"
+    parameters:
+      - sessionId
+    produceOptions:
+      headers:
+        - key: sga-client-session-id
+          valueFromParameters: sessionId
+
+  - id: "bot-output"
+    type: consume
+    topic: "answers-topic"
+    parameters:
+      - sessionId
+    consumeOptions:
+      filters:
+        headers:
+          - key: sga-client-session-id
+            valueFromParameters: sessionId

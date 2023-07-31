@@ -8,8 +8,10 @@ import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.impl.common.ApplicationPlaceholderResolver;
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 
 @Builder
+@Slf4j
 public final class ApplicationDeployer implements AutoCloseable {
 
       private ClusterRuntimeRegistry registry;
@@ -23,8 +25,10 @@ public final class ApplicationDeployer implements AutoCloseable {
       public ExecutionPlan createImplementation(String applicationId, Application applicationInstance) {
           ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
           StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
+          log.info("Building execution plan for application {}", applicationInstance);
           final Application resolvedApplicationInstance = ApplicationPlaceholderResolver
                   .resolvePlaceholders(applicationInstance);
+          log.info("After resolving the placeholders {}", resolvedApplicationInstance);
           return clusterRuntime.buildExecutionPlan(applicationId, resolvedApplicationInstance, pluginsRegistry, streamingClusterRuntime);
       }
 

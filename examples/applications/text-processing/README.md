@@ -37,13 +37,15 @@ CREATE TABLE IF NOT EXISTS documents (
   embeddings_vector VECTOR<FLOAT, 1536>,
   PRIMARY KEY (filename, chunk_id)
 );
+CREATE CUSTOM INDEX IF NOT EXISTS ann_index 
+  ON documents(embeddings_vector) USING 'StorageAttachedIndex';
 ```
 
 
 ## Deploy the SGA application
 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/text-processing -i examples/instances/kafka-kubernetes.yaml
+./bin/sga-cli apps deploy text-extractor -app examples/applications/text-processing -i examples/instances/kafka-kubernetes.yaml
 ```
 
 ## Write a document in the S3 bucket
@@ -61,5 +63,5 @@ dev/s3_upload.sh documents examples/applications/text-processing/simple.pdf
 Use the gateway to start a consumer that will read the output of the application.
 
 ```
-./bin/sga-cli gateway consume test consume-chunks
+./bin/sga-cli gateway consume text-extractor consume-chunks
 ```

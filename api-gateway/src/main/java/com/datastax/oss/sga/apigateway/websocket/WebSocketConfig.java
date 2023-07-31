@@ -34,6 +34,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(new ConsumeHandler(applicationStore), CONSUME_PATH)
                 .addHandler(new ProduceHandler(applicationStore), PRODUCE_PATH)
+                .setAllowedOrigins("*")
                 .addInterceptors(
                         new HttpSessionHandshakeInterceptor(),
                         new AuthenticationInterceptor());

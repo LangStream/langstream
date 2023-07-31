@@ -10,6 +10,7 @@ import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import com.datastax.oss.sga.webservice.config.ApplicationDeployProperties;
 import java.util.List;
 import java.util.Map;
 import lombok.Cleanup;
@@ -95,7 +96,7 @@ class ApplicationServiceValidateUpdateTest {
 
     private static void checkTopics(List<ModelBuilder.TopicDefinitionModel> from,
                                     List<ModelBuilder.TopicDefinitionModel> to, boolean expectValid) {
-        final ApplicationService service = new ApplicationService(null, null);
+        final ApplicationService service = getApplicationService();
         try {
             service.validateTopicsUpdate(
                     buildPlanWithTopics(from),
@@ -110,6 +111,13 @@ class ApplicationServiceValidateUpdateTest {
             }
         }
 
+    }
+
+    @NotNull
+    private static ApplicationService getApplicationService() {
+        final ApplicationService service = new ApplicationService(null, null, new ApplicationDeployProperties(
+                new ApplicationDeployProperties.GatewayProperties(false)));
+        return service;
     }
 
     @SneakyThrows
@@ -265,7 +273,7 @@ class ApplicationServiceValidateUpdateTest {
 
     private static void checkAgents(List<ModelBuilder.AgentModel> from,
                                     List<ModelBuilder.AgentModel> to, boolean expectValid) {
-        final ApplicationService service = new ApplicationService(null, null);
+        final ApplicationService service = getApplicationService();
         try {
             service.validateTopicsUpdate(
                     buildPlanWithModels(from),

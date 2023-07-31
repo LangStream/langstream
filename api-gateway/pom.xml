@@ -86,8 +86,16 @@
 			<groupId>com.datastax.oss</groupId>
 			<artifactId>core</artifactId>
 			<version>${project.version}</version>
-			<scope>compile</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>com.datastax.oss</groupId>
+			<artifactId>google-api-gateway-auth</artifactId>
+			<version>${project.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+
+
 
 	</dependencies>
 

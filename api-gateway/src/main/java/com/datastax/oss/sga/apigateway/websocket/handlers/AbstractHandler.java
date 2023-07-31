@@ -1,11 +1,12 @@
 package com.datastax.oss.sga.apigateway.websocket.handlers;
 
+import com.datastax.oss.sga.api.gateway.GatewayRequestContext;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Gateway;
 import com.datastax.oss.sga.api.model.Gateways;
-import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
+import com.datastax.oss.sga.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.datastax.oss.sga.impl.common.ApplicationPlaceholderResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -33,30 +34,40 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
     public abstract String path();
 
-    public void onBeforeHandshakeCompleted(Map<String, Object> attributes) throws Exception {};
+    abstract Gateway.GatewayType gatewayType();
 
-    public abstract void onOpen(WebSocketSession webSocketSession) throws Exception;
+    abstract String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString);
 
-    public abstract void onMessage(WebSocketSession webSocketSession, TextMessage message) throws Exception;
+    abstract String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString);
 
-    public abstract void onClose(WebSocketSession webSocketSession, CloseStatus status) throws Exception;
+    abstract String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString);
 
-    interface RequestDetails {
-        Map<String, String> getUserParameters();
 
-        Map<String, String> getOptions();
-    }
+    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext gatewayRequestContext) throws Exception {};
+
+    abstract void onOpen(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext gatewayRequestContext) throws Exception;
+
+    abstract void onMessage(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext gatewayRequestContext, TextMessage message) throws Exception;
+
+    abstract void onClose(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext gatewayRequestContext, CloseStatus status) throws Exception;
+
+    abstract void validateOptions(Map<String, String> options);
 
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         super.afterConnectionEstablished(session);
         try {
-            onOpen(session);
+            onOpen(session, getContext(session));
         } catch (Throwable throwable) {
             log.error("[{}] error while opening websocket", session.getId(), throwable);
             closeSession(session, throwable);
         }
+    }
+
+    private AuthenticatedGatewayRequestContext getContext(WebSocketSession session) {
+        final AuthenticatedGatewayRequestContext context = (AuthenticatedGatewayRequestContext) session.getAttributes().get("context");
+        return context;
     }
 
     private void closeSession(WebSocketSession session, Throwable throwable) throws IOException {
@@ -74,7 +85,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         try {
-            onMessage(session, message);
+            onMessage(session, getContext(session), message);
         } catch (Throwable throwable) {
             log.error("[{}] error while opening websocket", session.getId(), throwable);
             closeSession(session, throwable);
@@ -85,7 +96,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         super.afterConnectionEstablished(session);
         try {
-            onClose(session, status);
+            onClose(session, getContext(session), status);
         } catch (Throwable throwable) {
             log.error("[{}] error while closing websocket", session.getId(), throwable);
         }
@@ -98,7 +109,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         return true;
     }
 
-    protected Application getResolvedApplication(String tenant, String applicationId) {
+    private Application getResolvedApplication(String tenant, String applicationId) {
         final Application application = applicationStore.getSpecs(tenant, applicationId);
         if (application == null) {
             throw new IllegalArgumentException("application " + applicationId + " not found");
@@ -108,7 +119,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 .resolvePlaceholders(application);
     }
 
-    protected Gateway extractGateway(String gatewayId, Application application, Gateway.GatewayType type) {
+    private Gateway extractGateway(String gatewayId, Application application, Gateway.GatewayType type) {
         final Gateways gatewaysObj = application.getGateways();
         if (gatewaysObj == null) {
             throw new IllegalArgumentException("no gateways defined for the application");
@@ -134,13 +145,11 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         return selectedGateway;
     }
 
-    abstract void validateOptions(Map<String, String> options);
-
-
-    protected RequestDetails validateQueryStringAndOptions(Map<String, String> queryString, Gateway gateway) {
+    public GatewayRequestContext validateRequest(Map<String, String> pathVars, Map<String, String> queryString) {
         Map<String, String> options = new HashMap<>();
         Map<String, String> userParameters = new HashMap<>();
 
+        final String credentials = queryString.remove("credentials");
 
         for (Map.Entry<String, String> entry : queryString.entrySet()) {
             if (entry.getKey().startsWith("option:")) {
@@ -153,6 +162,15 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                         + "To specify a option, use the format option:<option_name>.");
             }
         }
+
+        final String tenant = tenantFromPath(pathVars, queryString);
+        final String applicationId = applicationIdFromPath(pathVars, queryString);
+        final String gatewayId = gatewayFromPath(pathVars, queryString);
+
+        final Application application = getResolvedApplication(tenant, applicationId);
+        final Gateway.GatewayType type = gatewayType();
+        final Gateway gateway = extractGateway(gatewayId, application, type);
+
 
         final List<String> requiredParameters = gateway.parameters();
         Set<String> allUserParameterKeys = new HashSet<>(userParameters.keySet());
@@ -169,14 +187,44 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             throw new IllegalArgumentException("unknown parameters: " + allUserParameterKeys);
         }
         validateOptions(options);
-        return new RequestDetails() {
+
+
+
+
+        return new GatewayRequestContext() {
+
             @Override
-            public Map<String, String> getUserParameters() {
+            public String tenant() {
+                return tenant;
+            }
+
+            @Override
+            public String applicationId() {
+                return applicationId;
+            }
+
+            @Override
+            public Application application() {
+                return application;
+            }
+
+            @Override
+            public Gateway gateway() {
+                return gateway;
+            }
+
+            @Override
+            public String credentials() {
+                return credentials;
+            }
+
+            @Override
+            public Map<String, String> userParameters() {
                 return userParameters;
             }
 
             @Override
-            public Map<String, String> getOptions() {
+            public Map<String, String> options() {
                 return options;
             }
         };

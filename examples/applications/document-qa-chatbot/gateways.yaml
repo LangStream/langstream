@@ -20,3 +20,6 @@ gateways:
           - key: sga-client-session-id
             valueFromParameters: sessionId
 
+  - id: "debug-prompts"
+    type: consume
+    topic: "log-topic"

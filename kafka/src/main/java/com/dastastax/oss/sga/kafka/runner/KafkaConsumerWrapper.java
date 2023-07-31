@@ -69,7 +69,9 @@ class KafkaConsumerWrapper implements TopicConsumer {
         for (ConsumerRecord<?, ?> record : poll) {
             result.add(KafkaRecord.fromKafkaConsumerRecord(record));
         }
-        log.info("Received {} records from Kafka topics {}: {}", result.size(), consumer.assignment(), result);
+        if (!result.isEmpty()) {
+            log.info("Received {} records from Kafka topics {}: {}", result.size(), consumer.assignment(), result);
+        }
         return result;
     }
 

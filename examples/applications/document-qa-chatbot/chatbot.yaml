@@ -5,6 +5,8 @@ topics:
     creation-mode: create-if-not-exists
   - name: "answers-topic"
     creation-mode: create-if-not-exists
+  - name: "log-topic"
+    creation-mode: create-if-not-exists
 errors:
     on-failure: "skip"
 pipeline:
@@ -25,23 +27,40 @@ pipeline:
     type: "query"
     configuration:
       datasource: "AstraDatasource"
-      query: "SELECT text FROM documents ORDER BY item_vector ANN OF ? LIMIT 5"
+      query: "SELECT text FROM documents.documents ORDER BY embeddings_vector ANN OF ? LIMIT 5"
       fields:
         - "value.question_embeddings"
       output-field: "value.related_documents"
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
-    output: "answers-topic"
+
     configuration:
       model: "gpt-35-turbo" # This needs to be set to the model deployment name, not the base name
       completion-field: "value.answer"
-      log-field: "value-prompt"
+      log-field: "value.prompt"
       messages:
         - role: system
           content: |
               An user is going to perform a questions, these documents may help you in answering to their questions.
+              Please try to leverage them in your answer as much as possible.
               {{%# value.related_documents}}
               {{% text}}
               {{%/ value.related_documents}}
         - role: user
-          content: "{{% value}}"
+          content: "{{% value.question}}"
+  - name: "cleanup-response"
+    type: "drop-fields"
+    output: "log-topic"
+    configuration:
+      fields:
+        - "question_embeddings"
+        - "related_documents"
+  - name: "keep-only-the-answer"
+    type: "compute"
+    input: "log-topic"
+    output: "answers-topic"
+    configuration:
+      fields:
+        - name: "value"
+          expression: "value.answer"
+          type: STRING

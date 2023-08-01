@@ -8,14 +8,23 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.testcontainers.containers.Container;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 public class KafkaContainerExtension implements BeforeAllCallback, AfterAllCallback {
-    private static KafkaContainer kafkaContainer;
-    private static AdminClient admin;
+    private KafkaContainer kafkaContainer;
+
+    private Network network;
+    private AdminClient admin;
+
+    public Network getNetwork() {
+        return network;
+    }
 
     @Override
     public void afterAll(ExtensionContext extensionContext) throws Exception {
@@ -25,11 +34,16 @@ public class KafkaContainerExtension implements BeforeAllCallback, AfterAllCallb
         if (kafkaContainer != null) {
             kafkaContainer.close();
         }
+        if (network != null) {
+            network.close();
+        }
     }
 
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
+        network = Network.newNetwork();
         kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
+                .withNetwork(network)
                 .withLogConsumer(new Consumer<OutputFrame>() {
                     @Override
                     public void accept(OutputFrame outputFrame) {
@@ -40,7 +54,6 @@ public class KafkaContainerExtension implements BeforeAllCallback, AfterAllCallb
         kafkaContainer.start();
         admin =
                 AdminClient.create(Map.of("bootstrap.servers", getBootstrapServers()));
-
     }
 
     public String getBootstrapServers() {

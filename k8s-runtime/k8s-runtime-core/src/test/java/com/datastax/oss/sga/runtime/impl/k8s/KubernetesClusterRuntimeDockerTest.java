@@ -87,9 +87,6 @@ class KubernetesClusterRuntimeDockerTest {
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
-                                    schema:
-                                      type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists                                    
                                 pipeline:
@@ -154,9 +151,14 @@ class KubernetesClusterRuntimeDockerTest {
                 AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secrets.values().iterator().next());
         assertEquals(Map.of("auto.offset.reset", "earliest",
                 "group.id", "sga-agent-step1",
-                "topic", "input-topic"), runtimePodConfiguration.input());
+                "topic", "input-topic",
+                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer"),
+                runtimePodConfiguration.input());
         assertEquals(Map.of(
-                "topic", "output-topic"
+                "topic", "output-topic",
+                "key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer",
+                "value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer"
         ), runtimePodConfiguration.output());
         Map<String, Object> defaultErrorsAsMap = new HashMap<>();
         defaultErrorsAsMap.put("deadLetterTopic", null);

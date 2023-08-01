@@ -30,12 +30,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.output.OutputFrame;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.deser.std.UUIDDeserializer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -207,7 +209,7 @@ public abstract class AbstractApplicationRunner {
                 Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
                         "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
                         "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
-                        "group.id", "testgroup",
+                        "group.id", "testgroup-"+ UUID.randomUUID(),
                         "auto.offset.reset", "earliest")
         );
         consumer.subscribe(List.of(topic));

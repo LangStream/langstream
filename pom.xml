@@ -19,6 +19,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <pulsar.version>3.0.0</pulsar.version>
     <kafka.version>3.5.0</kafka.version>
+    <confluent.avro>7.4.0</confluent.avro>
     <avro.version>1.10.2</avro.version>
     <!-- same version of Kafka -->
     <netty.version>4.1.92.Final</netty.version>
@@ -66,6 +67,11 @@
         <groupId>org.apache.kafka</groupId>
         <artifactId>connect-runtime</artifactId>
         <version>${kafka.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.confluent</groupId>
+        <artifactId>kafka-avro-serializer</artifactId>
+        <version>${confluent.avro}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.pulsar</groupId>

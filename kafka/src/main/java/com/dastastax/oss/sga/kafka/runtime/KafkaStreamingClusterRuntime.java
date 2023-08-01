@@ -11,6 +11,12 @@ import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.concurrent.ExecutionException;
+
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.serializers.subject.TopicNameStrategy;
+import io.confluent.kafka.serializers.subject.strategy.SubjectNameStrategy;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -39,6 +45,18 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         log.info("AdminConfig: {}", adminConfig);
         return KafkaAdminClient.create(adminConfig);
     }
+    private CachedSchemaRegistryClient buildSchemaRegistryClient(StreamingCluster streamingCluster) throws Exception {
+        final KafkaClusterRuntimeConfiguration KafkaClusterRuntimeConfiguration =
+                getKafkaClusterRuntimeConfiguration(streamingCluster);
+        Map<String, Object> adminConfig = KafkaClusterRuntimeConfiguration.getAdmin();
+        if (adminConfig == null) {
+            adminConfig = new HashMap<>();
+        }
+        log.info("SchemaRegistry client configuration: {}", adminConfig);
+        return new CachedSchemaRegistryClient(adminConfig.get("schema.registry.url").toString(), 1000);
+    }
+
+
 
     public static KafkaClusterRuntimeConfiguration getKafkaClusterRuntimeConfiguration(StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
@@ -51,14 +69,14 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         Application logicalInstance = applicationInstance.getApplication();
         try (AdminClient admin = buildKafkaAdmin(logicalInstance.getInstance().streamingCluster())) {
             for (Topic topic : applicationInstance.getLogicalTopics()) {
-                deployTopic(admin, (KafkaTopic) topic);
+                deployTopic(admin, (KafkaTopic) topic, logicalInstance.getInstance().streamingCluster());
             }
 
         }
     }
 
     @SneakyThrows
-    private void deployTopic(AdminClient admin, KafkaTopic topic) {
+    private void deployTopic(AdminClient admin, KafkaTopic topic, StreamingCluster streamingCluster) {
         try {
             switch (topic.createMode()) {
                 case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
@@ -75,6 +93,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
                     admin.createTopics(List.of(newTopic))
                             .all()
                             .get();
+                    enforceSchemaOnTopic(newTopic, topic.keySchema(), topic.valueSchema(), streamingCluster);
                     break;
                 }
                 case TopicDefinition.CREATE_MODE_NONE: {
@@ -92,6 +111,31 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
             }
         }
         // TODO: schema
+    }
+
+    private void enforceSchemaOnTopic(NewTopic newTopic,
+                                      SchemaDefinition keySchema, SchemaDefinition valueSchema,
+                                      StreamingCluster streamingCluster) throws Exception {
+        if (keySchema == null && valueSchema == null) {
+            return;
+        }
+        // there is no close() method in this client
+        CachedSchemaRegistryClient client = buildSchemaRegistryClient(streamingCluster);
+
+        // here we are using TopicNameStrategy
+        // https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/index.html#sr-schemas-subject-name-strategy
+        SubjectNameStrategy topicNameStrategy = new TopicNameStrategy();
+        if (keySchema != null && keySchema.type().equals("avro") && keySchema.schema() != null) {
+            ParsedSchema parsedSchema = new AvroSchema(keySchema.schema());
+            String subjectName = topicNameStrategy.subjectName(newTopic.name(), true, parsedSchema);
+            client.register(subjectName, parsedSchema);
+        }
+
+        if (valueSchema != null && valueSchema.type().equals("avro") && valueSchema.schema() != null) {
+            ParsedSchema parsedSchema = new AvroSchema(valueSchema.schema());
+            String subjectName = topicNameStrategy.subjectName(newTopic.name(), false, parsedSchema);
+            client.register(subjectName, parsedSchema);
+        }
     }
 
     @Override

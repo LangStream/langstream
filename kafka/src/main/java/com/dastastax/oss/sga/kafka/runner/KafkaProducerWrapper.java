@@ -3,8 +3,10 @@ package com.dastastax.oss.sga.kafka.runner;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -20,13 +22,20 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.common.serialization.UUIDSerializer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 
 @Slf4j
 class KafkaProducerWrapper implements TopicProducer {
-    static final Map<Class<?>, Serializer<?>> SERIALIZERS = Map.of(
+
+    final Map<Class<?>, Serializer<?>> BASE_SERIALIZERS = Map.of(
             String.class, new StringSerializer(),
             Boolean.class, new BooleanSerializer(),
             Short.class, new ShortSerializer(),
@@ -35,15 +44,22 @@ class KafkaProducerWrapper implements TopicProducer {
             Float.class, new FloatSerializer(),
             Double.class, new DoubleSerializer(),
             byte[].class, new ByteArraySerializer(),
-            UUID.class, new UUIDSerializer()
-    );
+            UUID.class, new UUIDSerializer());
+
+    final Map<Class<?>, Serializer<?>> keySerializers = new ConcurrentHashMap<>(BASE_SERIALIZERS);
+    final Map<Class<?>, Serializer<?>> valueSerializers = new ConcurrentHashMap<>(BASE_SERIALIZERS);
+
+    final Map<Class<?>, Serializer<?>> headerSerializers = new ConcurrentHashMap<>(BASE_SERIALIZERS);
 
     private final Map<String, Object> copy;
     private final String topicName;
-    KafkaProducer<byte[], byte[]> producer;
+    KafkaProducer<Object, Object> producer;
     Serializer keySerializer;
     Serializer valueSerializer;
     Serializer headerSerializer;
+
+    boolean forcedKeySerializer;
+    boolean forcedValueSerializer;
 
     public KafkaProducerWrapper(Map<String, Object> copy, String topicName) {
         this.copy = copy;
@@ -51,6 +67,20 @@ class KafkaProducerWrapper implements TopicProducer {
         keySerializer = null;
         valueSerializer = null;
         headerSerializer = null;
+        forcedKeySerializer = !Objects.equals(org.apache.kafka.common.serialization.ByteArraySerializer.class.getName(),
+                copy.get(KEY_SERIALIZER_CLASS_CONFIG));
+        forcedValueSerializer = !Objects.equals(org.apache.kafka.common.serialization.ByteArraySerializer.class.getName(),
+                copy.get(VALUE_SERIALIZER_CLASS_CONFIG));
+        if (!forcedKeySerializer) {
+            log.info("The Producer is configured without a key serializer, we will use reflection to find the right one");
+        } else {
+            log.info("The Producer is configured with a key serializer: {}", copy.get(KEY_SERIALIZER_CLASS_CONFIG));
+        }
+        if (!forcedValueSerializer) {
+            log.info("The Producer is configured without a value serializer, we will use reflection to find the right one");
+        } else {
+            log.info("The Producer is configured with a value serializer: {}", copy.get(VALUE_SERIALIZER_CLASS_CONFIG));
+        }
     }
 
     @Override
@@ -75,19 +105,27 @@ class KafkaProducerWrapper implements TopicProducer {
     public void write(List<Record> records) {
         for (Record r : records) {
             List<org.apache.kafka.common.header.Header> headers = new ArrayList<>();
-            byte[] key = null;
+            Object key = null;
             if (r.key() != null) {
-                if (keySerializer == null) {
-                    keySerializer = SERIALIZERS.get(r.key().getClass());
+                if (forcedKeySerializer) {
+                    key = r.key();
+                } else {
+                    if (keySerializer == null) {
+                        keySerializer = getSerializer(r.key().getClass(), keySerializers, true);
+                    }
+                    key = keySerializer.serialize(topicName, r.key());
                 }
-                key = keySerializer.serialize(topicName, r.key());
             }
-            byte[] value = null;
+            Object value = null;
             if (r.value() != null) {
-                if (valueSerializer == null) {
-                    valueSerializer = SERIALIZERS.get(r.value().getClass());
+                if (forcedValueSerializer) {
+                    value = r.value();
+                } else {
+                    if (valueSerializer == null) {
+                        valueSerializer = getSerializer(r.value().getClass(), valueSerializers, false);
+                    }
+                    value = valueSerializer.serialize(topicName, r.value());
                 }
-                value = valueSerializer.serialize(topicName, r.value());
             }
             if (r.headers() != null) {
                 for (Header header : r.headers()) {
@@ -95,16 +133,31 @@ class KafkaProducerWrapper implements TopicProducer {
                     byte[] serializedHeader = null;
                     if (headerValue != null) {
                         if (headerSerializer == null) {
-                            headerSerializer = SERIALIZERS.get(headerValue.getClass());
+                            headerSerializer = getSerializer(headerValue.getClass(), headerSerializers, null);
                         }
                         serializedHeader = headerSerializer.serialize(topicName, headerValue);
                     }
                     headers.add(new RecordHeader(header.key(), serializedHeader));
                 }
             }
-            ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topicName, null, null, key, value, headers);
+            ProducerRecord<Object, Object> record = new ProducerRecord<>(topicName, null, null, key, value, headers);
             log.info("Sending record {}", record);
             producer.send(record).get();
         }
+    }
+
+    private Serializer<?> getSerializer(Class<?> r, Map<Class<?>, Serializer<?>> serializerMap, Boolean isKey) {
+        Serializer<?> result = serializerMap.get(r);
+        if (result == null) {
+            if (GenericRecord.class.isAssignableFrom(r)
+                    && isKey != null) { // no AVRO in headers
+                KafkaAvroSerializer kafkaAvroSerializer = new KafkaAvroSerializer();
+                kafkaAvroSerializer.configure(copy, isKey);
+                serializerMap.put(r, kafkaAvroSerializer);
+                return kafkaAvroSerializer;
+            }
+            throw new IllegalArgumentException("Cannot find a serializer for " + r);
+        }
+        return result;
     }
 }

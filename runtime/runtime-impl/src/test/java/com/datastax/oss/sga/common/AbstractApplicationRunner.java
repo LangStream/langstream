@@ -11,6 +11,8 @@ import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.kafka.extensions.KafkaContainerExtension;
 import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.fabric8.kubernetes.api.model.Secret;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -40,7 +42,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 public class AbstractApplicationRunner {
@@ -89,9 +93,11 @@ public class AbstractApplicationRunner {
                     configuration:
                       admin:
                         bootstrap.servers: "%s"
+                        schema.registry.url: "%s"
                   computeCluster:
                      type: "kubernetes"
-                """.formatted(kafkaContainer.getBootstrapServers());
+                """.formatted(kafkaContainer.getBootstrapServers(),
+                              kafkaContainer.getSchemaRegistryUrl());
     }
 
 
@@ -113,11 +119,20 @@ public class AbstractApplicationRunner {
         );
     }
 
-    protected void sendMessage(String topic, String content, KafkaProducer producer) throws Exception {
+    protected KafkaProducer createAvroProducer() {
+        return new KafkaProducer<String, String>(
+                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                        "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                        "value.serializer", KafkaAvroSerializer.class.getName(),
+                        "schema.registry.url", kafkaContainer.getSchemaRegistryUrl())
+        );
+    }
+
+    protected void sendMessage(String topic, Object content, KafkaProducer producer) throws Exception {
         sendMessage(topic, content, List.of(), producer);
     }
 
-    protected void sendMessage(String topic, String content, List<Header> headers , KafkaProducer producer) throws Exception {
+    protected void sendMessage(String topic, Object content, List<Header> headers , KafkaProducer producer) throws Exception {
         producer
                 .send(new ProducerRecord<>(
                         topic,
@@ -131,22 +146,32 @@ public class AbstractApplicationRunner {
     }
 
     protected List<ConsumerRecord> waitForMessages(KafkaConsumer consumer,
-                                                   List<String> expected) throws Exception {
+                                                   List<Object> expected) throws Exception {
         List<ConsumerRecord> result = new ArrayList<>();
-        List<String> received = new ArrayList<>();
+        List<Object> received = new ArrayList<>();
 
         Awaitility.await().untilAsserted(() -> {
                     ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(2));
                     for (ConsumerRecord record : poll) {
                         log.info("Received message {}", record);
-                        received.add(record.value().toString());
+                        received.add(record.value());
                         result.add(record);
                     }
                     log.info("Result: {}", received);
                     received.forEach(r -> {
                         log.info("Received |{}|", r);
                     });
-                    assertEquals(expected, received);
+
+                    assertEquals(expected.size(), received.size());
+                    for (int i = 0; i < expected.size(); i++) {
+                        Object expectedValue = expected.get(i);
+                        Object actualValue = received.get(i);
+                        if (expectedValue instanceof byte[]) {
+                            assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
+                        } else {
+                            assertEquals(expectedValue, actualValue);
+                        }
+                    }
                 }
         );
 
@@ -192,6 +217,18 @@ public class AbstractApplicationRunner {
                         "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
                         "group.id", "testgroup",
                         "auto.offset.reset", "earliest")
+        );
+        consumer.subscribe(List.of(topic));
+        return consumer;
+    }
+    protected KafkaConsumer createAvroConsumer(String topic) {
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(
+                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                        "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                        "value.deserializer", KafkaAvroDeserializer.class.getName(),
+                        "group.id", "testgroup",
+                        "auto.offset.reset", "earliest",
+                        "schema.registry.url", kafkaContainer.getSchemaRegistryUrl())
         );
         consumer.subscribe(List.of(topic));
         return consumer;

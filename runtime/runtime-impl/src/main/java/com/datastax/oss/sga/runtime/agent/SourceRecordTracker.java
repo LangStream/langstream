@@ -5,7 +5,6 @@ import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 import lombok.SneakyThrows;
-import org.apache.kafka.connect.source.SourceRecord;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +55,15 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
             sourceRecordAndResult.getResultRecords().forEach(sinkRecord -> {
                 sinkToSourceMapping.put(sinkRecord, sourceRecord);
             });
+        });
+    }
+
+    public void errored(Record sourceRecord) {
+        remainingSinkRecordsForSourceRecord.remove(sourceRecord);
+        sinkToSourceMapping.forEach((sinkRecord, record) -> {
+            if (record.equals(sourceRecord)) {
+                sinkToSourceMapping.remove(sinkRecord);
+            }
         });
     }
 }

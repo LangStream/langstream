@@ -140,7 +140,9 @@ public abstract class AbstractApplicationRunner {
         List<ConsumerRecord> result = new ArrayList<>();
         List<Object> received = new ArrayList<>();
 
-        Awaitility.await().untilAsserted(() -> {
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
                     ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(2));
                     for (ConsumerRecord record : poll) {
                         log.info("Received message {}", record);

@@ -1,6 +1,7 @@
 package com.datastax.oss.sga.api.runner.code;
 
 import lombok.Getter;
+import lombok.ToString;
 
 import java.util.List;
 
@@ -19,6 +20,7 @@ public interface AgentProcessor extends AgentCode {
     List<SourceRecordAndResult> process(List<Record> records) throws Exception;
 
     @Getter
+    @ToString
     static class SourceRecordAndResult {
         final Record sourceRecord;
         final List<Record> resultRecords;

@@ -71,6 +71,16 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
     }
 
     @Override
+    public TopicProducer createDeadletterTopicProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        Map<String, Object> deadletterConfiguration = (Map<String, Object>) configuration.get("deadLetterTopicProducer");
+        if (deadletterConfiguration == null || deadletterConfiguration.isEmpty()) {
+            return null;
+        }
+        log.info("Creating deadletter topic producer for agent {} using configuration {}", agentId, configuration);
+        return createProducer(agentId, streamingCluster, deadletterConfiguration);
+    }
+
+    @Override
     public TopicAdmin createTopicAdmin(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
         Map<String, Object> copy = new HashMap<>(configuration);
         applyDefaultConfiguration(agentId, streamingCluster, copy);

@@ -187,11 +187,18 @@ public class AgentRunner
 
         // this is closed by the TopicSource
         final TopicConsumer consumer;
+        TopicProducer deadLetterProducer = null;
         if (configuration.input() != null && !configuration.input().isEmpty()) {
             consumer = topicConnectionsRuntime.createConsumer(agentId,
                     configuration.streamingCluster(), configuration.input());
+            deadLetterProducer = topicConnectionsRuntime.createDeadletterTopicProducer(agentId,
+                    configuration.streamingCluster(), configuration.input());
         } else {
             consumer = new NoopTopicConsumer();
+        }
+
+        if (deadLetterProducer == null) {
+            deadLetterProducer = new NoopTopicProducer();
         }
 
         // this is closed by the TopicSink
@@ -224,7 +231,7 @@ public class AgentRunner
                 source = compositeAgentProcessor.getSource();
             }
             if (source == null) {
-                source = new TopicConsumerSource(consumer);
+                source = new TopicConsumerSource(consumer, deadLetterProducer);
             }
 
             AgentSink sink = null;
@@ -299,6 +306,7 @@ public class AgentRunner
                             sourceRecordTracker.track(sinkRecords);
                             for (AgentProcessor.SourceRecordAndResult sourceRecordAndResult : sinkRecords) {
                                 if (sourceRecordAndResult.getError() != null) {
+                                    sourceRecordTracker.errored(sourceRecordAndResult.getSourceRecord());
                                     // commit skipped records
                                     source.commit(List.of(sourceRecordAndResult.getSourceRecord()));
                                 } else {
@@ -349,6 +357,7 @@ public class AgentRunner
             recordToProcess = new ArrayList<>();
             for (AgentProcessor.SourceRecordAndResult result : results) {
                 Record sourceRecord = result.getSourceRecord();
+                log.info("Result for record {}: {}", sourceRecord, result);
                 resultsByRecord.put(sourceRecord, result);
                 if (result.getError() != null) {
                     Throwable error = result.getError();
@@ -381,7 +390,9 @@ public class AgentRunner
 
         List<AgentProcessor.SourceRecordAndResult> finalResult = new ArrayList<>(sourceRecords.size());
         for (Record sourceRecord : sourceRecords) {
-            finalResult.add(resultsByRecord.get(sourceRecord));
+            AgentProcessor.SourceRecordAndResult sourceRecordAndResult = resultsByRecord.get(sourceRecord);
+            log.info("final {} with {} sink records", sourceRecord, sourceRecordAndResult.getResultRecords());
+            finalResult.add(sourceRecordAndResult);
         }
         return finalResult;
     }

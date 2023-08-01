@@ -93,13 +93,15 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                 """);
         try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
+                 KafkaConsumer<String, String> consumer = createConsumer("output-topic");
+                 KafkaConsumer<String, String> consumerDeadletter = createConsumer("input-topic-deadletter")) {
 
                 sendMessage("input-topic", "fail-me", producer);
                 sendMessage("input-topic", "keep-me", producer);
 
                 executeAgentRunners(applicationRuntime);
 
+                waitForMessages(consumerDeadletter, List.of("fail-me"));
                 waitForMessages(consumer, List.of("keep-me"));
             }
         }

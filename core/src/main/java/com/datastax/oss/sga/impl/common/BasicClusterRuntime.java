@@ -2,7 +2,6 @@ package com.datastax.oss.sga.impl.common;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.TopicDefinition;
@@ -165,7 +164,8 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
                 if (connection.enableDeadletterQueue()) {
                     TopicDefinition topicDefinition = module.getTopics().get(result.topicName());
-                    buildImplicitTopicForDeadletterQueue(result, topicDefinition, streamingClusterRuntime, physicalApplicationInstance);
+                    Topic deadLetterTopic = buildImplicitTopicForDeadletterQueue(result, topicDefinition, streamingClusterRuntime, physicalApplicationInstance);
+                    result.bindDeadletterTopic(deadLetterTopic);
                 }
 
                 yield result;
@@ -189,7 +189,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
         };
     }
 
-    private void buildImplicitTopicForDeadletterQueue(Topic connection, TopicDefinition inputTopicDefinition, StreamingClusterRuntime streamingClusterRuntime,
+    private Topic buildImplicitTopicForDeadletterQueue(Topic connection, TopicDefinition inputTopicDefinition, StreamingClusterRuntime streamingClusterRuntime,
                                                       ExecutionPlan physicalApplicationInstance) {
         // connecting two agents requires an intermediate topic
         String name = connection.topicName() + "-deadletter";
@@ -205,6 +205,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                 Map.of(), Map.of());
         Topic topicImplementation = streamingClusterRuntime.createTopicImplementation(topicDefinition, physicalApplicationInstance);
         physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);
+        return topicImplementation;
     }
 
     protected ConnectionImplementation buildImplicitTopicForAgent(ExecutionPlan physicalApplicationInstance,

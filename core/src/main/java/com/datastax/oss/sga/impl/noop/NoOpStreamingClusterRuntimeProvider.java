@@ -5,7 +5,9 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntimeProvider;
 import com.datastax.oss.sga.api.runtime.Topic;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRuntimeProvider {
     @Override
     public boolean supports(String type) {
@@ -21,6 +23,11 @@ public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRunt
         @Override
         public boolean implicit() {
             return this.implicit;
+        }
+
+        @Override
+        public void bindDeadletterTopic(Topic deadletterTopic) {
+            log.error("Ignoring deadletter topic configuration on dummy cluster: {}", deadletterTopic);
         }
     }
     @Override

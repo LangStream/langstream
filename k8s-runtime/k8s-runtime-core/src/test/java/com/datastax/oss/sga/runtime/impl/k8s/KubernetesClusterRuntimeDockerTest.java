@@ -87,9 +87,6 @@ class KubernetesClusterRuntimeDockerTest {
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
-                                    schema:
-                                      type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists                                    
                                 pipeline:

@@ -5,7 +5,7 @@ import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
-import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.Topic;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
@@ -31,8 +31,8 @@ public class TestGenericSinkAgentProvider extends AbstractAgentProvider {
         Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, pipeline, physicalApplicationInstance, clusterRuntime);
 
         // we can auto-wire the "topics" configuration property
-        Connection connection = physicalApplicationInstance.getConnectionImplementation(module, agentConfiguration.getInput());
-        if (connection instanceof Topic topic) {
+        ConnectionImplementation connectionImplementation = physicalApplicationInstance.getConnectionImplementation(module, agentConfiguration.getInput());
+        if (connectionImplementation instanceof Topic topic) {
             copy.put("topics", topic.topicName());
         }
         return copy;

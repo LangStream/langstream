@@ -1,6 +1,5 @@
 package com.datastax.oss.sga.webservice.application;
 
-import com.datastax.oss.sga.api.codestorage.CodeStorage;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Gateway;
 import com.datastax.oss.sga.api.model.Secrets;
@@ -20,13 +19,11 @@ import com.datastax.oss.sga.webservice.config.ApplicationDeployProperties;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -178,15 +175,15 @@ public class ApplicationService {
                         getAgentFieldUpdateInvalidErrorString(newDefaultAgent.getId(), "metadata",
                                 existingDefaultAgent.getCustomMetadata(), newDefaultAgent.getCustomMetadata()));
             }
-            if (!Objects.equals(newDefaultAgent.getInputConnection(), existingDefaultAgent.getInputConnection())) {
+            if (!Objects.equals(newDefaultAgent.getInputConnectionImplementation(), existingDefaultAgent.getInputConnectionImplementation())) {
                 throw new IllegalArgumentException(
                         getAgentFieldUpdateInvalidErrorString(newDefaultAgent.getId(), "input",
-                                existingDefaultAgent.getInputConnection(), newDefaultAgent.getInputConnection()));
+                                existingDefaultAgent.getInputConnectionImplementation(), newDefaultAgent.getInputConnectionImplementation()));
             }
-            if (!Objects.equals(newDefaultAgent.getOutputConnection(), existingDefaultAgent.getOutputConnection())) {
+            if (!Objects.equals(newDefaultAgent.getOutputConnectionImplementation(), existingDefaultAgent.getOutputConnectionImplementation())) {
                 throw new IllegalArgumentException(
                         getAgentFieldUpdateInvalidErrorString(newDefaultAgent.getId(), "output",
-                                existingDefaultAgent.getOutputConnection(), newDefaultAgent.getOutputConnection()));
+                                existingDefaultAgent.getOutputConnectionImplementation(), newDefaultAgent.getOutputConnectionImplementation()));
             }
         }
     }

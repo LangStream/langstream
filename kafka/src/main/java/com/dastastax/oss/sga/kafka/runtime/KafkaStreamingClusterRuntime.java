@@ -5,7 +5,7 @@ import com.datastax.oss.sga.api.model.SchemaDefinition;
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentNode;
-import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.Topic;
@@ -177,8 +177,8 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     @Override
-    public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, Connection inputConnection) {
-        KafkaTopic kafkaTopic = (KafkaTopic) inputConnection;
+    public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
+        KafkaTopic kafkaTopic = (KafkaTopic) inputConnectionImplementation;
         Map<String, Object> configuration = new HashMap<>();
 
         // handle schema
@@ -191,8 +191,8 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     @Override
-    public Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, Connection outputConnection) {
-        KafkaTopic kafkaTopic = (KafkaTopic) outputConnection;
+    public Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, ConnectionImplementation outputConnectionImplementation) {
+        KafkaTopic kafkaTopic = (KafkaTopic) outputConnectionImplementation;
 
         Map<String, Object> configuration = new HashMap<>();
         // handle schema

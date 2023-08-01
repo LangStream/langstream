@@ -161,7 +161,6 @@ class KubernetesClusterRuntimeDockerTest {
                 "value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer"
         ), runtimePodConfiguration.output());
         Map<String, Object> defaultErrorsAsMap = new HashMap<>();
-        defaultErrorsAsMap.put("deadLetterTopic", null);
         defaultErrorsAsMap.put("onFailure", "fail");
         defaultErrorsAsMap.put("retries", 0);
         assertEquals(new AgentSpec(AgentSpec.ComponentType.FUNCTION, tenant, "step1", "app", "ai-tools", Map.of(

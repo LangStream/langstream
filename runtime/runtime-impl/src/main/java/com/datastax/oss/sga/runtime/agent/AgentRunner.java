@@ -367,8 +367,13 @@ public class AgentRunner
                             break;
                         case FAIL:
                             log.error("Unrecoverable error while processing some the records, failing", error);
-                            // fail
-                            throw new PermanentFailureException(error);
+                            source.permanentFailure(sourceRecord, new PermanentFailureException(error));
+                            // in case the source does not throw an exception we mark the record as "skipped"
+                            resultsByRecord.put(sourceRecord,
+                                    new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
+                            break;
+                        default:
+                            throw new IllegalStateException("Unexpected value: " + action);
                     }
                 }
             }

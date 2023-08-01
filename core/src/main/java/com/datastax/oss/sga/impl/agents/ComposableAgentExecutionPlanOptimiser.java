@@ -59,9 +59,9 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                     currentSink.putAll(configurationAgent2);
                 }
 
-                log.info("Discarding topic {}", agent1.getOutputConnection());
-                instance.discardTopic(agent1.getOutputConnection());
-                agent1.overrideConfigurationAfterMerge(AbstractCompositeAgentProvider.AGENT_TYPE, newAgent1Configuration, agent2.getOutputConnection());
+                log.info("Discarding topic {}", agent1.getOutputConnectionImplementation());
+                instance.discardTopic(agent1.getOutputConnectionImplementation());
+                agent1.overrideConfigurationAfterMerge(AbstractCompositeAgentProvider.AGENT_TYPE, newAgent1Configuration, agent2.getOutputConnectionImplementation());
             } else {
                 List<Map<String, Object>> processors = new ArrayList<>();
                 Map<String, Object> source = new HashMap<>();
@@ -99,16 +99,16 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 result.put("source", source);
                 result.put("sink", sink);
 
-                if (agent1.getOutputConnection() != null) {
-                    log.info("Discarding topic {}", agent1.getOutputConnection());
-                    instance.discardTopic(agent1.getOutputConnection());
+                if (agent1.getOutputConnectionImplementation() != null) {
+                    log.info("Discarding topic {}", agent1.getOutputConnectionImplementation());
+                    instance.discardTopic(agent1.getOutputConnectionImplementation());
                 }
-                agent1.overrideConfigurationAfterMerge(AbstractCompositeAgentProvider.AGENT_TYPE, result, agent2.getOutputConnection());
+                agent1.overrideConfigurationAfterMerge(AbstractCompositeAgentProvider.AGENT_TYPE, result, agent2.getOutputConnectionImplementation());
             }
             log.info("Agent 1 modified: {}", agent1);
-            if (agent2.getInputConnection() != null) {
-                log.info("Discarding topic {}", agent2.getInputConnection());
-                instance.discardTopic(agent2.getInputConnection());
+            if (agent2.getInputConnectionImplementation() != null) {
+                log.info("Discarding topic {}", agent2.getInputConnectionImplementation());
+                instance.discardTopic(agent2.getInputConnectionImplementation());
             }
             return previousAgent;
         }

@@ -8,13 +8,12 @@ import com.datastax.oss.sga.api.runtime.AgentNodeMetadata;
 import com.datastax.oss.sga.api.runtime.AgentNodeProvider;
 import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
-import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import lombok.Getter;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -36,27 +35,27 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
         return false;
     }
 
-    protected Connection computeInput(AgentConfiguration agentConfiguration,
-                                      Module module,
-                                      Pipeline pipeline,
-                                      ExecutionPlan physicalApplicationInstance,
-                                      ComputeClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
+    protected ConnectionImplementation computeInput(AgentConfiguration agentConfiguration,
+                                                    Module module,
+                                                    Pipeline pipeline,
+                                                    ExecutionPlan physicalApplicationInstance,
+                                                    ComputeClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
         if (agentConfiguration.getInput() != null) {
             return clusterRuntime
-                    .getConnectionImplementation(module, pipeline, agentConfiguration.getInput(), Connection.ConnectionDirection.INPUT, physicalApplicationInstance, streamingClusterRuntime);
+                    .getConnectionImplementation(module, pipeline, agentConfiguration.getInput(), ConnectionImplementation.ConnectionDirection.INPUT, physicalApplicationInstance, streamingClusterRuntime);
         } else {
             return null;
         }
     }
 
-    protected Connection computeOutput(AgentConfiguration agentConfiguration,
-                                       Module module,
-                                       Pipeline pipeline,
-                                       ExecutionPlan physicalApplicationInstance,
-                                       ComputeClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
+    protected ConnectionImplementation computeOutput(AgentConfiguration agentConfiguration,
+                                                     Module module,
+                                                     Pipeline pipeline,
+                                                     ExecutionPlan physicalApplicationInstance,
+                                                     ComputeClusterRuntime clusterRuntime, StreamingClusterRuntime streamingClusterRuntime) {
         if (agentConfiguration.getOutput() != null) {
             return clusterRuntime
-                    .getConnectionImplementation(module, pipeline, agentConfiguration.getOutput(), Connection.ConnectionDirection.OUTPUT, physicalApplicationInstance, streamingClusterRuntime);
+                    .getConnectionImplementation(module, pipeline, agentConfiguration.getOutput(), ConnectionImplementation.ConnectionDirection.OUTPUT, physicalApplicationInstance, streamingClusterRuntime);
         } else {
             return null;
         }
@@ -105,8 +104,8 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
         Map<String, Object> configuration = computeAgentConfiguration(agentConfiguration, module, pipeline,
                 physicalApplicationInstance, clusterRuntime);
         // we create the output connection first to make sure that the topic is created
-        Connection output = computeOutput(agentConfiguration, module, pipeline, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
-        Connection input = computeInput(agentConfiguration, module, pipeline, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
+        ConnectionImplementation output = computeOutput(agentConfiguration, module, pipeline, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
+        ConnectionImplementation input = computeInput(agentConfiguration, module, pipeline, physicalApplicationInstance, clusterRuntime, streamingClusterRuntime);
         boolean composable = isComposable(agentConfiguration);
         return new DefaultAgentNode(agentConfiguration.getId(),
                 agentType,

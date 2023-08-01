@@ -50,8 +50,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.datastax.oss.sga.api.model.ErrorsSpec.DEAD_LETTER;
+import static com.datastax.oss.sga.api.model.ErrorsSpec.FAIL;
+import static com.datastax.oss.sga.api.model.ErrorsSpec.SKIP;
 
 @Slf4j
 public class ModelBuilder {
@@ -269,7 +274,7 @@ public class ModelBuilder {
         if (pipelineConfiguration.getPipeline() != null) {
             for (AgentModel agent : pipelineConfiguration.getPipeline()) {
                 AgentConfiguration agentConfiguration = agent.toAgentConfiguration(pipeline);
-                validateErrorsSpec(agentConfiguration.getErrors());
+                ErrorsSpec errorsSpec = validateErrorsSpec(agentConfiguration.getErrors());
                 if (agentConfiguration.getId() == null) {
                     // ensure that we always have a name
                     // please note that this algorithm should not be changed in order to not break
@@ -283,7 +288,8 @@ public class ModelBuilder {
                 if (agent.getOutput() != null) {
                     agentConfiguration.setOutput(Connection.from(module.resolveTopic(agent.getOutput())));
                 }
-                if (last != null && agentConfiguration.getInput() == null) {
+                Connection input = agentConfiguration.getInput();
+                if (last != null && input == null) {
                     // assume that the previous agent is the output of this one
                     agentConfiguration.setInput(Connection.from(last));
 
@@ -291,6 +297,12 @@ public class ModelBuilder {
                     if (last.getOutput() == null) {
                         last.setOutput(Connection.from(agentConfiguration));
                     }
+                }
+
+                // activate deadletter on the input connection if the agent has deadletter enabled
+                if (Objects.equals(errorsSpec.getOnFailure(), DEAD_LETTER)
+                        && agentConfiguration.getInput() != null) {
+                    agentConfiguration.setInput(input.withDeadletter(true));
                 }
 
 
@@ -385,19 +397,23 @@ public class ModelBuilder {
     }
 
 
-    static void validateErrorsSpec(ErrorsSpec errorsSpec) {
+    static ErrorsSpec  validateErrorsSpec(ErrorsSpec errorsSpec) {
         if (errorsSpec.getRetries() != null && errorsSpec.getRetries() < 0) {
             throw new IllegalArgumentException("retries must be a positive integer (bad value retries: " + errorsSpec.getRetries() + ")");
         }
         if (errorsSpec.getOnFailure() != null) {
             switch (errorsSpec.getOnFailure()) {
-                case "fail":
-                case "skip":
+                case ErrorsSpec.SKIP:
+                case FAIL:
+                case ErrorsSpec.DEAD_LETTER:
                     break;
                 default:
-                    throw new IllegalArgumentException("on-failure must be one of 'fail' or 'skip' (bad value on-failure: " + errorsSpec.getOnFailure() + ")");
+                    throw new IllegalArgumentException("on-failure must be one of '" + FAIL
+                            + "',  '" + DEAD_LETTER
+                            + "' or '" + SKIP + "' (bad value on-failure: " + errorsSpec.getOnFailure() + ")");
             }
         }
+        return errorsSpec;
     }
 
 }

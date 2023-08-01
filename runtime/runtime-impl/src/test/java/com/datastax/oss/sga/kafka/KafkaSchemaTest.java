@@ -1,6 +1,9 @@
 package com.datastax.oss.sga.kafka;
 
 import com.datastax.oss.sga.common.AbstractApplicationRunner;
+import com.datastax.oss.sga.kafka.extensions.KafkaRegistryContainerExtension;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,11 +14,17 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 class KafkaSchemaTest extends AbstractApplicationRunner {
+
+
+    @RegisterExtension
+    static KafkaRegistryContainerExtension registry = new KafkaRegistryContainerExtension(kafkaContainer);
 
     @Data
     @AllArgsConstructor
@@ -78,6 +87,46 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
                 waitForMessages(consumer, List.of(record));
             }
         }
+    }
+
+    @Override
+    protected String buildInstanceYaml() {
+        return """
+                instance:
+                  streamingCluster:
+                    type: "kafka"
+                    configuration:
+                      admin:
+                        bootstrap.servers: "%s"
+                        schema.registry.url: "%s"
+                  computeCluster:
+                     type: "kubernetes"
+                """.formatted(kafkaContainer.getBootstrapServers(),
+                registry.getSchemaRegistryUrl());
+    }
+
+
+    protected KafkaProducer createAvroProducer() {
+        return new KafkaProducer<String, String>(
+                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                        "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                        "value.serializer", KafkaAvroSerializer.class.getName(),
+                        "schema.registry.url", registry.getSchemaRegistryUrl())
+        );
+    }
+
+
+    protected KafkaConsumer createAvroConsumer(String topic) {
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(
+                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                        "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                        "value.deserializer", KafkaAvroDeserializer.class.getName(),
+                        "group.id", "testgroup",
+                        "auto.offset.reset", "earliest",
+                        "schema.registry.url", registry.getSchemaRegistryUrl())
+        );
+        consumer.subscribe(List.of(topic));
+        return consumer;
     }
 
 }

@@ -16,6 +16,12 @@ use_minikube_load() {
   fi
 }
 
+# Start Kafka, it takes some time
+kubectl create namespace kafka || true
+kubectl apply -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
+kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka
+
+
 if [ "true" == "$(use_minikube_load)" ]; then
   if [ "$SKIP_BUILD" == "false" ]; then
     . ./docker/build.sh
@@ -40,12 +46,13 @@ helm install sga helm/sga --values helm/examples/local.yaml || helm upgrade sga 
 kubectl wait deployment/sga-control-plane --for condition=available --timeout=300s
 
 
-# Start Kafka
-kubectl create namespace kafka || true
-kubectl apply -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
-kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka
+# Wait for Kafka to be up and running
 kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka  
 
-# Port forward SGA control plane
+# Port forward SGA control plane and Gateway
 pkill -f "kubectl port-forward svc/sga-control-plane 8090:8090" || true
 kubectl port-forward svc/sga-control-plane 8090:8090 &
+
+pkill -f "kubectl port-forward svc/sga-api-gateway 8091:8091" || true
+kubectl port-forward svc/sga-api-gateway 8091:8091 &
+

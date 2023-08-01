@@ -47,14 +47,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-public class AbstractApplicationRunner {
+public abstract class AbstractApplicationRunner {
 
 
     @RegisterExtension
     protected static final KubeTestServer kubeServer = new KubeTestServer();
 
     @RegisterExtension
-    static final KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
+    protected static final KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
 
     protected static ApplicationDeployer applicationDeployer;
 
@@ -85,19 +85,17 @@ public class AbstractApplicationRunner {
         return new ApplicationRuntime(tenant, appId, applicationInstance, implementation, secrets);
     }
 
-    protected static String buildInstanceYaml() {
+    protected String buildInstanceYaml() {
         return """
                 instance:
                   streamingCluster:
                     type: "kafka"
                     configuration:
                       admin:
-                        bootstrap.servers: "%s"
-                        schema.registry.url: "%s"
+                        bootstrap.servers: "%s"                        
                   computeCluster:
                      type: "kubernetes"
-                """.formatted(kafkaContainer.getBootstrapServers(),
-                              kafkaContainer.getSchemaRegistryUrl());
+                """.formatted(kafkaContainer.getBootstrapServers());
     }
 
 
@@ -119,14 +117,6 @@ public class AbstractApplicationRunner {
         );
     }
 
-    protected KafkaProducer createAvroProducer() {
-        return new KafkaProducer<String, String>(
-                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
-                        "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
-                        "value.serializer", KafkaAvroSerializer.class.getName(),
-                        "schema.registry.url", kafkaContainer.getSchemaRegistryUrl())
-        );
-    }
 
     protected void sendMessage(String topic, Object content, KafkaProducer producer) throws Exception {
         sendMessage(topic, content, List.of(), producer);
@@ -221,18 +211,7 @@ public class AbstractApplicationRunner {
         consumer.subscribe(List.of(topic));
         return consumer;
     }
-    protected KafkaConsumer createAvroConsumer(String topic) {
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(
-                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
-                        "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
-                        "value.deserializer", KafkaAvroDeserializer.class.getName(),
-                        "group.id", "testgroup",
-                        "auto.offset.reset", "earliest",
-                        "schema.registry.url", kafkaContainer.getSchemaRegistryUrl())
-        );
-        consumer.subscribe(List.of(topic));
-        return consumer;
-    }
+
 
     protected static AdminClient getKafkaAdmin() {
         return kafkaContainer.getAdmin();

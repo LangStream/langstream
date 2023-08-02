@@ -19,7 +19,7 @@ import com.datastax.oss.sga.api.model.ErrorsSpec;
 import com.datastax.oss.sga.api.model.ResourcesSpec;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ComponentType;
-import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -38,16 +38,16 @@ public class DefaultAgentNode implements AgentNode {
     private final ResourcesSpec resourcesSpec;
     private final ErrorsSpec errorsSpec;
 
-    private final Connection inputConnection;
-    private Connection outputConnection;
+    private final ConnectionImplementation inputConnectionImplementation;
+    private ConnectionImplementation outputConnectionImplementation;
     private final boolean composable;
 
     DefaultAgentNode(String id, String agentType,
                      ComponentType componentType,
                      Map<String, Object> configuration,
                      boolean composable, Object runtimeMetadata,
-                            Connection inputConnection,
-                            Connection outputConnection,
+                            ConnectionImplementation inputConnectionImplementation,
+                            ConnectionImplementation outputConnectionImplementation,
                             ResourcesSpec resourcesSpec,
                             ErrorsSpec errorsSpec) {
         this.agentType = agentType;
@@ -56,8 +56,8 @@ public class DefaultAgentNode implements AgentNode {
         this.componentType = componentType;
         this.configuration = configuration;
         this.customMetadata = runtimeMetadata;
-        this.inputConnection = inputConnection;
-        this.outputConnection = outputConnection;
+        this.inputConnectionImplementation = inputConnectionImplementation;
+        this.outputConnectionImplementation = outputConnectionImplementation;
         this.resourcesSpec = resourcesSpec != null ? resourcesSpec : ResourcesSpec.DEFAULT;
         this.errorsSpec = errorsSpec != null ? errorsSpec : ErrorsSpec.DEFAULT;
     }
@@ -66,9 +66,9 @@ public class DefaultAgentNode implements AgentNode {
         return (T) customMetadata;
     }
 
-    public void overrideConfigurationAfterMerge(String agentType, Map<String, Object> newConfiguration, Connection newOutput) {
+    public void overrideConfigurationAfterMerge(String agentType, Map<String, Object> newConfiguration, ConnectionImplementation newOutput) {
         this.agentType = agentType;
         this.configuration = new HashMap<>(newConfiguration);
-        this.outputConnection = newOutput;
+        this.outputConnectionImplementation = newOutput;
     }
 }

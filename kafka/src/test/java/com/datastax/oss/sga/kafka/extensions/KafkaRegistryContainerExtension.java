@@ -53,7 +53,7 @@ public class KafkaRegistryContainerExtension implements BeforeAllCallback, After
                         .withLogConsumer(new Consumer<OutputFrame>() {
                     @Override
                     public void accept(OutputFrame outputFrame) {
-                        log.info("schemaregistry> {}", outputFrame.getUtf8String().trim());
+                        log.debug("schemaregistry> {}", outputFrame.getUtf8String().trim());
                     }
                 })
                 .withNetwork(kafka.getNetwork())

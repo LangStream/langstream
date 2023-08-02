@@ -32,7 +32,11 @@ public interface TopicConnectionsRuntime {
 
     TopicReader createReader(StreamingCluster streamingCluster, Map<String, Object> configuration, TopicOffsetPosition initialPosition);
 
-    TopicProducer createProducer(String agentId,StreamingCluster streamingCluster, Map<String, Object> configuration);
+    TopicProducer createProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration);
+
+    default TopicProducer createDeadletterTopicProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        return null;
+    }
 
     default TopicAdmin createTopicAdmin(String agentId,StreamingCluster streamingCluster, Map<String, Object> configuration) {
         return new TopicAdmin() {};

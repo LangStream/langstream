@@ -20,14 +20,29 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntimeProvider;
 import com.datastax.oss.sga.api.runtime.Topic;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRuntimeProvider {
     @Override
     public boolean supports(String type) {
         return "noop".equals(type);
     }
 
-    public record SimpleTopic(String name, boolean implicit) implements Topic {
+    @EqualsAndHashCode
+    @ToString
+    public static class SimpleTopic implements Topic {
+        private String name;
+        private boolean implicit;
+        private Topic deadletterTopic;
+
+        public SimpleTopic(String name, boolean implicit) {
+            this.name = name;
+            this.implicit = implicit;
+        }
+
         @Override
         public String topicName() {
             return name;
@@ -36,6 +51,16 @@ public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRunt
         @Override
         public boolean implicit() {
             return this.implicit;
+        }
+
+        @Override
+        public void bindDeadletterTopic(Topic deadletterTopic) {
+            log.error("Setting deadletter topic configuration on dummy cluster: {}", deadletterTopic);
+            this.deadletterTopic = deadletterTopic;
+        }
+
+        public Topic getDeadletterTopic() {
+            return deadletterTopic;
         }
     }
     @Override

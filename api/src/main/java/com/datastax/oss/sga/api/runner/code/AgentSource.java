@@ -36,4 +36,15 @@ public interface AgentSource extends AgentCode {
      */
     void commit(List<Record> records) throws Exception;
 
+    /**
+     * Called by the framework to indicate that the agent has failed to process
+     * permanently the records returned by read up to the latest.
+     * For instance the source may send the records to a dead letter queue
+     * or throw an error
+     * @param record the record that failed
+     * @throws Exception
+     */
+    default void permanentFailure(Record record, Exception error) throws Exception {
+        throw error;
+    }
 }

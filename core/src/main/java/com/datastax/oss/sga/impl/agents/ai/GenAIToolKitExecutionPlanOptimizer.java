@@ -88,13 +88,13 @@ public final class GenAIToolKitExecutionPlanOptimizer implements ExecutionPlanOp
             result.putAll(configurationWithoutSteps2);
             result.put("steps", mergedSteps);
 
-            log.info("Discarding topic {}", agent1.getInputConnection());
-            applicationInstance.discardTopic(agent1.getOutputConnection());
+            log.info("Discarding topic {}", agent1.getInputConnectionImplementation());
+            applicationInstance.discardTopic(agent1.getOutputConnectionImplementation());
 
-            agent1.overrideConfigurationAfterMerge(agent1.getAgentType(), result, agent2.getOutputConnection());
+            agent1.overrideConfigurationAfterMerge(agent1.getAgentType(), result, agent2.getOutputConnectionImplementation());
 
-            log.info("Discarding topic {}", agent2.getInputConnection());
-            applicationInstance.discardTopic(agent2.getInputConnection());
+            log.info("Discarding topic {}", agent2.getInputConnectionImplementation());
+            applicationInstance.discardTopic(agent2.getInputConnectionImplementation());
             return previousAgent;
         }
         throw new IllegalStateException();

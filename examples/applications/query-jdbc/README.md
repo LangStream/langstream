@@ -16,7 +16,7 @@ Install PostGreSQL https://bitnami.com/stack/postgresql/helm
 
 PostgreSQL can be accessed via port 5432 on the following DNS names from within your cluster:
 
-    postgresql.default.svc.cluster.local - Read/Write connection
+    postgresql.default.svc.cluster.local - Read/Write connectionImplementation
 
 To get the password for "postgres" run:
 

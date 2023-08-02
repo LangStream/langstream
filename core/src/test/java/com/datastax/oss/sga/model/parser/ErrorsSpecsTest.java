@@ -39,12 +39,9 @@ public class ErrorsSpecsTest {
                                 id: "pipeline-1"
                                 errors:
                                    retries: 7
-                                   on-failure: skip
-                                   dead-letter-topic: "dead-letter-topic"             
+                                   on-failure: skip             
                                 topics:
                                   - name: "input-topic"
-                                    creation-mode: create-if-not-exists
-                                  - name: "dead-letter-topic"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "step1"                                    
@@ -69,8 +66,6 @@ public class ErrorsSpecsTest {
                                 id: "pipeline-2"             
                                 topics:
                                   - name: "input-topic"
-                                    creation-mode: create-if-not-exists
-                                  - name: "dead-letter-topic"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "step1"                                    

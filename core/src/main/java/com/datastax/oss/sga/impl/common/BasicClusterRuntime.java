@@ -17,13 +17,14 @@ package com.datastax.oss.sga.impl.common;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.AgentNodeProvider;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
-import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.ExecutionPlanOptimiser;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
@@ -124,18 +125,18 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             if (agentImplementation instanceof DefaultAgentNode agent2
                     && previousAgent instanceof DefaultAgentNode agent1) {
 
-                Connection agent1OutputConnection = agent1.getOutputConnection();
-                if (agent1OutputConnection.equals(agent2.getInputConnection())
-                    && agent1OutputConnection instanceof Topic topic
+                ConnectionImplementation agent1OutputConnectionImplementation = agent1.getOutputConnectionImplementation();
+                if (agent1OutputConnectionImplementation.equals(agent2.getInputConnectionImplementation())
+                    && agent1OutputConnectionImplementation instanceof Topic topic
                     && topic.implicit()) {
-                    log.info("Agent {} Output connection is {}", agent1.getId(), agent1OutputConnection);
-                    log.info("Agent {} Input connection is {}", agent2.getId(), agent2.getInputConnection());
+                    log.info("Agent {} Output connection is {}", agent1.getId(), agent1OutputConnectionImplementation);
+                    log.info("Agent {} Input connection is {}", agent2.getId(), agent2.getInputConnectionImplementation());
                     log.info("Agent {} the two agents are consecutive with an implicit topic in the pipeline", agentConfiguration.getId());
 
                     consecutiveAgentsWithImplictTopic = true;
                 } else {
-                    log.info("Agent {} Output connection is {}", agent1.getId(), agent1OutputConnection);
-                    log.info("Agent {} Input connection is {}", agent2.getId(), agent2.getInputConnection());
+                    log.info("Agent {} Output connection is {}", agent1.getId(), agent1OutputConnectionImplementation);
+                    log.info("Agent {} Input connection is {}", agent2.getId(), agent2.getInputConnectionImplementation());
                     log.info("Agent {} the two agents are NOT consecutive in the pipeline", agentConfiguration.getId());
                     consecutiveAgentsWithImplictTopic = false;
                 }
@@ -159,15 +160,15 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
     }
 
     @Override
-    public Connection getConnectionImplementation(Module module, Pipeline pipeline,
-                                                  com.datastax.oss.sga.api.model.Connection connection,
-                                                  Connection.ConnectionDirection direction,
-                                                  ExecutionPlan physicalApplicationInstance,
-                                                  StreamingClusterRuntime streamingClusterRuntime) {
+    public ConnectionImplementation getConnectionImplementation(Module module, Pipeline pipeline,
+                                                                com.datastax.oss.sga.api.model.Connection connection,
+                                                                ConnectionImplementation.ConnectionDirection direction,
+                                                                ExecutionPlan physicalApplicationInstance,
+                                                                StreamingClusterRuntime streamingClusterRuntime) {
         return switch (connection.connectionType()) {
             case TOPIC -> {
                 // compare by name
-                Connection result =
+                Topic result =
                         physicalApplicationInstance.getTopicByName(connection.definition());
                 if (result == null) {
                     throw new IllegalArgumentException("Topic " + connection.definition() + " not found, " +
@@ -176,6 +177,9 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                             .map(TopicDefinition::getName)
                             .collect(Collectors.toList()) + " are available");
                 }
+
+                ensureDeadLetterTopic(connection, physicalApplicationInstance, streamingClusterRuntime, result);
+
                 yield result;
             }
             case AGENT -> {
@@ -183,12 +187,13 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                         .getAgent(connection.definition());
                 yield switch (direction) {
                     case OUTPUT -> {
-                        Connection result = buildImplicitTopicForAgent(physicalApplicationInstance, agentConfiguration,  streamingClusterRuntime);
+                        Topic result = buildImplicitTopicForAgent(physicalApplicationInstance, agentConfiguration,  streamingClusterRuntime);
+                        ensureDeadLetterTopic(connection, physicalApplicationInstance, streamingClusterRuntime, result);
                         yield result;
                     }
                     case INPUT -> {
                         if (agentConfiguration.getOutput() != null) {
-                            yield getConnectionImplementation(module, pipeline, agentConfiguration.getOutput(), Connection.ConnectionDirection.OUTPUT, physicalApplicationInstance, streamingClusterRuntime);
+                            yield getConnectionImplementation(module, pipeline, agentConfiguration.getOutput(), ConnectionImplementation.ConnectionDirection.OUTPUT, physicalApplicationInstance, streamingClusterRuntime);
                         }
                         throw new IllegalStateException("Invalid agent configuration for (" + agentConfiguration.getName() + ") , missing output");
                     }
@@ -197,9 +202,36 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
         };
     }
 
-    protected Connection buildImplicitTopicForAgent(ExecutionPlan physicalApplicationInstance,
-                                                    AgentConfiguration agentConfiguration,
-                                                    StreamingClusterRuntime streamingClusterRuntime) {
+    private void ensureDeadLetterTopic(Connection connection, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime, Topic result) {
+        if (connection.enableDeadletterQueue()) {
+            TopicDefinition topicDefinition = physicalApplicationInstance.getTopicDefinitionByName(result.topicName());
+            Topic deadLetterTopic = buildImplicitTopicForDeadletterQueue(result, topicDefinition, streamingClusterRuntime, physicalApplicationInstance);
+            result.bindDeadletterTopic(deadLetterTopic);
+        }
+    }
+
+    private Topic buildImplicitTopicForDeadletterQueue(Topic connection, TopicDefinition inputTopicDefinition, StreamingClusterRuntime streamingClusterRuntime,
+                                                      ExecutionPlan physicalApplicationInstance) {
+        // connecting two agents requires an intermediate topic
+        String name = connection.topicName() + "-deadletter";
+        log.info("Automatically creating deadletter topic {} for topic {}", name, connection.topicName());
+        // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
+        String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
+        // we keep the same schemas as the input topic
+        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode,
+                inputTopicDefinition.isImplicit(),
+                inputTopicDefinition.getPartitions(),
+                inputTopicDefinition.getKeySchema(),
+                inputTopicDefinition.getValueSchema(),
+                Map.of(), Map.of());
+        Topic topicImplementation = streamingClusterRuntime.createTopicImplementation(topicDefinition, physicalApplicationInstance);
+        physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);
+        return topicImplementation;
+    }
+
+    protected Topic buildImplicitTopicForAgent(ExecutionPlan physicalApplicationInstance,
+                                                                  AgentConfiguration agentConfiguration,
+                                                                  StreamingClusterRuntime streamingClusterRuntime) {
         // connecting two agents requires an intermediate topic
         String name = "agent-" + agentConfiguration.getId() + "-input";
         log.info("Automatically creating topic {} in order to connect as input for agent {}", name, agentConfiguration.getId());

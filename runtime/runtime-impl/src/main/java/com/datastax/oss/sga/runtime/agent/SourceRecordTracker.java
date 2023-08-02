@@ -20,17 +20,23 @@ import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 import lombok.SneakyThrows;
-import org.apache.kafka.connect.source.SourceRecord;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Slf4j
 class SourceRecordTracker implements AgentSink.CommitCallback {
     final Map<Record, Record> sinkToSourceMapping = new ConcurrentHashMap<>();
     final Map<Record, AtomicInteger> remainingSinkRecordsForSourceRecord = new ConcurrentHashMap<>();
+
+    final Queue<Record> orderedSourceRecordsToCommit = new ConcurrentLinkedQueue<>();
     private final AgentSource source;
 
     public SourceRecordTracker(AgentSource source) {
@@ -39,7 +45,7 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
 
     @Override
     @SneakyThrows
-    public void commit(List<Record> sinkRecords) {
+    public synchronized void commit(List<Record> sinkRecords) {
         List<Record> sourceRecordsToCommit = new ArrayList<>();
         for (Record record : sinkRecords) {
             Record sourceRecord = sinkToSourceMapping.get(record);
@@ -48,24 +54,41 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
                 remaining.decrementAndGet();
             }
         }
-        remainingSinkRecordsForSourceRecord.forEach((sourceRecord, remaining) -> {
+
+        // we can commit only in order,
+        // so here we find the longest sequence of records that can be committed
+        for (Record record : orderedSourceRecordsToCommit) {
+            AtomicInteger remaining = remainingSinkRecordsForSourceRecord.get(record);
             if (remaining.get() == 0) {
-                sourceRecordsToCommit.add(sourceRecord);
+                sourceRecordsToCommit.add(record);
+            } else {
+                log.info("record {} still has {} sink records to commit", record, remaining.get());
+                break;
             }
-        });
+        }
+
         sourceRecordsToCommit.forEach(remainingSinkRecordsForSourceRecord::remove);
 
         source.commit(sourceRecordsToCommit);
+
+        // forget about the committed records
+        for (Record committed : sourceRecordsToCommit) {
+            orderedSourceRecordsToCommit.remove(committed);
+            remainingSinkRecordsForSourceRecord.remove(committed);
+        }
+
         // forget about this batch SinkRecords
         sinkRecords.forEach(sinkToSourceMapping::remove);
     }
 
-    public void track(List<AgentProcessor.SourceRecordAndResult> sinkRecords) {
+    public synchronized void track(List<AgentProcessor.SourceRecordAndResult> sinkRecords) {
 
         // map each sink record to the original source record
         sinkRecords.forEach((sourceRecordAndResult) -> {
 
             Record sourceRecord = sourceRecordAndResult.getSourceRecord();
+            orderedSourceRecordsToCommit.add(sourceRecord);
+
             List<Record> resultRecords = sourceRecordAndResult.getResultRecords();
             remainingSinkRecordsForSourceRecord.put(sourceRecord, new AtomicInteger(resultRecords.size()));
             sourceRecordAndResult.getResultRecords().forEach(sinkRecord -> {
@@ -73,4 +96,5 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
             });
         });
     }
+
 }

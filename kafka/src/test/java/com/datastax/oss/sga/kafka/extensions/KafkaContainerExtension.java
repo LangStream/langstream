@@ -62,7 +62,7 @@ public class KafkaContainerExtension implements BeforeAllCallback, AfterAllCallb
                 .withLogConsumer(new Consumer<OutputFrame>() {
                     @Override
                     public void accept(OutputFrame outputFrame) {
-                        log.info("kafka> {}", outputFrame.getUtf8String().trim());
+                        log.debug("kafka> {}", outputFrame.getUtf8String().trim());
                     }
                 });
         // start Pulsar and wait for it to be ready to accept requests

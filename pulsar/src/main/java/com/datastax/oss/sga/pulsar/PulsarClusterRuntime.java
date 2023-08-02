@@ -99,10 +99,10 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
     private static void deployFunction(PulsarAdmin admin, DefaultAgentNode agentImpl, PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
         PulsarName pulsarName = pulsarComponentMetadata.getPulsarName();
 
-        PulsarTopic topicInput = (PulsarTopic) agentImpl.getInputConnection();
+        PulsarTopic topicInput = (PulsarTopic) agentImpl.getInputConnectionImplementation();
         String input = topicInput != null ? topicInput.name().toPulsarName() : null;
 
-        PulsarTopic topicOutput = (PulsarTopic) agentImpl.getOutputConnection();
+        PulsarTopic topicOutput = (PulsarTopic) agentImpl.getOutputConnectionImplementation();
         String output = topicOutput != null ? topicOutput.name().toPulsarName() : null;
 
         String functionType = pulsarComponentMetadata.getAgentType();
@@ -131,7 +131,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
     private static void deploySource(PulsarAdmin admin, DefaultAgentNode agentImpl, PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
         PulsarName pulsarName = pulsarComponentMetadata.getPulsarName();
 
-        PulsarTopic topic = (PulsarTopic) agentImpl.getOutputConnection();
+        PulsarTopic topic = (PulsarTopic) agentImpl.getOutputConnectionImplementation();
         String output = topic.name().toPulsarName();
 
         // this is a trick to deploy builtin connectors
@@ -155,7 +155,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
     private static void deploySink(PulsarAdmin admin, DefaultAgentNode agentImpl, PulsarAgentNodeMetadata pulsarComponentMetadata) throws PulsarAdminException {
         PulsarName pulsarName = pulsarComponentMetadata.getPulsarName();
 
-        PulsarTopic topic = (PulsarTopic) agentImpl.getInputConnection();
+        PulsarTopic topic = (PulsarTopic) agentImpl.getInputConnectionImplementation();
         List<String> inputs = List.of(topic.name().toPulsarName());
 
         // this is a trick to deploy builtin connectors

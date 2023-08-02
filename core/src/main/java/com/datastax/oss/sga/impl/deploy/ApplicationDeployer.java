@@ -71,7 +71,18 @@ public final class ApplicationDeployer implements AutoCloseable {
       ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
       StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
       clusterRuntime.delete(tenant, physicalApplicationInstance, streamingClusterRuntime, codeStorageArchiveId);
-  }
+    }
+
+    /**
+     * In the tests we don't have the operator, but we want to clean up the resources.
+     * @param tenant
+     * @param physicalApplicationInstance
+     */
+    public void deleteStreamingClusterResourcesForTests(String tenant, ExecutionPlan physicalApplicationInstance) {
+        Application applicationInstance = physicalApplicationInstance.getApplication();
+        StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
+        streamingClusterRuntime.delete(physicalApplicationInstance);
+    }
 
     @Override
     public void close() {

@@ -126,14 +126,14 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         DefaultAgentNode defaultAgentImplementation = (DefaultAgentNode) agent;
 
         Map<String, Object> inputConfiguration = new HashMap<>();
-        if (defaultAgentImplementation.getInputConnection() != null) {
+        if (defaultAgentImplementation.getInputConnectionImplementation() != null) {
             inputConfiguration = streamingClusterRuntime.createConsumerConfiguration(defaultAgentImplementation,
-                    defaultAgentImplementation.getInputConnection());
+                    defaultAgentImplementation.getInputConnectionImplementation());
         }
         Map<String, Object> outputConfiguration = new HashMap<>();
-        if (defaultAgentImplementation.getOutputConnection() != null) {
+        if (defaultAgentImplementation.getOutputConnectionImplementation() != null) {
             outputConfiguration = streamingClusterRuntime.createProducerConfiguration(defaultAgentImplementation,
-                    defaultAgentImplementation.getOutputConnection());
+                    defaultAgentImplementation.getOutputConnectionImplementation());
         }
 
         final String secretName =
@@ -149,7 +149,6 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         }
         // set StandardErrorHandler
         errorsConfiguration.put("retries", errorsSpec.getRetries());
-        errorsConfiguration.put("deadLetterTopic", errorsSpec.getDeadLetterTopic());
         errorsConfiguration.put("onFailure", errorsSpec.getOnFailure());
 
         RuntimePodConfiguration podConfig = new RuntimePodConfiguration(

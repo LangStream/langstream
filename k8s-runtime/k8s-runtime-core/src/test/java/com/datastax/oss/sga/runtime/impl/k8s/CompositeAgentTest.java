@@ -97,10 +97,10 @@ class CompositeAgentTest {
             assertEquals(1, implementation.getAgents().size());
             assertEquals(2, implementation.getTopics().size());
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             assertEquals(1, implementation.getAgents().size());
@@ -114,9 +114,9 @@ class CompositeAgentTest {
             assertEquals("language-detector", agents.get(1).get("agentType"));
             assertEquals("value2", ((Map<String, Object>) agents.get(1).get("configuration")).get("param2"));
 
-            Topic inputTopic = (Topic) defaultAgentNode.getInputConnection();
+            Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
             assertEquals("input-topic", inputTopic.topicName());
-            Topic outputTopic = (Topic) defaultAgentNode.getOutputConnection();
+            Topic outputTopic = (Topic) defaultAgentNode.getOutputConnectionImplementation();
             assertEquals("output-topic", outputTopic.topicName());
 
 
@@ -172,10 +172,10 @@ class CompositeAgentTest {
             assertEquals(1, implementation.getAgents().size());
             assertEquals(2, implementation.getTopics().size());
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             assertEquals(1, implementation.getAgents().size());
@@ -191,9 +191,9 @@ class CompositeAgentTest {
             assertEquals("language-detector", agents.get(2).get("agentType"));
             assertEquals("value3", ((Map<String, Object>) agents.get(2).get("configuration")).get("param3"));
 
-            Topic inputTopic = (Topic) defaultAgentNode.getInputConnection();
+            Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
             assertEquals("input-topic", inputTopic.topicName());
-            Topic outputTopic = (Topic) defaultAgentNode.getOutputConnection();
+            Topic outputTopic = (Topic) defaultAgentNode.getOutputConnectionImplementation();
             assertEquals("output-topic", outputTopic.topicName());
         }
 
@@ -253,16 +253,16 @@ class CompositeAgentTest {
             log.info("Topics {}", implementation.getTopics().values().stream().map(Topic::topicName).collect(Collectors.toList()));
             assertEquals(4, implementation.getTopics().size());
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "agent-step2-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "agent-step3-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             assertEquals(3, implementation.getAgents().size());
@@ -277,9 +277,9 @@ class CompositeAgentTest {
             assertEquals("language-detector", agents.get(1).get("agentType"));
             assertEquals("value2", ((Map<String, Object>) agents.get(1).get("configuration")).get("param2"));
 
-            Topic inputTopic = (Topic) defaultAgentNode.getInputConnection();
+            Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
             assertEquals("input-topic", inputTopic.topicName());
-            Topic outputTopic = (Topic) defaultAgentNode.getOutputConnection();
+            Topic outputTopic = (Topic) defaultAgentNode.getOutputConnectionImplementation();
             assertEquals("agent-step2-input", outputTopic.topicName());
 
             AgentNode agentImplementationDrop = implementation.getAgentImplementation(module, "step2");
@@ -288,9 +288,9 @@ class CompositeAgentTest {
             assertNotNull(configurationDrop.get("steps"));
             assertEquals("ai-tools", defaultAgentNodeDrop.getAgentType());
 
-            Topic inputTopicDrop = (Topic) defaultAgentNodeDrop.getInputConnection();
+            Topic inputTopicDrop = (Topic) defaultAgentNodeDrop.getInputConnectionImplementation();
             assertEquals("agent-step2-input", inputTopicDrop.topicName());
-            Topic outputTopicDrop = (Topic) defaultAgentNodeDrop.getOutputConnection();
+            Topic outputTopicDrop = (Topic) defaultAgentNodeDrop.getOutputConnectionImplementation();
             assertEquals("agent-step3-input", outputTopicDrop.topicName());
 
             AgentNode agentImplementationLast = implementation.getAgentImplementation(module, "step3");
@@ -298,9 +298,9 @@ class CompositeAgentTest {
             Map<String, Object> configurationLast = defaultAgentNodeLast.getConfiguration();
             assertEquals("value3", configurationLast.get("param3"));
 
-            Topic inputTopicLast = (Topic) defaultAgentNodeLast.getInputConnection();
+            Topic inputTopicLast = (Topic) defaultAgentNodeLast.getInputConnectionImplementation();
             assertEquals("agent-step3-input", inputTopicLast.topicName());
-            Topic outputTopicLast = (Topic) defaultAgentNodeLast.getOutputConnection();
+            Topic outputTopicLast = (Topic) defaultAgentNodeLast.getOutputConnectionImplementation();
             assertEquals("output-topic", outputTopicLast.topicName());
 
 
@@ -359,7 +359,7 @@ class CompositeAgentTest {
             assertEquals(1, implementation.getAgents().size());
             assertEquals(1, implementation.getTopics().size());
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             assertEquals(1, implementation.getAgents().size());
@@ -380,10 +380,10 @@ class CompositeAgentTest {
             assertEquals("language-detector", processors.get(2).get("agentType"));
             assertEquals("value3", ((Map<String, Object>) processors.get(2).get("configuration")).get("param3"));
 
-            Topic outputTopic = (Topic) defaultAgentNode.getOutputConnection();
+            Topic outputTopic = (Topic) defaultAgentNode.getOutputConnectionImplementation();
             assertEquals("output-topic", outputTopic.topicName());
 
-            assertNull(defaultAgentNode.getInputConnection());
+            assertNull(defaultAgentNode.getInputConnectionImplementation());
         }
     }
 
@@ -435,7 +435,7 @@ class CompositeAgentTest {
             assertEquals(1, implementation.getAgents().size());
             assertEquals(1, implementation.getTopics().size());
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             assertEquals(1, implementation.getAgents().size());
@@ -451,9 +451,9 @@ class CompositeAgentTest {
             assertEquals("language-detector", processors.get(2).get("agentType"));
             assertEquals("value3", ((Map<String, Object>) processors.get(2).get("configuration")).get("param3"));
 
-            Topic inputTopic = (Topic) defaultAgentNode.getInputConnection();
+            Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
             assertEquals("input-topic", inputTopic.topicName());
-            assertNull(defaultAgentNode.getOutputConnection());
+            assertNull(defaultAgentNode.getOutputConnectionImplementation());
 
 
             Map<String, Object> sink = (Map<String, Object>) configuration.get("sink");
@@ -530,8 +530,8 @@ class CompositeAgentTest {
             assertEquals("language-detector", processors.get(2).get("agentType"));
             assertEquals("value3", ((Map<String, Object>) processors.get(2).get("configuration")).get("param3"));
 
-            assertNull(defaultAgentNode.getInputConnection());
-            assertNull(defaultAgentNode.getOutputConnection());
+            assertNull(defaultAgentNode.getInputConnectionImplementation());
+            assertNull(defaultAgentNode.getOutputConnectionImplementation());
 
 
             Map<String, Object> sink = (Map<String, Object>) configuration.get("sink");
@@ -615,9 +615,9 @@ class CompositeAgentTest {
             assertEquals("language-detector", processors.get(1).get("agentType"));
             assertEquals("value2", ((Map<String, Object>) processors.get(1).get("configuration")).get("param2"));
 
-            Topic outputTopic = (Topic) defaultFirstNode.getOutputConnection();
+            Topic outputTopic = (Topic) defaultFirstNode.getOutputConnectionImplementation();
             assertEquals("agent-bad-step-input", outputTopic.topicName());
-            assertNull(defaultFirstNode.getInputConnection());
+            assertNull(defaultFirstNode.getInputConnectionImplementation());
 
 
             AgentNode secondNode = implementation.getAgentImplementation(module, "bad-step");
@@ -625,9 +625,9 @@ class CompositeAgentTest {
             Map<String, Object> configurationSecondNode = defaultSecondNode.getConfiguration();
             assertEquals("ai-tools", defaultSecondNode.getAgentType());
 
-            Topic inputTopicSecondStep = (Topic) defaultSecondNode.getInputConnection();
+            Topic inputTopicSecondStep = (Topic) defaultSecondNode.getInputConnectionImplementation();
             assertEquals("agent-bad-step-input", inputTopicSecondStep.topicName());
-            Topic outputTopicSecondStep = (Topic) defaultSecondNode.getOutputConnection();
+            Topic outputTopicSecondStep = (Topic) defaultSecondNode.getOutputConnectionImplementation();
             assertEquals("agent-step3-input", outputTopicSecondStep.topicName());
 
             AgentNode thirdNode = implementation.getAgentImplementation(module, "step3");
@@ -647,9 +647,9 @@ class CompositeAgentTest {
             assertEquals("sink1param", ((Map<String, Object>) sink.get("configuration")).get("paramSink"));
 
 
-            Topic inputTopic = (Topic) defaultThirdNode.getInputConnection();
+            Topic inputTopic = (Topic) defaultThirdNode.getInputConnectionImplementation();
             assertEquals("agent-step3-input", inputTopic.topicName());
-            assertNull(defaultThirdNode.getOutputConnection());
+            assertNull(defaultThirdNode.getOutputConnectionImplementation());
 
         }
     }

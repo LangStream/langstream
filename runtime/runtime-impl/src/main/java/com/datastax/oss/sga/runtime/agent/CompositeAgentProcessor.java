@@ -22,6 +22,7 @@ import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,7 @@ public class CompositeAgentProcessor implements AgentProcessor {
     private AgentSource source;
     private final List<AgentProcessor> processors = new ArrayList<>();
     private AgentSink sink;
+
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
         List<Map<String, Object>> processorsDefinition = null;
@@ -162,4 +164,17 @@ public class CompositeAgentProcessor implements AgentProcessor {
         return currentResults;
     }
 
+    @Override
+    public Map<String, Object> getInfo() {
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> processorsInfo = new ArrayList<>();
+        for (AgentProcessor processor : processors) {
+            Map<String, Object> processorInfo = new HashMap<>();
+            // TODO: add agent type and configuration
+            processorInfo.putAll(processor.getInfo());
+            processorsInfo.add(processorInfo);
+        }
+        result.put("processors", processorsInfo);
+        return result;
+    }
 }

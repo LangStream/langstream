@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import lombok.AllArgsConstructor;
 import lombok.ToString;
@@ -56,6 +57,8 @@ public class S3Source implements AgentSource {
     private MinioClient minioClient;
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
     private int idleTime;
+
+    private AtomicInteger totalOut = new AtomicInteger();
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
@@ -137,8 +140,15 @@ public class S3Source implements AgentSource {
         if (!somethingFound) {
             log.info("Nothing found, sleeping for {} seconds", idleTime);
             Thread.sleep(idleTime * 1000);
+        } else {
+            totalOut.incrementAndGet();
         }
         return records;
+    }
+
+    @Override
+    public Map<String, Object> getInfo() {
+        return Map.of("totalOut", totalOut.get());
     }
 
     @Override

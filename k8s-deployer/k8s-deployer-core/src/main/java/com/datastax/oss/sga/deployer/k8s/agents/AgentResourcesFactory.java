@@ -26,6 +26,7 @@ import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.ContainerPort;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -105,6 +106,7 @@ public class AgentResourcesFactory {
                 .withName("runtime")
                 .withImage(spec.getImage())
                 .withImagePullPolicy(spec.getImagePullPolicy())
+                .withPorts(List.of(new ContainerPort(8080, null, null, "http", "TCP")))
 //                .withLivenessProbe(createLivenessProbe())
 //                .withReadinessProbe(createReadinessProbe())
                 .withResources(convertResources(spec.getResources(), agentResourceUnitConfiguration))

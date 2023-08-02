@@ -68,6 +68,8 @@
     <jjwt.version>0.11.5</jjwt.version>
     <commons-codec.version>1.16.0</commons-codec.version>
     <commons-io.version>2.13.0</commons-io.version>
+    <prometheus.version>0.16.0</prometheus.version>
+    <jetty.version>11.0.3</jetty.version>
   </properties>
 
 
@@ -281,7 +283,31 @@
         <artifactId>commons-io</artifactId>
         <version>${commons-io.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.prometheus</groupId>
+        <artifactId>simpleclient</artifactId>
+        <version>${prometheus.version}</version>
+      </dependency>
+      <!-- Hotspot JVM metrics-->
+      <dependency>
+        <groupId>io.prometheus</groupId>
+        <artifactId>simpleclient_hotspot</artifactId>
+        <version>${prometheus.version}</version>
+      </dependency>
+      <dependency>
+        <!-- we can't put this in the dependency management, it clashes with the Control Plane -->
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-server</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <!-- we can't put this in the dependency management, it clashes with WireMock  -->
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-servlet</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
     </dependencies>
+
   </dependencyManagement>
 
   <dependencies>

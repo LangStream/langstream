@@ -22,16 +22,20 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.Metric;
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.TopicPartition;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @Slf4j
 class KafkaConsumerWrapper implements TopicConsumer {
@@ -63,6 +67,22 @@ class KafkaConsumerWrapper implements TopicConsumer {
         if (topicName != null) {
             consumer.subscribe(List.of(topicName));
         }
+    }
+
+    @Override
+    public Map<String, Object> getInfo() {
+        Map<String, Object> result = new HashMap<>();
+        if (consumer != null) {
+            Map<MetricName, ? extends Metric> metrics = consumer.metrics();
+            if (topicName != null) {
+                result.put("topicName", topicName);
+            }
+            result.put("kafkaConsumerMetrics", metrics
+                    .values()
+                    .stream()
+                    .collect(Collectors.toMap(m->m.metricName().name(), Metric::metricValue)));
+        }
+        return result;
     }
 
     @Override

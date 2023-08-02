@@ -156,6 +156,21 @@ public class ApplicationResource {
         return app;
     }
 
+
+    @GetMapping("/{tenant}/{name}")
+    @Operation(summary = "Get an application by name")
+    ApplicationRuntimeInfo getApplicationRuntimeInfo(@NotBlank @PathVariable("tenant") String tenant,
+                                     @NotBlank @PathVariable("name") String name) {
+        final StoredApplication app = applicationService.getApplication(tenant, name);
+        if (app == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "application not found"
+            );
+        }
+        return applicationService.getApplicationRuntimeInfo(app);
+    }
+
+
     @GetMapping(value = "/{tenant}/{name}/logs", produces = MediaType.APPLICATION_NDJSON_VALUE)
     @Operation(summary = "Get application logs by name")
     Flux<String> getApplicationLogs(@NotBlank @PathVariable("tenant") String tenant,

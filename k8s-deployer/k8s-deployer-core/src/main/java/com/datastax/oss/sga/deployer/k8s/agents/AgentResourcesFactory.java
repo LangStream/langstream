@@ -27,6 +27,7 @@ import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
+import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -34,6 +35,9 @@ import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
+import io.fabric8.kubernetes.api.model.Service;
+import io.fabric8.kubernetes.api.model.ServiceBuilder;
+import io.fabric8.kubernetes.api.model.ServicePort;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
@@ -53,6 +57,18 @@ import java.util.stream.Collectors;
 public class AgentResourcesFactory {
 
     protected static final String AGENT_SECRET_DATA_APP = "app-config";
+
+    public static Service generateHeadlessService(StatefulSet statefulSet){
+        return new ServiceBuilder()
+                .withMetadata(statefulSet.getMetadata())
+                .withNewSpec()
+                .withPorts(List.of(new ServicePort(null, "http", null, 8080, null, new IntOrString(8080))))
+                .withSelector(statefulSet.getSpec().getSelector().getMatchLabels())
+                .withClusterIP("None")
+                .endSpec()
+                .build();
+    }
+
 
     public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource,
                                                   Map<String, Object> codeStoreConfiguration,
@@ -125,14 +141,16 @@ public class AgentResourcesFactory {
 
         final Map<String, String> labels = getAgentLabels(spec.getAgentId(), spec.getApplicationId());
 
+        String name = sanitizeName(agentCustomResource.getMetadata().getName());
         final StatefulSet statefulSet = new StatefulSetBuilder()
                 .withNewMetadata()
-                .withName(sanitizeName(agentCustomResource.getMetadata().getName()))
+                .withName(name)
                 .withNamespace(agentCustomResource.getMetadata().getNamespace())
                 .withLabels(labels)
                 .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(agentCustomResource))
                 .endMetadata()
                 .withNewSpec()
+                .withServiceName(name)
                 .withReplicas(computeReplicas(agentResourceUnitConfiguration, spec.getResources()))
                 .withNewSelector()
                 .withMatchLabels(labels)

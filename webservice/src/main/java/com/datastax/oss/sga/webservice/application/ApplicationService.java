@@ -16,6 +16,7 @@
 package com.datastax.oss.sga.webservice.application;
 
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.ApplicationStatus;
 import com.datastax.oss.sga.api.model.Gateway;
 import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplication;
@@ -271,4 +272,12 @@ public class ApplicationService {
         return applicationStore.logs(tenant, applicationId, logOptions);
     }
 
+    public ApplicationRuntimeInfo getApplicationRuntimeInfo(StoredApplication app) {
+        ApplicationRuntimeInfo applicationRuntimeInfo = new ApplicationRuntimeInfo(app);
+
+        Map<String, ApplicationStatus.AgentStatus> agents = app.getStatus().getAgents();
+
+
+        return applicationRuntimeInfo;
+    }
 }

@@ -37,15 +37,20 @@ public class ApplicationStatus {
 
         private Status status;
         private String reason;
+        private Map<String, Object> info;
 
         public static final AgentWorkerStatus INITIALIZING =
-                new AgentWorkerStatus(Status.INITIALIZING, null);
+                new AgentWorkerStatus(Status.INITIALIZING, null, null);
 
         public static final AgentWorkerStatus RUNNING =
-                new AgentWorkerStatus(Status.RUNNING, null);
+                new AgentWorkerStatus(Status.RUNNING, null, null);
 
         public static final AgentWorkerStatus error(String reason) {
-            return new AgentWorkerStatus(Status.ERROR, reason);
+            return new AgentWorkerStatus(Status.ERROR, reason, null);
+        }
+
+        public AgentWorkerStatus withInfo(Map<String, Object> info) {
+            return new AgentWorkerStatus(this.status, this.reason, info);
         }
 
 

@@ -69,6 +69,7 @@
     <commons-codec.version>1.16.0</commons-codec.version>
     <commons-io.version>2.13.0</commons-io.version>
     <prometheus.version>0.16.0</prometheus.version>
+    <jetty.version>10.0.15</jetty.version>
   </properties>
 
 
@@ -293,11 +294,21 @@
         <artifactId>simpleclient_hotspot</artifactId>
         <version>${prometheus.version}</version>
       </dependency>
-      <!-- Exposition HTTPServer-->
       <dependency>
         <groupId>io.prometheus</groupId>
-        <artifactId>simpleclient_httpserver</artifactId>
+        <artifactId>simpleclient_servlet</artifactId>
         <version>${prometheus.version}</version>
+      </dependency>
+      <!-- AgentRunner HTTPServer-->
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-server</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-servlet</artifactId>
+        <version>${jetty.version}</version>
       </dependency>
     </dependencies>
 

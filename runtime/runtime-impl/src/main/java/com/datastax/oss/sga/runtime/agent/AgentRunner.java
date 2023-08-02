@@ -28,17 +28,23 @@ import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionProvider;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import com.datastax.oss.sga.runtime.agent.api.AgentInfo;
+import com.datastax.oss.sga.runtime.agent.api.AgentInfoServlet;
 import com.datastax.oss.sga.runtime.agent.python.PythonCodeAgentProvider;
 import com.datastax.oss.sga.runtime.agent.simple.IdentityAgentProvider;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.prometheus.client.exporter.HTTPServer;
+import io.prometheus.client.exporter.MetricsServlet;
 import io.prometheus.client.hotspot.DefaultExports;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -67,8 +73,6 @@ public class AgentRunner
         System.exit(-1);
     };
 
-
-
     public interface MainErrorHandler {
         void handleError(Throwable error);
     }
@@ -85,16 +89,15 @@ public class AgentRunner
             RuntimePodConfiguration configuration = MAPPER.readValue(podRuntimeConfiguration.toFile(),
                     RuntimePodConfiguration.class);
 
-            HTTPServer server = bootstrapMetrics();
+            AgentInfo agentInfo = new AgentInfo();
+            Server server = bootstrapHttpServer(agentInfo);
             try {
-
                 Path codeDirectory = Path.of(args[1]);
                 log.info("Loading code from {}", codeDirectory);
-                run(configuration, podRuntimeConfiguration, codeDirectory, -1);
+                run(configuration, podRuntimeConfiguration, codeDirectory, agentInfo, -1);
             } finally {
-                server.close();;
+                server.stop();;
             }
-
 
         } catch (Throwable error) {
             log.info("Error, NOW SLEEPING", error);
@@ -103,12 +106,18 @@ public class AgentRunner
         }
     }
 
-    private static HTTPServer bootstrapMetrics() throws Exception {
+    private static Server bootstrapHttpServer(AgentInfo agentInfo) throws Exception {
         DefaultExports.initialize();
-        HTTPServer server =  new HTTPServer.Builder()
-                .withPort(8080)
-                .build();
-        log.info("Started Prometheus metrics server on port 8080");
+        Server server = new Server(8080);
+        log.info("Started metrics and agent server on port 8080");
+        String url = "http://" + InetAddress.getLocalHost().getCanonicalHostName() + ":8080";
+        log.info("The addresses should be {}/metrics and {}/info}", url);
+        ServletContextHandler context = new ServletContextHandler();
+        context.setContextPath("/");
+        server.setHandler(context);
+        context.addServlet(new ServletHolder(new MetricsServlet()), "/metrics");
+        context.addServlet(new ServletHolder(new AgentInfoServlet(agentInfo)), "/info");
+        server.start();
         return server;
     }
 
@@ -116,6 +125,7 @@ public class AgentRunner
     public static void run(RuntimePodConfiguration configuration,
                            Path podRuntimeConfiguration,
                            Path codeDirectory,
+                           AgentInfo agentInfo,
                            int maxLoops) throws Exception {
         log.info("Pod Configuration {}", configuration);
 
@@ -139,7 +149,7 @@ public class AgentRunner
                     runPythonAgent(
                         podRuntimeConfiguration, codeDirectory);
                 } else {
-                    runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode);
+                    runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode, agentInfo);
                 }
             } finally {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -215,7 +225,8 @@ public class AgentRunner
                                      int maxLoops,
                                      String agentId,
                                      TopicConnectionsRuntime topicConnectionsRuntime,
-                                     AgentCode agentCode) throws Exception {
+                                     AgentCode agentCode,
+                                     AgentInfo agentInfo) throws Exception {
         topicConnectionsRuntime.init(configuration.streamingCluster());
 
         // this is closed by the TopicSource
@@ -223,6 +234,7 @@ public class AgentRunner
         if (configuration.input() != null && !configuration.input().isEmpty()) {
             consumer = topicConnectionsRuntime.createConsumer(agentId,
                     configuration.streamingCluster(), configuration.input());
+            agentInfo.watchConsumer(consumer);
         } else {
             consumer = new NoopTopicConsumer();
         }
@@ -231,6 +243,7 @@ public class AgentRunner
         final TopicProducer producer;
         if (configuration.output() != null && !configuration.output().isEmpty()) {
             producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
+            agentInfo.watchProducer(producer);
         } else {
             producer = new NoopTopicProducer();
         }
@@ -249,6 +262,7 @@ public class AgentRunner
             } else {
                 mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
             }
+            agentInfo.watchProcessor(mainProcessor);
 
             AgentSource source = null;
             if (agentCode instanceof AgentSource agentSource) {
@@ -256,6 +270,8 @@ public class AgentRunner
             } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
                 source = compositeAgentProcessor.getSource();
             }
+            agentInfo.watchSource(source);
+
             if (source == null) {
                 source = new TopicConsumerSource(consumer);
             }
@@ -266,6 +282,7 @@ public class AgentRunner
             } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
                 sink = compositeAgentProcessor.getSink();
             }
+            agentInfo.watchSink(sink);
 
             if (sink == null) {
                 sink = new TopicProducerSink(producer);

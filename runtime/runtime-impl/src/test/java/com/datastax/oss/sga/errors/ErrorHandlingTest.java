@@ -28,6 +28,7 @@ import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.runtime.agent.AgentRunner;
+import com.datastax.oss.sga.runtime.agent.api.AgentInfo;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
 import lombok.Cleanup;
@@ -139,7 +140,7 @@ class ErrorHandlingTest {
                 .get();
             producer.flush();
 
-            AgentRunner.run(runtimePodConfiguration, null, null, 5);
+            AgentRunner.run(runtimePodConfiguration, null, null, new AgentInfo(), 5);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
             ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(10));

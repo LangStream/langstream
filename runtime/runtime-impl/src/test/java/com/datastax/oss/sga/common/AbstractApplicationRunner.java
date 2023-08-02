@@ -25,6 +25,7 @@ import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.kafka.extensions.KafkaContainerExtension;
 import com.datastax.oss.sga.runtime.agent.AgentRunner;
+import com.datastax.oss.sga.runtime.agent.api.AgentInfo;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
@@ -200,7 +201,7 @@ public abstract class AbstractApplicationRunner {
                 Thread.currentThread().setName(podConfiguration.agent().agentId() + "runner");
                 try {
                     log.info("AgentPod {} Started", podConfiguration.agent().agentId());
-                    AgentRunner.run(podConfiguration, null, null, 10);
+                    AgentRunner.run(podConfiguration, null, null, new AgentInfo(), 10);
                     handle.complete(null);
                 } catch (Throwable error) {
                     log.error("Error {}", error);

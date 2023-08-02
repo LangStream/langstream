@@ -140,8 +140,16 @@
     </dependency>
     <!-- Exposition HTTPServer-->
     <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlet</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.prometheus</groupId>
-      <artifactId>simpleclient_httpserver</artifactId>
+      <artifactId>simpleclient_servlet</artifactId>
     </dependency>
 
     <dependency>

@@ -15,7 +15,6 @@
  */
 package com.datastax.oss.sga.deployer.k8s.agents;
 
-import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
@@ -24,6 +23,7 @@ import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
@@ -43,17 +43,27 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class AgentResourcesFactory {
 
     protected static final String AGENT_SECRET_DATA_APP = "app-config";
@@ -289,7 +299,8 @@ public class AgentResourcesFactory {
             final KubernetesClient client,
             final String namespace,
             final String applicationId,
-            final List<String> declaredAgents) {
+            final List<String> declaredAgents,
+            boolean queryPods) {
         final Map<String, AgentCustomResource> agentCustomResources = client.resources(AgentCustomResource.class)
                 .inNamespace(namespace)
                 .withLabel(CRDConstants.AGENT_LABEL_APPLICATION, applicationId)
@@ -308,14 +319,48 @@ public class AgentResourcesFactory {
                 continue;
             }
             ApplicationStatus.AgentStatus agentStatus = new ApplicationStatus.AgentStatus();
-                agentStatus.setStatus(cr.getStatus().getStatus());
-                Map<String, ApplicationStatus.AgentWorkerStatus> podStatuses =
-                        getPodStatuses(client, applicationId, namespace, declaredAgent);
-                agentStatus.setWorkers(podStatuses);
+            agentStatus.setStatus(cr.getStatus().getStatus());
+            Map<String, ApplicationStatus.AgentWorkerStatus> podStatuses =
+                    getPodStatuses(client, applicationId, namespace, declaredAgent);
+            agentStatus.setWorkers(podStatuses);
 
             agents.put(declaredAgent, agentStatus);
+
+            if (queryPods && !agentStatus.getWorkers().isEmpty()) {
+                HttpClient httpClient = HttpClient.newHttpClient();
+                for (Map.Entry<String, ApplicationStatus.AgentWorkerStatus> entry : agentStatus.getWorkers().entrySet()) {
+                    ApplicationStatus.AgentWorkerStatus agentWorkerStatus = entry.getValue();
+                    String url = agentWorkerStatus.getUrl();
+                    if (url != null) {
+                        log.info("Querying pod {} for agent {} in application {}",
+                                url, declaredAgent, applicationId);
+                        Map<String, Object> info = queryAgentInfo(url, httpClient);
+                        log.info("Info for pod {}: {}", entry.getKey(), info);
+                        entry.setValue(agentWorkerStatus.withInfo(info));
+                    } else {
+                        log.warn("No URL for pod {} for agent {} in application {}",
+                                entry.getKey(), declaredAgent, applicationId);
+                    }
+                }
+            }
         }
         return agents;
+    }
+
+    private static Map<String, Object> queryAgentInfo(String url, HttpClient httpClient) {
+        try {
+            String body = httpClient.send(HttpRequest.newBuilder()
+                                    .uri(URI.create(url + "/info"))
+                                    .GET()
+                                    .timeout(Duration.ofSeconds(10))
+                                    .build(),
+                            HttpResponse.BodyHandlers.ofString())
+                    .body();
+            return new ObjectMapper().readValue(body, Map.class);
+        } catch (IOException | InterruptedException e) {
+            log.warn("Failed to query agent info from {}", url, e);
+            return Map.of("error", e + "");
+        }
     }
 
     private static Map<String, ApplicationStatus.AgentWorkerStatus> getPodStatuses(
@@ -331,11 +376,13 @@ public class AgentResourcesFactory {
                 .entrySet()
                 .stream()
                 .map(e -> {
-                    ApplicationStatus.AgentWorkerStatus status = switch (e.getValue().getState()) {
-                        case RUNNING -> ApplicationStatus.AgentWorkerStatus.RUNNING;
+                    KubeUtil.PodStatus podStatus = e.getValue();
+                    log.info("Pod {} status: {} url: {}", e.getKey(), podStatus.getState(), podStatus.getUrl());
+                    ApplicationStatus.AgentWorkerStatus status = switch (podStatus.getState()) {
+                        case RUNNING -> ApplicationStatus.AgentWorkerStatus.RUNNING(podStatus.getUrl());
                         case WAITING -> ApplicationStatus.AgentWorkerStatus.INITIALIZING;
-                        case ERROR -> ApplicationStatus.AgentWorkerStatus.error(e.getValue().getMessage());
-                        default -> throw new RuntimeException("Unknown pod state: " + e.getValue().getState());
+                        case ERROR -> ApplicationStatus.AgentWorkerStatus.error(podStatus.getMessage());
+                        default -> throw new RuntimeException("Unknown pod state: " + podStatus.getState());
                     };
                     return new AbstractMap.SimpleEntry<>(e.getKey(), status);
                 })

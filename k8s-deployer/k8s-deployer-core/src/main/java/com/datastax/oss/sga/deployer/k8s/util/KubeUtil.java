@@ -154,8 +154,10 @@ public class KubeUtil {
                 }
             }
             final String podName = pod.getMetadata().getName();
-
-            String podUrl = "http://" + pod.getMetadata().getName() + "."+pod.getMetadata().getNamespace() + ".svc.cluster.local:8080";
+            // this is podname + servicename + namespace
+            String podUrl = "http://" + pod.getMetadata().getName() + "." +
+                    pod.getSpec().getSubdomain() + "." +
+                    pod.getMetadata().getNamespace() + ".svc.cluster.local:8080";
             log.info("Pod url: {}", podUrl);
             status = status.withUrl(podUrl);
 

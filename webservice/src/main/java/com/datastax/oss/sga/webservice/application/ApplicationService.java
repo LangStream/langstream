@@ -71,7 +71,7 @@ public class ApplicationService {
                                   ModelBuilder.ApplicationWithPackageInfo applicationInstance,
                                   String codeArchiveReference) {
         checkTenant(tenant);
-        if (applicationStore.get(tenant, applicationId) != null) {
+        if (applicationStore.get(tenant, applicationId, false) != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Application already exists");
         }
 
@@ -111,7 +111,7 @@ public class ApplicationService {
                                                ModelBuilder.ApplicationWithPackageInfo applicationInstance) {
 
 
-        final StoredApplication existing = applicationStore.get(tenant, applicationId);
+        final StoredApplication existing = applicationStore.get(tenant, applicationId, false);
         if (existing == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found");
         }
@@ -248,7 +248,7 @@ public class ApplicationService {
     @SneakyThrows
     public StoredApplication getApplication(String tenant, String applicationId) {
         checkTenant(tenant);
-        return applicationStore.get(tenant, applicationId);
+        return applicationStore.get(tenant, applicationId, true);
     }
 
     @SneakyThrows

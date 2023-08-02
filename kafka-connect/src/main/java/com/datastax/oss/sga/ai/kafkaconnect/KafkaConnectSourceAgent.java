@@ -100,6 +100,8 @@ public class KafkaConnectSourceAgent implements AgentSource {
     TopicConsumer topicConsumerFromOffsetStore;
     TopicProducer topicProducerToOffsetStore;
 
+    private AtomicInteger totalOut = new AtomicInteger();
+
     // just to get access to baseConfigDef()
     class WorkerConfigImpl extends org.apache.kafka.connect.runtime.WorkerConfig {
         public WorkerConfigImpl(Map<String, String> props) {
@@ -129,6 +131,8 @@ public class KafkaConnectSourceAgent implements AgentSource {
         if (recordList == null || recordList.isEmpty()) {
             return List.of();
         }
+
+        totalOut.addAndGet(recordList.size());
 
         return recordList.stream()
                 .map(this::processSourceRecord)
@@ -347,5 +351,10 @@ public class KafkaConnectSourceAgent implements AgentSource {
         if (topicProducerToOffsetStore != null) {
             topicProducerToOffsetStore.close();
         }
+    }
+
+    @Override
+    public Map<String, Object> getInfo() {
+        return Map.of("totalOut", totalOut.get());
     }
 }

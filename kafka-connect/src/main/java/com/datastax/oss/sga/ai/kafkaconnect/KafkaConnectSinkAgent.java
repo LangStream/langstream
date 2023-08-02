@@ -48,6 +48,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -103,6 +104,8 @@ public class KafkaConnectSinkAgent implements AgentSink {
     private final AvroData avroData = new AvroData(1000);
     private final ConcurrentLinkedDeque<ConsumerCommand> consumerCqrsQueue = new ConcurrentLinkedDeque<>();
 
+    private final AtomicInteger totalIn = new AtomicInteger();
+
     // has to be the same consumer as used to read records to process,
     // otherwise pause/resume won't work
     @Override
@@ -121,6 +124,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
     @Override
     public void write(List<Record> records) {
+        totalIn.addAndGet(records.size());
         if (!isRunning) {
             log.warn("Sink is stopped. Cannot send the records");
             throw new IllegalStateException("Sink is stopped. Cannot send the records");
@@ -459,5 +463,10 @@ public class KafkaConnectSinkAgent implements AgentSink {
     @Override
     public void setCommitCallback(CommitCallback callback) {
         // useless
+    }
+
+    @Override
+    public Map<String, Object> getInfo() {
+        return Map.of("totalIn", totalIn.get());
     }
 }

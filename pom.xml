@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!--
+
     Copyright DataStax, Inc.
-   
+
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-   
+
     http://www.apache.org/licenses/LICENSE-2.0
-   
+
     Unless required by applicable law or agreed to in writing, software
     distributed under the License is distributed on an "AS IS" BASIS,
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
+
 -->
 <project
         xmlns="http://maven.apache.org/POM/4.0.0"
@@ -70,6 +72,7 @@
     <commons-io.version>2.13.0</commons-io.version>
     <prometheus.version>0.16.0</prometheus.version>
     <jetty.version>11.0.3</jetty.version>
+    <license-maven-plugin.version>4.1</license-maven-plugin.version>
   </properties>
 
 
@@ -453,6 +456,65 @@
       </plugins>
     </pluginManagement>
     <plugins>
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>${license-maven-plugin.version}</version>
+        <configuration>
+          <licenseSets>
+            <licenseSet>
+              <header>./license-header.txt</header>
+              <excludes>
+                <exclude>LICENSE</exclude>
+                <exclude>**/sga-cli</exclude>
+                <exclude>license-header.txt</exclude>
+                <exclude>**/requirements.txt</exclude>
+                <exclude>**/target/**</exclude>
+                <exclude>target/**</exclude>
+                <exclude>helm/**</exclude>
+                <exclude>.git/**</exclude>
+                <exclude>**/META-INF/**</exclude>
+                <exclude>**/*.properties</exclude>
+                <exclude>**/*.md</exclude>
+                <exclude>**/.*ignore</exclude>
+                <exclude>**/*.tpl</exclude>
+                <exclude>**/.idea/**</exclude>
+                <exclude>**/.mvn/**</exclude>
+                <exclude>**/Pipfile</exclude>
+                <exclude>**/Pipfile.lock</exclude>
+                <exclude>**/*.ini</exclude>
+              </excludes>
+            </licenseSet>
+          </licenseSets>
+          <mapping>
+            <java>JAVADOC_STYLE</java>
+            <yaml>SCRIPT_STYLE</yaml>
+            <yml>SCRIPT_STYLE</yml>
+            <sh>SCRIPT_STYLE</sh>
+            <py>SCRIPT_STYLE</py>
+            <xml>XML_STYLE</xml>
+            <txt>SCRIPT_STYLE</txt>
+          </mapping>
+        </configuration>
+        <executions>
+          <execution>
+            <!-- Format the license headers before checking -->
+            <id>format-headers</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>format</goal>
+            </goals>
+          </execution>
+          <execution>
+            <!-- Check the license headers and show the differences -->
+            <id>check-headers</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>

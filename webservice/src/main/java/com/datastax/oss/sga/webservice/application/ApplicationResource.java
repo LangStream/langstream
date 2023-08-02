@@ -157,7 +157,7 @@ public class ApplicationResource {
     }
 
 
-    @GetMapping("/{tenant}/{name}")
+    @GetMapping("/{tenant}/{name}/info")
     @Operation(summary = "Get an application by name")
     ApplicationRuntimeInfo getApplicationRuntimeInfo(@NotBlank @PathVariable("tenant") String tenant,
                                      @NotBlank @PathVariable("name") String name) {

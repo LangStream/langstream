@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
@@ -71,6 +72,7 @@ class KafkaProducerWrapper implements TopicProducer {
 
     private final Map<String, Object> copy;
     private final String topicName;
+    private final AtomicInteger totalIn = new AtomicInteger();
     KafkaProducer<Object, Object> producer;
     Serializer keySerializer;
     Serializer valueSerializer;
@@ -121,15 +123,13 @@ class KafkaProducerWrapper implements TopicProducer {
     @Override
     public Map<String, Object> getInfo() {
         Map<String, Object> result = new HashMap<>();
+        if (topicName != null) {
+            result.put("topicName", topicName);
+        }
+        result.put("totalIn", totalIn.get());
         if (producer != null) {
-            Map<MetricName, ? extends Metric> metrics = producer.metrics();
-            if (topicName != null) {
-                result.put("topicName", topicName);
-            }
-            result.put("kafkaProducerMetrics", metrics
-                    .values()
-                    .stream()
-                    .collect(Collectors.toMap(m->m.metricName().name(), Metric::metricValue)));
+            result.put("kafkaConsumerMetrics",
+                    KafkaMetricsUtils.metricsToMap(producer.metrics()));
         }
         return result;
     }
@@ -178,6 +178,8 @@ class KafkaProducerWrapper implements TopicProducer {
             log.info("Sending record {}", record);
             producer.send(record).get();
         }
+
+        totalIn.addAndGet(records.size());
     }
 
     private Serializer<?> getSerializer(Class<?> r, Map<Class<?>, Serializer<?>> serializerMap, Boolean isKey) {

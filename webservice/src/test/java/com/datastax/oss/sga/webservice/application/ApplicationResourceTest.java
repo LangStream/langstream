@@ -198,8 +198,7 @@ class ApplicationResourceTest {
                                     },
                                     "errors" : {
                                       "retries" : 0,
-                                      "on-failure" : "fail",
-                                      "dead-letter-topic" : null
+                                      "on-failure" : "fail"
                                     },
                                     "agents" : [ ]
                                   }

@@ -24,7 +24,6 @@ import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
-import com.datastax.oss.sga.impl.noop.NoOpComputeClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.noop.NoOpStreamingClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import lombok.Cleanup;
@@ -36,6 +35,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
@@ -95,19 +95,19 @@ class SimpleClusterRuntimeTest {
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         {
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((NoOpStreamingClusterRuntimeProvider.SimpleTopic) t).name().equals("input-topic")));
+                    Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("input-topic")));
         }
         {
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((NoOpStreamingClusterRuntimeProvider.SimpleTopic) t).name().equals("output-topic")));
+                    Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("output-topic")));
         }
 
         {
-            assertTrue(implementation.getConnectionImplementation(module, Connection.from(
+            assertTrue(implementation.getConnectionImplementation(module, Connection.fromTopic(
                     TopicDefinition.fromName("agent-function-2-id-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> ((NoOpStreamingClusterRuntimeProvider.SimpleTopic) t).name().equals("agent-function-2-id-input")));
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("agent-function-2-id-input")));
         }
 
 
@@ -126,6 +126,179 @@ class SimpleClusterRuntimeTest {
             assertEquals("generic-agent", agentImplementation.getAgentType());
             assertEquals("function-2-id", agentImplementation.getId());
         }
+
+    }
+
+
+    @Test
+    public void testCreateDeadletterTopicsWithIntermediateTopics1() throws Exception {
+        Application applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        buildInstanceYaml(),
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                errors:
+                                   on-failure: dead-letter                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "generic-agent"
+                                    id: "function-1-id"
+                                    type: "generic-agent"
+                                    input: "input-topic"
+                                    # the output is implicitly an intermediate topic                                    
+                                    configuration:
+                                      config1: "value"
+                                      config2: "value2"
+                                  - name: "function2"
+                                    id: "function-2-id"
+                                    type: "generic-agent"
+                                    # the input is implicitly an intermediate topic
+                                    # a dead letter is required for this intermediate topic                                                                        
+                                    output: "output-topic"
+                                    configuration:
+                                      config1: "value"
+                                      config2: "value2"
+                                """));
+
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+        {
+            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic = (NoOpStreamingClusterRuntimeProvider.SimpleTopic) implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName("input-topic")));
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("input-topic")));
+            assertNotNull(simpleTopic.getDeadletterTopic());
+            assertEquals("input-topic-deadletter", simpleTopic.getDeadletterTopic().topicName());
+        }
+        {
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("output-topic")));
+        }
+
+        {
+            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic =  (NoOpStreamingClusterRuntimeProvider.SimpleTopic) implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName("agent-function-2-id-input")));
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("agent-function-2-id-input")));
+            assertNotNull(simpleTopic.getDeadletterTopic());
+            assertEquals("agent-function-2-id-input-deadletter", simpleTopic.getDeadletterTopic().topicName());
+        }
+
+
+        assertEquals(5, implementation.getTopics().size());
+
+        {
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
+            assertNotNull(agentImplementation);
+            assertEquals("generic-agent", agentImplementation.getAgentType());
+            assertEquals("function-1-id", agentImplementation.getId());
+        }
+
+        {
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
+            assertNotNull(agentImplementation);
+            assertEquals("generic-agent", agentImplementation.getAgentType());
+            assertEquals("function-2-id", agentImplementation.getId());
+        }
+
+    }
+
+    @Test
+    public void testCreateDeadletterTopicsWithIntermediateTopics2() throws Exception {
+        Application applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        buildInstanceYaml(),
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                errors:
+                                   on-failure: dead-letter                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "generic-agent"
+                                    id: "function-1-id"
+                                    type: "generic-agent"
+                                    input: "input-topic"
+                                    # the output is implicitly an intermediate topic                                    
+                                    configuration:
+                                      config1: "value"
+                                      config2: "value2"
+                                  - name: "function2"
+                                    id: "function-2-id"
+                                    type: "generic-agent"
+                                    # the input is implicitly an intermediate topic
+                                    # no dead letter is required for this intermediate topic
+                                    # as we are skipping errors 
+                                    errors:
+                                        on-failure: skip                                    
+                                    output: "output-topic"
+                                    configuration:
+                                      config1: "value"
+                                      config2: "value2"
+                                """));
+
+        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();
+
+
+        Module module = applicationInstance.getModule("module-1");
+
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+        {
+            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic = (NoOpStreamingClusterRuntimeProvider.SimpleTopic) implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName("input-topic")));
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("input-topic")));
+            assertNotNull(simpleTopic.getDeadletterTopic());
+            assertEquals("input-topic-deadletter", simpleTopic.getDeadletterTopic().topicName());
+        }
+        {
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("output-topic")));
+        }
+
+        {
+            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic =  (NoOpStreamingClusterRuntimeProvider.SimpleTopic) implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName("agent-function-2-id-input")));
+            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("agent-function-2-id-input")));
+            assertNull(simpleTopic.getDeadletterTopic());
+        }
+
+
+        assertEquals(4, implementation.getTopics().size());
+
+        {
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
+            assertNotNull(agentImplementation);
+            assertEquals("generic-agent", agentImplementation.getAgentType());
+            assertEquals("function-1-id", agentImplementation.getId());
+        }
+
+        {
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
+            assertNotNull(agentImplementation);
+            assertEquals("generic-agent", agentImplementation.getAgentType());
+            assertEquals("function-2-id", agentImplementation.getId());
+        }
+
 
     }
 

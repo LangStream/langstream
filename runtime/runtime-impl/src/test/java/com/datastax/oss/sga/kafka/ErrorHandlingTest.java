@@ -21,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +33,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
     @Test
     public void testDiscardErrors() throws Exception {
         String tenant = "tenant";
-        String[] expectedAgents = {"app-step1"};
+        String[] expectedAgents = {"app-step"};
 
         Map<String, String> application = Map.of("instance.yaml",
                         buildInstanceYaml(),
@@ -51,7 +53,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     retries: 5
                                 pipeline:
                                   - name: "some agent"
-                                    id: "step1"
+                                    id: "step"
                                     type: "mock-failing-processor"
                                     input: "input-topic"
                                     output: "output-topic"
@@ -71,6 +73,54 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                 executeAgentRunners(applicationRuntime);
 
                 waitForMessages(consumer, List.of("keep-me"));
+            }
+        }
+    }
+
+    @Test
+    public void testDeadLetter() throws Exception {
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+
+        Map<String, String> application = Map.of("instance.yaml",
+                buildInstanceYaml(),
+                "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "some agent"
+                                    id: "step1"
+                                    type: "mock-failing-processor"
+                                    input: "input-topic"
+                                    output: "output-topic"
+                                    errors:
+                                        on-failure: dead-letter                                         
+                                    configuration:
+                                      fail-on-content: "fail-me"
+                                """);
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer();
+                 KafkaConsumer<String, String> consumer = createConsumer("output-topic");
+                 KafkaConsumer<String, String> consumerDeadletter = createConsumer("input-topic-deadletter")) {
+
+                List<Object> expectedMessages = new ArrayList<>();
+                List<Object> expectedMessagesDeadletter = new ArrayList<>();
+                for (int i = 0; i < 10; i++) {
+                    sendMessage("input-topic", "fail-me-" + i, producer);
+                    sendMessage("input-topic", "keep-me-" + i, producer);
+                    expectedMessages.add("keep-me-" + i);
+                    expectedMessagesDeadletter.add("fail-me-" + i);
+                }
+
+                executeAgentRunners(applicationRuntime);
+
+                waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
+                waitForMessages(consumer, expectedMessages);
             }
         }
     }

@@ -47,8 +47,6 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -107,7 +105,7 @@ class PulsarRunnerDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation(appId, applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
+                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
         deployer.deploy("tenant", implementation, null);
         assertEquals(1, secrets.size());
         final Secret secret = secrets.values().iterator().next();

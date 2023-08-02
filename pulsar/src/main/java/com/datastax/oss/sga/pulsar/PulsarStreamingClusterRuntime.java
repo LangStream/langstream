@@ -17,20 +17,16 @@ package com.datastax.oss.sga.pulsar;
 
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.SchemaDefinition;
-import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentNode;
-import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.api.runtime.Topic;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.schema.KeyValueSchema;
 import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
@@ -146,6 +142,16 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     private static void deleteTopic(PulsarAdmin admin, PulsarTopic topic) throws PulsarAdminException {
+
+        switch (topic.createMode()) {
+            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
+                break;
+            }
+            default:
+                log.info("Keeping Pulsar topic {}", topic.name());
+                return;
+        }
+
         String topicName = topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
         String fullyQualifiedName = TopicName.get(topicName).toString();
         log.info("Deleting topic {}", fullyQualifiedName);
@@ -200,8 +206,8 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
 
 
     @Override
-    public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, Connection inputConnection) {
-        PulsarTopic pulsarTopic = (PulsarTopic) inputConnection;
+    public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
+        PulsarTopic pulsarTopic = (PulsarTopic) inputConnectionImplementation;
         Map<String, Object> configuration = new HashMap<>();
         configuration.computeIfAbsent("subscriptionName", key -> "sga-agent-" + agentImplementation.getId());
 
@@ -211,8 +217,8 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     @Override
-    public Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, Connection outputConnection) {
-        PulsarTopic pulsarTopic = (PulsarTopic) outputConnection;
+    public Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, ConnectionImplementation outputConnectionImplementation) {
+        PulsarTopic pulsarTopic = (PulsarTopic) outputConnectionImplementation;
 
         Map<String, Object> configuration = new HashMap<>();
         // TODO: handle other configurations and schema

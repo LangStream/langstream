@@ -15,14 +15,18 @@
  */
 package com.datastax.oss.sga.api.model;
 
-public record Connection(ConnectionType connectionType, String definition) {
+public record Connection(ConnectionType connectionType, String definition, boolean enableDeadletterQueue) {
 
-    public static Connection from(TopicDefinition topic) {
-        return new Connection(ConnectionType.TOPIC, topic.getName());
+    public static Connection fromTopic(TopicDefinition topic) {
+        return new Connection(ConnectionType.TOPIC, topic.getName(), false);
     }
 
-    public static Connection from(AgentConfiguration agentConfiguration) {
-        return new Connection(ConnectionType.AGENT, agentConfiguration.getId());
+    public static Connection fromAgent(AgentConfiguration agentConfiguration) {
+        return new Connection(ConnectionType.AGENT, agentConfiguration.getId(), false);
+    }
+
+    public Connection withDeadletter(boolean enableDeadletterQueue) {
+        return new Connection(connectionType, definition, enableDeadletterQueue);
     }
 
     public enum ConnectionType {

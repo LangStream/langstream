@@ -49,12 +49,12 @@ public interface ComputeClusterRuntime extends AutoCloseable {
      * @param connection
      * @return the connection implementation
      */
-    Connection getConnectionImplementation(Module module,
-                                           Pipeline pipeline,
-                                           com.datastax.oss.sga.api.model.Connection connection,
-                                           Connection.ConnectionDirection direction,
-                                           ExecutionPlan applicationInstance,
-                                           StreamingClusterRuntime streamingClusterRuntime);
+    ConnectionImplementation getConnectionImplementation(Module module,
+                                                         Pipeline pipeline,
+                                                         com.datastax.oss.sga.api.model.Connection connection,
+                                                         ConnectionImplementation.ConnectionDirection direction,
+                                                         ExecutionPlan applicationInstance,
+                                                         StreamingClusterRuntime streamingClusterRuntime);
 
     Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
                   String codeStorageArchiveId);

@@ -33,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -86,7 +85,7 @@ class KafkaConnectAgentsTest {
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertEquals(1, implementation.getAgents().size());
         assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
@@ -132,7 +131,7 @@ class KafkaConnectAgentsTest {
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertEquals(1, implementation.getAgents().size());
         assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+                Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);

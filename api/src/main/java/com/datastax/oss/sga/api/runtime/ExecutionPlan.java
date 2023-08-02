@@ -15,15 +15,12 @@
  */
 package com.datastax.oss.sga.api.runtime;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.imageio.stream.ImageOutputStreamImpl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +57,7 @@ public final class ExecutionPlan {
      * @param connection
      * @return the connection implementation
      */
-    public Connection getConnectionImplementation(Module module, com.datastax.oss.sga.api.model.Connection connection) {
+    public ConnectionImplementation getConnectionImplementation(Module module, com.datastax.oss.sga.api.model.Connection connection) {
         return switch (connection.connectionType()) {
             case AGENT -> getAgentImplementation(module, connection.definition());
             case TOPIC -> getTopicByName(connection.definition());
@@ -88,7 +85,7 @@ public final class ExecutionPlan {
      * Discard a topic implementation
      * @param topicImplementation
      */
-    public void discardTopic(Connection topicImplementation) {
+    public void discardTopic(ConnectionImplementation topicImplementation) {
         topics.entrySet()
                 .stream()
                 .filter(e -> {
@@ -126,6 +123,16 @@ public final class ExecutionPlan {
                 .filter(e -> e.getKey().getName().equals(name))
                 .findFirst()
                 .map(Map.Entry::getValue)
+                .orElse(null);
+    }
+
+    public TopicDefinition getTopicDefinitionByName(String name) {
+        return topics
+                .entrySet()
+                .stream()
+                .filter(e -> e.getKey().getName().equals(name))
+                .findFirst()
+                .map(Map.Entry::getKey)
                 .orElse(null);
     }
 }

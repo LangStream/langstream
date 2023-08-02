@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.sga.api.runtime;
 
-public interface Connection {
+public interface ConnectionImplementation {
     enum ConnectionDirection {
         INPUT,
         OUTPUT

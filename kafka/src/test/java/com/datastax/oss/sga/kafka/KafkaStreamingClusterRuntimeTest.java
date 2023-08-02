@@ -61,7 +61,7 @@ class KafkaStreamingClusterRuntimeTest {
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(TopicDefinition.fromName("input-topic-cassandra"))) instanceof KafkaTopic);
+                Connection.fromTopic(TopicDefinition.fromName("input-topic-cassandra"))) instanceof KafkaTopic);
     }
 
     private static String buildInstanceYaml() {

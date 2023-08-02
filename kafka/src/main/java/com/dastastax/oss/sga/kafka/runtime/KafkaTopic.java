@@ -16,8 +16,9 @@
 package com.dastastax.oss.sga.kafka.runtime;
 
 import com.datastax.oss.sga.api.model.SchemaDefinition;
-import com.datastax.oss.sga.api.runtime.Connection;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.Topic;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,10 +28,11 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZE
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 
+@Slf4j
 public record KafkaTopic(String name, int partitions, int replicationFactor, SchemaDefinition keySchema, SchemaDefinition valueSchema, String createMode,
                          boolean implicit,
                          Map<String, Object> config, Map<String, Object> options)
-        implements Connection, Topic {
+        implements ConnectionImplementation, Topic {
     public Map<String,Object> createConsumerConfiguration() {
         Map<String, Object> configuration = new HashMap<>();
 
@@ -47,6 +49,11 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
                     configuration.put(key.substring("consumer.".length()), value);
                 }
             });
+
+            Object deadLetterTopicProducer = options.get("deadLetterTopicProducer");
+            if (deadLetterTopicProducer != null) {
+                configuration.put("deadLetterTopicProducer", deadLetterTopicProducer);
+            }
         }
 
         return configuration;
@@ -116,5 +123,15 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
     @Override
     public boolean implicit() {
         return this.implicit;
+    }
+
+    @Override
+    public void bindDeadletterTopic(Topic deadletterTopic) {
+        if (! (deadletterTopic instanceof KafkaTopic kafkaTopic)) {
+            throw new IllegalArgumentException();
+        }
+        log.info("Binding deadletter topic {} to topic {}", deadletterTopic, this.topicName());
+        options.put("deadLetterTopicProducer",
+                kafkaTopic.createProducerConfiguration());
     }
 }

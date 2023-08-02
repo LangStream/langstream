@@ -130,6 +130,7 @@ class KafkaConsumerTest {
                 Record record1 = generateRecord("record_" + j);
                 producer.write(List.of(record1));
             }
+            log.info("Producer metrics: {}", producer.getInfo());
 
             List<Record> readFromConsumer = consumeRecords(consumer, 4);
             List<Record> onlySome = readFromConsumer.subList(readFromConsumer.size() / 2 - 1, readFromConsumer.size() - 1);
@@ -149,6 +150,7 @@ class KafkaConsumerTest {
             log.info("Read {} records:  {}", readFromConsumer.size(), readFromConsumer);
             assertTrue(readFromConsumer.size() >= atLeast);
         });
+        log.info("Consumer metrics {}", consumer.getInfo());
         return readFromConsumer;
     }
 

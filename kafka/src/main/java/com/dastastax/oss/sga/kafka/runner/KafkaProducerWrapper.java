@@ -24,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.Metric;
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.BooleanSerializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
@@ -43,6 +45,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
@@ -113,6 +116,22 @@ class KafkaProducerWrapper implements TopicProducer {
     @Override
     public Object getNativeProducer() {
         return producer;
+    }
+
+    @Override
+    public Map<String, Object> getInfo() {
+        Map<String, Object> result = new HashMap<>();
+        if (producer != null) {
+            Map<MetricName, ? extends Metric> metrics = producer.metrics();
+            if (topicName != null) {
+                result.put("topicName", topicName);
+            }
+            result.put("kafkaProducerMetrics", metrics
+                    .values()
+                    .stream()
+                    .collect(Collectors.toMap(m->m.metricName().name(), Metric::metricValue)));
+        }
+        return result;
     }
 
     @Override

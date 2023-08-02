@@ -48,7 +48,18 @@ public class AgentInfo {
         if (consumer != null) {
             result.put("consumer", consumer.getInfo());
         }
-        if ()
+        if (producer != null) {
+            result.put("producer", producer.getInfo());
+        }
+        if (source != null) {
+            result.put("source", source.getInfo());
+        }
+        if (processor != null) {
+            result.put("processor", processor.getInfo());
+        }
+        if (sink != null) {
+            result.put("sink", sink.getInfo());
+        }
         return result;
     }
 

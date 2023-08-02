@@ -18,6 +18,7 @@ package com.datastax.oss.sga.api.runner.topics;
 import com.datastax.oss.sga.api.runner.code.Record;
 
 import java.util.List;
+import java.util.Map;
 
 public interface TopicProducer extends AutoCloseable {
 
@@ -31,4 +32,7 @@ public interface TopicProducer extends AutoCloseable {
         return null;
     }
 
+    default Object getInfo() {
+        return Map.of();
+    }
 }

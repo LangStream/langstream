@@ -31,4 +31,8 @@ public interface AgentCode {
 
     default void start() throws Exception {}
     default void close() throws Exception {}
+
+    default Map<String, Object> getInfo() {
+        return Map.of();
+    }
 }

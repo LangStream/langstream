@@ -463,14 +463,15 @@
         <configuration>
           <licenseSets>
             <licenseSet>
-              <header>cli/license-header.txt</header>
+              <header>./license-header.txt</header>
               <excludes>
                 <exclude>LICENSE</exclude>
                 <exclude>**/sga-cli</exclude>
-                <exclude>cli/license-header.txt</exclude>
+                <exclude>license-header.txt</exclude>
                 <exclude>**/requirements.txt</exclude>
                 <exclude>**/target/**</exclude>
                 <exclude>target/**</exclude>
+                <exclude>helm/**</exclude>
                 <exclude>.git/**</exclude>
                 <exclude>**/META-INF/**</exclude>
                 <exclude>**/*.properties</exclude>

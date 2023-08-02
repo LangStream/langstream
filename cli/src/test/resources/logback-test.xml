@@ -16,7 +16,6 @@
     limitations under the License.
 
 -->
-
 <!DOCTYPE configuration>
 <configuration>
     <import class="ch.qos.logback.classic.encoder.PatternLayoutEncoder"/>

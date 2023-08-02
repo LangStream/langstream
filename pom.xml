@@ -299,17 +299,6 @@
         <artifactId>simpleclient_servlet</artifactId>
         <version>${prometheus.version}</version>
       </dependency>
-      <!-- AgentRunner HTTPServer-->
-      <dependency>
-        <groupId>org.eclipse.jetty</groupId>
-        <artifactId>jetty-server</artifactId>
-        <version>${jetty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.eclipse.jetty</groupId>
-        <artifactId>jetty-servlet</artifactId>
-        <version>${jetty.version}</version>
-      </dependency>
     </dependencies>
 
   </dependencyManagement>

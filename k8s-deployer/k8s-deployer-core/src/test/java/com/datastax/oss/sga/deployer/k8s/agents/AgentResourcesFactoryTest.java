@@ -87,6 +87,10 @@ class AgentResourcesFactoryTest {
                                 image: busybox
                                 imagePullPolicy: Never
                                 name: runtime
+                                ports:
+                                - containerPort: 8080
+                                  name: http
+                                  protocol: TCP
                                 resources:
                                   requests:
                                     cpu: 0.500000

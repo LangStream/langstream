@@ -15,6 +15,8 @@
  */
 package com.datastax.oss.sga.runtime.deployer;
 
+import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
@@ -34,7 +36,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RuntimeDeployer {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .configure(FAIL_ON_UNKNOWN_PROPERTIES, false); // this helps with forward compatibility
     private static ErrorHandler errorHandler = error -> {
         log.error("Unexpected error", error);
         System.exit(-1);

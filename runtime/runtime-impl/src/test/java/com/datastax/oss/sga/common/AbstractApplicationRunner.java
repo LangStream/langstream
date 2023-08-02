@@ -190,11 +190,12 @@ public abstract class AbstractApplicationRunner {
     }
 
     protected void executeAgentRunners(ApplicationRuntime runtime) throws Exception {
+        String runnerExecutionId = UUID.randomUUID().toString();
         List<RuntimePodConfiguration> pods = new ArrayList<>();
         runtime.secrets().forEach((key, secret) -> {
             RuntimePodConfiguration runtimePodConfiguration =
                     AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
-            log.info("Pod configuration {} = {}", key, runtimePodConfiguration);
+            log.info("{} Pod configuration {} = {}", runnerExecutionId, key, runtimePodConfiguration);
             pods.add(runtimePodConfiguration);
         });
         // execute all the pods
@@ -203,16 +204,16 @@ public abstract class AbstractApplicationRunner {
         for (RuntimePodConfiguration podConfiguration : pods) {
             CompletableFuture<?> handle = new CompletableFuture<>();
             executorService.submit(() -> {
-                Thread.currentThread().setName(podConfiguration.agent().agentId() + "runner");
+                Thread.currentThread().setName(podConfiguration.agent().agentId() + "runner-tid-" + runnerExecutionId);
                 try {
-                    log.info("AgentPod {} Started", podConfiguration.agent().agentId());
+                    log.info("{} AgentPod {} Started", runnerExecutionId, podConfiguration.agent().agentId());
                     AgentRunner.run(podConfiguration, null, null, 10);
                     handle.complete(null);
                 } catch (Throwable error) {
-                    log.error("Error {}", error);
+                    log.error("{} Error on AgentPod {}{}", runnerExecutionId, podConfiguration.agent().agentId(), error);
                     handle.completeExceptionally(error);
                 } finally {
-                    log.info("AgentPod {} Stopoed", podConfiguration.agent().agentId());
+                    log.info("{} AgentPod {} Stopped", runnerExecutionId, podConfiguration.agent().agentId());
                 }
             });
         }

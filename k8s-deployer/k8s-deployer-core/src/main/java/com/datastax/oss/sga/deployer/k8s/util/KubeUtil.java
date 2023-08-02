@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -108,12 +109,20 @@ public class KubeUtil {
         private final State state;
         private final String message;
         private final String url;
+
+        public PodStatus withUrl(String url) {
+            return new PodStatus(state, message, url);
+        }
     }
 
 
     public static Map<String, PodStatus> getPodsStatuses(List<Pod> pods) {
         Map<String, PodStatus> podStatuses = new HashMap<>();
         for (Pod pod : pods) {
+            log.info("pod name={} namespace={} status {}",
+                    pod.getMetadata().getName(),
+                    pod.getMetadata().getNamespace(),
+                    pod.getStatus());
             PodStatus status = null;
 
             final List<ContainerStatus> initContainerStatuses = pod.getStatus()
@@ -145,6 +154,11 @@ public class KubeUtil {
                 }
             }
             final String podName = pod.getMetadata().getName();
+
+            String podUrl = "http://" + pod.getMetadata().getName() + "."+pod.getMetadata().getNamespace() + ".svc.cluster.local:8080";
+            log.info("Pod url: {}", podUrl);
+            status = status.withUrl(podUrl);
+
             podStatuses.put(podName, status);
         }
         return podStatuses;

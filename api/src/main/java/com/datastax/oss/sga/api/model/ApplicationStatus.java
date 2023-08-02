@@ -37,15 +37,22 @@ public class ApplicationStatus {
 
         private Status status;
         private String reason;
+        private String url;
+        private Map<String, Object> info;
 
         public static final AgentWorkerStatus INITIALIZING =
-                new AgentWorkerStatus(Status.INITIALIZING, null);
+                new AgentWorkerStatus(Status.INITIALIZING, null, null, Map.of());
 
-        public static final AgentWorkerStatus RUNNING =
-                new AgentWorkerStatus(Status.RUNNING, null);
+        public static final AgentWorkerStatus RUNNING(String url) {
+            return new AgentWorkerStatus(Status.RUNNING, null, url, Map.of());
+        }
 
         public static final AgentWorkerStatus error(String reason) {
-            return new AgentWorkerStatus(Status.ERROR, reason);
+            return new AgentWorkerStatus(Status.ERROR, reason, null, Map.of());
+        }
+
+        public AgentWorkerStatus withInfo(Map<String, Object> info) {
+            return new AgentWorkerStatus(this.status, this.reason, this.url, info);
         }
 
 

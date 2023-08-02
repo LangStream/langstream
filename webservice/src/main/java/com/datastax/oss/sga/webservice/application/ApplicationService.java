@@ -16,6 +16,7 @@
 package com.datastax.oss.sga.webservice.application;
 
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.ApplicationStatus;
 import com.datastax.oss.sga.api.model.Gateway;
 import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplication;
@@ -70,7 +71,7 @@ public class ApplicationService {
                                   ModelBuilder.ApplicationWithPackageInfo applicationInstance,
                                   String codeArchiveReference) {
         checkTenant(tenant);
-        if (applicationStore.get(tenant, applicationId) != null) {
+        if (applicationStore.get(tenant, applicationId, false) != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Application already exists");
         }
 
@@ -110,7 +111,7 @@ public class ApplicationService {
                                                ModelBuilder.ApplicationWithPackageInfo applicationInstance) {
 
 
-        final StoredApplication existing = applicationStore.get(tenant, applicationId);
+        final StoredApplication existing = applicationStore.get(tenant, applicationId, false);
         if (existing == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found");
         }
@@ -247,7 +248,7 @@ public class ApplicationService {
     @SneakyThrows
     public StoredApplication getApplication(String tenant, String applicationId) {
         checkTenant(tenant);
-        return applicationStore.get(tenant, applicationId);
+        return applicationStore.get(tenant, applicationId, true);
     }
 
     @SneakyThrows
@@ -271,4 +272,12 @@ public class ApplicationService {
         return applicationStore.logs(tenant, applicationId, logOptions);
     }
 
+    public ApplicationRuntimeInfo getApplicationRuntimeInfo(StoredApplication app) {
+        ApplicationRuntimeInfo applicationRuntimeInfo = new ApplicationRuntimeInfo(app);
+
+        Map<String, ApplicationStatus.AgentStatus> agents = app.getStatus().getAgents();
+
+
+        return applicationRuntimeInfo;
+    }
 }

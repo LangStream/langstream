@@ -25,6 +25,7 @@ import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -51,7 +52,8 @@ import lombok.extern.jbosslog.JBossLog;
         namespaces = Constants.WATCH_ALL_NAMESPACES,
         name = "agent-controller",
         dependents = {
-                @Dependent(type = AgentController.StsDependantResource.class)
+                @Dependent(type = AgentController.StsDependantResource.class),
+                @Dependent(type = AgentController.ServiceDependantResource.class)
         })
 @JBossLog
 public class AgentController extends BaseController<AgentCustomResource>
@@ -110,6 +112,31 @@ public class AgentController extends BaseController<AgentCustomResource>
                         configuration.getAgentResources());
             } catch (Throwable t) {
                 log.errorf(t, "Error while generating StatefulSet for agent %s", primary.getMetadata().getName());
+                throw new RuntimeException(t);
+            }
+        }
+    }
+
+    @JBossLog
+    public static class ServiceDependantResource extends
+            CRUDKubernetesDependentResource<Service, AgentCustomResource> {
+
+        @Inject
+        ResolvedDeployerConfiguration configuration;
+
+        public ServiceDependantResource() {
+            super(Service.class);
+        }
+
+        @Override
+        protected Service desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
+            try {
+                // maybe there is a better way to not have to do this
+                StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(primary, configuration.getCodeStorage(),
+                        configuration.getAgentResources());
+                return AgentResourcesFactory.generateHeadlessService(statefulSet);
+            } catch (Throwable t) {
+                log.errorf(t, "Error while generating Service for agent %s", primary.getMetadata().getName());
                 throw new RuntimeException(t);
             }
         }

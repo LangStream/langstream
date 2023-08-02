@@ -75,7 +75,7 @@ class KubernetesApplicationStoreTest {
 
         assertEquals(1, store.list(tenant).size());
 
-        assertNotNull(store.get(tenant, "myapp"));
+        assertNotNull(store.get(tenant, "myapp", false));
         store.delete(tenant, "myapp");
 
         assertNull(k3s.getClient().resources(ApplicationCustomResource.class)

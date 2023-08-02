@@ -33,6 +33,8 @@ import com.datastax.oss.sga.runtime.agent.simple.IdentityAgentProvider;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.prometheus.client.exporter.HTTPServer;
+import io.prometheus.client.hotspot.DefaultExports;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -65,6 +67,8 @@ public class AgentRunner
         System.exit(-1);
     };
 
+
+
     public interface MainErrorHandler {
         void handleError(Throwable error);
     }
@@ -81,10 +85,15 @@ public class AgentRunner
             RuntimePodConfiguration configuration = MAPPER.readValue(podRuntimeConfiguration.toFile(),
                     RuntimePodConfiguration.class);
 
+            HTTPServer server = bootstrapMetrics();
+            try {
 
-            Path codeDirectory = Path.of(args[1]);
-            log.info("Loading code from {}", codeDirectory);
-            run(configuration, podRuntimeConfiguration, codeDirectory, -1);
+                Path codeDirectory = Path.of(args[1]);
+                log.info("Loading code from {}", codeDirectory);
+                run(configuration, podRuntimeConfiguration, codeDirectory, -1);
+            } finally {
+                server.close();;
+            }
 
 
         } catch (Throwable error) {
@@ -92,6 +101,15 @@ public class AgentRunner
             Thread.sleep(60000);
             mainErrorHandler.handleError(error);
         }
+    }
+
+    private static HTTPServer bootstrapMetrics() throws Exception {
+        DefaultExports.initialize();
+        HTTPServer server =  new HTTPServer.Builder()
+                .withPort(8080)
+                .build();
+        log.info("Started Prometheus metrics server on port 8080");
+        return server;
     }
 
 

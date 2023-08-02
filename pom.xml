@@ -68,6 +68,7 @@
     <jjwt.version>0.11.5</jjwt.version>
     <commons-codec.version>1.16.0</commons-codec.version>
     <commons-io.version>2.13.0</commons-io.version>
+    <prometheus.version>0.16.0</prometheus.version>
   </properties>
 
 
@@ -281,7 +282,25 @@
         <artifactId>commons-io</artifactId>
         <version>${commons-io.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.prometheus</groupId>
+        <artifactId>simpleclient</artifactId>
+        <version>${prometheus.version}</version>
+      </dependency>
+      <!-- Hotspot JVM metrics-->
+      <dependency>
+        <groupId>io.prometheus</groupId>
+        <artifactId>simpleclient_hotspot</artifactId>
+        <version>${prometheus.version}</version>
+      </dependency>
+      <!-- Exposition HTTPServer-->
+      <dependency>
+        <groupId>io.prometheus</groupId>
+        <artifactId>simpleclient_httpserver</artifactId>
+        <version>${prometheus.version}</version>
+      </dependency>
     </dependencies>
+
   </dependencyManagement>
 
   <dependencies>

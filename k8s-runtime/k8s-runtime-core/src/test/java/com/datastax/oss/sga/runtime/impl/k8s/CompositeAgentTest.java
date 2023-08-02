@@ -97,10 +97,10 @@ class CompositeAgentTest {
             assertEquals(1, implementation.getAgents().size());
             assertEquals(2, implementation.getTopics().size());
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             assertEquals(1, implementation.getAgents().size());
@@ -172,10 +172,10 @@ class CompositeAgentTest {
             assertEquals(1, implementation.getAgents().size());
             assertEquals(2, implementation.getTopics().size());
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             assertEquals(1, implementation.getAgents().size());
@@ -253,16 +253,16 @@ class CompositeAgentTest {
             log.info("Topics {}", implementation.getTopics().values().stream().map(Topic::topicName).collect(Collectors.toList()));
             assertEquals(4, implementation.getTopics().size());
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "agent-step2-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "agent-step3-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             assertEquals(3, implementation.getAgents().size());
@@ -359,7 +359,7 @@ class CompositeAgentTest {
             assertEquals(1, implementation.getAgents().size());
             assertEquals(1, implementation.getTopics().size());
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             assertEquals(1, implementation.getAgents().size());
@@ -435,7 +435,7 @@ class CompositeAgentTest {
             assertEquals(1, implementation.getAgents().size());
             assertEquals(1, implementation.getTopics().size());
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(
+                    Connection.fromTopic(TopicDefinition.fromName(
                             "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             assertEquals(1, implementation.getAgents().size());

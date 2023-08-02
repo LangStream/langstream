@@ -122,10 +122,10 @@ class KubernetesClusterRuntimeDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(
+                Connection.fromTopic(
                         TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(
+                Connection.fromTopic(
                         TopicDefinition.fromName("output-topic"))) instanceof KafkaTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");

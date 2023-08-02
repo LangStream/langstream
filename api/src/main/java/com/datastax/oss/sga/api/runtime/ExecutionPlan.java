@@ -125,4 +125,14 @@ public final class ExecutionPlan {
                 .map(Map.Entry::getValue)
                 .orElse(null);
     }
+
+    public TopicDefinition getTopicDefinitionByName(String name) {
+        return topics
+                .entrySet()
+                .stream()
+                .filter(e -> e.getKey().getName().equals(name))
+                .findFirst()
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
 }

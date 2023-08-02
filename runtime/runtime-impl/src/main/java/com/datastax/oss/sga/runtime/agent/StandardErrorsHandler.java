@@ -22,6 +22,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.datastax.oss.sga.api.model.ErrorsSpec.DEAD_LETTER;
+import static com.datastax.oss.sga.api.model.ErrorsSpec.FAIL;
+import static com.datastax.oss.sga.api.model.ErrorsSpec.SKIP;
+
 @Slf4j
 class StandardErrorsHandler implements ErrorsHandler {
 
@@ -30,8 +34,6 @@ class StandardErrorsHandler implements ErrorsHandler {
 
     private AtomicInteger failures = new AtomicInteger(0);
 
-    public static final String FAIL = "fail";
-    public static final String SKIP = "skip";
 
     public StandardErrorsHandler(Map<String, Object> configuration) {
         if (configuration == null) {
@@ -52,6 +54,7 @@ class StandardErrorsHandler implements ErrorsHandler {
                 case SKIP:
                     return ErrorsProcessingOutcome.SKIP;
                 case FAIL:
+                case DEAD_LETTER:
                 default:
                     return ErrorsProcessingOutcome.FAIL;
             }

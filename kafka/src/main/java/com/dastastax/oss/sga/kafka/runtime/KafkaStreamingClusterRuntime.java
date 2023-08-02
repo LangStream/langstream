@@ -95,7 +95,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         try {
             switch (topic.createMode()) {
                 case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
-                    log.info("Creating topic {}", topic.name());
+                    log.info("Creating Kafka topic {}", topic.name());
                     NewTopic newTopic = new NewTopic(topic.name(), topic.partitions(), (short) 1);
                     if (topic.config() != null) {
                         newTopic.configs(topic
@@ -166,7 +166,16 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @SneakyThrows
     private void deleteTopic(AdminClient admin, KafkaTopic topic) {
-        admin.deleteTopics(List.of(topic.name()), new DeleteTopicsOptions()).all().get();
+        switch (topic.createMode()) {
+            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
+                log.info("Deleting Kafka topic {}", topic.name());
+                admin.deleteTopics(List.of(topic.name()), new DeleteTopicsOptions()).all().get();
+                break;
+            }
+            default:
+                log.info("Keeping Kafka topic {}", topic.name());
+                break;
+        }
     }
 
     @Override

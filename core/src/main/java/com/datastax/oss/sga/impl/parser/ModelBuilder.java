@@ -283,26 +283,32 @@ public class ModelBuilder {
                 }
 
                 if (agent.getInput() != null) {
-                    agentConfiguration.setInput(Connection.from(module.resolveTopic(agent.getInput())));
+                    agentConfiguration.setInput(Connection.fromTopic(module.resolveTopic(agent.getInput())));
                 }
                 if (agent.getOutput() != null) {
-                    agentConfiguration.setOutput(Connection.from(module.resolveTopic(agent.getOutput())));
+                    agentConfiguration.setOutput(Connection.fromTopic(module.resolveTopic(agent.getOutput())));
                 }
                 Connection input = agentConfiguration.getInput();
                 if (last != null && input == null) {
                     // assume that the previous agent is the output of this one
-                    agentConfiguration.setInput(Connection.from(last));
+                    agentConfiguration.setInput(Connection.fromAgent(last));
 
                     // if the previous agent does not have an output, bind to this agent
                     if (last.getOutput() == null) {
-                        last.setOutput(Connection.from(agentConfiguration));
+                        last.setOutput(Connection.fromAgent(agentConfiguration));
+
+                        ErrorsSpec otherAgentErrorSpecs = agentConfiguration.getErrors();
+                        if (Objects.equals(otherAgentErrorSpecs.getOnFailure(), DEAD_LETTER)) {
+                            last.setOutput(last.getOutput().withDeadletter(true));
+                        }
+
                     }
                 }
 
                 // activate deadletter on the input connection if the agent has deadletter enabled
                 if (Objects.equals(errorsSpec.getOnFailure(), DEAD_LETTER)
                         && agentConfiguration.getInput() != null) {
-                    agentConfiguration.setInput(input.withDeadletter(true));
+                    agentConfiguration.setInput(agentConfiguration.getInput().withDeadletter(true));
                 }
 
 

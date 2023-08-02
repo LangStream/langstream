@@ -74,7 +74,7 @@ class KafkaClusterRuntimeDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
+                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
 
         deployer.deploy("tenant", implementation, null);
 

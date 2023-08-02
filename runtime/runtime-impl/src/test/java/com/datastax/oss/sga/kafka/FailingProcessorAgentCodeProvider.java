@@ -48,6 +48,11 @@ public class FailingProcessorAgentCodeProvider implements AgentCodeProvider {
                 if (Objects.equals(record.value(), failOnContent)) {
                     throw new RuntimeException("Failing on content: " + failOnContent);
                 }
+                if (record.value() instanceof String s) {
+                    if (s.contains(failOnContent)) {
+                        throw new RuntimeException("Failing on content: " + failOnContent);
+                    }
+                }
                 return List.of(record);
             }
         };

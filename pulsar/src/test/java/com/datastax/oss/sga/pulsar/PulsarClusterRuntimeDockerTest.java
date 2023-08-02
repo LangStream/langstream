@@ -327,9 +327,9 @@ class PulsarClusterRuntimeDockerTest {
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
+                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
         assertTrue(implementation.getConnectionImplementation(module,
-                Connection.from(TopicDefinition.fromName("output-topic"))) instanceof PulsarTopic);
+                Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof PulsarTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         // use the standard toolkit

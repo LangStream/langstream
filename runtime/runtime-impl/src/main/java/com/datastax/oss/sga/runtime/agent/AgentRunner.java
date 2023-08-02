@@ -314,30 +314,22 @@ public class AgentRunner
                     // This won't for the Kafka Connect Sink, because it does handle the commit
                     // itself, but on the other hand in the case of the Connect Sink we can see here
                     // only the IdentityAgentCode that is not supposed to fail
-
-                    if (sinkRecords != null) {
-                        try {
-                            // the function maps the record coming from the Source to records to be sent to the Sink
-                            sourceRecordTracker.track(sinkRecords);
-                            for (AgentProcessor.SourceRecordAndResult sourceRecordAndResult : sinkRecords) {
-                                if (sourceRecordAndResult.getError() != null) {
-                                    sourceRecordTracker.errored(sourceRecordAndResult.getSourceRecord());
-                                    // commit skipped records
-                                    source.commit(List.of(sourceRecordAndResult.getSourceRecord()));
-                                } else {
-                                    List<Record> forTheSink = new ArrayList<>();
-                                    forTheSink.addAll(sourceRecordAndResult.getResultRecords());
-                                    sink.write(forTheSink);
-                                }
-                            }
-                        } catch (Throwable e) {
-                            log.error("Error while processing records", e);
-
-                            // throw the error
-                            // this way the consumer will not commit the records
-                            throw new RuntimeException("Error while processing records", e);
+                    try {
+                        // the function maps the record coming from the Source to records to be sent to the Sink
+                        sourceRecordTracker.track(sinkRecords);
+                        for (AgentProcessor.SourceRecordAndResult sourceRecordAndResult : sinkRecords) {
+                            List<Record> forTheSink = new ArrayList<>();
+                            forTheSink.addAll(sourceRecordAndResult.getResultRecords());
+                            sink.write(forTheSink);
                         }
+                    } catch (Throwable e) {
+                        log.error("Error while processing records", e);
+
+                        // throw the error
+                        // this way the consumer will not commit the records
+                        throw new RuntimeException("Error while processing records", e);
                     }
+
                 }
 
                 // commit (Kafka Connect Sink)
@@ -406,7 +398,7 @@ public class AgentRunner
         List<AgentProcessor.SourceRecordAndResult> finalResult = new ArrayList<>(sourceRecords.size());
         for (Record sourceRecord : sourceRecords) {
             AgentProcessor.SourceRecordAndResult sourceRecordAndResult = resultsByRecord.get(sourceRecord);
-            log.info("final {} with {} sink records", sourceRecord, sourceRecordAndResult.getResultRecords());
+            log.info("final {} with {} sink records", sourceRecord, sourceRecordAndResult.getResultRecords().size());
             finalResult.add(sourceRecordAndResult);
         }
         return finalResult;

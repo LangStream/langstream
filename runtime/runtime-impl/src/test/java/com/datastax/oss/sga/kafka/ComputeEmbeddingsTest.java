@@ -20,42 +20,23 @@ import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.common.AbstractApplicationRunner;
-import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
-import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
-import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
-import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.datastax.oss.sga.runtime.agent.AgentRunner;
-import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import io.fabric8.kubernetes.api.model.Secret;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.output.OutputFrame;
-import org.testcontainers.utility.DockerImageName;
-import java.time.Duration;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
@@ -196,7 +177,7 @@ class ComputeEmbeddingsTest extends AbstractApplicationRunner {
 
             Module module = applicationInstance.getModule("module-1");
             assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.from(TopicDefinition.fromName(inputTopic))) instanceof KafkaTopic);
+                    Connection.fromTopic(TopicDefinition.fromName(inputTopic))) instanceof KafkaTopic);
 
             Set<String> topics = getKafkaAdmin().listTopics().names().get();
             log.info("Topics {}", topics);

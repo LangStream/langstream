@@ -17,6 +17,7 @@ package com.datastax.oss.sga.impl.common;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.TopicDefinition;
@@ -177,11 +178,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                             .collect(Collectors.toList()) + " are available");
                 }
 
-                if (connection.enableDeadletterQueue()) {
-                    TopicDefinition topicDefinition = module.getTopics().get(result.topicName());
-                    Topic deadLetterTopic = buildImplicitTopicForDeadletterQueue(result, topicDefinition, streamingClusterRuntime, physicalApplicationInstance);
-                    result.bindDeadletterTopic(deadLetterTopic);
-                }
+                ensureDeadLetterTopic(connection, physicalApplicationInstance, streamingClusterRuntime, result);
 
                 yield result;
             }
@@ -190,7 +187,8 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                         .getAgent(connection.definition());
                 yield switch (direction) {
                     case OUTPUT -> {
-                        ConnectionImplementation result = buildImplicitTopicForAgent(physicalApplicationInstance, agentConfiguration,  streamingClusterRuntime);
+                        Topic result = buildImplicitTopicForAgent(physicalApplicationInstance, agentConfiguration,  streamingClusterRuntime);
+                        ensureDeadLetterTopic(connection, physicalApplicationInstance, streamingClusterRuntime, result);
                         yield result;
                     }
                     case INPUT -> {
@@ -202,6 +200,14 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                 };
             }
         };
+    }
+
+    private void ensureDeadLetterTopic(Connection connection, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime, Topic result) {
+        if (connection.enableDeadletterQueue()) {
+            TopicDefinition topicDefinition = physicalApplicationInstance.getTopicDefinitionByName(result.topicName());
+            Topic deadLetterTopic = buildImplicitTopicForDeadletterQueue(result, topicDefinition, streamingClusterRuntime, physicalApplicationInstance);
+            result.bindDeadletterTopic(deadLetterTopic);
+        }
     }
 
     private Topic buildImplicitTopicForDeadletterQueue(Topic connection, TopicDefinition inputTopicDefinition, StreamingClusterRuntime streamingClusterRuntime,
@@ -223,7 +229,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
         return topicImplementation;
     }
 
-    protected ConnectionImplementation buildImplicitTopicForAgent(ExecutionPlan physicalApplicationInstance,
+    protected Topic buildImplicitTopicForAgent(ExecutionPlan physicalApplicationInstance,
                                                                   AgentConfiguration agentConfiguration,
                                                                   StreamingClusterRuntime streamingClusterRuntime) {
         // connecting two agents requires an intermediate topic

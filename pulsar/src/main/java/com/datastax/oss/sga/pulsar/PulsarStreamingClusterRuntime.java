@@ -142,6 +142,16 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     private static void deleteTopic(PulsarAdmin admin, PulsarTopic topic) throws PulsarAdminException {
+
+        switch (topic.createMode()) {
+            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
+                break;
+            }
+            default:
+                log.info("Keeping Pulsar topic {}", topic.name());
+                return;
+        }
+
         String topicName = topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
         String fullyQualifiedName = TopicName.get(topicName).toString();
         log.info("Deleting topic {}", fullyQualifiedName);

@@ -83,6 +83,8 @@ public abstract class AbstractApplicationRunner {
                 log.info("Waiting for secrets to be deleted. {}", secrets);
                 return secrets.isEmpty();
             });
+            // this is a workaround, we want to clean up the env
+            applicationDeployer.deleteStreamingClusterResourcesForTests(tenant, implementation);
         }
     }
 

@@ -17,11 +17,11 @@ package com.datastax.oss.sga.api.model;
 
 public record Connection(ConnectionType connectionType, String definition, boolean enableDeadletterQueue) {
 
-    public static Connection from(TopicDefinition topic) {
+    public static Connection fromTopic(TopicDefinition topic) {
         return new Connection(ConnectionType.TOPIC, topic.getName(), false);
     }
 
-    public static Connection from(AgentConfiguration agentConfiguration) {
+    public static Connection fromAgent(AgentConfiguration agentConfiguration) {
         return new Connection(ConnectionType.AGENT, agentConfiguration.getId(), false);
     }
 

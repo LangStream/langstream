@@ -43,7 +43,7 @@ public interface AgentProcessor extends AgentCode {
 
         public SourceRecordAndResult(Record sourceRecord, List<Record> resultRecords, Throwable error) {
             this.sourceRecord = sourceRecord;
-            this.resultRecords = resultRecords;
+            this.resultRecords = resultRecords == null ? List.of() : resultRecords;
             this.error = error;
         }
     }

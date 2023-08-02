@@ -70,6 +70,7 @@ class AgentResourcesFactoryTest {
                               app: sga-runtime
                               sga-agent: my-agent
                               sga-application: the-'app
+                          serviceName: test-agent1
                           template:
                             metadata:
                               annotations:

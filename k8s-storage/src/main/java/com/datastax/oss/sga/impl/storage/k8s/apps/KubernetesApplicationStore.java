@@ -16,7 +16,6 @@
 package com.datastax.oss.sga.impl.storage.k8s.apps;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
 import com.datastax.oss.sga.api.model.Gateways;
@@ -28,18 +27,14 @@ import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
-import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.apps.AppResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
-import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
@@ -51,25 +46,15 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -228,13 +213,13 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @Override
-    public StoredApplication get(String tenant, String applicationId) {
+    public StoredApplication get(String tenant, String applicationId, boolean queryPods) {
         final ApplicationCustomResource application =
                 getApplicationCustomResource(tenant, applicationId);
         if (application == null) {
             return null;
         }
-        return convertApplicationToResult(applicationId, application);
+        return getApplicationStatus(applicationId, application, queryPods);
     }
 
     @Override
@@ -297,19 +282,20 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .inNamespace(namespace)
                 .list()
                 .getItems().stream()
-                .map(a -> convertApplicationToResult(a.getMetadata().getName(), a))
+                .map(a -> getApplicationStatus(a.getMetadata().getName(), a, false))
                 .collect(Collectors.toMap(StoredApplication::getApplicationId, Function.identity()));
     }
 
     @SneakyThrows
-    private StoredApplication convertApplicationToResult(String applicationId,
-                                                         ApplicationCustomResource application) {
+    private StoredApplication getApplicationStatus(String applicationId,
+                                                   ApplicationCustomResource application,
+                                                   boolean queryPods) {
         final Application instance = getApplicationFromCr(application);
 
         return StoredApplication.builder()
                 .applicationId(applicationId)
                 .instance(instance)
-                .status(computeApplicationStatus(applicationId, instance, application))
+                .status(computeApplicationStatus(applicationId, instance, application, queryPods))
                 .build();
     }
 
@@ -323,7 +309,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
 
     private ApplicationStatus computeApplicationStatus(final String applicationId, Application app,
-                                                       ApplicationCustomResource customResource) {
+                                                       ApplicationCustomResource customResource,
+                                                       boolean queryPods) {
         final ApplicationStatus result = new ApplicationStatus();
         result.setStatus(AppResourcesFactory.computeApplicationStatus(client, customResource));
         List<String> declaredAgents = new ArrayList<>();
@@ -335,7 +322,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
             }
         }
         result.setAgents(AgentResourcesFactory.aggregateAgentsStatus(client, customResource
-                .getMetadata().getNamespace(), applicationId, declaredAgents));
+                .getMetadata().getNamespace(), applicationId, declaredAgents, queryPods));
         return result;
     }
 

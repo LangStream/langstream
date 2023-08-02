@@ -36,7 +36,7 @@ public interface ApplicationStore extends GenericStore {
 
     void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveReference);
 
-    StoredApplication get(String tenant, String applicationId);
+    StoredApplication get(String tenant, String applicationId, boolean queryPods);
 
     Application getSpecs(String tenant, String applicationId);
 

@@ -18,6 +18,7 @@ package com.datastax.oss.sga.apigateway.websocket.handlers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import com.datastax.oss.sga.api.model.Application;
@@ -107,7 +108,7 @@ class ProduceConsumeHandlerTest {
                     storedApplication.setInstance(application);
                     return storedApplication;
                 }
-            }).when(mock).get(anyString(), anyString());
+            }).when(mock).get(anyString(), anyString(), anyBoolean());
             doAnswer(new Answer() {
                 @Override
                 public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
@@ -213,7 +214,7 @@ class ProduceConsumeHandlerTest {
                 Map.of("admin", Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers())));
         new ClusterRuntimeRegistry()
                 .getStreamingClusterRuntime(streamingCluster)
-                .deploy(deployer.createImplementation("app", store.get("t", "app").getInstance()));
+                .deploy(deployer.createImplementation("app", store.get("t", "app", false).getInstance()));
     }
 
     @ParameterizedTest

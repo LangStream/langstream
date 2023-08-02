@@ -61,11 +61,13 @@ public class TopicConsumerSource implements AgentSource {
     @Override
     public void start() throws Exception {
         consumer.start();
+        log.info("Starting consumer {}", consumer);
         deadLetterQueueProducer.start();
     }
 
     @Override
     public void close() throws Exception {
+        log.info("Closing consumer {}", consumer);
         consumer.close();
         deadLetterQueueProducer.close();
     }

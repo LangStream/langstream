@@ -191,35 +191,42 @@ public abstract class AbstractApplicationRunner {
 
     protected void executeAgentRunners(ApplicationRuntime runtime) throws Exception {
         String runnerExecutionId = UUID.randomUUID().toString();
-        List<RuntimePodConfiguration> pods = new ArrayList<>();
-        runtime.secrets().forEach((key, secret) -> {
-            RuntimePodConfiguration runtimePodConfiguration =
-                    AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
-            log.info("{} Pod configuration {} = {}", runnerExecutionId, key, runtimePodConfiguration);
-            pods.add(runtimePodConfiguration);
-        });
-        // execute all the pods
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        List<CompletableFuture> futures = new ArrayList<>();
-        for (RuntimePodConfiguration podConfiguration : pods) {
-            CompletableFuture<?> handle = new CompletableFuture<>();
-            executorService.submit(() -> {
-                Thread.currentThread().setName(podConfiguration.agent().agentId() + "runner-tid-" + runnerExecutionId);
-                try {
-                    log.info("{} AgentPod {} Started", runnerExecutionId, podConfiguration.agent().agentId());
-                    AgentRunner.run(podConfiguration, null, null, 10);
-                    handle.complete(null);
-                } catch (Throwable error) {
-                    log.error("{} Error on AgentPod {}{}", runnerExecutionId, podConfiguration.agent().agentId(), error);
-                    handle.completeExceptionally(error);
-                } finally {
-                    log.info("{} AgentPod {} Stopped", runnerExecutionId, podConfiguration.agent().agentId());
-                }
+        log.info("{} Starting Agent Runners. Running {} pods", runnerExecutionId, runtime.secrets.size());
+        try {
+            List<RuntimePodConfiguration> pods = new ArrayList<>();
+            runtime.secrets().forEach((key, secret) -> {
+                RuntimePodConfiguration runtimePodConfiguration =
+                        AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
+                log.info("{} Pod configuration {} = {}", runnerExecutionId, key, runtimePodConfiguration);
+                pods.add(runtimePodConfiguration);
             });
+            // execute all the pods
+            ExecutorService executorService = Executors.newCachedThreadPool();
+            List<CompletableFuture> futures = new ArrayList<>();
+            for (RuntimePodConfiguration podConfiguration : pods) {
+                CompletableFuture<?> handle = new CompletableFuture<>();
+                executorService.submit(() -> {
+                    String originalName = Thread.currentThread().getName();
+                    Thread.currentThread().setName(podConfiguration.agent().agentId() + "runner-tid-" + runnerExecutionId);
+                    try {
+                        log.info("{} AgentPod {} Started", runnerExecutionId, podConfiguration.agent().agentId());
+                        AgentRunner.run(podConfiguration, null, null, 10);
+                        handle.complete(null);
+                    } catch (Throwable error) {
+                        log.error("{} Error on AgentPod {}{}", runnerExecutionId, podConfiguration.agent().agentId(), error);
+                        handle.completeExceptionally(error);
+                    } finally {
+                        log.info("{} AgentPod {} finished", runnerExecutionId, podConfiguration.agent().agentId());
+                        Thread.currentThread().setName(originalName);
+                    }
+                });
+            }
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+            executorService.shutdown();
+            assertTrue(executorService.awaitTermination(1, TimeUnit.MINUTES), "the pods didn't finish in time");
+        } finally {
+            log.info("{} Agent Runners Stopped", runnerExecutionId);
         }
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        executorService.shutdown();
-        executorService.awaitTermination(5, TimeUnit.SECONDS);
     }
 
     protected KafkaConsumer createConsumer(String topic) {

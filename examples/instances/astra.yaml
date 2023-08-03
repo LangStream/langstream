@@ -25,5 +25,3 @@ instance:
         sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username='{{ secrets.astra-token.tenant }}' password='token:{{ secrets.astra-token.token }}';"
         sasl.mechanism: PLAIN
         session.timeout.ms: "45000"
-  computeCluster:
-    type: "kubernetes"

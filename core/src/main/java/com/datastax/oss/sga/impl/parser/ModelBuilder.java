@@ -17,6 +17,7 @@ package com.datastax.oss.sga.impl.parser;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.model.Application;
+import com.datastax.oss.sga.api.model.ComputeCluster;
 import com.datastax.oss.sga.api.model.Dependency;
 import com.datastax.oss.sga.api.model.ErrorsSpec;
 import com.datastax.oss.sga.api.model.Gateway;
@@ -251,7 +252,9 @@ public class ModelBuilder {
         log.info("Configuration: {}", pipelineConfiguration);
         String id = pipelineConfiguration.getId();
         if (id == null) {
-            id = filename;
+            id = filename
+                    .replace(".yaml", "")
+                    .replace(".yml", "");
         }
         Pipeline pipeline = module.addPipeline(id);
         pipeline.setName(pipelineConfiguration.getName());
@@ -274,12 +277,23 @@ public class ModelBuilder {
         if (pipelineConfiguration.getPipeline() != null) {
             for (AgentModel agent : pipelineConfiguration.getPipeline()) {
                 AgentConfiguration agentConfiguration = agent.toAgentConfiguration(pipeline);
+                if (agentConfiguration.getType() == null || agentConfiguration.getType().isBlank()) {
+                    throw new IllegalArgumentException("Agent type is always required");
+                }
                 ErrorsSpec errorsSpec = validateErrorsSpec(agentConfiguration.getErrors());
                 if (agentConfiguration.getId() == null) {
-                    // ensure that we always have a name
+                    // ensure that we always have an id
                     // please note that this algorithm should not be changed in order to not break
                     // compatibility with existing pipelineConfiguration files
-                    agentConfiguration.setId(agentConfiguration.getType() + "_" + autoId++);
+                    String moduleAutoId;
+                    if (Objects.equals(Module.DEFAULT_MODULE, module.getId())) {
+                        moduleAutoId = "";
+                    } else {
+                        moduleAutoId = module.getId() + "_";
+                    }
+                    String autoIdStr = moduleAutoId + pipeline.getId() + "_" + agentConfiguration.getType() + "_" + autoId;
+                    agentConfiguration.setId(autoIdStr);
+                    autoId++;
                 }
 
                 if (agent.getInput() != null) {
@@ -320,15 +334,25 @@ public class ModelBuilder {
 
     private static void parseSecrets(String content, Application application) throws IOException {
         SecretsFileModel secretsFileModel = mapper.readValue(content, SecretsFileModel.class);
-        log.info("Secrets: {}", secretsFileModel);
+        if (log.isDebugEnabled()) { // don't write secrets in logs
+            log.debug("Secrets: {}", secretsFileModel);
+        }
         application.setSecrets(new Secrets(secretsFileModel.secrets()
                 .stream().collect(Collectors.toMap(Secret::id, Function.identity()))));
     }
 
     private static void parseInstance(String content, Application application) throws IOException {
-        InstanceFileModel instance = mapper.readValue(content, InstanceFileModel.class);
-        log.info("Instance Configuration: {}", instance);
-        application.setInstance(instance.instance);
+        InstanceFileModel instanceModel = mapper.readValue(content, InstanceFileModel.class);
+        log.info("Instance Configuration: {}", instanceModel);
+        Instance instance = instanceModel.instance;
+
+        // add default "kubernetes" compute cluster if not present
+        if (instance.computeCluster() == null) {
+            instance = new Instance(instance.streamingCluster(),
+                    new ComputeCluster("kubernetes", Map.of()),
+                    instance.globals());
+        }
+        application.setInstance(instance);
     }
 
 

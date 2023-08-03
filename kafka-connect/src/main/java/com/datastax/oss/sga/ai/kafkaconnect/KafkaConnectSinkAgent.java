@@ -17,6 +17,7 @@ package com.datastax.oss.sga.ai.kafkaconnect;
 
 import com.dastastax.oss.sga.kafka.runner.KafkaRecord;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
+import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.google.common.annotations.VisibleForTesting;
@@ -76,7 +77,12 @@ public class KafkaConnectSinkAgent implements AgentSink {
         }
     }
 
-    private String kafkaConnectorFQClassName;
+    @Override
+    public String agentType() {
+        return "sink";
+    }
+
+    private String kafkaConnectorFQClassName = "?";
     @VisibleForTesting
     KafkaConnectSinkTaskContext taskContext;
     private SinkConnector connector;
@@ -104,7 +110,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
     private final AvroData avroData = new AvroData(1000);
     private final ConcurrentLinkedDeque<ConsumerCommand> consumerCqrsQueue = new ConcurrentLinkedDeque<>();
 
-    private final AtomicInteger totalIn = new AtomicInteger();
+    private final AtomicLong totalIn = new AtomicLong();
 
     // has to be the same consumer as used to read records to process,
     // otherwise pause/resume won't work
@@ -466,7 +472,8 @@ public class KafkaConnectSinkAgent implements AgentSink {
     }
 
     @Override
-    public Map<String, Object> getInfo() {
-        return Map.of("totalIn", totalIn.get());
+    public AgentInfo getInfo() {
+        return new AgentInfo(agentType(), Map.of(
+                "connector.class", kafkaConnectorFQClassName), totalIn.get(), null);
     }
 }

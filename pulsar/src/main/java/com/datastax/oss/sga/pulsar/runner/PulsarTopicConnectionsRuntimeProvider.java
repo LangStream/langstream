@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -203,6 +204,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             private final Map<String, Object> configuration;
             Consumer<GenericRecord> consumer;
 
+            private final AtomicLong totalOut = new AtomicLong();
+
             public PulsarTopicConsumer(Map<String, Object> configuration) {
                 this.configuration = configuration;
             }
@@ -235,6 +238,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             }
 
             @Override
+            public long getTotalOut() {
+                return totalOut.get();
+            }
+
+            @Override
             public List<Record> read() throws Exception {
                 Message<GenericRecord> receive = consumer.receive(1, TimeUnit.SECONDS);
                 if (receive == null) {
@@ -250,6 +258,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 final Object finalKey = key;
                 final Object finalValue = value;
                 log.info("Received message: {}", receive);
+                totalOut.incrementAndGet();
                 return List.of(new PulsarConsumerRecord(finalKey, finalValue, receive));
             }
 
@@ -265,6 +274,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
         private class PulsarTopicProducer  <K> implements TopicProducer {
 
             private final Map<String, Object> configuration;
+            private final AtomicLong totalIn = new AtomicLong();
             Producer<K> producer;
             Schema<K> schema;
 
@@ -275,7 +285,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             @SneakyThrows
             public void start() {
-                // TODO: handle schema
                 String topic = (String) configuration.remove("topic");
                 schema = (Schema<K>) configuration.remove("schema");
                 if (schema == null) {
@@ -302,6 +311,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
             @Override
             public void write(List<Record> records) {
+                totalIn.addAndGet(records.size());
                 List<CompletableFuture<?>> handles = new ArrayList<>();
                 for (Record r : records) {
                     log.info("Writing message {}", r);
@@ -336,6 +346,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     default:
                         throw new IllegalArgumentException("Unsupported output schema type " + schema);
                 }
+            }
+
+            @Override
+            public long getTotalIn() {
+                return totalIn.get();
             }
         }
     }

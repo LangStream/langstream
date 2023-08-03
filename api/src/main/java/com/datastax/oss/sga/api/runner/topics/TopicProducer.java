@@ -35,4 +35,6 @@ public interface TopicProducer extends AutoCloseable {
     default Object getInfo() {
         return Map.of();
     }
+
+    long getTotalIn();
 }

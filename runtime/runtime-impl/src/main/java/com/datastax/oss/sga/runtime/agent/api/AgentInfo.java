@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.runtime.agent.api;
 
+import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
@@ -26,19 +27,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class AgentInfo {
-    private TopicConsumer consumer;
-    private TopicProducer producer;
     private AgentProcessor processor;
     private AgentSource source;
     private AgentSink sink;
 
-    public void watchConsumer(TopicConsumer consumer) {
-        this.consumer = consumer;
-    }
-
-    public void watchProducer(TopicProducer producer) {
-        this.producer = producer;
-    }
 
     public void watchProcessor(AgentProcessor processor) {
         this.processor = processor;
@@ -60,12 +52,6 @@ public class AgentInfo {
      */
     public Map<String, Object> serveInfos() {
         Map<String, Object> result = new LinkedHashMap<>();
-        if (consumer != null) {
-            result.put("consumer", consumer.getInfo());
-        }
-        if (producer != null) {
-            result.put("producer", producer.getInfo());
-        }
         if (source != null) {
             result.put("source", source.getInfo());
         }

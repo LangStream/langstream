@@ -13,33 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sga.api.runner.topics;
+package com.datastax.oss.sga.api.runner.code;
 
-import com.datastax.oss.sga.api.runner.code.Record;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.util.List;
 import java.util.Map;
 
-public interface TopicConsumer extends AutoCloseable {
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class AgentInfo {
 
-    default Object getNativeConsumer() {
-        return null;
-    }
+    private String agentType;
+    private Map<String, Object> info;
+    @JsonProperty("total-in")
+    private Long totalIn;
+    @JsonProperty("total-out")
+    private Long totalOut;
 
-    default void start() throws Exception {}
-
-    default void close() throws Exception  {}
-
-    default List<Record> read()throws Exception  {
-        return List.of();
-    }
-
-    default void commit(List<Record> records) throws Exception {
-    }
-
-    default Map<String, Object> getInfo() {
-        return Map.of();
-    }
-
-    long getTotalOut();
 }

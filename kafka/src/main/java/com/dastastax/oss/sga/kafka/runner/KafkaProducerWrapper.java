@@ -121,14 +121,18 @@ class KafkaProducerWrapper implements TopicProducer {
     }
 
     @Override
+    public long getTotalIn() {
+        return totalIn.get();
+    }
+
+    @Override
     public Map<String, Object> getInfo() {
         Map<String, Object> result = new HashMap<>();
         if (topicName != null) {
             result.put("topicName", topicName);
         }
-        result.put("totalIn", totalIn.get());
         if (producer != null) {
-            result.put("kafkaConsumerMetrics",
+            result.put("kafkaProducerMetrics",
                     KafkaMetricsUtils.metricsToMap(producer.metrics()));
         }
         return result;

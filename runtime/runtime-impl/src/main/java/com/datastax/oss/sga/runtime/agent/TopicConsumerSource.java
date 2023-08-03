@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
+import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
@@ -34,6 +35,11 @@ public class TopicConsumerSource implements AgentSource {
                                TopicProducer deadLetterQueueProducer) {
         this.consumer = consumer;
         this.deadLetterQueueProducer = deadLetterQueueProducer;
+    }
+
+    @Override
+    public String agentType() {
+        return "topic-source";
     }
 
     @Override
@@ -77,5 +83,10 @@ public class TopicConsumerSource implements AgentSource {
         return "TopicConsumerSource{" +
                 "consumer=" + consumer +
                 '}';
+    }
+
+    @Override
+    public AgentInfo getInfo() {
+        return new AgentInfo(agentType(), Map.of("consumer", consumer.getInfo()), null, consumer.getTotalOut());
     }
 }

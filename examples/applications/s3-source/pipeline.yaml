@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +14,6 @@
 # limitations under the License.
 #
 
-module: "module-1"
-id: "pipeline-1"
 name: "Read from S3"
 topics:
   - name: "output-topic"

@@ -62,6 +62,11 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
     private ServiceProvider serviceProvider;
 
     @Override
+    public String agentType() {
+        return "ai-tools";
+    }
+
+    @Override
     public List<Record> processRecord(Record record) throws Exception {
         log.info("Processing {}", record);
         TransformContext context = recordToTransformContext(record);

@@ -49,7 +49,7 @@ You have to pass a sessionId to the gateway, it will be used to identify the use
 ```
 
 
-## Get the user credentials
+## Get the user credentials using Google Sign In
 
 The application uses the [Sign In with Google](https://developers.google.com/identity/gsi/web/guides/overview) feature.
 You have to get a token from Google and pass it to the gateway.
@@ -74,7 +74,7 @@ Then open your browser to http://localhost and click on the button.
 You will get a JWT token.
 
 
-## Start the echo chat-bot with authentication
+## Start the echo chat-bot with Google authentication
 Since the application opens a gateway, we can use the gateway API to send and consume messages.
 
 In this case there's no need to pass a sessionId since the session will be per-user by default,
@@ -85,3 +85,27 @@ google_token=the-token-you-got-above
 ./bin/sga-cli gateway chat test -cg consume-output-auth-google -pg produce-input-auth-google -p sessionId=$(uuidgen) -c "$google_token"
 ```
 
+## Getting the user credentials using GitHub
+
+Reference: https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/building-a-login-with-github-button-with-a-github-app
+
+Step 1:  create a GitHub App
+https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app
+
+Set as redirect page http://localhost/login-github.html
+Note your client id and your client secret.
+
+Start a simple web server
+cd examples/applications/gateway-authentication
+python3 -m http.server 80
+
+Open the browser to http://localhost/login-github.html
+
+Click on the button and you will get a code.
+Then you can fill in the form with the client id and the secret and you will have a token.
+
+## Start the echo chat-bot with GitHub authentication
+```
+github_token=the-token-you-got-above
+./bin/sga-cli gateway chat test -cg consume-output-auth-github -pg produce-input-auth-github -p sessionId=$(uuidgen) -c "$github_token"
+```

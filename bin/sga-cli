@@ -31,11 +31,11 @@ done
 BINDIR=$(dirname "$PRG")
 ROOT_DIR=`cd -P $BINDIR/..;pwd`
 
-cd $ROOT_DIR
+pushd $ROOT_DIR > /dev/null
 if [ ! -d cli/target/cli ]; then
   ./mvnw clean install -DskipTests -pl cli -am
 fi
-
-"cli/target/cli/bin/sga" "$@"
+popd > /dev/null
+"$ROOT_DIR/cli/target/cli/bin/sga" "$@"
 
 

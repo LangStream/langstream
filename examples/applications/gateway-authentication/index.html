@@ -1,0 +1,31 @@
+<html>
+<body>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+    function handleCredentialResponse(response) {
+        console.log("Encoded JWT ID token: " + response.credential);
+        document.getElementById("token").value = response.credential;
+    }
+    window.onload = function () {
+        google.accounts.id.initialize({
+            client_id: "YOUR_GOOGLE_CLIENT_ID",
+            callback: handleCredentialResponse
+        });
+        google.accounts.id.renderButton(
+            document.getElementById("buttonDiv"),
+            { theme: "outline", size: "large" }  // customization attributes
+        );
+        google.accounts.id.prompt(); // also display the One Tap dialog
+    }
+</script>
+
+<h1>Google Get Token</h1>
+
+This simple web page allows you to get a token from Google. You can use this token to authenticate with the gateway.
+
+<div id="buttonDiv"></div>
+
+<div>Your token will appear here:</div>
+<textarea id="token" cols="300" rows="50"></textarea>
+</body>
+</html>

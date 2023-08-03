@@ -63,8 +63,6 @@ and configure it in the application.
 
 Set as allowed Javascript origin this url `http://localhost`.
 
-Modify the index.html file in this directory and set the Google Client ID by replacing the YOUR_GOOGLE_CLIENT_ID placeholder.
-
 Then you can run the web application with the button 
 
 cd examples/applications/gateway-authentication
@@ -86,15 +84,39 @@ google_token=the-token-you-got-above
 ./bin/sga-cli gateway chat test -cg consume-output-auth-google -pg produce-input-auth-google -p sessionId=$(uuidgen) -c "$google_token"
 ```
 
-## Getting the user credentials using GitHub
+## Setting up GitHub authentication
 
 Reference: https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/building-a-login-with-github-button-with-a-github-app
 
-Step 1:  create a GitHub App
+First of all you have to create a GitHub App:
 https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app
 
 Set as redirect page http://localhost/login-github.html
-Note your client id and your client secret.
+
+Note your Client ID and your client secret.
+
+You have to put the client-id into the secrets.yaml file.
+The Client Secret is not used by the gateway but you need it in order to generate the token.
+
+```
+export GITHUB_CLIENT_ID=xxx
+
+echo """
+secrets:
+  - name: github
+    id: github
+    data:
+      client-id: $GITHUB_CLIENT_ID
+""" > /tmp/secrets.yaml
+```
+
+Deploy the application
+
+```
+./bin/sga-cli apps deploy test -app examples/applications/gateway-authentication -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+```
+
+## Get the GitHub token
 
 Start a simple web server
 cd examples/applications/gateway-authentication

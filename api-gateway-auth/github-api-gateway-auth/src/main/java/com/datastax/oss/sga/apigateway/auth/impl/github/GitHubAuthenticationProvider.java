@@ -26,12 +26,15 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 public class GitHubAuthenticationProvider implements GatewayAuthenticationProvider {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
+
+    private String clientId;
 
     @Override
     public String type() {
@@ -42,6 +45,8 @@ public class GitHubAuthenticationProvider implements GatewayAuthenticationProvid
     public void initialize(Map<String, Object> configuration) {
         final GitHubAuthenticationProviderConfiguration config =
                 mapper.convertValue(configuration, GitHubAuthenticationProviderConfiguration.class);
+        clientId = config.getClientId();
+        log.info("Initialized GitHub authentication with configuration: {}", config);
     }
 
     @Override
@@ -68,10 +73,30 @@ public class GitHubAuthenticationProvider implements GatewayAuthenticationProvid
                         .header("X-GitHub-Api-Version", "2022-11-28")
                         .build();
 
-                String body = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
-                log.info("GitHub response: {}", body);
-                Map<String, String> result = new ObjectMapper().readValue(body, Map.class);
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                String body = response.body();
+                String responseClientId = response.headers().firstValue("X-OAuth-Client-Id").orElse(null);
 
+                log.info("GitHub response: {}", body);
+                log.info("X-OAuth-Client-Id: {}", responseClientId);
+                log.info("Required: X-OAuth-Client-Id: {}", clientId);
+
+
+                Map<String, String> result = new ObjectMapper().readValue(body, Map.class);
+                if (log.isDebugEnabled()) {
+                    response.headers()
+                            .map()
+                            .forEach((k, v) -> log.debug("Header {}: {}", k, v));
+                }
+
+                if (clientId != null && !clientId.isEmpty()) {
+                    if (!Objects.equals(responseClientId, clientId)) {
+                        String message = "Invalid client id," +
+                                "the token has been issued by " + responseClientId + ", expecting " + clientId;
+                        log.info(message);
+                        return GatewayAuthenticationResult.authenticationFailed(message);
+                    }
+                }
                 return GatewayAuthenticationResult.authenticationSuccessful(result);
             } else {
                 return GatewayAuthenticationResult.authenticationFailed("Invalid token.");

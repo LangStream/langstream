@@ -64,8 +64,12 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
                 principalValues = authenticate(gatewayRequestContext);
             } catch (AuthFailedException authFailedException) {
                 log.info("Authentication failed {}", authFailedException.getMessage());
-                httpResponse.getServletResponse().sendError(HttpStatus.UNAUTHORIZED.value(),
-                        authFailedException.getMessage());
+                String error = authFailedException.getMessage();
+                if (error == null || error.isEmpty()) {
+                    error = "unknown";
+                }
+                httpResponse.getServletResponse().sendError(HttpStatus.FORBIDDEN.value(),
+                        error);
                 return false;
             }
             log.info("Authentication passed!");

@@ -76,6 +76,16 @@ class KafkaReaderWrapper implements TopicReader {
                 }
             }
         }
+
+        // this MAY look like debug code, but it's not.
+        // the "seek" operations are "lazy"
+        // so we need to call "position" to actually trigger the seek
+        // otherwise if a producer writes to the topic, we may lose the first message
+        for (TopicPartition topicPartition : partitions) {
+            long position = consumer.position(topicPartition);
+            log.info("Current position for partition {} is {}", topicPartition, position);
+        }
+
     }
 
     @SneakyThrows

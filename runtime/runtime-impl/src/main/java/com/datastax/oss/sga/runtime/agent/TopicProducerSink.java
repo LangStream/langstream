@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
+import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
@@ -70,7 +71,7 @@ public class TopicProducerSink implements AgentSink {
     }
 
     @Override
-    public Map<String, Object> getInfo() {
-        return Map.of("producer", producer.getInfo());
+    public AgentInfo getInfo() {
+        return new AgentInfo(agentType(), Map.of("producer", producer.getInfo()), producer.getTotalIn(), null);
     }
 }

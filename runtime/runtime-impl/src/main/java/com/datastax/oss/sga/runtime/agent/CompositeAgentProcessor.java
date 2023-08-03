@@ -16,6 +16,7 @@
 package com.datastax.oss.sga.runtime.agent;
 
 import com.datastax.oss.sga.api.runner.code.AgentContext;
+import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This is a special processor that executes a pipeline of Agents in memory.
@@ -34,6 +36,9 @@ public class CompositeAgentProcessor implements AgentProcessor {
     private AgentSource source;
     private final List<AgentProcessor> processors = new ArrayList<>();
     private AgentSink sink;
+
+    private AtomicInteger totalIn = new AtomicInteger();
+    private AtomicInteger totalOut = new AtomicInteger();
 
     @Override
     public String agentType() {
@@ -120,6 +125,8 @@ public class CompositeAgentProcessor implements AgentProcessor {
                     .toList();
         }
 
+        totalIn.addAndGet(records.size());
+
         int current = 0;
         AgentProcessor currentAgent = processors.get(current++);
         List<SourceRecordAndResult> currentResults;
@@ -166,20 +173,26 @@ public class CompositeAgentProcessor implements AgentProcessor {
             currentResults = nextStageResults;
         }
 
+        totalOut.addAndGet(currentResults
+                .stream()
+                .filter(s -> s.getResultRecords() != null)
+                .mapToInt(s -> s.getResultRecords().size())
+                .sum());
         return currentResults;
     }
 
     @Override
-    public Map<String, Object> getInfo() {
+    public AgentInfo getInfo() {
         Map<String, Object> result = new HashMap<>();
         List<Map<String, Object>> processorsInfo = new ArrayList<>();
         for (AgentProcessor processor : processors) {
             Map<String, Object> processorInfo = new HashMap<>();
             processorInfo.put("agent-type", processor.agentType());
-            processorInfo.putAll(processor.getInfo());
+            AgentInfo info = processor.getInfo();
+            processorInfo.put("info", info);
             processorsInfo.add(processorInfo);
         }
         result.put("processors", processorsInfo);
-        return result;
+        return new AgentInfo(agentType(), result, totalIn.get(), totalOut.get());
     }
 }

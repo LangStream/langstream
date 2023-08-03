@@ -17,6 +17,7 @@ package com.datastax.oss.sga.ai.kafkaconnect;
 
 import com.dastastax.oss.sga.kafka.runner.KafkaRecord;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
+import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
@@ -53,6 +54,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -74,6 +76,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
     private static final String OFFSET_NAMESPACE = "sga-offset-ns";
 
     private SourceTaskContext sourceTaskContext;
+    private String kafkaConnectorFQClassName = "?";
     private SourceConnector connector;
     @Getter
     private SourceTask sourceTask;
@@ -100,7 +103,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
     TopicConsumer topicConsumerFromOffsetStore;
     TopicProducer topicProducerToOffsetStore;
 
-    private AtomicInteger totalOut = new AtomicInteger();
+    private AtomicLong totalOut = new AtomicLong();
 
     // just to get access to baseConfigDef()
     class WorkerConfigImpl extends org.apache.kafka.connect.runtime.WorkerConfig {
@@ -257,7 +260,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
 
     @Override
     public void start() throws Exception {
-        String kafkaConnectorFQClassName = adapterConfig.get(CONNECTOR_CLASS).toString();
+        kafkaConnectorFQClassName = adapterConfig.get(CONNECTOR_CLASS).toString();
         Class<?> clazz = Class.forName(kafkaConnectorFQClassName);
         connector = (SourceConnector) clazz.getConstructor().newInstance();
 
@@ -359,7 +362,8 @@ public class KafkaConnectSourceAgent implements AgentSource {
     }
 
     @Override
-    public Map<String, Object> getInfo() {
-        return Map.of("totalOut", totalOut.get());
+    public AgentInfo getInfo() {
+        return new AgentInfo(agentType(), Map.of("connector", connector.getClass().getName()),
+                null, totalOut.get());
     }
 }

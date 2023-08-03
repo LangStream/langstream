@@ -67,6 +67,11 @@ class KafkaConsumerWrapper implements TopicConsumer {
     }
 
     @Override
+    public long getTotalOut() {
+        return totalOut.get();
+    }
+
+    @Override
     public Map<String, Object> getInfo() {
         Map<String, Object> result = new HashMap<>();
         if (topicName != null) {
@@ -76,7 +81,6 @@ class KafkaConsumerWrapper implements TopicConsumer {
             result.put("kafkaConsumerMetrics",
                     KafkaMetricsUtils.metricsToMap(consumer.metrics()));
         }
-        result.put("totalOut", totalOut.get());
         return result;
     }
 

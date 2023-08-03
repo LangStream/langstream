@@ -15,6 +15,7 @@
  */
 package com.dastastax.oss.sga.agents.s3;
 
+import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Header;
 import com.datastax.oss.sga.api.runner.code.Record;
@@ -32,20 +33,17 @@ import io.minio.errors.InternalException;
 import io.minio.errors.InvalidResponseException;
 import io.minio.errors.ServerException;
 import io.minio.errors.XmlParserException;
-import io.minio.messages.Bucket;
 import io.minio.messages.Item;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import lombok.AllArgsConstructor;
 import lombok.ToString;
@@ -58,7 +56,7 @@ public class S3Source implements AgentSource {
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
     private int idleTime;
 
-    private AtomicInteger totalOut = new AtomicInteger();
+    private AtomicLong totalOut = new AtomicLong();
 
     @Override
     public String agentType() {
@@ -152,8 +150,8 @@ public class S3Source implements AgentSource {
     }
 
     @Override
-    public Map<String, Object> getInfo() {
-        return Map.of("totalOut", totalOut.get());
+    public AgentInfo getInfo() {
+        return new AgentInfo(agentType(), Map.of(), null, totalOut.get());
     }
 
     @Override

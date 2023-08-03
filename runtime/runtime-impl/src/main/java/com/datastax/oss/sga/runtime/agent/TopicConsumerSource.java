@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
+import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
@@ -85,7 +86,7 @@ public class TopicConsumerSource implements AgentSource {
     }
 
     @Override
-    public Map<String, Object> getInfo() {
-        return Map.of("consumer", consumer.getInfo());
+    public AgentInfo getInfo() {
+        return new AgentInfo(agentType(), Map.of("consumer", consumer.getInfo()), null, consumer.getTotalOut());
     }
 }

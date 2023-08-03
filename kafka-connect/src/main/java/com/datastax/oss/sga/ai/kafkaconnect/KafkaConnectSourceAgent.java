@@ -125,6 +125,11 @@ public class KafkaConnectSourceAgent implements AgentSource {
     }
 
     @Override
+    public String agentType() {
+        return "source";
+    }
+
+    @Override
     public List<Record> read() throws Exception {
 
         List<SourceRecord> recordList = sourceTask.poll();

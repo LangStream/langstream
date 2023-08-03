@@ -142,6 +142,11 @@ class AgentRunnerTest {
 
     private static class SimpleSink implements AgentSink {
 
+        @Override
+        public String agentType() {
+            return "test";
+        }
+
         CommitCallback callback;
 
         @Override
@@ -156,6 +161,11 @@ class AgentRunnerTest {
     }
 
     private static class SimpleSource implements AgentSource {
+
+        @Override
+        public String agentType() {
+            return "test";
+        }
 
         final List<Record> records;
         final List<Record> uncommitted = new ArrayList<>();
@@ -199,6 +209,11 @@ class AgentRunnerTest {
     }
 
     private static class SimpleAgentProcessor extends SingleRecordAgentProcessor {
+
+        @Override
+        public String agentType() {
+            return "test";
+        }
 
         private final Set<String> failOnContent;
         private int executionCount;

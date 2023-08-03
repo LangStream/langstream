@@ -14,9 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-module: "module-1"
-id: "pipeline-2"
 name: "Write to AstraDB"
 topics:
   - name: "chunks-topic"

@@ -61,6 +61,11 @@ public class S3Source implements AgentSource {
     private AtomicInteger totalOut = new AtomicInteger();
 
     @Override
+    public String agentType() {
+        return "s3-source";
+    }
+
+    @Override
     public void init(Map<String, Object> configuration) throws Exception {
         bucketName = configuration.getOrDefault("bucketName", "sga-source").toString();
         String endpoint = configuration.getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090").toString();

@@ -38,6 +38,11 @@ import java.util.stream.Stream;
 public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
 
     @Override
+    public String agentType() {
+        return "text-extractor";
+    }
+
+    @Override
     public void init(Map<String, Object> configuration) throws Exception {
     }
 

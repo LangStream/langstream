@@ -36,6 +36,12 @@ public class AgentRecordTrackerTest {
     }
 
     private static class MySource implements AgentSource {
+
+        @Override
+        public String agentType() {
+            return "my-source";
+        }
+
         List<Record> committed = new ArrayList<>();
 
         @Override

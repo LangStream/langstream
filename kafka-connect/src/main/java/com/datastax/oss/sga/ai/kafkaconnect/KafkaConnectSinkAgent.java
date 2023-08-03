@@ -76,6 +76,11 @@ public class KafkaConnectSinkAgent implements AgentSink {
         }
     }
 
+    @Override
+    public String agentType() {
+        return "sink";
+    }
+
     private String kafkaConnectorFQClassName;
     @VisibleForTesting
     KafkaConnectSinkTaskContext taskContext;

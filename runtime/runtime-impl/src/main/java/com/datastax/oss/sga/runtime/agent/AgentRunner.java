@@ -237,7 +237,6 @@ public class AgentRunner
                     configuration.streamingCluster(), configuration.input());
             deadLetterProducer = topicConnectionsRuntime.createDeadletterTopicProducer(agentId,
                     configuration.streamingCluster(), configuration.input());
-            agentInfo.watchConsumer(consumer);
         } else {
             consumer = new NoopTopicConsumer();
         }
@@ -250,7 +249,6 @@ public class AgentRunner
         final TopicProducer producer;
         if (configuration.output() != null && !configuration.output().isEmpty()) {
             producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
-            agentInfo.watchProducer(producer);
         } else {
             producer = new NoopTopicProducer();
         }
@@ -277,11 +275,11 @@ public class AgentRunner
             } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
                 source = compositeAgentProcessor.getSource();
             }
-            agentInfo.watchSource(source);
 
             if (source == null) {
                 source = new TopicConsumerSource(consumer, deadLetterProducer);
             }
+            agentInfo.watchSource(source);
 
             AgentSink sink = null;
             if (agentCode instanceof AgentSink agentSink) {
@@ -289,11 +287,10 @@ public class AgentRunner
             } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
                 sink = compositeAgentProcessor.getSink();
             }
-            agentInfo.watchSink(sink);
-
             if (sink == null) {
                 sink = new TopicProducerSink(producer);
             }
+            agentInfo.watchSink(sink);
 
             try {
                 topicAdmin.start();

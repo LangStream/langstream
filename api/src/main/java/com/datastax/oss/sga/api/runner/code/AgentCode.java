@@ -15,13 +15,18 @@
  */
 package com.datastax.oss.sga.api.runner.code;
 
-import java.util.List;
 import java.util.Map;
 
 /**
  * Body of the agent
  */
 public interface AgentCode {
+
+    /**
+     * Get the type of the agent.
+     * @return the type of the agent
+     */
+    String agentType();
 
     default void init(Map<String, Object> configuration) throws Exception {
     }

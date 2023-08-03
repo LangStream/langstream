@@ -37,6 +37,11 @@ public class TopicConsumerSource implements AgentSource {
     }
 
     @Override
+    public String agentType() {
+        return "topic-source";
+    }
+
+    @Override
     public void init(Map<String, Object> configuration) throws Exception {
         // the consumer is already initialized
     }
@@ -77,5 +82,10 @@ public class TopicConsumerSource implements AgentSource {
         return "TopicConsumerSource{" +
                 "consumer=" + consumer +
                 '}';
+    }
+
+    @Override
+    public Map<String, Object> getInfo() {
+        return Map.of("consumer", consumer.getInfo());
     }
 }

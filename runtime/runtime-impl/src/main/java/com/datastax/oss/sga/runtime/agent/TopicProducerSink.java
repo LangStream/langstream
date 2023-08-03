@@ -27,6 +27,11 @@ public class TopicProducerSink implements AgentSink {
     private final TopicProducer producer;
     private CommitCallback callback;
 
+    @Override
+    public String agentType() {
+        return "topic-sink";
+    }
+
     public TopicProducerSink(TopicProducer producer) {
         this.producer = producer;
     }
@@ -62,5 +67,10 @@ public class TopicProducerSink implements AgentSink {
         return "TopicProducerSink{" +
                 "producer=" + producer +
                 '}';
+    }
+
+    @Override
+    public Map<String, Object> getInfo() {
+        return Map.of("producer", producer.getInfo());
     }
 }

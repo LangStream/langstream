@@ -36,6 +36,11 @@ public class CompositeAgentProcessor implements AgentProcessor {
     private AgentSink sink;
 
     @Override
+    public String agentType() {
+        return "composite-agent";
+    }
+
+    @Override
     public void init(Map<String, Object> configuration) throws Exception {
         List<Map<String, Object>> processorsDefinition = null;
         if (configuration.containsKey("processors")) {
@@ -170,7 +175,7 @@ public class CompositeAgentProcessor implements AgentProcessor {
         List<Map<String, Object>> processorsInfo = new ArrayList<>();
         for (AgentProcessor processor : processors) {
             Map<String, Object> processorInfo = new HashMap<>();
-            // TODO: add agent type and configuration
+            processorInfo.put("agent-type", processor.agentType());
             processorInfo.putAll(processor.getInfo());
             processorsInfo.add(processorInfo);
         }

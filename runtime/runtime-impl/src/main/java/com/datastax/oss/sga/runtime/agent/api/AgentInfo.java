@@ -53,21 +53,14 @@ public class AgentInfo {
     public Map<String, Object> serveInfos() {
         Map<String, Object> result = new LinkedHashMap<>();
         if (source != null) {
-            result.put("source", getAgentInfo(source));
+            result.put("source", source.getInfo());
         }
         if (processor != null) {
-            result.put("processor", getAgentInfo(processor));
+            result.put("processor", processor.getInfo());
         }
         if (sink != null) {
-            result.put("sink", getAgentInfo(sink));
+            result.put("sink", sink.getInfo());
         }
-        return result;
-    }
-
-    private static Map<String, Object> getAgentInfo(AgentCode agentCode) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("type", agentCode.agentType());
-        result.putAll(agentCode.getInfo());
         return result;
     }
 

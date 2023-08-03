@@ -483,9 +483,18 @@ public class AgentRunner
             Thread.sleep(1000);
             return List.of();
         }
+
+        @Override
+        public long getTotalOut() {
+            return 0;
+        }
     }
 
     private static class NoopTopicProducer implements TopicProducer {
+        @Override
+        public long getTotalIn() {
+            return 0;
+        }
     }
 
     private static class SimpleAgentContext implements AgentContext {

@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This is a special processor that executes a pipeline of Agents in memory.
@@ -37,8 +38,8 @@ public class CompositeAgentProcessor implements AgentProcessor {
     private final List<AgentProcessor> processors = new ArrayList<>();
     private AgentSink sink;
 
-    private AtomicInteger totalIn = new AtomicInteger();
-    private AtomicInteger totalOut = new AtomicInteger();
+    private AtomicLong totalIn = new AtomicLong();
+    private AtomicLong totalOut = new AtomicLong();
 
     @Override
     public String agentType() {

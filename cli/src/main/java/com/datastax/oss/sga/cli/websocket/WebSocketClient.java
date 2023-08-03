@@ -18,6 +18,7 @@ package com.datastax.oss.sga.cli.websocket;
 import jakarta.websocket.ClientEndpoint;
 import jakarta.websocket.CloseReason;
 import jakarta.websocket.ContainerProvider;
+import jakarta.websocket.DeploymentException;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnError;
 import jakarta.websocket.OnMessage;
@@ -25,6 +26,8 @@ import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
 import java.net.URI;
+import java.util.Objects;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,7 +58,16 @@ public class WebSocketClient implements AutoCloseable {
 
     @SneakyThrows
     public WebSocketClient connect(URI uri) {
-        userSession = container.connectToServer(this, uri);
+        try {
+            userSession = container.connectToServer(this, uri);
+        } catch (DeploymentException e) {
+            String message = e.getMessage();
+            if (Objects.equals("The HTTP response from the server [403] did not permit the HTTP upgrade to WebSocket", message)) {
+                throw new DeploymentException("The server answered 403 (forbidden), it is very likely that you are passing a wrong token (credentials parameter) " +
+                        "or that the server requires authentication ", e);
+            }
+            throw e;
+        }
         return this;
     }
 

@@ -1,0 +1,86 @@
+<!--
+
+    Copyright DataStax, Inc.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<html>
+<head>
+    <style>
+        BODY {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: large;
+        }
+    </style>
+</head>
+<body>
+<script>
+    updateScript = function () {
+        if (window.location.search && window.location.search.includes("code=")) {
+            query = window.location.search.substring(1);
+            document.getElementById("code").value = query.replace("code=", "");
+            document.getElementById("secret-container").style.display = "";
+            document.getElementById("code-container").style.display = "";
+            document.getElementById("the-script-container").style.display = "";
+            document.getElementById("submit-container").style.display = "";
+        }
+
+        var theScript = document.getElementById("the-script-template").innerHTML;
+        theScript = theScript.replace("YOUR-CLIENT-ID", document.getElementById("client-id").value);
+        theScript = theScript.replace("YOUR-CLIENT-SECRET", document.getElementById("client-secret").value);
+        theScript = theScript.replace("THE-CODE-ABOVE", document.getElementById("code").value);
+
+        var theLoginUrl = "https://github.com/login/oauth/authorize?client_id=" + document.getElementById("client-id").value;
+        document.getElementById("buttonDiv").innerHTML = "<a href=\"" + theLoginUrl + "\">Login with GitHub</a>";
+
+        document.getElementById("the-script").innerHTML = theScript;
+    }
+
+    window.onload = function () {
+        updateScript();
+    }
+</script>
+
+<h1>GitHub Get Token</h1>
+
+This simple web page allows you to get a token from Google. You can use this token to authenticate with the gateway. <br>
+
+<div></div>
+<form action="https://github.com/login/oauth/access_token" method="POST">
+    <div id="client-id-container">Client ID: <input id="client-id" type="text" name="client_id" value="" onchange="updateScript()" > </div>
+    <div id="secret-container" style="display: none">Client Secret: <input id="client-secret" name="client_secret" type="password" value="" onchange="updateScript()"> </div>
+    <div id="code-container" style="display: none">Code: <input id="code" type="text" value="" name="code" onchange="updateScript()">  </div>
+    <div id="submit-container" style="display: none"><button type="submit">Get token</button>
+    Some browsers put your token in the Download page</div>
+</form>
+</div>
+
+<div id="buttonDiv">
+</div>
+
+<div id="the-script-container" style="display: none">
+    You can also get the token by running the following script:
+    <pre id="the-script">
+    </pre>
+    <pre id="the-script-template" style="display: none">
+        CLIENT_ID=YOUR-CLIENT-ID
+        CLIENT_SECRET=YOUR-CLIENT-SECRET
+        CODE=THE-CODE-ABOVE
+        URL="https://github.com/login/oauth/access_token"
+        curl -X POST $URL -H "Accept: application/json" -H 'Content-Type: application/x-www-form-urlencoded' -d "code=$CODE&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET"
+    </pre>
+</div>
+
+</body>
+</html>

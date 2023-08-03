@@ -68,3 +68,34 @@ gateways:
             valueFromAuthentication: subject
           - key: sga-client-session-id
             valueFromParameters: sessionId
+
+  - id: produce-input-auth-github
+    type: produce
+    topic: input-topic
+    parameters:
+      - sessionId
+    authentication:
+      provider: github
+      configuration:
+    produceOptions:
+      headers:
+        - key: sga-client-user-id
+          valueFromAuthentication: login
+        - key: sga-client-session-id
+          valueFromParameters: sessionId
+
+  - id: consume-output-auth-github
+    type: consume
+    topic: output-topic
+    parameters:
+      - sessionId
+    authentication:
+      provider: github
+      configuration:
+    consumeOptions:
+      filters:
+        headers:
+          - key: sga-client-user-id
+            valueFromAuthentication: login
+          - key: sga-client-session-id
+            valueFromParameters: sessionId

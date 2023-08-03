@@ -111,6 +111,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                     requiredField(step, agentConfiguration, originalConfiguration, "fields");
                     requiredField(step, agentConfiguration, originalConfiguration, "query");
                     requiredField(step, agentConfiguration, originalConfiguration, "output-field");
+                    optionalField(step, agentConfiguration, originalConfiguration, "only-first", null);
                 }
             },
             "ai-chat-completions", new StepConfigurationInitializer() {

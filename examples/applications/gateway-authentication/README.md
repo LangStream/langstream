@@ -57,11 +57,12 @@ You have to get a token from Google and pass it to the gateway.
 The easiest way it to configure a button in your application that uses the Google Sign In feature.
 https://developers.google.com/identity/gsi/web/guides/display-button?hl=it
 
-You have to get a Client ID from Google and configure it in the application.
-
-Modify the index.html file in this directory and set the Google Client ID.
+You have to get a Client ID from Google (it is something like 99840107278-4363876v0hker43roujaubqom5g07or8.apps.googleusercontent.com)
+and configure it in the application.
 
 Set as allowed Javascript origin this url `http://localhost`.
+
+Modify the index.html file in this directory and set the Google Client ID by replacing the YOUR_GOOGLE_CLIENT_ID placeholder.
 
 Then you can run the web application with the button 
 

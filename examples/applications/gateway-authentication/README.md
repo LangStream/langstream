@@ -34,7 +34,9 @@ secrets:
       client-id: $GOOGLE_CLIENT_ID
 """ > /tmp/secrets.yaml
 ```
-## 
+
+Deploy the application
+
 ```
 ./bin/sga-cli apps deploy test -app examples/applications/gateway-authentication -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
 ```
@@ -47,7 +49,6 @@ You have to pass a sessionId to the gateway, it will be used to identify the use
 ```
 ./bin/sga-cli gateway chat test -cg consume-output-no-auth -pg produce-input-no-auth -p sessionId=$(uuidgen)
 ```
-
 
 ## Get the user credentials using Google Sign In
 
@@ -109,3 +110,4 @@ Then you can fill in the form with the client id and the secret and you will hav
 github_token=the-token-you-got-above
 ./bin/sga-cli gateway chat test -cg consume-output-auth-github -pg produce-input-auth-github -p sessionId=$(uuidgen) -c "$github_token"
 ```
+

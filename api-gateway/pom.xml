@@ -112,7 +112,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
-
+		<dependency>
+			<groupId>com.datastax.oss</groupId>
+			<artifactId>github-api-gateway-auth</artifactId>
+			<version>${project.version}</version>
+			<scope>runtime</scope>
+		</dependency>
 
 	</dependencies>
 

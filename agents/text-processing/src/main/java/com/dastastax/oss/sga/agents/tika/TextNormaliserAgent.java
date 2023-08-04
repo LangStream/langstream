@@ -32,27 +32,9 @@ public class TextNormaliserAgent extends SingleRecordAgentProcessor {
     private boolean trimSpaces = true;
 
     @Override
-    public String agentType() {
-        return "text-normaliser";
-    }
-
-    @Override
     public void init(Map<String, Object> configuration) throws Exception {
         makeLowercase = Boolean.parseBoolean(configuration.getOrDefault("make-lowercase", "true").toString());
         trimSpaces = Boolean.parseBoolean(configuration.getOrDefault("trim-spaces", "true").toString());
-    }
-
-    @Override
-    public void setContext(AgentContext context) throws Exception {
-    }
-    @Override
-    public void start() throws Exception {
-
-    }
-
-    @Override
-    public void close() throws Exception {
-
     }
 
     @Override

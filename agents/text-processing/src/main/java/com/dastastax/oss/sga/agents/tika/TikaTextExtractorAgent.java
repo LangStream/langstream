@@ -15,7 +15,6 @@
  */
 package com.dastastax.oss.sga.agents.tika;
 
-import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.code.SimpleRecord;
 import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
@@ -29,35 +28,12 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
 public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
-
-    @Override
-    public String agentType() {
-        return "text-extractor";
-    }
-
-    @Override
-    public void init(Map<String, Object> configuration) throws Exception {
-    }
-
-    @Override
-    public void setContext(AgentContext context) throws Exception {
-    }
-    @Override
-    public void start() throws Exception {
-
-    }
-
-    @Override
-    public void close() throws Exception {
-
-    }
 
     @Override
     public List<Record> processRecord(Record record) throws Exception {

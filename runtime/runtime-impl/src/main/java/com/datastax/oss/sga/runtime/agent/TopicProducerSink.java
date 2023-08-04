@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
+import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.Record;
@@ -23,15 +24,10 @@ import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 import java.util.List;
 import java.util.Map;
 
-public class TopicProducerSink implements AgentSink {
+public class TopicProducerSink extends AbstractAgentCode implements AgentSink {
 
     private final TopicProducer producer;
     private CommitCallback callback;
-
-    @Override
-    public String agentType() {
-        return "topic-sink";
-    }
 
     public TopicProducerSink(TopicProducer producer) {
         this.producer = producer;
@@ -59,6 +55,7 @@ public class TopicProducerSink implements AgentSink {
 
     @Override
     public void write(List<Record> records) throws Exception {
+        processed(records.size(), 0);
         producer.write(records);
         callback.commit(records);
     }
@@ -71,7 +68,7 @@ public class TopicProducerSink implements AgentSink {
     }
 
     @Override
-    public AgentInfo getInfo() {
-        return new AgentInfo(agentType(), Map.of("producer", producer.getInfo()), producer.getTotalIn(), null);
+    protected Map<String, Object> buildAdditionalInfo() {
+        return Map.of("producer", producer.getInfo());
     }
 }

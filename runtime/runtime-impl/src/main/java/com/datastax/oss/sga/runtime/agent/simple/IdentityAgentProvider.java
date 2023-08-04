@@ -36,11 +36,6 @@ public class IdentityAgentProvider implements AgentCodeProvider {
     public static class IdentityAgentCode extends SingleRecordAgentProcessor {
 
         @Override
-        public String agentType() {
-            return "identity";
-        }
-
-        @Override
         public List<Record> processRecord(Record record) throws Exception {
             return List.of(record);
         }

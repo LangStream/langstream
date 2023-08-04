@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
+import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
@@ -26,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-public class TopicConsumerSource implements AgentSource {
+public class TopicConsumerSource extends AbstractAgentCode implements AgentSource {
 
     private final TopicConsumer consumer;
     private final TopicProducer deadLetterQueueProducer;
@@ -38,18 +39,10 @@ public class TopicConsumerSource implements AgentSource {
     }
 
     @Override
-    public String agentType() {
-        return "topic-source";
-    }
-
-    @Override
-    public void init(Map<String, Object> configuration) throws Exception {
-        // the consumer is already initialized
-    }
-
-    @Override
     public List<Record> read() throws Exception {
-        return consumer.read();
+        List<Record> result =  consumer.read();
+        processed(result.size(), 0);
+        return result;
     }
 
     @Override
@@ -86,7 +79,7 @@ public class TopicConsumerSource implements AgentSource {
     }
 
     @Override
-    public AgentInfo getInfo() {
-        return new AgentInfo(agentType(), Map.of("consumer", consumer.getInfo()), null, consumer.getTotalOut());
+    protected Map<String, Object> buildAdditionalInfo() {
+        return Map.of("consumer", consumer.getInfo());
     }
 }

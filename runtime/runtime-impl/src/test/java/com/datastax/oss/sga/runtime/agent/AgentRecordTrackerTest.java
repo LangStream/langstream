@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
+import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
@@ -32,41 +33,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AgentRecordTrackerTest {
 
-    private static record MyRecord (Object key, Object value, String origin, Long timestamp, Collection<Header> headers) implements Record {
+    private record MyRecord (Object key, Object value, String origin, Long timestamp, Collection<Header> headers) implements Record {
     }
 
-    private static class MySource implements AgentSource {
-
-        @Override
-        public String agentType() {
-            return "my-source";
-        }
+    private static class MySource extends AbstractAgentCode implements AgentSource {
 
         List<Record> committed = new ArrayList<>();
 
         @Override
         public void commit(List<Record> records) throws Exception {
             committed.addAll(records);
-        }
-
-        @Override
-        public void init(Map<String, Object> configuration) throws Exception {
-
-        }
-
-        @Override
-        public void setContext(AgentContext context) throws Exception {
-
-        }
-
-        @Override
-        public void start() throws Exception {
-
-        }
-
-        @Override
-        public void close() throws Exception {
-
         }
 
         @Override

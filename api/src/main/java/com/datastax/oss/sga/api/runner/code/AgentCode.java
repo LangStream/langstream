@@ -22,12 +22,16 @@ import java.util.Map;
  */
 public interface AgentCode {
 
+    String agentId();
+
     /**
      * Get the type of the agent.
      * @return the type of the agent
      */
     String agentType();
 
+    default void setMetadata(String id, String agentType, long startedAt) throws Exception {
+    }
     default void init(Map<String, Object> configuration) throws Exception {
     }
 
@@ -37,7 +41,5 @@ public interface AgentCode {
     default void start() throws Exception {}
     default void close() throws Exception {}
 
-    default AgentInfo getInfo() {
-        return new AgentInfo(agentType(), Map.of(), null, null);
-    }
+    AgentInfo getInfo();
 }

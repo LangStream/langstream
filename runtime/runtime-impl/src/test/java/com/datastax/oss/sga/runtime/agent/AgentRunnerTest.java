@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
+import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
@@ -140,12 +141,7 @@ class AgentRunnerTest {
         source.expectUncommitted(0);
     }
 
-    private static class SimpleSink implements AgentSink {
-
-        @Override
-        public String agentType() {
-            return "test";
-        }
+    private static class SimpleSink extends AbstractAgentCode implements AgentSink {
 
         CommitCallback callback;
 
@@ -160,12 +156,8 @@ class AgentRunnerTest {
         }
     }
 
-    private static class SimpleSource implements AgentSource {
+    private static class SimpleSource extends AbstractAgentCode implements AgentSource {
 
-        @Override
-        public String agentType() {
-            return "test";
-        }
 
         final List<Record> records;
         final List<Record> uncommitted = new ArrayList<>();
@@ -209,11 +201,6 @@ class AgentRunnerTest {
     }
 
     private static class SimpleAgentProcessor extends SingleRecordAgentProcessor {
-
-        @Override
-        public String agentType() {
-            return "test";
-        }
 
         private final Set<String> failOnContent;
         private int executionCount;

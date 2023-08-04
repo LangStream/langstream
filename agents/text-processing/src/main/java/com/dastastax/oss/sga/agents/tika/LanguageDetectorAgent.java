@@ -31,11 +31,6 @@ public class LanguageDetectorAgent extends SingleRecordAgentProcessor {
     private List<String> allowedLanguages;
 
     @Override
-    public String agentType() {
-        return "language-detector";
-    }
-
-    @Override
     public void init(Map<String, Object> configuration) throws Exception {
         if (configuration.containsKey("property")) {
             property = (String) configuration.get("property");
@@ -46,19 +41,6 @@ public class LanguageDetectorAgent extends SingleRecordAgentProcessor {
             allowedLanguages = List.of();
         }
         log.info("Configuring Language Detectors with field {} and allowed languages {}", property, allowedLanguages);
-    }
-
-    @Override
-    public void setContext(AgentContext context) throws Exception {
-    }
-    @Override
-    public void start() throws Exception {
-
-    }
-
-    @Override
-    public void close() throws Exception {
-
     }
 
     @Override

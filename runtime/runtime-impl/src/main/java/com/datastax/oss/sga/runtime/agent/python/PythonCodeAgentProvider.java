@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.runtime.agent.python;
 
+import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
 import lombok.AllArgsConstructor;
@@ -34,17 +35,11 @@ public class PythonCodeAgentProvider implements AgentCodeProvider {
 
     @Override
     public AgentCode createInstance(String agentType) {
-        return new PythonAgentPlaceHolder(agentType);
+        return new PythonAgentPlaceHolder();
     }
 
     @AllArgsConstructor
-    private static class PythonAgentPlaceHolder implements AgentCode {
-
-        private final String agentType;
-        @Override
-        public String agentType() {
-            return agentType;
-        }
+    private static class PythonAgentPlaceHolder extends AbstractAgentCode implements AgentCode {
     }
 
     public static boolean isPythonCodeAgent(AgentCode agentCode) {

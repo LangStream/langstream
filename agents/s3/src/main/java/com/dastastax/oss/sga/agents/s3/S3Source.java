@@ -15,6 +15,7 @@
  */
 package com.dastastax.oss.sga.agents.s3;
 
+import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Header;
@@ -50,18 +51,11 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class S3Source implements AgentSource {
+public class S3Source extends AbstractAgentCode implements AgentSource {
     private String bucketName;
     private MinioClient minioClient;
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
     private int idleTime;
-
-    private AtomicLong totalOut = new AtomicLong();
-
-    @Override
-    public String agentType() {
-        return "s3-source";
-    }
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
@@ -144,15 +138,16 @@ public class S3Source implements AgentSource {
             log.info("Nothing found, sleeping for {} seconds", idleTime);
             Thread.sleep(idleTime * 1000);
         } else {
-            totalOut.incrementAndGet();
+            processed(0, 1);
         }
         return records;
     }
 
     @Override
-    public AgentInfo getInfo() {
-        return new AgentInfo(agentType(), Map.of(), null, totalOut.get());
+    protected Map<String, Object> buildAdditionalInfo() {
+        return Map.of("bucketName", bucketName);
     }
+
 
     @Override
     public void commit(List<Record> records) throws Exception {

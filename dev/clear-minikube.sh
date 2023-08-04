@@ -24,4 +24,5 @@ docker image rm -f datastax/sga-runtime:latest-dev
 docker image rm -f datastax/sga-deployer:latest-dev
 docker image rm -f datastax/sga-control-plane:latest-dev
 docker image rm -f datastax/sga-api-gateway:latest-dev
+docker image rm -f datastax/sga-cli:latest-dev
 

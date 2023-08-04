@@ -46,6 +46,7 @@ if [ "true" == "$(use_minikube_load)" ]; then
   minikube image load --overwrite datastax/sga-control-plane:latest-dev
   minikube image load --overwrite datastax/sga-runtime:latest-dev
   minikube image load --overwrite datastax/sga-api-gateway:latest-dev
+  minikube image load --overwrite datastax/sga-cli:latest-dev
 else
   eval $(minikube docker-env)
   if [ "$SKIP_BUILD" == "false" ]; then

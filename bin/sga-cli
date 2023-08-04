@@ -36,6 +36,12 @@ if [ ! -d cli/target/cli ]; then
   ./mvnw clean install -DskipTests -pl cli -am
 fi
 popd > /dev/null
-"$ROOT_DIR/cli/target/cli/bin/sga" "$@"
+SGA_CLI_CONFIG=${SGA_CLI_CONFIG:-""}
+if [ -n "$SGA_CLI_CONFIG" ]; then
+  echo "Using CLI config file from ENV variable SGA_CLI_CONFIG: $SGA_CLI_CONFIG"
+  SGA_CLI_CONFIG="--conf $SGA_CLI_CONFIG"
+fi
+
+"$ROOT_DIR/cli/target/cli/bin/sga" $SGA_CLI_CONFIG "$@"
 
 

@@ -29,6 +29,13 @@ deployer:
         access-key: minioadmin
         secret-key: minioadmin
 
+client:
+  replicaCount: 1
+  image:
+    repository: datastax/sga-cli
+    pullPolicy: Never
+    tag: "latest-dev"
+
 apiGateway:
   image:
     pullPolicy: Never

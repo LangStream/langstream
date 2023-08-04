@@ -47,6 +47,37 @@ controlPlane:
       application.storage.apps.configuration.deployer-runtime.image-pull-policy: Never
       application.storage.global.type: kubernetes
 
+client:
+  replicaCount: 1
+  image:
+    repository: datastax/sga-cli
+    pullPolicy: IfNotPresent
+    tag: ""
+
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+    role:
+      name: "sga-client"
+    roleBinding:
+      name: "sga-client-role-binding"
+
+  podAnnotations: {}
+  podSecurityContext: {}
+  securityContext: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  app:
+    config:
+      webServiceUrl: http://sga-control-plane.default.svc.cluster.local:8090
+      apiGatewayUrl: ws://sga-api-gateway.default.svc.cluster.local:8091
+      defaultTenant: default
+
 deployer:
   replicaCount: 1
   image:

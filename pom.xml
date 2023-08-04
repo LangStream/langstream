@@ -75,6 +75,12 @@
     <license-maven-plugin.version>4.1</license-maven-plugin.version>
   </properties>
 
+  <scm>
+    <connection>scm:git:git@github.com:riptano/streaming-gen-ai.git</connection>
+    <developerConnection>scm:git:git@github.com:riptano/streaming-gen-ai.git</developerConnection>
+    <url>https://github.com/riptano/streaming-gen-ai</url>
+    <tag>HEAD</tag>
+  </scm>
 
   <dependencyManagement>
     <dependencies>

@@ -1,26 +1,49 @@
 controlPlane:
   image:
-    pullPolicy: Always
-    tag: latest
-    repository: us-central1-docker.pkg.dev/datastax-gcp-pulsar/pulsar/sga-control-plane
+    repository: public.ecr.aws/y3i6u2n7/datastax-public/sga-control-plane
+    pullPolicy: IfNotPresent
+    tag: 0.0.1-alpha
   app:
     config:
+      logging.level.com.datastax.oss.sga: debug
       application.storage.apps.type: kubernetes
       application.storage.apps.configuration.namespaceprefix: sga-
-      application.storage.apps.configuration.deployer-runtime.image: us-central1-docker.pkg.dev/datastax-gcp-pulsar/pulsar/sga-runtime
-      application.storage.apps.configuration.deployer-runtime.image-pull-policy: Always
+      application.storage.apps.configuration.deployer-runtime.image: public.ecr.aws/y3i6u2n7/datastax-public/sga-runtime:0.0.1-alpha
+      application.storage.apps.configuration.deployer-runtime.image-pull-policy: IfNotPresent
       application.storage.global.type: kubernetes
       application.storage.code.type: s3
       application.storage.code.configuration.endpoint: http://minio.minio-dev.svc.cluster.local:9000
+      application.storage.code.configuration.access-key: minioadmin
+      application.storage.code.configuration.secret-key: minioadmin
 
 deployer:
   replicaCount: 1
   image:
-    repository: us-central1-docker.pkg.dev/datastax-gcp-pulsar/pulsar/sga-deployer
-    pullPolicy: Always
-    tag: latest
+    repository: public.ecr.aws/y3i6u2n7/datastax-public/sga-deployer
+    pullPolicy: IfNotPresent
+    tag: 0.0.1-alpha
   app:
     config:
       codeStorage:
         type: s3
         endpoint: http://minio.minio-dev.svc.cluster.local:9000
+        access-key: minioadmin
+        secret-key: minioadmin
+
+client:
+  replicaCount: 1
+  image:
+    repository: public.ecr.aws/y3i6u2n7/datastax-public/sga-cli
+    pullPolicy: IfNotPresent
+    tag: 0.0.1-alpha
+
+apiGateway:
+  image:
+    repository: public.ecr.aws/y3i6u2n7/datastax-public/sga-api-gateway
+    pullPolicy: IfNotPresent
+    tag: 0.0.1-alpha
+  app:
+    config:
+      logging.level.com.datastax.oss.sga: debug
+      application.storage.apps.type: kubernetes
+      application.storage.apps.configuration.namespaceprefix: sga-

@@ -1,5 +1,4 @@
-# streaming-gen-ai
-Streaming Gen AI Project
+# Streaming Gen AI Project
 
 # Quick Start
 
@@ -11,21 +10,11 @@ Streaming Gen AI Project
 - Docker
 - Java 17
 
-
 ```
 brew install minikube
 minikube start
 ```
 
-Build docker images and push them into the minikube environment
-
-```
-./docker/build.sh
-minikube image load datastax/sga-deployer:latest-dev
-minikube image load datastax/sga-control-plane:latest-dev
-minikube image load datastax/sga-runtime:latest-dev
-minikube image load datastax/sga-api-gateway:latest-dev
-```
 
 Deploy MinIO (S3 BlobStorage implementation for local testing)
 
@@ -33,31 +22,33 @@ Deploy MinIO (S3 BlobStorage implementation for local testing)
 kubectl apply -f helm/examples/minio-dev.yaml
 ```
 
-Deploy the control plane and the operator:
-
-```
-helm install sga helm/sga --values helm/examples/local.yaml --wait --timeout 60s
-```
-
-Port forward control plane to localhost:
-```
-kubectl port-forward svc/sga-control-plane 8090:8090 &
-```
-
 Deploy Kafka:
 ```
 kubectl create namespace kafka
 kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
-kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka
-kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka  
+kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka  
+```
+
+Deploy the SGAI Control Plane and the operator:
+
+```
+helm install sga helm/sga --values helm/examples/simple.yaml --wait --timeout 60s
+```
+
+Port forward control plane and the gateway to localhost:
+```
+kubectl port-forward svc/sga-control-plane 8090:8090 &
+kubectl port-forward svc/sga-api-gateway 8091:8091 &
+```
+
+Wait for Kafka to be up and running:
+
+```
+kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
 ```
 
 Create a sample app using the CLI:
 ```
-./bin/sga-cli tenants put test
-./bin/sga-cli configure tenant test
-./bin/sga-cli apps list
-
 
 OPEN_AI_URL=xx
 OPEN_AI_ACCESS_KEY=xx
@@ -91,8 +82,21 @@ kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kaf
 
 
 
+## Building the docker images locally
 
+Build docker images and push them into the minikube environment
 
+```
+./docker/build.sh
+minikube image load datastax/sga-deployer:latest-dev
+minikube image load datastax/sga-control-plane:latest-dev
+minikube image load datastax/sga-runtime:latest-dev
+minikube image load datastax/sga-api-gateway:latest-dev
+```
 
+If you want to use the docker images you just built, then use helm/examples/local.yaml values file:
 
+```
+helm install sga helm/sga --values helm/examples/lcoal.yaml --wait --timeout 60s
+```
 

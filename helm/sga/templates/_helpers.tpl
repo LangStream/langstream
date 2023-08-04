@@ -159,6 +159,83 @@ Create the name of the role binding to use
 {{- end }}
 
 
+{{/*
+    CLIENT
+*/}}
+
+{{- define "sga.clientName" -}}
+{{- default .Chart.Name .Values.client.nameOverride | trunc 63 | trimSuffix "-" }}-client
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+If release name contains chart name it will be used as a full name.
+*/}}
+{{- define "sga.clientFullname" -}}
+{{- if .Values.client.fullnameOverride }}
+{{- .Values.client.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.client.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}-client
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}-client
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "sga.clientLabels" -}}
+helm.sh/chart: {{ include "sga.chart" . }}
+{{ include "sga.clientSelectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+
+{{- define "sga.clientSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "sga.clientName" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "sga.clientServiceAccountName" -}}
+{{- if .Values.client.serviceAccount.create }}
+{{- default (include "sga.clientFullname" .) .Values.client.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.client.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the name of the role to use
+*/}}
+{{- define "sga.clientRoleName" -}}
+{{- if .Values.client.serviceAccount.create }}
+{{- default (include "sga.clientFullname" .) .Values.client.serviceAccount.role.name }}
+{{- else }}
+{{- default "default" .Values.client.serviceAccount.role.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the name of the role binding to use
+*/}}
+{{- define "sga.clientRoleBindingName" -}}
+{{- if .Values.client.serviceAccount.create }}
+{{- default (include "sga.clientFullname" .) .Values.client.serviceAccount.roleBinding.name }}
+{{- else }}
+{{- default "default" .Values.client.serviceAccount.roleBinding.name }}
+{{- end }}
+{{- end }}
+
 
 {{/*
     API GATEWAY

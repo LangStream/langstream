@@ -21,7 +21,7 @@
 
   <groupId>com.datastax.oss</groupId>
   <artifactId>streaming-gen-ai</artifactId>
-  <version>0.0.1-ALPHA</version>
+  <version>0.0.2-SNAPSHOT</version>
   <name>Streaming GenAI</name>
   <description>Streaming GenAI is a library to build GenAI applications based on Streaming</description>
   <packaging>pom</packaging>
@@ -75,7 +75,7 @@
     <connection>scm:git:git@github.com:riptano/streaming-gen-ai.git</connection>
     <developerConnection>scm:git:git@github.com:riptano/streaming-gen-ai.git</developerConnection>
     <url>https://github.com/riptano/streaming-gen-ai</url>
-    <tag>v0.0.1</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <dependencyManagement>

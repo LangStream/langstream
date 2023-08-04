@@ -20,7 +20,7 @@
   <parent>
     <artifactId>api-gateway-auth</artifactId>
     <groupId>com.datastax.oss</groupId>
-    <version>0.0.1-ALPHA</version>
+    <version>0.0.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 

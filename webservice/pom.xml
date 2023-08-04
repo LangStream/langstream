@@ -21,11 +21,11 @@
 	<parent>
 		<groupId>com.datastax.oss</groupId>
 		<artifactId>streaming-gen-ai</artifactId>
-		<version>0.0.1-ALPHA</version>
+		<version>0.0.2-SNAPSHOT</version>
 	</parent>
 	<groupId>com.datastax.oss</groupId>
 	<artifactId>webservice</artifactId>
-	<version>0.0.1-ALPHA</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<name>Streaming GenAI - WebService</name>
 	<description>SGA Web Service</description>
 	<properties>

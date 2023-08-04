@@ -23,7 +23,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN echo 'Acquire::http::Timeout "30";\nAcquire::ftp::Timeout "30";\nAcquire::Retries "3";' > /etc/apt/apt.conf.d/99timeout_and_retries \
      && apt-get update \
      && apt-get -y dist-upgrade \
-     && apt-get -y install --no-install-recommends vim netcat dnsutils less procps iputils-ping \
+     && apt-get -y install --no-install-recommends vim netcat dnsutils net-tools less procps iputils-ping zip unzip git jq \
                  curl ca-certificates wget apt-transport-https software-properties-common gpg-agent
 
 # Install Eclipse Temurin Package

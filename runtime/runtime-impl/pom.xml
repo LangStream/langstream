@@ -16,13 +16,11 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <artifactId>sga-runtime</artifactId>
     <groupId>com.datastax.oss</groupId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-ALPHA</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -247,12 +245,12 @@
               <skip>${skipTests}</skip>
               <target>
                 <echo>copy python runtime</echo>
-                <mkdir dir="${basedir}/target/python"/>
-                <copydir src="${basedir}/src/main/python/sga_runtime" dest="${basedir}/target/python/sga_runtime"/>
-                <copydir src="${basedir}/src/main/python/tests" dest="${basedir}/target/python/tests"/>
-                <copy file="${basedir}/src/main/python/tox.ini" todir="${basedir}/target/python"/>
-                <copy file="${basedir}/src/main/python/Pipfile" todir="${basedir}/target/python"/>
-                <copy file="${basedir}/src/main/python/Pipfile.lock" todir="${basedir}/target/python"/>
+                <mkdir dir="${basedir}/target/python" />
+                <copydir src="${basedir}/src/main/python/sga_runtime" dest="${basedir}/target/python/sga_runtime" />
+                <copydir src="${basedir}/src/main/python/tests" dest="${basedir}/target/python/tests" />
+                <copy file="${basedir}/src/main/python/tox.ini" todir="${basedir}/target/python" />
+                <copy file="${basedir}/src/main/python/Pipfile" todir="${basedir}/target/python" />
+                <copy file="${basedir}/src/main/python/Pipfile.lock" todir="${basedir}/target/python" />
               </target>
             </configuration>
           </execution>

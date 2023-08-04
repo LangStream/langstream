@@ -16,6 +16,7 @@
 package com.datastax.oss.sga.ai.kafkaconnect;
 
 import com.dastastax.oss.sga.kafka.runner.KafkaRecord;
+import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
@@ -68,7 +69,7 @@ import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.OFF
 import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.STATUS_STORAGE_TOPIC_CONFIG;
 
 @Slf4j
-public class KafkaConnectSourceAgent implements AgentSource {
+public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentSource {
 
     public static final String CONNECTOR_CLASS = "connector.class";
 
@@ -76,6 +77,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
     private static final String OFFSET_NAMESPACE = "sga-offset-ns";
 
     private SourceTaskContext sourceTaskContext;
+    // non null value to avoid NPE in buildAdditionalInfo
     private String kafkaConnectorFQClassName = "?";
     private SourceConnector connector;
     @Getter
@@ -103,8 +105,6 @@ public class KafkaConnectSourceAgent implements AgentSource {
     TopicConsumer topicConsumerFromOffsetStore;
     TopicProducer topicProducerToOffsetStore;
 
-    private AtomicLong totalOut = new AtomicLong();
-
     // just to get access to baseConfigDef()
     class WorkerConfigImpl extends org.apache.kafka.connect.runtime.WorkerConfig {
         public WorkerConfigImpl(Map<String, String> props) {
@@ -128,11 +128,6 @@ public class KafkaConnectSourceAgent implements AgentSource {
     }
 
     @Override
-    public String agentType() {
-        return "source";
-    }
-
-    @Override
     public List<Record> read() throws Exception {
 
         List<SourceRecord> recordList = sourceTask.poll();
@@ -140,7 +135,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
             return List.of();
         }
 
-        totalOut.addAndGet(recordList.size());
+        processed(0, recordList.size());
 
         return recordList.stream()
                 .map(this::processSourceRecord)
@@ -362,8 +357,7 @@ public class KafkaConnectSourceAgent implements AgentSource {
     }
 
     @Override
-    public AgentInfo getInfo() {
-        return new AgentInfo(agentType(), Map.of("connector", connector.getClass().getName()),
-                null, totalOut.get());
+    protected Map<String, Object> buildAdditionalInfo() {
+        return Map.of("connector.class", kafkaConnectorFQClassName);
     }
 }

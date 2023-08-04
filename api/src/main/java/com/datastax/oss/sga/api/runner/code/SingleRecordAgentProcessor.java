@@ -21,10 +21,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class SingleRecordAgentProcessor implements AgentProcessor {
+public abstract class SingleRecordAgentProcessor extends AbstractAgentCode implements AgentProcessor {
 
-    private final AtomicLong totalIn = new AtomicLong();
-    private final AtomicLong totalOut = new AtomicLong();
     private final AtomicLong errors = new AtomicLong();
 
     public abstract List<Record> processRecord(Record record) throws Exception;
@@ -33,10 +31,9 @@ public abstract class SingleRecordAgentProcessor implements AgentProcessor {
     public final List<SourceRecordAndResult> process(List<Record> records) {
         List<SourceRecordAndResult> result = new ArrayList<>();
         for (Record record : records) {
-            totalIn.incrementAndGet();
             try {
                 List<Record> process = processRecord(record);
-                totalOut.addAndGet(process.size());
+                processed(1, process.size());
                 if (!process.isEmpty()) {
                     result.add(new SourceRecordAndResult(record, process, null));
                 }
@@ -49,9 +46,7 @@ public abstract class SingleRecordAgentProcessor implements AgentProcessor {
     }
 
     @Override
-    public AgentInfo getInfo() {
-        return new AgentInfo(agentType(),
-                Map.of("errors", errors.get()),
-                totalIn.get(), totalOut.get());
+    protected Map<String, Object> buildAdditionalInfo() {
+        return Map.of("errors", errors.get());
     }
 }

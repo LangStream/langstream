@@ -457,11 +457,14 @@ public class AgentRunner
 
     private static AgentCode initAgent(RuntimePodConfiguration configuration) throws Exception {
         log.info("Bootstrapping agent with configuration {}", configuration.agent());
-        return initAgent(configuration.agent().agentType(), configuration.agent().configuration());
+        return initAgent(configuration.agent().agentId(), configuration.agent().agentType(),
+                System.currentTimeMillis(),
+                configuration.agent().configuration());
     }
 
-    public static AgentCode initAgent(String agentType, Map<String, Object> configuration) throws Exception {
+    public static AgentCode initAgent(String agentId, String agentType, long startedAt, Map<String, Object> configuration) throws Exception {
         AgentCode agentCode = AGENT_CODE_REGISTRY.getAgentCode(agentType);
+        agentCode.setMetadata(agentId, agentType, startedAt);
         agentCode.init(configuration);
         return agentCode;
     }

@@ -34,27 +34,9 @@ public class DocumentToJsonAgent extends SingleRecordAgentProcessor {
     private boolean copyProperties;
 
     @Override
-    public String agentType() {
-        return "document-to-json";
-    }
-
-    @Override
     public void init(Map<String, Object> configuration) throws Exception {
         this.textField = configuration.getOrDefault("text-field", "text").toString();
         this.copyProperties = Boolean.parseBoolean(configuration.getOrDefault("copy-properties", "true").toString());
-    }
-
-    @Override
-    public void setContext(AgentContext context) throws Exception {
-    }
-    @Override
-    public void start() throws Exception {
-
-    }
-
-    @Override
-    public void close() throws Exception {
-
     }
 
     @Override

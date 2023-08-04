@@ -27,11 +27,18 @@ import java.util.Map;
 @NoArgsConstructor
 public class AgentInfo {
 
+    @JsonProperty("agent-id")
+    private String agentId;
+    @JsonProperty("agent-type")
     private String agentType;
     private Map<String, Object> info;
     @JsonProperty("total-in")
     private Long totalIn;
     @JsonProperty("total-out")
     private Long totalOut;
+    @JsonProperty("started-at")
+    private Long startedAt;
+    @JsonProperty("last-processed-at")
+    private Long lastProcessedAt;
 
 }

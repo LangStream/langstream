@@ -38,9 +38,11 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 && agent1.isComposable()
                 && agentImplementation instanceof DefaultAgentNode agent2
                 && agent2.isComposable());
-        log.info("canMerge {}", previousAgent);
-        log.info("canMerge {}", agentImplementation);
-        log.info("canMerge RESULT: {}", result);
+        if (log.isDebugEnabled()) {
+            log.debug("canMerge {}", previousAgent);
+            log.debug("canMerge {}", agentImplementation);
+            log.debug("canMerge RESULT: {}", result);
+        }
         return result;
     }
 
@@ -55,6 +57,7 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 Map<String, Object> configurationAgent2 = new HashMap<>();
                 configurationAgent2.put("agentType", agent2.getAgentType());
                 configurationAgent2.put("configuration", agent2.getConfiguration());
+                configurationAgent2.put("agentId", agent2.getId());
 
                 Map<String, Object> newAgent1Configuration = new HashMap<>(agent1.getConfiguration());
                 if (agent2.getComponentType() == ComponentType.FUNCTION) {
@@ -86,6 +89,7 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 Map<String, Object> configurationAgent1 = new HashMap<>();
                 configurationAgent1.put("agentType", agent1.getAgentType());
                 configurationAgent1.put("configuration", agent1.getConfiguration());
+                configurationAgent1.put("agentId", agent1.getId());
                 if (agent1.getComponentType() == ComponentType.SOURCE) {
                     source.putAll(configurationAgent1);
                 } else if (agent1.getComponentType() == ComponentType.SINK) {
@@ -99,6 +103,7 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 Map<String, Object> configurationAgent2 = new HashMap<>();
                 configurationAgent2.put("agentType", agent2.getAgentType());
                 configurationAgent2.put("configuration", agent2.getConfiguration());
+                configurationAgent2.put("agentId", agent2.getId());
                 if (agent2.getComponentType() == ComponentType.SOURCE) {
                     source.putAll(configurationAgent2);
                 } else if (agent2.getComponentType() == ComponentType.SINK) {

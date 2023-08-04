@@ -36,11 +36,6 @@ public class FailingProcessorAgentCodeProvider implements AgentCodeProvider {
     public AgentCode createInstance(String agentType) {
         return new SingleRecordAgentProcessor() {
 
-            @Override
-            public String agentType() {
-                return agentType;
-            }
-
             String failOnContent;
             @Override
             public void init(Map<String, Object> configuration) throws Exception {

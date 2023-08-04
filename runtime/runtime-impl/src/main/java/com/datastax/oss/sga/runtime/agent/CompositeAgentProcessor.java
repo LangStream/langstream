@@ -15,36 +15,30 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
+import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
 import com.datastax.oss.sga.api.runner.code.Record;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This is a special processor that executes a pipeline of Agents in memory.
  */
-public class CompositeAgentProcessor implements AgentProcessor {
+public class CompositeAgentProcessor extends AbstractAgentCode implements AgentProcessor {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private AgentSource source;
     private final List<AgentProcessor> processors = new ArrayList<>();
     private AgentSink sink;
-
-    private AtomicLong totalIn = new AtomicLong();
-    private AtomicLong totalOut = new AtomicLong();
-
-    @Override
-    public String agentType() {
-        return "composite-agent";
-    }
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
@@ -65,22 +59,25 @@ public class CompositeAgentProcessor implements AgentProcessor {
         }
 
         if (!sourceDefinition.isEmpty()) {
-            String agentType = (String) sourceDefinition.get("agentType");
+            String agentId1 = (String) sourceDefinition.get("agentId");
+            String agentType1 = (String) sourceDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) sourceDefinition.get("configuration");
-            source = (AgentSource) AgentRunner.initAgent(agentType, agentConfiguration);
+            source = (AgentSource) AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration);
         }
 
         for (Map<String, Object> agentDefinition : processorsDefinition) {
-            String agentType = (String) agentDefinition.get("agentType");
+            String agentId1 = (String) sourceDefinition.get("agentId");
+            String agentType1 = (String) agentDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) agentDefinition.get("configuration");
-            AgentProcessor agent = (AgentProcessor) AgentRunner.initAgent(agentType, agentConfiguration);
+            AgentProcessor agent = (AgentProcessor) AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration);
             processors.add(agent);
         }
 
         if (!sinkDefinition.isEmpty()) {
-            String agentType = (String) sinkDefinition.get("agentType");
+            String agentId1 = (String) sourceDefinition.get("agentId");
+            String agentType1 = (String) sinkDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) sinkDefinition.get("configuration");
-            sink = (AgentSink) AgentRunner.initAgent(agentType, agentConfiguration);
+            sink = (AgentSink) AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration);
         }
     }
 
@@ -126,7 +123,7 @@ public class CompositeAgentProcessor implements AgentProcessor {
                     .toList();
         }
 
-        totalIn.addAndGet(records.size());
+        processed(records.size(), 0);
 
         int current = 0;
         AgentProcessor currentAgent = processors.get(current++);
@@ -174,26 +171,27 @@ public class CompositeAgentProcessor implements AgentProcessor {
             currentResults = nextStageResults;
         }
 
-        totalOut.addAndGet(currentResults
+
+        long countOut = currentResults
                 .stream()
                 .filter(s -> s.getResultRecords() != null)
                 .mapToInt(s -> s.getResultRecords().size())
-                .sum());
+                .sum();
+        processed(0, countOut);
+
         return currentResults;
     }
 
     @Override
-    public AgentInfo getInfo() {
+    protected Map<String, Object> buildAdditionalInfo() {
         Map<String, Object> result = new HashMap<>();
         List<Map<String, Object>> processorsInfo = new ArrayList<>();
         for (AgentProcessor processor : processors) {
-            Map<String, Object> processorInfo = new HashMap<>();
-            processorInfo.put("agent-type", processor.agentType());
             AgentInfo info = processor.getInfo();
-            processorInfo.put("info", info);
-            processorsInfo.add(processorInfo);
+            Map<String, Object> asMap = MAPPER.convertValue(info, Map.class);
+            processorsInfo.add(asMap);
         }
         result.put("processors", processorsInfo);
-        return new AgentInfo(agentType(), result, totalIn.get(), totalOut.get());
+        return result;
     }
 }

@@ -16,6 +16,7 @@
 package com.datastax.oss.sga.ai.kafkaconnect;
 
 import com.dastastax.oss.sga.kafka.runner.KafkaRecord;
+import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
@@ -61,7 +62,7 @@ import java.util.stream.Collectors;
  * it works only if the Source is directly a Kafka Consumer Source.
  */
 @Slf4j
-public class KafkaConnectSinkAgent implements AgentSink {
+public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSink {
 
     private static class SgaSinkRecord extends SinkRecord {
 
@@ -77,11 +78,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
         }
     }
 
-    @Override
-    public String agentType() {
-        return "sink";
-    }
-
+    // non null value to avoid NPE in buildAdditionalInfo
     private String kafkaConnectorFQClassName = "?";
     @VisibleForTesting
     KafkaConnectSinkTaskContext taskContext;
@@ -110,8 +107,6 @@ public class KafkaConnectSinkAgent implements AgentSink {
     private final AvroData avroData = new AvroData(1000);
     private final ConcurrentLinkedDeque<ConsumerCommand> consumerCqrsQueue = new ConcurrentLinkedDeque<>();
 
-    private final AtomicLong totalIn = new AtomicLong();
-
     // has to be the same consumer as used to read records to process,
     // otherwise pause/resume won't work
     @Override
@@ -130,7 +125,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
 
     @Override
     public void write(List<Record> records) {
-        totalIn.addAndGet(records.size());
+        processed(records.size(), 0);
         if (!isRunning) {
             log.warn("Sink is stopped. Cannot send the records");
             throw new IllegalStateException("Sink is stopped. Cannot send the records");
@@ -472,8 +467,7 @@ public class KafkaConnectSinkAgent implements AgentSink {
     }
 
     @Override
-    public AgentInfo getInfo() {
-        return new AgentInfo(agentType(), Map.of(
-                "connector.class", kafkaConnectorFQClassName), totalIn.get(), null);
+    protected Map<String, Object> buildAdditionalInfo() {
+        return Map.of("connector.class", kafkaConnectorFQClassName);
     }
 }

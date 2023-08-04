@@ -42,11 +42,6 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
     private LengthFunction lengthFunction;
 
     @Override
-    public String agentType() {
-        return "text-splitter";
-    }
-
-    @Override
     public void init(Map<String, Object> configuration) throws Exception {
         initTextSplitter(configuration);
     }
@@ -78,19 +73,6 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
         }
         this.textSplitter = newTextSplitter;
         this.lengthFunction = newLengthFunction;
-    }
-
-    @Override
-    public void setContext(AgentContext context) throws Exception {
-    }
-    @Override
-    public void start() throws Exception {
-
-    }
-
-    @Override
-    public void close() throws Exception {
-
     }
 
     @Override

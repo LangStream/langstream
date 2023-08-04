@@ -1,0 +1,47 @@
+## This is a sample k8s job that deploys an SGA application
+# The gist of the job is to:
+# - use the sga-cli docker image
+# - setup properly the connection to the control plane and to the gateway
+# - download the application to /tmp
+# - use the "sga" command line to deploy the application
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: deploy-sga-application
+spec:
+  template:
+    spec:
+      containers:
+      - name: deploy-sga-application
+        image: public.ecr.aws/y3i6u2n7/datastax-public/sga-cli:latest
+        command:
+          - bash
+          - -c
+          - |
+            cat - > /tmp/cli.yaml << EOL
+            webServiceUrl: http://sga-control-plane.default.svc.cluster.local:8090
+            apiGatewayUrl: ws://sga-api-gateway.default.svc.cluster.local:8091
+            tenant: default
+            EOL
+            cat - > /tmp/secrets.yaml << EOL
+            secrets:
+             - id: google               
+               data:
+                client-id: xxxx
+             - id: github
+               data:
+                client-id: xxxx
+            EOL
+            cat /tmp/cli.yaml
+            /app/bin/sga --conf /tmp/cli.yaml tenants list
+            curl --fail --output-dir /tmp -O -L https://github.com/eolivelli/sgai-examples/raw/main/examples.tar.gz
+            cd /tmp
+            tar zxf /tmp/examples.tar.gz
+            APPLICATION=applications/gateway-authentication
+            INSTANCE=instances/kafka-kubernetes.yaml
+            SECRETS=/tmp/secrets.yaml
+            APPNAME=app1
+            /app/bin/sga --conf /tmp/cli.yaml apps deploy -app $APPLICATION -s /tmp/secrets.yaml --instance $INSTANCE app1
+            /app/bin/sga --conf /tmp/cli.yaml apps get app1 -o yaml
+      restartPolicy: Never
+  backoffLimit: 0

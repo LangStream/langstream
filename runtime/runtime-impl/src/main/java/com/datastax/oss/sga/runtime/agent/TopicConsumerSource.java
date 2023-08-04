@@ -41,7 +41,7 @@ public class TopicConsumerSource extends AbstractAgentCode implements AgentSourc
     @Override
     public List<Record> read() throws Exception {
         List<Record> result =  consumer.read();
-        processed(result.size(), 0);
+        processed(0, result.size());
         return result;
     }
 

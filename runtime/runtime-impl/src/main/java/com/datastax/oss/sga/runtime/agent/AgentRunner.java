@@ -278,6 +278,8 @@ public class AgentRunner
 
             if (source == null) {
                 source = new TopicConsumerSource(consumer, deadLetterProducer);
+                source.setMetadata("topic-source", "topic-source", System.currentTimeMillis());
+                source.init(Map.of());
             }
             agentInfo.watchSource(source);
 
@@ -289,6 +291,8 @@ public class AgentRunner
             }
             if (sink == null) {
                 sink = new TopicProducerSink(producer);
+                sink.setMetadata("topic-sink", "topic-sink", System.currentTimeMillis());
+                sink.init(Map.of());
             }
             agentInfo.watchSink(sink);
 

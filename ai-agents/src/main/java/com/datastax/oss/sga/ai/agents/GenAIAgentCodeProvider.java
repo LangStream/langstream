@@ -26,7 +26,6 @@ import java.util.Set;
 public class GenAIAgentCodeProvider implements AgentCodeProvider {
 
     private static final Set<String> STEP_TYPES = Set.of(
-
             "drop-fields",
             "merge-key-value",
             "unwrap-key-value",
@@ -36,7 +35,9 @@ public class GenAIAgentCodeProvider implements AgentCodeProvider {
             "compute",
             "compute-ai-embeddings",
             "query",
-            "ai-chat-completions");
+            "ai-chat-completions",
+            "ai-tools" // legacy
+    );
 
     @Override
     public boolean supports(String agentType) {

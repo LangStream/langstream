@@ -27,6 +27,12 @@ deployer:
       application.storage.apps.configuration.namespaceprefix: sga-
       application.storage.apps.configuration.deployer-runtime.image: public.ecr.aws/y3i6u2n7/datastax-public/sga-runtime:0.0.1-alpha
       application.storage.apps.configuration.deployer-runtime.image-pull-policy: IfNotPresent
+      agentResources: {}
+      clusterRuntime:
+        kubernetes:
+          namespace-prefix: sga-
+          image: public.ecr.aws/y3i6u2n7/datastax-public/sga-runtime:0.0.1-alpha
+          image-pull-policy: IfNotPresent
       codeStorage:
         type: s3
         endpoint: http://minio.minio-dev.svc.cluster.local:9000

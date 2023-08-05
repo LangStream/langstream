@@ -33,6 +33,12 @@ import java.util.Objects;
 public final class GenAIToolKitExecutionPlanOptimizer implements ExecutionPlanOptimiser {
 
     @Override
+    public boolean supports(String clusterType) {
+        return "pulsar".equals(clusterType);
+    }
+
+
+    @Override
     public boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation) {
         if (Objects.equals(previousAgent.getAgentType(), GenAIToolKitFunctionAgentProvider.AGENT_TYPE)
                 && Objects.equals(previousAgent.getAgentType(), agentImplementation.getAgentType())

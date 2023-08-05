@@ -15,13 +15,27 @@
  */
 package com.datastax.oss.sga.runtime.impl.k8s.agents.ai;
 
+import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime;
+
+import java.util.Objects;
 
 public class KubernetesGenAIToolKitFunctionAgentProvider extends GenAIToolKitFunctionAgentProvider {
 
     public KubernetesGenAIToolKitFunctionAgentProvider() {
-        super(KubernetesClusterRuntime.CLUSTER_TYPE, GenAIToolKitFunctionAgentProvider.AGENT_TYPE);
+        super(KubernetesClusterRuntime.CLUSTER_TYPE);
+    }
+
+    @Override
+    protected String getAgentType(AgentConfiguration agentConfiguration) {
+        // in kubernetes we keep the original agentType
+        return agentConfiguration.getType();
+    }
+
+    @Override
+    protected boolean isComposable(AgentConfiguration agentConfiguration) {
+        return Objects.equals("true", agentConfiguration.getConfiguration().getOrDefault("composable", true) + "");
     }
 
 }

@@ -28,21 +28,33 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPlanOptimiser {
+
+    @Override
+    public boolean supports(String clusterType) {
+        return "kubernetes".equals(clusterType) || "none".equals(clusterType);
+    }
 
     @Override
     public boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation) {
         boolean result = (previousAgent instanceof DefaultAgentNode agent1
                 && agent1.isComposable()
                 && agentImplementation instanceof DefaultAgentNode agent2
-                && agent2.isComposable());
+                && agent2.isComposable()
+                && Objects.equals("true", agent1.getConfiguration().getOrDefault("composable", "true") + "")
+                && Objects.equals("true", agent2.getConfiguration().getOrDefault("composable", "true") + "")
+        );
         if (log.isDebugEnabled()) {
             log.debug("canMerge {}", previousAgent);
             log.debug("canMerge {}", agentImplementation);
             log.debug("canMerge RESULT: {}", result);
         }
+        log.info("canMerge {}", previousAgent);
+        log.info("canMerge {}", agentImplementation);
+        log.info("canMerge RESULT: {}", result);
         return result;
     }
 

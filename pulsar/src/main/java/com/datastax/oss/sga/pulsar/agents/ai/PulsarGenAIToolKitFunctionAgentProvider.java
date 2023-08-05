@@ -28,7 +28,19 @@ import com.datastax.oss.sga.pulsar.agents.AbstractPulsarAgentProvider;
 public class PulsarGenAIToolKitFunctionAgentProvider extends GenAIToolKitFunctionAgentProvider {
 
     public PulsarGenAIToolKitFunctionAgentProvider() {
-        super(PulsarClusterRuntime.CLUSTER_TYPE, GenAIToolKitFunctionAgentProvider.AGENT_TYPE);
+        super(PulsarClusterRuntime.CLUSTER_TYPE);
+    }
+
+    @Override
+    protected boolean isComposable(AgentConfiguration agentConfiguration) {
+        return false;
+    }
+
+    @Override
+    protected String getAgentType(AgentConfiguration agentConfiguration) {
+        // all the agents in the AT ToolKit can be generated from one single agent implementation
+        // this is important because the runtime is able to "merge" agents of the same type
+        return "ai-tools";
     }
 
     @Override

@@ -144,10 +144,12 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
             if (consecutiveAgentsWithImplictTopic) {
                 for (ExecutionPlanOptimiser optimiser : getExecutionPlanOptimisers()) {
-                    if (optimiser.canMerge(previousAgent, agentImplementation)) {
-                        agentImplementation = optimiser.mergeAgents(module, pipeline, previousAgent, agentImplementation, result);
-                        merged = true;
-                        break;
+                    if (optimiser.supports(getClusterType())) {
+                        if (optimiser.canMerge(previousAgent, agentImplementation)) {
+                            agentImplementation = optimiser.mergeAgents(module, pipeline, previousAgent, agentImplementation, result);
+                            merged = true;
+                            break;
+                        }
                     }
                 }
             }

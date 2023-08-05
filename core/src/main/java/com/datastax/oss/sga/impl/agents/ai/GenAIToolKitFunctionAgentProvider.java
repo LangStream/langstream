@@ -20,13 +20,10 @@ import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.Resource;
-import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.ExecutionPlanOptimiser;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
-import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -34,7 +31,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @Slf4j
 public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
@@ -149,22 +145,14 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             }
 
     );
-    private final String mainAgentType;
-    public GenAIToolKitFunctionAgentProvider(String clusterType, String mainAgentType) {
+
+    public GenAIToolKitFunctionAgentProvider(String clusterType) {
         super(STEP_TYPES.keySet(), List.of(clusterType, "none"));
-        this.mainAgentType = mainAgentType;
     }
 
     @Override
     protected final ComponentType getComponentType(AgentConfiguration agentConfiguration) {
         return ComponentType.FUNCTION;
-    }
-
-    @Override
-    protected String getAgentType(AgentConfiguration agentConfiguration) {
-        // all the agents in the AT ToolKit can be generated from one single agent implementation
-        // this is important because the runtime is able to "merge" agents of the same type
-        return mainAgentType;
     }
 
     private interface StepConfigurationInitializer {

@@ -33,6 +33,11 @@ import java.util.Map;
 public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPlanOptimiser {
 
     @Override
+    public boolean supports(String clusterType) {
+        return "kubernetes".equals(clusterType) || "none".equals(clusterType);
+    }
+
+    @Override
     public boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation) {
         boolean result = (previousAgent instanceof DefaultAgentNode agent1
                 && agent1.isComposable()

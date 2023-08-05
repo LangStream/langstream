@@ -15,7 +15,6 @@ brew install minikube
 minikube start
 ```
 
-
 Deploy MinIO (S3 BlobStorage implementation for local testing)
 
 ```
@@ -94,9 +93,20 @@ minikube image load datastax/sga-runtime:latest-dev
 minikube image load datastax/sga-api-gateway:latest-dev
 ```
 
-If you want to use the docker images you just built, then use helm/examples/local.yaml values file:
+If you want to use the docker images you just built, use `helm/examples/local.yaml` values file:
 
 ```
 helm install sga helm/sga --values helm/examples/lcoal.yaml --wait --timeout 60s
 ```
 
+## Deploying to GKE or similar K8s test cluster
+
+Instead of `minio-dev.yaml` use the `helm/examples/minio-gke.yaml` file:
+
+```
+kubectl apply -f helm/examples/minio-gke.yaml
+```
+
+## Deploying to a Persistent Cluster
+
+TODO: instructions on configuring with S3.

@@ -15,14 +15,32 @@
  */
 package com.datastax.oss.sga.ai.agents;
 
+import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
 public class GenAIAgentCodeProvider implements AgentCodeProvider {
+
+    private static final Set<String> STEP_TYPES = Set.of(
+
+            "drop-fields",
+            "merge-key-value",
+            "unwrap-key-value",
+            "cast",
+            "flatten",
+            "drop",
+            "compute",
+            "compute-ai-embeddings",
+            "query",
+            "ai-chat-completions");
 
     @Override
     public boolean supports(String agentType) {
-        return "ai-tools".equals(agentType);
+        return STEP_TYPES.contains(agentType);
     }
 
     @Override

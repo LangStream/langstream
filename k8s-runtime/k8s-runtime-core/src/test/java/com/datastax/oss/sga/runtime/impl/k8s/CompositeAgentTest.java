@@ -24,6 +24,7 @@ import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.api.runtime.Topic;
+import com.datastax.oss.sga.impl.agents.AbstractCompositeAgentProvider;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.noop.NoOpStreamingClusterRuntimeProvider;
@@ -655,6 +656,205 @@ class CompositeAgentTest {
             assertNull(defaultThirdNode.getOutputConnectionImplementation());
 
         }
+    }
+
+    @Test
+    public void testMixDifferentResourceRequests() throws Exception {
+        Application applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        buildInstanceYaml(),
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists                                    
+                                pipeline:
+                                  - name: "text-extractor"
+                                    id: "step1"
+                                    type: "text-extractor"
+                                    input: "input-topic"                                    
+                                  - name: "language-detector"
+                                    id: "step1b"
+                                    type: "language-detector"                                    
+                                  - name: "drop-if-not-english"
+                                    id: "step2"
+                                    type: "drop"                                    
+                                    resources:                                      
+                                      size: 2
+                                  - name: "language-detector-2"
+                                    id: "step3"
+                                    type: "language-detector"
+                                    output: "output-topic"                                    
+                                """));
+
+        try (ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();) {
+
+
+            ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+
+
+            Module module = applicationInstance.getModule("module-1");
+            assertEquals(3, implementation.getAgents().size());
+            log.info("Topics {}", implementation.getTopics().values().stream().map(Topic::topicName).collect(Collectors.toList()));
+            assertEquals(4, implementation.getTopics().size());
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName(
+                            "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName(
+                            "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName(
+                            "agent-step2-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName(
+                            "agent-step3-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+
+            assertEquals(3, implementation.getAgents().size());
+
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
+            DefaultAgentNode defaultAgentNode = (DefaultAgentNode) agentImplementation;
+            AbstractCompositeAgentProvider.getProcessorConfigurationAt(defaultAgentNode, 0, "text-extractor");
+            AbstractCompositeAgentProvider.getProcessorConfigurationAt(defaultAgentNode, 1, "language-detector");
+
+            Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
+            assertEquals("input-topic", inputTopic.topicName());
+            Topic outputTopic = (Topic) defaultAgentNode.getOutputConnectionImplementation();
+            assertEquals("agent-step2-input", outputTopic.topicName());
+
+            AgentNode agentImplementationDrop = implementation.getAgentImplementation(module, "step2");
+            DefaultAgentNode defaultAgentNodeDrop = (DefaultAgentNode) agentImplementationDrop;
+            Map<String, Object> configurationDrop = defaultAgentNodeDrop.getConfiguration();
+            assertNotNull(configurationDrop.get("steps"));
+            assertEquals("drop", defaultAgentNodeDrop.getAgentType());
+
+            Topic inputTopicDrop = (Topic) defaultAgentNodeDrop.getInputConnectionImplementation();
+            assertEquals("agent-step2-input", inputTopicDrop.topicName());
+            Topic outputTopicDrop = (Topic) defaultAgentNodeDrop.getOutputConnectionImplementation();
+            assertEquals("agent-step3-input", outputTopicDrop.topicName());
+
+            AgentNode agentImplementationLast = implementation.getAgentImplementation(module, "step3");
+            DefaultAgentNode defaultAgentNodeLast = (DefaultAgentNode) agentImplementationLast;
+            assertEquals("language-detector", defaultAgentNodeLast.getAgentType());
+
+
+            Topic inputTopicLast = (Topic) defaultAgentNodeLast.getInputConnectionImplementation();
+            assertEquals("agent-step3-input", inputTopicLast.topicName());
+            Topic outputTopicLast = (Topic) defaultAgentNodeLast.getOutputConnectionImplementation();
+            assertEquals("output-topic", outputTopicLast.topicName());
+
+        }
+    }
+
+
+    @Test
+    public void testMixDifferentErrorSpecs() throws Exception {
+        Application applicationInstance = ModelBuilder
+                .buildApplicationInstance(Map.of("instance.yaml",
+                        buildInstanceYaml(),
+                        "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"                                
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists                                    
+                                pipeline:
+                                  - name: "text-extractor"
+                                    id: "step1"
+                                    type: "text-extractor"
+                                    input: "input-topic"                                    
+                                  - name: "language-detector"
+                                    id: "step1b"
+                                    type: "language-detector"                                    
+                                  - name: "drop-if-not-english"
+                                    id: "step2"
+                                    type: "drop"                                    
+                                    errors:                                      
+                                      on-failure: dead-letter
+                                  - name: "language-detector-2"
+                                    id: "step3"
+                                    type: "language-detector"
+                                    output: "output-topic"                                    
+                                """));
+
+        try (ApplicationDeployer deployer = ApplicationDeployer
+                .builder()
+                .registry(new ClusterRuntimeRegistry())
+                .pluginsRegistry(new PluginsRegistry())
+                .build();) {
+
+
+            ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+
+
+            Module module = applicationInstance.getModule("module-1");
+            assertEquals(3, implementation.getAgents().size());
+            log.info("Topics {}", implementation.getTopics().values().stream().map(Topic::topicName).collect(Collectors.toList()));
+            assertEquals(5, implementation.getTopics().size());
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName(
+                            "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName(
+                            "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName(
+                            "agent-step2-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName(
+                            "agent-step2-input-deadletter"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(implementation.getConnectionImplementation(module,
+                    Connection.fromTopic(TopicDefinition.fromName(
+                            "agent-step3-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+
+
+
+            assertEquals(3, implementation.getAgents().size());
+
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
+            DefaultAgentNode defaultAgentNode = (DefaultAgentNode) agentImplementation;
+            AbstractCompositeAgentProvider.getProcessorConfigurationAt(defaultAgentNode, 0, "text-extractor");
+            AbstractCompositeAgentProvider.getProcessorConfigurationAt(defaultAgentNode, 1, "language-detector");
+
+            Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
+            assertEquals("input-topic", inputTopic.topicName());
+            Topic outputTopic = (Topic) defaultAgentNode.getOutputConnectionImplementation();
+            assertEquals("agent-step2-input", outputTopic.topicName());
+
+            AgentNode agentImplementationDrop = implementation.getAgentImplementation(module, "step2");
+            DefaultAgentNode defaultAgentNodeDrop = (DefaultAgentNode) agentImplementationDrop;
+            Map<String, Object> configurationDrop = defaultAgentNodeDrop.getConfiguration();
+            assertNotNull(configurationDrop.get("steps"));
+            assertEquals("drop", defaultAgentNodeDrop.getAgentType());
+
+            Topic inputTopicDrop = (Topic) defaultAgentNodeDrop.getInputConnectionImplementation();
+            assertEquals("agent-step2-input", inputTopicDrop.topicName());
+            Topic outputTopicDrop = (Topic) defaultAgentNodeDrop.getOutputConnectionImplementation();
+            assertEquals("agent-step3-input", outputTopicDrop.topicName());
+
+            AgentNode agentImplementationLast = implementation.getAgentImplementation(module, "step3");
+            DefaultAgentNode defaultAgentNodeLast = (DefaultAgentNode) agentImplementationLast;
+            assertEquals("language-detector", defaultAgentNodeLast.getAgentType());
+
+
+            Topic inputTopicLast = (Topic) defaultAgentNodeLast.getInputConnectionImplementation();
+            assertEquals("agent-step3-input", inputTopicLast.topicName());
+            Topic outputTopicLast = (Topic) defaultAgentNodeLast.getOutputConnectionImplementation();
+            assertEquals("output-topic", outputTopicLast.topicName());
+
+
+        }
+
+
     }
 
 }

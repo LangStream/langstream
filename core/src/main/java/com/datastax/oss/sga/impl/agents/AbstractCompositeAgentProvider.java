@@ -18,9 +18,12 @@ package com.datastax.oss.sga.impl.agents;
 import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
+import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -48,5 +51,18 @@ public abstract class AbstractCompositeAgentProvider extends AbstractAgentProvid
     @Override
     protected boolean isComposable(AgentConfiguration agentConfiguration) {
         return true;
+    }
+
+    public static Map<String, Object> getProcessorConfigurationAt(DefaultAgentNode composite, int index, String expectedType) {
+        if (!Objects.equals(AGENT_TYPE, composite.getAgentType())) {
+            throw new IllegalArgumentException("Not a composite agent: " + composite);
+        }
+        Map<String, Object> processorAgent = ((List<Map<String, Object>>) composite.getConfiguration().get("processors")).get(index);
+        Objects.requireNonNull(processorAgent.get("agentId"));
+        if (!expectedType.equals(processorAgent.get("agentType"))) {
+            throw new IllegalArgumentException("Expected " + expectedType + " but got " + processorAgent.get("agentType"));
+        }
+
+        return (Map<String, Object>) processorAgent.get("configuration");
     }
 }

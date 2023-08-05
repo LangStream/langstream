@@ -23,6 +23,7 @@ import com.datastax.oss.sga.api.runtime.AgentNode;
 import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import com.datastax.oss.sga.impl.agents.AbstractCompositeAgentProvider;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.noop.NoOpStreamingClusterRuntimeProvider;
@@ -188,8 +189,12 @@ class GenAIAgentsTest {
         assertNotNull(agentImplementation);
         DefaultAgentNode step =
                 (DefaultAgentNode) agentImplementation;
-        Map<String, Object> configuration = step.getConfiguration();
+
+        assertEquals(AbstractCompositeAgentProvider.AGENT_TYPE, step.getAgentType());
+
+        Map<String, Object> configuration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 0, "compute-ai-embeddings");
         log.info("Configuration: {}", configuration);
+
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
         log.info("openAIConfiguration: {}", openAIConfiguration);
         assertEquals("http://something", openAIConfiguration.get("url"));
@@ -198,14 +203,18 @@ class GenAIAgentsTest {
 
 
         List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
-        assertEquals(2, steps.size());
+        assertEquals(1, steps.size());
         Map<String, Object> step1 = steps.get(0);
         assertEquals("compute-ai-embeddings", step1.get("type"));
         assertEquals("text-embedding-ada-002", step1.get("model"));
         assertEquals("value.embeddings", step1.get("embeddings-field"));
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
-        Map<String, Object> step2 = steps.get(1);
+
+        configuration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 1, "drop-fields");
+        steps = (List<Map<String, Object>>) configuration.get("steps");
+        assertEquals(1, steps.size());
+        Map<String, Object> step2 = steps.get(0);
         assertEquals("drop-fields", step2.get("type"));
         assertEquals("embeddings", step2.get("fields"));
         assertEquals("value", step2.get("part"));
@@ -441,17 +450,26 @@ class GenAIAgentsTest {
         assertNotNull(agentImplementation);
         DefaultAgentNode step =
                 (DefaultAgentNode) agentImplementation;
-        Map<String, Object> configuration = step.getConfiguration();
+
+        Map<String, Object> configuration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 0, "compute-ai-embeddings");
         log.info("Configuration: {}", configuration);
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
         log.info("openAIConfiguration: {}", openAIConfiguration);
         assertEquals("http://something", openAIConfiguration.get("url"));
         assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
         assertEquals("azure", openAIConfiguration.get("provider"));
-
-
         List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
-        assertEquals(10, steps.size());
+        assertEquals(1, steps.size());
+
+        AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 1, "drop-fields");
+        AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 2, "drop");
+        AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 3, "query");
+        AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 4, "unwrap-key-value");
+        AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 5, "flatten");
+        AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 6, "compute");
+        AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 7, "merge-key-value");
+        AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 8, "ai-chat-completions");
+        AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 9, "cast");
 
         // verify that the intermediate topics are not created
         log.info("topics {}", implementation.getTopics());
@@ -502,6 +520,7 @@ class GenAIAgentsTest {
                                     id: query1
                                     type: "query"                                    
                                     configuration:
+                                      composable: false
                                       datasource: "my-database-1"         
                                       query: "select * from table"
                                       output-field: "value.queryresult"                             
@@ -511,7 +530,7 @@ class GenAIAgentsTest {
                                   - name: "query2"
                                     id: query2
                                     type: "query"                                    
-                                    configuration:
+                                    configuration:                                      
                                       datasource: "my-database-2"         
                                       query: "select * from table2"
                                       output-field: "value.queryresult2"                             
@@ -550,13 +569,18 @@ class GenAIAgentsTest {
         {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "query2");
             DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
-            Map<String, Object> configuration = step.getConfiguration();
-            log.info("Configuration: {}", configuration);
-            Map<String, Object> datasourceConfiguration1 = (Map<String, Object>) configuration.get("datasource");
-            assertEquals("localhost:1545", datasourceConfiguration1.get("connectionUrl"));
-            List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
-            // query + cast
-            assertEquals(2, steps.size());
+            {
+                Map<String, Object> configuration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 0, "query");
+                log.info("Configuration: {}", configuration);
+                Map<String, Object> datasourceConfiguration1 = (Map<String, Object>) configuration.get("datasource");
+                assertEquals("localhost:1545", datasourceConfiguration1.get("connectionUrl"));
+                List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+                // query + cast
+                assertEquals(1, steps.size());
+            }
+
+            // verify second step
+            AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 1, "cast");
         }
 
 
@@ -644,12 +668,20 @@ class GenAIAgentsTest {
         {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
             DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
-            Map<String, Object> configuration = step.getConfiguration();
+
+
+            Map<String, Object> computeAiConfiguration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 0, "compute-ai-embeddings");
+            assertNotNull(computeAiConfiguration.get("openai"));
+
+            Map<String, Object> configuration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 1, "query");
             log.info("Configuration: {}", configuration);
             Map<String, Object> datasourceConfiguration1 = (Map<String, Object>) configuration.get("datasource");
             assertEquals("localhost:1544", datasourceConfiguration1.get("connectionUrl"));
             List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
-            assertEquals(3, steps.size());
+            assertEquals(1, steps.size());
+
+
+            AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 2, "cast");
         }
     }
 

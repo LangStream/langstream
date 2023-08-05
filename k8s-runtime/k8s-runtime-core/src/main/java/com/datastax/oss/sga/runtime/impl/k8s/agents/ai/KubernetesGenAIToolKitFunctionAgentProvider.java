@@ -19,6 +19,8 @@ import com.datastax.oss.sga.api.model.AgentConfiguration;
 import com.datastax.oss.sga.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime;
 
+import java.util.Objects;
+
 public class KubernetesGenAIToolKitFunctionAgentProvider extends GenAIToolKitFunctionAgentProvider {
 
     public KubernetesGenAIToolKitFunctionAgentProvider() {
@@ -33,7 +35,7 @@ public class KubernetesGenAIToolKitFunctionAgentProvider extends GenAIToolKitFun
 
     @Override
     protected boolean isComposable(AgentConfiguration agentConfiguration) {
-        return true;
+        return Objects.equals("true", agentConfiguration.getConfiguration().getOrDefault("composable", true) + "");
     }
 
 }

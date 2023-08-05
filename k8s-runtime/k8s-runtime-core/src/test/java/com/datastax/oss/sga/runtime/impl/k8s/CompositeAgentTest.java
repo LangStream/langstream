@@ -230,6 +230,7 @@ class CompositeAgentTest {
                                     type: "drop"                                    
                                     configuration:                                      
                                       when: "properties.language != 'en'"
+                                      composable: false
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
@@ -286,7 +287,7 @@ class CompositeAgentTest {
             DefaultAgentNode defaultAgentNodeDrop = (DefaultAgentNode) agentImplementationDrop;
             Map<String, Object> configurationDrop = defaultAgentNodeDrop.getConfiguration();
             assertNotNull(configurationDrop.get("steps"));
-            assertEquals("ai-tools", defaultAgentNodeDrop.getAgentType());
+            assertEquals("drop", defaultAgentNodeDrop.getAgentType());
 
             Topic inputTopicDrop = (Topic) defaultAgentNodeDrop.getInputConnectionImplementation();
             assertEquals("agent-step2-input", inputTopicDrop.topicName());
@@ -568,6 +569,8 @@ class CompositeAgentTest {
                                   - name: "requires-buffer-topic"
                                     id: "bad-step"
                                     type: "drop"
+                                    configuration:
+                                      composable: false
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
@@ -623,7 +626,7 @@ class CompositeAgentTest {
             AgentNode secondNode = implementation.getAgentImplementation(module, "bad-step");
             DefaultAgentNode defaultSecondNode = (DefaultAgentNode) secondNode;
             Map<String, Object> configurationSecondNode = defaultSecondNode.getConfiguration();
-            assertEquals("ai-tools", defaultSecondNode.getAgentType());
+            assertEquals("drop", defaultSecondNode.getAgentType());
 
             Topic inputTopicSecondStep = (Topic) defaultSecondNode.getInputConnectionImplementation();
             assertEquals("agent-bad-step-input", inputTopicSecondStep.topicName());

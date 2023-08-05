@@ -46,6 +46,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 && agent2.isComposable()
                 && Objects.equals("true", agent1.getConfiguration().getOrDefault("composable", "true") + "")
                 && Objects.equals("true", agent2.getConfiguration().getOrDefault("composable", "true") + "")
+                && Objects.equals(agent1.getResourcesSpec(), agent2.getResourcesSpec())
+                && Objects.equals(agent1.getErrorsSpec(), agent2.getErrorsSpec())
         );
         if (log.isDebugEnabled()) {
             log.debug("canMerge {}", previousAgent);

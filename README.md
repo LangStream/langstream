@@ -28,11 +28,15 @@ kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
 kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka  
 ```
 
+NOTE: If the `kubectl apply` times out then you should take a look at your cluster with `k9s -A` and probably wait.
+
 Deploy the SGAI Control Plane and the operator:
 
 ```
 helm install sga helm/sga --values helm/examples/simple.yaml --wait --timeout 60s
 ```
+
+NOTE: If the `helm install` times out then you should take a look at your cluster with `k9s -A` and possibly try with a larger timeout value.
 
 Port forward control plane and the gateway to localhost:
 ```
@@ -63,7 +67,13 @@ secrets:
 
 ./bin/sga-cli apps deploy test -app examples/applications/compute-openai-embeddings -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml 
 ./bin/sga-cli apps get test
+```
 
+Check your k8s cluster with `k9s -A` or run `./bin/sga-cli apps get test` until the app is deployed.
+
+Start producing messages:
+
+```
 kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic
 ```
 
@@ -79,14 +89,13 @@ In another terminal:
 kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
 ```
 
-
-
 ## Building the docker images locally
 
 Build docker images and push them into the minikube environment
 
 ```
 ./docker/build.sh
+minikube image load datastax/sga-cli:latest-dev
 minikube image load datastax/sga-deployer:latest-dev
 minikube image load datastax/sga-control-plane:latest-dev
 minikube image load datastax/sga-runtime:latest-dev
@@ -96,7 +105,7 @@ minikube image load datastax/sga-api-gateway:latest-dev
 If you want to use the docker images you just built, use `helm/examples/local.yaml` values file:
 
 ```
-helm install sga helm/sga --values helm/examples/lcoal.yaml --wait --timeout 60s
+helm install sga helm/sga --values helm/examples/local.yaml --wait --timeout 60s
 ```
 
 ## Deploying to GKE or similar K8s test cluster

@@ -24,6 +24,8 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
+import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
+import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.webservice.config.ApplicationDeployProperties;
 import java.util.List;
@@ -33,9 +35,13 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 @Slf4j
 class ApplicationServiceValidateAppTest {
+
+    @RegisterExtension
+    static final KubeTestServer k3s = new KubeTestServer();
 
     @Test
     void testApplicationId() throws Exception {

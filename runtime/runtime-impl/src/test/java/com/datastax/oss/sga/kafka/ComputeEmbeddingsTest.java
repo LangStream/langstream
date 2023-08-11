@@ -138,7 +138,7 @@ class ComputeEmbeddingsTest extends AbstractApplicationRunner {
         // wait for WireMock to be ready
         Thread.sleep(1000);
 
-        final String appId = "application-" + UUID.randomUUID();
+        final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
         String inputTopic = "input-topic-" + UUID.randomUUID();
         String outputTopic = "output-topic-" + UUID.randomUUID();
         String tenant = "tenant";

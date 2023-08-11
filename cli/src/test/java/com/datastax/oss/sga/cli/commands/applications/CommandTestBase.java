@@ -37,6 +37,7 @@ public class CommandTestBase {
 
     protected static final String TENANT = "my-tenant";
     protected WireMock wireMock;
+    protected String wireMockBaseUrl;
     protected Path tempDir;
     private Path cliYaml;
 
@@ -51,6 +52,7 @@ public class CommandTestBase {
                 """.formatted(wmRuntimeInfo.getHttpPort(), TENANT);
         Files.write(cliYaml, config.getBytes(StandardCharsets.UTF_8));
         wireMock = wmRuntimeInfo.getWireMock();
+        wireMockBaseUrl = wmRuntimeInfo.getHttpBaseUrl();
     }
 
     protected String createTempFile(String content) {

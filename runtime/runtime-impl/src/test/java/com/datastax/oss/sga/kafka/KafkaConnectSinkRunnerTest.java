@@ -139,7 +139,7 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
                 sendMessage("input-topic2", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
                 executeAgentRunners(applicationRuntime);
                 Thread.sleep(1000);
-                // todo: assert on processed counter (incremented before error ahndling)
+                // todo: assert on processed counter (incremented before error handling)
                 DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
                 assertTrue(DummySink.receivedRecords.size() == 0);
             }
@@ -196,7 +196,7 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
         String[] expectedAgents = {"app-step4"};
 
         DummySink.receivedRecords.clear();
-        
+
         String onFailure = "dead-letter";
         Map<String, String> application = Map.of("instance.yaml",
                 buildInstanceYaml(),

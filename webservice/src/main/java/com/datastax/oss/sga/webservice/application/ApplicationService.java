@@ -143,7 +143,7 @@ public class ApplicationService {
 
     }
 
-    private ExecutionPlan validateExecutionPlan(String applicationId, Application applicationInstance) {
+    ExecutionPlan validateExecutionPlan(String applicationId, Application applicationInstance) {
         final ExecutionPlan newPlan =
                 deployer.createImplementation(applicationId, applicationInstance);
         return newPlan;

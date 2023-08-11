@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.deployer.k8s.agents;
 
+import static com.datastax.oss.sga.deployer.k8s.CRDConstants.MAX_AGENT_ID_LENGTH;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
@@ -58,8 +59,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -151,7 +150,7 @@ public class AgentResourcesFactory {
 
         final Map<String, String> labels = getAgentLabels(spec.getAgentId(), spec.getApplicationId());
 
-        String name = sanitizeName(agentCustomResource.getMetadata().getName());
+        final String name = agentCustomResource.getMetadata().getName();
         final StatefulSet statefulSet = new StatefulSetBuilder()
                 .withNewMetadata()
                 .withName(name)
@@ -290,8 +289,7 @@ public class AgentResourcesFactory {
     }
 
     public static String getAgentCustomResourceName(String applicationId, String agentId) {
-        final String agentName = "%s-%s".formatted(applicationId, agentId);
-        return sanitizeName(agentName);
+        return "%s-%s".formatted(applicationId, agentId);
     }
 
 
@@ -389,24 +387,7 @@ public class AgentResourcesFactory {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    public static String sanitizeName(String name) {
-        // Define the regular expression pattern
-        String pattern = "[^a-z0-9.-]";
 
-        // Remove invalid characters from the name
-        String sanitizedName = name.toLowerCase().replaceAll(pattern, "");
-
-        // Check if the sanitized name starts or ends with a non-alphanumeric character
-        if (!sanitizedName.matches("[a-z0-9].*[a-z0-9]")) {
-            // Add a default prefix and suffix
-            sanitizedName = "default-" + sanitizedName + "-default";
-        }
-
-        // Truncate the name to 63 characters
-        sanitizedName = sanitizedName.substring(0, Math.min(sanitizedName.length(), 63));
-
-        return sanitizedName;
-    }
 
 
     public static List<String> getAgentPods(KubernetesClient client, String namespace, String applicationId) {
@@ -422,6 +403,18 @@ public class AgentResourcesFactory {
                 .map(pod -> pod.getMetadata().getName())
                 .sorted()
                 .collect(Collectors.toList());
+    }
+
+    public static void validateAgentId(String agentId, String applicationId) throws IllegalArgumentException{
+        final String fullAgentId = getAgentCustomResourceName(applicationId, agentId);
+        if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(fullAgentId).matches()) {
+            throw new IllegalArgumentException(("Agent id '%s' (computed as '%s') contains illegal characters. Allowed characters are alphanumeric, "
+                    + "underscore and dash. To fully control the agent id, you can set the 'id' field.").formatted(agentId, fullAgentId));
+        }
+        if (agentId.length() > MAX_AGENT_ID_LENGTH) {
+            throw new IllegalArgumentException("Agent id '%s' is too long, max length is %d. To fully control the agent id, you can set the 'id' field.".formatted(agentId,
+                    MAX_AGENT_ID_LENGTH));
+        }
     }
 
 }

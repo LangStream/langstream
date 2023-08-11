@@ -23,6 +23,7 @@ import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
+import com.datastax.oss.sga.deployer.k8s.apps.AppResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.impl.agents.ai.GenAIToolKitExecutionPlanOptimizer;
 import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
@@ -209,6 +210,17 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             hexString.append(hex);
         }
         return hexString.toString();
+    }
+
+    @Override
+    protected void validateExecutionPlan(ExecutionPlan plan, StreamingClusterRuntime streamingClusterRuntime)
+            throws IllegalArgumentException {
+        super.validateExecutionPlan(plan, streamingClusterRuntime);
+        AppResourcesFactory.validateApplicationId(plan.getApplicationId());
+        final String applicationId = plan.getApplicationId();
+        for (AgentNode agentNode : plan.getAgents().values()) {
+            AgentResourcesFactory.validateAgentId(agentNode.getId(), applicationId);
+        }
     }
 
     @Override

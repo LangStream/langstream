@@ -251,8 +251,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
     protected static <T> T requiredField(Map<String, Object> step, AgentConfiguration agentConfiguration, Map<String, Object> originalConfiguration, String name) {
         if (!originalConfiguration.containsKey(name)) {
-            throw new IllegalArgumentException("Missing required field " + name + " in agent definition, type=" + agentConfiguration.getType()
-                    + ", name="+agentConfiguration.getName());
+            throw new IllegalArgumentException(
+                    "Missing required field '" + name + "' in agent definition, type=" + agentConfiguration.getType()
+                            + ", name=" + agentConfiguration.getName() + ", id=" + agentConfiguration.getId());
         }
         Object value = originalConfiguration.get(name);
         step.put(name, value);

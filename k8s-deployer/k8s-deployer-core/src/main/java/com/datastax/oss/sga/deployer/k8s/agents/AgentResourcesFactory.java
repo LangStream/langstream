@@ -408,8 +408,8 @@ public class AgentResourcesFactory {
     public static void validateAgentId(String agentId, String applicationId) throws IllegalArgumentException{
         final String fullAgentId = getAgentCustomResourceName(applicationId, agentId);
         if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(fullAgentId).matches()) {
-            throw new IllegalArgumentException(("Agent id '%s' (computed as '%s') contains illegal characters. Allowed characters are alphanumeric, "
-                    + "underscore and dash. To fully control the agent id, you can set the 'id' field.").formatted(agentId, fullAgentId));
+            throw new IllegalArgumentException(("Agent id '%s' (computed as '%s') contains illegal characters. "
+                    + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.").formatted(agentId, fullAgentId));
         }
         if (agentId.length() > MAX_AGENT_ID_LENGTH) {
             throw new IllegalArgumentException("Agent id '%s' is too long, max length is %d. To fully control the agent id, you can set the 'id' field.".formatted(agentId,

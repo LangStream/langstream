@@ -204,8 +204,8 @@ public class AppResourcesFactory {
 
     public static void validateApplicationId(String applicationId) throws IllegalArgumentException {
         if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(applicationId).matches()) {
-            throw new IllegalArgumentException(("Application id '%s' contains illegal characters. Allowed characters are alphanumeric, "
-                    + "underscore and dash.").formatted(applicationId));
+            throw new IllegalArgumentException(("Application id '%s' contains illegal characters. Allowed characters are alphanumeric and "
+                    + "dash.").formatted(applicationId));
         }
 
         if (applicationId.length() > MAX_APPLICATION_ID_LENGTH) {

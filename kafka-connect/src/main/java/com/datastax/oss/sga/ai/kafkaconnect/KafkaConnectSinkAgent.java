@@ -106,6 +106,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
     private final AvroData avroData = new AvroData(1000);
     private final ConcurrentLinkedDeque<ConsumerCommand> consumerCqrsQueue = new ConcurrentLinkedDeque<>();
 
+    private int errorsToInject = 0;
     // has to be the same consumer as used to read records to process,
     // otherwise pause/resume won't work
     @Override
@@ -130,11 +131,15 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
             throw new IllegalStateException("Sink is stopped. Cannot send the records");
         }
 
-
         List<SinkRecord> sinkRecords = new ArrayList<>(records.size());
         List<KafkaRecord.KafkaConsumerOffsetProvider> recordsWithOffset = new ArrayList<>(records.size());
         for (Record rec: records) {
             try {
+                if (errorsToInject > 0) {
+                    errorsToInject--;
+                    // otherwise have to muck with schema mismatch and so on
+                    throw new RuntimeException("Injected record conversion error");
+                }
                 final KafkaRecord kr = KafkaConnectSinkAgent.getKafkaRecord(rec);
                 final KafkaRecord.KafkaConsumerOffsetProvider op = (KafkaRecord.KafkaConsumerOffsetProvider) kr;
                 sinkRecords.add(toSinkRecord(kr));
@@ -360,6 +365,10 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         adapterConfig = (Map<String, String>)config.remove("adapterConfig");
         if (adapterConfig == null) {
             adapterConfig = new HashMap<>();
+        }
+
+        if (adapterConfig.containsKey("__test_inject_conversion_error")) {
+            errorsToInject = Integer.parseInt(adapterConfig.get("__test_inject_conversion_error"));
         }
 
         kafkaSinkConfig = (Map) config;

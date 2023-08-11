@@ -49,10 +49,10 @@ class ApplicationServiceValidateAppTest {
         validate(null, files, false);
         validate("", files, false);
         validate("myapp", files, true);
-        validate("all_chars09", files, true);
+        validate("all-chars09", files, true);
         validate("myapp with spaces", files, false);
+        validate("myapp_", files, false);
         validate("9myapp", files, false);
-        validate("_myapp", files, false);
         validate("Umyapp", files, false);
         validate("a".repeat(20), files, true);
         validate("a".repeat(21), files, false);
@@ -62,7 +62,7 @@ class ApplicationServiceValidateAppTest {
     void testAgentWithFixedId() throws Exception {
         final String appId = "app";
         validate(appId, filesWithOneAgent(null, null, "agent"), true);
-        validate(appId, filesWithOneAgent(null, null, "agent01_-"), true);
+        validate(appId, filesWithOneAgent(null, null, "agent01-"), true);
         validate(appId, filesWithOneAgent(null, null, "a".repeat(37)), true);
         validate(appId, filesWithOneAgent(null, null, "a".repeat(38)), false);
         validate(appId, filesWithOneAgent(null, null, "with spaces"), false);

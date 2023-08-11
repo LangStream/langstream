@@ -29,7 +29,7 @@ class TextProcessingAgentsRunnerTest extends AbstractApplicationRunner {
     @Test
     public void testFullLanguageProcessingPipeline() throws Exception {
         String tenant = "tenant";
-        String[] expectedAgents = {"app-module-1_pipeline-1_text-extractor_1"};
+        String[] expectedAgents = {"app-module-1-pipeline-1-text-extractor-1"};
 
         Map<String, String> application = Map.of("instance.yaml",
                         buildInstanceYaml(),

@@ -292,9 +292,9 @@ public class ModelBuilder {
                     if (Objects.equals(Module.DEFAULT_MODULE, module.getId())) {
                         moduleAutoId = "";
                     } else {
-                        moduleAutoId = module.getId() + "_";
+                        moduleAutoId = module.getId() + "-";
                     }
-                    String autoIdStr = moduleAutoId + pipeline.getId() + "_" + agentConfiguration.getType() + "_" + autoId;
+                    String autoIdStr = moduleAutoId + pipeline.getId() + "-" + agentConfiguration.getType() + "-" + autoId;
                     agentConfiguration.setId(autoIdStr);
                     autoId++;
                 }

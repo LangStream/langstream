@@ -1,0 +1,115 @@
+
+
+module: "module-1"
+id: "pipeline-1"
+topics:
+  - name: "questions-topic"
+    creation-mode: create-if-not-exists
+  - name: "answers-topic"
+    creation-mode: create-if-not-exists
+  - name: "log-topic"
+    creation-mode: create-if-not-exists
+errors:
+    on-failure: "fail"
+pipeline:
+  - name: "convert-to-structure"
+    id: "convert-to-structure"
+    type: "document-to-json"
+    input: "questions-topic"
+    configuration:
+      text-field: "question"
+      copy-properties: true
+  - name: "compute-embeddings"
+    id: "compute-embeddings"
+    type: "compute-ai-embeddings"
+    configuration:
+      model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
+      embeddings-field: "value.question_embeddings"
+      text: "{{% value.question }}"
+  - name: "lookup-related-documents-in-llm"
+    type: "query"
+    configuration:
+      datasource: "AstraDatasource"
+      query: "SELECT text FROM chatbot.documents ORDER BY embeddings_vector ANN OF ? LIMIT 15"
+      fields:
+        - "value.question_embeddings"
+      output-field: "value.related_documents"
+  - name: "Query Chat History"
+    id: query-chat-history
+    type: "query"
+    configuration:
+      datasource: "AstraDatasource"         
+      query: "select question,answer from chatbot.chatbot_history where session = ? limit 5"
+      output-field: "value.history"
+      fields:
+        - "value.sessionId"    
+  - name: "ai-chat-completions"
+    type: "ai-chat-completions"
+    configuration:
+      model: "gpt-4" # This needs to be set to the model deployment name, not the base name
+      completion-field: "value.answer"
+      log-field: "value.prompt"
+      messages:
+        - role: system
+          content: |
+              You are the assistant to Guillermo Rauch. Your role is to answer questions about Guillermo's life and perspectives in a friendly yet informative manner. 
+
+              Instruction:
+              - Your answer should ONLY include information from the Interview Extracts listed below. Make sure to stay consistent and avoid contradictions. This is very important.
+              - If you don't know something, state clearly that you don't have enough information to answer that question accurately.
+              - Your responses should be concise but clear. Limit the answer to at most one paragraph. 
+              - Maintain a relaxed, honest, and friendly tone, as if speaking to a friend.
+              - Do not cite the context you were given unless specifically asked.
+              - Avoid elaborating, adding emphasis, or hyperbole. Speak plainly and avoid editorializing.
+              - Feel free to ask for clarification if a question you are given is not clear.
+              - When responding, take into consideration the Chat History listed below. Note that the history is in reverse chronological order, so the most recent message is at the top.
+
+              Examples:
+              - Q: "What is Guillermo's favorite programming language?"
+                A: "Guillermo prefers JavaScript for most of his projects."
+              - Q: "Where did he study?"
+                A: "I'm not sure about Guillermo's educational background."
+
+              Interview Extracts:
+              ====================
+              {{%# value.related_documents}}
+              {{% text}}
+              -----------------------------------------------
+              {{%/ value.related_documents}}
+
+              Chat History:
+              =============
+              {{%# value.history}}
+              User: {{% question}}  Assistant: {{% answer}}
+              -----------------------------------------------
+              {{%/ value.history}}
+        - role: user
+          content: "User question: {{% value.question}}"
+  - name: "cleanup-response"
+    type: "drop-fields"
+    output: "log-topic"
+    configuration:
+      fields:
+        - "question_embeddings"
+        - "related_documents"
+  - name: "keep-only-the-answer"
+    type: "compute"
+    input: "log-topic"
+    output: "answers-topic"
+    configuration:
+      fields:
+        - name: "value"
+          expression: "value.answer"
+          type: STRING
+  - name: "Write history to Cassandra"
+    type: "sink"
+    input: "log-topic"
+    configuration:
+      connector.class: com.datastax.oss.kafka.sink.CassandraSinkConnector
+      key.converter: org.apache.kafka.connect.storage.StringConverter
+      value.converter: org.apache.kafka.connect.storage.StringConverter
+      cloud.secureConnectBundle: "{{ secrets.cassandra.secure-connect-bundle }}"
+      auth.username: "{{ secrets.cassandra.username }}"
+      auth.password: "{{ secrets.cassandra.password }}"
+      topic.log-topic.chatbot.chatbot_history.mapping: "session=value.sessionId,question=value.question,answer=value.answer,prompt=value.prompt,timestamp=now()"
+      name: cassandra-sink-history

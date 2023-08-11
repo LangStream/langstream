@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Basic class with common utility methods for a ClusterRuntime.
@@ -48,6 +49,10 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                                             Application application,
                                             PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime) {
 
+        if (StringUtils.isEmpty(applicationId)) {
+            throw new IllegalArgumentException("Application id cannot be empty");
+        }
+
         ExecutionPlan result =
                 new ExecutionPlan(applicationId, application);
 
@@ -55,8 +60,12 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
         detectAgents(result, streamingClusterRuntime, pluginsRegistry);
 
+        validateExecutionPlan(result, streamingClusterRuntime);
 
         return result;
+    }
+
+    protected void validateExecutionPlan(ExecutionPlan plan, StreamingClusterRuntime streamingClusterRuntime) throws IllegalArgumentException {
     }
 
     /**

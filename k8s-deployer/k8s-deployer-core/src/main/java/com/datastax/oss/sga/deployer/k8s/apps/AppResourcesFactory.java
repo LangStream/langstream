@@ -15,6 +15,9 @@
  */
 package com.datastax.oss.sga.deployer.k8s.apps;
 
+import static com.datastax.oss.sga.deployer.k8s.CRDConstants.JOB_PREFIX_CLEANUP;
+import static com.datastax.oss.sga.deployer.k8s.CRDConstants.JOB_PREFIX_DEPLOYER;
+import static com.datastax.oss.sga.deployer.k8s.CRDConstants.MAX_APPLICATION_ID_LENGTH;
 import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
@@ -34,10 +37,10 @@ import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 
 public class AppResourcesFactory {
+
 
 
     @SneakyThrows
@@ -151,9 +154,9 @@ public class AppResourcesFactory {
 
     public static String getJobName(String applicationId, boolean delete) {
         if (delete) {
-            return "sga-runtime-deployer-cleanup-" + applicationId;
+            return JOB_PREFIX_CLEANUP + applicationId;
         } else {
-            return "sga-runtime-deployer-" + applicationId;
+            return JOB_PREFIX_DEPLOYER + applicationId;
         }
     }
 
@@ -195,6 +198,18 @@ public class AppResourcesFactory {
             case ERROR:
             default:
                 return delete ? ApplicationLifecycleStatus.errorDeleting(podStatus.getMessage()) : ApplicationLifecycleStatus.errorDeploying(podStatus.getMessage());
+        }
+    }
+
+
+    public static void validateApplicationId(String applicationId) throws IllegalArgumentException {
+        if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(applicationId).matches()) {
+            throw new IllegalArgumentException(("Application id '%s' contains illegal characters. Allowed characters are alphanumeric and "
+                    + "dash.").formatted(applicationId));
+        }
+
+        if (applicationId.length() > MAX_APPLICATION_ID_LENGTH) {
+            throw new IllegalArgumentException("Application id '%s' is too long, max length is %d".formatted(applicationId, MAX_APPLICATION_ID_LENGTH));
         }
     }
 

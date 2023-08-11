@@ -248,6 +248,9 @@ public class ModelBuilder {
 
     private static void parsePipelineFile(String filename, String content, Application application) throws IOException {
         PipelineFileModel pipelineConfiguration = mapper.readValue(content, PipelineFileModel.class);
+        if (pipelineConfiguration.getModule() == null) {
+            pipelineConfiguration.setModule(Module.DEFAULT_MODULE);
+        }
         Module module = application.getModule(pipelineConfiguration.getModule());
         log.info("Configuration: {}", pipelineConfiguration);
         String id = pipelineConfiguration.getId();
@@ -289,9 +292,9 @@ public class ModelBuilder {
                     if (Objects.equals(Module.DEFAULT_MODULE, module.getId())) {
                         moduleAutoId = "";
                     } else {
-                        moduleAutoId = module.getId() + "_";
+                        moduleAutoId = module.getId() + "-";
                     }
-                    String autoIdStr = moduleAutoId + pipeline.getId() + "_" + agentConfiguration.getType() + "_" + autoId;
+                    String autoIdStr = moduleAutoId + pipeline.getId() + "-" + agentConfiguration.getType() + "-" + autoId;
                     agentConfiguration.setId(autoIdStr);
                     autoId++;
                 }

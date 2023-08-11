@@ -46,6 +46,7 @@ class ApplicationServiceValidateAppTest {
         validate("all_chars09", files, true);
         validate("myapp with spaces", files, false);
         validate("9myapp", files, false);
+        validate("_myapp", files, false);
         validate("Umyapp", files, false);
         validate("a".repeat(20), files, true);
         validate("a".repeat(21), files, false);

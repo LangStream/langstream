@@ -44,6 +44,6 @@ public class CRDConstants {
     // - 5 for the statefulset replicas index (up to replica n. 9999)
     public static final int MAX_AGENT_ID_LENGTH = 37;
 
-    public static final Pattern RESOURCE_NAME_PATTERN = Pattern.compile("^(?![0-9])[-_a-z0-9]+$");
+    public static final Pattern RESOURCE_NAME_PATTERN = Pattern.compile("^([a-z])[-_a-z0-9]+$");
 
 }

@@ -26,6 +26,7 @@ import com.github.tomakehurst.wiremock.matching.BinaryEqualToPattern;
 import com.github.tomakehurst.wiremock.matching.MatchResult;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -95,6 +96,54 @@ class AppsCmdTest extends CommandTestBase {
                 support.getFileContent("instance.yaml"));
         Assertions.assertEquals("secrets: []",
                 support.getFileContent("secrets.yaml"));
+
+    }
+
+
+    @Test
+    public void testDeployWithDependencies() throws Exception {
+
+        final String fileContent = "dep-content";
+        final String fileContentSha = "e1ebfd0f4e4a624eeeffc52c82b048739ea615dca9387630ae7767cb9957aa4ce2cf7afbd032ac8d5fcb73f42316655ea390e37399f14155ed794a6f53c066ec";
+        wireMock.register(WireMock.get("/local/get-dependency.jar")
+                .willReturn(WireMock.ok(fileContent)));
+
+        Path sga = Files.createTempDirectory("sga");
+        final String configurationYamlContent = """
+                configuration:
+                  dependencies:
+                    - name: "PostGRES JDBC Driver"
+                      url: "%s"
+                      sha512sum: "%s"
+                      type: "java-library"
+                """.formatted(wireMockBaseUrl + "/local/get-dependency.jar", fileContentSha);
+        Files.write(Path.of(sga.toFile().getAbsolutePath(), "configuration.yaml"), configurationYamlContent.getBytes(StandardCharsets.UTF_8));
+        final String app = createTempFile("module: module-1", sga);
+        final String instance = createTempFile("instance: {}");
+        final String secrets = createTempFile("secrets: []");
+
+        final InterceptDeploySupport support = new InterceptDeploySupport();
+        wireMock.register(WireMock.post("/api/applications/%s/my-app"
+                        .formatted(TENANT))
+                .withMultipartRequestBody(support.multipartValuePatternBuilder())
+                .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", sga.toAbsolutePath().toString(), "-i", instance);
+        Assertions.assertEquals("", result.err());
+        Assertions.assertEquals(0, result.exitCode());
+
+        Assertions.assertEquals(5, support.countFiles());
+        Assertions.assertEquals("module: module-1",
+                support.getFileContent(new File(app).getName()));
+        Assertions.assertEquals("instance: {}",
+                support.getFileContent("instance.yaml"));
+        Assertions.assertEquals("secrets: []",
+                support.getFileContent("secrets.yaml"));
+
+        Assertions.assertEquals(configurationYamlContent,
+                support.getFileContent("configuration.yaml"));
+        Assertions.assertEquals(fileContent,
+                support.getFileContent("java/lib/get-dependency.jar"));
 
     }
 

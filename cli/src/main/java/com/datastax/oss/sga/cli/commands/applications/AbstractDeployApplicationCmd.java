@@ -160,11 +160,6 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             throw new IllegalArgumentException("no application, instance or secrets file provided");
         }
 
-        final Path tempZip = buildZip(appDirectory, instanceFile, secretsFile, s -> log(s));
-
-        long size = Files.size(tempZip);
-        log("deploying application: %s (%d KB)".formatted(name, size / 1024));
-
         if (appDirectory != null) {
             // parse locally the application in order to validate it
             // and to get the dependencies
@@ -172,6 +167,11 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                     ModelBuilder.buildApplicationInstance(List.of(appDirectory.toPath()));
             downloadDependencies(applicationInstance, appDirectory.toPath());
         }
+
+        final Path tempZip = buildZip(appDirectory, instanceFile, secretsFile, s -> log(s));
+
+        long size = Files.size(tempZip);
+        log("deploying application: %s (%d KB)".formatted(name, size / 1024));
 
         String boundary = new BigInteger(256, new Random()).toString();
 
@@ -217,7 +217,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                     }
                 }
 
-                log("Downloading dependency: %s to %s".formatted(fileName, fileName.toAbsolutePath()));
+                log("downloading dependency: %s to %s".formatted(fileName, fileName.toAbsolutePath()));
                 final HttpRequest request = newDependencyGet(url);
                 http(request, HttpResponse.BodyHandlers.ofFile(fileName));
 

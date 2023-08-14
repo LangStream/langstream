@@ -212,7 +212,7 @@ class ProduceConsumeHandlerTest {
                 .registry(new ClusterRuntimeRegistry())
                 .build();
         final StreamingCluster streamingCluster = new StreamingCluster("kafka",
-                Map.of("admin", Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers())));
+                Map.of("admin", Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(), "default.api.timeout.ms", 5000)));
         new ClusterRuntimeRegistry()
                 .getStreamingClusterRuntime(streamingCluster)
                 .deploy(deployer.createImplementation("app", store.get("t", "app", false).getInstance()));

@@ -53,9 +53,9 @@ public class ConsumeHandler extends AbstractHandler {
 
     private final ExecutorService executor;
 
-    public ConsumeHandler(ApplicationStore applicationStore) {
+    public ConsumeHandler(ApplicationStore applicationStore, ExecutorService executor) {
         super(applicationStore);
-        executor = Executors.newCachedThreadPool();
+        this.executor = executor;
     }
 
     @Override

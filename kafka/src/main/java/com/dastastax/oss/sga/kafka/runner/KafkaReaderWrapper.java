@@ -112,7 +112,7 @@ class KafkaReaderWrapper implements TopicReader {
         if (!records.isEmpty()) {
             log.info("Received {} records from Kafka topics {}: {}", records.size(), assignment, records);
         }
-        Map<TopicPartition, Long> offsets = consumer.endOffsets(assignment, Duration.ofSeconds(5));
+        Map<TopicPartition, Long> offsets = consumer.endOffsets(assignment);
 
         Map<String, String> partitions = new ConcurrentHashMap<>();
         for (Map.Entry<TopicPartition, Long> topicPartitionLongEntry : offsets.entrySet()) {

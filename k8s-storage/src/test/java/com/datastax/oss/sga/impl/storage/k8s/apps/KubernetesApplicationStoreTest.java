@@ -54,7 +54,7 @@ class KubernetesApplicationStoreTest {
                         .get();
 
         assertEquals("IfNotPresent", createdCr.getSpec().getImagePullPolicy());
-        assertEquals("{\"resources\":{},\"modules\":{},\"instance\":null,\"gateways\":null}", createdCr.getSpec().getApplication());
+        assertEquals("{\"resources\":{},\"modules\":{},\"instance\":null,\"gateways\":null,\"agentRunners\":{}}", createdCr.getSpec().getApplication());
         assertEquals("busybox", createdCr.getSpec().getImage());
         assertEquals(tenant, createdCr.getSpec().getTenant());
 

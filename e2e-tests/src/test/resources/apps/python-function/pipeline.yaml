@@ -30,4 +30,4 @@ pipeline:
     output: "output-topic"
     configuration:
       secret_value: "{{ secrets.secret1.value-key }}"
-      className: example.TestClass
+      className: example.Exclamation

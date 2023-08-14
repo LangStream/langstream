@@ -14,15 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from sga_runtime.simplerecord import SimpleRecord
 
-class Exclamation(object):
-  def init(self, config):
-      print('init', config)
-      self.secret_value = config["secret_value"]
-
-  def process(self, records):
-    processed_records = []
-    for record in records:
-      processed_records.append((record, [SimpleRecord(record.value() + "!!" + self.secret_value)]))
-    return processed_records
+gateways:
+  - id: produce-input
+    type: produce
+    topic: input-topic
+  - id: consume-output
+    type: consume
+    topic: output-topic

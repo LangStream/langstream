@@ -25,12 +25,13 @@ import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,16 +42,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.BindMode;
-import org.testcontainers.containers.Container;
-import org.testcontainers.images.builder.Transferable;
-import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 public abstract class BaseEndToEndTest {
@@ -159,6 +160,7 @@ public abstract class BaseEndToEndTest {
     protected static Helm3Container helm3Container;
     protected static KubernetesClient client;
     protected static String controlPlaneBaseUrl;
+    protected static String apiGatewayBaseUrl;
     protected static String namespace;
 
     protected void receiveKafkaMessages(String topic, int count) {
@@ -245,6 +247,16 @@ public abstract class BaseEndToEndTest {
         System.arraycopy(args, 0, allArgs, 1, args.length);
         runProcess(allArgs);
     }
+
+    protected void executeCliCommandUntilOutput(Predicate<String> predicate, String... args)
+            throws InterruptedException, IOException {
+
+        String[] allArgs = new String[args.length + 1];
+        allArgs[0] = "bin/sga-cli";
+        System.arraycopy(args, 0, allArgs, 1, args.length);
+        runProcessUntilOutput(allArgs, predicate);
+    }
+
     private static void runProcess(String[] allArgs) throws InterruptedException, IOException {
         runProcess(allArgs, false);
     }
@@ -258,6 +270,35 @@ public abstract class BaseEndToEndTest {
         final int exitCode = processBuilder.start().waitFor();
         if (exitCode != 0 && !allowFailures) {
             throw new RuntimeException();
+        }
+    }
+
+
+    private static void runProcessUntilOutput(String[] allArgs, Predicate<String> lineTester) throws InterruptedException, IOException {
+
+        final Path output = Files.createTempFile("output", "txt");
+        final Path error = Files.createTempFile("error", "txt");
+
+        ProcessBuilder processBuilder = new ProcessBuilder(allArgs)
+                .directory(Paths.get("..").toFile())
+                .redirectOutput(output.toFile())
+                .redirectError(error.toFile());
+
+        final BufferedReader br = new BufferedReader(new FileReader(output.toFile()));
+        final Process process = processBuilder.start();
+        try {
+
+            Awaitility.await().until(() -> {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    if (lineTester.test(line)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        } finally {
+            process.destroyForcibly();
         }
     }
 
@@ -323,16 +364,19 @@ public abstract class BaseEndToEndTest {
                 kubeServer.ensureImage( "datastax/sga-deployer:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
                 kubeServer.ensureImage("datastax/sga-runtime:latest-dev")));
+        imagesFutures.add(CompletableFuture.runAsync(() ->
+                kubeServer.ensureImage("datastax/sga-api-gateway:latest-dev")));
 
         final CompletableFuture<Void> sgaFuture =
-                CompletableFuture.runAsync(() -> installSgaAndPrepareControlPlaneUrl());
+                CompletableFuture.runAsync(() -> installSga());
         CompletableFuture.allOf(kafkaFuture, minioFuture, imagesFutures.get(0), imagesFutures.get(1), imagesFutures.get(2),
                 sgaFuture).join();
         awaitControlPlaneReady();
+        awaitApiGatewayReady();
     }
 
     @SneakyThrows
-    private static void installSgaAndPrepareControlPlaneUrl() {
+    private static void installSga() {
         final String hostPath = Paths.get("..", "helm", "sga").toFile().getAbsolutePath();
 
         client.resources(ClusterRole.class)
@@ -341,11 +385,24 @@ public abstract class BaseEndToEndTest {
         client.resources(ClusterRole.class)
                 .withName("sga-control-plane")
                 .delete();
+        client.resources(ClusterRole.class)
+                .withName("sga-api-gateway")
+                .delete();
+        client.resources(ClusterRole.class)
+                .withName("sga-client")
+                .delete();
+
         client.resources(ClusterRoleBinding.class)
                 .withName("sga-control-plane-role-binding")
                 .delete();
         client.resources(ClusterRoleBinding.class)
                 .withName("sga-deployer-role-binding")
+                .delete();
+        client.resources(ClusterRoleBinding.class)
+                .withName("sga-api-gateway-role-binding")
+                .delete();
+        client.resources(ClusterRoleBinding.class)
+                .withName("sga-client-role-binding")
                 .delete();
 
 
@@ -385,7 +442,15 @@ public abstract class BaseEndToEndTest {
                         endpoint: http://minio.minio-dev.svc.cluster.local:9000
                         access-key: minioadmin
                         secret-key: minioadmin
-                """.formatted(TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX);
+                                
+                apiGateway:
+                  podAnnotations: {}
+                  podSecurityContext: {}
+                  securityContext: {}
+                  app:
+                    config:
+                      application.storage.apps.configuration.namespaceprefix: %s
+                """.formatted(TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX);
         final Path tempFile = Files.createTempFile("sga-test", ".yaml");
         Files.write(tempFile, values.getBytes(StandardCharsets.UTF_8));
 
@@ -418,6 +483,27 @@ public abstract class BaseEndToEndTest {
                 .withName(podName)
                 .portForward(8090, webServicePort);
         controlPlaneBaseUrl = "http://localhost:" + webServicePort;
+    }
+
+    private static void awaitApiGatewayReady() {
+        log.info("waiting for api gateway to be ready");
+
+        client.apps().deployments().inNamespace(namespace).withName("sga-api-gateway")
+                .waitUntilCondition(
+                        d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 120,
+                        TimeUnit.SECONDS);
+        log.info("api gateway ready, port forwarding");
+
+        final String podName = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "sga-api-gateway")
+                .list()
+                .getItems()
+                .get(0)
+                .getMetadata().getName();
+        final int port = nextFreePort();
+        client.pods().inNamespace(namespace)
+                .withName(podName)
+                .portForward(8091, port);
+        apiGatewayBaseUrl = "ws://localhost:" + port;
     }
 
     @SneakyThrows

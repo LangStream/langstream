@@ -271,6 +271,7 @@ public class AgentRunner
                 mainProcessor = agentProcessor;
             } else {
                 mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
+                mainProcessor.setMetadata("identity", "identity", System.currentTimeMillis());
             }
             agentInfo.watchProcessor(mainProcessor);
 

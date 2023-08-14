@@ -15,6 +15,8 @@
  */
 package com.datastax.oss.sga.api.model;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -37,6 +39,16 @@ public class ApplicationStatus {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class AgentNodeStatus {
+        @JsonProperty("agent-id")
+        private String agentId;
+        @JsonProperty("agent-type")
+        private String agentType;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class AgentWorkerStatus {
 
         private Status status;
@@ -46,28 +58,48 @@ public class ApplicationStatus {
         private String url;
         private Map<String, Object> info;
 
-        private String agentId;
-        private String agentType;
-        private Map<String, Object> configuration;
+        private List<AgentNodeStatus> agents = new ArrayList<>();
 
         public static final AgentWorkerStatus INITIALIZING() {
-            return new AgentWorkerStatus(Status.INITIALIZING, null,null,Map.of(), null, null, Map.of());
+            return new AgentWorkerStatus(Status.INITIALIZING, null,null,Map.of(), List.of());
         }
 
         public static final AgentWorkerStatus RUNNING(String url) {
-            return new AgentWorkerStatus(Status.RUNNING, null, url, Map.of(), null, null, Map.of());
+            return new AgentWorkerStatus(Status.RUNNING, null, url, Map.of(), List.of());
         }
 
         public static final AgentWorkerStatus ERROR(String url, String reason) {
-            return new AgentWorkerStatus(Status.ERROR, reason, url, Map.of(), null, null, Map.of());
+            return new AgentWorkerStatus(Status.ERROR, reason, url, Map.of(), List.of());
         }
 
         public AgentWorkerStatus withInfo(Map<String, Object> info) {
-            return new AgentWorkerStatus(this.status, this.reason, this.url, info, this.agentId, this.agentType, this.configuration);
+            return new AgentWorkerStatus(this.status, this.reason, this.url, info, this.agents);
         }
 
         public AgentWorkerStatus withAgentSpec(String agentId, String agentType, Map<String, Object> configuration) {
-            return new AgentWorkerStatus(this.status, this.reason, this.url, this.info, agentId, agentType, configuration);
+            List<AgentNodeStatus> newAgents = new ArrayList<>();
+            if ("composite-agent".equals(agentType)) {
+                // this is a little hacky, the composite agent is a special case
+                if (configuration != null) {
+                    Map<String, Object> source = (Map<String, Object>) configuration.get("source");
+                    if (source != null && !source.isEmpty()) {
+                        newAgents.add(new AgentNodeStatus((String) source.get("agentId"), (String) source.get("agentType")));
+                    }
+                    List<Map<String, Object>> processors = (List<Map<String, Object>>) configuration.get("processors");
+                    if (processors != null) {
+                        for (Map<String, Object> agent : processors) {
+                            newAgents.add(new AgentNodeStatus((String) agent.get("agentId"), (String) agent.get("agentType")));
+                        }
+                    }
+                    Map<String, Object> sink = (Map<String, Object>) configuration.get("sink");
+                    if (sink != null && !sink.isEmpty()) {
+                        newAgents.add(new AgentNodeStatus((String) sink.get("agentId"), (String) sink.get("agentType")));
+                    }
+                }
+            } else {
+                newAgents.add(new AgentNodeStatus(agentId, agentType));
+            }
+            return new AgentWorkerStatus(this.status, this.reason, this.url, this.info, newAgents);
         }
 
         public enum Status {

@@ -46,21 +46,29 @@ public class ApplicationStatus {
         private String url;
         private Map<String, Object> info;
 
-        public static final AgentWorkerStatus INITIALIZING =
-                new AgentWorkerStatus(Status.INITIALIZING, null, null, Map.of());
+        private String agentId;
+        private String agentType;
+        private Map<String, Object> configuration;
+
+        public static final AgentWorkerStatus INITIALIZING() {
+            return new AgentWorkerStatus(Status.INITIALIZING, null,null,Map.of(), null, null, Map.of());
+        }
 
         public static final AgentWorkerStatus RUNNING(String url) {
-            return new AgentWorkerStatus(Status.RUNNING, null, url, Map.of());
+            return new AgentWorkerStatus(Status.RUNNING, null, url, Map.of(), null, null, Map.of());
         }
 
         public static final AgentWorkerStatus ERROR(String url, String reason) {
-            return new AgentWorkerStatus(Status.ERROR, reason, url, Map.of());
+            return new AgentWorkerStatus(Status.ERROR, reason, url, Map.of(), null, null, Map.of());
         }
 
         public AgentWorkerStatus withInfo(Map<String, Object> info) {
-            return new AgentWorkerStatus(this.status, this.reason, this.url, info);
+            return new AgentWorkerStatus(this.status, this.reason, this.url, info, this.agentId, this.agentType, this.configuration);
         }
 
+        public AgentWorkerStatus withAgentSpec(String agentId, String agentType, Map<String, Object> configuration) {
+            return new AgentWorkerStatus(this.status, this.reason, this.url, this.info, agentId, agentType, configuration);
+        }
 
         public enum Status {
             INITIALIZING,

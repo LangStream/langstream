@@ -472,13 +472,18 @@ public class AgentResourcesFactory {
                 .stream()
                 .map(e -> {
                     KubeUtil.PodStatus podStatus = e.getValue();
-                    log.info("Pod {} status: {} url: {}", e.getKey(), podStatus.getState(), podStatus.getUrl());
+                    log.info("Pod {} status: {} url: {} agentRunnerSpec {}", e.getKey(), podStatus.getState(), podStatus.getUrl(), agentRunnerSpec);
                     ApplicationStatus.AgentWorkerStatus status = switch (podStatus.getState()) {
-                        case RUNNING -> ApplicationStatus.AgentWorkerStatus.RUNNING(podStatus.getUrl(), agentRunnerSpec);
-                        case WAITING -> ApplicationStatus.AgentWorkerStatus.INITIALIZING(, agentRunnerSpec);
+                        case RUNNING -> ApplicationStatus.AgentWorkerStatus.RUNNING(podStatus.getUrl());
+                        case WAITING -> ApplicationStatus.AgentWorkerStatus.INITIALIZING();
                         case ERROR -> ApplicationStatus.AgentWorkerStatus.ERROR(podStatus.getUrl(), podStatus.getMessage());
                         default -> throw new RuntimeException("Unknown pod state: " + podStatus.getState());
                     };
+                    if (agentRunnerSpec != null) {
+                        status = status.withAgentSpec(agentRunnerSpec.getAgentId(),
+                                agentRunnerSpec.getAgentType(),
+                                agentRunnerSpec.getConfiguration());
+                    }
                     return new AbstractMap.SimpleEntry<>(e.getKey(), status);
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

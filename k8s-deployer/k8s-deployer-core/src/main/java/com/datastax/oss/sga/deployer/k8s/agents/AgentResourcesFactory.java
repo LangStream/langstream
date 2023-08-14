@@ -378,6 +378,9 @@ public class AgentResourcesFactory {
 
     private static void queryPodsStatus(Map<String, ApplicationStatus.AgentStatus> agents,
                                         String applicationId) {
+        if (agents.isEmpty()) {
+            return;
+        }
         HttpClient httpClient = HttpClient.newHttpClient();
         ExecutorService threadPool = Executors.newFixedThreadPool(Math.min(agents.size(), 4));
         try {

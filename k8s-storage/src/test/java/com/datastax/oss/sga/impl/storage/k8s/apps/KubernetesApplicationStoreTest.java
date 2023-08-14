@@ -46,7 +46,7 @@ class KubernetesApplicationStoreTest {
 
         final Application app = new Application();
         app.setSecrets(new Secrets(Map.of("mysecret", new com.datastax.oss.sga.api.model.Secret("mysecret", "My secret", Map.of("token", "xxx")))));
-        store.put(tenant, "myapp", app, "code-1");
+        store.put(tenant, "myapp", app, "code-1", null);
         final ApplicationCustomResource createdCr =
                 k3s.getClient().resources(ApplicationCustomResource.class)
                         .inNamespace("s" + tenant)
@@ -113,7 +113,7 @@ class KubernetesApplicationStoreTest {
         final String tenant = getTenant();
         store.onTenantCreated(tenant);
         final Application app = new Application();
-        store.put(tenant, "myapp", app, "code-1");
+        store.put(tenant, "myapp", app, "code-1", null);
         ApplicationCustomResource createdCr =
                 k3s.getClient().resources(ApplicationCustomResource.class)
                         .inNamespace("s" + tenant)
@@ -125,7 +125,7 @@ class KubernetesApplicationStoreTest {
         assertTrue(k3s.getClient().resource(createdCr).get().isMarkedForDeletion());
 
         try {
-            store.put(tenant, "myapp", app, "code-1");
+            store.put(tenant, "myapp", app, "code-1", null);
             fail();
         } catch (IllegalArgumentException aie) {
             assertEquals("Application myapp is marked for deletion. Please retry once the application is deleted.", aie.getMessage());
@@ -136,7 +136,7 @@ class KubernetesApplicationStoreTest {
 
         Awaitility.await().until(() -> {
             try {
-                store.put(tenant, "myapp", app, "code-1");
+                store.put(tenant, "myapp", app, "code-1", null);
                 return true;
             } catch (IllegalArgumentException e) {
                 return false;

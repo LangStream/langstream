@@ -33,4 +33,7 @@ public interface DeployerConfiguration {
     @WithDefault("{}")
     String agentResources();
 
+    @WithDefault("")
+    String podTemplate();
+
 }

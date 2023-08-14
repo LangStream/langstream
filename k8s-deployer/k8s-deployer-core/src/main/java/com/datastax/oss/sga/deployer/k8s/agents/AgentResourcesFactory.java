@@ -18,6 +18,7 @@ package com.datastax.oss.sga.deployer.k8s.agents;
 import static com.datastax.oss.sga.deployer.k8s.CRDConstants.MAX_AGENT_ID_LENGTH;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
+import com.datastax.oss.sga.deployer.k8s.PodTemplate;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
@@ -39,6 +40,8 @@ import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.ServicePort;
+import io.fabric8.kubernetes.api.model.ServicePortBuilder;
+import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
@@ -67,21 +70,41 @@ public class AgentResourcesFactory {
 
     protected static final String AGENT_SECRET_DATA_APP = "app-config";
 
-    public static Service generateHeadlessService(StatefulSet statefulSet){
+    public static Service generateHeadlessService(AgentCustomResource agentCustomResource) {
+        final Map<String, String> agentLabels = getAgentLabels(agentCustomResource.getSpec().getAgentId(),
+                agentCustomResource.getSpec().getApplicationId());
         return new ServiceBuilder()
-                .withMetadata(statefulSet.getMetadata())
+                .withNewMetadata()
+                .withName(agentCustomResource.getMetadata().getName())
+                .withNamespace(agentCustomResource.getMetadata().getNamespace())
+                .withLabels(agentLabels)
+                .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(agentCustomResource))
+                .endMetadata()
                 .withNewSpec()
-                .withPorts(List.of(new ServicePort(null, "http", null, 8080, null, new IntOrString(8080))))
-                .withSelector(statefulSet.getSpec().getSelector().getMatchLabels())
+                .withPorts(List.of(
+                        new ServicePortBuilder()
+                                .withName("http")
+                                .withPort(8080)
+                                .build()
+                        )
+                )
+                .withSelector(agentLabels)
                 .withClusterIP("None")
                 .endSpec()
                 .build();
     }
 
-
     public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource,
                                                   Map<String, Object> codeStoreConfiguration,
                                                   AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+        return generateStatefulSet(agentCustomResource, codeStoreConfiguration, agentResourceUnitConfiguration, null);
+    }
+
+
+    public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource,
+                                                  Map<String, Object> codeStoreConfiguration,
+                                                  AgentResourceUnitConfiguration agentResourceUnitConfiguration,
+                                                  PodTemplate podTemplate) {
 
         final AgentSpec spec = agentCustomResource.getSpec();
 
@@ -171,6 +194,8 @@ public class AgentResourcesFactory {
                 .withLabels(labels)
                 .endMetadata()
                 .withNewSpec()
+                .withTolerations(podTemplate.tolerations())
+                .withNodeSelector(podTemplate.nodeSelector())
                 .withTerminationGracePeriodSeconds(60L)
                 .withInitContainers(List.of(injectConfigForDownloadCodeInitContainer, downloadCodeInitContainer))
                 .withContainers(List.of(container))

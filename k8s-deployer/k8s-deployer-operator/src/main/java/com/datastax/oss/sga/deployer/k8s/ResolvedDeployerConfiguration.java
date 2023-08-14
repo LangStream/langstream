@@ -17,9 +17,11 @@ package com.datastax.oss.sga.deployer.k8s;
 
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
+import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.smallrye.config.WithDefault;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 
@@ -30,6 +32,7 @@ public class ResolvedDeployerConfiguration {
         this.clusterRuntime = SerializationUtil.readYaml(configuration.clusterRuntime(), Map.class);
         this.codeStorage = SerializationUtil.readYaml(configuration.codeStorage(), Map.class);
         this.agentResources = SerializationUtil.readYaml(configuration.agentResources(), AgentResourceUnitConfiguration.class);
+        this.podTemplate = SerializationUtil.readYaml(configuration.podTemplate(), PodTemplate.class);
     }
 
     @Getter
@@ -40,4 +43,8 @@ public class ResolvedDeployerConfiguration {
 
     @Getter
     private AgentResourceUnitConfiguration agentResources;
+
+    @Getter
+    private PodTemplate podTemplate;
+
 }

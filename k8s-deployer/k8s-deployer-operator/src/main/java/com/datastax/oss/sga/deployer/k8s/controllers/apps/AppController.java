@@ -96,7 +96,8 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
 
     @SneakyThrows
     private void createJob(ApplicationCustomResource applicationCustomResource, boolean delete) {
-        final Job job = AppResourcesFactory.generateJob(applicationCustomResource, configuration.getClusterRuntime(), delete);
+        final Job job = AppResourcesFactory.generateJob(applicationCustomResource,
+                configuration.getClusterRuntime(), delete, configuration.getPodTemplate());
         KubeUtil.patchJob(client, job);
     }
 

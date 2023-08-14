@@ -25,6 +25,8 @@ import com.datastax.oss.sga.api.model.Pipeline;
 import com.datastax.oss.sga.api.model.Resource;
 import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplication;
+import com.datastax.oss.sga.api.runtime.AgentNode;
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
@@ -164,7 +166,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     @Override
     @SneakyThrows
-    public void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveId) {
+    public void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveId, ExecutionPlan executionPlan) {
         final ApplicationCustomResource existing = getApplicationCustomResource(tenant, applicationId);
         if (existing != null) {
             if (existing.isMarkedForDeletion()) {
@@ -173,7 +175,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
         }
 
         final String namespace = tenantToNamespace(tenant);
-        final String appJson = mapper.writeValueAsString(new SerializedApplicationInstance(applicationInstance));
+        final String appJson = mapper.writeValueAsString(new SerializedApplicationInstance(applicationInstance, executionPlan));
         ApplicationCustomResource crd = new ApplicationCustomResource();
         crd.setMetadata(new ObjectMetaBuilder()
                 .withName(applicationId)
@@ -229,7 +231,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
         if (application == null) {
             return null;
         }
-        return getApplicationFromCr(application);
+        SerializedApplicationInstance serializedApplicationInstanceFromCr = getSerializedApplicationInstanceFromCr(application);
+        return serializedApplicationInstanceFromCr.toApplicationInstance();
     }
 
     @Override
@@ -290,58 +293,97 @@ public class KubernetesApplicationStore implements ApplicationStore {
     private StoredApplication getApplicationStatus(String applicationId,
                                                    ApplicationCustomResource application,
                                                    boolean queryPods) {
-        final Application instance = getApplicationFromCr(application);
+        SerializedApplicationInstance serializedApplicationInstanceFromCr = getSerializedApplicationInstanceFromCr(application);
+        final Application instance = serializedApplicationInstanceFromCr.toApplicationInstance();
+        final Map<String, AgentRunnerDefinition> agentNodes = serializedApplicationInstanceFromCr.getAgentRunners();
 
         return StoredApplication.builder()
                 .applicationId(applicationId)
                 .instance(instance)
-                .status(computeApplicationStatus(applicationId, instance, application, queryPods))
+                .status(computeApplicationStatus(applicationId, instance,
+                        agentNodes, application, queryPods))
                 .build();
     }
 
     @SneakyThrows
-    private Application getApplicationFromCr(ApplicationCustomResource application) {
-        final Application instance =
-                mapper.readValue(application.getSpec().getApplication(), SerializedApplicationInstance.class)
-                        .toApplicationInstance();
-        return instance;
+    private SerializedApplicationInstance getSerializedApplicationInstanceFromCr(ApplicationCustomResource application) {
+        return  mapper.readValue(application.getSpec().getApplication(), SerializedApplicationInstance.class);
     }
 
 
     private ApplicationStatus computeApplicationStatus(final String applicationId, Application app,
+                                                       Map<String, AgentRunnerDefinition> agentRunners,
                                                        ApplicationCustomResource customResource,
                                                        boolean queryPods) {
         final ApplicationStatus result = new ApplicationStatus();
         result.setStatus(AppResourcesFactory.computeApplicationStatus(client, customResource));
         List<String> declaredAgents = new ArrayList<>();
-        for (Module module : app.getModules().values()) {
-            for (Pipeline pipeline : module.getPipelines().values()) {
-                for (AgentConfiguration agent : pipeline.getAgents()) {
-                    declaredAgents.add(agent.getId());
+
+        Map<String, AgentResourcesFactory.AgentRunnerSpec> agentRunnerSpecMap;
+        if (agentRunners != null) {
+            agentRunnerSpecMap = new HashMap<>();
+            agentRunners.forEach((agentId, agentRunnerDefinition) -> {
+                declaredAgents.add(agentId);
+                agentRunnerSpecMap.put(agentId, AgentResourcesFactory.AgentRunnerSpec.builder()
+                        .agentId(agentId)
+                        .agentType(agentRunnerDefinition.getAgentType())
+                        .componentType(agentRunnerDefinition.getComponentType())
+                        .configuration(agentRunnerDefinition.getConfiguration())
+                        .build());
+            });
+        } else {
+            agentRunnerSpecMap = null;
+            // LEGACY MODE
+            for (Module module : app.getModules().values()) {
+                for (Pipeline pipeline : module.getPipelines().values()) {
+                    for (AgentConfiguration agent : pipeline.getAgents()) {
+                        declaredAgents.add(agent.getId());
+                    }
                 }
             }
         }
         result.setAgents(AgentResourcesFactory.aggregateAgentsStatus(client, customResource
-                .getMetadata().getNamespace(), applicationId, declaredAgents, queryPods));
+                .getMetadata().getNamespace(), applicationId, declaredAgents,
+                agentRunnerSpecMap, queryPods));
         return result;
     }
 
+    @Data
+    public static class AgentRunnerDefinition {
+        private String agentId;
+        private String agentType;
+        private String componentType;
+        private Map<String, Object> configuration;
+    }
 
     @Data
     @NoArgsConstructor
     public static class SerializedApplicationInstance {
 
-        public SerializedApplicationInstance(Application applicationInstance) {
+        public SerializedApplicationInstance(Application applicationInstance, ExecutionPlan executionPlan) {
             this.resources = applicationInstance.getResources();
             this.modules = applicationInstance.getModules();
             this.instance = applicationInstance.getInstance();
             this.gateways = applicationInstance.getGateways();
+            this.agentRunners = new HashMap<>();
+            if (executionPlan != null && executionPlan.getAgents() != null) {
+                for (Map.Entry<String, AgentNode> entry : executionPlan.getAgents().entrySet()) {
+                    AgentNode agentNode = entry.getValue();
+                    AgentRunnerDefinition agentRunnerDefinition = new AgentRunnerDefinition();
+                    agentRunnerDefinition.setAgentId(agentNode.getId());
+                    agentRunnerDefinition.setAgentType(agentNode.getAgentType());
+                    agentRunnerDefinition.setComponentType(agentNode.getComponentType() + "");
+                    agentRunnerDefinition.setConfiguration(agentNode.getConfiguration() != null ? agentNode.getConfiguration() : Map.of());
+                    agentRunners.put(entry.getKey(), agentRunnerDefinition);
+                }
+            }
         }
 
         private Map<String, Resource> resources = new HashMap<>();
         private Map<String, Module> modules = new HashMap<>();
         private Instance instance;
         private Gateways gateways;
+        private Map<String, AgentRunnerDefinition> agentRunners;
 
         public Application toApplicationInstance() {
             final Application app = new Application();
@@ -352,6 +394,9 @@ public class KubernetesApplicationStore implements ApplicationStore {
             return app;
         }
 
+        public Map<String, AgentRunnerDefinition> getAgentRunners() {
+            return agentRunners;
+        }
     }
 
     private static String encodeSecret(String value) {

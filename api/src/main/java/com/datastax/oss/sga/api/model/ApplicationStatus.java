@@ -16,6 +16,10 @@
 package com.datastax.oss.sga.api.model;
 
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -37,6 +41,8 @@ public class ApplicationStatus {
 
         private Status status;
         private String reason;
+        // do not report this to users
+        @JsonIgnore
         private String url;
         private Map<String, Object> info;
 
@@ -47,8 +53,8 @@ public class ApplicationStatus {
             return new AgentWorkerStatus(Status.RUNNING, null, url, Map.of());
         }
 
-        public static final AgentWorkerStatus error(String reason) {
-            return new AgentWorkerStatus(Status.ERROR, reason, null, Map.of());
+        public static final AgentWorkerStatus ERROR(String url, String reason) {
+            return new AgentWorkerStatus(Status.ERROR, reason, url, Map.of());
         }
 
         public AgentWorkerStatus withInfo(Map<String, Object> info) {

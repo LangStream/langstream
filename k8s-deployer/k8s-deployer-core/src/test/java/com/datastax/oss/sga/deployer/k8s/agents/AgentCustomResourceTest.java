@@ -50,7 +50,13 @@ class AgentCustomResourceTest {
         Awaitility.await().atMost(1, TimeUnit.MINUTES).untilAsserted(() -> {
             final Map<String, ApplicationStatus.AgentStatus> status =
                     AgentResourcesFactory.aggregateAgentsStatus(k3s.getClient(), namespace, applicationId,
-                            List.of(agentId), false);
+                            List.of(agentId), Map.of(agentId, AgentResourcesFactory.AgentRunnerSpec
+                                    .builder()
+                                    .agentId(agentId)
+                                    .agentType("mock")
+                                    .componentType("mock")
+                                    .configuration(Map.of())
+                                    .build()), false);
             assertEquals(1, status.size());
             final ApplicationStatus.AgentStatus agentStatus = status.get(agentId);
             assertEquals(AgentLifecycleStatus.Status.CREATED, agentStatus.getStatus().getStatus());

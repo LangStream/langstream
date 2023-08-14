@@ -355,13 +355,19 @@ public class AgentResourcesFactory {
         Map<String, ApplicationStatus.AgentStatus> agents = new HashMap<>();
 
         for (String declaredAgent : declaredAgents) {
+
             final AgentCustomResource cr = agentCustomResources.get(declaredAgent);
             if (cr == null) {
                 continue;
             }
             ApplicationStatus.AgentStatus agentStatus = new ApplicationStatus.AgentStatus();
             agentStatus.setStatus(cr.getStatus().getStatus());
-            AgentRunnerSpec agentRunnerSpec = agentRunners.get(declaredAgent);
+            AgentRunnerSpec agentRunnerSpec = agentRunners
+                    .values()
+                    .stream()
+                    .filter(a-> a.getAgentId().equals(declaredAgent))
+                    .findFirst()
+                    .orElse(null);
             Map<String, ApplicationStatus.AgentWorkerStatus> podStatuses =
                     getPodStatuses(client, applicationId, namespace, declaredAgent, agentRunnerSpec);
             agentStatus.setWorkers(podStatuses);

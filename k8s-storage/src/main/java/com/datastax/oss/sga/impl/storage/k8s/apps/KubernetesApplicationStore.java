@@ -315,33 +315,38 @@ public class KubernetesApplicationStore implements ApplicationStore {
                                                        Map<String, AgentRunnerDefinition> agentRunners,
                                                        ApplicationCustomResource customResource,
                                                        boolean queryPods) {
+        log.info("Computing status for application {}, agentRunners {}", applicationId, agentRunners);
         final ApplicationStatus result = new ApplicationStatus();
         result.setStatus(AppResourcesFactory.computeApplicationStatus(client, customResource));
         List<String> declaredAgents = new ArrayList<>();
 
-        Map<String, AgentResourcesFactory.AgentRunnerSpec> agentRunnerSpecMap;
+        Map<String, AgentResourcesFactory.AgentRunnerSpec> agentRunnerSpecMap  = new HashMap<>();
         if (agentRunners != null) {
-            agentRunnerSpecMap = new HashMap<>();
             agentRunners.forEach((agentId, agentRunnerDefinition) -> {
-                declaredAgents.add(agentId);
+                log.info("Adding agent id {} (def {})", agentId, agentRunnerDefinition);
+                // this agentId doesn't contain the "module" prefix
+                declaredAgents.add(agentRunnerDefinition.getAgentId());
                 agentRunnerSpecMap.put(agentId, AgentResourcesFactory.AgentRunnerSpec.builder()
-                        .agentId(agentId)
+                        .agentId(agentRunnerDefinition.getAgentId())
                         .agentType(agentRunnerDefinition.getAgentType())
                         .componentType(agentRunnerDefinition.getComponentType())
                         .configuration(agentRunnerDefinition.getConfiguration())
                         .build());
             });
         } else {
-            agentRunnerSpecMap = null;
             // LEGACY MODE
             for (Module module : app.getModules().values()) {
                 for (Pipeline pipeline : module.getPipelines().values()) {
                     for (AgentConfiguration agent : pipeline.getAgents()) {
-                        declaredAgents.add(agent.getId());
+                        if (!declaredAgents.contains(agent.getId())) {
+                            log.info("Adding legacy agent id {}", agent.getId());
+                            declaredAgents.add(agent.getId());
+                        }
                     }
                 }
             }
         }
+
         result.setAgents(AgentResourcesFactory.aggregateAgentsStatus(client, customResource
                 .getMetadata().getNamespace(), applicationId, declaredAgents,
                 agentRunnerSpecMap, queryPods));
@@ -366,6 +371,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
             this.instance = applicationInstance.getInstance();
             this.gateways = applicationInstance.getGateways();
             this.agentRunners = new HashMap<>();
+            log.info("Serializing application instance {} executionPlan {}", applicationInstance, executionPlan);
             if (executionPlan != null && executionPlan.getAgents() != null) {
                 for (Map.Entry<String, AgentNode> entry : executionPlan.getAgents().entrySet()) {
                     AgentNode agentNode = entry.getValue();

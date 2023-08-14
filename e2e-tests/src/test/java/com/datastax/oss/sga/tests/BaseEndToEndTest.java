@@ -69,7 +69,7 @@ import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.BindMode;
 
 @Slf4j
-public abstract class BaseEndToEndTest implements TestWatcher {
+public class BaseEndToEndTest implements TestWatcher {
 
 
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
@@ -182,8 +182,13 @@ public abstract class BaseEndToEndTest implements TestWatcher {
     protected static String namespace;
 
     @Override
+    public void testAborted(ExtensionContext context, Throwable cause) {
+        testFailed(context, cause);
+    }
+
+    @Override
     public void testFailed(ExtensionContext context, Throwable cause) {
-        log.error("Test {} failed: {}", context.getDisplayName(), cause);
+        log.error("Test {} failed", context.getDisplayName(), cause);
         final String prefix = "%s.%s".formatted(context.getTestClass().get().getSimpleName(),
                 context.getTestMethod().get().getName());
         dumpAllPodsLogs(prefix, namespace);
@@ -616,8 +621,6 @@ public abstract class BaseEndToEndTest implements TestWatcher {
         dumpResources(filePrefix, Pod.class);
         dumpResources(filePrefix, StatefulSet.class);
         dumpResources(filePrefix, Job.class);
-        dumpResources(filePrefix, PersistentVolume.class);
-        dumpResources(filePrefix, PersistentVolumeClaim.class);
     }
 
     private void dumpResources(String filePrefix, Class<? extends HasMetadata> clazz) {
@@ -648,8 +651,8 @@ public abstract class BaseEndToEndTest implements TestWatcher {
                     .forEach(event -> {
                         try {
                             writer.write("[%s] [%s/%s] %s: %s\n".formatted(event.getMetadata().getNamespace(),
-                                    event.getRelated().getKind(),
-                                    event.getRelated().getName(), event.getReason(), event.getMessage()));
+                                    event.getInvolvedObject().getKind(),
+                                    event.getInvolvedObject().getName(), event.getReason(), event.getMessage()));
                         } catch (IOException e) {
                             log.error("failed to write event {} to file {}", event, outputFile, e);
                         }

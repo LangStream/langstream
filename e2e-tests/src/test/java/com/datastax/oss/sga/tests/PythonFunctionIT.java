@@ -20,8 +20,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @Slf4j
+@ExtendWith(BaseEndToEndTest.class)
 public class PythonFunctionIT extends BaseEndToEndTest {
 
     @Test
@@ -44,7 +46,7 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                         .statefulSets()
                 .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)
                 .withName(applicationId + "-module-1-pipeline-1-python-function-1")
-                .waitUntilReady(3, TimeUnit.MINUTES);
+                .waitUntilReady(2, TimeUnit.MINUTES);
 
 
         executeCliCommand("gateway", "produce", applicationId, "produce-input", "-v", "my-value");

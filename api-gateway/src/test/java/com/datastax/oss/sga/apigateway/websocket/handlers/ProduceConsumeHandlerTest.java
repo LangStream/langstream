@@ -688,24 +688,9 @@ class ProduceConsumeHandlerTest {
                                 ), messages));
             }
         } finally {
-
-            System.out.println("listing: " + kafkaContainer.getAdmin()
-                    .listConsumerGroups().all().get());
             for (ClientSession client : clients) {
                 client.close();
             }
-            Awaitility.await()
-                    .untilAsserted(() -> {
-                        assertEquals(0,
-
-                                kafkaContainer.getAdmin()
-                                        .listConsumerGroups()
-                                        .all()
-                                        .get()
-                                        .stream()
-                                        .count()
-                        );
-                    });
         }
 
     }

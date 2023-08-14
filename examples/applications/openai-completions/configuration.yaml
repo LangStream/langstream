@@ -16,7 +16,7 @@
 #
 
 configuration:
-  resources: []
+  resources:
     - type: "open-ai-configuration"
       name: "OpenAI Azure configuration"
       configuration:

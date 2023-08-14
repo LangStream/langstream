@@ -409,6 +409,9 @@ public class BaseEndToEndTest implements TestWatcher {
                       memory: 512Mi
                   app:
                     config:
+                      agentResources:
+                        cpuPerUnit: 0.1
+                        memPerUnit: 128
                       clusterRuntime:
                           kubernetes:
                             namespace-prefix: %s

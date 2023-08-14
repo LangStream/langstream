@@ -19,6 +19,8 @@ import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.K3sContainerVersion;
 import com.dajudge.kindcontainer.KubernetesImageSpec;
 import com.dajudge.kindcontainer.helm.Helm3Container;
+import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
+import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Event;
@@ -621,6 +623,8 @@ public class BaseEndToEndTest implements TestWatcher {
         dumpResources(filePrefix, Pod.class);
         dumpResources(filePrefix, StatefulSet.class);
         dumpResources(filePrefix, Job.class);
+        dumpResources(filePrefix, AgentCustomResource.class);
+        dumpResources(filePrefix, ApplicationCustomResource.class);
     }
 
     private void dumpResources(String filePrefix, Class<? extends HasMetadata> clazz) {

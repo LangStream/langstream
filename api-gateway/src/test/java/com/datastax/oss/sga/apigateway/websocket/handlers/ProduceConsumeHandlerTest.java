@@ -61,6 +61,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import javax.ws.rs.client.Client;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 import org.awaitility.Awaitility;
@@ -626,6 +627,89 @@ class ProduceConsumeHandlerTest {
                                 new MsgRecord(null, "msg3", Map.of())
                         ), messagesFromLatest));
     }
+
+
+
+    @Test
+    void testConcurrentConsume() throws Exception {
+        final String topic = genTopic();
+        prepareTopicsForTest(topic);
+        testGateways = new Gateways(List.of(
+                new Gateway("produce", Gateway.GatewayType.produce, topic, List.of(),
+                        null, null),
+                new Gateway("consume", Gateway.GatewayType.consume, topic, List.of(), null, null)
+        ));
+
+        List<List<String>> allMessages = new ArrayList<>();
+
+        List<ClientSession> clients = new ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            final ClientSession client1 = connectAndCollectMessages(URI.create(
+                            "ws://localhost:%d/v1/consume/tenant1/application1/consume?option:position=earliest".formatted(port)),
+                    new ArrayList<>());
+            clients.add(client1);
+        }
+        try {
+
+
+            try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
+                    .connect(
+                            URI.create(
+                                    "ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(
+                                            port)));) {
+                final ProduceRequest produceRequest = new ProduceRequest(null, "msg1", null);
+                produce(produceRequest, producer);
+            }
+
+            for (List<String> messages : allMessages) {
+                Awaitility.await()
+                        .untilAsserted(() ->
+                                assertMessagesContent(List.of(
+                                        new MsgRecord(null, "msg1", Map.of())
+                                ), messages));
+            }
+
+            try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
+                    .connect(
+                            URI.create(
+                                    "ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(
+                                            port)));) {
+                final ProduceRequest produceRequest = new ProduceRequest(null, "msg2", null);
+                produce(produceRequest, producer);
+            }
+
+
+            for (List<String> messages : allMessages) {
+                Awaitility.await()
+                        .untilAsserted(() ->
+                                assertMessagesContent(List.of(
+                                        new MsgRecord(null, "msg1", Map.of()),
+                                        new MsgRecord(null, "msg2", Map.of())
+                                ), messages));
+            }
+        } finally {
+
+            System.out.println("listing: " + kafkaContainer.getAdmin()
+                    .listConsumerGroups().all().get());
+            for (ClientSession client : clients) {
+                client.close();
+            }
+            Awaitility.await()
+                    .untilAsserted(() -> {
+                        assertEquals(0,
+
+                                kafkaContainer.getAdmin()
+                                        .listConsumerGroups()
+                                        .all()
+                                        .get()
+                                        .stream()
+                                        .count()
+                        );
+                    });
+        }
+
+    }
+
 
     static AtomicInteger topicCounter = new AtomicInteger();
 

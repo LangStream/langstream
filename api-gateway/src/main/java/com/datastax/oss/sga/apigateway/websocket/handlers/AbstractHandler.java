@@ -109,7 +109,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        super.afterConnectionEstablished(session);
+        super.afterConnectionClosed(session, status);
         try {
             onClose(session, getContext(session), status);
         } catch (Throwable throwable) {

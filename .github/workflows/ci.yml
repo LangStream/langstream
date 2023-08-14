@@ -127,3 +127,12 @@ jobs:
           eval $(minikube docker-env -u)
           ./mvnw install -pl e2e-tests -am -DskipTests
           ./mvnw verify -pl e2e-tests -De2eTests  
+
+      - name: Upload Surefire reports
+        uses: actions/upload-artifact@v3
+        if: failure()
+        continue-on-error: true
+        with:
+          name: test-logs-${{ matrix.group }}
+          path: "**/target/e2e-test-logs/*"
+          retention-days: 7

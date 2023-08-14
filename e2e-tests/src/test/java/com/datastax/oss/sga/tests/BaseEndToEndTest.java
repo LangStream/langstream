@@ -19,15 +19,27 @@ import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.K3sContainerVersion;
 import com.dajudge.kindcontainer.KubernetesImageSpec;
 import com.dajudge.kindcontainer.helm.Helm3Container;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.fabric8.kubernetes.api.model.Event;
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.PersistentVolume;
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRole;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.dsl.ContainerResource;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -42,6 +54,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -50,13 +63,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.BindMode;
 
 @Slf4j
-public abstract class BaseEndToEndTest {
+public abstract class BaseEndToEndTest implements TestWatcher {
 
+
+    public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "sga-tenant-";
+    protected static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
     interface KubeServer {
         void start();
@@ -163,70 +181,15 @@ public abstract class BaseEndToEndTest {
     protected static String apiGatewayBaseUrl;
     protected static String namespace;
 
-    protected void receiveKafkaMessages(String topic, int count) {
-        applyManifest("""
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  name: kafka-client-consumer
-                  labels:
-                    role: kafka-client-consumer
-                spec:
-                  template:
-                    metadata:
-                      labels:
-                        role: kafka-client-consumer
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                        - name: kclient
-                          image: confluentinc/cp-kafka
-                          command: ["/bin/sh"]
-                          args:
-                            - "-c"
-                            - >-
-                              set -e &&
-                              echo 'bootstrap.servers=my-cluster-kafka-bootstrap.kafka:9092\\n' >> consumer-props.conf &&
-                              kafka-consumer-perf-test  --bootstrap-server my-cluster-kafka-bootstrap.kafka:9092 --topic %s --timeout 240000 --consumer.config consumer-props.conf --print-metrics --messages %d --show-detailed-stats --reporting-interval 1000
-                """.formatted(topic, count));
+    @Override
+    public void testFailed(ExtensionContext context, Throwable cause) {
+        log.error("Test {} failed: {}", context.getDisplayName(), cause);
+        final String prefix = "%s.%s".formatted(context.getTestClass().get().getSimpleName(),
+                context.getTestMethod().get().getName());
+        dumpAllPodsLogs(prefix, namespace);
+        dumpEvents(prefix);
+        dumpAllResources(prefix);
 
-        client.batch().v1()
-                .jobs()
-                .inNamespace(namespace)
-                .withName("kafka-client-consumer")
-                .waitUntilCondition(
-                        pod -> pod.getStatus().getSucceeded() != null && pod.getStatus().getSucceeded() == 1, 2,
-                        TimeUnit.MINUTES);
-    }
-
-    protected void produceKafkaMessages(String topic, int count) {
-        applyManifest("""
-                apiVersion: apps/v1
-                kind: Deployment
-                metadata:
-                  name: kafka-client-producer
-                  labels:
-                    role: kafka-client-producer
-                spec:
-                  replicas: 1
-                  selector:
-                    matchLabels:
-                      role: kafka-client-producer
-                  template:
-                    metadata:
-                      labels:
-                        role: kafka-client-producer
-                    spec:
-                      containers:
-                        - name: kclient
-                          image: confluentinc/cp-kafka
-                          command: ["/bin/sh"]
-                          args:
-                            - "-c"
-                            - >-
-                              echo 'bootstrap.servers=my-cluster-kafka-bootstrap.kafka:9092\\n' >> producer.conf &&
-                              kafka-producer-perf-test --topic %s --num-records %d --record-size 10240 --throughput 1000 --producer.config producer.conf
-                """.formatted(topic, count));
     }
 
     protected static void applyManifest(String manifest) {
@@ -608,6 +571,92 @@ public abstract class BaseEndToEndTest {
                   selector:
                     app: minio
                 """);
+    }
+
+    protected void withPodLogs(String podName, String namespace, int tailingLines, BiConsumer<String, String> consumer) {
+        if (podName != null) {
+            try {
+                client.pods().inNamespace(namespace)
+                        .withName(podName)
+                        .get().getSpec().getContainers().forEach(container -> {
+                            final ContainerResource containerResource = client.pods().inNamespace(namespace)
+                                    .withName(podName)
+                                    .inContainer(container.getName());
+                            if (tailingLines > 0) {
+                                containerResource.tailingLines(tailingLines);
+                            }
+                            final String containerLog = containerResource.getLog();
+                            consumer.accept(container.getName(), containerLog);
+                        });
+            } catch (Throwable t) {
+                log.error("failed to get pod {} logs: {}", podName, t.getMessage());
+            }
+        }
+    }
+
+
+    protected void dumpAllPodsLogs(String filePrefix, String namespace) {
+        client.pods().inNamespace(namespace).list().getItems()
+                .forEach(pod -> dumpPodLogs(pod.getMetadata().getName(), namespace, filePrefix));
+    }
+
+    protected void dumpPodLogs(String podName, String namespace, String filePrefix) {
+        TEST_LOGS_DIR.mkdirs();
+        withPodLogs(podName, namespace, -1, (container, logs) -> {
+            final File outputFile = new File(TEST_LOGS_DIR, "%s.%s.%s.log".formatted(filePrefix, podName, container));
+            try (FileWriter writer = new FileWriter(outputFile)) {
+                writer.write(logs);
+            } catch (IOException e) {
+                log.error("failed to write pod {} logs to file {}", podName, outputFile, e);
+            }
+        });
+    }
+
+    protected void dumpAllResources(String filePrefix) {
+        dumpResources(filePrefix, Pod.class);
+        dumpResources(filePrefix, StatefulSet.class);
+        dumpResources(filePrefix, Job.class);
+        dumpResources(filePrefix, PersistentVolume.class);
+        dumpResources(filePrefix, PersistentVolumeClaim.class);
+    }
+
+    private void dumpResources(String filePrefix, Class<? extends HasMetadata> clazz) {
+        client.resources(clazz)
+                .inNamespace(namespace)
+                .list()
+                .getItems()
+                .forEach(resource -> dumpResource(filePrefix, resource));
+    }
+
+    protected void dumpResource(String filePrefix, HasMetadata resource) {
+        TEST_LOGS_DIR.mkdirs();
+        final File outputFile = new File(TEST_LOGS_DIR,
+                "%s-%s-%s.log".formatted(filePrefix, resource.getKind(), resource.getMetadata().getName()));
+        try (FileWriter writer = new FileWriter(outputFile)) {
+            writer.write(MAPPER.writeValueAsString(resource));
+        } catch (Throwable e) {
+            log.error("failed to write resource to file {}", outputFile, e);
+        }
+    }
+
+    protected void dumpEvents(String filePrefix) {
+        TEST_LOGS_DIR.mkdirs();
+        final File outputFile = new File(TEST_LOGS_DIR, "%s-events.log".formatted(filePrefix));
+        try (FileWriter writer = new FileWriter(outputFile)) {
+            client.resources(Event.class).inAnyNamespace().list()
+                    .getItems()
+                    .forEach(event -> {
+                        try {
+                            writer.write("[%s] [%s/%s] %s: %s\n".formatted(event.getMetadata().getNamespace(),
+                                    event.getRelated().getKind(),
+                                    event.getRelated().getName(), event.getReason(), event.getMessage()));
+                        } catch (IOException e) {
+                            log.error("failed to write event {} to file {}", event, outputFile, e);
+                        }
+                    });
+        } catch (Throwable e) {
+            log.error("failed to write events logs to file {}", outputFile, e);
+        }
     }
 
 

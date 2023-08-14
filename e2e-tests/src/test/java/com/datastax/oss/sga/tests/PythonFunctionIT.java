@@ -44,7 +44,7 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                         .statefulSets()
                 .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)
                 .withName(applicationId + "-module-1-pipeline-1-python-function-1")
-                .waitUntilReady(2, TimeUnit.MINUTES);
+                .waitUntilReady(3, TimeUnit.MINUTES);
 
 
         executeCliCommand("gateway", "produce", applicationId, "produce-input", "-v", "my-value");

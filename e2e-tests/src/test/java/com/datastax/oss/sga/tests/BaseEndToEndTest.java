@@ -402,6 +402,10 @@ public class BaseEndToEndTest implements TestWatcher {
                                 
                 deployer:
                   replicaCount: 1
+                  resources:
+                    requests:
+                      cpu: 500m
+                      memory: 512Mi
                   app:
                     config:
                       clusterRuntime:

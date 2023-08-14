@@ -51,6 +51,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -239,7 +240,7 @@ public class BaseEndToEndTest implements TestWatcher {
                 .redirectError(ProcessBuilder.Redirect.INHERIT);
         final int exitCode = processBuilder.start().waitFor();
         if (exitCode != 0 && !allowFailures) {
-            throw new RuntimeException();
+            throw new RuntimeException("Command failed with code: " + exitCode + " args: " + Arrays.toString(allArgs));
         }
     }
 
@@ -386,7 +387,7 @@ public class BaseEndToEndTest implements TestWatcher {
                 controlPlane:
                   resources:
                     requests:
-                      cpu: 500m
+                      cpu: 256m
                       memory: 512Mi
                   app:
                     config:
@@ -404,7 +405,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   replicaCount: 1
                   resources:
                     requests:
-                      cpu: 500m
+                      cpu: 256m
                       memory: 512Mi
                   app:
                     config:

@@ -20,13 +20,11 @@ topics:
   - name: "output-topic"
     creation-mode: create-if-not-exists
 pipeline:
-  - name: "ai-chat-completions"
-    type: "ai-chat-completions"
+  - id: "drop1"
+    type: "drop"
     input: "input-topic"
-    output: "output-topic"
+  - id: "drop2"
+    type: "drop-fields"
     configuration:
-      model: "gpt-35-turbo" # This needs to be set to the model deployment name, not the base name
-      completion-field: "value"
-      messages:
-        - role: user
-          content: "What can you tell me about {{% value}} ?"
+      fields: ["sessionId"]
+    output: "output-topic"

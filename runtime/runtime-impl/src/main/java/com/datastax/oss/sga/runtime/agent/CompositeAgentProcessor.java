@@ -66,7 +66,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         }
 
         for (Map<String, Object> agentDefinition : processorsDefinition) {
-            String agentId1 = (String) sourceDefinition.get("agentId");
+            String agentId1 = (String) agentDefinition.get("agentId");
             String agentType1 = (String) agentDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) agentDefinition.get("configuration");
             AgentProcessor agent = (AgentProcessor) AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration);

@@ -40,10 +40,10 @@ gateways:
   - id: produce-input-auth
     type: produce
     topic: input-topic
-    authentication:
-      provider: google
-      configuration:
-        clientId: "{{ secrets.google.client-id }}"
+#    authentication:
+#      provider: google
+#      configuration:
+#        clientId: "{{ secrets.google.client-id }}"
     produceOptions:
       headers:
         - key: sga-client-user-id
@@ -52,10 +52,10 @@ gateways:
   - id: consume-output-auth
     type: consume
     topic: output-topic
-    authentication:
-      provider: google
-      configuration:
-        clientId: "{{ secrets.google.client-id }}"
+#    authentication:
+#      provider: google
+#      configuration:
+#        clientId: "{{ secrets.google.client-id }}"
     consumeOptions:
       filters:
         headers:

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package com.datastax.oss.sga.kafka;
+import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.common.AbstractApplicationRunner;
 import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +22,14 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.checkerframework.checker.units.qual.K;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Slf4j
 class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
@@ -80,5 +84,68 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
         }
 
     }
+
+
+    @Test
+    public void testRunAIToolsComposite() throws Exception {
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+
+        Map<String, String> application = Map.of("instance.yaml",
+                buildInstanceYaml(),
+                "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "drop-description"
+                                    id: "step1"
+                                    type: "drop-fields"
+                                    input: "input-topic"
+                                    configuration:
+                                      fields:
+                                        - "description"
+                                  - name: "drop"
+                                    id: "step2"
+                                    type: "drop"
+                                    output: "output-topic"
+                                """);
+
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+
+            final AgentRunResult result = executeAgentRunners(applicationRuntime);
+
+            final Map<String, Object> infos = result.info().get("step1")
+                    .serveInfos();
+            System.out.println("result: " + infos);
+            final AgentInfo processor = (AgentInfo) infos.get("processor");
+            final Map<String, Object> compositeInfo = (Map<String, Object>) processor.getInfo();
+            final List<Map<String, Object>> processors = (List<Map<String, Object>>) compositeInfo.get("processors");
+            assertEquals(2, processors.size());
+            for (Map<String, Object> p : processors) {
+                switch (String.valueOf(p.get("agent-id"))) {
+                    case "step1":
+                        assertEquals("drop-fields", p.get("agent-type"));
+                        break;
+                    case "step2":
+                        assertEquals("drop", p.get("agent-type"));
+                        break;
+                    default:
+                        throw new IllegalStateException("Unexpected value: " + p.get("agent-id"));
+                }
+                assertEquals(0L, p.get("total-in"));
+                assertEquals(0L, p.get("total-out"));
+                assertNotEquals(0L, p.get("started-at"));
+                assertEquals(0L, p.get("last-processed-at"));
+            }
+
+        }
+
+    }
+
 
 }

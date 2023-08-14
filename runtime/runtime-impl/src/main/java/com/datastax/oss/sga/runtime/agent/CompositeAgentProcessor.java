@@ -66,7 +66,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         }
 
         for (Map<String, Object> agentDefinition : processorsDefinition) {
-            String agentId1 = (String) sourceDefinition.get("agentId");
+            String agentId1 = (String) agentDefinition.get("agentId");
             String agentType1 = (String) agentDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) agentDefinition.get("configuration");
             AgentProcessor agent = (AgentProcessor) AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration);
@@ -74,7 +74,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         }
 
         if (!sinkDefinition.isEmpty()) {
-            String agentId1 = (String) sourceDefinition.get("agentId");
+            String agentId1 = (String) sinkDefinition.get("agentId");
             String agentType1 = (String) sinkDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) sinkDefinition.get("configuration");
             sink = (AgentSink) AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration);
@@ -191,6 +191,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
             Map<String, Object> asMap = MAPPER.convertValue(info, Map.class);
             processorsInfo.add(asMap);
         }
+        // no need to add the source and the sink
         result.put("processors", processorsInfo);
         return result;
     }

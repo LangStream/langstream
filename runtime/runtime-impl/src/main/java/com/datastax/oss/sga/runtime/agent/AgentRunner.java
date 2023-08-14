@@ -468,6 +468,7 @@ public class AgentRunner
 
     public static AgentCode initAgent(String agentId, String agentType, long startedAt, Map<String, Object> configuration) throws Exception {
         AgentCode agentCode = AGENT_CODE_REGISTRY.getAgentCode(agentType);
+        log.info("Init Agent Id {}  type {}", agentId, agentType);
         agentCode.setMetadata(agentId, agentType, startedAt);
         agentCode.init(configuration);
         return agentCode;

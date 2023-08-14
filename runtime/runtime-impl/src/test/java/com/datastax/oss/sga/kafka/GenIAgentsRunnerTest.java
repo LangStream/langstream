@@ -105,14 +105,14 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
                                   - name: "drop-description"
                                     id: "step1"
                                     type: "drop-fields"
-                                    input: "input-topic"
+                                    input: "input-topic1"
                                     configuration:
                                       fields:
                                         - "description"
                                   - name: "drop"
                                     id: "step2"
                                     type: "drop"
-                                    output: "output-topic"
+                                    output: "output-topic2"
                                 """);
 
         try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {

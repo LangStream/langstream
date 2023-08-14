@@ -74,7 +74,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         }
 
         if (!sinkDefinition.isEmpty()) {
-            String agentId1 = (String) sourceDefinition.get("agentId");
+            String agentId1 = (String) sinkDefinition.get("agentId");
             String agentType1 = (String) sinkDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) sinkDefinition.get("configuration");
             sink = (AgentSink) AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration);

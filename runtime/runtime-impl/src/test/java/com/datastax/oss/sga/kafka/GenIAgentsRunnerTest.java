@@ -97,9 +97,9 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "input-topic1"
                                     creation-mode: create-if-not-exists
-                                  - name: "output-topic"
+                                  - name: "output-topic2"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "drop-description"

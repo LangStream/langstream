@@ -360,8 +360,7 @@ public class AgentRunner
                     // the function maps the record coming from the Source to records to be sent to the Sink
                     sourceRecordTracker.track(sinkRecords);
                     for (AgentProcessor.SourceRecordAndResult sourceRecordAndResult : sinkRecords) {
-                        List<Record> forTheSink = new ArrayList<>();
-                        forTheSink.addAll(sourceRecordAndResult.getResultRecords());
+                        List<Record> forTheSink = new ArrayList<>(sourceRecordAndResult.getResultRecords());
                         sink.write(forTheSink);
                     }
                 } catch (Throwable e) {

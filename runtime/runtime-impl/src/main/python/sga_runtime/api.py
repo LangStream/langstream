@@ -16,7 +16,7 @@
 #
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Dict, NamedTuple
+from typing import Any, List, Tuple, Dict, Union
 
 
 class Record(ABC):
@@ -63,7 +63,7 @@ class Source(Agent):
 
 class Processor(Agent):
     @abstractmethod
-    def process(self, records: List[Record]) -> List[Tuple[Record, List[Record]]]:
+    def process(self, records: List[Record]) -> List[Tuple[Record, Union[List[Record], Exception]]]:
         pass
 
 

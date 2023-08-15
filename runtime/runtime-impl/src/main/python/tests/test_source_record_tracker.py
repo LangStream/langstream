@@ -18,7 +18,7 @@
 from typing import List
 
 from sga_runtime.api import Source, Record
-from sga_runtime.simplerecord import SimpleRecord
+from sga_runtime.util import SimpleRecord
 from sga_runtime.source_record_tracker import SourceRecordTracker
 
 

@@ -31,4 +31,8 @@ public interface AgentNode extends ConnectionImplementation {
 
     Map<String, Object> getConfiguration();
 
+    ConnectionImplementation getInputConnectionImplementation();
+
+    ConnectionImplementation getOutputConnectionImplementation();
+
 }

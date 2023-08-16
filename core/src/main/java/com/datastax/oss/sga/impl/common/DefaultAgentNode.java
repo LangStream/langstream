@@ -71,4 +71,14 @@ public class DefaultAgentNode implements AgentNode {
         this.configuration = new HashMap<>(newConfiguration);
         this.outputConnectionImplementation = newOutput;
     }
+
+    @Override
+    public ConnectionImplementation getInputConnectionImplementation() {
+        return inputConnectionImplementation;
+    }
+
+    @Override
+    public ConnectionImplementation getOutputConnectionImplementation() {
+        return outputConnectionImplementation;
+    }
 }

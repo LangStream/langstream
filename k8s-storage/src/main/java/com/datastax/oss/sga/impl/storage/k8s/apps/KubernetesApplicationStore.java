@@ -26,7 +26,10 @@ import com.datastax.oss.sga.api.model.Resource;
 import com.datastax.oss.sga.api.model.Secrets;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.runtime.AgentNode;
+import com.datastax.oss.sga.api.runtime.ComponentType;
+import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
 import com.datastax.oss.sga.api.runtime.ExecutionPlan;
+import com.datastax.oss.sga.api.runtime.Topic;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
@@ -56,6 +59,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Data;
@@ -330,6 +334,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
                     .agentType(agentRunnerDefinition.getAgentType())
                     .componentType(agentRunnerDefinition.getComponentType())
                     .configuration(agentRunnerDefinition.getConfiguration())
+                    .inputTopic(agentRunnerDefinition.getInputTopic())
+                    .outputTopic(agentRunnerDefinition.getOutputTopic())
                     .build());
         });
 
@@ -345,6 +351,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
         private String agentType;
         private String componentType;
         private Map<String, Object> configuration;
+        private String inputTopic;
+        private String outputTopic;
     }
 
     @Data
@@ -367,6 +375,15 @@ public class KubernetesApplicationStore implements ApplicationStore {
                     agentRunnerDefinition.setComponentType(agentNode.getComponentType() + "");
                     agentRunnerDefinition.setConfiguration(agentNode.getConfiguration() != null ? agentNode.getConfiguration() : Map.of());
                     agentRunners.put(entry.getKey(), agentRunnerDefinition);
+
+                    if (agentNode.getInputConnectionImplementation() instanceof Topic topic) {
+                        agentRunnerDefinition.setInputTopic(topic.topicName());
+                    }
+
+                    if (agentNode.getOutputConnectionImplementation() instanceof Topic topic) {
+                        agentRunnerDefinition.setOutputTopic(topic.topicName());
+                    }
+
                 }
             }
         }

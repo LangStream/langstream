@@ -334,6 +334,8 @@ public class AgentResourcesFactory {
         private String agentId;
         private String agentType;
         private String componentType;
+        private String inputTopic;
+        private String outputTopic;
         private Map<String, Object> configuration;
     }
 
@@ -496,7 +498,9 @@ public class AgentResourcesFactory {
                         status = status.withAgentSpec(agentRunnerSpec.getAgentId(),
                                 agentRunnerSpec.getAgentType(),
                                 agentRunnerSpec.getComponentType(),
-                                agentRunnerSpec.getConfiguration());
+                                agentRunnerSpec.getConfiguration(),
+                                agentRunnerSpec.getInputTopic(),
+                                agentRunnerSpec.getOutputTopic());
                     }
                     return new AbstractMap.SimpleEntry<>(e.getKey(), status);
                 })

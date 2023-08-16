@@ -63,6 +63,13 @@ public class ApplicationStatus {
             this.componentType = componentType;
         }
 
+        public AgentNodeStatus(String agentId, String agentType, String componentType, Map<String, Object> info) {
+            this.agentId = agentId;
+            this.agentType = agentType;
+            this.componentType = componentType;
+            this.info = info;
+        }
+
         @Data
         @AllArgsConstructor
         @NoArgsConstructor
@@ -134,8 +141,17 @@ public class ApplicationStatus {
             return new AgentWorkerStatus(this.status, this.reason, this.url, newAgents);
         }
 
-        public AgentWorkerStatus withAgentSpec(String agentId, String agentType, String componentType, Map<String, Object> configuration) {
+        public AgentWorkerStatus withAgentSpec(String agentId,
+                                               String agentType,
+                                               String componentType,
+                                               Map<String, Object> configuration,
+                                               String inputTopic,
+                                               String outputTopic) {
             List<AgentNodeStatus> newAgents = new ArrayList<>();
+            if (inputTopic != null) {
+                newAgents.add(new AgentNodeStatus("topic-source", "topic-source", ComponentType.SOURCE.name(),
+                        Map.of("topic", inputTopic)));
+            }
             if ("composite-agent".equals(agentType)) {
                 // this is a little hacky, the composite agent is a special case
                 if (configuration != null) {
@@ -167,23 +183,9 @@ public class ApplicationStatus {
                 newAgents.add(new AgentNodeStatus(agentId, agentType, componentType));
             }
 
-            // ensure that we always have a sink and a source
-            boolean addTopicSource =
-                    !newAgents
-                      .stream()
-                      .anyMatch(a->Objects.equals(ComponentType.SOURCE.name(), a.getComponentType()));
-
-            if (addTopicSource) {
-                newAgents.add(0, new AgentNodeStatus("topic-source", "topic-source", ComponentType.SOURCE.name()));
-            }
-
-            boolean addTopicSink =
-                    !newAgents
-                      .stream()
-                      .anyMatch(a->Objects.equals(ComponentType.SINK.name(), a.getComponentType()));
-
-            if (addTopicSink) {
-                newAgents.add(new AgentNodeStatus("topic-sink", "topic-sink", ComponentType.SINK.name()));
+            if (outputTopic != null) {
+                newAgents.add(new AgentNodeStatus("topic-sink", "topic-sink", ComponentType.SINK.name(),
+                        Map.of("topic", outputTopic)));
             }
 
             return new AgentWorkerStatus(this.status, this.reason, this.url, newAgents);

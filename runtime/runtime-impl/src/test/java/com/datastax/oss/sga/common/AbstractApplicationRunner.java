@@ -30,6 +30,7 @@ import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.fabric8.kubernetes.api.model.Secret;
+import java.util.HashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
@@ -190,9 +191,13 @@ public abstract class AbstractApplicationRunner {
         return result;
     }
 
-    protected void executeAgentRunners(ApplicationRuntime runtime) throws Exception {
+
+    public record AgentRunResult(Map<String, AgentInfo> info){};
+
+    protected AgentRunResult executeAgentRunners(ApplicationRuntime runtime) throws Exception {
         String runnerExecutionId = UUID.randomUUID().toString();
         log.info("{} Starting Agent Runners. Running {} pods", runnerExecutionId, runtime.secrets.size());
+        Map<String, AgentInfo> allAgentsInfo = new HashMap<>();
         try {
             List<RuntimePodConfiguration> pods = new ArrayList<>();
             runtime.secrets().forEach((key, secret) -> {
@@ -212,6 +217,7 @@ public abstract class AbstractApplicationRunner {
                     try {
                         log.info("{} AgentPod {} Started", runnerExecutionId, podConfiguration.agent().agentId());
                         AgentInfo agentInfo = new AgentInfo();
+                        allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
                         AgentRunner.run(podConfiguration, null, null, agentInfo, 10);
                         Map<String, Object> infos = agentInfo.serveInfos();
                         log.info("{} AgentPod {} AgentInfo {}", runnerExecutionId, podConfiguration.agent().agentId(), infos);
@@ -234,6 +240,7 @@ public abstract class AbstractApplicationRunner {
         } finally {
             log.info("{} Agent Runners Stopped", runnerExecutionId);
         }
+        return new AgentRunResult(allAgentsInfo);
     }
 
     protected KafkaConsumer createConsumer(String topic) {

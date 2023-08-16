@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
@@ -49,8 +51,11 @@ import org.springframework.web.socket.WebSocketSession;
 @Slf4j
 public class ConsumeHandler extends AbstractHandler {
 
-    public ConsumeHandler(ApplicationStore applicationStore) {
+    private final ExecutorService executor;
+
+    public ConsumeHandler(ApplicationStore applicationStore, ExecutorService executor) {
         super(applicationStore);
+        this.executor = executor;
     }
 
     @Override
@@ -127,7 +132,7 @@ public class ConsumeHandler extends AbstractHandler {
             } finally {
                 closeReader(reader);
             }
-        });
+        }, executor);
         session.getAttributes().put("future", future);
     }
 

@@ -23,3 +23,6 @@ data:
 {{- range $key, $val := $.Values.codeStorage.configuration }}
     {{ $key }}: {{ $val | toString | replace "\"" "" | trim | quote }}
 {{- end }}
+  DEPLOYER_POD_TEMPLATE: |
+{{ .Values.deployer.app.config.podTemplate | toYaml | indent 4 }}
+

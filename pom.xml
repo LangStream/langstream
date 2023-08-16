@@ -40,7 +40,7 @@
     <junit-jupiter.version>5.9.3</junit-jupiter.version>
     <lombok.version>1.18.28</lombok.version>
     <jackson.version>2.14.2</jackson.version>
-    <guava.version>31.0.1-jre</guava.version>
+    <guava.version>32.0.0-jre</guava.version>
     <google-api.version>1.33.0</google-api.version>
     <logback.version>1.4.7</logback.version>
     <slf4j.version>2.0.7</slf4j.version>
@@ -67,7 +67,7 @@
     <commons-codec.version>1.16.0</commons-codec.version>
     <commons-io.version>2.13.0</commons-io.version>
     <prometheus.version>0.16.0</prometheus.version>
-    <jetty.version>11.0.3</jetty.version>
+    <jetty.version>11.0.14</jetty.version>
     <license-maven-plugin.version>4.1</license-maven-plugin.version>
   </properties>
 

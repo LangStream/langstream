@@ -16,11 +16,15 @@
 package com.datastax.oss.sga.deployer.k8s.agents;
 
 import static org.junit.jupiter.api.Assertions.*;
+import com.datastax.oss.sga.deployer.k8s.PodTemplate;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.Toleration;
+import io.fabric8.kubernetes.api.model.TolerationBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -176,6 +180,41 @@ class AgentResourcesFactoryTest {
         assertEquals(Quantity.parse("2"), container.getResources().getRequests().get("cpu"));
         assertEquals(Quantity.parse("1024M"), container.getResources().getRequests().get("memory"));
 
+
+    }
+
+    @Test
+    void testPodTemplate() {
+        final AgentCustomResource resource = getCr("""
+                apiVersion: sga.oss.datastax.com/v1alpha1
+                kind: Agent
+                metadata:
+                  name: test-agent1
+                  namespace: default
+                spec:
+                    image: busybox
+                    imagePullPolicy: Never
+                    agentConfigSecretRef: agent-config
+                    agentConfigSecretRefChecksum: xx
+                    tenant: my-tenant
+                    applicationId: the-'app
+                    agentId: my-agent
+                """);
+        final PodTemplate podTemplate = new PodTemplate(List.of(new TolerationBuilder()
+                .withEffect("NoSchedule")
+                .withValue("sga")
+                .withKey("workload")
+                .build()), Map.of("workload", "sga"));
+        final StatefulSet statefulSet =
+                AgentResourcesFactory.generateStatefulSet(resource, Map.of(), new AgentResourceUnitConfiguration(),
+                        podTemplate);
+        final List<Toleration> tolerations = statefulSet.getSpec().getTemplate().getSpec().getTolerations();
+        assertEquals(1, tolerations.size());
+        final Toleration tol = tolerations.get(0);
+        assertEquals("workload", tol.getKey());
+        assertEquals("sga", tol.getValue());
+        assertEquals("NoSchedule", tol.getEffect());
+        assertEquals(Map.of("workload", "sga"), statefulSet.getSpec().getTemplate().getSpec().getNodeSelector());
 
     }
     private AgentCustomResource getCr(String yaml) {

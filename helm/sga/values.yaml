@@ -96,6 +96,9 @@ deployer:
       codeStorage:
         type: none
         endpoint: ""
+      podTemplate:
+        tolerations: []
+        nodeSelector: {}
 
 
 

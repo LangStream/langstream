@@ -109,7 +109,7 @@ public class AgentController extends BaseController<AgentCustomResource>
         protected StatefulSet desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
             try {
                 return AgentResourcesFactory.generateStatefulSet(primary, configuration.getCodeStorage(),
-                        configuration.getAgentResources());
+                        configuration.getAgentResources(), configuration.getPodTemplate());
             } catch (Throwable t) {
                 log.errorf(t, "Error while generating StatefulSet for agent %s", primary.getMetadata().getName());
                 throw new RuntimeException(t);
@@ -131,10 +131,7 @@ public class AgentController extends BaseController<AgentCustomResource>
         @Override
         protected Service desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
             try {
-                // maybe there is a better way to not have to do this
-                StatefulSet statefulSet = AgentResourcesFactory.generateStatefulSet(primary, configuration.getCodeStorage(),
-                        configuration.getAgentResources());
-                return AgentResourcesFactory.generateHeadlessService(statefulSet);
+                return AgentResourcesFactory.generateHeadlessService(primary);
             } catch (Throwable t) {
                 log.errorf(t, "Error while generating Service for agent %s", primary.getMetadata().getName());
                 throw new RuntimeException(t);

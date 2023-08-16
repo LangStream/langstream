@@ -21,6 +21,17 @@ import com.datastax.oss.sga.api.runner.topics.TopicConnectionProvider;
 import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 
 public interface AgentContext {
+    BadRecordHandler DEFAULT_BAD_RECORD_HANDLER = new BadRecordHandler() {
+        @Override
+        public void handle(Record record, Throwable t, Runnable cleanup) throws RuntimeException {
+            cleanup.run();
+            if (t instanceof RuntimeException) {
+                throw (RuntimeException) t;
+            }
+            throw new RuntimeException(t);
+        }
+    };
+
     TopicConsumer getTopicConsumer();
 
     TopicProducer getTopicProducer();
@@ -30,4 +41,8 @@ public interface AgentContext {
     TopicAdmin getTopicAdmin();
 
     TopicConnectionProvider getTopicConnectionProvider();
+
+    default BadRecordHandler getBadRecordHandler() {
+        return DEFAULT_BAD_RECORD_HANDLER;
+    }
 }

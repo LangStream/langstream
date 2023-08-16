@@ -238,7 +238,7 @@ public abstract class BaseCmd implements Runnable {
         if (error.isBlank()) {
             return;
         }
-        System.err.println(command.commandLine().getColorScheme().errorText(error));
+        log(command.commandLine().getColorScheme().errorText(error));
     }
 
     protected void debug(Object log) {

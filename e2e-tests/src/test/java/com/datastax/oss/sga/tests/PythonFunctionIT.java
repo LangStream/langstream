@@ -48,6 +48,8 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                 .withName(applicationId + "-module-1-pipeline-1-python-function-1")
                 .waitUntilReady(2, TimeUnit.MINUTES);
 
+        System.out.println("keep it running for debugging..");
+        Thread.sleep(Long.MAX_VALUE);
 
         executeCliCommand("gateway", "produce", applicationId, "produce-input", "-v", "my-value");
         executeCliCommandUntilOutput(new Predicate<String>() {

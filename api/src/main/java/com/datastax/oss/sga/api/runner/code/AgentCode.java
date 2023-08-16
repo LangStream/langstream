@@ -47,5 +47,5 @@ public interface AgentCode {
      * This is a List because an Agent can be the composition of multiple agents.
      * @return
      */
-    List<AgentStatusResponse> getInfo();
+    List<AgentStatusResponse> getAgentStatus();
 }

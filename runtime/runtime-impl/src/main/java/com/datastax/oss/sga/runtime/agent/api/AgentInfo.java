@@ -49,13 +49,13 @@ public class AgentInfo {
     public List<AgentStatusResponse> serveWorkerStatus() {
         List<AgentStatusResponse> result = new ArrayList<>();
         if (source != null) {
-            result.addAll(source.getInfo());
+            result.addAll(source.getAgentStatus());
         }
         if (processor != null) {
-            result.addAll(processor.getInfo());
+            result.addAll(processor.getAgentStatus());
         }
         if (sink != null) {
-            result.addAll(sink.getInfo());
+            result.addAll(sink.getAgentStatus());
         }
         return result;
     }

@@ -25,7 +25,6 @@ import com.datastax.oss.sga.api.runner.code.Record;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -188,10 +187,10 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
     }
 
     @Override
-    public final List<AgentStatusResponse> getInfo() {
+    public final List<AgentStatusResponse> getAgentStatus() {
         List<AgentStatusResponse> result = new ArrayList<>();
         for (AgentProcessor processor : processors) {
-            List<AgentStatusResponse> info = processor.getInfo();
+            List<AgentStatusResponse> info = processor.getAgentStatus();
             result.addAll(info);
         }
         return result;

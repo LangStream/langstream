@@ -121,6 +121,7 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
             final List<AgentStatusResponse> processors = result.info().get("step1").serveWorkerStatus();
             assertEquals(4, processors.size());
             for (AgentStatusResponse p : processors) {
+                boolean mayHaveProcessed = false;
                 switch (p.getAgentId()) {
                     case "step1":
                         assertEquals("drop-fields", p.getAgentType());
@@ -129,6 +130,11 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
                         assertEquals("drop", p.getAgentType());
                         break;
                     case "topic-source":
+                        // the topic source updates the lastProcessed
+                        // even if it finds no messages in order to
+                        // show that it is not stuck
+                        mayHaveProcessed = true;
+                        break;
                     case "topic-sink":
                         break;
                     default:
@@ -136,8 +142,10 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
                 }
                 assertEquals(0L, p.getMetrics().getTotalIn());
                 assertEquals(0L, p.getMetrics().getTotalOut());
+                if (!mayHaveProcessed) {
+                    assertEquals(0L, p.getMetrics().getLastProcessedAt());
+                }
                 assertNotEquals(0L, p.getMetrics().getStartedAt());
-                assertEquals(0L, p.getMetrics().getLastProcessedAt());
             }
 
         }

@@ -67,7 +67,7 @@ public abstract class AbstractAgentCode implements AgentCode {
     }
 
     @Override
-    public List<AgentStatusResponse> getInfo() {
+    public List<AgentStatusResponse> getAgentStatus() {
         return List.of(new AgentStatusResponse(agentId(), agentType(), buildAdditionalInfo(),
                 new AgentStatusResponse.Metrics(totalIn.get(), totalOut.get(), startedAt(), lastProcessedAt)));
     }

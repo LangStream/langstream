@@ -22,9 +22,9 @@ from enum import Enum
 from typing import List, Tuple, Union
 
 from . import topic_connections_registry
-from .api import Source, Sink, Processor, Record
 from .source_record_tracker import SourceRecordTracker
-from .util import SingleRecordProcessor
+from ..api import Source, Sink, Processor, Record
+from ..util import SingleRecordProcessor
 
 
 class ErrorsProcessingOutcome(Enum):

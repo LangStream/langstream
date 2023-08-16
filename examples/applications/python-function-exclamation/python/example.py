@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from sga_runtime.util import SimpleRecord, SingleRecordProcessor
+from langstream.util import SimpleRecord, SingleRecordProcessor
 
 # Example Python processor that adds an exclamation mark to the end of the record value
 class Exclamation(SingleRecordProcessor):

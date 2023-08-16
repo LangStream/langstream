@@ -34,8 +34,8 @@
       <fileMode>755</fileMode>
     </fileSet>
     <fileSet>
-      <directory>src/main/python/sga_runtime</directory>
-      <outputDirectory>./sga_runtime</outputDirectory>
+      <directory>src/main/python/langstream</directory>
+      <outputDirectory>./langstream</outputDirectory>
       <lineEnding>unix</lineEnding>
       <fileMode>755</fileMode>
     </fileSet>

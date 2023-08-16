@@ -69,8 +69,7 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of("instance.yaml",
-                        buildInstanceYaml(),
+        Map<String, String> application = Map.of(
                         "module.yaml", """
                         module: "module-1"
                         id: "pipeline-1"
@@ -91,7 +90,7 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
                             input: "input-topic"
                             output: "output-topic"
                         """.formatted(schemaDefinition));
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createAvroProducer();
                  KafkaConsumer<String, String> consumer = createAvroConsumer("output-topic")) {
 

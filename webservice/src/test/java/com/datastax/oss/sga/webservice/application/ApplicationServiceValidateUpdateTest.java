@@ -148,14 +148,7 @@ class ApplicationServiceValidateUpdateTest {
         pipelineFileModel.setModule("mod");
         pipelineFileModel.setTopics(topics);
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "noop"     
-                                  computeCluster:
-                                    type: "none"         
-                                        """,
+                .buildApplicationInstance(Map.of(
                         "configuration.yaml",
                         """
                                 configuration:
@@ -167,7 +160,13 @@ class ApplicationServiceValidateUpdateTest {
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
-                        "module.yaml", SerializationUtil.writeAsYaml(pipelineFileModel)));
+                        "module.yaml", SerializationUtil.writeAsYaml(pipelineFileModel)), """
+                        instance:
+                                  streamingCluster:
+                                    type: "noop"     
+                                  computeCluster:
+                                    type: "none"
+                        """, null).getApplication();
         return deployer.createImplementation("app", applicationInstance);
     }
 
@@ -321,14 +320,7 @@ class ApplicationServiceValidateUpdateTest {
                 new ModelBuilder.TopicDefinitionModel("output-topic", null, null, 0, null, null, null)));
         pipelineFileModel.setPipeline(agents);
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        """
-                                instance:
-                                  streamingCluster:
-                                    type: "noop"     
-                                  computeCluster:
-                                    type: "none"         
-                                        """,
+                .buildApplicationInstance(Map.of(
                         "configuration.yaml",
                         """
                                 configuration:
@@ -340,7 +332,16 @@ class ApplicationServiceValidateUpdateTest {
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
-                        "module.yaml", SerializationUtil.writeAsYaml(pipelineFileModel)));
+                        "module.yaml", SerializationUtil.writeAsYaml(pipelineFileModel)),
+                        """
+                                instance:
+                                  streamingCluster:
+                                    type: "noop"     
+                                  computeCluster:
+                                    type: "none"         
+                                        """,
+                        null)
+                .getApplication();
         return deployer.createImplementation("app", applicationInstance);
     }
 

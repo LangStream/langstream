@@ -86,15 +86,7 @@ class ApplicationServiceValidateAppTest {
         if (pipeline == null) {
             pipeline = "pipeline";
         }
-        final Map<String, String> files = Map.of("instance.yaml",
-                """
-                        instance:
-                          streamingCluster:
-                            type: "noop"
-                          computeCluster:
-                            type: "kubernetes"
-                        """,
-                "%s.yaml".formatted(pipeline), """
+        final Map<String, String> files = Map.of("%s.yaml".formatted(pipeline), """
                         module: %s
                         id: %s
                         topics:
@@ -114,7 +106,14 @@ class ApplicationServiceValidateAppTest {
     @SneakyThrows
     private static void validate(String applicationId, Map<String, String> files, boolean expectValid) {
         final ApplicationService service = getApplicationService();
-        final Application application = ModelBuilder.buildApplicationInstance(files);
+        final Application application = ModelBuilder.buildApplicationInstance(files,
+                """
+                        instance:
+                          streamingCluster:
+                            type: "noop"
+                          computeCluster:
+                            type: "kubernetes"
+                        """, null).getApplication();
         boolean ok = false;
         Throwable exception = null;
         try {

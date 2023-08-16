@@ -31,8 +31,7 @@ public class ResourcesSpecsTest {
     @Test
     public void testConfigureResourceSpecs() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -83,7 +82,7 @@ public class ResourcesSpecsTest {
                                     resources:
                                        size: 3
                                        parallelism: 5
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         {
             Module module = applicationInstance.getModule("module-1");

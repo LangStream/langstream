@@ -56,9 +56,7 @@ class KafkaConnectAgentsTest {
     @Test
     public void testConfigureKafkaConnectSink() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
-                        "module.yaml", """
+                .buildApplicationInstance(Map.of("module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
                                 topics:
@@ -72,7 +70,7 @@ class KafkaConnectAgentsTest {
                                     configuration:                                                                      
                                       connector.class: FileStreamSink                                      
                                       file: /tmp/test.sink.txt
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -102,8 +100,7 @@ class KafkaConnectAgentsTest {
     @Test
     public void testConfigureKafkaConnectSources() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -118,7 +115,7 @@ class KafkaConnectAgentsTest {
                                     configuration:                                                                      
                                       connector.class: FileStreamSource                                                              
                                       file: /tmp/test.txt
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()

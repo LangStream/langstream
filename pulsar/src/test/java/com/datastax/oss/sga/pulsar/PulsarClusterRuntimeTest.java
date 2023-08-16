@@ -45,8 +45,7 @@ class PulsarClusterRuntimeTest {
     @Test
     public void testMapCassandraSink() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -63,7 +62,7 @@ class PulsarClusterRuntimeTest {
                                     input: "input-topic-cassandra"
                                     configuration:
                                       mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -113,8 +112,8 @@ class PulsarClusterRuntimeTest {
     @Test
     public void testMapGenericPulsarSink() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -133,7 +132,7 @@ class PulsarClusterRuntimeTest {
                                       sinkType: "some-sink-type-on-your-cluster"
                                       config1: "value"
                                       config2: "value2"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -162,8 +161,8 @@ class PulsarClusterRuntimeTest {
     @Test
     public void testMapGenericPulsarSource() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -179,7 +178,7 @@ class PulsarClusterRuntimeTest {
                                       sourceType: "some-source-type-on-your-cluster"
                                       config1: "value"
                                       config2: "value2"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -209,8 +208,8 @@ class PulsarClusterRuntimeTest {
     @Test
     public void testMapGenericPulsarFunction() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -230,7 +229,7 @@ class PulsarClusterRuntimeTest {
                                       functionClassname: "a.b.c.ClassName"
                                       config1: "value"
                                       config2: "value2"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -269,8 +268,8 @@ class PulsarClusterRuntimeTest {
     @Test
     public void testMapGenericPulsarFunctionsChain() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -300,7 +299,7 @@ class PulsarClusterRuntimeTest {
                                       functionClassname: "a.b.c.ClassName"
                                       config1: "value"
                                       config2: "value2"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -362,8 +361,8 @@ class PulsarClusterRuntimeTest {
     @Test
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -396,7 +395,7 @@ class PulsarClusterRuntimeTest {
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -440,8 +439,8 @@ class PulsarClusterRuntimeTest {
     @Test
     public void testSanitizePipelineName() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -474,7 +473,7 @@ class PulsarClusterRuntimeTest {
                                       sourceType: "some-source-type-on-your-cluster"
                                       config1: "value"
                                       config2: "value2"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -511,8 +510,8 @@ class PulsarClusterRuntimeTest {
     @Test
     public void testMergeGenAIToolKitAgents() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -552,7 +551,7 @@ class PulsarClusterRuntimeTest {
                                       model: "text-embedding-ada-003"
                                       embeddings-field: "value.embeddings2"
                                       text: "{{% value.name }}"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()

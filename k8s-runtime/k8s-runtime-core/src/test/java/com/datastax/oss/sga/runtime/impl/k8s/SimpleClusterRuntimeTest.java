@@ -55,8 +55,7 @@ class SimpleClusterRuntimeTest {
     @Test
     public void testMapGenericPulsarFunctionsChain() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -82,7 +81,7 @@ class SimpleClusterRuntimeTest {
                                     configuration:
                                       config1: "value"
                                       config2: "value2"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -133,8 +132,7 @@ class SimpleClusterRuntimeTest {
     @Test
     public void testCreateDeadletterTopicsWithIntermediateTopics1() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -163,7 +161,7 @@ class SimpleClusterRuntimeTest {
                                     configuration:
                                       config1: "value"
                                       config2: "value2"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -217,8 +215,7 @@ class SimpleClusterRuntimeTest {
     @Test
     public void testCreateDeadletterTopicsWithIntermediateTopics2() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -250,7 +247,7 @@ class SimpleClusterRuntimeTest {
                                     configuration:
                                       config1: "value"
                                       config2: "value2"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()

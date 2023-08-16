@@ -35,8 +35,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step"};
 
-        Map<String, String> application = Map.of("instance.yaml",
-                        buildInstanceYaml(),
+        Map<String, String> application = Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -63,7 +62,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """);
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
                  KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
@@ -82,8 +81,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of("instance.yaml",
-                buildInstanceYaml(),
+        Map<String, String> application = Map.of(
                 "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -103,7 +101,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """);
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
                  KafkaConsumer<String, String> consumer = createConsumer("output-topic");
                  KafkaConsumer<String, String> consumerDeadletter = createConsumer("input-topic-deadletter")) {

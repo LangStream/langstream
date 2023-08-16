@@ -129,8 +129,9 @@ class ProduceConsumeHandlerTest {
                 .collect(Collectors.toList()));
 
         final Application application = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        """
+                .buildApplicationInstance(Map.of(
+                        "module.yaml", new ObjectMapper(new YAMLFactory())
+                                .writeValueAsString(module)), """
                                 instance:
                                   streamingCluster:
                                     type: "kafka"
@@ -139,9 +140,7 @@ class ProduceConsumeHandlerTest {
                                         bootstrap.servers: "%s"                  
                                   computeCluster:
                                      type: "none"
-                                """.formatted(kafkaContainer.getBootstrapServers()),
-                        "module.yaml", new ObjectMapper(new YAMLFactory())
-                                .writeValueAsString(module)));
+                                """.formatted(kafkaContainer.getBootstrapServers()), null).getApplication();
         application.setGateways(testGateways);
         return application;
     }

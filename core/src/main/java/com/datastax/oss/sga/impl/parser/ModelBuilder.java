@@ -84,17 +84,16 @@ public class ModelBuilder {
      * instance.yaml file and the secrets.yaml file.
      * This is server side code and it is expected that the directories are local to the server.
      *
-     * @param directories
+     * @param applicationDirectories
      * @return a fully built application instance (application model + instance + secrets)
      * @throws Exception
      */
-    public static Application buildApplicationInstance(List<Path> directories) throws Exception {
-        return buildApplicationInstanceWithInfo(directories).getApplication();
-    }
+    public static ApplicationWithPackageInfo buildApplicationInstance(List<Path> applicationDirectories,
+                                                                      String instanceContent,
+                                                                      String secretsContent) throws Exception {
+        Map<String, String> applicationContents = new HashMap<>();
 
-    public static ApplicationWithPackageInfo buildApplicationInstanceWithInfo(List<Path> directories) throws Exception {
-        final ApplicationWithPackageInfo applicationWithPackageInfo = new ApplicationWithPackageInfo(new Application());
-        for (Path directory : directories) {
+        for (Path directory : applicationDirectories) {
             log.info("Parsing directory: {}", directory.toAbsolutePath());
             try (DirectoryStream<Path> paths = Files.newDirectoryStream(directory);) {
                 for (Path path : paths) {
@@ -103,8 +102,10 @@ public class ModelBuilder {
                         if (filename.endsWith(".yaml") || filename.endsWith(".yml")) {
                             try {
                                 String text = Files.readString(path, StandardCharsets.UTF_8);
-                                parseFile(path.getFileName().toString(), text,
-                                        applicationWithPackageInfo);
+                                final String existingSamePipelineName = applicationContents.put(path.getFileName().toString(), text);
+                                if (existingSamePipelineName != null) {
+                                    throw new IllegalArgumentException("Duplicate pipeline file names in the application: " + path.getFileName().toString());
+                                }
                             } catch (java.nio.charset.MalformedInputException e) {
                                 log.warn("Skipping file {} due to encoding error", path);
                             } catch (JsonMappingException e) {
@@ -116,19 +117,30 @@ public class ModelBuilder {
                 }
             }
         }
-        return applicationWithPackageInfo;
+
+        return buildApplicationInstance(applicationContents, instanceContent, secretsContent);
     }
 
-    public static Application buildApplicationInstance(Map<String, String> files) throws Exception {
+    public static ApplicationWithPackageInfo buildApplicationInstance(Map<String, String> files, String instanceContent,
+                                                       String secretsContent) throws Exception {
 
         final ApplicationWithPackageInfo applicationWithPackageInfo = new ApplicationWithPackageInfo(new Application());
         for (Map.Entry<String, String> entry : files.entrySet()) {
-            parseFile(entry.getKey(), entry.getValue(), applicationWithPackageInfo);
+            parseApplicationFile(entry.getKey(), entry.getValue(), applicationWithPackageInfo);
         }
-        return applicationWithPackageInfo.getApplication();
+        if (instanceContent != null) {
+            applicationWithPackageInfo.hasInstanceDefinition = true;
+            parseInstance(instanceContent, applicationWithPackageInfo.getApplication());
+        }
+
+        if (secretsContent != null) {
+            applicationWithPackageInfo.hasSecretDefinition = true;
+            parseSecrets(secretsContent, applicationWithPackageInfo.getApplication());
+        }
+        return applicationWithPackageInfo;
     }
 
-    private static void parseFile(String fileName, String content, ApplicationWithPackageInfo applicationWithPackageInfo) throws IOException {
+    private static void parseApplicationFile(String fileName, String content, ApplicationWithPackageInfo applicationWithPackageInfo) throws IOException {
         if (!fileName.endsWith(".yaml")) {
             // skip
             log.info("Skipping {}", fileName);
@@ -136,6 +148,10 @@ public class ModelBuilder {
         }
 
         switch (fileName) {
+            case "instance.yaml":
+                throw new IllegalArgumentException("instance.yaml must not be included in the application zip");
+            case "secrets.yaml":
+                throw new IllegalArgumentException("secrets.yaml must not be included in the application zip");
             case "configuration.yaml":
                 applicationWithPackageInfo.hasAppDefinition = true;
                 parseConfiguration(content, applicationWithPackageInfo.getApplication());
@@ -143,14 +159,6 @@ public class ModelBuilder {
             case "gateways.yaml":
                 applicationWithPackageInfo.hasAppDefinition = true;
                 parseGateways(content, applicationWithPackageInfo.getApplication());
-                break;
-            case "secrets.yaml":
-                applicationWithPackageInfo.hasSecretDefinition = true;
-                parseSecrets(content, applicationWithPackageInfo.getApplication());
-                break;
-            case "instance.yaml":
-                applicationWithPackageInfo.hasInstanceDefinition = true;
-                parseInstance(content, applicationWithPackageInfo.getApplication());
                 break;
             default:
                 applicationWithPackageInfo.hasAppDefinition = true;

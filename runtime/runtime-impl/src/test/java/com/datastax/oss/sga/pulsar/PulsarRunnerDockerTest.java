@@ -73,8 +73,7 @@ class PulsarRunnerDockerTest {
         final Map<String, Secret> secrets = kubeServer.spyAgentCustomResourcesSecrets("tenant", appId + "-step1");
 
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -92,7 +91,7 @@ class PulsarRunnerDockerTest {
                                     configuration:
                                       fields:
                                         - "description"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()

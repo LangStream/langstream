@@ -32,9 +32,7 @@ public class ErrorsSpecsTest {
     @Test
     public void testConfigureErrors() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
-                        "module.yaml", """
+                .buildApplicationInstance(Map.of("module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 errors:
@@ -84,7 +82,7 @@ public class ErrorsSpecsTest {
                                     errors:
                                        retries: 5
                                        on-failure: skip
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         {
             // use pipeline defaults

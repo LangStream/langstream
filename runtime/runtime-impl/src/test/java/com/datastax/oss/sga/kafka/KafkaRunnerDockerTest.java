@@ -34,8 +34,7 @@ class KafkaRunnerDockerTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of("instance.yaml",
-                buildInstanceYaml(),
+        Map<String, String> application = Map.of(
                 "module.yaml", """
                          module: "module-1"
                          id: "pipeline-1"                                
@@ -51,7 +50,7 @@ class KafkaRunnerDockerTest extends AbstractApplicationRunner {
                              output: "output-topic"    
                         """);
 
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             Set<String> topics = getKafkaAdmin().listTopics().names().get();
             log.info("Topics {}", topics);
             assertTrue(topics.contains("input-topic"));

@@ -18,6 +18,7 @@ package com.datastax.oss.sga.cli.commands.applications;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Dependency;
 
+import com.datastax.oss.sga.cli.util.MultiPartBodyPublisher;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -32,7 +33,9 @@ import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.function.Consumer;
 
@@ -164,26 +167,32 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             // parse locally the application in order to validate it
             // and to get the dependencies
             final Application applicationInstance =
-                    ModelBuilder.buildApplicationInstance(List.of(appDirectory.toPath()));
+                    ModelBuilder.buildApplicationInstance(List.of(appDirectory.toPath()), null, null)
+                            .getApplication();
             downloadDependencies(applicationInstance, appDirectory.toPath());
         }
 
-        final Path tempZip = buildZip(appDirectory, instanceFile, secretsFile, s -> log(s));
+        final Path tempZip = buildZip(appDirectory, s -> log(s));
 
         long size = Files.size(tempZip);
         log("deploying application: %s (%d KB)".formatted(name, size / 1024));
 
-        String boundary = new BigInteger(256, new Random()).toString();
-
         final String path = tenantAppPath("/" + name);
-        final String contentType = "multipart/form-data;boundary=%s".formatted(boundary);
-        final HttpRequest.BodyPublisher bodyPublisher = multiPartBodyPublisher(tempZip, boundary);
+        final Map<String, Object> contents = new HashMap<>();
+        contents.put("app", tempZip);
+        contents.put("instance", Files.readString(instanceFile.toPath()));
+        if (secretsFile != null) {
+            contents.put("secrets", Files.readString(secretsFile.toPath()));
+        }
+        final MultiPartBodyPublisher bodyPublisher = buildMultipartContentForAppZip(contents);
+        final String contentType = "multipart/form-data; boundary=%s".formatted(bodyPublisher.getBoundary());
+
         if (isUpdate()) {
-            final HttpRequest request = newPut(path, contentType, bodyPublisher);
+            final HttpRequest request = newPut(path, contentType, bodyPublisher.build());
             http(request);
             log("application %s updated".formatted(name));
         } else {
-            final HttpRequest request = newPost(path, contentType, bodyPublisher);
+            final HttpRequest request = newPost(path, contentType, bodyPublisher.build());
             http(request);
             log("application %s deployed".formatted(name));
         }
@@ -260,13 +269,10 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         return hexString.toString();
     }
 
-    public static Path buildZip(File appDirectory, File instanceFile, File secretsFile,
-                                Consumer<String> logger) throws IOException {
+    public static Path buildZip(File appDirectory, Consumer<String> logger) throws IOException {
         final Path tempZip = Files.createTempFile("app", ".zip");
         try (final ZipFile zip = new ZipFile(tempZip.toFile());) {
             addApp(appDirectory, zip, logger);
-            addInstance(instanceFile, zip, logger);
-            addSecrets(secretsFile, zip, logger);
         }
         return tempZip;
     }
@@ -290,26 +296,6 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         logger.accept("app packaged");
     }
 
-    private static void addInstance(File instanceFile, ZipFile zip, Consumer<String> logger) throws ZipException {
-        if (instanceFile == null) {
-            return;
-        }
-        logger.accept("using instance: %s".formatted(instanceFile.getAbsolutePath()));
-        final ZipParameters zipParameters = new ZipParameters();
-        zipParameters.setFileNameInZip("instance.yaml");
-        zip.addFile(instanceFile, zipParameters);
-    }
-
-    private static void addSecrets(File secretsFile, ZipFile zip, Consumer<String> logger) throws ZipException {
-        if (secretsFile == null) {
-            return;
-        }
-        logger.accept("using secrets: %s".formatted(secretsFile.getAbsolutePath()));
-        final ZipParameters zipParameters = new ZipParameters();
-        zipParameters.setFileNameInZip("secrets.yaml");
-        zip.addFile(secretsFile, zipParameters);
-    }
-
     private File checkFileExists(String path) {
         if (path == null) {
             return null;
@@ -321,15 +307,17 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         return file;
     }
 
-    public static byte[] buildMultipartContentForAppZip(Path path, String boundary) throws IOException {
-        List<byte[]> byteArrays = new ArrayList<>();
-        final String beforeFile =
-                "--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"%s\"\r\nContent-Type: %s\r\n\r\n"
-                        .formatted(boundary, path.getFileName(), Files.probeContentType(path));
-        byteArrays.add(beforeFile.getBytes(StandardCharsets.UTF_8));
-        byteArrays.add(Files.readAllBytes(path));
-        byteArrays.add("\r\n--%s--\r\n".formatted(boundary).getBytes(StandardCharsets.UTF_8));
-        return concatBytes(byteArrays.toArray(new byte[0][]));
+    public static MultiPartBodyPublisher buildMultipartContentForAppZip(Map<String, Object> formData)
+            throws IOException {
+        final MultiPartBodyPublisher multiPartBodyPublisher = new MultiPartBodyPublisher();
+        for (Map.Entry<String, Object> formDataEntry : formData.entrySet()) {
+            if (formDataEntry.getValue() instanceof Path) {
+                multiPartBodyPublisher.addPart(formDataEntry.getKey(), (Path) formDataEntry.getValue());
+            } else {
+                multiPartBodyPublisher.addPart(formDataEntry.getKey(), formDataEntry.getValue().toString());
+            }
+        }
+        return multiPartBodyPublisher;
     }
 
     @SneakyThrows
@@ -339,10 +327,6 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             outputStream.write(array);
         }
         return outputStream.toByteArray();
-    }
-
-    private static HttpRequest.BodyPublisher multiPartBodyPublisher(Path path, String boundary) throws IOException {
-        return HttpRequest.BodyPublishers.ofByteArray(buildMultipartContentForAppZip(path, boundary));
     }
 
 }

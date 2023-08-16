@@ -40,8 +40,7 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of("instance.yaml",
-                        buildInstanceYaml(),
+        Map<String, String> application = Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -61,7 +60,7 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
                                         - "description"
                                 """);
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
 
 
         try (KafkaProducer<String, String> producer = createProducer();
@@ -90,8 +89,7 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of("instance.yaml",
-                buildInstanceYaml(),
+        Map<String, String> application = Map.of(
                 "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -114,7 +112,7 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
                                     output: "output-topic2"
                                 """);
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
 
             final AgentRunResult result = executeAgentRunners(applicationRuntime);
 

@@ -15,7 +15,6 @@
  */
 package com.datastax.oss.sga.webservice.application;
 
-import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.StoredApplication;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
@@ -30,19 +29,23 @@ import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -73,53 +76,98 @@ public class ApplicationResource {
         return applicationService.getAllApplications(tenant).values();
     }
 
-    @PostMapping(value = "/{tenant}/{name}", consumes = "multipart/form-data")
+    @PostMapping(value = "/{tenant}/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create and deploy an application")
     void deployApplication(
             @NotBlank @PathVariable("tenant") String tenant,
-            @NotBlank @PathVariable("name") String name,
-            @NotNull @RequestParam("file") MultipartFile file) throws Exception {
-        final Map.Entry<ModelBuilder.ApplicationWithPackageInfo, String> instance = parseApplicationInstance(name, file,
-                tenant);
-        log.info("Parsed application instance code: {} application: {}", instance.getValue(),
-                instance.getKey().getApplication());
-        applicationService.deployApplication(tenant, name, instance.getKey(), instance.getValue());
+            @NotBlank @PathVariable("id") String applicationId,
+            @RequestParam("app") MultipartFile appFile,
+            @RequestParam String instance,
+            @RequestParam Optional<String> secrets) throws Exception {
+        final ParsedApplication parsedApplication =
+                parseApplicationInstance(applicationId,
+                        Optional.of(appFile),
+                        Optional.of(instance),
+                        secrets,
+                        tenant);
+        applicationService.deployApplication(tenant, applicationId, parsedApplication.getApplication(),
+                parsedApplication.getCodeArchiveReference());
     }
 
-    @PutMapping(value = "/{tenant}/{name}", consumes = "multipart/form-data")
+    @PatchMapping(value = "/{tenant}/{id}", consumes = "multipart/form-data")
     @Operation(summary = "Update and re-deploy an application")
     void updateApplication(
             @NotBlank @PathVariable("tenant") String tenant,
-            @NotBlank @PathVariable("name") String name,
-            @NotNull @RequestParam("file") MultipartFile file) throws Exception {
-        final Map.Entry<ModelBuilder.ApplicationWithPackageInfo, String> instance = parseApplicationInstance(name, file,
-                tenant);
-        log.info("Parsed application instance code: {} application: {}", instance.getValue(),
-                instance.getKey().getApplication());
-        applicationService.updateApplication(tenant, name, instance.getKey(), instance.getValue());
+            @NotBlank @PathVariable("id") String applicationId,
+            @NotNull @RequestParam("app") Optional<MultipartFile> appFile,
+            @RequestParam Optional<String> instance,
+            @RequestParam Optional<String> secrets) throws Exception {
+        final ParsedApplication parsedApplication = parseApplicationInstance(applicationId,
+                appFile,
+                instance, secrets, tenant);
+        applicationService.updateApplication(tenant, applicationId,
+                parsedApplication.getApplication(),
+                parsedApplication.getCodeArchiveReference());
     }
 
-    private Map.Entry<ModelBuilder.ApplicationWithPackageInfo, String> parseApplicationInstance(String name, MultipartFile file, String tenant)
-            throws Exception {
-        Path tempdir = Files.createTempDirectory("zip-extract");
-        final Path tempZip = Files.createTempFile("app", ".zip");
-        try {
-            file.transferTo(tempZip);
-            try (ZipFile zipFile = new ZipFile(tempZip.toFile());) {
-                zipFile.extractAll(tempdir.toFile().getAbsolutePath());
-                final ModelBuilder.ApplicationWithPackageInfo applicationInstance =
-                        ModelBuilder.buildApplicationInstanceWithInfo(List.of(tempdir));
-                String codeArchiveReference = codeStorageService.deployApplicationCodeStorage(tenant, name,
-                        applicationInstance.getApplication(), tempZip);
-                log.info("Parsed application {} with code archive {}", name, codeArchiveReference);
-                return new AbstractMap.SimpleImmutableEntry<>(applicationInstance, codeArchiveReference);
-            }
-        } finally {
-            tempZip.toFile().delete();
 
-            deleteDirectory(tempdir);
+    @Data
+    static class ParsedApplication {
+        private ModelBuilder.ApplicationWithPackageInfo application;
+        private String codeArchiveReference;
+    }
+
+    private ParsedApplication parseApplicationInstance(String name,
+                                                       Optional<MultipartFile> file,
+                                                       Optional<String> instance,
+                                                       Optional<String> secrets,
+                                                       String tenant)
+            throws Exception {
+        final ParsedApplication parsedApplication = new ParsedApplication();
+        withApplicationZip(file, (zip, appDirectories) -> {
+            try {
+                final ModelBuilder.ApplicationWithPackageInfo app =
+                        ModelBuilder.buildApplicationInstance(appDirectories, instance.orElse(null),
+                                secrets.orElse(null));
+                final String codeArchiveReference;
+                if (zip == null) {
+                    codeArchiveReference = null;
+                } else {
+                    codeArchiveReference = codeStorageService.deployApplicationCodeStorage(tenant, name, zip);
+
+                }
+                log.info("Parsed application {} {} with code archive {}", name, app.getApplication(),
+                        codeArchiveReference);
+                parsedApplication.setApplication(app);
+                parsedApplication.setCodeArchiveReference(codeArchiveReference);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(e);
+            }
+        });
+        return parsedApplication;
+    }
+
+    private void withApplicationZip(Optional<MultipartFile> file, BiConsumer<Path, List<Path>> appDirectoriesConsumer)
+            throws Exception {
+        if (file.isPresent()) {
+            Path tempdir = Files.createTempDirectory("zip-extract");
+            final Path tempZip = Files.createTempFile("app", ".zip");
+            try {
+                file.get().transferTo(tempZip);
+                try (ZipFile zipFile = new ZipFile(tempZip.toFile());) {
+                    zipFile.extractAll(tempdir.toFile().getAbsolutePath());
+                    appDirectoriesConsumer.accept(tempZip, List.of(tempdir));
+                }
+            } finally {
+                tempZip.toFile().delete();
+
+                deleteDirectory(tempdir);
+            }
+        } else {
+            appDirectoriesConsumer.accept(null, List.of());
         }
     }
+
 
     private static void deleteDirectory(Path tempdir) throws IOException {
         Files
@@ -165,7 +213,8 @@ public class ApplicationResource {
 
 
         final List<ApplicationStore.PodLogHandler> podLogs =
-                applicationService.getPodLogs(tenant, name, new ApplicationStore.LogOptions(filterReplicas.orElse(null)));
+                applicationService.getPodLogs(tenant, name,
+                        new ApplicationStore.LogOptions(filterReplicas.orElse(null)));
         if (podLogs.isEmpty()) {
             return Flux.empty();
         }

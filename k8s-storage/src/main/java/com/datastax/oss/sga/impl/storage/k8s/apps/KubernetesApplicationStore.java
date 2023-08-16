@@ -304,6 +304,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
         return StoredApplication.builder()
                 .applicationId(applicationId)
                 .instance(instance)
+                .codeArchiveReference(application.getSpec().getCodeArchiveId())
                 .status(computeApplicationStatus(applicationId,
                         agentNodes, application, queryPods))
                 .build();

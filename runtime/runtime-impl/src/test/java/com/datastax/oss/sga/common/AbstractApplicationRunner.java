@@ -219,11 +219,8 @@ public abstract class AbstractApplicationRunner {
                         AgentInfo agentInfo = new AgentInfo();
                         allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
                         AgentRunner.run(podConfiguration, null, null, agentInfo, 10);
-                        Map<String, Object> infos = agentInfo.serveInfos();
+                        List<?> infos = agentInfo.serveInfos();
                         log.info("{} AgentPod {} AgentInfo {}", runnerExecutionId, podConfiguration.agent().agentId(), infos);
-                        assertTrue(infos.containsKey("source"));
-                        assertTrue(infos.containsKey("sink"));
-                        assertTrue(infos.containsKey("processor"));
                         handle.complete(null);
                     } catch (Throwable error) {
                         log.error("{} Error on AgentPod {}{}", runnerExecutionId, podConfiguration.agent().agentId(), error);

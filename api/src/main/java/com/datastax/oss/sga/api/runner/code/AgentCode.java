@@ -41,5 +41,5 @@ public interface AgentCode {
     default void start() throws Exception {}
     default void close() throws Exception {}
 
-    AgentInfo getInfo();
+    AgentStatusResponse getInfo();
 }

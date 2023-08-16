@@ -17,6 +17,7 @@ package com.datastax.oss.sga.deployer.k8s.agents;
 
 import static com.datastax.oss.sga.deployer.k8s.CRDConstants.MAX_AGENT_ID_LENGTH;
 import com.datastax.oss.sga.api.model.ApplicationStatus;
+import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
 import com.datastax.oss.sga.deployer.k8s.PodTemplate;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
@@ -25,11 +26,12 @@ import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
-import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -39,9 +41,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
-import io.fabric8.kubernetes.api.model.ServicePort;
 import io.fabric8.kubernetes.api.model.ServicePortBuilder;
-import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
@@ -75,6 +75,9 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class AgentResourcesFactory {
+
+    private static ObjectMapper MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     protected static final String AGENT_SECRET_DATA_APP = "app-config";
 
@@ -407,9 +410,10 @@ public class AgentResourcesFactory {
                             if (url != null) {
                                 log.info("Querying pod {} for agent {} in application {}",
                                         url, declaredAgent, applicationId);
-                                Map<String, Object> info = queryAgentInfo(url, httpClient);
-                                log.info("Info for pod {}: {}", entry.getKey(), info);
-                                ApplicationStatus.AgentWorkerStatus agentWorkerStatusWithInfo = agentWorkerStatus.withInfo(info);
+                                List<AgentStatusResponse> agentsStatus = queryAgentStatus(url, httpClient);
+                                log.info("Info for pod {}: {}", entry.getKey(), agentsStatus);
+                                ApplicationStatus.AgentWorkerStatus agentWorkerStatusWithInfo =
+                                        agentWorkerStatus.applyAgentStatus(agentsStatus);
                                 result.complete(agentWorkerStatusWithInfo);
                             } else {
                                 log.warn("No URL for pod {} for agent {} in application {}",
@@ -451,7 +455,7 @@ public class AgentResourcesFactory {
         }
     }
 
-    private static Map<String, Object> queryAgentInfo(String url, HttpClient httpClient) {
+    private static List<AgentStatusResponse> queryAgentStatus(String url, HttpClient httpClient) {
         try {
             String body = httpClient.send(HttpRequest.newBuilder()
                                     .uri(URI.create(url + "/info"))
@@ -460,10 +464,10 @@ public class AgentResourcesFactory {
                                     .build(),
                             HttpResponse.BodyHandlers.ofString())
                     .body();
-            return new ObjectMapper().readValue(body, Map.class);
+            return MAPPER.readValue(body, new TypeReference<List<AgentStatusResponse>>() {});
         } catch (IOException | InterruptedException e) {
             log.warn("Failed to query agent info from {}", url, e);
-            return Map.of("error", e + "");
+            return List.of();
         }
     }
 

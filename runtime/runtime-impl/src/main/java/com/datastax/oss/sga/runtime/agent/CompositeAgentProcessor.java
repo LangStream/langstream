@@ -17,7 +17,7 @@ package com.datastax.oss.sga.runtime.agent;
 
 import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentInfo;
+import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
 import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
@@ -187,7 +187,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         Map<String, Object> result = new HashMap<>();
         List<Map<String, Object>> processorsInfo = new ArrayList<>();
         for (AgentProcessor processor : processors) {
-            AgentInfo info = processor.getInfo();
+            AgentStatusResponse info = processor.getInfo();
             Map<String, Object> asMap = MAPPER.convertValue(info, Map.class);
             processorsInfo.add(asMap);
         }

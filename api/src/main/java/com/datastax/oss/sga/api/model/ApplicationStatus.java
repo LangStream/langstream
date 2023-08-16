@@ -16,17 +16,22 @@
 package com.datastax.oss.sga.api.model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
+import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Data
+@Slf4j
 public class ApplicationStatus {
 
     @Data
@@ -44,6 +49,29 @@ public class ApplicationStatus {
         private String agentId;
         @JsonProperty("agent-type")
         private String agentType;
+        @JsonProperty("metrics")
+        private Metrics metrics;
+        @JsonProperty("info")
+        private Map<String, Object> info;
+
+        public AgentNodeStatus(String agentId, String agentType) {
+            this.agentId = agentId;
+            this.agentType = agentType;
+        }
+
+        @Data
+        @AllArgsConstructor
+        @NoArgsConstructor
+        public static final class Metrics {
+            @JsonProperty("total-in")
+            private Long totalIn;
+            @JsonProperty("total-out")
+            private Long totalOut;
+            @JsonProperty("started-at")
+            private Long startedAt;
+            @JsonProperty("last-processed-at")
+            private Long lastProcessedAt;
+        }
     }
 
     @Data
@@ -56,24 +84,49 @@ public class ApplicationStatus {
         // do not report this to users
         @JsonIgnore
         private String url;
-        private Map<String, Object> info;
 
         private List<AgentNodeStatus> agents = new ArrayList<>();
 
         public static final AgentWorkerStatus INITIALIZING() {
-            return new AgentWorkerStatus(Status.INITIALIZING, null,null,Map.of(), List.of());
+            return new AgentWorkerStatus(Status.INITIALIZING, null,null, List.of());
         }
 
         public static final AgentWorkerStatus RUNNING(String url) {
-            return new AgentWorkerStatus(Status.RUNNING, null, url, Map.of(), List.of());
+            return new AgentWorkerStatus(Status.RUNNING, null, url, List.of());
         }
 
         public static final AgentWorkerStatus ERROR(String url, String reason) {
-            return new AgentWorkerStatus(Status.ERROR, reason, url, Map.of(), List.of());
+            return new AgentWorkerStatus(Status.ERROR, reason, url, List.of());
         }
 
-        public AgentWorkerStatus withInfo(Map<String, Object> info) {
-            return new AgentWorkerStatus(this.status, this.reason, this.url, info, this.agents);
+        public AgentWorkerStatus applyAgentStatus(List<AgentStatusResponse> agentsStatus) {
+            List<AgentNodeStatus> newAgents = new ArrayList<>();
+            for (AgentNodeStatus agentStatus : agents) {
+                AgentStatusResponse responseForAgent =
+                        agentsStatus
+                                .stream()
+                                .filter(a -> a.getAgentId().equals(agentStatus.getAgentId()))
+                                .findFirst()
+                                .orElse(null);
+                if (responseForAgent != null) {
+                    if (!Objects.equals(responseForAgent.getAgentType(), agentStatus.getAgentType())) {
+                        log.warn("The response from the pod response that agent {} is of type {} instead of type {}",
+                                responseForAgent.getAgentId(), responseForAgent.getAgentType(), agentStatus.getAgentType());
+                    }
+                    newAgents.add(new AgentNodeStatus(
+                            agentStatus.getAgentId(),
+                            agentStatus.getAgentType(),
+                            new AgentNodeStatus.Metrics(
+                                    responseForAgent.getMetrics().getTotalIn(),
+                                    responseForAgent.getMetrics().getTotalOut(),
+                                    responseForAgent.getMetrics().getStartedAt(),
+                                    responseForAgent.getMetrics().getLastProcessedAt()),
+                            responseForAgent.getInfo()));
+                } else {
+                    newAgents.add(agentStatus);
+                }
+            }
+            return new AgentWorkerStatus(this.status, this.reason, this.url, newAgents);
         }
 
         public AgentWorkerStatus withAgentSpec(String agentId, String agentType, Map<String, Object> configuration) {
@@ -99,7 +152,7 @@ public class ApplicationStatus {
             } else {
                 newAgents.add(new AgentNodeStatus(agentId, agentType));
             }
-            return new AgentWorkerStatus(this.status, this.reason, this.url, this.info, newAgents);
+            return new AgentWorkerStatus(this.status, this.reason, this.url, newAgents);
         }
 
         public enum Status {

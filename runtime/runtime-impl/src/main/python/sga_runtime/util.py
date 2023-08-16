@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from abc import abstractmethod
+from typing import Any, List, Tuple, Union
 
-from typing import Any, List, Tuple
-
-from .api import Record
+from .api import Record, Processor
 
 
 class SimpleRecord(Record):
@@ -50,3 +50,20 @@ class SimpleRecord(Record):
 
     def __repr__(self):
         return self.__str__()
+
+
+class SingleRecordProcessor(Processor):
+    @abstractmethod
+    def process_record(self, record: Record) -> List[Record]:
+        pass
+
+    def process(self, records: List[Record]) -> List[Tuple[Record, Union[List[Record], Exception]]]:
+        results = []
+        for record in records:
+            try:
+                processed = self.process_record(record)
+                if len(processed) > 0:
+                    results.append((record, processed))
+            except Exception as e:
+                results.append((record, e))
+        return results

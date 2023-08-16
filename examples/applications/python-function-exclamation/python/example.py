@@ -15,12 +15,9 @@
 # limitations under the License.
 #
 
-from sga_runtime.simplerecord import SimpleRecord
+from sga_runtime.util import SimpleRecord, SingleRecordProcessor
 
 # Example Python processor that adds an exclamation mark to the end of the record value
-class Exclamation(object):
-  def process(self, records):
-    processed_records = []
-    for record in records:
-      processed_records.append((record, [SimpleRecord(record.value() + "!!")]))
-    return processed_records
+class Exclamation(SingleRecordProcessor):
+  def process_record(self, record):
+      return [SimpleRecord(record.value() + "!!")]

@@ -26,7 +26,7 @@ from langchain.document_loaders.unstructured import UnstructuredFileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from sga_runtime.api import Source, Record
-from sga_runtime.simplerecord import SimpleRecord
+from sga_runtime.util import SimpleRecord
 
 
 class S3Record(SimpleRecord):

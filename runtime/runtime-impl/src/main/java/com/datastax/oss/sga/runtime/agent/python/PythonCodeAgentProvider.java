@@ -35,11 +35,29 @@ public class PythonCodeAgentProvider implements AgentCodeProvider {
 
     @Override
     public AgentCode createInstance(String agentType) {
-        return new PythonAgentPlaceHolder();
+        return new PythonAgentPlaceHolder(agentType);
     }
 
-    @AllArgsConstructor
     private static class PythonAgentPlaceHolder extends AbstractAgentCode implements AgentCode {
+        private String type;
+
+        public PythonAgentPlaceHolder(String type) {
+            this.type = type;
+        }
+
+        @Override
+        public String componentType() {
+            switch (type) {
+                case "python-source":
+                    return "source";
+                case "python-sink":
+                    return "sink";
+                case "python-function":
+                    return "processor";
+                default:
+                    throw new IllegalArgumentException("Unknown agent type: " + type);
+            }
+        }
     }
 
     public static boolean isPythonCodeAgent(AgentCode agentCode) {

@@ -32,6 +32,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -97,6 +98,7 @@ public class ApplicationDescription {
                     .entrySet()
                     .stream()
                     .map(entry -> new ExecutorDescription(entry.getKey(), entry.getValue()))
+                    .sorted(Comparator.comparing(ExecutorDescription::getId))
                     .toList();
         }
     }
@@ -114,6 +116,7 @@ public class ApplicationDescription {
                     .entrySet()
                     .stream()
                     .map(entry -> new ReplicaStatus(entry.getKey(), entry.getValue()))
+                    .sorted(Comparator.comparing(ReplicaStatus::getId))
                     .toList();
         }
     }
@@ -184,10 +187,12 @@ public class ApplicationDescription {
         private Long lastProcessedAt;
 
         public Metrics(ApplicationStatus.AgentNodeStatus.Metrics metrics) {
-            this.totalIn = metrics.getTotalIn();
-            this.totalOut = metrics.getTotalOut();
-            this.startedAt = metrics.getStartedAt();
-            this.lastProcessedAt = metrics.getLastProcessedAt();
+            if (metrics != null) {
+                this.totalIn = metrics.getTotalIn();
+                this.totalOut = metrics.getTotalOut();
+                this.startedAt = metrics.getStartedAt();
+                this.lastProcessedAt = metrics.getLastProcessedAt();
+            }
         }
     }
 }

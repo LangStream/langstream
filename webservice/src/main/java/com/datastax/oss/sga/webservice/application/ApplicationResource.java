@@ -72,8 +72,10 @@ public class ApplicationResource {
 
     @GetMapping("/{tenant}")
     @Operation(summary = "Get all applications")
-    Collection<StoredApplication> getApplications(@NotBlank @PathVariable("tenant") String tenant) {
-        return applicationService.getAllApplications(tenant).values();
+    Collection<ApplicationDescription> getApplications(@NotBlank @PathVariable("tenant") String tenant) {
+        return applicationService.getAllApplications(tenant).values().stream()
+                .map(app -> new ApplicationDescription(app.getApplicationId(), app.getInstance(), app.getStatus()))
+                .toList();
     }
 
     @PostMapping(value = "/{tenant}/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

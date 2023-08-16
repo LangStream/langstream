@@ -91,7 +91,7 @@ jobs:
   e2e-tests:
     name: End to End tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2

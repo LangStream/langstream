@@ -97,8 +97,6 @@ public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentS
     @Getter
     public OffsetStorageWriter offsetWriter;
 
-    private final AtomicInteger outstandingRecords = new AtomicInteger(0);
-
     Map<String, String> adapterConfig;
     Map<String, String> stringConfig;
 

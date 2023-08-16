@@ -60,12 +60,12 @@ RUN cd /app && pipenv requirements --categories="packages full" > /app/requireme
     && python3 -m pip install -r /app/requirements.txt \
     && python3 -m nltk.downloader -d /app/nltk_data punkt averaged_perceptron_tagger
 
-ENV PYTHONPATH="$PYTHONPATH:/app/sga_runtime"
+ENV PYTHONPATH="$PYTHONPATH:/app/langstream"
 
 # Add the runtime code at the end. This optimize docker layers to not depend on artifacts-specific changes.
 ADD maven/lib /app/lib
 ADD maven/entrypoint.sh /app/entrypoint.sh
-ADD maven/sga_runtime /app/sga_runtime
+ADD maven/langstream /app/langstream
 WORKDIR /app
 
 # The UID must be non-zero. Otherwise, it is arbitrary. No logic should rely on its specific value.

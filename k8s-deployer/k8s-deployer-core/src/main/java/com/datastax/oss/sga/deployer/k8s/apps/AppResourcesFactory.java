@@ -20,6 +20,7 @@ import static com.datastax.oss.sga.deployer.k8s.CRDConstants.JOB_PREFIX_DEPLOYER
 import static com.datastax.oss.sga.deployer.k8s.CRDConstants.MAX_APPLICATION_ID_LENGTH;
 import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
+import com.datastax.oss.sga.deployer.k8s.PodTemplate;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
@@ -42,9 +43,17 @@ import lombok.SneakyThrows;
 public class AppResourcesFactory {
 
 
+    public static Job generateJob(ApplicationCustomResource applicationCustomResource,
+                                  final Map<String, Object> clusterRuntimeConfiguration,
+                                  boolean delete) {
+        return generateJob(applicationCustomResource, clusterRuntimeConfiguration, delete, null);
+    }
 
     @SneakyThrows
-    public static Job generateJob(ApplicationCustomResource applicationCustomResource, final Map<String, Object> clusterRuntimeConfiguration, boolean delete) {
+    public static Job generateJob(ApplicationCustomResource applicationCustomResource,
+                                  final Map<String, Object> clusterRuntimeConfiguration,
+                                  boolean delete,
+                                  PodTemplate podTemplate) {
 
         final String applicationId = applicationCustomResource.getMetadata().getName();
         final ApplicationSpec spec = applicationCustomResource.getSpec();
@@ -118,6 +127,8 @@ public class AppResourcesFactory {
                 .withLabels(labels)
                 .endMetadata()
                 .withNewSpec()
+                .withTolerations(podTemplate != null ? podTemplate.tolerations() : null)
+                .withNodeSelector(podTemplate != null ? podTemplate.nodeSelector() : null)
                 .withServiceAccount(tenant)
                 .withVolumes(new VolumeBuilder()
                                 .withName("app-config")

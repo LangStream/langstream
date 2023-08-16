@@ -18,7 +18,6 @@ package com.datastax.oss.sga.ai.kafkaconnect;
 import com.dastastax.oss.sga.kafka.runner.KafkaRecord;
 import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentInfo;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.google.common.annotations.VisibleForTesting;
@@ -40,6 +39,7 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -50,7 +50,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -107,6 +106,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
     private final AvroData avroData = new AvroData(1000);
     private final ConcurrentLinkedDeque<ConsumerCommand> consumerCqrsQueue = new ConcurrentLinkedDeque<>();
 
+    private int errorsToInject = 0;
     // has to be the same consumer as used to read records to process,
     // otherwise pause/resume won't work
     @Override
@@ -130,28 +130,39 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
             log.warn("Sink is stopped. Cannot send the records");
             throw new IllegalStateException("Sink is stopped. Cannot send the records");
         }
+
+        List<SinkRecord> sinkRecords = new ArrayList<>(records.size());
+        List<KafkaRecord.KafkaConsumerOffsetProvider> recordsWithOffset = new ArrayList<>(records.size());
+        for (Record rec: records) {
+            try {
+                if (errorsToInject > 0) {
+                    errorsToInject--;
+                    // otherwise have to muck with schema mismatch and so on
+                    throw new RuntimeException("Injected record conversion error");
+                }
+                final KafkaRecord kr = KafkaConnectSinkAgent.getKafkaRecord(rec);
+                final KafkaRecord.KafkaConsumerOffsetProvider op = (KafkaRecord.KafkaConsumerOffsetProvider) kr;
+                sinkRecords.add(toSinkRecord(kr));
+                recordsWithOffset.add(op);
+            } catch (Throwable t) {
+                // can throw RuntimeException, let it bubble up
+                context.getBadRecordHandler().handle(rec, t, () -> {
+                    log.error("Error handling bad record {}", rec, t);
+                    this.close();
+                });
+            }
+        }
+
         try {
-            Collection<SinkRecord> sinkRecords = records.stream()
-                    .map(this::toSinkRecord)
-                    .collect(Collectors.toList());
             task.put(sinkRecords);
 
-            records.stream()
-                    .map(x -> {
-                        KafkaRecord kr = KafkaConnectSinkAgent.getKafkaRecord(x);
-                        if (kr instanceof KafkaRecord.KafkaConsumerOffsetProvider op) {
-                            currentBatchSize.addAndGet(getRecordSize(op));
-                            taskContext.updateOffset(kr.getTopicPartition(),
-                                    op.offset());
-                        } else {
-                            log.error("Record {} does not provide offset. " +
-                                    "Cannot update offset", kr);
-                            throw new IllegalArgumentException("Record " + kr +
-                                    " does not provide offset. Cannot update offset");
-                        }
-                        return kr;
-                    })
-                    .forEach(pendingFlushQueue::add);
+            recordsWithOffset.stream()
+                    .forEach(op -> {
+                        currentBatchSize.addAndGet(getRecordSize(op));
+                        taskContext.updateOffset(op.getTopicPartition(),
+                                op.offset());
+                        pendingFlushQueue.add((KafkaRecord)op);
+                    });
 
         } catch (Exception ex) {
             log.error("Error sending the records {}", records, ex);
@@ -165,9 +176,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         return r.estimateRecordSize();
     }
 
-    private SgaSinkRecord toSinkRecord(Record record) {
-        KafkaRecord kr = getKafkaRecord(record);
-
+    private SgaSinkRecord toSinkRecord(KafkaRecord kr) {
         return new SgaSinkRecord(kr.origin(),
                 kr.partition(),
                 toKafkaSchema(kr.key(), kr.keySchema()),
@@ -356,6 +365,10 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         adapterConfig = (Map<String, String>)config.remove("adapterConfig");
         if (adapterConfig == null) {
             adapterConfig = new HashMap<>();
+        }
+
+        if (adapterConfig.containsKey("__test_inject_conversion_error")) {
+            errorsToInject = Integer.parseInt(adapterConfig.get("__test_inject_conversion_error"));
         }
 
         kafkaSinkConfig = (Map) config;

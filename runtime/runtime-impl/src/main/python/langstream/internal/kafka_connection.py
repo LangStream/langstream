@@ -16,15 +16,15 @@
 #
 
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 
-from confluent_kafka import Consumer, Producer, Message, TopicPartition
+from confluent_kafka import Consumer, Producer, Message, TopicPartition, KafkaException
 from confluent_kafka.serialization import StringDeserializer
 
-from .api import Sink, Record, Source, CommitCallback
 from .kafka_serialization import STRING_SERIALIZER, DOUBLE_SERIALIZER, LONG_SERIALIZER, \
     BOOLEAN_SERIALIZER
-from .simplerecord import SimpleRecord
+from ..api import Sink, Record, Source, CommitCallback
+from ..util import SimpleRecord
 
 STRING_DESERIALIZER = StringDeserializer()
 
@@ -80,21 +80,27 @@ class KafkaRecord(SimpleRecord):
 class KafkaSource(Source):
     def __init__(self, configs):
         self.configs = configs.copy()
+        self.configs['on_commit'] = self.on_commit
         self.topic = self.configs.pop('topic')
         self.key_deserializer = self.configs.pop('key.deserializer')
         self.value_deserializer = self.configs.pop('value.deserializer')
-        self.consumer: Consumer = None
+        self.consumer: Optional[Consumer] = None
         self.committed: Dict[TopicPartition, int] = {}
+        self.pending_commits = 0
+        self.commit_failure = None
 
     def start(self):
         self.consumer = Consumer(self.configs)
         self.consumer.subscribe([self.topic])
 
     def close(self):
+        logging.info(f'Closing consumer to {self.topic} with {self.pending_commits} pending commits')
         if self.consumer:
             self.consumer.close()
 
     def read(self) -> List[KafkaRecord]:
+        if self.commit_failure:
+            raise self.commit_failure
         message = self.consumer.poll(1.0)
         if message is None:
             return []
@@ -114,7 +120,17 @@ class KafkaSource(Source):
             self.committed[topic_partition] = offset
         offsets = [TopicPartition(topic_partition.topic, partition=topic_partition.partition, offset=offset)
                    for topic_partition, offset in self.committed.items()]
+        self.pending_commits += 1
         self.consumer.commit(offsets=offsets, asynchronous=True)
+
+    def on_commit(self, error, partitions):
+        self.pending_commits -= 1
+        if error:
+            logging.error(f'Error committing offsets: {error}')
+            if not self.commit_failure:
+                self.commit_failure = KafkaException(error)
+        else:
+            logging.info(f'Offsets committed: {partitions}')
 
 
 class KafkaSink(Sink):
@@ -123,8 +139,8 @@ class KafkaSink(Sink):
         self.topic = self.configs.pop('topic')
         self.key_serializer = self.configs.pop('key.serializer')
         self.value_serializer = self.configs.pop('value.serializer')
-        self.producer = None
-        self.commit_callback: CommitCallback = None
+        self.producer: Optional[Producer] = None
+        self.commit_callback: Optional[CommitCallback] = None
 
     def start(self):
         self.producer = Producer(self.configs)

@@ -104,40 +104,135 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
     }
 
     @Test
-    public void testRunKafkaConnectSink() throws Exception {
+    public void testRunKafkaConnectSinkFailOnErr() throws Exception {
+        String tenant = "tenant2";
+        String[] expectedAgents = {"app-step2"};
 
-        String tenant = "tenant";
-        String[] expectedAgents = {"app-step1"};
+        DummySink.receivedRecords.clear();
 
+        String onFailure = "fail";
         Map<String, String> application = Map.of("instance.yaml",
                         buildInstanceYaml(),
                         "module.yaml", """
-                                module: "module-1"
-                                id: "pipeline-1"
+                                module: "module-2"
+                                id: "pipeline-2"
+                                errors:
+                                  on-failure: "%s"
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "input-topic2"
                                     creation-mode: create-if-not-exists
                                 pipeline:
-                                  - name: "sink1"
-                                    id: "step1"
+                                  - name: "sink2"
+                                    id: "step2"
                                     type: "sink"
-                                    input: "input-topic"
+                                    input: "input-topic2"
                                     configuration:
-                                      connector.class: %s                                        
+                                      adapterConfig:
+                                        __test_inject_conversion_error: "1"
+                                      connector.class: %s
                                       file: /tmp/test.sink.txt
-                                """.formatted(DummySinkConnector.class.getName()));
+                                """.formatted(onFailure, DummySinkConnector.class.getName()));
 
         try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
-                sendMessage("input-topic", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
+                sendMessage("input-topic2", "err", producer);
+                sendMessage("input-topic2", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
+                executeAgentRunners(applicationRuntime);
+                Thread.sleep(1000);
+                // todo: assert on processed counter (incremented before error handling)
+                DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
+                assertTrue(DummySink.receivedRecords.size() == 0);
+            }
+        }
+    }
+
+    @Test
+    public void testRunKafkaConnectSinkSkipOnErr() throws Exception {
+        String tenant = "tenant3";
+        String[] expectedAgents = {"app-step3"};
+
+        DummySink.receivedRecords.clear();
+
+        String onFailure = "skip";
+        Map<String, String> application = Map.of("instance.yaml",
+                buildInstanceYaml(),
+                "module.yaml", """
+                                module: "module-3"
+                                id: "pipeline-3"
+                                errors:
+                                  on-failure: "%s"
+                                topics:
+                                  - name: "input-topic3"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "sink3"
+                                    id: "step3"
+                                    type: "sink"
+                                    input: "input-topic3"
+                                    configuration:
+                                      adapterConfig:
+                                        __test_inject_conversion_error: "1"
+                                      connector.class: %s
+                                      file: /tmp/test.sink.txt
+                                """.formatted(onFailure, DummySinkConnector.class.getName()));
+
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer()) {
+                sendMessage("input-topic3", "err", producer);
+                sendMessage("input-topic3", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
                 executeAgentRunners(applicationRuntime);
                 Awaitility.await().untilAsserted(() -> {
                     DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
-                    assertTrue(DummySink.receivedRecords.size() >= 1);
+                    // todo: assert on processed counter (incremented before error handling)
+                    assertTrue(DummySink.receivedRecords.size() == 1);
                 });
             }
         }
+    }
 
+    @Test
+    public void testRunKafkaConnectSinkDlqOnErr() throws Exception {
+        String tenant = "tenant4";
+        String[] expectedAgents = {"app-step4"};
+
+        DummySink.receivedRecords.clear();
+
+        String onFailure = "dead-letter";
+        Map<String, String> application = Map.of("instance.yaml",
+                buildInstanceYaml(),
+                "module.yaml", """
+                                module: "module-4"
+                                id: "pipeline-4"
+                                errors:
+                                  on-failure: "%s"
+                                topics:
+                                  - name: "input-topic4"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "sink4"
+                                    id: "step4"
+                                    type: "sink"
+                                    input: "input-topic4"
+                                    configuration:
+                                      adapterConfig:
+                                        __test_inject_conversion_error: "1"
+                                      connector.class: %s
+                                      file: /tmp/test.sink.txt
+                                """.formatted(onFailure, DummySinkConnector.class.getName()));
+
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer()) {
+                sendMessage("input-topic4", "err", producer);
+                sendMessage("input-topic4", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
+                executeAgentRunners(applicationRuntime);
+                Awaitility.await().untilAsserted(() -> {
+                    DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
+                    // todo: assert on processed counter (incremented before error handling)
+                    // todo: check DLQ's content
+                    assertTrue(DummySink.receivedRecords.size() == 1);
+                });
+            }
+        }
     }
 
     public static final class DummySinkConnector extends SinkConnector {

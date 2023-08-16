@@ -21,6 +21,7 @@ import com.datastax.oss.sga.api.runner.code.AgentContext;
 import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
+import com.datastax.oss.sga.api.runner.code.BadRecordHandler;
 import com.datastax.oss.sga.api.runner.code.Record;
 import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
 import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
@@ -57,6 +58,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import static com.datastax.oss.sga.api.model.ErrorsSpec.DEAD_LETTER;
+import static com.datastax.oss.sga.api.model.ErrorsSpec.FAIL;
+import static com.datastax.oss.sga.api.model.ErrorsSpec.SKIP;
 
 /**
  * This is the main entry point for the pods that run the SGA runtime and Java code.
@@ -201,7 +206,7 @@ public class AgentRunner
         // copy input/output to standard input/output of the java process
         // this allows to use "kubectl logs" easily
         ProcessBuilder processBuilder = new ProcessBuilder(
-                "python3", "-m", "sga_runtime", podRuntimeConfiguration.toAbsolutePath().toString())
+                "python3", "-m", "langstream", podRuntimeConfiguration.toAbsolutePath().toString())
                 .inheritIO()
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                 .redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -296,9 +301,13 @@ public class AgentRunner
             }
             agentInfo.watchSink(sink);
 
+            String onBadRecord = configuration.agent().errorHandlerConfiguration()
+                    .getOrDefault("onFailure", FAIL).toString();
+            final BadRecordHandler brh = getBadRecordHandler(onBadRecord, deadLetterProducer);
+
             try {
                 topicAdmin.start();
-                AgentContext agentContext = new SimpleAgentContext(agentId, consumer, producer, topicAdmin,
+                AgentContext agentContext = new SimpleAgentContext(agentId, consumer, producer, topicAdmin, brh,
                         new TopicConnectionProvider() {
                             @Override
                             public TopicConsumer createConsumer(String agentId, Map<String, Object> config) {
@@ -324,6 +333,27 @@ public class AgentRunner
         } finally {
             topicAdmin.close();
         }
+    }
+
+    private static BadRecordHandler getBadRecordHandler(String onBadRecord, final TopicProducer deadLetterProducer) {
+        final BadRecordHandler brh;
+        if (onBadRecord.equalsIgnoreCase(SKIP)) {
+            brh = (record, t, cleanup) -> log.warn("Skipping record {}", record, t);
+        } else if(onBadRecord.equalsIgnoreCase(DEAD_LETTER)) {
+            brh = (record, t, cleanup) -> {
+                log.info("Sending record to dead letter queue {}", record, t);
+                deadLetterProducer.write(List.of(record));
+            };
+        } else {
+            brh = (record, t, cleanup) -> {
+                cleanup.run();
+                if (t instanceof RuntimeException) {
+                    throw (RuntimeException) t;
+                }
+                throw new RuntimeException(t);
+            };
+        }
+        return brh;
     }
 
     static void runMainLoop(AgentSource source,
@@ -360,8 +390,7 @@ public class AgentRunner
                     // the function maps the record coming from the Source to records to be sent to the Sink
                     sourceRecordTracker.track(sinkRecords);
                     for (AgentProcessor.SourceRecordAndResult sourceRecordAndResult : sinkRecords) {
-                        List<Record> forTheSink = new ArrayList<>();
-                        forTheSink.addAll(sourceRecordAndResult.getResultRecords());
+                        List<Record> forTheSink = new ArrayList<>(sourceRecordAndResult.getResultRecords());
                         sink.write(forTheSink);
                     }
                 } catch (Throwable e) {
@@ -511,13 +540,16 @@ public class AgentRunner
         private final String agentId;
 
         private final TopicConnectionProvider topicConnectionProvider;
+        private final BadRecordHandler brh;
 
         public SimpleAgentContext(String agentId, TopicConsumer consumer, TopicProducer producer, TopicAdmin topicAdmin,
+                                  BadRecordHandler brh,
                                   TopicConnectionProvider topicConnectionProvider) {
             this.consumer = consumer;
             this.producer = producer;
             this.topicAdmin = topicAdmin;
             this.agentId = agentId;
+            this.brh = brh;
             this.topicConnectionProvider = topicConnectionProvider;
         }
 
@@ -539,6 +571,11 @@ public class AgentRunner
         @Override
         public TopicAdmin getTopicAdmin() {
             return topicAdmin;
+        }
+
+        @Override
+        public BadRecordHandler getBadRecordHandler() {
+            return brh;
         }
 
         @Override

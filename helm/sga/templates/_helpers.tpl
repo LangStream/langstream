@@ -203,38 +203,6 @@ app.kubernetes.io/name: {{ include "sga.clientName" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "sga.clientServiceAccountName" -}}
-{{- if .Values.client.serviceAccount.create }}
-{{- default (include "sga.clientFullname" .) .Values.client.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.client.serviceAccount.name }}
-{{- end }}
-{{- end }}
-
-{{/*
-Create the name of the role to use
-*/}}
-{{- define "sga.clientRoleName" -}}
-{{- if .Values.client.serviceAccount.create }}
-{{- default (include "sga.clientFullname" .) .Values.client.serviceAccount.role.name }}
-{{- else }}
-{{- default "default" .Values.client.serviceAccount.role.name }}
-{{- end }}
-{{- end }}
-
-{{/*
-Create the name of the role binding to use
-*/}}
-{{- define "sga.clientRoleBindingName" -}}
-{{- if .Values.client.serviceAccount.create }}
-{{- default (include "sga.clientFullname" .) .Values.client.serviceAccount.roleBinding.name }}
-{{- else }}
-{{- default "default" .Values.client.serviceAccount.roleBinding.name }}
-{{- end }}
-{{- end }}
 
 
 {{/*

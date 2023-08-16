@@ -6,15 +6,7 @@ controlPlane:
   app:
     config:
       logging.level.com.datastax.oss.sga: debug
-      application.storage.apps.type: kubernetes
-      application.storage.apps.configuration.namespaceprefix: sga-
-      application.storage.apps.configuration.deployer-runtime.image: public.ecr.aws/y3i6u2n7/datastax-public/sga-runtime:0.0.1-alpha
-      application.storage.apps.configuration.deployer-runtime.image-pull-policy: IfNotPresent
       application.storage.global.type: kubernetes
-      application.storage.code.type: s3
-      application.storage.code.configuration.endpoint: http://minio.minio-dev.svc.cluster.local:9000
-      application.storage.code.configuration.access-key: minioadmin
-      application.storage.code.configuration.secret-key: minioadmin
 
 deployer:
   replicaCount: 1
@@ -23,21 +15,7 @@ deployer:
     pullPolicy: IfNotPresent
     tag: 0.0.1-alpha
   app:
-    config:
-      application.storage.apps.configuration.namespaceprefix: sga-
-      application.storage.apps.configuration.deployer-runtime.image: public.ecr.aws/y3i6u2n7/datastax-public/sga-runtime:0.0.1-alpha
-      application.storage.apps.configuration.deployer-runtime.image-pull-policy: IfNotPresent
-      agentResources: {}
-      clusterRuntime:
-        kubernetes:
-          namespace-prefix: sga-
-          image: public.ecr.aws/y3i6u2n7/datastax-public/sga-runtime:0.0.1-alpha
-          image-pull-policy: IfNotPresent
-      codeStorage:
-        type: s3
-        endpoint: http://minio.minio-dev.svc.cluster.local:9000
-        access-key: minioadmin
-        secret-key: minioadmin
+    config: {}
 
 client:
   replicaCount: 1
@@ -54,5 +32,14 @@ apiGateway:
   app:
     config:
       logging.level.com.datastax.oss.sga: debug
-      application.storage.apps.type: kubernetes
-      application.storage.apps.configuration.namespaceprefix: sga-
+
+runtime:
+  image: public.ecr.aws/y3i6u2n7/datastax-public/sga-runtime:0.0.1-alpha
+  imagePullPolicy: IfNotPresent
+
+codeStorage:
+  type: s3
+  configuration:
+    endpoint: http://minio.minio-dev.svc.cluster.local:9000
+    access-key: minioadmin
+    secret-key: minioadmin

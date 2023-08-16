@@ -13,27 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sga.deployer.k8s;
+package com.datastax.oss.sga.api.runner.code;
 
-import com.datastax.oss.sga.deployer.k8s.agents.AgentResourceUnitConfiguration;
-import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithDefault;
-
-
-@ConfigMapping(prefix = "deployer")
-public interface DeployerConfiguration {
-
-    // workaround: quarkus doesn't support dynamic maps
-    @WithDefault("{}")
-    String clusterRuntime();
-
-    @WithDefault("{}")
-    String codeStorage();
-
-    @WithDefault("{}")
-    String agentResources();
-
-    @WithDefault("{}")
-    String podTemplate();
-
+public interface BadRecordHandler {
+    void handle(Record record, Throwable t, Runnable cleanup) throws RuntimeException;
 }

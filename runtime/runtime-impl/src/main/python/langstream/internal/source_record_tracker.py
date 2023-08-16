@@ -17,7 +17,7 @@
 
 from typing import List, Tuple
 
-from .api import CommitCallback, Record, Source
+from ..api import CommitCallback, Record, Source
 
 
 class SourceRecordTracker(CommitCallback):
@@ -46,6 +46,7 @@ class SourceRecordTracker(CommitCallback):
         for source_record_and_result in sink_records:
             source_record = source_record_and_result[0]
             result_records = source_record_and_result[1]
-            self.remaining_sink_records_for_source_record[source_record] = len(result_records)
-            for sink_record in result_records:
-                self.sink_to_source_mapping[sink_record] = source_record
+            if not isinstance(result_records, Exception):
+                self.remaining_sink_records_for_source_record[source_record] = len(result_records)
+                for sink_record in result_records:
+                    self.sink_to_source_mapping[sink_record] = source_record

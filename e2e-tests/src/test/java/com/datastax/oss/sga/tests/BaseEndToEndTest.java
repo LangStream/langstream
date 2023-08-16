@@ -245,6 +245,15 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
+    private static Process runProcessAsync(String[] allArgs) throws InterruptedException, IOException {
+        ProcessBuilder processBuilder = new ProcessBuilder(allArgs)
+                .directory(Paths.get("..").toFile())
+                .inheritIO()
+                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                .redirectError(ProcessBuilder.Redirect.INHERIT);
+        return processBuilder.start();
+    }
+
 
     private static void runProcessUntilOutput(String[] allArgs, Predicate<String> lineTester) throws InterruptedException, IOException {
 
@@ -464,6 +473,7 @@ public class BaseEndToEndTest implements TestWatcher {
         controlPlaneBaseUrl = "http://localhost:" + webServicePort;
     }
 
+    @SneakyThrows
     private static void awaitApiGatewayReady() {
         log.info("waiting for api gateway to be ready");
 
@@ -479,11 +489,9 @@ public class BaseEndToEndTest implements TestWatcher {
                 .get(0)
                 .getMetadata().getName();
         final int port = nextFreePort();
-        final LocalPortForward localPortForward = client.pods().inNamespace(namespace)
-                .withName(podName)
-                .portForward(8091, port);
-        log.info("api gateway port forwarding started {}", localPortForward.getLocalAddress());
-        apiGatewayBaseUrl = "ws://localhost:" + localPortForward.getLocalPort();
+        runProcessAsync("kubectl port-forward -n %s %s %d:8091".formatted(namespace, podName, port).split(" "));
+        log.info("api gateway port forwarding started {}", port);
+        apiGatewayBaseUrl = "ws://localhost:" + port;
     }
 
     @SneakyThrows

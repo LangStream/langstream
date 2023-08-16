@@ -39,7 +39,8 @@ public class NoopCodeStorageProvider implements CodeStorageProvider {
             private Map<String, CodeArchiveMetadata> archives = new ConcurrentHashMap<>();
             @Override
             public CodeArchiveMetadata storeApplicationCode(String tenant, String applicationId, String version, UploadableCodeArchive codeArchive) throws CodeStorageException {
-                CodeArchiveMetadata archiveMetadata =  new CodeArchiveMetadata(tenant, UUID.randomUUID().toString(), applicationId);
+                final String code = "%s-%s".formatted(tenant, applicationId);
+                CodeArchiveMetadata archiveMetadata = new CodeArchiveMetadata(tenant, code, applicationId);
                 archives.put(archiveMetadata.codeStoreId(), archiveMetadata);
                 return archiveMetadata;
             }

@@ -51,8 +51,7 @@ class KafkaClusterRuntimeDockerTest {
     public void testMapKafkaTopics() throws Exception {
         final AdminClient admin = kafkaContainer.getAdmin();
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -62,7 +61,7 @@ class KafkaClusterRuntimeDockerTest {
                                   - name: "input-topic-2-partitions"
                                     creation-mode: create-if-not-exists
                                     partitions: 2                                     
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()

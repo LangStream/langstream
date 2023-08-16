@@ -31,9 +31,10 @@ class ModelBuilderTest {
     @Test
     void testParseApplication1() throws Exception {
         Path path = Paths.get("src/test/resources/application1");
-        Application application = ModelBuilder.buildApplicationInstance(Arrays.asList(path));
-        log.info("Parsed {}", application);
-        Application resolved = ApplicationPlaceholderResolver.resolvePlaceholders(application);
+        final ModelBuilder.ApplicationWithPackageInfo applicationWithPackageInfo =
+                ModelBuilder.buildApplicationInstance(Arrays.asList(path), null, null);
+        log.info("Parsed {}", applicationWithPackageInfo.getApplication());
+        Application resolved = ApplicationPlaceholderResolver.resolvePlaceholders(applicationWithPackageInfo.getApplication());
         log.info("Resolved {}", resolved);
     }
 }

@@ -42,8 +42,7 @@ public class CodeStorageService {
                         storageProperties.getCode().getConfiguration());
     }
 
-    public String deployApplicationCodeStorage(String tenant, String application,
-                                               Application applicationInstance, Path zipFile) throws CodeStorageException {
+    public String deployApplicationCodeStorage(String tenant, String application, Path zipFile) throws CodeStorageException {
        String uuid = UUID.randomUUID().toString();
         CodeArchiveMetadata archiveMetadata = codeStorage.storeApplicationCode(tenant, application, uuid,
                 new LocalFileUploadableCodeArchive(zipFile));

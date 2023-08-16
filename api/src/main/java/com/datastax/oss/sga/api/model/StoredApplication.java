@@ -29,6 +29,7 @@ public class StoredApplication {
 
     private String applicationId;
     private Application instance;
+    private String codeArchiveReference;
     private ApplicationStatus status;
 
 

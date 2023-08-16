@@ -59,8 +59,8 @@ class CompositeAgentTest {
     @Test
     public void testMerge2TextProcessorAgents() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -82,7 +82,7 @@ class CompositeAgentTest {
                                     output: "output-topic"                                    
                                     configuration:                                      
                                       param2: "value2"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -129,8 +129,8 @@ class CompositeAgentTest {
     @Test
     public void testMerge3TextProcessorAgents() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -157,7 +157,7 @@ class CompositeAgentTest {
                                     output: "output-topic"                                    
                                     configuration:                                      
                                       param3: "value3"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -204,8 +204,7 @@ class CompositeAgentTest {
     @Test
     public void testMixWithNonComposableAgents() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -238,7 +237,7 @@ class CompositeAgentTest {
                                     output: "output-topic"                                    
                                     configuration:                                      
                                       param3: "value3"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -315,8 +314,8 @@ class CompositeAgentTest {
     @Test
     public void testMergeSourceWithProcessors() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -345,7 +344,7 @@ class CompositeAgentTest {
                                     output: "output-topic"                                    
                                     configuration:                                      
                                       param3: "value3"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -392,8 +391,8 @@ class CompositeAgentTest {
     @Test
     public void testMergeSinkWithProcessorAgents() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -421,7 +420,7 @@ class CompositeAgentTest {
                                     type: "generic-composable-sink"
                                     configuration:                                      
                                       paramSink: "sink1param"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -468,8 +467,8 @@ class CompositeAgentTest {
     @Test
     public void testMergeSourceAndSinkWithProcessorAgents() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -498,7 +497,7 @@ class CompositeAgentTest {
                                     type: "generic-composable-sink"
                                     configuration:                                      
                                       paramSink: "sink1param"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -546,8 +545,8 @@ class CompositeAgentTest {
     @Test
     public void testMergeSourceAndSinkWithProcessorAgentsWithIntermediateTopics() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -581,7 +580,7 @@ class CompositeAgentTest {
                                     type: "generic-composable-sink"
                                     configuration:                                      
                                       paramSink: "sink1param"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -661,8 +660,8 @@ class CompositeAgentTest {
     @Test
     public void testMixDifferentResourceRequests() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -688,7 +687,7 @@ class CompositeAgentTest {
                                     id: "step3"
                                     type: "language-detector"
                                     output: "output-topic"                                    
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -757,8 +756,8 @@ class CompositeAgentTest {
     @Test
     public void testMixDifferentErrorSpecs() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -784,7 +783,7 @@ class CompositeAgentTest {
                                     id: "step3"
                                     type: "language-detector"
                                     output: "output-topic"                                    
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()

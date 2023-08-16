@@ -89,21 +89,19 @@ class ApplicationDeployerTest {
                                           configuration:
                                             credentials: "{{secrets.openai-credentials.accessKey}}"
                                     
-                                """,
-                        "secrets.yaml", """
-                                secrets:
-                                    - name: "OpenAI Azure credentials"
-                                      id: "openai-credentials"
-                                      data:
-                                        accessKey: "my-access-key"
-                                """,
-                        "instance.yaml", """
+                                """), """
                                 instance:
                                     streamingCluster:
                                         type: mock
                                     computeCluster:
                                         type: mock
-                                """));
+                                """, """
+                                 secrets:
+                                    - name: "OpenAI Azure credentials"
+                                      id: "openai-credentials"
+                                      data:
+                                        accessKey: "my-access-key"
+                                """).getApplication();
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         deployer.deploy("tenant", implementation, null);
         Mockito.doAnswer(invocationOnMock -> {

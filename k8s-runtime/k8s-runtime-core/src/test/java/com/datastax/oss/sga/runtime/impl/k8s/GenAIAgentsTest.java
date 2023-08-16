@@ -57,8 +57,8 @@ class GenAIAgentsTest {
     @Test
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -88,7 +88,7 @@ class GenAIAgentsTest {
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -134,8 +134,8 @@ class GenAIAgentsTest {
     @Test
     public void testMergeGenAIToolKitAgents() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -171,7 +171,7 @@ class GenAIAgentsTest {
                                     configuration:                                      
                                       fields: "embeddings"
                                       part: "value"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -234,8 +234,8 @@ class GenAIAgentsTest {
     @Test
     public void testDontMergeGenAIToolKitAgentsWithExplicitLogTopic() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -275,7 +275,7 @@ class GenAIAgentsTest {
                                     configuration:                                      
                                       fields: "embeddings"
                                       part: "value"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -351,8 +351,8 @@ class GenAIAgentsTest {
     @Test
     public void testMapAllGenAIToolKitAgents() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -432,7 +432,7 @@ class GenAIAgentsTest {
                                     output: "output-topic"
                                     configuration:                                      
                                       schema-type: "string"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -486,8 +486,8 @@ class GenAIAgentsTest {
     @Test
     public void testMultipleQuerySteps() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -542,7 +542,7 @@ class GenAIAgentsTest {
                                     output: "output-topic"
                                     configuration:                                      
                                       schema-type: "string"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -601,8 +601,8 @@ class GenAIAgentsTest {
     @Test
     public void testEmbeddingsThanQuery() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
+                        
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -651,7 +651,7 @@ class GenAIAgentsTest {
                                     output: "output-topic"
                                     configuration:                                      
                                       schema-type: "string"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()

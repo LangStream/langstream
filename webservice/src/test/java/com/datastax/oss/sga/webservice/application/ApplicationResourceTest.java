@@ -42,6 +42,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockPart;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -78,15 +79,11 @@ class ApplicationResourceTest {
     }
 
 
-
-    private MockMultipartFile getMultipartFile(String application, String instance, String secrets) throws Exception {
-
+    private MockMultipartFile getMultipartFile(String application) throws Exception {
         final Path zip = AbstractDeployApplicationCmd.buildZip(
-                application == null ? null : createTempFile(application),
-                instance == null ? null : createTempFile(instance),
-                secrets == null ? null : createTempFile(secrets), s -> log.info(s));
+                application == null ? null : createTempFile(application), s -> log.info(s));
         MockMultipartFile firstFile = new MockMultipartFile(
-                "file", "content.zip", MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                "app", "content.zip", MediaType.APPLICATION_OCTET_STREAM_VALUE,
                 Files.newInputStream(zip));
         return firstFile;
 
@@ -96,80 +93,83 @@ class ApplicationResourceTest {
     @Test
     void testAppCrud() throws Exception {
         mockMvc.perform(put("/api/tenants/my-tenant"))
-                        .andExpect(status().isOk());
+                .andExpect(status().isOk());
         mockMvc
                 .perform(
                         multipart(HttpMethod.POST, "/api/applications/my-tenant/test")
                                 .file(getMultipartFile("""
-                                                id: app1
-                                                name: test
-                                                topics: []
-                                                pipeline: []
-                                                """,
+                                        id: app1
+                                        name: test
+                                        topics: []
+                                        pipeline: []
+                                        """))
+                                .part(new MockPart("instance",
                                         """
-                                                        instance:
-                                                          streamingCluster:
-                                                            type: pulsar
-                                                          computeCluster:
-                                                            type: none
-                                                        """,
+                                                instance:
+                                                  streamingCluster:
+                                                    type: pulsar
+                                                  computeCluster:
+                                                    type: none
+                                                """.getBytes(StandardCharsets.UTF_8)
+                                ))
+                                .part(new MockPart("secrets",
                                         """
-                                            secrets:
-                                            - name: secret1
-                                              id: secret1
-                                              data:
-                                                key1: value1
-                                                key2: value2
-                                            """))
+                                                secrets:
+                                                - name: secret1
+                                                  id: secret1
+                                                  data:
+                                                    key1: value1
+                                                    key2: value2
+                                                """.getBytes(StandardCharsets.UTF_8)))
                 )
                 .andExpect(status().isOk());
 
         mockMvc
                 .perform(
-                        multipart(HttpMethod.PUT, "/api/applications/my-tenant/test")
+                        multipart(HttpMethod.PATCH, "/api/applications/my-tenant/test")
                                 .file(getMultipartFile("""
-                                                id: app1
-                                                name: test
-                                                topics: []
-                                                pipeline: []
-                                                """,
+                                        id: app1
+                                        name: test
+                                        topics: []
+                                        pipeline: []
+                                        """))
+                                .part(new MockPart("instance",
                                         """
-                                                        instance:
-                                                          streamingCluster:
-                                                            type: pulsar
-                                                          computeCluster:
-                                                            type: none
-                                                        """,
-                                        null))
+                                                instance:
+                                                  streamingCluster:
+                                                    type: pulsar
+                                                  computeCluster:
+                                                    type: none
+                                                """.getBytes(StandardCharsets.UTF_8)
+                                ))
                 )
                 .andExpect(status().isOk());
 
         mockMvc
                 .perform(
-                        multipart(HttpMethod.PUT, "/api/applications/my-tenant/test")
+                        multipart(HttpMethod.PATCH, "/api/applications/my-tenant/test")
                                 .file(getMultipartFile("""
-                                                id: app1
-                                                name: test
-                                                topics: []
-                                                pipeline: []
-                                                """,
-                                        null,
-                                        null))
+                                        id: app1
+                                        name: test
+                                        topics: []
+                                        pipeline: []
+                                        """))
+
                 )
                 .andExpect(status().isOk());
 
         mockMvc
                 .perform(
-                        multipart(HttpMethod.PUT, "/api/applications/my-tenant/test")
-                                .file(getMultipartFile(null,
+                        multipart(HttpMethod.PATCH, "/api/applications/my-tenant/test")
+                                .part(new MockPart("instance",
                                         """
-                                                        instance:
-                                                          streamingCluster:
-                                                            type: pulsar
-                                                          computeCluster:
-                                                            type: none
-                                                        """,
-                                        null))
+                                                instance:
+                                                  streamingCluster:
+                                                    type: pulsar
+                                                  computeCluster:
+                                                    type: none
+                                                """.getBytes(StandardCharsets.UTF_8))
+                                )
                 )
                 .andExpect(status().isOk());
 

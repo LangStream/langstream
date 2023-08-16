@@ -165,7 +165,7 @@ public abstract class BaseCmd implements Runnable {
             }
             throw new RuntimeException("Unexpected status code: " + status);
         } catch (ConnectException error) {
-            throw new RuntimeException("Cannot connect to " + getBaseWebServiceUrl(), error);
+            throw new RuntimeException("Cannot connect to " + httpRequest.uri(), error);
         } catch (IOException | InterruptedException error) {
             throw new RuntimeException("Unexpected network error " + error, error);
         }

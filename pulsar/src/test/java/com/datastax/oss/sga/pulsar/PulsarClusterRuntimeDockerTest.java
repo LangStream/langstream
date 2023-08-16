@@ -61,9 +61,7 @@ class PulsarClusterRuntimeDockerTest {
     @Test
     public void testDeployTopics() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
-                        "module.yaml", """
+                .buildApplicationInstance(Map.of("module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                               
                                 topics:
@@ -87,7 +85,7 @@ class PulsarClusterRuntimeDockerTest {
                                       type: avro
                                       schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}'
                                 pipeline:
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .<ExecutionPlan>builder()
@@ -118,8 +116,7 @@ class PulsarClusterRuntimeDockerTest {
     @Test
     public void testDeployCassandraSink() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -135,7 +132,7 @@ class PulsarClusterRuntimeDockerTest {
                                     input: "input-topic-cassandra"
                                     configuration:
                                       mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -184,9 +181,7 @@ class PulsarClusterRuntimeDockerTest {
     @Test
     public void testDeployDataGeneratorSource() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
-                        "module.yaml", """
+                .buildApplicationInstance(Map.of("module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
                                 topics:
@@ -199,7 +194,7 @@ class PulsarClusterRuntimeDockerTest {
                                     output: "output-topic-from-file"
                                     configuration:
                                       sourceType: "data-generator"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -224,8 +219,7 @@ class PulsarClusterRuntimeDockerTest {
     @Test
     public void testDeployChainOfGenericFunctions() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                               module: "module-1"
                               id: "pipeline-1"
@@ -251,7 +245,7 @@ class PulsarClusterRuntimeDockerTest {
                                   configuration:
                                     functionType: "transforms"
                                     steps: []
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -281,8 +275,7 @@ class PulsarClusterRuntimeDockerTest {
     @Test
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -315,7 +308,7 @@ class PulsarClusterRuntimeDockerTest {
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()

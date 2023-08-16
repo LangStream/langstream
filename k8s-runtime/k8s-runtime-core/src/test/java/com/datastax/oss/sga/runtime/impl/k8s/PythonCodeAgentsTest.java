@@ -54,8 +54,7 @@ class PythonCodeAgentsTest {
     @Test
     public void testConfigurePythonAgents() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -81,7 +80,7 @@ class PythonCodeAgentsTest {
                                       agent.class: my.python.module.MyClass                                 
                                       config1: value1
                                       config2: value2
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()

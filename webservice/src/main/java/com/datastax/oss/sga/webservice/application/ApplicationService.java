@@ -42,6 +42,7 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -104,16 +105,13 @@ public class ApplicationService {
                                   ModelBuilder.ApplicationWithPackageInfo applicationInstance,
                                   String codeArchiveReference) {
         checkTenant(tenant);
-        Map.Entry<Application, ExecutionPlan> applicationExecutionPlanEntry = validateDeployAndMerge(tenant, applicationId, applicationInstance);
-        final Application mergedApplication = applicationExecutionPlanEntry.getKey();
-        final ExecutionPlan executionPlan = applicationExecutionPlanEntry.getValue();
-        applicationStore.put(tenant, applicationId, mergedApplication, codeArchiveReference, executionPlan);
+        validateDeployMergeAndUpdate(tenant, applicationId, applicationInstance, codeArchiveReference);
     }
 
 
-    private Map.Entry<Application, ExecutionPlan> validateDeployAndMerge(String tenant, String applicationId,
-                                               ModelBuilder.ApplicationWithPackageInfo applicationInstance) {
-
+    private void validateDeployMergeAndUpdate(String tenant, String applicationId,
+                                                    ModelBuilder.ApplicationWithPackageInfo applicationInstance,
+                                        String codeArchiveReference) {
 
         final StoredApplication existing = applicationStore.get(tenant, applicationId, false);
         if (existing == null) {
@@ -143,8 +141,10 @@ public class ApplicationService {
         }
         final ExecutionPlan newPlan = validateExecutionPlan(applicationId, newApplication);
         validateUpdate(tenant, existing, existingSecrets, newPlan);
-        return new AbstractMap.SimpleImmutableEntry<>(newApplication, newPlan);
-
+        if (codeArchiveReference == null) {
+            codeArchiveReference = existing.getCodeArchiveReference();
+        }
+        applicationStore.put(tenant, applicationId, newApplication, codeArchiveReference, newPlan);
     }
 
     ExecutionPlan validateExecutionPlan(String applicationId, Application applicationInstance) {

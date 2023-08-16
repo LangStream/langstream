@@ -38,8 +38,7 @@ class KafkaStreamingClusterRuntimeTest {
     @Test
     public void testMapKafkaTopics() throws Exception {
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"                                
@@ -49,7 +48,7 @@ class KafkaStreamingClusterRuntimeTest {
                                     schema:
                                       type: avro
                                       schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'                               
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()

@@ -83,8 +83,7 @@ class KubernetesClusterRuntimeDockerTest {
         final Map<String, io.fabric8.kubernetes.api.model.Secret> secrets =
                 kubeServer.spyAgentCustomResourcesSecrets("sga-" + tenant, "app-step1");
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("instance.yaml",
-                        buildInstanceYaml(),
+                .buildApplicationInstance(Map.of(
                         "configuration.yaml",
                         """
                                 configuration:  
@@ -114,7 +113,7 @@ class KubernetesClusterRuntimeDockerTest {
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
-                                """));
+                                """), buildInstanceYaml(), null).getApplication();
 
         @Cleanup ApplicationDeployer deployer = getDeployer();
 

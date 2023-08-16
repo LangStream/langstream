@@ -36,6 +36,7 @@ import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.ContainerResource;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -294,7 +295,7 @@ public class BaseEndToEndTest implements TestWatcher {
         namespace = "sga-test-" + UUID.randomUUID().toString().substring(0, 8);
 
         // kubeServer = new LocalK3sContainer();
-        kubeServer = new PythonFunctionIT.RunningHostCluster();
+        kubeServer = new RunningHostCluster();
         kubeServer.start();
 
         client = new KubernetesClientBuilder()
@@ -478,10 +479,11 @@ public class BaseEndToEndTest implements TestWatcher {
                 .get(0)
                 .getMetadata().getName();
         final int port = nextFreePort();
-        client.pods().inNamespace(namespace)
+        final LocalPortForward localPortForward = client.pods().inNamespace(namespace)
                 .withName(podName)
                 .portForward(8091, port);
-        apiGatewayBaseUrl = "ws://localhost:" + port;
+        log.info("api gateway port forwarding started {}", localPortForward);
+        apiGatewayBaseUrl = "ws://localhost:" + localPortForward.getLocalPort();
     }
 
     @SneakyThrows

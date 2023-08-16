@@ -74,9 +74,6 @@ class KafkaConsumerWrapper implements TopicConsumer {
     @Override
     public Map<String, Object> getInfo() {
         Map<String, Object> result = new HashMap<>();
-        if (topicName != null) {
-            result.put("topicName", topicName);
-        }
         if (consumer != null) {
             result.put("kafkaConsumerMetrics",
                     KafkaMetricsUtils.metricsToMap(consumer.metrics()));

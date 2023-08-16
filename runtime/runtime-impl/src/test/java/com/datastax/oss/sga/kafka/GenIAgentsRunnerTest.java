@@ -118,8 +118,8 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
 
             final AgentRunResult result = executeAgentRunners(applicationRuntime);
 
-            final List<AgentStatusResponse> processors = result.info().get("step1").serveInfos();
-            assertEquals(2, processors.size());
+            final List<AgentStatusResponse> processors = result.info().get("step1").serveWorkerStatus();
+            assertEquals(4, processors.size());
             for (AgentStatusResponse p : processors) {
                 switch (p.getAgentId()) {
                     case "step1":
@@ -127,6 +127,9 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
                         break;
                     case "step2":
                         assertEquals("drop", p.getAgentType());
+                        break;
+                    case "topic-source":
+                    case "topic-sink":
                         break;
                     default:
                         throw new IllegalStateException("Unexpected value: " + p.getAgentId());

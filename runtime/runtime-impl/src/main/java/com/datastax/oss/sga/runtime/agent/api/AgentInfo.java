@@ -46,16 +46,16 @@ public class AgentInfo {
      * changing the format is a breaking change, please take care to backward compatibility.
      * @return
      */
-    public List<AgentStatusResponse> serveInfos() {
+    public List<AgentStatusResponse> serveWorkerStatus() {
         List<AgentStatusResponse> result = new ArrayList<>();
         if (source != null) {
-            result.add(source.getInfo());
+            result.addAll(source.getInfo());
         }
         if (processor != null) {
-            result.add(processor.getInfo());
+            result.addAll(processor.getInfo());
         }
         if (sink != null) {
-            result.add(sink.getInfo());
+            result.addAll(sink.getInfo());
         }
         return result;
     }

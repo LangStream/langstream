@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.api.runner.code;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -41,5 +42,10 @@ public interface AgentCode {
     default void start() throws Exception {}
     default void close() throws Exception {}
 
-    AgentStatusResponse getInfo();
+    /**
+     * Return information about the agent.
+     * This is a List because an Agent can be the composition of multiple agents.
+     * @return
+     */
+    List<AgentStatusResponse> getInfo();
 }

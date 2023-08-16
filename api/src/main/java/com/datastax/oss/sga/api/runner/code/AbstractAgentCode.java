@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.api.runner.code;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -66,9 +67,9 @@ public abstract class AbstractAgentCode implements AgentCode {
     }
 
     @Override
-    public final AgentStatusResponse getInfo() {
-        return new AgentStatusResponse(agentId(), agentType(), buildAdditionalInfo(),
-                new AgentStatusResponse.Metrics(totalIn.get(), totalOut.get(), startedAt(), lastProcessedAt));
+    public List<AgentStatusResponse> getInfo() {
+        return List.of(new AgentStatusResponse(agentId(), agentType(), buildAdditionalInfo(),
+                new AgentStatusResponse.Metrics(totalIn.get(), totalOut.get(), startedAt(), lastProcessedAt)));
     }
 
 }

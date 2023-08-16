@@ -184,14 +184,16 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
 
     @Override
     protected Map<String, Object> buildAdditionalInfo() {
-        Map<String, Object> result = new HashMap<>();
-        List<Map<String, Object>> processorsInfo = new ArrayList<>();
+        return Map.of();
+    }
+
+    @Override
+    public final List<AgentStatusResponse> getInfo() {
+        List<AgentStatusResponse> result = new ArrayList<>();
         for (AgentProcessor processor : processors) {
-            AgentStatusResponse info = processor.getInfo();
-            Map<String, Object> asMap = MAPPER.convertValue(info, Map.class);
-            processorsInfo.add(asMap);
+            List<AgentStatusResponse> info = processor.getInfo();
+            result.addAll(info);
         }
-        result.put("processors", processorsInfo);
         return result;
     }
 }

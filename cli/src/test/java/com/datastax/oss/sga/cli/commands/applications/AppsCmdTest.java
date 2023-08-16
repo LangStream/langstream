@@ -16,6 +16,9 @@
 package com.datastax.oss.sga.cli.commands.applications;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
+import static com.github.tomakehurst.wiremock.client.WireMock.binaryEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import com.datastax.oss.sga.cli.commands.BaseCmd;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
@@ -39,39 +43,6 @@ import org.junit.jupiter.api.Test;
 
 class AppsCmdTest extends CommandTestBase {
 
-    class InterceptDeploySupport {
-        private final Path extract = Paths.get(tempDir.toFile().getAbsolutePath(), "extract");
-        private final Path toExtract = Paths.get(tempDir.toFile().getAbsolutePath(), "toExtract");
-
-
-        MultipartValuePatternBuilder multipartValuePatternBuilder() {
-            return aMultipart()
-                    .withName("file")
-                    .withBody(new BinaryEqualToPattern("") {
-                        @Override
-                        @SneakyThrows
-                        public MatchResult match(byte[] value) {
-                            Files.write(extract, value);
-                            new net.lingala.zip4j.ZipFile(extract.toFile()).extractAll(
-                                    toExtract.toFile().getAbsolutePath());
-                            return MatchResult.exactMatch();
-                        }
-                    });
-        }
-
-        ;
-
-        @SneakyThrows
-        public int countFiles() {
-            return Files.list(toExtract).collect(Collectors.toList()).size();
-        }
-
-        @SneakyThrows
-        public String getFileContent(String localZipName) {
-            return Files.readString(Paths.get(toExtract.toFile().getAbsolutePath(), localZipName));
-        }
-    }
-
     @Test
     public void testDeploy() throws Exception {
         Path sga = Files.createTempDirectory("sga");
@@ -79,24 +50,18 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final InterceptDeploySupport support = new InterceptDeploySupport();
+        final Path zipFile = AbstractDeployApplicationCmd.buildZip(sga.toFile(), o -> System.out.println(o));
+
         wireMock.register(WireMock.post("/api/applications/%s/my-app"
                         .formatted(TENANT))
-                .withMultipartRequestBody(support.multipartValuePatternBuilder())
+                .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                .withMultipartRequestBody(aMultipart("instance").withBody(equalTo("instance: {}")))
+                .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
         CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", sga.toAbsolutePath().toString(), "-i", instance);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
-
-        Assertions.assertEquals(3, support.countFiles());
-        Assertions.assertEquals("module: module-1",
-                support.getFileContent(new File(app).getName()));
-        Assertions.assertEquals("instance: {}",
-                support.getFileContent("instance.yaml"));
-        Assertions.assertEquals("secrets: []",
-                support.getFileContent("secrets.yaml"));
-
     }
 
 
@@ -109,6 +74,7 @@ class AppsCmdTest extends CommandTestBase {
                 .willReturn(WireMock.ok(fileContent)));
 
         Path sga = Files.createTempDirectory("sga");
+        Files.createDirectories(Path.of(sga.toFile().getAbsolutePath(), "java", "lib"));
         final String configurationYamlContent = """
                 configuration:
                   dependencies:
@@ -118,32 +84,22 @@ class AppsCmdTest extends CommandTestBase {
                       type: "java-library"
                 """.formatted(wireMockBaseUrl + "/local/get-dependency.jar", fileContentSha);
         Files.write(Path.of(sga.toFile().getAbsolutePath(), "configuration.yaml"), configurationYamlContent.getBytes(StandardCharsets.UTF_8));
+        Files.write(Path.of(sga.toFile().getAbsolutePath(), "java", "lib", "get-dependency.jar"), fileContent.getBytes(StandardCharsets.UTF_8));
         final String app = createTempFile("module: module-1", sga);
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final InterceptDeploySupport support = new InterceptDeploySupport();
+        final Path zipFile = AbstractDeployApplicationCmd.buildZip(sga.toFile(), o -> System.out.println(o));
         wireMock.register(WireMock.post("/api/applications/%s/my-app"
                         .formatted(TENANT))
-                .withMultipartRequestBody(support.multipartValuePatternBuilder())
+                .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                .withMultipartRequestBody(aMultipart("instance").withBody(equalTo("instance: {}")))
+                .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
         CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", sga.toAbsolutePath().toString(), "-i", instance);
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals(0, result.exitCode());
-
-        Assertions.assertEquals(5, support.countFiles());
-        Assertions.assertEquals("module: module-1",
-                support.getFileContent(new File(app).getName()));
-        Assertions.assertEquals("instance: {}",
-                support.getFileContent("instance.yaml"));
-        Assertions.assertEquals("secrets: []",
-                support.getFileContent("secrets.yaml"));
-
-        Assertions.assertEquals(configurationYamlContent,
-                support.getFileContent("configuration.yaml"));
-        Assertions.assertEquals(fileContent,
-                support.getFileContent("java/lib/get-dependency.jar"));
 
     }
 
@@ -154,24 +110,17 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final InterceptDeploySupport support = new InterceptDeploySupport();
+        final Path zipFile = AbstractDeployApplicationCmd.buildZip(sga.toFile(), o -> System.out.println(o));
         wireMock.register(WireMock.put("/api/applications/%s/my-app"
                         .formatted(TENANT))
-                .withMultipartRequestBody(support.multipartValuePatternBuilder())
+                .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                .withMultipartRequestBody(aMultipart("instance").withBody(equalTo("instance: {}")))
+                .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
         CommandResult result = executeCommand("apps", "update", "my-app", "-s", secrets, "-app", sga.toAbsolutePath().toString(), "-i", instance);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
-
-        Assertions.assertEquals(3, support.countFiles());
-        Assertions.assertEquals("module: module-1",
-                support.getFileContent(new File(app).getName()));
-        Assertions.assertEquals("instance: {}",
-                support.getFileContent("instance.yaml"));
-        Assertions.assertEquals("secrets: []",
-                support.getFileContent("secrets.yaml"));
-
     }
 
     @Test

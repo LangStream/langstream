@@ -121,7 +121,7 @@ public class MultiPartBodyPublisher {
                 if (PartsSpecification.TYPE.STRING.equals(nextPart.type)) {
                     String part =
                             "--" + boundary + "\r\n" +
-                                    "Content-Disposition: form-data; name=" + nextPart.name + "\r\n" +
+                                    "Content-Disposition: form-data; name=\"" + nextPart.name + "\"\r\n" +
                                     "Content-Type: text/plain; charset=UTF-8\r\n\r\n" +
                                     nextPart.value + "\r\n";
                     return part.getBytes(StandardCharsets.UTF_8);
@@ -145,7 +145,7 @@ public class MultiPartBodyPublisher {
                 }
                 String partHeader =
                         "--" + boundary + "\r\n" +
-                                "Content-Disposition: form-data; name=" + nextPart.name + "; filename=" + filename + "\r\n" +
+                                "Content-Disposition: form-data; name=\"" + nextPart.name + "\"; filename=" + filename + "\r\n" +
                                 "Content-Type: " + contentType + "\r\n\r\n";
                 return partHeader.getBytes(StandardCharsets.UTF_8);
             } else {

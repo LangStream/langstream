@@ -145,7 +145,7 @@ public class ApplicationResource {
 
     @GetMapping("/{tenant}/{name}")
     @Operation(summary = "Get an application by name")
-    StoredApplication getApplication(@NotBlank @PathVariable("tenant") String tenant,
+    ApplicationDescription getApplication(@NotBlank @PathVariable("tenant") String tenant,
                                      @NotBlank @PathVariable("name") String name) {
         final StoredApplication app = applicationService.getApplication(tenant, name);
         if (app == null) {
@@ -153,21 +153,7 @@ public class ApplicationResource {
                     HttpStatus.NOT_FOUND, "application not found"
             );
         }
-        return app;
-    }
-
-
-    @GetMapping("/{tenant}/{name}/info")
-    @Operation(summary = "Get an application by name")
-    ApplicationRuntimeInfo getApplicationRuntimeInfo(@NotBlank @PathVariable("tenant") String tenant,
-                                     @NotBlank @PathVariable("name") String name) {
-        final StoredApplication app = applicationService.getApplication(tenant, name);
-        if (app == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "application not found"
-            );
-        }
-        return applicationService.getApplicationRuntimeInfo(app);
+        return new ApplicationDescription(app.getApplicationId(), app.getInstance(), app.getStatus());
     }
 
 

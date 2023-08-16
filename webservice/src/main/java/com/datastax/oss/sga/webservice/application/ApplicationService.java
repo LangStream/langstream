@@ -276,12 +276,4 @@ public class ApplicationService {
         return applicationStore.logs(tenant, applicationId, logOptions);
     }
 
-    public ApplicationRuntimeInfo getApplicationRuntimeInfo(StoredApplication app) {
-        ApplicationRuntimeInfo applicationRuntimeInfo = new ApplicationRuntimeInfo(app);
-
-        Map<String, ApplicationStatus.AgentStatus> agents = app.getStatus().getAgents();
-
-
-        return applicationRuntimeInfo;
-    }
 }

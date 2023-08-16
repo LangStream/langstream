@@ -40,11 +40,6 @@ controlPlane:
   affinity: {}
   app:
     config:
-
-      application.storage.apps.type: kubernetes
-      application.storage.apps.configuration.namespaceprefix: sga-
-      application.storage.apps.configuration.deployer-runtime.image: datastax/sga-runtime:latest-dev
-      application.storage.apps.configuration.deployer-runtime.image-pull-policy: Never
       application.storage.global.type: kubernetes
 
 client:
@@ -57,15 +52,6 @@ client:
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
-  serviceAccount:
-    create: true
-    annotations: {}
-    name: ""
-    role:
-      name: "sga-client"
-    roleBinding:
-      name: "sga-client-role-binding"
-
   podAnnotations: {}
   podSecurityContext: {}
   securityContext: {}
@@ -73,10 +59,7 @@ client:
   tolerations: []
   affinity: {}
   app:
-    config:
-      webServiceUrl: http://sga-control-plane.default.svc.cluster.local:8090
-      apiGatewayUrl: ws://sga-api-gateway.default.svc.cluster.local:8091
-      defaultTenant: default
+    config: {}
 
 deployer:
   replicaCount: 1
@@ -109,10 +92,7 @@ deployer:
     config:
       agentResources: {}
       clusterRuntime:
-        kubernetes:
-          namespace-prefix: sga-
-          image: datastax/sga-runtime:latest-dev
-          image-pull-policy: Never
+        kubernetes: {}
       codeStorage:
         type: none
         endpoint: ""
@@ -155,6 +135,20 @@ apiGateway:
   tolerations: []
   affinity: {}
   app:
-    config:
-      application.storage.apps.type: kubernetes
-      application.storage.apps.configuration.namespaceprefix: sga-
+    config: {}
+
+runtime:
+  image: datastax/sga-runtime:latest-dev
+  imagePullPolicy: IfNotPresent
+
+tenants:
+  defaultTenant:
+    create: true
+    name: default
+  storageType: kubernetes
+  namespacePrefix: sga-
+
+
+codeStorage:
+  type: none
+  configuration: {}

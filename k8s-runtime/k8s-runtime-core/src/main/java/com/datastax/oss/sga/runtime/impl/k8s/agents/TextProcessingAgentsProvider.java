@@ -43,6 +43,6 @@ public class TextProcessingAgentsProvider extends AbstractComposableAgentProvide
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        return ComponentType.FUNCTION;
+        return ComponentType.PROCESSOR;
     }
 }

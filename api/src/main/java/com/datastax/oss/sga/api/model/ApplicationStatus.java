@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
+import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -170,19 +171,19 @@ public class ApplicationStatus {
             boolean addTopicSource =
                     !newAgents
                       .stream()
-                      .anyMatch(a->Objects.equals("source", a.getComponentType()));
+                      .anyMatch(a->Objects.equals(ComponentType.SOURCE.name(), a.getComponentType()));
 
             if (addTopicSource) {
-                newAgents.add(new AgentNodeStatus("topic-source", "topic-source", "source"));
+                newAgents.add(0, new AgentNodeStatus("topic-source", "topic-source", ComponentType.SOURCE.name()));
             }
 
             boolean addTopicSink =
                     !newAgents
                       .stream()
-                      .anyMatch(a->Objects.equals("sink", a.getComponentType()));
+                      .anyMatch(a->Objects.equals(ComponentType.SINK.name(), a.getComponentType()));
 
             if (addTopicSink) {
-                newAgents.add(new AgentNodeStatus("topic-sink", "topic-sink", "sink"));
+                newAgents.add(new AgentNodeStatus("topic-sink", "topic-sink", ComponentType.SINK.name()));
             }
 
             return new AgentWorkerStatus(this.status, this.reason, this.url, newAgents);

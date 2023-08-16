@@ -45,7 +45,7 @@ public abstract class AbstractCompositeAgentProvider extends AbstractAgentProvid
 
     @Override
     protected final ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        return ComponentType.FUNCTION;
+        return ComponentType.PROCESSOR;
     }
 
     @Override

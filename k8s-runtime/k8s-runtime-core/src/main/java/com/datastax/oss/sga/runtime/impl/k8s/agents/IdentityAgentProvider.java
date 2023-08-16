@@ -39,6 +39,6 @@ public class IdentityAgentProvider extends AbstractComposableAgentProvider {
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        return ComponentType.FUNCTION;
+        return ComponentType.PROCESSOR;
     }
 }

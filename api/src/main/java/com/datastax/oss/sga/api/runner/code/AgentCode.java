@@ -15,6 +15,8 @@
  */
 package com.datastax.oss.sga.api.runner.code;
 
+import com.datastax.oss.sga.api.runtime.ComponentType;
+
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +33,7 @@ public interface AgentCode {
      */
     String agentType();
 
-    String componentType();
+    ComponentType componentType();
 
     default void setMetadata(String id, String agentType, long startedAt) throws Exception {
     }

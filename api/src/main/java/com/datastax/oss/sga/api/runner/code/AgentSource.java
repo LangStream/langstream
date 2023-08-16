@@ -15,6 +15,8 @@
  */
 package com.datastax.oss.sga.api.runner.code;
 
+import com.datastax.oss.sga.api.runtime.ComponentType;
+
 import java.util.List;
 
 /**
@@ -37,8 +39,8 @@ public interface AgentSource extends AgentCode {
     void commit(List<Record> records) throws Exception;
 
     @Override
-    default String componentType() {
-        return "source";
+    default ComponentType componentType() {
+        return ComponentType.SOURCE;
     }
 
     /**

@@ -15,6 +15,8 @@
  */
 package com.datastax.oss.sga.api.runner.code;
 
+import com.datastax.oss.sga.api.runtime.ComponentType;
+
 import java.util.List;
 
 /**
@@ -30,8 +32,8 @@ public interface AgentSink extends AgentCode {
     void write(List<Record> records) throws Exception;
 
     @Override
-    default String componentType() {
-        return "sink";
+    default ComponentType componentType() {
+        return ComponentType.SINK;
     }
 
     interface CommitCallback {

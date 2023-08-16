@@ -84,7 +84,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
                         deploySource(admin, agentImpl, pulsarComponentMetadata);
                         return;
                     }
-                    case FUNCTION: {
+                    case PROCESSOR: {
                         deployFunction(admin, agentImpl, pulsarComponentMetadata);
                         return;
                     }
@@ -210,7 +210,7 @@ public class PulsarClusterRuntime extends BasicClusterRuntime {
                             admin.sources().deleteSource(pulsarName.tenant(), pulsarName.namespace(), pulsarName.name());
                             return;
                         }
-                        case FUNCTION: {
+                        case PROCESSOR: {
                             log.info("Deleting Function {}", pulsarName);
                             admin.functions().deleteFunction(pulsarName.tenant(), pulsarName.namespace(), pulsarName.name());
                             return;

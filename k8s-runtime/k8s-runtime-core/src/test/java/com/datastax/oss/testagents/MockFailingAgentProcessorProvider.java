@@ -16,10 +16,6 @@
 package com.datastax.oss.testagents;
 
 import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.runner.code.AgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
 import com.datastax.oss.sga.api.runtime.ComponentType;
 import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
 import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
@@ -42,7 +38,7 @@ public class MockFailingAgentProcessorProvider extends AbstractAgentProvider{
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        return ComponentType.FUNCTION;
+        return ComponentType.PROCESSOR;
     }
 
 }

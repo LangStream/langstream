@@ -32,6 +32,8 @@ import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import com.datastax.oss.sga.webservice.common.GlobalMetadataService;
 import com.datastax.oss.sga.webservice.config.ApplicationDeployProperties;
+
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -76,8 +78,8 @@ public class ApplicationService {
         }
 
         validateApplicationModel(applicationInstance.getApplication());
-        validateExecutionPlan(applicationId, applicationInstance.getApplication());
-        applicationStore.put(tenant, applicationId, applicationInstance.getApplication(), codeArchiveReference);
+        ExecutionPlan executionPlan = validateExecutionPlan(applicationId, applicationInstance.getApplication());
+        applicationStore.put(tenant, applicationId, applicationInstance.getApplication(), codeArchiveReference, executionPlan);
     }
 
     private void validateApplicationModel(Application application) {
@@ -102,12 +104,14 @@ public class ApplicationService {
                                   ModelBuilder.ApplicationWithPackageInfo applicationInstance,
                                   String codeArchiveReference) {
         checkTenant(tenant);
-        final Application mergedApplication = validateDeployAndMerge(tenant, applicationId, applicationInstance);
-        applicationStore.put(tenant, applicationId, mergedApplication, codeArchiveReference);
+        Map.Entry<Application, ExecutionPlan> applicationExecutionPlanEntry = validateDeployAndMerge(tenant, applicationId, applicationInstance);
+        final Application mergedApplication = applicationExecutionPlanEntry.getKey();
+        final ExecutionPlan executionPlan = applicationExecutionPlanEntry.getValue();
+        applicationStore.put(tenant, applicationId, mergedApplication, codeArchiveReference, executionPlan);
     }
 
 
-    private Application validateDeployAndMerge(String tenant, String applicationId,
+    private Map.Entry<Application, ExecutionPlan> validateDeployAndMerge(String tenant, String applicationId,
                                                ModelBuilder.ApplicationWithPackageInfo applicationInstance) {
 
 
@@ -139,7 +143,7 @@ public class ApplicationService {
         }
         final ExecutionPlan newPlan = validateExecutionPlan(applicationId, newApplication);
         validateUpdate(tenant, existing, existingSecrets, newPlan);
-        return newApplication;
+        return new AbstractMap.SimpleImmutableEntry<>(newApplication, newPlan);
 
     }
 

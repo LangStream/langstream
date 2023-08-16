@@ -42,7 +42,7 @@ public class GenericPulsarFunctionAgentProvider extends AbstractPulsarAgentProvi
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        return ComponentType.FUNCTION;
+        return ComponentType.PROCESSOR;
     }
 
     @Override

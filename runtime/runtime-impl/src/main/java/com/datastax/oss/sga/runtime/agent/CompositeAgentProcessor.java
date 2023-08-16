@@ -17,7 +17,7 @@ package com.datastax.oss.sga.runtime.agent;
 
 import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentInfo;
+import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
 import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
@@ -25,7 +25,6 @@ import com.datastax.oss.sga.api.runner.code.Record;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -184,14 +183,16 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
 
     @Override
     protected Map<String, Object> buildAdditionalInfo() {
-        Map<String, Object> result = new HashMap<>();
-        List<Map<String, Object>> processorsInfo = new ArrayList<>();
+        return Map.of();
+    }
+
+    @Override
+    public final List<AgentStatusResponse> getAgentStatus() {
+        List<AgentStatusResponse> result = new ArrayList<>();
         for (AgentProcessor processor : processors) {
-            AgentInfo info = processor.getInfo();
-            Map<String, Object> asMap = MAPPER.convertValue(info, Map.class);
-            processorsInfo.add(asMap);
+            List<AgentStatusResponse> info = processor.getAgentStatus();
+            result.addAll(info);
         }
-        result.put("processors", processorsInfo);
         return result;
     }
 }

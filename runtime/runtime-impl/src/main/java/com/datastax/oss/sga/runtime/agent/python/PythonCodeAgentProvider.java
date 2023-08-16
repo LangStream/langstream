@@ -18,6 +18,7 @@ package com.datastax.oss.sga.runtime.agent.python;
 import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
+import com.datastax.oss.sga.api.runtime.ComponentType;
 import lombok.AllArgsConstructor;
 
 public class PythonCodeAgentProvider implements AgentCodeProvider {
@@ -35,11 +36,29 @@ public class PythonCodeAgentProvider implements AgentCodeProvider {
 
     @Override
     public AgentCode createInstance(String agentType) {
-        return new PythonAgentPlaceHolder();
+        return new PythonAgentPlaceHolder(agentType);
     }
 
-    @AllArgsConstructor
     private static class PythonAgentPlaceHolder extends AbstractAgentCode implements AgentCode {
+        private String type;
+
+        public PythonAgentPlaceHolder(String type) {
+            this.type = type;
+        }
+
+        @Override
+        public ComponentType componentType() {
+            switch (type) {
+                case "python-source":
+                    return ComponentType.SOURCE;
+                case "python-sink":
+                    return ComponentType.SINK;
+                case "python-function":
+                    return ComponentType.PROCESSOR;
+                default:
+                    throw new IllegalArgumentException("Unknown agent type: " + type);
+            }
+        }
     }
 
     public static boolean isPythonCodeAgent(AgentCode agentCode) {

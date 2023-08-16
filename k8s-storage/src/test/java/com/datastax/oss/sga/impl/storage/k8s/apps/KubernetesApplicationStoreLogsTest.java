@@ -19,29 +19,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.Secrets;
+
 import com.datastax.oss.sga.api.model.StreamingCluster;
 import com.datastax.oss.sga.api.storage.ApplicationStore;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
-import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
-import com.datastax.oss.sga.deployer.k8s.apps.AppResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
 import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
-import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.fabric8.kubernetes.api.model.OwnerReference;
-import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -118,7 +109,7 @@ class KubernetesApplicationStoreLogsTest {
                 .resource(AgentResourcesFactory.generateAgentSecret(agentCustomResourceName, new RuntimePodConfiguration(
                         Map.of("input", Map.of("is_input", true)),
                         Map.of("output", Map.of("is_output", true)),
-                        new AgentSpec(AgentSpec.ComponentType.FUNCTION, "my-tenant",
+                        new AgentSpec(AgentSpec.ComponentType.PROCESSOR, "my-tenant",
                                 agentId, "my-app", "fn-type", Map.of("config", true), Map.of()),
                         new StreamingCluster("noop", Map.of("config", true))
                 )))

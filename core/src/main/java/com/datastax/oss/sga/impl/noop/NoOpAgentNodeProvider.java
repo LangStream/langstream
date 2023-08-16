@@ -30,6 +30,6 @@ public class NoOpAgentNodeProvider extends AbstractAgentProvider {
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        return ComponentType.FUNCTION;
+        return ComponentType.PROCESSOR;
     }
 }

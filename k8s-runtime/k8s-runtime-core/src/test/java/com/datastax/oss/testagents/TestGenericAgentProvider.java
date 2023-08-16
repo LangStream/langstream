@@ -41,7 +41,7 @@ public class TestGenericAgentProvider extends AbstractAgentProvider {
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        return ComponentType.FUNCTION;
+        return ComponentType.PROCESSOR;
     }
 
 }

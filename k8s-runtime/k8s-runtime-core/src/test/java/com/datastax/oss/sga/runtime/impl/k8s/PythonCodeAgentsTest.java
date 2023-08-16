@@ -16,7 +16,6 @@
 package com.datastax.oss.sga.runtime.impl.k8s;
 
 import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;
 import com.datastax.oss.sga.api.model.TopicDefinition;
 import com.datastax.oss.sga.api.runtime.AgentNode;
@@ -26,7 +25,6 @@ import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.impl.common.DefaultAgentNode;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
-import com.datastax.oss.sga.impl.noop.NoOpStreamingClusterRuntimeProvider;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
@@ -121,7 +119,7 @@ class PythonCodeAgentsTest {
             assertEquals("my.python.module.MyClass", configuration.get("agent.class"));
             assertEquals("value1", configuration.get("config1"));
             assertEquals("value2", configuration.get("config2"));
-            assertEquals(ComponentType.FUNCTION, step.getComponentType());
+            assertEquals(ComponentType.PROCESSOR, step.getComponentType());
         }
 
         {

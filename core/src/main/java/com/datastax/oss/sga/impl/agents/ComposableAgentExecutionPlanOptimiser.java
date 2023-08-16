@@ -74,7 +74,7 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 configurationAgent2.put("agentId", agent2.getId());
 
                 Map<String, Object> newAgent1Configuration = new HashMap<>(agent1.getConfiguration());
-                if (agent2.getComponentType() == ComponentType.FUNCTION) {
+                if (agent2.getComponentType() == ComponentType.PROCESSOR) {
                     List<Map<String, Object>> processors = (List<Map<String, Object>>) newAgent1Configuration.get("processors");
                     processors.add(configurationAgent2);
                 } else if (agent2.getComponentType() == ComponentType.SOURCE) {
@@ -108,7 +108,7 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                     source.putAll(configurationAgent1);
                 } else if (agent1.getComponentType() == ComponentType.SINK) {
                     sink.putAll(configurationAgent1);
-                } else if (agent1.getComponentType() == ComponentType.FUNCTION) {
+                } else if (agent1.getComponentType() == ComponentType.PROCESSOR) {
                     processors.add(configurationAgent1);
                 } else {
                     throw new IllegalStateException("Invalid agent type " + agent1.getComponentType());
@@ -122,7 +122,7 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                     source.putAll(configurationAgent2);
                 } else if (agent2.getComponentType() == ComponentType.SINK) {
                     sink.putAll(configurationAgent2);
-                } else if (agent2.getComponentType() == ComponentType.FUNCTION) {
+                } else if (agent2.getComponentType() == ComponentType.PROCESSOR) {
                     processors.add(configurationAgent2);
                 } else {
                     throw new IllegalStateException("Invalid agent type " + agent2.getComponentType());

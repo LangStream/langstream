@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import com.datastax.oss.sga.api.runtime.ExecutionPlan;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,7 +36,7 @@ public interface ApplicationStore extends GenericStore {
 
     void onTenantDeleted(String tenant);
 
-    void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveReference);
+    void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveReference, ExecutionPlan executionPlan);
 
     StoredApplication get(String tenant, String applicationId, boolean queryPods);
 

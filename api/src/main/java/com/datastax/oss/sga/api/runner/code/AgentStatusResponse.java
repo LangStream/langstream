@@ -25,20 +25,33 @@ import java.util.Map;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class AgentInfo {
+public final class AgentStatusResponse {
 
     @JsonProperty("agent-id")
     private String agentId;
     @JsonProperty("agent-type")
     private String agentType;
+    @JsonProperty("component-type")
+    private String componentType;
+    @JsonProperty("info")
     private Map<String, Object> info;
-    @JsonProperty("total-in")
-    private Long totalIn;
-    @JsonProperty("total-out")
-    private Long totalOut;
-    @JsonProperty("started-at")
-    private Long startedAt;
-    @JsonProperty("last-processed-at")
-    private Long lastProcessedAt;
+    @JsonProperty("metrics")
+    private Metrics metrics;
+
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static final class Metrics {
+        @JsonProperty("total-in")
+        private Long totalIn;
+        @JsonProperty("total-out")
+        private Long totalOut;
+        @JsonProperty("started-at")
+        private Long startedAt;
+        @JsonProperty("last-processed-at")
+        private Long lastProcessedAt;
+    }
+
 
 }

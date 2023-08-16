@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 package com.datastax.oss.sga.kafka;
-import com.datastax.oss.sga.api.runner.code.AgentInfo;
+import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
 import com.datastax.oss.sga.common.AbstractApplicationRunner;
 import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.header.internals.RecordHeader;
-import org.checkerframework.checker.units.qual.K;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
@@ -119,28 +118,34 @@ class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
 
             final AgentRunResult result = executeAgentRunners(applicationRuntime);
 
-            final Map<String, Object> infos = result.info().get("step1")
-                    .serveInfos();
-            System.out.println("result: " + infos);
-            final AgentInfo processor = (AgentInfo) infos.get("processor");
-            final Map<String, Object> compositeInfo = (Map<String, Object>) processor.getInfo();
-            final List<Map<String, Object>> processors = (List<Map<String, Object>>) compositeInfo.get("processors");
-            assertEquals(2, processors.size());
-            for (Map<String, Object> p : processors) {
-                switch (String.valueOf(p.get("agent-id"))) {
+            final List<AgentStatusResponse> processors = result.info().get("step1").serveWorkerStatus();
+            assertEquals(4, processors.size());
+            for (AgentStatusResponse p : processors) {
+                boolean mayHaveProcessed = false;
+                switch (p.getAgentId()) {
                     case "step1":
-                        assertEquals("drop-fields", p.get("agent-type"));
+                        assertEquals("drop-fields", p.getAgentType());
                         break;
                     case "step2":
-                        assertEquals("drop", p.get("agent-type"));
+                        assertEquals("drop", p.getAgentType());
+                        break;
+                    case "topic-source":
+                        // the topic source updates the lastProcessed
+                        // even if it finds no messages in order to
+                        // show that it is not stuck
+                        mayHaveProcessed = true;
+                        break;
+                    case "topic-sink":
                         break;
                     default:
-                        throw new IllegalStateException("Unexpected value: " + p.get("agent-id"));
+                        throw new IllegalStateException("Unexpected value: " + p.getAgentId());
                 }
-                assertEquals(0L, p.get("total-in"));
-                assertEquals(0L, p.get("total-out"));
-                assertNotEquals(0L, p.get("started-at"));
-                assertEquals(0L, p.get("last-processed-at"));
+                assertEquals(0L, p.getMetrics().getTotalIn());
+                assertEquals(0L, p.getMetrics().getTotalOut());
+                if (!mayHaveProcessed) {
+                    assertEquals(0L, p.getMetrics().getLastProcessedAt());
+                }
+                assertNotEquals(0L, p.getMetrics().getStartedAt());
             }
 
         }

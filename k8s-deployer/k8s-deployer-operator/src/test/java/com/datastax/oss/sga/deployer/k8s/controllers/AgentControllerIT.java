@@ -22,7 +22,6 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.runtime.api.agent.AgentSpec;
-import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -57,7 +56,7 @@ public class AgentControllerIT {
                 .resource(AgentResourcesFactory.generateAgentSecret(agentCustomResourceName, new RuntimePodConfiguration(
                         Map.of("input", Map.of("is_input", true)),
                         Map.of("output", Map.of("is_output", true)),
-                        new AgentSpec(AgentSpec.ComponentType.FUNCTION, "my-tenant",
+                        new AgentSpec(AgentSpec.ComponentType.PROCESSOR, "my-tenant",
                                 "agent-id", "my-app", "fn-type", Map.of("config", true), Map.of()),
                         new StreamingCluster("noop", Map.of("config", true))
                 )))

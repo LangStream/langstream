@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.sga.api.runner.code;
 
+import com.datastax.oss.sga.api.runtime.ComponentType;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -33,6 +34,11 @@ public interface AgentProcessor extends AgentCode {
      * @throws Exception if the agent fails to process the records
      */
     List<SourceRecordAndResult> process(List<Record> records) throws Exception;
+
+    @Override
+    default ComponentType componentType() {
+        return ComponentType.PROCESSOR;
+    }
 
     @Getter
     @ToString

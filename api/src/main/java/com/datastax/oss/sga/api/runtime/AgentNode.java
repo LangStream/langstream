@@ -15,6 +15,8 @@
  */
 package com.datastax.oss.sga.api.runtime;
 
+import java.util.Map;
+
 public interface AgentNode extends ConnectionImplementation {
 
     /**
@@ -26,5 +28,11 @@ public interface AgentNode extends ConnectionImplementation {
     ComponentType getComponentType();
 
     String getAgentType();
+
+    Map<String, Object> getConfiguration();
+
+    ConnectionImplementation getInputConnectionImplementation();
+
+    ConnectionImplementation getOutputConnectionImplementation();
 
 }

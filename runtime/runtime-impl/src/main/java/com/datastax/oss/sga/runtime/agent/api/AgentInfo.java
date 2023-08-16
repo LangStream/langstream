@@ -15,16 +15,13 @@
  */
 package com.datastax.oss.sga.runtime.agent.api;
 
-import com.datastax.oss.sga.api.runner.code.AgentCode;
+import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
 import com.datastax.oss.sga.api.runner.code.AgentProcessor;
 import com.datastax.oss.sga.api.runner.code.AgentSink;
 import com.datastax.oss.sga.api.runner.code.AgentSource;
-import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
-import com.datastax.oss.sga.api.runner.topics.TopicProducer;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AgentInfo {
     private AgentProcessor processor;
@@ -44,22 +41,21 @@ public class AgentInfo {
         this.sink = sink;
     }
 
-
     /**
      * This is serving the data to the Control Plane,
      * changing the format is a breaking change, please take care to backward compatibility.
      * @return
      */
-    public Map<String, Object> serveInfos() {
-        Map<String, Object> result = new LinkedHashMap<>();
+    public List<AgentStatusResponse> serveWorkerStatus() {
+        List<AgentStatusResponse> result = new ArrayList<>();
         if (source != null) {
-            result.put("source", source.getInfo());
+            result.addAll(source.getAgentStatus());
         }
         if (processor != null) {
-            result.put("processor", processor.getInfo());
+            result.addAll(processor.getAgentStatus());
         }
         if (sink != null) {
-            result.put("sink", sink.getInfo());
+            result.addAll(sink.getAgentStatus());
         }
         return result;
     }

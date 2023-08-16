@@ -16,7 +16,7 @@
 package com.datastax.oss.sga.api.runtime;
 
 public enum ComponentType {
-    FUNCTION,
+    PROCESSOR,
     SINK,
     SOURCE
 }

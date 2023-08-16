@@ -15,6 +15,9 @@
  */
 package com.datastax.oss.sga.api.runner.code;
 
+import com.datastax.oss.sga.api.runtime.ComponentType;
+
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,6 +33,8 @@ public interface AgentCode {
      */
     String agentType();
 
+    ComponentType componentType();
+
     default void setMetadata(String id, String agentType, long startedAt) throws Exception {
     }
     default void init(Map<String, Object> configuration) throws Exception {
@@ -41,5 +46,10 @@ public interface AgentCode {
     default void start() throws Exception {}
     default void close() throws Exception {}
 
-    AgentInfo getInfo();
+    /**
+     * Return information about the agent.
+     * This is a List because an Agent can be the composition of multiple agents.
+     * @return
+     */
+    List<AgentStatusResponse> getAgentStatus();
 }

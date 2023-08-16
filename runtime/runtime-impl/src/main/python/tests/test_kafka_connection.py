@@ -23,9 +23,9 @@ from confluent_kafka import Consumer, Producer, TopicPartition
 from confluent_kafka.serialization import StringDeserializer, StringSerializer
 from testcontainers.kafka import KafkaContainer
 
-from sga_runtime import sga_runtime, kafka_connection
-from sga_runtime.api import Record
-from sga_runtime.util import SimpleRecord, SingleRecordProcessor
+from langstream.internal import kafka_connection, runtime
+from langstream.api import Record
+from langstream.util import SimpleRecord, SingleRecordProcessor
 
 
 def test_kafka_topic_connection():
@@ -71,7 +71,7 @@ def test_kafka_topic_connection():
 
             msg = None
             for i in range(10):
-                sga_runtime.run(config, max_loops=1)
+                runtime.run(config, max_loops=1)
                 msg = consumer.poll(1.0)
                 if msg and msg.error() is None:
                     break

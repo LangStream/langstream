@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from sga_runtime.util import SimpleRecord
+from langstream.util import SimpleRecord
 import openai
 import json
 from openai.embeddings_utils import get_embedding

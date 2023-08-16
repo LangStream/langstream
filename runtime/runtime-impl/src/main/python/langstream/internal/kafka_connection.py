@@ -21,10 +21,10 @@ from typing import List, Dict, Optional
 from confluent_kafka import Consumer, Producer, Message, TopicPartition, KafkaException
 from confluent_kafka.serialization import StringDeserializer
 
-from .api import Sink, Record, Source, CommitCallback
 from .kafka_serialization import STRING_SERIALIZER, DOUBLE_SERIALIZER, LONG_SERIALIZER, \
     BOOLEAN_SERIALIZER
-from .util import SimpleRecord
+from ..api import Sink, Record, Source, CommitCallback
+from ..util import SimpleRecord
 
 STRING_DESERIALIZER = StringDeserializer()
 

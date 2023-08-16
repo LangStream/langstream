@@ -20,9 +20,9 @@ from typing import List
 import pytest
 import yaml
 
-from sga_runtime import sga_runtime
-from sga_runtime.api import Source, Sink, CommitCallback, Record
-from sga_runtime.util import SimpleRecord, SingleRecordProcessor
+from langstream.internal import runtime
+from langstream.api import Source, Sink, CommitCallback, Record
+from langstream.util import SimpleRecord, SingleRecordProcessor
 
 
 def test_simple_agent():
@@ -36,8 +36,8 @@ def test_simple_agent():
                 className: tests.test_sga_runtime.TestAgent
     """
     config = yaml.safe_load(config_yaml)
-    agent = sga_runtime.init_agent(config)
-    sga_runtime.run(config, agent=agent, max_loops=2)
+    agent = runtime.init_agent(config)
+    runtime.run(config, agent=agent, max_loops=2)
     assert agent.context['config'] == [{'className': 'tests.test_sga_runtime.TestAgent'}]
     assert agent.context['start'] == 1
     assert agent.context['close'] == 1
@@ -110,9 +110,9 @@ def test_errors_handler(retries, on_failure, records: List[Record], batch_size: 
     agent = TestErrorAgent(records, 'fail-me', batch_size=batch_size)
     if run_should_throw:
         with pytest.raises(Exception):
-            sga_runtime.run(config, agent=agent, max_loops=5)
+            runtime.run(config, agent=agent, max_loops=5)
     else:
-        sga_runtime.run(config, agent=agent, max_loops=5)
+        runtime.run(config, agent=agent, max_loops=5)
     assert len(agent.uncommitted) == expected_uncommitted
     assert agent.execution_count == expected_executions
 

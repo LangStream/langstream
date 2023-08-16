@@ -19,7 +19,7 @@ import sys
 
 import yaml
 
-from . import sga_runtime
+from .internal import runtime
 
 if __name__ == '__main__':
     print(sys.argv)
@@ -29,4 +29,4 @@ if __name__ == '__main__':
 
     with open(sys.argv[1], 'r') as file:
         config = yaml.safe_load(file)
-        sga_runtime.run(config)
+        runtime.run(config)

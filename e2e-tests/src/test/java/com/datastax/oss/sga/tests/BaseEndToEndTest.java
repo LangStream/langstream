@@ -482,7 +482,7 @@ public class BaseEndToEndTest implements TestWatcher {
         final LocalPortForward localPortForward = client.pods().inNamespace(namespace)
                 .withName(podName)
                 .portForward(8091, port);
-        log.info("api gateway port forwarding started {}", localPortForward);
+        log.info("api gateway port forwarding started {}", localPortForward.getLocalAddress());
         apiGatewayBaseUrl = "ws://localhost:" + localPortForward.getLocalPort();
     }
 

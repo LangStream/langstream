@@ -23,6 +23,7 @@ from confluent_kafka.serialization import StringDeserializer
 
 from .kafka_serialization import STRING_SERIALIZER, DOUBLE_SERIALIZER, LONG_SERIALIZER, \
     BOOLEAN_SERIALIZER
+from .topic_connector import TopicConsumer, TopicProducer
 from ..api import Sink, Record, Source, CommitCallback
 from ..util import SimpleRecord
 
@@ -34,7 +35,7 @@ def apply_default_configuration(streaming_cluster, configs):
         configs.update(streaming_cluster['configuration']['admin'])
 
 
-def create_source(agent_id, streaming_cluster, configuration):
+def create_topic_consumer(agent_id, streaming_cluster, configuration):
     configs = configuration.copy()
     apply_default_configuration(streaming_cluster, configs)
     configs['enable.auto.commit'] = 'false'
@@ -46,17 +47,25 @@ def create_source(agent_id, streaming_cluster, configuration):
         configs['key.deserializer'] = 'org.apache.kafka.common.serialization.StringDeserializer'
     if 'value.deserializer' not in configs:
         configs['value.deserializer'] = 'org.apache.kafka.common.serialization.StringDeserializer'
-    return KafkaSource(configs)
+    return KafkaTopicConsumer(configs)
 
 
-def create_sink(_, streaming_cluster, configuration):
+def create_topic_producer(_, streaming_cluster, configuration):
     configs = configuration.copy()
     apply_default_configuration(streaming_cluster, configs)
     if 'key.serializer' not in configs:
         configs['key.serializer'] = 'org.apache.kafka.common.serialization.StringSerializer'
     if 'value.serializer' not in configs:
         configs['value.serializer'] = 'org.apache.kafka.common.serialization.StringSerializer'
-    return KafkaSink(configs)
+    return KafkaTopicProducer(configs)
+
+
+def create_dlq_producer(agent_id, streaming_cluster, configuration):
+    dlq_conf = configuration.get("deadLetterTopicProducer")
+    if not dlq_conf:
+        return None
+    logging.info(f'Creating deadletter topic producer for agent {agent_id} using configuration {configuration}')
+    return create_topic_producer(agent_id, streaming_cluster, dlq_conf)
 
 
 class KafkaRecord(SimpleRecord):
@@ -77,7 +86,7 @@ class KafkaRecord(SimpleRecord):
         return self._message.offset()
 
 
-class KafkaSource(Source):
+class KafkaTopicConsumer(TopicConsumer):
     def __init__(self, configs):
         self.configs = configs.copy()
         self.configs['on_commit'] = self.on_commit
@@ -133,7 +142,7 @@ class KafkaSource(Source):
             logging.info(f'Offsets committed: {partitions}')
 
 
-class KafkaSink(Sink):
+class KafkaTopicProducer(TopicProducer):
     def __init__(self, configs):
         self.configs = configs.copy()
         self.topic = self.configs.pop('topic')
@@ -144,9 +153,6 @@ class KafkaSink(Sink):
 
     def start(self):
         self.producer = Producer(self.configs)
-
-    def set_commit_callback(self, commit_callback: CommitCallback):
-        self.commit_callback = commit_callback
 
     def write(self, records: List[Record]):
         for record in records:
@@ -173,4 +179,3 @@ class KafkaSink(Sink):
                 key=STRING_SERIALIZER(record.key()),
                 headers=headers)
         self.producer.flush()
-        self.commit_callback.commit(records)

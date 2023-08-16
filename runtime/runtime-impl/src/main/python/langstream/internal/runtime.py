@@ -23,6 +23,8 @@ from typing import List, Tuple, Union
 
 from . import topic_connections_registry
 from .source_record_tracker import SourceRecordTracker
+from .topic_connector import TopicConsumer, TopicProducer, TopicConsumerSource, TopicProducerSink, \
+    TopicConsumerWithDLQSource
 from ..api import Source, Sink, Processor, Record
 from ..util import SingleRecordProcessor
 
@@ -62,25 +64,35 @@ def run(configuration, agent=None, max_loops=-1):
     streaming_cluster = configuration['streamingCluster']
     topic_connections_runtime = topic_connections_registry.get_topic_connections_runtime(streaming_cluster)
 
+    agent_id = f"{configuration['agent']['applicationId']}-{configuration['agent']['agentId']}"
+
+    if 'input' in configuration and len(configuration['input']) > 0:
+        consumer = topic_connections_runtime.create_topic_consumer(agent_id, streaming_cluster, configuration['input'])
+        dlq_producer = topic_connections_runtime.create_dlq_producer(agent_id, streaming_cluster, configuration['input'])
+    else:
+        consumer = NoopTopicConsumer()
+        dlq_producer = None
+
+    if 'output' in configuration and len(configuration['output']) > 0:
+        producer = topic_connections_runtime.create_topic_producer(agent_id, streaming_cluster, configuration['output'])
+    else:
+        producer = NoopTopicProducer()
+
     if not agent:
         agent = init_agent(configuration)
-    agent_id = f"{configuration['agent']['applicationId']}-{configuration['agent']['agentId']}"
 
     if hasattr(agent, 'read'):
         source = agent
     else:
-        if 'input' in configuration and len(configuration['input']) > 0:
-            source = topic_connections_runtime.create_source(agent_id, streaming_cluster, configuration['input'])
+        if dlq_producer:
+            source = TopicConsumerWithDLQSource(consumer, dlq_producer)
         else:
-            source = NoopSource()
+            source = TopicConsumerSource(consumer)
 
     if hasattr(agent, 'write'):
         sink = agent
     else:
-        if 'output' in configuration and len(configuration['output']) > 0:
-            sink = topic_connections_runtime.create_sink(agent_id, streaming_cluster, configuration['output'])
-        else:
-            sink = NoopSink()
+        sink = TopicProducerSink(producer)
 
     if hasattr(agent, 'process'):
         processor = agent
@@ -188,16 +200,14 @@ def safe_process_records(
         return [(record, e) for record in records_to_process]
 
 
-class NoopSource(Source):
+class NoopTopicConsumer(TopicConsumer):
     def read(self):
         logging.info("Sleeping for 1 second, no records...")
         time.sleep(1)
         return []
 
 
-class NoopSink(Sink):
-    def set_commit_callback(self, cb):
-        pass
+class NoopTopicProducer(TopicProducer):
 
     def write(self, records):
         pass

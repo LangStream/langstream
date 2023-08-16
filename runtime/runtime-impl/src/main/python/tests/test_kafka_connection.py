@@ -104,7 +104,7 @@ def test_kafka_commit():
         """
 
         config = yaml.safe_load(config_yaml)
-        source = kafka_connection.create_source("id", config['streamingCluster'], {'topic': input_topic})
+        source = kafka_connection.create_topic_consumer("id", config['streamingCluster'], {'topic': input_topic})
         source.start()
 
         producer = Producer({'bootstrap.servers': bootstrap_server})

@@ -148,8 +148,6 @@ class ComputeEmbeddingsTest extends AbstractApplicationRunner {
         Map<String, String> application = Map.of(
                 "configuration.yaml",
                 config.providerConfiguration,
-                "instance.yaml",
-                buildInstanceYaml(),
                 "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -169,7 +167,7 @@ class ComputeEmbeddingsTest extends AbstractApplicationRunner {
                                       embeddings-field: "value.embeddings"
                                       text: "something to embed"
                                 """.formatted(inputTopic, outputTopic, inputTopic, outputTopic, config.model));
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, appId, application, expectedAgents);) {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, appId, application, buildInstanceYaml(), expectedAgents);) {
 
 
             ExecutionPlan implementation = applicationRuntime.implementation();

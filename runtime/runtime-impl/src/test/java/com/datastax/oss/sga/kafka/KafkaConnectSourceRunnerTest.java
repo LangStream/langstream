@@ -38,8 +38,7 @@ class KafkaConnectSourceRunnerTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of("instance.yaml",
-                        buildInstanceYaml(),
+        Map<String, String> application = Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -64,7 +63,7 @@ class KafkaConnectSourceRunnerTest extends AbstractApplicationRunner {
                                       offset.storage.topic: "offset-topic"
                                 """.formatted(DummySourceConnector.class.getName()));
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
                 executeAgentRunners(applicationRuntime);

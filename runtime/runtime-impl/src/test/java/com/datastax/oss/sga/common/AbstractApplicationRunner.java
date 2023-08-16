@@ -82,13 +82,13 @@ public abstract class AbstractApplicationRunner {
     }
 
     protected ApplicationRuntime deployApplication(String tenant, String appId,
-                                                   Map<String, String> application, String ... expectedAgents) throws Exception {
+                                                   Map<String, String> application, String instance, String ... expectedAgents) throws Exception {
 
         kubeServer.spyAgentCustomResources(tenant, expectedAgents);
         final Map<String, Secret> secrets = kubeServer.spyAgentCustomResourcesSecrets(tenant, expectedAgents);
 
         Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(application);
+                .buildApplicationInstance(application, instance, null).getApplication();
 
         ExecutionPlan implementation = applicationDeployer.createImplementation(appId, applicationInstance);
 

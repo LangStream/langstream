@@ -31,8 +31,7 @@ class TextProcessingAgentsRunnerTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-module-1-pipeline-1-text-extractor-1"};
 
-        Map<String, String> application = Map.of("instance.yaml",
-                        buildInstanceYaml(),
+        Map<String, String> application = Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -65,7 +64,7 @@ class TextProcessingAgentsRunnerTest extends AbstractApplicationRunner {
                                         trimSpaces: true
                                 """);
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
                  KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 

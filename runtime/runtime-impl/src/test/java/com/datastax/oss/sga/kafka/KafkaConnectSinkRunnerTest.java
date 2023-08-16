@@ -55,8 +55,7 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
             return;
         }
 
-        Map<String, String> application = Map.of("instance.yaml",
-                        buildInstanceYaml(),
+        Map<String, String> application = Map.of(
                         "module.yaml", """
                                 module: "module-1"
                                 id: "pipeline-1"
@@ -90,7 +89,7 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
                                 """.formatted(sfUrl, sfUser, sfKey, sfDatabase, sfSchema)
                 );
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
                 for (int i = 0; i < 20; i++) {
                     sendMessage("input-topic", "{\"name\": \"some json name " + i + "\", \"description\": \"some description\"}", producer);
@@ -111,9 +110,7 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
         DummySink.receivedRecords.clear();
 
         String onFailure = "fail";
-        Map<String, String> application = Map.of("instance.yaml",
-                        buildInstanceYaml(),
-                        "module.yaml", """
+        Map<String, String> application = Map.of("module.yaml", """
                                 module: "module-2"
                                 id: "pipeline-2"
                                 errors:
@@ -133,7 +130,7 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
                                       file: /tmp/test.sink.txt
                                 """.formatted(onFailure, DummySinkConnector.class.getName()));
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
                 sendMessage("input-topic2", "err", producer);
                 sendMessage("input-topic2", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
@@ -154,9 +151,7 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
         DummySink.receivedRecords.clear();
 
         String onFailure = "skip";
-        Map<String, String> application = Map.of("instance.yaml",
-                buildInstanceYaml(),
-                "module.yaml", """
+        Map<String, String> application = Map.of("module.yaml", """
                                 module: "module-3"
                                 id: "pipeline-3"
                                 errors:
@@ -176,7 +171,7 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
                                       file: /tmp/test.sink.txt
                                 """.formatted(onFailure, DummySinkConnector.class.getName()));
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
                 sendMessage("input-topic3", "err", producer);
                 sendMessage("input-topic3", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
@@ -198,8 +193,7 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
         DummySink.receivedRecords.clear();
 
         String onFailure = "dead-letter";
-        Map<String, String> application = Map.of("instance.yaml",
-                buildInstanceYaml(),
+        Map<String, String> application = Map.of(
                 "module.yaml", """
                                 module: "module-4"
                                 id: "pipeline-4"
@@ -220,7 +214,7 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
                                       file: /tmp/test.sink.txt
                                 """.formatted(onFailure, DummySinkConnector.class.getName()));
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
                 sendMessage("input-topic4", "err", producer);
                 sendMessage("input-topic4", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);

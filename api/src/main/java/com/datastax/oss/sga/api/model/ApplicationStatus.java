@@ -124,6 +124,13 @@ public class ApplicationStatus {
                         log.warn("The response from the pod response that agent {} is of type {} instead of type {}",
                                 responseForAgent.getAgentId(), responseForAgent.getAgentType(), agentStatus.getAgentType());
                     }
+                    Map<String, Object> mergedInfo = new HashMap<>();
+                    if (agentStatus.getInfo() != null) {
+                        mergedInfo.putAll(agentStatus.getInfo());
+                    }
+                    if (responseForAgent.getInfo() != null) {
+                        mergedInfo.putAll(responseForAgent.getInfo());
+                    }
                     newAgents.add(new AgentNodeStatus(
                             agentStatus.getAgentId(),
                             agentStatus.getAgentType(),
@@ -133,7 +140,7 @@ public class ApplicationStatus {
                                     responseForAgent.getMetrics().getTotalOut(),
                                     responseForAgent.getMetrics().getStartedAt(),
                                     responseForAgent.getMetrics().getLastProcessedAt()),
-                            responseForAgent.getInfo()));
+                            mergedInfo));
                 } else {
                     newAgents.add(agentStatus);
                 }

@@ -16,6 +16,8 @@
 package com.datastax.oss.sga.cli.commands.applications;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import lombok.SneakyThrows;
@@ -25,7 +27,7 @@ import picocli.CommandLine;
         description = "List all SGA applications")
 public class ListApplicationCmd extends BaseApplicationCmd {
 
-    protected static final String[] COLUMNS_FOR_RAW = {"id", "streaming", "compute", "status", "agents", "runners"};
+    protected static final String[] COLUMNS_FOR_RAW = {"id", "streaming", "compute", "status", "executors", "replicas"};
     @CommandLine.Option(names = {"-o"}, description = "Output format")
     private Formats format = Formats.raw;
 
@@ -42,39 +44,38 @@ public class ListApplicationCmd extends BaseApplicationCmd {
             public Object apply(JsonNode jsonNode, String s) {
                 switch (s) {
                     case "id":
-                        return searchValueInJson(jsonNode, "applicationId");
+                        return searchValueInJson(jsonNode, "application-id");
                     case "streaming":
-                        return searchValueInJson(jsonNode, "instance.instance.streamingCluster.type");
+                        return searchValueInJson(jsonNode, "application.instance.streamingCluster.type");
                     case "compute":
-                        return searchValueInJson(jsonNode, "instance.instance.computeCluster.type");
+                        return searchValueInJson(jsonNode, "application.instance.computeCluster.type");
                     case "status":
                         return searchValueInJson(jsonNode, "status.status.status");
-                    case "agents": {
+                    case "executors": {
                         int countDeployed = 0;
-                        final Map<String, Object> agents =
-                                (Map<String, Object>) searchValueInJson(jsonNode, "status.agents");
-                        for (Map.Entry<String, Object> stringObjectEntry : agents.entrySet()) {
-                            final Object status = searchValueInJson(stringObjectEntry.getValue(), "status.status");
+                        final List<Map<String, Object>> executors =
+                                (List<Map<String, Object>>) searchValueInJson(jsonNode, "status.executors");
+                        for (Map<String, Object> stringObjectEntry : executors) {
+                            final Object status = searchValueInJson(stringObjectEntry, "status.status");
                             if (status != null && status.toString().equals("DEPLOYED")) {
                                 countDeployed++;
                             }
                         }
-                        return "%d/%d".formatted(countDeployed, agents.size());
+                        return "%d/%d".formatted(countDeployed, executors.size());
                     }
-                    case "runners": {
+                    case "replicas": {
                         int countRunning = 0;
                         int countAll = 0;
-                        final Map<String, Object> agents =
-                                (Map<String, Object>) searchValueInJson(jsonNode, "status.agents");
-                        for (Map.Entry<String, Object> stringObjectEntry : agents.entrySet()) {
-                            final Map<String, Object> workers =
-                                    (Map<String, Object>) searchValueInJson(stringObjectEntry.getValue(), "workers");
-                            if (workers == null) {
+                        final List<Map<String, Object>> executors =
+                                (List<Map<String, Object>>) searchValueInJson(jsonNode, "status.executors");
+                        for (Map<String, Object> stringObjectEntry : executors) {
+                            final List<Map<String, Object>> replicas = (List<Map<String, Object>>) stringObjectEntry.get("replicas");
+                            if (replicas == null) {
                                 continue;
                             }
-                            for (Map.Entry<String, Object> objectEntry : workers.entrySet()) {
+                            for (Map<String, Object> objectEntry : replicas) {
                                 countAll++;
-                                final Object status = searchValueInJson(objectEntry.getValue(), "status");
+                                final Object status = objectEntry.get("status");
                                 if (status != null && status.toString().equals("RUNNING")) {
                                     countRunning++;
                                 }

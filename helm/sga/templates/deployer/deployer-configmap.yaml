@@ -12,3 +12,5 @@ data:
 {{ .Values.deployer.app.config.clusterRuntime | toYaml | indent 4 }}
   DEPLOYER_CODE_STORAGE: |
 {{ .Values.deployer.app.config.codeStorage | toYaml | indent 4 }}
+  DEPLOYER_POD_TEMPLATE: |
+{{ .Values.deployer.app.config.podTemplate | toYaml | indent 4 }}

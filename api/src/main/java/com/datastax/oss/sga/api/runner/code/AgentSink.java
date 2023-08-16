@@ -29,6 +29,11 @@ public interface AgentSink extends AgentCode {
      */
     void write(List<Record> records) throws Exception;
 
+    @Override
+    default String componentType() {
+        return "sink";
+    }
+
     interface CommitCallback {
         void commit(List<Record> records);
     }

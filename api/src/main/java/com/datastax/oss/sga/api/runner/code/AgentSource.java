@@ -36,6 +36,11 @@ public interface AgentSource extends AgentCode {
      */
     void commit(List<Record> records) throws Exception;
 
+    @Override
+    default String componentType() {
+        return "source";
+    }
+
     /**
      * Called by the framework to indicate that the agent has failed to process
      * permanently the records returned by read up to the latest.

@@ -300,7 +300,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
         return StoredApplication.builder()
                 .applicationId(applicationId)
                 .instance(instance)
-                .status(computeApplicationStatus(applicationId, instance,
+                .status(computeApplicationStatus(applicationId,
                         agentNodes, application, queryPods))
                 .build();
     }
@@ -311,7 +311,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
 
-    private ApplicationStatus computeApplicationStatus(final String applicationId, Application app,
+    private ApplicationStatus computeApplicationStatus(final String applicationId,
                                                        Map<String, AgentRunnerDefinition> agentRunners,
                                                        ApplicationCustomResource customResource,
                                                        boolean queryPods) {
@@ -321,31 +321,17 @@ public class KubernetesApplicationStore implements ApplicationStore {
         List<String> declaredAgents = new ArrayList<>();
 
         Map<String, AgentResourcesFactory.AgentRunnerSpec> agentRunnerSpecMap  = new HashMap<>();
-        if (agentRunners != null) {
-            agentRunners.forEach((agentId, agentRunnerDefinition) -> {
-                log.info("Adding agent id {} (def {})", agentId, agentRunnerDefinition);
-                // this agentId doesn't contain the "module" prefix
-                declaredAgents.add(agentRunnerDefinition.getAgentId());
-                agentRunnerSpecMap.put(agentId, AgentResourcesFactory.AgentRunnerSpec.builder()
-                        .agentId(agentRunnerDefinition.getAgentId())
-                        .agentType(agentRunnerDefinition.getAgentType())
-                        .componentType(agentRunnerDefinition.getComponentType())
-                        .configuration(agentRunnerDefinition.getConfiguration())
-                        .build());
-            });
-        } else {
-            // LEGACY MODE
-            for (Module module : app.getModules().values()) {
-                for (Pipeline pipeline : module.getPipelines().values()) {
-                    for (AgentConfiguration agent : pipeline.getAgents()) {
-                        if (!declaredAgents.contains(agent.getId())) {
-                            log.info("Adding legacy agent id {}", agent.getId());
-                            declaredAgents.add(agent.getId());
-                        }
-                    }
-                }
-            }
-        }
+        agentRunners.forEach((agentId, agentRunnerDefinition) -> {
+            log.info("Adding agent id {} (def {})", agentId, agentRunnerDefinition);
+            // this agentId doesn't contain the "module" prefix
+            declaredAgents.add(agentRunnerDefinition.getAgentId());
+            agentRunnerSpecMap.put(agentId, AgentResourcesFactory.AgentRunnerSpec.builder()
+                    .agentId(agentRunnerDefinition.getAgentId())
+                    .agentType(agentRunnerDefinition.getAgentType())
+                    .componentType(agentRunnerDefinition.getComponentType())
+                    .configuration(agentRunnerDefinition.getConfiguration())
+                    .build());
+        });
 
         result.setAgents(AgentResourcesFactory.aggregateAgentsStatus(client, customResource
                 .getMetadata().getNamespace(), applicationId, declaredAgents,

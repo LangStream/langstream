@@ -31,6 +31,8 @@ public interface AgentCode {
      */
     String agentType();
 
+    String componentType();
+
     default void setMetadata(String id, String agentType, long startedAt) throws Exception {
     }
     default void init(Map<String, Object> configuration) throws Exception {

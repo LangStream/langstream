@@ -31,6 +31,8 @@ public final class AgentStatusResponse {
     private String agentId;
     @JsonProperty("agent-type")
     private String agentType;
+    @JsonProperty("component-type")
+    private String componentType;
     @JsonProperty("info")
     private Map<String, Object> info;
     @JsonProperty("metrics")

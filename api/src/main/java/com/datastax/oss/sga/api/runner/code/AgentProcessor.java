@@ -34,6 +34,11 @@ public interface AgentProcessor extends AgentCode {
      */
     List<SourceRecordAndResult> process(List<Record> records) throws Exception;
 
+    @Override
+    default String componentType() {
+        return "processor";
+    }
+
     @Getter
     @ToString
     static class SourceRecordAndResult {

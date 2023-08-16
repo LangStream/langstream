@@ -495,6 +495,7 @@ public class AgentResourcesFactory {
                     if (agentRunnerSpec != null) {
                         status = status.withAgentSpec(agentRunnerSpec.getAgentId(),
                                 agentRunnerSpec.getAgentType(),
+                                agentRunnerSpec.getComponentType(),
                                 agentRunnerSpec.getConfiguration());
                     }
                     return new AbstractMap.SimpleEntry<>(e.getKey(), status);

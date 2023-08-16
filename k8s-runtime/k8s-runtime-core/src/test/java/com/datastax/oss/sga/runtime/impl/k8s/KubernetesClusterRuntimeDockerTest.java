@@ -178,7 +178,7 @@ class KubernetesClusterRuntimeDockerTest {
         Map<String, Object> defaultErrorsAsMap = new HashMap<>();
         defaultErrorsAsMap.put("onFailure", "fail");
         defaultErrorsAsMap.put("retries", 0);
-        assertEquals(new AgentSpec(AgentSpec.ComponentType.FUNCTION, tenant, "step1", "app", "compute-ai-embeddings", Map.of(
+        assertEquals(new AgentSpec(AgentSpec.ComponentType.PROCESSOR, tenant, "step1", "app", "compute-ai-embeddings", Map.of(
                 "steps", List.of(Map.of(
                         "type", "compute-ai-embeddings",
                         "model", "text-embedding-ada-002",

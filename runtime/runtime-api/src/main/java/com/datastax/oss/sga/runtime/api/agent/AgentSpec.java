@@ -25,7 +25,7 @@ public record AgentSpec(ComponentType componentType,
                          Map<String, Object> configuration,
                          Map<String, Object> errorHandlerConfiguration){
     public enum ComponentType {
-        FUNCTION,
+        PROCESSOR,
         SOURCE,
         SINK
     }

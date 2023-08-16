@@ -94,24 +94,26 @@ public class ApplicationDescription {
         public AgentStatusDescription(ApplicationStatus status) {
             this.status = status.getStatus();
             this.executors = status.getAgents()
-                    .values()
+                    .entrySet()
                     .stream()
-                    .map(ExecutorDescription::new)
+                    .map(entry -> new ExecutorDescription(entry.getKey(), entry.getValue()))
                     .toList();
         }
     }
 
     @Data
     public static class ExecutorDescription {
+        private String id;
         private AgentLifecycleStatus status;
         private List<ReplicaStatus> replicas;
 
-        public ExecutorDescription(ApplicationStatus.AgentStatus status) {
+        public ExecutorDescription(String id, ApplicationStatus.AgentStatus status) {
+            this.id = id;
             this.status = status.getStatus();
             this.replicas = status.getWorkers()
-                    .values()
+                    .entrySet()
                     .stream()
-                    .map(ReplicaStatus::new)
+                    .map(entry -> new ReplicaStatus(entry.getKey(), entry.getValue()))
                     .toList();
         }
     }
@@ -122,6 +124,7 @@ public class ApplicationDescription {
     @AllArgsConstructor
     public static class ReplicaStatus {
 
+        private String id;
         private ApplicationStatus.AgentWorkerStatus.Status status;
         private String reason;
         // do not report this to users
@@ -130,7 +133,8 @@ public class ApplicationDescription {
 
         private List<AgentStatus> agents = new ArrayList<>();
 
-        public ReplicaStatus(ApplicationStatus.AgentWorkerStatus workerStatus) {
+        public ReplicaStatus(String id, ApplicationStatus.AgentWorkerStatus workerStatus) {
+            this.id = id;
             this.status = workerStatus.getStatus();
             this.reason = workerStatus.getReason();
             this.url = workerStatus.getUrl();

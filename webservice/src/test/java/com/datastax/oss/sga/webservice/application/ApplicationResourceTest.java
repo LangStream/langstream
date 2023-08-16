@@ -180,55 +180,49 @@ class ApplicationResourceTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(result -> assertEquals("""
-                        {
-                          "applicationId" : "test",
-                          "instance" : {
-                            "resources" : { },
-                            "modules" : {
-                              "default" : {
-                                "id" : "default",
-                                "pipelines" : {
-                                  "app1" : {
-                                    "id" : "app1",
-                                    "module" : "default",
-                                    "name" : "test",
-                                    "resources" : {
-                                      "parallelism" : 1,
-                                      "size" : 1
-                                    },
-                                    "errors" : {
-                                      "retries" : 0,
-                                      "on-failure" : "fail"
-                                    },
-                                    "agents" : [ ]
-                                  }
-                                },
-                                "topics" : { }
-                              }
-                            },
-                            "dependencies" : [ ],
-                            "gateways" : null,
-                            "instance" : {
-                              "streamingCluster" : {
-                                "type" : "pulsar",
-                                "configuration" : { }
-                              },
-                              "computeCluster" : {
-                                "type" : "none",
-                                "configuration" : { }
-                              },
-                              "globals" : null
-                            },
-                            "secrets" : null
-                          },
-                          "status" : {
-                            "status" : {
-                              "status" : "CREATED",
-                              "reason" : null
-                            },
-                            "agents" : { }
-                          }
-                        }""", result.getResponse().getContentAsString()));
+                         {
+                           "application-id" : "test",
+                           "application" : {
+                             "resources" : { },
+                             "modules" : [ {
+                               "id" : "default",
+                               "pipelines" : [ {
+                                 "id" : "app1",
+                                 "module" : "default",
+                                 "name" : "test",
+                                 "resources" : {
+                                   "parallelism" : 1,
+                                   "size" : 1
+                                 },
+                                 "errors" : {
+                                   "retries" : 0,
+                                   "on-failure" : "fail"
+                                 },
+                                 "agents" : [ ]
+                               } ],
+                               "topics" : [ ]
+                             } ],
+                             "gateways" : null,
+                             "instance" : {
+                               "streamingCluster" : {
+                                 "type" : "pulsar",
+                                 "configuration" : { }
+                               },
+                               "computeCluster" : {
+                                 "type" : "none",
+                                 "configuration" : { }
+                               },
+                               "globals" : null
+                             }
+                           },
+                           "status" : {
+                             "status" : {
+                               "status" : "CREATED",
+                               "reason" : null
+                             },
+                             "executors" : [ ]
+                           }
+                         }""", result.getResponse().getContentAsString()));
 
         mockMvc
                 .perform(

@@ -71,17 +71,17 @@ jobs:
       - name: 'Test: Api Gateway'
         if: ${{ matrix.name == 'Api Gateway' }}
         run: |
-          ./mvnw verify -pl ":api-gateway" -Pdocker
+          ./mvnw verify -pl ":langstream-api-gateway" -Pdocker
 
       - name: 'Test: Deployer'
         if: ${{ matrix.name == 'Deployer' }}
         run: |
-          ./mvnw verify -f k8s-deployer -Pdocker
+          ./mvnw verify -f langstream-k8s-deployer -Pdocker
 
       - name: 'Test: Control plane'
         if: ${{ matrix.name == 'Control plane' }}
         run: |
-          ./mvnw verify -pl webservice -Pdocker
+          ./mvnw verify -pl langstream-webservice -Pdocker
 
       - name: 'Test: Other'
         if: ${{ matrix.name == 'Other' }}
@@ -126,5 +126,5 @@ jobs:
           docker pull confluentinc/cp-kafka
           docker pull quay.io/strimzi/kafka:0.36.0-kafka-3.5.0
           eval $(minikube docker-env -u)
-          ./mvnw install -pl e2e-tests -am -DskipTests
-          ./mvnw verify -pl e2e-tests          
+          ./mvnw install -pl langstream-e2e-tests -am -DskipTests
+          ./mvnw verify -pl langstream-e2e-tests          

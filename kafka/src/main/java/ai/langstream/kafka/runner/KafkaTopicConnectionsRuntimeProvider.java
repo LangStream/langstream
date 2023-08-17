@@ -15,8 +15,8 @@
  */
 package ai.langstream.kafka.runner;
 
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeProvider;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeProvider;
 
 /**
  * Factory

@@ -16,13 +16,13 @@
 package ai.langstream.apigateway.websocket.handlers;
 
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import com.datastax.oss.sga.api.gateway.GatewayRequestContext;
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.Gateway;
-import com.datastax.oss.sga.api.model.Gateways;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
-import com.datastax.oss.sga.api.storage.ApplicationStore;
-import com.datastax.oss.sga.impl.common.ApplicationPlaceholderResolver;
+import ai.langstream.api.gateway.GatewayRequestContext;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.Gateway;
+import ai.langstream.api.model.Gateways;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;

@@ -15,18 +15,18 @@
  */
 package ai.langstream.pulsar.runner;
 
-import com.datastax.oss.sga.api.model.StreamingCluster;
-import com.datastax.oss.sga.api.runner.code.Header;
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.topics.OffsetPerPartition;
-import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeProvider;
-import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
-import com.datastax.oss.sga.api.runner.topics.TopicProducer;
-import com.datastax.oss.sga.api.runner.topics.TopicReadResult;
-import com.datastax.oss.sga.api.runner.topics.TopicReader;
-import com.datastax.oss.sga.api.runner.topics.TopicOffsetPosition;
+import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.topics.OffsetPerPartition;
+import ai.langstream.api.runner.topics.TopicAdmin;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeProvider;
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runner.topics.TopicReadResult;
+import ai.langstream.api.runner.topics.TopicReader;
+import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.pulsar.PulsarClientUtils;
 import ai.langstream.pulsar.PulsarClusterRuntime;
 import lombok.SneakyThrows;

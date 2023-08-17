@@ -18,7 +18,7 @@ package ai.langstream.webservice;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.webservice.common.GlobalMetadataService;
-import com.datastax.oss.sga.api.storage.ApplicationStore;
+import ai.langstream.api.storage.ApplicationStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

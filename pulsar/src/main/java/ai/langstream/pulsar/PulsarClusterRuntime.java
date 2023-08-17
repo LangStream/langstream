@@ -15,14 +15,14 @@
  */
 package ai.langstream.pulsar;
 
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.runtime.AgentNode;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.ExecutionPlanOptimiser;
-import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.impl.agents.ai.GenAIToolKitExecutionPlanOptimizer;
-import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
-import com.datastax.oss.sga.impl.common.DefaultAgentNode;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.runtime.AgentNode;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.ExecutionPlanOptimiser;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.impl.agents.ai.GenAIToolKitExecutionPlanOptimizer;
+import ai.langstream.impl.common.BasicClusterRuntime;
+import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.pulsar.agents.PulsarAgentNodeMetadata;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;

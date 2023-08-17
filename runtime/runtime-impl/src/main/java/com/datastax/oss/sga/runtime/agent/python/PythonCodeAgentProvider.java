@@ -15,11 +15,10 @@
  */
 package com.datastax.oss.sga.runtime.agent.python;
 
-import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
-import com.datastax.oss.sga.api.runtime.ComponentType;
-import lombok.AllArgsConstructor;
+import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentCode;
+import ai.langstream.api.runner.code.AgentCodeProvider;
+import ai.langstream.api.runtime.ComponentType;
 
 public class PythonCodeAgentProvider implements AgentCodeProvider {
     @Override

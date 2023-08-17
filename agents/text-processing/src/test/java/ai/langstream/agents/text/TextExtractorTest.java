@@ -15,10 +15,9 @@
  */
 package ai.langstream.agents.text;
 
-import ai.langstream.agents.text.TextProcessingAgentsCodeProvider;
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 

@@ -16,13 +16,13 @@
 package ai.langstream.pulsar.agents.ai;
 
 import ai.langstream.pulsar.PulsarClusterRuntime;
-import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.runtime.AgentNodeMetadata;
-import com.datastax.oss.sga.api.runtime.ComponentType;
-import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
+import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.runtime.AgentNodeMetadata;
+import ai.langstream.api.runtime.ComponentType;
+import ai.langstream.api.runtime.ComputeClusterRuntime;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import ai.langstream.pulsar.agents.AbstractPulsarAgentProvider;
 
 public class PulsarGenAIToolKitFunctionAgentProvider extends GenAIToolKitFunctionAgentProvider {

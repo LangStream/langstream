@@ -16,12 +16,12 @@
 package ai.langstream.apigateway.websocket;
 
 import ai.langstream.apigateway.websocket.handlers.AbstractHandler;
-import com.datastax.oss.sga.api.gateway.GatewayAuthenticationResult;
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.gateway.GatewayAuthenticationProvider;
-import com.datastax.oss.sga.api.gateway.GatewayAuthenticationProviderRegistry;
-import com.datastax.oss.sga.api.model.Gateway;
-import com.datastax.oss.sga.api.gateway.GatewayRequestContext;
+import ai.langstream.api.gateway.GatewayAuthenticationResult;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.gateway.GatewayAuthenticationProvider;
+import ai.langstream.api.gateway.GatewayAuthenticationProviderRegistry;
+import ai.langstream.api.model.Gateway;
+import ai.langstream.api.gateway.GatewayRequestContext;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.HashMap;

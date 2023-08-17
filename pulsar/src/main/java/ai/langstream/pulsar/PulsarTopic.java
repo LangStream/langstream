@@ -15,9 +15,9 @@
  */
 package ai.langstream.pulsar;
 
-import com.datastax.oss.sga.api.model.SchemaDefinition;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.Topic;
+import ai.langstream.api.model.SchemaDefinition;
+import ai.langstream.api.runtime.ConnectionImplementation;
+import ai.langstream.api.runtime.Topic;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

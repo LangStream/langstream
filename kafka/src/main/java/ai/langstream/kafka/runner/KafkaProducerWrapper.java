@@ -15,9 +15,9 @@
  */
 package ai.langstream.kafka.runner;
 
-import com.datastax.oss.sga.api.runner.code.Header;
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.topics.TopicProducer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;

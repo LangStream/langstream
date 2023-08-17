@@ -16,7 +16,7 @@
 package ai.langstream.webservice;
 
 import ai.langstream.webservice.config.StorageProperties;
-import com.datastax.oss.sga.impl.storage.LocalStore;
+import ai.langstream.impl.storage.LocalStore;
 
 import java.nio.file.Files;
 import java.util.Map;

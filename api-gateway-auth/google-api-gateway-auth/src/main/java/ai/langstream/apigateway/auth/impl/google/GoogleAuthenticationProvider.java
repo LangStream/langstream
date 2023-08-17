@@ -15,9 +15,9 @@
  */
 package ai.langstream.apigateway.auth.impl.google;
 
-import com.datastax.oss.sga.api.gateway.GatewayAuthenticationProvider;
-import com.datastax.oss.sga.api.gateway.GatewayAuthenticationResult;
-import com.datastax.oss.sga.api.gateway.GatewayRequestContext;
+import ai.langstream.api.gateway.GatewayAuthenticationProvider;
+import ai.langstream.api.gateway.GatewayAuthenticationResult;
+import ai.langstream.api.gateway.GatewayRequestContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;

@@ -15,16 +15,15 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
-import com.datastax.oss.sga.api.runner.code.Record;
+import ai.langstream.api.runner.code.Record;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.datastax.oss.sga.api.model.ErrorsSpec.DEAD_LETTER;
-import static com.datastax.oss.sga.api.model.ErrorsSpec.FAIL;
-import static com.datastax.oss.sga.api.model.ErrorsSpec.SKIP;
+import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
+import static ai.langstream.api.model.ErrorsSpec.FAIL;
+import static ai.langstream.api.model.ErrorsSpec.SKIP;
 
 @Slf4j
 class StandardErrorsHandler implements ErrorsHandler {

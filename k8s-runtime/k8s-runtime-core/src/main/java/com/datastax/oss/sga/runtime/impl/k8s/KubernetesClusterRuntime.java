@@ -15,22 +15,22 @@
  */
 package com.datastax.oss.sga.runtime.impl.k8s;
 
-import com.datastax.oss.sga.api.model.ErrorsSpec;
-import com.datastax.oss.sga.api.runtime.AgentNode;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.ExecutionPlanOptimiser;
-import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.model.ErrorsSpec;
+import ai.langstream.api.runtime.AgentNode;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.ExecutionPlanOptimiser;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentSpec;
 import com.datastax.oss.sga.deployer.k8s.apps.AppResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
-import com.datastax.oss.sga.impl.agents.ai.GenAIToolKitExecutionPlanOptimizer;
-import com.datastax.oss.sga.impl.common.BasicClusterRuntime;
-import com.datastax.oss.sga.impl.common.DefaultAgentNode;
-import com.datastax.oss.sga.impl.k8s.KubernetesClientFactory;
+import ai.langstream.impl.agents.ai.GenAIToolKitExecutionPlanOptimizer;
+import ai.langstream.impl.common.BasicClusterRuntime;
+import ai.langstream.impl.common.DefaultAgentNode;
+import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
-import com.datastax.oss.sga.impl.agents.ComposableAgentExecutionPlanOptimiser;
+import ai.langstream.impl.agents.ComposableAgentExecutionPlanOptimiser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.Secret;

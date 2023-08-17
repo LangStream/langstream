@@ -15,9 +15,9 @@
  */
 package ai.langstream.webservice.application;
 
-import com.datastax.oss.sga.api.model.StoredApplication;
-import com.datastax.oss.sga.api.storage.ApplicationStore;
-import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import ai.langstream.api.model.StoredApplication;
+import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.impl.parser.ModelBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;

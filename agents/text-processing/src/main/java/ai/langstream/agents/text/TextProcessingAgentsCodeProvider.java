@@ -15,8 +15,8 @@
  */
 package ai.langstream.agents.text;
 
-import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
+import ai.langstream.api.runner.code.AgentCodeProvider;
+import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 
 import java.util.Map;
 import java.util.function.Supplier;

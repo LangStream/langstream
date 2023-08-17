@@ -15,9 +15,9 @@
  */
 package ai.langstream.apigateway.websocket;
 
-import com.datastax.oss.sga.api.gateway.GatewayAuthenticationProvider;
-import com.datastax.oss.sga.api.gateway.GatewayAuthenticationResult;
-import com.datastax.oss.sga.api.gateway.GatewayRequestContext;
+import ai.langstream.api.gateway.GatewayAuthenticationProvider;
+import ai.langstream.api.gateway.GatewayAuthenticationResult;
+import ai.langstream.api.gateway.GatewayRequestContext;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 

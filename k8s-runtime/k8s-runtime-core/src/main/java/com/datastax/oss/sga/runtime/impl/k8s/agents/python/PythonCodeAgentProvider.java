@@ -15,9 +15,9 @@
  */
 package com.datastax.oss.sga.runtime.impl.k8s.agents.python;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.runtime.ComponentType;
-import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
+import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.runtime.ComponentType;
+import ai.langstream.impl.common.AbstractAgentProvider;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;

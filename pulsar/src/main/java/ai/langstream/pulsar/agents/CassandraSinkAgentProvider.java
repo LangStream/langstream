@@ -15,14 +15,14 @@
  */
 package ai.langstream.pulsar.agents;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.model.Pipeline;
-import com.datastax.oss.sga.api.runtime.ComponentType;
-import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.Topic;
+import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.model.Module;
+import ai.langstream.api.model.Pipeline;
+import ai.langstream.api.runtime.ComponentType;
+import ai.langstream.api.runtime.ComputeClusterRuntime;
+import ai.langstream.api.runtime.ConnectionImplementation;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.Topic;
 import ai.langstream.pulsar.PulsarClusterRuntime;
 import java.util.List;
 import java.util.Map;

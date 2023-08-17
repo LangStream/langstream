@@ -17,13 +17,13 @@ package ai.langstream.kafka.runner;
 
 import ai.langstream.kafka.runtime.KafkaStreamingClusterRuntime;
 import ai.langstream.kafka.runtime.KafkaClusterRuntimeConfiguration;
-import com.datastax.oss.sga.api.model.StreamingCluster;
-import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
-import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
-import com.datastax.oss.sga.api.runner.topics.TopicProducer;
-import com.datastax.oss.sga.api.runner.topics.TopicReader;
-import com.datastax.oss.sga.api.runner.topics.TopicOffsetPosition;
+import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.topics.TopicAdmin;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runner.topics.TopicReader;
+import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;

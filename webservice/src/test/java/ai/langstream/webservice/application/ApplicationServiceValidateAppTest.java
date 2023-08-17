@@ -16,10 +16,10 @@
 package ai.langstream.webservice.application;
 
 import ai.langstream.webservice.config.ApplicationDeployProperties;
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
-import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.impl.k8s.tests.KubeTestServer;
+import ai.langstream.impl.parser.ModelBuilder;
 
 import java.util.Map;
 

@@ -17,7 +17,7 @@ package com.datastax.oss.sga.deployer.k8s.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
+import ai.langstream.api.model.ApplicationLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.Container;

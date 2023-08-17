@@ -15,7 +15,6 @@
  */
 package com.datastax.oss.sga.runtime;
 
-import com.datastax.oss.sga.api.runner.code.AgentCode;
 import com.datastax.oss.sga.runtime.agent.AgentCodeDownloader;
 import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import com.datastax.oss.sga.runtime.deployer.RuntimeDeployer;

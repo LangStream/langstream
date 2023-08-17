@@ -15,8 +15,8 @@
  */
 package ai.langstream.impl.storage.k8s.codestorage;
 
-import com.datastax.oss.sga.api.codestorage.CodeStorage;
-import com.datastax.oss.sga.api.codestorage.CodeStorageProvider;
+import ai.langstream.api.codestorage.CodeStorage;
+import ai.langstream.api.codestorage.CodeStorageProvider;
 import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
 

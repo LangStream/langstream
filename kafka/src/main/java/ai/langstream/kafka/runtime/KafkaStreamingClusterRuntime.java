@@ -15,15 +15,15 @@
  */
 package ai.langstream.kafka.runtime;
 
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.SchemaDefinition;
-import com.datastax.oss.sga.api.model.StreamingCluster;
-import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.AgentNode;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.api.runtime.Topic;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.SchemaDefinition;
+import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runtime.AgentNode;
+import ai.langstream.api.runtime.ConnectionImplementation;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.concurrent.ExecutionException;
 

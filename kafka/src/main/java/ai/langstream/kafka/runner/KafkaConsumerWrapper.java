@@ -15,8 +15,8 @@
  */
 package ai.langstream.kafka.runner;
 
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.topics.TopicConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;

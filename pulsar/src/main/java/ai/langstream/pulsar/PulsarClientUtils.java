@@ -15,7 +15,7 @@
  */
 package ai.langstream.pulsar;
 
-import com.datastax.oss.sga.api.model.StreamingCluster;
+import ai.langstream.api.model.StreamingCluster;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
 

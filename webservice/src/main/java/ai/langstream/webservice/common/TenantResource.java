@@ -15,7 +15,7 @@
  */
 package ai.langstream.webservice.common;
 
-import com.datastax.oss.sga.api.model.TenantConfiguration;
+import ai.langstream.api.model.TenantConfiguration;
 import ai.langstream.webservice.application.ApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

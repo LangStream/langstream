@@ -18,7 +18,7 @@ package com.datastax.oss.sga.deployer.k8s.apps;
 import static com.datastax.oss.sga.deployer.k8s.CRDConstants.JOB_PREFIX_CLEANUP;
 import static com.datastax.oss.sga.deployer.k8s.CRDConstants.JOB_PREFIX_DEPLOYER;
 import static com.datastax.oss.sga.deployer.k8s.CRDConstants.MAX_APPLICATION_ID_LENGTH;
-import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
+import ai.langstream.api.model.ApplicationLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
 import com.datastax.oss.sga.deployer.k8s.PodTemplate;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;

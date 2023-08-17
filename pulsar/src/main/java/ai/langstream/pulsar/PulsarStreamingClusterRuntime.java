@@ -15,14 +15,14 @@
  */
 package ai.langstream.pulsar;
 
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.SchemaDefinition;
-import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.AgentNode;
-import com.datastax.oss.sga.api.runtime.ConnectionImplementation;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.StreamingClusterRuntime;
-import com.datastax.oss.sga.api.runtime.Topic;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.SchemaDefinition;
+import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runtime.AgentNode;
+import ai.langstream.api.runtime.ConnectionImplementation;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.Topic;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;

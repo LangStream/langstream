@@ -16,8 +16,8 @@
 package com.datastax.oss.sga.deployer.k8s.agents;
 
 import static com.datastax.oss.sga.deployer.k8s.CRDConstants.MAX_AGENT_ID_LENGTH;
-import com.datastax.oss.sga.api.model.ApplicationStatus;
-import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
+import ai.langstream.api.model.ApplicationStatus;
+import ai.langstream.api.runner.code.AgentStatusResponse;
 import com.datastax.oss.sga.deployer.k8s.CRDConstants;
 import com.datastax.oss.sga.deployer.k8s.PodTemplate;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;

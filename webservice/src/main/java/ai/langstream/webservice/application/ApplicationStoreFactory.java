@@ -16,8 +16,8 @@
 package ai.langstream.webservice.application;
 
 import ai.langstream.webservice.config.StorageProperties;
-import com.datastax.oss.sga.api.storage.ApplicationStore;
-import com.datastax.oss.sga.api.storage.ApplicationStoreRegistry;
+import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.storage.ApplicationStoreRegistry;
 
 import java.util.Objects;
 import org.springframework.context.annotation.Bean;

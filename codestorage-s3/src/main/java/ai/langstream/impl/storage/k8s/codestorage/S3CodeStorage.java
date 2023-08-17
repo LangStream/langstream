@@ -15,11 +15,11 @@
  */
 package ai.langstream.impl.storage.k8s.codestorage;
 
-import com.datastax.oss.sga.api.codestorage.CodeArchiveMetadata;
-import com.datastax.oss.sga.api.codestorage.CodeStorage;
-import com.datastax.oss.sga.api.codestorage.CodeStorageException;
-import com.datastax.oss.sga.api.codestorage.LocalZipFileArchiveFile;
-import com.datastax.oss.sga.api.codestorage.UploadableCodeArchive;
+import ai.langstream.api.codestorage.CodeArchiveMetadata;
+import ai.langstream.api.codestorage.CodeStorage;
+import ai.langstream.api.codestorage.CodeStorageException;
+import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
+import ai.langstream.api.codestorage.UploadableCodeArchive;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.BucketExistsArgs;
 import io.minio.DownloadObjectArgs;

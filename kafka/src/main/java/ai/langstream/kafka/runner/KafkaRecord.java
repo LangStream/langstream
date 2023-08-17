@@ -15,8 +15,8 @@
  */
 package ai.langstream.kafka.runner;
 
-import com.datastax.oss.sga.api.runner.code.Header;
-import com.datastax.oss.sga.api.runner.code.Record;
+import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.Record;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

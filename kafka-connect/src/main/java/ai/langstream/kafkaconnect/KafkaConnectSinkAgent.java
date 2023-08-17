@@ -16,10 +16,10 @@
 package ai.langstream.kafkaconnect;
 
 import ai.langstream.kafka.runner.KafkaRecord;
-import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentSink;
-import com.datastax.oss.sga.api.runner.code.Record;
+import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentContext;
+import ai.langstream.api.runner.code.AgentSink;
+import ai.langstream.api.runner.code.Record;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;

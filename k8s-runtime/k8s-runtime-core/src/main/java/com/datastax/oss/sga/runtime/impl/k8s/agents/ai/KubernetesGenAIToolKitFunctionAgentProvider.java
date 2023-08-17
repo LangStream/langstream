@@ -15,8 +15,8 @@
  */
 package com.datastax.oss.sga.runtime.impl.k8s.agents.ai;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
+import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime;
 
 import java.util.Objects;

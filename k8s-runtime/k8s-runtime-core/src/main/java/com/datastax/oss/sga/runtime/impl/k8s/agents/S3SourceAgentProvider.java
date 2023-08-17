@@ -16,9 +16,9 @@
 package com.datastax.oss.sga.runtime.impl.k8s.agents;
 
 import static com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime.CLUSTER_TYPE;
-import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.runtime.ComponentType;
-import com.datastax.oss.sga.impl.agents.AbstractComposableAgentProvider;
+import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.runtime.ComponentType;
+import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 
 import java.util.List;
 import java.util.Set;

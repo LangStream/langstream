@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.sga.deployer.k8s.api.crds.agents;
 
-import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
+import ai.langstream.api.model.AgentLifecycleStatus;
 import io.fabric8.kubernetes.api.model.Namespaced;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.model.annotation.Group;

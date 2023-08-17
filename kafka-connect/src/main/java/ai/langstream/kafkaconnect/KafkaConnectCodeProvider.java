@@ -15,8 +15,8 @@
  */
 package ai.langstream.kafkaconnect;
 
-import com.datastax.oss.sga.api.runner.code.AgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
+import ai.langstream.api.runner.code.AgentCode;
+import ai.langstream.api.runner.code.AgentCodeProvider;
 
 public class KafkaConnectCodeProvider implements AgentCodeProvider {
     @Override

@@ -17,14 +17,15 @@ package ai.langstream.apigateway.websocket.handlers;
 
 import static ai.langstream.apigateway.websocket.WebSocketConfig.PRODUCE_PATH;
 
+import ai.langstream.api.runner.code.Record;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import com.datastax.oss.sga.api.model.Gateway;
-import com.datastax.oss.sga.api.model.StreamingCluster;
-import com.datastax.oss.sga.api.runner.code.Header;
-import com.datastax.oss.sga.api.runner.code.SimpleRecord;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
-import com.datastax.oss.sga.api.runner.topics.TopicProducer;
-import com.datastax.oss.sga.api.storage.ApplicationStore;
+import ai.langstream.api.model.Gateway;
+import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.websocket.api.ProduceRequest;
 import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -207,7 +208,7 @@ public class ProduceHandler extends AbstractHandler {
 
     @AllArgsConstructor
     @ToString
-    private static class ProduceHandlerRecord implements com.datastax.oss.sga.api.runner.code.Record {
+    private static class ProduceHandlerRecord implements Record {
         private final Object key;
         private final Object value;
         private final Collection<Header> headers;

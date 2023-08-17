@@ -15,10 +15,10 @@
  */
 package com.datastax.oss.testagents;
 
-import com.datastax.oss.sga.api.model.AgentConfiguration;
-import com.datastax.oss.sga.api.runtime.ComponentType;
-import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
-import com.datastax.oss.sga.impl.common.AbstractAgentProvider;
+import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.runtime.ComponentType;
+import ai.langstream.api.runtime.ComputeClusterRuntime;
+import ai.langstream.impl.common.AbstractAgentProvider;
 import com.datastax.oss.sga.runtime.impl.k8s.KubernetesClusterRuntime;
 import lombok.extern.slf4j.Slf4j;
 

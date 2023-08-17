@@ -60,6 +60,9 @@ class Source(Agent):
     def commit(self, records: List[Record]):
         pass
 
+    def permanent_failure(self, record: Record, error: Exception):
+        raise error
+
 
 class Processor(Agent):
     @abstractmethod

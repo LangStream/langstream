@@ -33,12 +33,12 @@ def test_simple_agent():
             applicationId: testApplicationId
             agentId: testAgentId
             configuration:
-                className: tests.test_sga_runtime.TestAgent
+                className: tests.test_runtime.TestAgent
     """
     config = yaml.safe_load(config_yaml)
     agent = runtime.init_agent(config)
     runtime.run(config, agent=agent, max_loops=2)
-    assert agent.context['config'] == [{'className': 'tests.test_sga_runtime.TestAgent'}]
+    assert agent.context['config'] == [{'className': 'tests.test_runtime.TestAgent'}]
     assert agent.context['start'] == 1
     assert agent.context['close'] == 1
     assert agent.context['set_commit_callback'] == 1
@@ -85,6 +85,7 @@ class TestAgent(Source, Sink, SingleRecordProcessor):
         pytest.param(0, 'skip', [SimpleRecord('fail-me')], 1, False, 0, 1, id='skip'),
         pytest.param(3, 'fail', [SimpleRecord('fail-me')], 1, True, 1, 3, id='fail with retries'),
         pytest.param(0, 'fail', [SimpleRecord('fail-me')], 1, True, 1, 1, id='fail no retries'),
+        pytest.param(0, 'dead-letter', [SimpleRecord('fail-me')], 1, True, 1, 1, id='dead-letter no dlq configured'),
         pytest.param(0, 'skip', [SimpleRecord('fail-me'), SimpleRecord('process-me')], 1, False, 0, 2,
                      id='some failed some good with skip'),
         pytest.param(0, 'skip', [SimpleRecord('process-me'), SimpleRecord('fail-me')], 1, False, 0, 2,

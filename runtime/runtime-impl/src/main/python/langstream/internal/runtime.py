@@ -23,6 +23,8 @@ from typing import List, Tuple, Union
 
 from . import topic_connections_registry
 from .source_record_tracker import SourceRecordTracker
+from .topic_connector import TopicConsumer, TopicProducer, TopicProducerSink, \
+    TopicConsumerWithDLQSource
 from ..api import Source, Sink, Processor, Record
 from ..util import SingleRecordProcessor
 
@@ -38,19 +40,22 @@ class ErrorsHandler(object):
         self.failures = 0
         self.configuration = configuration or {}
         self.retries = int(self.configuration.get('retries', 0))
-        if self.configuration.get('onFailure') == 'skip':
-            self.on_failure_action = ErrorsProcessingOutcome.SKIP
-        else:
-            self.on_failure_action = ErrorsProcessingOutcome.FAIL
+        self.on_failure_action = self.configuration.get('onFailure', 'fail')
 
     def handle_errors(self, source_record: Record, error) -> ErrorsProcessingOutcome:
         self.failures += 1
         logging.info(f'Handling error {error} for source record {source_record}, '
                      f'errors count {self.failures} (max retries {self.retries})')
         if self.failures >= self.retries:
-            return self.on_failure_action
+            if self.on_failure_action == 'skip':
+                return ErrorsProcessingOutcome.SKIP
+            else:
+                return ErrorsProcessingOutcome.FAIL
         else:
             return ErrorsProcessingOutcome.RETRY
+
+    def fail_processing_on_permanent_errors(self):
+        return self.on_failure_action not in ['skip', 'dead-letter']
 
 
 def run(configuration, agent=None, max_loops=-1):
@@ -62,25 +67,32 @@ def run(configuration, agent=None, max_loops=-1):
     streaming_cluster = configuration['streamingCluster']
     topic_connections_runtime = topic_connections_registry.get_topic_connections_runtime(streaming_cluster)
 
+    agent_id = f"{configuration['agent']['applicationId']}-{configuration['agent']['agentId']}"
+
+    if 'input' in configuration and len(configuration['input']) > 0:
+        consumer = topic_connections_runtime.create_topic_consumer(agent_id, streaming_cluster, configuration['input'])
+        dlq_producer = topic_connections_runtime.create_dlq_producer(agent_id, streaming_cluster, configuration['input'])
+    else:
+        consumer = NoopTopicConsumer()
+        dlq_producer = None
+
+    if 'output' in configuration and len(configuration['output']) > 0:
+        producer = topic_connections_runtime.create_topic_producer(agent_id, streaming_cluster, configuration['output'])
+    else:
+        producer = NoopTopicProducer()
+
     if not agent:
         agent = init_agent(configuration)
-    agent_id = f"{configuration['agent']['applicationId']}-{configuration['agent']['agentId']}"
 
     if hasattr(agent, 'read'):
         source = agent
     else:
-        if 'input' in configuration and len(configuration['input']) > 0:
-            source = topic_connections_runtime.create_source(agent_id, streaming_cluster, configuration['input'])
-        else:
-            source = NoopSource()
+        source = TopicConsumerWithDLQSource(consumer, dlq_producer if dlq_producer else NoopTopicProducer())
 
     if hasattr(agent, 'write'):
         sink = agent
     else:
-        if 'output' in configuration and len(configuration['output']) > 0:
-            sink = topic_connections_runtime.create_sink(agent_id, streaming_cluster, configuration['output'])
-        else:
-            sink = NoopSink()
+        sink = TopicProducerSink(producer)
 
     if hasattr(agent, 'process'):
         processor = agent
@@ -121,7 +133,7 @@ def run_main_loop(source: Source, sink: Sink, processor: Processor, errors_handl
             records = source.read()
             if records and len(records) > 0:
                 # in case of permanent FAIL this method will throw an exception
-                sink_records = run_processor_agent(processor, records, errors_handler)
+                sink_records = run_processor_agent(processor, records, errors_handler, source)
                 # sinkRecord == null is the SKIP case
 
                 # in this case we do not send the records to the sink
@@ -149,7 +161,8 @@ def run_main_loop(source: Source, sink: Sink, processor: Processor, errors_handl
 def run_processor_agent(
         processor: Processor,
         source_records: List[Record],
-        errors_handler: ErrorsHandler) -> List[Tuple[Record, List[Record]]]:
+        errors_handler: ErrorsHandler,
+        source: Source) -> List[Tuple[Record, List[Record]]]:
     records_to_process = source_records
     results_by_record = {}
     trial_number = 0
@@ -174,7 +187,12 @@ def run_processor_agent(
                     logging.error(
                         f'Unrecoverable error {processor_result} while processing some the records, failing')
                     # TODO: replace with custom exception ?
-                    raise processor_result
+                    source.permanent_failure(source_record, processor_result)
+                    if errors_handler.fail_processing_on_permanent_errors():
+                        logging.error('Failing processing on permanent error')
+                        raise processor_result
+                    # in case the source does not throw an exception we mark the record as "skipped"
+                    results_by_record[source_record] = (source_record, processor_result)
 
     return [results_by_record[source_record] for source_record in source_records]
 
@@ -188,16 +206,14 @@ def safe_process_records(
         return [(record, e) for record in records_to_process]
 
 
-class NoopSource(Source):
+class NoopTopicConsumer(TopicConsumer):
     def read(self):
         logging.info("Sleeping for 1 second, no records...")
         time.sleep(1)
         return []
 
 
-class NoopSink(Sink):
-    def set_commit_callback(self, cb):
-        pass
+class NoopTopicProducer(TopicProducer):
 
     def write(self, records):
         pass

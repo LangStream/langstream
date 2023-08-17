@@ -1,1 +1,1 @@
-com.datastax.oss.sga.pulsar.runner.PulsarTopicConnectionsRuntimeProvider
+ai.langstream.pulsar.runner.PulsarTopicConnectionsRuntimeProvider

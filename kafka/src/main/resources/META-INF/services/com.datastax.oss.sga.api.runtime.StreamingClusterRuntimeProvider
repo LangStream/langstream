@@ -1,1 +1,1 @@
-com.dastastax.oss.sga.kafka.runtime.KafkaStreamingClusterRuntimeProvider
+ai.langstream.kafka.runtime.KafkaStreamingClusterRuntimeProvider

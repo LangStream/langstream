@@ -1,1 +1,1 @@
-com.dastastax.oss.sga.kafka.runner.KafkaTopicConnectionsRuntimeProvider
+ai.langstream.kafka.runner.KafkaTopicConnectionsRuntimeProvider

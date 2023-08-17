@@ -1,12 +1,12 @@
 # Sinks
-com.datastax.oss.sga.pulsar.agents.GenericPulsarSinkAgentProvider
-com.datastax.oss.sga.pulsar.agents.CassandraSinkAgentProvider
+ai.langstream.pulsar.agents.GenericPulsarSinkAgentProvider
+ai.langstream.pulsar.agents.CassandraSinkAgentProvider
 
 # Sources
-com.datastax.oss.sga.pulsar.agents.GenericPulsarSourceAgentProvider
+ai.langstream.pulsar.agents.GenericPulsarSourceAgentProvider
 
 # Functions
-com.datastax.oss.sga.pulsar.agents.GenericPulsarFunctionAgentProvider
+ai.langstream.pulsar.agents.GenericPulsarFunctionAgentProvider
 
 # Streaming AI
-com.datastax.oss.sga.pulsar.agents.ai.PulsarGenAIToolKitFunctionAgentProvider
+ai.langstream.pulsar.agents.ai.PulsarGenAIToolKitFunctionAgentProvider

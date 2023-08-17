@@ -29,4 +29,6 @@ public interface ErrorsHandler {
     }
 
     ErrorsProcessingOutcome handleErrors(Record sourceRecord, Throwable error);
+
+    boolean failProcessingOnPermanentErrors();
 }

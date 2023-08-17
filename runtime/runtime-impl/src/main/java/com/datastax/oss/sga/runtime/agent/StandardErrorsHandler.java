@@ -62,4 +62,16 @@ class StandardErrorsHandler implements ErrorsHandler {
             return ErrorsProcessingOutcome.RETRY;
         }
     }
+
+    @Override
+    public boolean failProcessingOnPermanentErrors() {
+        switch (onFailureAction) {
+            case SKIP:
+            case DEAD_LETTER:
+                return false;
+            case FAIL:
+            default:
+                return true;
+        }
+    }
 }

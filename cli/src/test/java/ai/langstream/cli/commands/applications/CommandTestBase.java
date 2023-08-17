@@ -16,7 +16,7 @@
 package ai.langstream.cli.commands.applications;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import ai.langstream.cli.SgaCLI;
+import ai.langstream.cli.LangStreamCLI;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -61,7 +61,7 @@ public class CommandTestBase {
 
     protected String createTempFile(String content, Path tempDir) {
         try {
-            Path tempFile = Files.createTempFile(tempDir, "sga-cli-test", ".yaml");
+            Path tempFile = Files.createTempFile(tempDir, "langstream-cli-test", ".yaml");
             Files.write(tempFile, content.getBytes(StandardCharsets.UTF_8));
             return tempFile.toFile().getAbsolutePath();
         } catch (Exception e) {
@@ -87,7 +87,7 @@ public class CommandTestBase {
         try {
             System.setErr(new PrintStream(err));
             System.setOut(new PrintStream(out));
-            exitCode = SgaCLI.execute(fullArgs);
+            exitCode = LangStreamCLI.execute(fullArgs);
         } finally {
             System.setErr(oldErr);
             System.setOut(oldOut);

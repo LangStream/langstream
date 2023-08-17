@@ -24,7 +24,7 @@ pipeline:
     output: "output-topic"
     configuration:
       className: s3_langchain.S3LangChain
-      bucketName: sga-langchain-source
+      bucketName: langstream-langchain-source
       endpoint: "https://s3.eu-west-2.amazonaws.com"
       username: "{{ secrets.s3.username }}"
       password: "{{ secrets.s3.password }}"

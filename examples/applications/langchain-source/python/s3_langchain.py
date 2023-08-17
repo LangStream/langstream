@@ -41,7 +41,7 @@ class S3LangChain(Source):
         self.bucket = None
 
     def init(self, config):
-        bucket_name = config.get('bucketName', 'sga-s3-langchain')
+        bucket_name = config.get('bucketName', 'langstream-s3-langchain')
         endpoint_url = config.get('endpoint', 'http://minio-endpoint.-not-set:9090')
         aws_access_key_id = config.get('username', 'minioadmin')
         aws_secret_access_key = config.get('password', 'minioadmin')

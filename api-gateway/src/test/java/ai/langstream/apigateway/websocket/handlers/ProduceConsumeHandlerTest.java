@@ -246,13 +246,13 @@ class ProduceConsumeHandlerTest {
         testGateways = new Gateways(List.of(
                 new Gateway("produce", Gateway.GatewayType.produce, topic, List.of("session-id"),
                         new Gateway.ProduceOptions(
-                                List.of(Gateway.KeyValueComparison.value("header1", "sga"))
+                                List.of(Gateway.KeyValueComparison.value("header1", "langstream"))
                         ), null),
-                new Gateway("produce-non-sga", Gateway.GatewayType.produce, topic, List.of("session-id"), null, null),
+                new Gateway("produce-non-langstream", Gateway.GatewayType.produce, topic, List.of("session-id"), null, null),
                 new Gateway("consume", Gateway.GatewayType.consume, topic, List.of("session-id"), null,
                         new Gateway.ConsumeOptions(
                                 new Gateway.ConsumeOptionsFilters(
-                                        List.of(Gateway.KeyValueComparison.value("header1", "sga"))
+                                        List.of(Gateway.KeyValueComparison.value("header1", "langstream"))
                                 )
                         ))
         ));
@@ -271,10 +271,10 @@ class ProduceConsumeHandlerTest {
         try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
                 .connect(
                         URI.create(
-                                ("ws://localhost:%d/v1/produce/tenant1/application1/produce-non-sga?param:session-id"
+                                ("ws://localhost:%d/v1/produce/tenant1/application1/produce-non-langstream?param:session-id"
                                         + "=user1").formatted(
                                         port)));) {
-            final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message non from sga", null);
+            final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message non from langstream", null);
             produce(produceRequest, producer);
         }
 
@@ -290,13 +290,13 @@ class ProduceConsumeHandlerTest {
         Awaitility.await()
                 .untilAsserted(() ->
                         assertMessagesContent(List.of(
-                                new MsgRecord(null, "this is a message for everyone", Map.of("header1", "sga"))
+                                new MsgRecord(null, "this is a message for everyone", Map.of("header1", "langstream"))
                         ), user1Messages)
                 );
         Awaitility.await()
                 .untilAsserted(() ->
                         assertMessagesContent(List.of(
-                                new MsgRecord(null, "this is a message for everyone", Map.of("header1", "sga"))
+                                new MsgRecord(null, "this is a message for everyone", Map.of("header1", "langstream"))
                         ), user2Messages));
     }
 

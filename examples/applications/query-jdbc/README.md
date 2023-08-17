@@ -54,10 +54,10 @@ Create the table:
 Insert some data:
 `insert into products values(1,'Basic product','This is a very nice product!');`
 
-## Deploy the SGA application
+## Deploy the LangStream application
 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/query-jdbc -i examples/instances/kafka-kubernetes.yaml
+./bin/langstream apps deploy test -app examples/applications/query-jdbc -i examples/instances/kafka-kubernetes.yaml
 ```
 
 ## Start a Producer

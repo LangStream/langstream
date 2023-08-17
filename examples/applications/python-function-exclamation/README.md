@@ -3,10 +3,10 @@
 This sample application shows how to execute a Python processor code.
 The code in `example.py` adds an exclamation mark to the end of a string message.
 
-## Deploy the SGA application
+## Deploy the LangStream application
 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/python-function-exclamation -i examples/instances/kafka-kubernetes.yaml
+./bin/langstream apps deploy test -app examples/applications/python-function-exclamation -i examples/instances/kafka-kubernetes.yaml
 ```
 
 ## Start a Producer

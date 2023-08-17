@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "langstream.apiGatewayFullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "langstream.apiGatewayLabels" . | nindent 4 }}
+data:
+  APPLICATION_STORAGE_APPS_CONFIGURATION_NAMESPACEPREFIX: {{ .Values.tenants.namespacePrefix }}
+  APPLICATION_STORAGE_APPS_TYPE: {{ .Values.tenants.storageType }}
+{{- range $key, $val := $.Values.apiGateway.app.config }}
+  {{ $key | replace "-" "" | replace "\"" "." | snakecase | upper | replace "." "_"  }}: {{ $val | toString | replace "\"" "" | trim | quote }}
+{{- end }}

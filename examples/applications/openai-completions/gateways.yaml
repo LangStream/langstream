@@ -23,7 +23,7 @@ gateways:
       - sessionId
     produceOptions:
       headers:
-        - key: sga-client-session-id
+        - key: langstream-client-session-id
           valueFromParameters: sessionId
 
   - id: consume-output
@@ -34,7 +34,7 @@ gateways:
     consumeOptions:
       filters:
         headers:
-          - key: sga-client-session-id
+          - key: langstream-client-session-id
             valueFromParameters: sessionId
 
   - id: produce-input-auth
@@ -46,7 +46,7 @@ gateways:
         clientId: "{{ secrets.google.client-id }}"
     produceOptions:
       headers:
-        - key: sga-client-user-id
+        - key: langstream-client-user-id
           valueFromAuthentication: subject
 
   - id: consume-output-auth
@@ -59,6 +59,6 @@ gateways:
     consumeOptions:
       filters:
         headers:
-          - key: sga-client-user-id
+          - key: langstream-client-user-id
             valueFromAuthentication: subject
 

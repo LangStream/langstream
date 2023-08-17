@@ -218,7 +218,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         configuration.putAll(kafkaTopic.createConsumerConfiguration());
 
         // TODO: handle other configurations
-        configuration.computeIfAbsent("group.id", key -> "sga-agent-" + agentImplementation.getId());
+        configuration.computeIfAbsent("group.id", key -> "langstream-agent-" + agentImplementation.getId());
         configuration.computeIfAbsent("auto.offset.reset", key -> "earliest");
         return configuration;
     }

@@ -20,14 +20,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>com.datastax.oss</groupId>
-		<artifactId>streaming-gen-ai</artifactId>
+		<artifactId>langstream-ai</artifactId>
 		<version>0.0.2-SNAPSHOT</version>
 	</parent>
 	<groupId>com.datastax.oss</groupId>
 	<artifactId>webservice</artifactId>
 	<version>0.0.2-SNAPSHOT</version>
-	<name>Streaming GenAI - WebService</name>
-	<description>SGA Web Service</description>
+	<name>LangStream - WebService</name>
+	<description>LangStream Control Plane Web Service</description>
 	<properties>
 		<java.version>17</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -45,7 +45,7 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sga-pulsar</artifactId>
+			<artifactId>langstream-pulsar</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
@@ -54,7 +54,7 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sga-kafka</artifactId>
+			<artifactId>langstream-kafka</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
@@ -64,13 +64,13 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sga-codestorage-s3</artifactId>
+			<artifactId>langstream-codestorage-s3</artifactId>
 			<version>${project.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sga-k8s-runtime-core</artifactId>
+			<artifactId>langstream-k8s-runtime-core</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
@@ -237,7 +237,7 @@
 						</execution>
 					</executions>
 					<configuration>
-						<mainClass>ai.langstream.webservice.SgaWebApplication</mainClass>
+						<mainClass>ai.langstream.webservice.LangStreamControlPlaneWebApplication</mainClass>
 					</configuration>
 				</plugin>
 			</plugins>
@@ -262,7 +262,7 @@
 						</platforms>
 					</from>
 					<to>
-						<image>datastax/sga-control-plane:latest-dev</image>
+						<image>datastax/langstream-control-plane:latest-dev</image>
 					</to>
 					<container>
 						<entrypoint>

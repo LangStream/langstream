@@ -16,4 +16,4 @@
 # limitations under the License.
 #
 
-exec java ${JAVA_OPTS} -cp "/app/lib/*" "com.datastax.oss.sga.runtime.Main" "$@"
+exec java ${JAVA_OPTS} -cp "/app/lib/*" "ai.langstream.runtime.Main" "$@"

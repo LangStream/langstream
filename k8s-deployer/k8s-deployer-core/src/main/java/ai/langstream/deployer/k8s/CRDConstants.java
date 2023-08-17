@@ -20,16 +20,16 @@ import java.util.regex.Pattern;
 public class CRDConstants {
 
     public static final String COMMON_LABEL_APP = "app";
-    public static final String APP_LABEL_APPLICATION = "sga-application";
-    public static final String APP_LABEL_SCOPE = "sga-scope";
+    public static final String APP_LABEL_APPLICATION = "langstream-application";
+    public static final String APP_LABEL_SCOPE = "langstream-scope";
     public static final String APP_LABEL_SCOPE_DEPLOY = "deploy";
     public static final String APP_LABEL_SCOPE_DELETE = "delete";
-    public static final String AGENT_LABEL_APPLICATION = "sga-application";
-    public static final String AGENT_LABEL_AGENT_ID = "sga-agent";
+    public static final String AGENT_LABEL_APPLICATION = "langstream-application";
+    public static final String AGENT_LABEL_AGENT_ID = "langstream-agent";
 
 
-    public static final String JOB_PREFIX_CLEANUP = "sga-runtime-deployer-cleanup-";
-    public static final String JOB_PREFIX_DEPLOYER = "sga-runtime-deployer-";
+    public static final String JOB_PREFIX_CLEANUP = "langstream-runtime-deployer-cleanup-";
+    public static final String JOB_PREFIX_DEPLOYER = "langstream-runtime-deployer-";
 
     // 63 is the max length for a pod.
     // - 30 for the prefix

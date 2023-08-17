@@ -67,7 +67,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.putIfAbsent("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 
         copy.putIfAbsent("enable.auto.commit", "false");
-        copy.putIfAbsent("group.id", "sga-" + agentId);
+        copy.putIfAbsent("group.id", "langstream-" + agentId);
         copy.putIfAbsent("auto.offset.reset", "earliest");
 
         // producer

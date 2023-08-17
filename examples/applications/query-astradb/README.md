@@ -41,10 +41,10 @@ VALUES (
 [0.1, 0.15, 0.3, 0.12, 0.05] //item_vector
 );`
 
-## Deploy the SGA application
+## Deploy the LangStream application
 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/query-cassandra -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/query-cassandra -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Start a Producer

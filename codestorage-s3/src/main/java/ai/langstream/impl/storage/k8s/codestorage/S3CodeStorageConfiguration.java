@@ -26,7 +26,7 @@ import lombok.NoArgsConstructor;
 public class S3CodeStorageConfiguration {
     private String type;
     @JsonAlias({"bucketname", "bucket-name"})
-    private String bucketName = "sga-code-storage";
+    private String bucketName = "langstream-code-storage";
     private String endpoint = "s3.amazonaws.com";
     @JsonAlias({"accesskey", "access-key"})
     private String accessKey;

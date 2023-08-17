@@ -4,13 +4,13 @@ controlPlane:
     tag: "latest-dev"
   app:
     config:
-      logging.level.com.datastax.oss.sga: debug
+      logging.level.ai.langstream: debug
       application.storage.global.type: kubernetes
 
 deployer:
   replicaCount: 1
   image:
-    repository: datastax/sga-deployer
+    repository: datastax/langstream-deployer
     pullPolicy: Never
     tag: "latest-dev"
   app:
@@ -20,7 +20,7 @@ deployer:
 client:
   replicaCount: 1
   image:
-    repository: datastax/sga-cli
+    repository: datastax/langstream-cli
     pullPolicy: Never
     tag: "latest-dev"
 
@@ -30,7 +30,7 @@ apiGateway:
     tag: "latest-dev"
   app:
     config:
-      logging.level.com.datastax.oss.sga: debug
+      logging.level.ai.langstream: debug
 
 
 codeStorage:

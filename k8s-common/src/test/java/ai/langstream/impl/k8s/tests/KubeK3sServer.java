@@ -84,7 +84,7 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
         k3sContainer.withLogConsumer(
                 (Consumer<OutputFrame>) outputFrame -> log.debug("k3s> {}", outputFrame.getUtf8String().trim()));
         k3sContainer.start();
-        final Path tempFile = Files.createTempFile("sga-test-kube", ".yaml");
+        final Path tempFile = Files.createTempFile("langstream-test-kube", ".yaml");
         Files.write(tempFile,
                 k3sContainer.getKubeconfig().getBytes(StandardCharsets.UTF_8));
         System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
@@ -114,13 +114,13 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
             }
 
             try (final InputStream fin = Files.newInputStream(
-                    Path.of(basePath.toFile().getAbsolutePath(), "sga", "crds",
-                            "applications.sga.oss.datastax.com-v1.yml"))) {
+                    Path.of(basePath.toFile().getAbsolutePath(), "langstream", "crds",
+                            "applications.langstream.ai-v1.yml"))) {
                 client.load(fin).create();
             }
             try (final InputStream fin = Files.newInputStream(
-                    Path.of(basePath.toFile().getAbsolutePath(), "sga", "crds",
-                            "agents.sga.oss.datastax.com-v1.yml"))) {
+                    Path.of(basePath.toFile().getAbsolutePath(), "langstream", "crds",
+                            "agents.langstream.ai-v1.yml"))) {
                 client.load(fin).create();
             }
         }

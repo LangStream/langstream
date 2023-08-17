@@ -23,6 +23,6 @@ maven-build.properties
 
 .DS_Store
 
-sga-data
+langstream-data
 
 __pycache__

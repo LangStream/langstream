@@ -24,7 +24,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "logs",
-        description = "Get SGA application logs")
+        description = "Get LangStream application logs")
 public class GetApplicationLogsCmd extends BaseApplicationCmd {
 
     @CommandLine.Parameters(description = "Name of the application")

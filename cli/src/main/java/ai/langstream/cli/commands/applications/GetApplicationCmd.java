@@ -19,7 +19,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "get",
-        description = "Get SGA application status")
+        description = "Get LangStream application status")
 public class GetApplicationCmd extends BaseApplicationCmd {
 
     @CommandLine.Parameters(description = "Name of the application")

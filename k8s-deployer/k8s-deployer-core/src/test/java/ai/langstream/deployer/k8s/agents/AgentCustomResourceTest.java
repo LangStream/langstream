@@ -43,7 +43,7 @@ class AgentCustomResourceTest {
     @Test
     void testAggregatePodStatus() {
         final String tenant = genTenant();
-        final String namespace = "sga-%s".formatted(tenant);
+        final String namespace = "langstream-%s".formatted(tenant);
         final String agentId = "agent-id";
         final String applicationId = "my-app";
         deployAgent(tenant, namespace, agentId, applicationId);
@@ -77,7 +77,7 @@ class AgentCustomResourceTest {
         final String applicationId = "my-app2";
         final String agentId = "my-agent";
         final String tenant = genTenant();
-        final String namespace = "sga-" + tenant;
+        final String namespace = "langstream-" + tenant;
         deployAgent(tenant, namespace, agentId, applicationId);
         assertEquals(1, k3s.getClient().apps().statefulSets().inNamespace(namespace)
                 .list().getItems().size());
@@ -121,7 +121,7 @@ class AgentCustomResourceTest {
                 .inNamespace(namespace)
                 .serverSideApply();
         AgentCustomResource resource = getCr("""
-                apiVersion: sga.oss.datastax.com/v1alpha1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: %s

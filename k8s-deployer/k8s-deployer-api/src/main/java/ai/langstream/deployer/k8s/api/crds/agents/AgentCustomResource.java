@@ -25,7 +25,7 @@ import io.fabric8.kubernetes.model.annotation.Singular;
 import io.fabric8.kubernetes.model.annotation.Version;
 
 @Version("v1alpha1")
-@Group("sga.oss.datastax.com")
+@Group("langstream.ai")
 @Kind("Agent")
 @Singular("agent")
 @Plural("agents")

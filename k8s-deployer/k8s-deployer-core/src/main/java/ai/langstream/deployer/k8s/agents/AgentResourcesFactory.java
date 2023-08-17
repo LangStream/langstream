@@ -303,7 +303,7 @@ public class AgentResourcesFactory {
 
     public static Map<String, String> getAgentLabels(String agentId, String applicationId) {
         final Map<String, String> labels = Map.of(
-                CRDConstants.COMMON_LABEL_APP, "sga-runtime",
+                CRDConstants.COMMON_LABEL_APP, "langstream-runtime",
                 CRDConstants.AGENT_LABEL_AGENT_ID, agentId,
                 CRDConstants.AGENT_LABEL_APPLICATION, applicationId);
         return labels;
@@ -513,7 +513,7 @@ public class AgentResourcesFactory {
     public static List<String> getAgentPods(KubernetesClient client, String namespace, String applicationId) {
         return client.pods().inNamespace(namespace)
                 .withLabels(new TreeMap<>(Map.of(
-                                CRDConstants.COMMON_LABEL_APP, "sga-runtime",
+                                CRDConstants.COMMON_LABEL_APP, "langstream-runtime",
                                 CRDConstants.AGENT_LABEL_APPLICATION, applicationId)
                         )
                 )

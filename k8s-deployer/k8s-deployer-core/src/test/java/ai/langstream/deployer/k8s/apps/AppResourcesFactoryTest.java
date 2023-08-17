@@ -33,7 +33,7 @@ class AppResourcesFactoryTest {
     @Test
     void testJob() {
         final ApplicationCustomResource resource = getCr("""
-                apiVersion: sga.oss.datastax.com/v1alpha1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
                   name: test-'app
@@ -53,13 +53,13 @@ class AppResourcesFactoryTest {
                         kind: Job
                         metadata:
                           labels:
-                            app: sga-deployer
-                            sga-application: test-'app
-                            sga-scope: deploy
-                          name: sga-runtime-deployer-test-'app
+                            app: langstream-deployer
+                            langstream-application: test-'app
+                            langstream-scope: deploy
+                          name: langstream-runtime-deployer-test-'app
                           namespace: default
                           ownerReferences:
-                          - apiVersion: sga.oss.datastax.com/v1alpha1
+                          - apiVersion: langstream.ai/v1alpha1
                             kind: Application
                             blockOwnerDeletion: true
                             controller: true
@@ -69,9 +69,9 @@ class AppResourcesFactoryTest {
                           template:
                             metadata:
                               labels:
-                                app: sga-deployer
-                                sga-application: test-'app
-                                sga-scope: deploy
+                                app: langstream-deployer
+                                langstream-application: test-'app
+                                langstream-scope: deploy
                             spec:
                               containers:
                               - args:
@@ -128,13 +128,13 @@ class AppResourcesFactoryTest {
                         kind: Job
                         metadata:
                           labels:
-                            app: sga-deployer
-                            sga-application: test-'app
-                            sga-scope: delete
-                          name: sga-runtime-deployer-cleanup-test-'app
+                            app: langstream-deployer
+                            langstream-application: test-'app
+                            langstream-scope: delete
+                          name: langstream-runtime-deployer-cleanup-test-'app
                           namespace: default
                           ownerReferences:
-                          - apiVersion: sga.oss.datastax.com/v1alpha1
+                          - apiVersion: langstream.ai/v1alpha1
                             kind: Application
                             blockOwnerDeletion: true
                             controller: true
@@ -144,9 +144,9 @@ class AppResourcesFactoryTest {
                           template:
                             metadata:
                               labels:
-                                app: sga-deployer
-                                sga-application: test-'app
-                                sga-scope: delete
+                                app: langstream-deployer
+                                langstream-application: test-'app
+                                langstream-scope: delete
                             spec:
                               containers:
                               - args:
@@ -205,7 +205,7 @@ class AppResourcesFactoryTest {
     @ValueSource(booleans = {false, true})
     void testPodTemplate(boolean deleteJob) {
         final ApplicationCustomResource resource = getCr("""
-                apiVersion: sga.oss.datastax.com/v1alpha1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
                   name: test-'app
@@ -219,18 +219,18 @@ class AppResourcesFactoryTest {
                 """);
         final PodTemplate podTemplate = new PodTemplate(List.of(new TolerationBuilder()
                 .withEffect("NoSchedule")
-                .withValue("sga")
+                .withValue("langstream")
                 .withKey("workload")
-                .build()), Map.of("workload", "sga"));
+                .build()), Map.of("workload", "langstream"));
 
         Job job = AppResourcesFactory.generateJob(resource, Map.of(), deleteJob, podTemplate);
         final List<Toleration> tolerations = job.getSpec().getTemplate().getSpec().getTolerations();
         assertEquals(1, tolerations.size());
         final Toleration tol = tolerations.get(0);
         assertEquals("workload", tol.getKey());
-        assertEquals("sga", tol.getValue());
+        assertEquals("langstream", tol.getValue());
         assertEquals("NoSchedule", tol.getEffect());
-        assertEquals(Map.of("workload", "sga"), job.getSpec().getTemplate().getSpec().getNodeSelector());
+        assertEquals(Map.of("workload", "langstream"), job.getSpec().getTemplate().getSpec().getNodeSelector());
 
 
     }

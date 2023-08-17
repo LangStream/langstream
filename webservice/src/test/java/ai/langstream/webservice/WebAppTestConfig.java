@@ -35,12 +35,12 @@ public class WebAppTestConfig {
         return new StorageProperties(
                 new StorageProperties.AppsStoreProperties("kubernetes", Map.of(
                         "namespaceprefix",
-                        "sga-"
+                        "langstream-"
                 )),
                 new StorageProperties.GlobalMetadataStoreProperties("local",
                         Map.of(
                                 LocalStore.LOCAL_BASEDIR,
-                                Files.createTempDirectory("sga-test").toFile().getAbsolutePath()
+                                Files.createTempDirectory("langstream-test").toFile().getAbsolutePath()
                         )
                 ),
                 new StorageProperties.CodeStorageProperties()

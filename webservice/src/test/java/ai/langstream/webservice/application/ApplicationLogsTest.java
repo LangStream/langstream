@@ -70,7 +70,7 @@ class ApplicationLogsTest {
                 .build());
         k3s.getServer().expect()
                 .get()
-                .withPath("/api/v1/namespaces/sga-default/pods?labelSelector=app%3Dsga-runtime%2Csga-application%3Dtest")
+                .withPath("/api/v1/namespaces/langstream-default/pods?labelSelector=app%3Dlangstream-runtime%2Clangstream-application%3Dtest")
                 .andReply(
                         HttpURLConnection.HTTP_OK,
                         recordedRequest -> {

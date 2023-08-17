@@ -16,8 +16,8 @@
 #
 
 set -x
-minikube image load --overwrite datastax/sga-deployer:latest-dev
-minikube image load --overwrite datastax/sga-control-plane:latest-dev
-minikube image load --overwrite datastax/sga-runtime:latest-dev
-minikube image load --overwrite datastax/sga-api-gateway:latest-dev
-minikube image load --overwrite datastax/sga-cli:latest-dev
+minikube image load --overwrite datastax/langstream-deployer:latest-dev
+minikube image load --overwrite datastax/langstream-control-plane:latest-dev
+minikube image load --overwrite datastax/langstream-runtime:latest-dev
+minikube image load --overwrite datastax/langstream-api-gateway:latest-dev
+minikube image load --overwrite datastax/langstream-cli:latest-dev

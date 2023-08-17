@@ -209,7 +209,7 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
     public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
         PulsarTopic pulsarTopic = (PulsarTopic) inputConnectionImplementation;
         Map<String, Object> configuration = new HashMap<>();
-        configuration.computeIfAbsent("subscriptionName", key -> "sga-agent-" + agentImplementation.getId());
+        configuration.computeIfAbsent("subscriptionName", key -> "langstream-agent-" + agentImplementation.getId());
 
 
         configuration.put("topic", pulsarTopic.name().toPulsarName());

@@ -37,12 +37,12 @@ class AppsCmdTest extends CommandTestBase {
 
     @Test
     public void testDeploy() throws Exception {
-        Path sga = Files.createTempDirectory("sga");
-        final String app = createTempFile("module: module-1", sga);
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile = AbstractDeployApplicationCmd.buildZip(sga.toFile(), o -> System.out.println(o));
+        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), o -> System.out.println(o));
 
         wireMock.register(WireMock.post("/api/applications/%s/my-app"
                         .formatted(TENANT))
@@ -51,7 +51,7 @@ class AppsCmdTest extends CommandTestBase {
                 .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", sga.toAbsolutePath().toString(), "-i", instance);
+        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", langstream.toAbsolutePath().toString(), "-i", instance);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }
@@ -65,8 +65,8 @@ class AppsCmdTest extends CommandTestBase {
         wireMock.register(WireMock.get("/local/get-dependency.jar")
                 .willReturn(WireMock.ok(fileContent)));
 
-        Path sga = Files.createTempDirectory("sga");
-        Files.createDirectories(Path.of(sga.toFile().getAbsolutePath(), "java", "lib"));
+        Path langstream = Files.createTempDirectory("langstream");
+        Files.createDirectories(Path.of(langstream.toFile().getAbsolutePath(), "java", "lib"));
         final String configurationYamlContent = """
                 configuration:
                   dependencies:
@@ -75,13 +75,13 @@ class AppsCmdTest extends CommandTestBase {
                       sha512sum: "%s"
                       type: "java-library"
                 """.formatted(wireMockBaseUrl + "/local/get-dependency.jar", fileContentSha);
-        Files.write(Path.of(sga.toFile().getAbsolutePath(), "configuration.yaml"), configurationYamlContent.getBytes(StandardCharsets.UTF_8));
-        Files.write(Path.of(sga.toFile().getAbsolutePath(), "java", "lib", "get-dependency.jar"), fileContent.getBytes(StandardCharsets.UTF_8));
-        final String app = createTempFile("module: module-1", sga);
+        Files.write(Path.of(langstream.toFile().getAbsolutePath(), "configuration.yaml"), configurationYamlContent.getBytes(StandardCharsets.UTF_8));
+        Files.write(Path.of(langstream.toFile().getAbsolutePath(), "java", "lib", "get-dependency.jar"), fileContent.getBytes(StandardCharsets.UTF_8));
+        final String app = createTempFile("module: module-1", langstream);
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile = AbstractDeployApplicationCmd.buildZip(sga.toFile(), o -> System.out.println(o));
+        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), o -> System.out.println(o));
         wireMock.register(WireMock.post("/api/applications/%s/my-app"
                         .formatted(TENANT))
                 .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -89,7 +89,7 @@ class AppsCmdTest extends CommandTestBase {
                 .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", sga.toAbsolutePath().toString(), "-i", instance);
+        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", langstream.toAbsolutePath().toString(), "-i", instance);
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals(0, result.exitCode());
 
@@ -97,12 +97,12 @@ class AppsCmdTest extends CommandTestBase {
 
     @Test
     public void testUpdate() throws Exception {
-        Path sga = Files.createTempDirectory("sga");
-        final String app = createTempFile("module: module-1", sga);
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile = AbstractDeployApplicationCmd.buildZip(sga.toFile(), o -> System.out.println(o));
+        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), o -> System.out.println(o));
         wireMock.register(WireMock.put("/api/applications/%s/my-app"
                         .formatted(TENANT))
                 .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -110,7 +110,7 @@ class AppsCmdTest extends CommandTestBase {
                 .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result = executeCommand("apps", "update", "my-app", "-s", secrets, "-app", sga.toAbsolutePath().toString(), "-i", instance);
+        CommandResult result = executeCommand("apps", "update", "my-app", "-s", secrets, "-app", langstream.toAbsolutePath().toString(), "-i", instance);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }
@@ -481,12 +481,12 @@ class AppsCmdTest extends CommandTestBase {
                           "info" : {
                             "consumer" : {
                               "kafkaConsumerMetrics" : {
-                                "app-info[client-id=consumer-sga-agent-write-to-astra-sink-1-1]" : {
+                                "app-info[client-id=consumer-langstream-agent-write-to-astra-sink-1-1]" : {
                                   "commit-id" : "c97b88d5db4de28d",
                                   "start-time-ms" : 1692194882718,
                                   "version" : "3.5.0"
                                 },
-                                "consumer-coordinator-metrics[client-id=consumer-sga-agent-write-to-astra-sink-1-1]" : {
+                                "consumer-coordinator-metrics[client-id=consumer-langstream-agent-write-to-astra-sink-1-1]" : {
                                   "assigned-partitions" : 1.0,
                                   "commit-latency-avg" : "NaN",
                                   "commit-latency-max" : "NaN",
@@ -519,7 +519,7 @@ class AppsCmdTest extends CommandTestBase {
                                   "sync-time-max" : "NaN",
                                   "sync-total" : 1.0
                                 },
-                                "consumer-fetch-manager-metrics[client-id=consumer-sga-agent-write-to-astra-sink-1-1,topic=chunks-topic,partition=0]" : {
+                                "consumer-fetch-manager-metrics[client-id=consumer-langstream-agent-write-to-astra-sink-1-1,topic=chunks-topic,partition=0]" : {
                                   "preferred-read-replica" : -1,
                                   "records-lag" : 0.0,
                                   "records-lag-avg" : "NaN",
@@ -528,7 +528,7 @@ class AppsCmdTest extends CommandTestBase {
                                   "records-lead-avg" : "NaN",
                                   "records-lead-min" : "NaN"
                                 },
-                                "consumer-fetch-manager-metrics[client-id=consumer-sga-agent-write-to-astra-sink-1-1,topic=chunks-topic]" : {
+                                "consumer-fetch-manager-metrics[client-id=consumer-langstream-agent-write-to-astra-sink-1-1,topic=chunks-topic]" : {
                                   "bytes-consumed-rate" : 0.0,
                                   "bytes-consumed-total" : 0.0,
                                   "fetch-size-avg" : "NaN",
@@ -537,7 +537,7 @@ class AppsCmdTest extends CommandTestBase {
                                   "records-consumed-total" : 0.0,
                                   "records-per-request-avg" : "NaN"
                                 },
-                                "consumer-fetch-manager-metrics[client-id=consumer-sga-agent-write-to-astra-sink-1-1]" : {
+                                "consumer-fetch-manager-metrics[client-id=consumer-langstream-agent-write-to-astra-sink-1-1]" : {
                                   "bytes-consumed-rate" : 0.0,
                                   "bytes-consumed-total" : 0.0,
                                   "fetch-latency-avg" : 503.57798165137615,
@@ -554,7 +554,7 @@ class AppsCmdTest extends CommandTestBase {
                                   "records-lead-min" : "NaN",
                                   "records-per-request-avg" : "NaN"
                                 },
-                                "consumer-metrics[client-id=consumer-sga-agent-write-to-astra-sink-1-1]" : {
+                                "consumer-metrics[client-id=consumer-langstream-agent-write-to-astra-sink-1-1]" : {
                                   "commit-sync-time-ns-total" : 0.0,
                                   "committed-time-ns-total" : 0.0,
                                   "connection-close-rate" : 0.0,
@@ -600,7 +600,7 @@ class AppsCmdTest extends CommandTestBase {
                                   "time-between-poll-avg" : 1001.8695652173913,
                                   "time-between-poll-max" : 1019.0
                                 },
-                                "consumer-node-metrics[client-id=consumer-sga-agent-write-to-astra-sink-1-1,node-id=node--1]" : {
+                                "consumer-node-metrics[client-id=consumer-langstream-agent-write-to-astra-sink-1-1,node-id=node--1]" : {
                                   "incoming-byte-rate" : 0.0,
                                   "incoming-byte-total" : 730.0,
                                   "outgoing-byte-rate" : 0.0,
@@ -614,7 +614,7 @@ class AppsCmdTest extends CommandTestBase {
                                   "response-rate" : 0.0,
                                   "response-total" : 3.0
                                 },
-                                "consumer-node-metrics[client-id=consumer-sga-agent-write-to-astra-sink-1-1,node-id=node-0]" : {
+                                "consumer-node-metrics[client-id=consumer-langstream-agent-write-to-astra-sink-1-1,node-id=node-0]" : {
                                   "incoming-byte-rate" : 41.95150559903231,
                                   "incoming-byte-total" : 250347.0,
                                   "outgoing-byte-rate" : 163.80343587694765,
@@ -628,7 +628,7 @@ class AppsCmdTest extends CommandTestBase {
                                   "response-rate" : 1.9976175203885276,
                                   "response-total" : 11761.0
                                 },
-                                "consumer-node-metrics[client-id=consumer-sga-agent-write-to-astra-sink-1-1,node-id=node-2147483647]" : {
+                                "consumer-node-metrics[client-id=consumer-langstream-agent-write-to-astra-sink-1-1,node-id=node-2147483647]" : {
                                   "incoming-byte-rate" : 5.440870539286286,
                                   "incoming-byte-total" : 32631.0,
                                   "outgoing-byte-rate" : 59.432840889794534,
@@ -642,7 +642,7 @@ class AppsCmdTest extends CommandTestBase {
                                   "response-rate" : 0.3400544087053929,
                                   "response-total" : 1981.0
                                 },
-                                "kafka-metrics-count[client-id=consumer-sga-agent-write-to-astra-sink-1-1]" : {
+                                "kafka-metrics-count[client-id=consumer-langstream-agent-write-to-astra-sink-1-1]" : {
                                   "count" : 144.0
                                 }
                               }

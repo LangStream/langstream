@@ -157,7 +157,7 @@ public class AppResourcesFactory {
 
     public static Map<String, String> getLabels(boolean delete, String applicationId) {
         final Map<String, String> labels = Map.of(
-                CRDConstants.COMMON_LABEL_APP, "sga-deployer",
+                CRDConstants.COMMON_LABEL_APP, "langstream-deployer",
                 CRDConstants.APP_LABEL_APPLICATION, applicationId,
                 CRDConstants.APP_LABEL_SCOPE, delete ? CRDConstants.APP_LABEL_SCOPE_DELETE : CRDConstants.APP_LABEL_SCOPE_DEPLOY);
         return labels;

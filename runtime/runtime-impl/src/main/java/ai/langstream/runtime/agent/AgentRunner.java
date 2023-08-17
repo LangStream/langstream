@@ -64,7 +64,7 @@ import static ai.langstream.api.model.ErrorsSpec.FAIL;
 import static ai.langstream.api.model.ErrorsSpec.SKIP;
 
 /**
- * This is the main entry point for the pods that run the SGA runtime and Java code.
+ * This is the main entry point for the pods that run the LangStream runtime and Java code.
  */
 @Slf4j
 public class AgentRunner

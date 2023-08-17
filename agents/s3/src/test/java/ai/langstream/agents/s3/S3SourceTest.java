@@ -64,7 +64,7 @@ public class S3SourceTest {
 
     @Test
     void testRead() throws Exception {
-        String bucket = "sga-test-" + UUID.randomUUID();
+        String bucket = "langstream-test-" + UUID.randomUUID();
         AgentSource agentSource = buildAgentSource(bucket);
         String content = "test-content-";
         for (int i = 0; i < 10; i++) {
@@ -119,7 +119,7 @@ public class S3SourceTest {
 
     @Test
     void emptyBucket() throws Exception {
-        String bucket = "sga-test-" + UUID.randomUUID();
+        String bucket = "langstream-test-" + UUID.randomUUID();
         AgentSource agentSource = buildAgentSource(bucket);
         assertFalse(minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build()).iterator().hasNext());
         agentSource.commit(List.of());
@@ -133,7 +133,7 @@ public class S3SourceTest {
 
     @Test
     void commitNonExistent() throws Exception {
-        String bucket = "sga-test-" + UUID.randomUUID();
+        String bucket = "langstream-test-" + UUID.randomUUID();
         AgentSource agentSource = buildAgentSource(bucket);
         String content = "test-content";
         minioClient.putObject(

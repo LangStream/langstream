@@ -33,7 +33,7 @@ class AgentResourcesFactoryTest {
     @Test
     void testStatefulset() {
         final AgentCustomResource resource = getCr("""
-                apiVersion: sga.oss.datastax.com/v1alpha1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: test-agent1
@@ -55,13 +55,13 @@ class AgentResourcesFactoryTest {
                         kind: StatefulSet
                         metadata:
                           labels:
-                            app: sga-runtime
-                            sga-agent: my-agent
-                            sga-application: the-'app
+                            app: langstream-runtime
+                            langstream-agent: my-agent
+                            langstream-application: the-'app
                           name: test-agent1
                           namespace: default
                           ownerReferences:
-                          - apiVersion: sga.oss.datastax.com/v1alpha1
+                          - apiVersion: langstream.ai/v1alpha1
                             kind: Agent
                             blockOwnerDeletion: true
                             controller: true
@@ -71,18 +71,18 @@ class AgentResourcesFactoryTest {
                           replicas: 1
                           selector:
                             matchLabels:
-                              app: sga-runtime
-                              sga-agent: my-agent
-                              sga-application: the-'app
+                              app: langstream-runtime
+                              langstream-agent: my-agent
+                              langstream-application: the-'app
                           serviceName: test-agent1
                           template:
                             metadata:
                               annotations:
                                 ai.langstream/config-checksum: xx
                               labels:
-                                app: sga-runtime
-                                sga-agent: my-agent
-                                sga-application: the-'app
+                                app: langstream-runtime
+                                langstream-agent: my-agent
+                                langstream-application: the-'app
                             spec:
                               containers:
                               - args:
@@ -156,7 +156,7 @@ class AgentResourcesFactoryTest {
     @Test
     void testResources() {
         final AgentCustomResource resource = getCr("""
-                apiVersion: sga.oss.datastax.com/v1alpha1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: test-agent1
@@ -186,7 +186,7 @@ class AgentResourcesFactoryTest {
     @Test
     void testPodTemplate() {
         final AgentCustomResource resource = getCr("""
-                apiVersion: sga.oss.datastax.com/v1alpha1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: test-agent1
@@ -202,9 +202,9 @@ class AgentResourcesFactoryTest {
                 """);
         final PodTemplate podTemplate = new PodTemplate(List.of(new TolerationBuilder()
                 .withEffect("NoSchedule")
-                .withValue("sga")
+                .withValue("langstream")
                 .withKey("workload")
-                .build()), Map.of("workload", "sga"));
+                .build()), Map.of("workload", "langstream"));
         final StatefulSet statefulSet =
                 AgentResourcesFactory.generateStatefulSet(resource, Map.of(), new AgentResourceUnitConfiguration(),
                         podTemplate);
@@ -212,9 +212,9 @@ class AgentResourcesFactoryTest {
         assertEquals(1, tolerations.size());
         final Toleration tol = tolerations.get(0);
         assertEquals("workload", tol.getKey());
-        assertEquals("sga", tol.getValue());
+        assertEquals("langstream", tol.getValue());
         assertEquals("NoSchedule", tol.getEffect());
-        assertEquals(Map.of("workload", "sga"), statefulSet.getSpec().getTemplate().getSpec().getNodeSelector());
+        assertEquals(Map.of("workload", "langstream"), statefulSet.getSpec().getTemplate().getSpec().getNodeSelector());
 
     }
     private AgentCustomResource getCr(String yaml) {

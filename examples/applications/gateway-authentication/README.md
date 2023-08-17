@@ -38,7 +38,7 @@ secrets:
 Deploy the application
 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/gateway-authentication -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/gateway-authentication -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
 ```
 
 ## Start the echo chat-bot without authentication
@@ -47,7 +47,7 @@ Since the application opens a gateway, we can use the gateway API to send and co
 You have to pass a sessionId to the gateway, it will be used to identify the user.
 
 ```
-./bin/sga-cli gateway chat test -cg consume-output-no-auth -pg produce-input-no-auth -p sessionId=$(uuidgen)
+./bin/langstream gateway chat test -cg consume-output-no-auth -pg produce-input-no-auth -p sessionId=$(uuidgen)
 ```
 
 ## Get the user credentials using Google Sign In
@@ -81,7 +81,7 @@ it depends on your application.
 
 ```
 google_token=the-token-you-got-above
-./bin/sga-cli gateway chat test -cg consume-output-auth-google -pg produce-input-auth-google -p sessionId=$(uuidgen) -c "$google_token"
+./bin/langstream gateway chat test -cg consume-output-auth-google -pg produce-input-auth-google -p sessionId=$(uuidgen) -c "$google_token"
 ```
 
 ## Setting up GitHub authentication
@@ -113,7 +113,7 @@ secrets:
 Deploy the application
 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/gateway-authentication -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/gateway-authentication -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
 ```
 
 ## Get the GitHub token
@@ -130,6 +130,6 @@ Then you can fill in the form with the client id and the secret and you will hav
 ## Start the echo chat-bot with GitHub authentication
 ```
 github_token=the-token-you-got-above
-./bin/sga-cli gateway chat test -cg consume-output-auth-github -pg produce-input-auth-github -p sessionId=$(uuidgen) -c "$github_token"
+./bin/langstream gateway chat test -cg consume-output-auth-github -pg produce-input-auth-github -p sessionId=$(uuidgen) -c "$github_token"
 ```
 

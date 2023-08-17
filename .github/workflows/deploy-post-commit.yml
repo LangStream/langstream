@@ -68,8 +68,8 @@ jobs:
             docker tag datastax/$image:latest-dev $repo/$image:latest
             docker push $repo/$image:latest
           }
-          tag_and_push sga-runtime
-          tag_and_push sga-cli
-          tag_and_push sga-deployer
-          tag_and_push sga-control-plane
-          tag_and_push sga-api-gateway
+          tag_and_push langstream-runtime
+          tag_and_push langstream-cli
+          tag_and_push langstream-deployer
+          tag_and_push langstream-control-plane
+          tag_and_push langstream-api-gateway

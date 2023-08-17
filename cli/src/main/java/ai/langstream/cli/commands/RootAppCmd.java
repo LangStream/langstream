@@ -23,7 +23,7 @@ import ai.langstream.cli.commands.applications.ListApplicationCmd;
 import lombok.Getter;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "apps", mixinStandardHelpOptions = true, description = "Manage SGA applications",
+@CommandLine.Command(name = "apps", mixinStandardHelpOptions = true, description = "Manage LangStream applications",
         subcommands = {
                 AbstractDeployApplicationCmd.DeployApplicationCmd.class,
                 AbstractDeployApplicationCmd.UpdateApplicationCmd.class,

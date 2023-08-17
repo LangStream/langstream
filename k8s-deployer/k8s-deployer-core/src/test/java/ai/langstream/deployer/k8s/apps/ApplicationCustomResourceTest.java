@@ -86,7 +86,7 @@ class ApplicationCustomResourceTest {
     @ValueSource(booleans = {true, false})
     void testJobsBeingDeleted(boolean isDeleteJob) {
         final String tenant = genTenant();
-        final String namespace = "sga-%s".formatted(tenant);
+        final String namespace = "langstream-%s".formatted(tenant);
         final String applicationId = "my-app";
         final ApplicationCustomResource cr =
                 deployApp(tenant, applicationId, isDeleteJob);
@@ -111,7 +111,7 @@ class ApplicationCustomResourceTest {
 
 
     private ApplicationCustomResource deployApp(String tenant, String applicationId, boolean deleteJob) {
-        final String namespace = "sga-%s".formatted(tenant);
+        final String namespace = "langstream-%s".formatted(tenant);
         final Namespace namespaceResource = new NamespaceBuilder()
                 .withNewMetadata().withName(namespace).endMetadata().build();
         k3s.getClient().resource(namespaceResource).serverSideApply();
@@ -125,7 +125,7 @@ class ApplicationCustomResourceTest {
                 .inNamespace(namespace)
                 .serverSideApply();
         ApplicationCustomResource resource = getCr("""
-                apiVersion: sga.oss.datastax.com/v1alpha1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
                   name: %s

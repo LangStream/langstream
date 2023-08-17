@@ -27,7 +27,7 @@ secrets:
 ```
 ## 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/openai-completions -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/openai-completions -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
 ```
 
 ## Produce a message
@@ -35,13 +35,13 @@ Since the application opens a gateway, we can use the gateway API to send and co
 
 ```
 session="$(uuidgen)"
-./bin/sga-cli gateway produce test produce-input -p sessionId="$session" -v "Barack Obama"
-./bin/sga-cli gateway consume test consume-output -p sessionId="$session"
+./bin/langstream gateway produce test produce-input -p sessionId="$session" -v "Barack Obama"
+./bin/langstream gateway consume test consume-output -p sessionId="$session"
 ```
 
 Another approach to test values is to use gateway `chat` CLI feature:
 ```
-./bin/sga-cli gateway chat test -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
+./bin/langstream gateway chat test -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
 ```
 
 
@@ -52,8 +52,8 @@ In this case there's no need to create a session since the session will be per-u
 
 ```
 google_token=xxx
-./bin/sga-cli gateway produce test produce-input-auth -c "$google_token" -v "Barack Obama"
-./bin/sga-cli gateway consume test consume-output-auth -c "$google_token"
+./bin/langstream gateway produce test produce-input-auth -c "$google_token" -v "Barack Obama"
+./bin/langstream gateway consume test consume-output-auth -c "$google_token"
 ```
 
 

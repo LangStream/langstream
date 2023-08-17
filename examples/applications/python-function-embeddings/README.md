@@ -17,7 +17,7 @@ secrets:
 ```
 ## 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/python-function-embeddings -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/python-function-embeddings -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
 ```
 
 ## Start a Producer

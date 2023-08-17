@@ -47,7 +47,7 @@ echo "
                                               |___/
 "
 
-echo "Installing $(tput setaf 6)Streaming GenAI CLI$(tput setaf 7) please wait...      "
+echo "Installing $(tput setaf 6)LangStream CLI$(tput setaf 7) please wait...      "
 # Local installation
 BIN_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ROOT_DIR=$( cd -P "$( dirname "$BIN_DIR" )" >/dev/null 2>&1 && pwd )
@@ -57,19 +57,19 @@ ZIP_DOWNLOAD_URL="${1:-$DEFAULT_ZIP}"
 candidate_base_name=$(basename $ZIP_DOWNLOAD_URL)
 
 
-sga_root_dir="$HOME/.sga"
-mkdir -p $sga_root_dir
-sga_downloads_dir="$sga_root_dir/downloads"
-mkdir -p $sga_downloads_dir
-sga_candidates_dir="$sga_root_dir/candidates"
-mkdir -p $sga_candidates_dir
+langstream_root_dir="$HOME/.langstream"
+mkdir -p $langstream_root_dir
+langstream_downloads_dir="$langstream_root_dir/downloads"
+mkdir -p $langstream_downloads_dir
+langstream_candidates_dir="$langstream_root_dir/candidates"
+mkdir -p $langstream_candidates_dir
 
-sga_current_symlink="$sga_candidates_dir/current"
-mkdir -p $sga_candidates_dir
+langstream_current_symlink="$langstream_candidates_dir/current"
+mkdir -p $langstream_candidates_dir
 
-downloaded_zip_path=$sga_downloads_dir/$candidate_base_name
+downloaded_zip_path=$langstream_downloads_dir/$candidate_base_name
 downloaded_extracted_dir=${ZIP_DOWNLOAD_URL//\.zip}
-downloaded_extracted_path="$sga_candidates_dir/$(basename $downloaded_extracted_dir)"
+downloaded_extracted_path="$langstream_candidates_dir/$(basename $downloaded_extracted_dir)"
 
 darwin=false
 case "$(uname)" in
@@ -124,20 +124,20 @@ echo "$(tput setaf 2)[OK]$(tput setaf 7) - Integrity of the archive checked"
 
 echo ""
 echo "$(tput setaf 6)Extracting and installation:$(tput setaf 7)"
-unzip -qo "$downloaded_zip_path" -d "$sga_candidates_dir"
+unzip -qo "$downloaded_zip_path" -d "$langstream_candidates_dir"
 echo "$(tput setaf 2)[OK]$(tput setaf 7) - Extraction is successful"
 
-rm -rf $sga_current_symlink
-ln -s $downloaded_extracted_path $sga_current_symlink
+rm -rf $langstream_current_symlink
+ln -s $downloaded_extracted_path $langstream_current_symlink
 
-echo "$(tput setaf 2)[OK]$(tput setaf 7) - Streaming GenAI CLI installed at $sga_candidates_dir"
+echo "$(tput setaf 2)[OK]$(tput setaf 7) - LangStream CLI installed at $langstream_candidates_dir"
 
 function inject_if_not_found() {
     local file=$1
     touch "$file"
-    if [[ -z $(grep 'sga/candidates' "$file") ]]; then
+    if [[ -z $(grep 'langstream/candidates' "$file") ]]; then
         echo -e "\n$init_snipped" >> "$file"
-        echo "$(tput setaf 2)[OK]$(tput setaf 7) - sga bin added to ${file}"
+        echo "$(tput setaf 2)[OK]$(tput setaf 7) - langstream bin added to ${file}"
     fi
 }
 
@@ -147,8 +147,8 @@ bash_profile="${HOME}/.bash_profile"
 bashrc="${HOME}/.bashrc"
 zshrc="${ZDOTDIR:-${HOME}}/.zshrc"
 init_snipped=$( cat << EOF
-export PATH=\$PATH:$sga_current_symlink/bin
-source <(sga generate-completion)
+export PATH=\$PATH:$langstream_current_symlink/bin
+source <(langstream generate-completion)
 EOF
 )
 
@@ -163,6 +163,6 @@ if [[ -s "$zshrc" ]]; then
 fi
 
 echo "$(tput setaf 2)[OK]$(tput setaf 7) - Installation Successful"
-echo "Open $(tput setaf 2)a new terminal$(tput setaf 7) and run: $(tput setaf 3)sga$(tput setaf 7)"
+echo "Open $(tput setaf 2)a new terminal$(tput setaf 7) and run: $(tput setaf 3)langstream$(tput setaf 7)"
 echo ""
 echo "You can close this window."

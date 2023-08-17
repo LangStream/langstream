@@ -45,11 +45,11 @@ class KubernetesApplicationStoreLogsTest {
     @Test
     void testLogs() {
         final KubernetesApplicationStore store = new KubernetesApplicationStore();
-        store.initialize(Map.of("namespaceprefix", "sga-", "deployer-runtime", Map.of("image", "busybox", "image-pull-policy", "IfNotPresent")));
+        store.initialize(Map.of("namespaceprefix", "langstream-", "deployer-runtime", Map.of("image", "busybox", "image-pull-policy", "IfNotPresent")));
         store.onTenantCreated("mytenant");
         AgentCustomResource cr = agentCustomResource("mytenant", "myapp");
-        k3s.getClient().resource(cr).inNamespace("sga-mytenant").serverSideApply();
-        cr = k3s.getClient().resource(cr).inNamespace("sga-mytenant").get();
+        k3s.getClient().resource(cr).inNamespace("langstream-mytenant").serverSideApply();
+        cr = k3s.getClient().resource(cr).inNamespace("langstream-mytenant").get();
         final StatefulSet sts = AgentResourcesFactory.generateStatefulSet(
                 cr,
                 Map.of(),
@@ -60,7 +60,7 @@ class KubernetesApplicationStoreLogsTest {
                         .setCommand(List.of("sh", "-c"));
         sts.getSpec().getTemplate().getSpec().getContainers().get(0)
                 .setArgs(List.of("while true; do echo 'hello'; sleep 1000000; done"));
-        k3s.getClient().resource(sts).inNamespace("sga-mytenant").serverSideApply();
+        k3s.getClient().resource(sts).inNamespace("langstream-mytenant").serverSideApply();
 
         Awaitility.await().untilAsserted(() -> {
             final List<ApplicationStore.PodLogHandler> podHandlers =
@@ -113,11 +113,11 @@ class KubernetesApplicationStoreLogsTest {
                                 agentId, "my-app", "fn-type", Map.of("config", true), Map.of()),
                         new StreamingCluster("noop", Map.of("config", true))
                 )))
-                .inNamespace("sga-" + tenant)
+                .inNamespace("langstream-" + tenant)
                 .serverSideApply();
 
         return SerializationUtil.readYaml("""
-                apiVersion: sga.oss.datastax.com/v1alpha1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: %s

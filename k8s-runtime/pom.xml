@@ -19,13 +19,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>com.datastax.oss</groupId>
-    <artifactId>streaming-gen-ai</artifactId>
+    <artifactId>langstream-ai</artifactId>
     <version>0.0.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>sga-k8s-runtime</artifactId>
+  <artifactId>langstream-k8s-runtime</artifactId>
   <packaging>pom</packaging>
-  <name>Streaming GenAI - Kubernetes compute ClusterRuntime</name>
+  <name>LangStream - Kubernetes compute ClusterRuntime</name>
 
   <modules>
     <module>k8s-runtime-core</module>

@@ -66,7 +66,7 @@ jobs:
       - name: 'Test: Runtime'
         if: ${{ matrix.name == 'Runtime' }}
         run: |
-          ./mvnw verify -pl ":sga-runtime-impl" -Pdocker
+          ./mvnw verify -pl ":langstream-runtime-impl" -Pdocker
 
       - name: 'Test: Api Gateway'
         if: ${{ matrix.name == 'Api Gateway' }}

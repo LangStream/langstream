@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class AbstractKubernetesGenericStore<T extends HasMetadata> implements GenericStore {
 
     protected static final ObjectMapper mapper = new ObjectMapper();
-    protected static final String PREFIX = "sga-";
+    protected static final String PREFIX = "langstream-";
 
     private static String resourceName(String key) {
         return PREFIX + key;
@@ -59,7 +59,7 @@ public abstract class AbstractKubernetesGenericStore<T extends HasMetadata> impl
         final T resource = createResource(key, value);
         final ObjectMeta metadata = new ObjectMetaBuilder()
                 .withName(resourceName(key))
-                .withLabels(Map.of("app", "sga", "sga-key", key))
+                .withLabels(Map.of("app", "langstream", "langstream-key", key))
                 .build();
         resource.setMetadata(metadata);
         getClient().resource(resource).inNamespace(namespace).serverSideApply();
@@ -83,9 +83,9 @@ public abstract class AbstractKubernetesGenericStore<T extends HasMetadata> impl
 
     @SneakyThrows
     protected LinkedHashMap<String, String> listInNamespace(String namespace) {
-        return operation().inNamespace(namespace).withLabel("app", "sga").list().getItems().stream()
-                .collect(Collectors.toMap(cf -> cf.getMetadata().getLabels().get("sga-key"),
-                        cf -> get(cf.getMetadata().getLabels().get("sga-key"), cf), (a, b) -> b, LinkedHashMap::new));
+        return operation().inNamespace(namespace).withLabel("app", "langstream").list().getItems().stream()
+                .collect(Collectors.toMap(cf -> cf.getMetadata().getLabels().get("langstream-key"),
+                        cf -> get(cf.getMetadata().getLabels().get("langstream-key"), cf), (a, b) -> b, LinkedHashMap::new));
     }
 
 }

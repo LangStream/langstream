@@ -20,10 +20,10 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.datastax.oss</groupId>
-  <artifactId>streaming-gen-ai</artifactId>
+  <artifactId>langstream-ai</artifactId>
   <version>0.0.2-SNAPSHOT</version>
-  <name>Streaming GenAI</name>
-  <description>Streaming GenAI is a library to build GenAI applications based on Streaming</description>
+  <name>LangStream</name>
+  <description>LangStream is a library to build GenAI applications based on Streaming</description>
   <packaging>pom</packaging>
 
   <properties>
@@ -72,9 +72,9 @@
   </properties>
 
   <scm>
-    <connection>scm:git:git@github.com:riptano/streaming-gen-ai.git</connection>
-    <developerConnection>scm:git:git@github.com:riptano/streaming-gen-ai.git</developerConnection>
-    <url>https://github.com/riptano/streaming-gen-ai</url>
+    <connection>scm:git:git@github.com:riptano/langstream-ai.git</connection>
+    <developerConnection>scm:git:git@github.com:riptano/langstream-ai.git</developerConnection>
+    <url>https://github.com/riptano/langstream-ai</url>
     <tag>HEAD</tag>
   </scm>
 
@@ -468,7 +468,7 @@
               <header>./license-header.txt</header>
               <excludes>
                 <exclude>LICENSE</exclude>
-                <exclude>**/sga-cli</exclude>
+                <exclude>**/langstream</exclude>
                 <exclude>license-header.txt</exclude>
                 <exclude>**/requirements.txt</exclude>
                 <exclude>**/target/**</exclude>

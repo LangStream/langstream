@@ -57,7 +57,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
-        bucketName = configuration.getOrDefault("bucketName", "sga-source").toString();
+        bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
         String endpoint = configuration.getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090").toString();
         String username =  configuration.getOrDefault("access-key", "minioadmin").toString();
         String password =  configuration.getOrDefault("secret-key", "minioadmin").toString();

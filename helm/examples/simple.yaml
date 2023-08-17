@@ -1,17 +1,17 @@
 controlPlane:
   image:
-    repository: public.ecr.aws/y3i6u2n7/datastax-public/sga-control-plane
+    repository: public.ecr.aws/y3i6u2n7/datastax-public/langstream-control-plane
     pullPolicy: IfNotPresent
     tag: 0.0.1-alpha
   app:
     config:
-      logging.level.com.datastax.oss.sga: debug
+      logging.level.ai.langstream: debug
       application.storage.global.type: kubernetes
 
 deployer:
   replicaCount: 1
   image:
-    repository: public.ecr.aws/y3i6u2n7/datastax-public/sga-deployer
+    repository: public.ecr.aws/y3i6u2n7/datastax-public/langstream-deployer
     pullPolicy: IfNotPresent
     tag: 0.0.1-alpha
   app:
@@ -20,21 +20,21 @@ deployer:
 client:
   replicaCount: 1
   image:
-    repository: public.ecr.aws/y3i6u2n7/datastax-public/sga-cli
+    repository: public.ecr.aws/y3i6u2n7/datastax-public/langstream-cli
     pullPolicy: IfNotPresent
     tag: 0.0.1-alpha
 
 apiGateway:
   image:
-    repository: public.ecr.aws/y3i6u2n7/datastax-public/sga-api-gateway
+    repository: public.ecr.aws/y3i6u2n7/datastax-public/langstream-api-gateway
     pullPolicy: IfNotPresent
     tag: 0.0.1-alpha
   app:
     config:
-      logging.level.com.datastax.oss.sga: debug
+      logging.level.ai.langstream: debug
 
 runtime:
-  image: public.ecr.aws/y3i6u2n7/datastax-public/sga-runtime:0.0.1-alpha
+  image: public.ecr.aws/y3i6u2n7/datastax-public/langstream-runtime:0.0.1-alpha
   imagePullPolicy: IfNotPresent
 
 codeStorage:

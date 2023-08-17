@@ -94,7 +94,7 @@ public class S3CodeStorage implements CodeStorage {
                                                     UploadableCodeArchive codeArchive) throws CodeStorageException {
 
         try {
-            Path tempFile = Files.createTempFile("sga", "upload");
+            Path tempFile = Files.createTempFile("langstream", "upload");
             try {
                 Files.copy(codeArchive.getData(), tempFile, StandardCopyOption.REPLACE_EXISTING);
                 String codeStoreId = tenant + "_" + applicationId + "_" + version + "_" + UUID.randomUUID();
@@ -103,9 +103,9 @@ public class S3CodeStorage implements CodeStorage {
 
                 minioClient.uploadObject(
                         UploadObjectArgs.builder()
-                                .userMetadata(Map.of("sga-tenant", tenant,
-                                        "sga-application", applicationId,
-                                        "sga-version", version))
+                                .userMetadata(Map.of("langstream-tenant", tenant,
+                                        "langstream-application", applicationId,
+                                        "langstream-version", version))
                                 .bucket(bucketName)
                                 .object(tenant + "/" + codeStoreId)
                                 .contentType("application/zip")
@@ -127,7 +127,7 @@ public class S3CodeStorage implements CodeStorage {
     public void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive)
             throws CodeStorageException {
         try {
-            Path tempFile = Files.createTempDirectory("sga-download-code");
+            Path tempFile = Files.createTempDirectory("langstream-download-code");
             Path zipFile = tempFile.resolve("code.zip");
             try {
                 minioClient.downloadObject(DownloadObjectArgs.builder()

@@ -63,9 +63,9 @@ class KubernetesClusterRuntimeDockerTest {
     private ApplicationDeployer getDeployer() {
         final KubernetesClusterRuntimeConfiguration config =
                 new KubernetesClusterRuntimeConfiguration();
-        config.setImage("datastax/sga-generic-agent:latest");
+        config.setImage("datastax/langstream-generic-agent:latest");
         config.setImagePullPolicy("Never");
-        config.setNamespacePrefix("sga-");
+        config.setNamespacePrefix("langstream-");
 
         @Cleanup ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
@@ -79,9 +79,9 @@ class KubernetesClusterRuntimeDockerTest {
     @Test
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
         final String tenant = "tenant";
-        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("sga-" + tenant, "app-step1");
+        final Map<String, AgentCustomResource> agentsCRs = kubeServer.spyAgentCustomResources("langstream-" + tenant, "app-step1");
         final Map<String, io.fabric8.kubernetes.api.model.Secret> secrets =
-                kubeServer.spyAgentCustomResourcesSecrets("sga-" + tenant, "app-step1");
+                kubeServer.spyAgentCustomResourcesSecrets("langstream-" + tenant, "app-step1");
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of(
                         "configuration.yaml",
@@ -154,7 +154,7 @@ class KubernetesClusterRuntimeDockerTest {
         final AgentCustomResource agent = agentsCRs.values().iterator().next();
 
         assertEquals(tenant, agent.getSpec().getTenant());
-        assertEquals("datastax/sga-generic-agent:latest", agent.getSpec().getImage());
+        assertEquals("datastax/langstream-generic-agent:latest", agent.getSpec().getImage());
         assertEquals("Never", agent.getSpec().getImagePullPolicy());
         assertEquals("step1", agent.getSpec().getAgentId());
         assertEquals("app", agent.getSpec().getApplicationId());
@@ -164,7 +164,7 @@ class KubernetesClusterRuntimeDockerTest {
         final RuntimePodConfiguration runtimePodConfiguration =
                 AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secrets.values().iterator().next());
         assertEquals(Map.of("auto.offset.reset", "earliest",
-                "group.id", "sga-agent-step1",
+                "group.id", "langstream-agent-step1",
                 "topic", "input-topic",
                 "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
                 "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer"),

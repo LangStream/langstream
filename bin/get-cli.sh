@@ -52,7 +52,8 @@ echo "Installing $(tput setaf 6)LangStream CLI$(tput setaf 7) please wait...    
 BIN_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ROOT_DIR=$( cd -P "$( dirname "$BIN_DIR" )" >/dev/null 2>&1 && pwd )
 echo "ROOT_DIR: $ROOT_DIR"
-DEFAULT_ZIP="file://$ROOT_DIR/cli/target/cli-0.0.1-SNAPSHOT.zip"
+DEFAULT_ZIP="file://$(realpath $ROOT_DIR/cli/target/cli-*-SNAPSHOT.zip)"
+echo $DEFAULT_ZIP
 ZIP_DOWNLOAD_URL="${1:-$DEFAULT_ZIP}"
 candidate_base_name=$(basename $ZIP_DOWNLOAD_URL)
 

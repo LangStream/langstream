@@ -19,7 +19,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.datastax.oss</groupId>
+  <groupId>ai.langstream</groupId>
   <artifactId>langstream-ai</artifactId>
   <version>0.0.2-SNAPSHOT</version>
   <name>LangStream</name>
@@ -581,24 +581,24 @@
         <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
-        <module>api</module>
-        <module>cli</module>
-        <module>core</module>
-        <module>agents</module>
-        <module>pulsar</module>
-        <module>kafka</module>
-        <module>kafka-connect</module>
-        <module>k8s-runtime</module>
-        <module>codestorage-s3</module>
-        <module>runtime</module>
-        <module>ai-agents</module>
-        <module>webservice</module>
-        <module>k8s-storage</module>
-        <module>k8s-deployer</module>
-        <module>k8s-common</module>
-        <module>e2e-tests</module>
-        <module>api-gateway</module>
-        <module>api-gateway-auth</module>
+        <module>langstream-api</module>
+        <module>langstream-cli</module>
+        <module>langstream-core</module>
+        <module>langstream-agents</module>
+        <module>langstream-pulsar</module>
+        <module>langstream-kafka</module>
+        <module>langstream-kafka-connect</module>
+        <module>langstream-k8s-runtime</module>
+        <module>langstream-codestorage-s3</module>
+        <module>langstream-runtime</module>
+        <module>langstream-ai-agents</module>
+        <module>langstream-webservice</module>
+        <module>langstream-k8s-storage</module>
+        <module>langstream-k8s-deployer</module>
+        <module>langstream-k8s-common</module>
+        <module>langstream-e2e-tests</module>
+        <module>langstream-api-gateway</module>
+        <module>langstream-api-gateway-auth</module>
       </modules>
     </profile>
     <profile>
@@ -609,24 +609,19 @@
         </property>
       </activation>
       <modules>
-        <module>api</module>
-        <module>cli</module>
-        <module>core</module>
-        <module>agents</module>
-        <module>pulsar</module>
-        <module>kafka</module>
-        <module>kafka-connect</module>
-        <module>k8s-runtime</module>
-        <module>codestorage-s3</module>
-<!--        <module>runtime</module>-->
-        <module>ai-agents</module>
-<!--        <module>webservice</module>-->
-        <module>k8s-storage</module>
-<!--        <module>k8s-deployer</module>-->
-        <module>k8s-common</module>
-<!--        <module>e2e-tests</module>-->
-<!--        <module>api-gateway</module>-->
-        <module>api-gateway-auth</module>
+        <module>langstream-api</module>
+        <module>langstream-cli</module>
+        <module>langstream-core</module>
+        <module>langstream-agents</module>
+        <module>langstream-pulsar</module>
+        <module>langstream-kafka</module>
+        <module>langstream-kafka-connect</module>
+        <module>langstream-k8s-runtime</module>
+        <module>langstream-codestorage-s3</module>
+        <module>langstream-ai-agents</module>
+        <module>langstream-k8s-storage</module>
+        <module>langstream-k8s-common</module>
+        <module>langstream-api-gateway-auth</module>
       </modules>
     </profile>
   </profiles>

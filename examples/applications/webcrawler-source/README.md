@@ -35,7 +35,7 @@ Configure the list of seed URLs, for instance with your home page.
 ## Deploy the LangStream application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/webcrawler-source -i examples/instances/kafka-kubernetes.yaml
+./bin/langstream apps deploy test -app examples/applications/webcrawler-source -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Talk with the Chat bot using the CLI

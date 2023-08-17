@@ -1,5 +1,4 @@
 import logging
-from abc import ABC, abstractmethod
 from typing import List
 
 from langstream.api import Source, Record, Sink, CommitCallback

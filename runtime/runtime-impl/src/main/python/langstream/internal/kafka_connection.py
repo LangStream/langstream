@@ -24,7 +24,7 @@ from confluent_kafka.serialization import StringDeserializer
 from .kafka_serialization import STRING_SERIALIZER, DOUBLE_SERIALIZER, LONG_SERIALIZER, \
     BOOLEAN_SERIALIZER
 from .topic_connector import TopicConsumer, TopicProducer
-from ..api import Sink, Record, Source, CommitCallback
+from ..api import Record, CommitCallback
 from ..util import SimpleRecord
 
 STRING_DESERIALIZER = StringDeserializer()
@@ -37,10 +37,11 @@ def apply_default_configuration(streaming_cluster, configs):
 
 def create_topic_consumer(agent_id, streaming_cluster, configuration):
     configs = configuration.copy()
+    configs.pop('deadLetterTopicProducer', None)
     apply_default_configuration(streaming_cluster, configs)
     configs['enable.auto.commit'] = 'false'
     if 'group.id' not in configs:
-        configs['group.id'] = 'sga-' + agent_id
+        configs['group.id'] = 'langstream-' + agent_id
     if 'auto.offset.reset' not in configs:
         configs['auto.offset.reset'] = 'earliest'
     if 'key.deserializer' not in configs:
@@ -64,7 +65,7 @@ def create_dlq_producer(agent_id, streaming_cluster, configuration):
     dlq_conf = configuration.get("deadLetterTopicProducer")
     if not dlq_conf:
         return None
-    logging.info(f'Creating deadletter topic producer for agent {agent_id} using configuration {configuration}')
+    logging.info(f'Creating dead-letter topic producer for agent {agent_id} using configuration {configuration}')
     return create_topic_producer(agent_id, streaming_cluster, dlq_conf)
 
 

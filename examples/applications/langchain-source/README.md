@@ -11,10 +11,10 @@ Create a S3 bucket.
 
 Update the pipeline file and set the bucket name, s3 URL username, password and the other parameters.
 
-## Deploy the SGA application
+## Deploy the LangStream application
 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/python-langchain -i examples/instances/kafka-kubernetes.yaml
+./bin/langstream apps deploy test -app examples/applications/python-langchain -i examples/instances/kafka-kubernetes.yaml
 ```
 
 ## Start a Consumer
@@ -26,6 +26,6 @@ kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kaf
 
 For instance using the AWS CLI in another terminal:
 ```
-aws s3 cp <some file> s3://sga-langchain-source
+aws s3 cp <some file> s3://langstream-langchain-source
 ```
 The chunks of the file will be displayed on the Kafka consumer terminal.

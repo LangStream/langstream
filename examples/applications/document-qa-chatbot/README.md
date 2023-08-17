@@ -34,17 +34,17 @@ As you would have already set up you should have a secrets.yaml file that contai
 and OpenAI APIs.
 
 
-## Deploy the SGA application
+## Deploy the LangStream application
 
 ```
-./bin/sga-cli apps deploy chat-bot -app examples/applications/document-qa-chatbot -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
+./bin/langstream apps deploy chat-bot -app examples/applications/document-qa-chatbot -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Talk with the Chat bot using the CLI
 Since the application opens a gateway, we can use the gateway API to send and consume messages.
 
 ```
-./bin/sga-cli gateway chat chat-bot -cg bot-output -pg user-input -p sessionId=$(uuidgen)
+./bin/langstream gateway chat chat-bot -cg bot-output -pg user-input -p sessionId=$(uuidgen)
 ```
 
 
@@ -52,7 +52,7 @@ Since the application opens a gateway, we can use the gateway API to send and co
 ## Debug what you are sending to the LLM
 
 ```
-./bin/sga-cli gateway consume chat-bot debug
+./bin/langstream gateway consume chat-bot debug
 ```
 
 

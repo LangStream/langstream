@@ -18,13 +18,13 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <artifactId>sga-runtime</artifactId>
+    <artifactId>langstream-runtime</artifactId>
     <groupId>com.datastax.oss</groupId>
     <version>0.0.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>sga-runtime-impl</artifactId>
+  <artifactId>langstream-runtime-impl</artifactId>
 
   <properties>
     <docker.platforms>linux/amd64</docker.platforms>
@@ -44,19 +44,19 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-runtime-api</artifactId>
+      <artifactId>langstream-runtime-api</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <!-- implementation for the Kafka Consumers/Producers -->
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-kafka</artifactId>
+      <artifactId>langstream-kafka</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-kafka</artifactId>
+      <artifactId>langstream-kafka</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
@@ -64,7 +64,7 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-pulsar</artifactId>
+      <artifactId>langstream-pulsar</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -86,14 +86,14 @@
     <!-- implementation for Kafka Connect -->
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-kafka-connect</artifactId>
+      <artifactId>langstream-kafka-connect</artifactId>
       <version>${project.version}</version>
       <!-- scope should be runtime but we need it for the tests -->
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-codestorage-s3</artifactId>
+      <artifactId>langstream-codestorage-s3</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -101,13 +101,13 @@
     <!-- main implementation for the AI Agents -->
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-ai-agents</artifactId>
+      <artifactId>langstream-ai-agents</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-k8s-runtime-core</artifactId>
+      <artifactId>langstream-k8s-runtime-core</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -115,14 +115,14 @@
     <!-- main implementation for the Agents -->
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-agent-s3</artifactId>
+      <artifactId>langstream-agent-s3</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-agents-text-processing</artifactId>
+      <artifactId>langstream-agents-text-processing</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -207,7 +207,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>sga-k8s-runtime-core</artifactId>
+      <artifactId>langstream-k8s-runtime-core</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
       <classifier>tests</classifier>
@@ -299,11 +299,11 @@
               <verbose>true</verbose>
               <images>
                 <image>
-                  <name>datastax/sga-runtime:latest-dev</name>
+                  <name>datastax/langstream-runtime:latest-dev</name>
                   <build>
                     <dockerFile>${project.basedir}/src/main/docker/Dockerfile</dockerFile>
                     <assembly>
-                      <descriptor>${project.basedir}/src/main/assemble/sga-runtime.xml</descriptor>
+                      <descriptor>${project.basedir}/src/main/assemble/langstream-runtime.xml</descriptor>
                     </assembly>
                     <buildx>
                       <platforms>

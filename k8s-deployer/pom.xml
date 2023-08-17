@@ -18,14 +18,14 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <artifactId>streaming-gen-ai</artifactId>
+    <artifactId>langstream-ai</artifactId>
     <groupId>com.datastax.oss</groupId>
     <version>0.0.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>k8s-deployer</artifactId>
-  <name>Streaming GenAI - K8s deployer (Root)</name>
+  <name>LangStream - K8s deployer (Root)</name>
   <packaging>pom</packaging>
   <modules>
     <module>k8s-deployer-api</module>

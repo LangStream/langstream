@@ -117,7 +117,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
                             .withName(tenant)
                             .endMetadata()
                             .withRules(new PolicyRuleBuilder()
-                                    .withApiGroups("sga.oss.datastax.com")
+                                    .withApiGroups("langstream.ai")
                                     .withResources("agents")
                                     .withVerbs("*")
                                     .build(),

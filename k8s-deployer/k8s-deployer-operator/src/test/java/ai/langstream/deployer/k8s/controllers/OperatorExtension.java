@@ -72,7 +72,7 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
         Testcontainers.exposeHostPorts(k3s.getFirstMappedPort());
         final Path kubeconfigFile = writeKubeConfigForOperatorContainer();
         container =
-                new GenericContainer<>(DockerImageName.parse("datastax/sga-deployer:latest-dev"));
+                new GenericContainer<>(DockerImageName.parse("datastax/langstream-deployer:latest-dev"));
         container.withFileSystemBind(kubeconfigFile.toFile().getAbsolutePath(), "/tmp/kubeconfig.yaml");
         container.withEnv("KUBECONFIG", "/tmp/kubeconfig.yaml");
         container.withEnv("QUARKUS_KUBERNETES_CLIENT_TRUST_CERTS", "true");
@@ -96,7 +96,7 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
 
     private void applyCRDs() throws IOException, ExecutionException, InterruptedException {
         final KubectlContainer kubectl = k3s.kubectl();
-        Files.list(Path.of("..", "..", "helm", "sga", "crds")).forEach(path -> {
+        Files.list(Path.of("..", "..", "helm", "langstream", "crds")).forEach(path -> {
             try {
                 kubectl.copyFileToContainer(Transferable.of(Files.readAllBytes(path)), "/crds/" + path.getFileName());
             } catch (IOException e) {

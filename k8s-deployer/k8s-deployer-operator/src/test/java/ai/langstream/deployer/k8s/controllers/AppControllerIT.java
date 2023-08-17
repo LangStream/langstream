@@ -42,10 +42,10 @@ public class AppControllerIT {
     void testAppController() throws Exception {
 
         final String tenant = "my-tenant";
-        final String namespace = "sga-" + tenant;
+        final String namespace = "langstream-" + tenant;
         final String applicationId = "my-app";
         final ApplicationCustomResource resource = getCr("""
-                apiVersion: sga.oss.datastax.com/v1alpha1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
                   name: %s
@@ -78,7 +78,7 @@ public class AppControllerIT {
             assertEquals(2, client.batch().v1().jobs().inNamespace(namespace).list().getItems().size());
         });
         final Job cleanupJob =
-                client.batch().v1().jobs().inNamespace(namespace).withName("sga-runtime-deployer-cleanup-" + applicationId)
+                client.batch().v1().jobs().inNamespace(namespace).withName("langstream-runtime-deployer-cleanup-" + applicationId)
                         .get();
 
         assertNotNull(cleanupJob);

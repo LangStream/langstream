@@ -20,7 +20,7 @@ import ai.langstream.api.model.StreamingCluster;
 import java.util.Map;
 
 /**
- * This is the interface that the SGA runtime to connect to Topics.
+ * This is the interface that the LangStream runtime to connect to Topics.
  */
 public interface TopicConnectionsRuntime {
 

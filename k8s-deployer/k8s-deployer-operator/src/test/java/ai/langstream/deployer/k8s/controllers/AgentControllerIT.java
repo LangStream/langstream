@@ -44,7 +44,7 @@ public class AgentControllerIT {
     @Test
     void testAgentController() throws Exception {
         final KubernetesClient client = deployment.getClient();
-        final String namespace = "sga-my-tenant";
+        final String namespace = "langstream-my-tenant";
         client.resource(new NamespaceBuilder()
                 .withNewMetadata()
                 .withName(namespace)
@@ -64,7 +64,7 @@ public class AgentControllerIT {
                 .serverSideApply();
 
         final AgentCustomResource resource = getCr("""
-                apiVersion: sga.oss.datastax.com/v1alpha1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: %s

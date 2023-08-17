@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "langstream.clientFullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "langstream.clientLabels" . | nindent 4 }}
+data:
+  WEB_SERVICE_URL: http://{{ include "langstream.controlPlaneFullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.controlPlane.service.port }}
+  API_GATEWAY_URL: ws://{{ include "langstream.apiGatewayFullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.apiGateway.service.port }}
+  TENANT: "{{ .Values.tenants.defaultTenant.name }}"
+{{- range $key, $val := $.Values.client.app.config }}
+  {{ $key | replace "-" "" | replace "\"" "." | snakecase | upper | replace "." "_"  }}: {{ $val | toString | replace "\"" "" | trim | quote }}
+{{- end }}

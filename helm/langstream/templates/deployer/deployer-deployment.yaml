@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "langstream.deployerFullname" . }}
+  labels:
+    {{- include "langstream.deployerLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.deployer.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "langstream.deployerSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.deployer.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "langstream.deployerSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.deployer.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "langstream.deployerServiceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.deployer.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.deployer.securityContext | nindent 12 }}
+          image: "{{ .Values.deployer.image.repository }}:{{ .Values.deployer.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.deployer.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: http
+          resources:
+            {{- toYaml .Values.deployer.resources | nindent 12 }}
+          env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          envFrom:
+            - configMapRef:
+                name: {{ include "langstream.deployerFullname" . }}
+      {{- with .Values.deployer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

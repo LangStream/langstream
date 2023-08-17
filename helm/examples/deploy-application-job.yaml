@@ -1,26 +1,26 @@
-## This is a sample k8s job that deploys an SGA application
+## This is a sample k8s job that deploys an LangStream application
 # The gist of the job is to:
-# - use the sga-cli docker image
+# - use the langstream-cli docker image
 # - setup properly the connection to the control plane and to the gateway
 # - download the application to /tmp
-# - use the "sga" command line to deploy the application
+# - use the "langstream" command line to deploy the application
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: deploy-sga-application
+  name: deploy-langstream-application
 spec:
   template:
     spec:
       containers:
-      - name: deploy-sga-application
-        image: public.ecr.aws/y3i6u2n7/datastax-public/sga-cli:latest
+      - name: deploy-langstream-application
+        image: public.ecr.aws/y3i6u2n7/datastax-public/langstream-cli:latest
         command:
           - bash
           - -c
           - |
             cat - > /app/conf/cli.yaml << EOL
-            webServiceUrl: http://sga-control-plane.default.svc.cluster.local:8090
-            apiGatewayUrl: ws://sga-api-gateway.default.svc.cluster.local:8091
+            webServiceUrl: http://langstream-control-plane.default.svc.cluster.local:8090
+            apiGatewayUrl: ws://langstream-api-gateway.default.svc.cluster.local:8091
             tenant: default
             EOL
             cat - > /tmp/secrets.yaml << EOL
@@ -32,15 +32,15 @@ spec:
                data:
                 client-id: xxxx
             EOL
-            /app/bin/sga tenants list
-            curl --fail --output-dir /tmp -O -L https://github.com/eolivelli/sgai-examples/raw/main/examples.tar.gz
+            /app/bin/langstream tenants list
+            curl --fail --output-dir /tmp -O -L https://github.com/eolivelli/langstreami-examples/raw/main/examples.tar.gz
             cd /tmp
             tar zxf /tmp/examples.tar.gz
             APPLICATION=applications/gateway-authentication
             INSTANCE=instances/kafka-kubernetes.yaml
             SECRETS=/tmp/secrets.yaml
             APPNAME=app1
-            /app/bin/sga apps deploy -app $APPLICATION -s /tmp/secrets.yaml --instance $INSTANCE app1
-            /app/bin/sga apps get app1 -o yaml
+            /app/bin/langstream apps deploy -app $APPLICATION -s /tmp/secrets.yaml --instance $INSTANCE app1
+            /app/bin/langstream apps get app1 -o yaml
       restartPolicy: Never
   backoffLimit: 0

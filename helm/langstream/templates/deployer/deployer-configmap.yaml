@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "langstream.deployerFullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "langstream.deployerLabels" . | nindent 4 }}
+data:
+  DEPLOYER_AGENT_RESOURCES: |
+{{ .Values.deployer.app.config.agentResources | toYaml | indent 4 }}
+  DEPLOYER_CLUSTER_RUNTIME: |
+    kubernetes:
+     namespace-prefix: {{ .Values.tenants.namespacePrefix }}
+     image: {{ .Values.runtime.image }}
+     image-pull-policy: {{ .Values.runtime.imagePullPolicy }}
+{{- if .Values.deployer.app.config.clusterRuntime.kubernetes }}
+{{- range $key, $val := $.Values.deployer.app.config.clusterRuntime.kubernetes }}
+     {{ $key }}: {{ $val | toString | replace "\"" "" | trim | quote }}
+{{- end }}
+{{- end }}
+  DEPLOYER_CODE_STORAGE: |
+    type: {{ .Values.codeStorage.type }}
+{{- range $key, $val := $.Values.codeStorage.configuration }}
+    {{ $key }}: {{ $val | toString | replace "\"" "" | trim | quote }}
+{{- end }}
+  DEPLOYER_POD_TEMPLATE: |
+{{ .Values.deployer.app.config.podTemplate | toYaml | indent 4 }}
+

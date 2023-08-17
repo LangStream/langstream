@@ -18,14 +18,14 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>streaming-gen-ai</artifactId>
+        <artifactId>langstream-ai</artifactId>
         <groupId>com.datastax.oss</groupId>
         <version>0.0.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sga-agents</artifactId>
-    <name>Streaming GenAI - Agents</name>
+    <artifactId>langstream-agents</artifactId>
+    <name>LangStream - Agents</name>
     <packaging>pom</packaging>
     <properties>
         <maven.compiler.source>17</maven.compiler.source>

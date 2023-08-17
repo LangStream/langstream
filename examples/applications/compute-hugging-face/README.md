@@ -7,12 +7,12 @@ This sample application shows how to use the Hugging Face APIs
 
 Get an access-key from Hugging Face: https://huggingface.co/api
 
-## Deploy the SGA application
+## Deploy the LangStream application
 
 Set the access-key into the `examples/secrets/secrets.yaml` file.
 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/compute-hugging-face -i examples/instances/kafka-kubernetes.yaml  -s examples/secrets/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/compute-hugging-face -i examples/instances/kafka-kubernetes.yaml  -s examples/secrets/secrets.yaml
 ```
 
 ## Start a Producer

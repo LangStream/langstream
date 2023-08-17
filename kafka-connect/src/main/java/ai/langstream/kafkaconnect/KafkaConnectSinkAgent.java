@@ -55,7 +55,7 @@ import java.util.stream.Collectors;
 
 /**
  * This is an implementation of {@link AgentSink} that allows you to run any Kafka Connect Sinks.
- * It is a special implementation because it bypasses the SGA Agent APIs and uses directly the
+ * It is a special implementation because it bypasses the LangStream Agent APIs and uses directly the
  * Kafka Consumer. This is needed in order to implement correctly the APIs.
  * It is not expected that this Sink runs together with a custom Source or a Processor,
  * it works only if the Source is directly a Kafka Consumer Source.
@@ -63,14 +63,14 @@ import java.util.stream.Collectors;
 @Slf4j
 public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSink {
 
-    private static class SgaSinkRecord extends SinkRecord {
+    private static class LangStreamSinkRecord extends SinkRecord {
 
         final int estimatedSize;
-        public SgaSinkRecord(String topic, int partition,
-                             Schema keySchema, Object key,
-                             Schema valueSchema, Object value,
-                             long kafkaOffset, Long timestamp,
-                             TimestampType timestampType, int estimatedSize) {
+        public LangStreamSinkRecord(String topic, int partition,
+                                    Schema keySchema, Object key,
+                                    Schema valueSchema, Object value,
+                                    long kafkaOffset, Long timestamp,
+                                    TimestampType timestampType, int estimatedSize) {
             super(topic, partition, keySchema, key, valueSchema, value, kafkaOffset,
                     timestamp, timestampType);
             this.estimatedSize = estimatedSize;
@@ -176,8 +176,8 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         return r.estimateRecordSize();
     }
 
-    private SgaSinkRecord toSinkRecord(KafkaRecord kr) {
-        return new SgaSinkRecord(kr.origin(),
+    private LangStreamSinkRecord toSinkRecord(KafkaRecord kr) {
+        return new LangStreamSinkRecord(kr.origin(),
                 kr.partition(),
                 toKafkaSchema(kr.key(), kr.keySchema()),
                 toKafkaData(kr.key(), kr.keySchema()),

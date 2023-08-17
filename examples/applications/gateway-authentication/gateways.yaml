@@ -23,7 +23,7 @@ gateways:
       - sessionId
     produceOptions:
       headers:
-        - key: sga-client-session-id
+        - key: langstream-client-session-id
           valueFromParameters: sessionId
   - id: consume-output-no-auth
     type: consume
@@ -33,7 +33,7 @@ gateways:
     consumeOptions:
       filters:
         headers:
-          - key: sga-client-session-id
+          - key: langstream-client-session-id
             valueFromParameters: sessionId
 
   - id: produce-input-auth-google
@@ -47,9 +47,9 @@ gateways:
         clientId: "{{ secrets.google.client-id }}"
     produceOptions:
       headers:
-        - key: sga-client-user-id
+        - key: langstream-client-user-id
           valueFromAuthentication: subject
-        - key: sga-client-session-id
+        - key: langstream-client-session-id
           valueFromParameters: sessionId
 
   - id: consume-output-auth-google
@@ -64,9 +64,9 @@ gateways:
     consumeOptions:
       filters:
         headers:
-          - key: sga-client-user-id
+          - key: langstream-client-user-id
             valueFromAuthentication: subject
-          - key: sga-client-session-id
+          - key: langstream-client-session-id
             valueFromParameters: sessionId
 
   - id: produce-input-auth-github
@@ -80,9 +80,9 @@ gateways:
         clientId: "{{ secrets.github.client-id }}"
     produceOptions:
       headers:
-        - key: sga-client-user-id
+        - key: langstream-client-user-id
           valueFromAuthentication: login
-        - key: sga-client-session-id
+        - key: langstream-client-session-id
           valueFromParameters: sessionId
 
   - id: consume-output-auth-github
@@ -97,7 +97,7 @@ gateways:
     consumeOptions:
       filters:
         headers:
-          - key: sga-client-user-id
+          - key: langstream-client-user-id
             valueFromAuthentication: login
-          - key: sga-client-session-id
+          - key: langstream-client-session-id
             valueFromParameters: sessionId

@@ -71,7 +71,7 @@ public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentS
     public static final String CONNECTOR_CLASS = "connector.class";
 
     private static final String DEFAULT_CONVERTER = "org.apache.kafka.connect.json.JsonConverter";
-    private static final String OFFSET_NAMESPACE = "sga-offset-ns";
+    private static final String OFFSET_NAMESPACE = "langstream-offset-ns";
 
     private SourceTaskContext sourceTaskContext;
     // non null value to avoid NPE in buildAdditionalInfo

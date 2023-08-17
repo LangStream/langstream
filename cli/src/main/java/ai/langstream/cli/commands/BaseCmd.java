@@ -15,7 +15,7 @@
  */
 package ai.langstream.cli.commands;
 
-import ai.langstream.cli.SgaCLIConfig;
+import ai.langstream.cli.LangStreamCLIConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -64,11 +64,11 @@ public abstract class BaseCmd implements Runnable {
     protected abstract RootCmd getRootCmd();
 
     private HttpClient httpClient;
-    private SgaCLIConfig config;
+    private LangStreamCLIConfig config;
 
 
     @SneakyThrows
-    protected SgaCLIConfig getConfig() {
+    protected LangStreamCLIConfig getConfig() {
         if (config == null) {
             File configFile;
             final RootCmd rootCmd = getRootCmd();
@@ -84,14 +84,14 @@ public abstract class BaseCmd implements Runnable {
             if (!configFile.exists()) {
                 throw new IllegalStateException("Config file not found: " + configFile);
             }
-            config = yamlConfigReader.readValue(configFile, SgaCLIConfig.class);
+            config = yamlConfigReader.readValue(configFile, LangStreamCLIConfig.class);
             overrideFromEnv(config);
         }
         return config;
     }
 
     @SneakyThrows
-    protected void updateConfig(Consumer<SgaCLIConfig> consumer) {
+    protected void updateConfig(Consumer<LangStreamCLIConfig> consumer) {
         consumer.accept(getConfig());
         File configFile = computeConfigFile();
         Files.write(configFile.toPath(), yamlConfigReader.writeValueAsBytes(config));
@@ -114,10 +114,10 @@ public abstract class BaseCmd implements Runnable {
 
 
     @SneakyThrows
-    private void overrideFromEnv(SgaCLIConfig config) {
-        for (Field field : SgaCLIConfig.class.getDeclaredFields()) {
+    private void overrideFromEnv(LangStreamCLIConfig config) {
+        for (Field field : LangStreamCLIConfig.class.getDeclaredFields()) {
             final String name = field.getName();
-            final String newValue = System.getenv("SGA_" + name);
+            final String newValue = System.getenv("LANGSTREAM_" + name);
             if (newValue != null) {
                 log("Using env variable: %s=%s".formatted(name, newValue));
                 field.trySetAccessible();

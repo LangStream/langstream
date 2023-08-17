@@ -20,7 +20,7 @@ import ai.langstream.api.model.TopicDefinition;
 import java.util.Map;
 
 /**
- * This is the interface that the SGA framework uses to interact with the StreamingCluster. It is used to
+ * This is the interface that the LangStream framework uses to interact with the StreamingCluster. It is used to
  * model a physical cluster runtime with Brokers (Pulsar, Kafka....)
  */
 public interface StreamingClusterRuntime extends AutoCloseable {

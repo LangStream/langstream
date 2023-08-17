@@ -24,7 +24,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "list",
-        description = "List all SGA applications")
+        description = "List all LangStream applications")
 public class ListApplicationCmd extends BaseApplicationCmd {
 
     protected static final String[] COLUMNS_FOR_RAW = {"id", "streaming", "compute", "status", "executors", "replicas"};

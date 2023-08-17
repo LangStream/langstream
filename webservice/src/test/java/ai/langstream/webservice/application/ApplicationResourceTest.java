@@ -68,7 +68,7 @@ class ApplicationResourceTest {
 
     protected File createTempFile(String content) {
         try {
-            Path tempFile = Files.createTempFile(tempDir, "sga-cli-test", ".yaml");
+            Path tempFile = Files.createTempFile(tempDir, "langstream-cli-test", ".yaml");
             Files.write(tempFile, content.getBytes(StandardCharsets.UTF_8));
             return tempFile.toFile();
         } catch (Exception e) {

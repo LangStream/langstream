@@ -20,7 +20,7 @@ import java.util.ServiceLoader;
 
 /**
  * The runtime registry is a singleton that holds all the runtime information about the
- * possible implementations of the SGA API.
+ * possible implementations of the LangStream API.
  */
 public class AgentCodeRegistry {
 

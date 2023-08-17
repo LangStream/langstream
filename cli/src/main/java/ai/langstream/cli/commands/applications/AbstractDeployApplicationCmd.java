@@ -45,7 +45,7 @@ import picocli.CommandLine;
 public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
     @CommandLine.Command(name = "deploy",
-            description = "Deploy a SGA application")
+            description = "Deploy a LangStream application")
     public static class DeployApplicationCmd extends AbstractDeployApplicationCmd {
 
         @CommandLine.Parameters(description = "Name of the application")
@@ -91,7 +91,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
 
     @CommandLine.Command(name = "update",
-            description = "Update an existing SGA application")
+            description = "Update an existing LangStream application")
     public static class UpdateApplicationCmd extends AbstractDeployApplicationCmd {
 
         @CommandLine.Parameters(description = "Name of the application")

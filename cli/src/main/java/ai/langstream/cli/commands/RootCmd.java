@@ -20,12 +20,12 @@ import lombok.Getter;
 import picocli.AutoComplete;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "sga", mixinStandardHelpOptions = true, description = "Manage SGA",
+@CommandLine.Command(name = "langstream", mixinStandardHelpOptions = true, description = "Manage LangStream",
         subcommands = { RootAppCmd.class, ConfigureCmd.class, RootTenantCmd.class, RootGatewayCmd.class, AutoComplete.GenerateCompletion.class})
 public class RootCmd {
 
 
-    @CommandLine.Option(names = { "--conf" }, description = "Sga CLI configuration file.")
+    @CommandLine.Option(names = { "--conf" }, description = "LangStream CLI configuration file.")
     @Getter
     private String configPath;
 

@@ -42,10 +42,10 @@ CREATE CUSTOM INDEX IF NOT EXISTS ann_index
 ```
 
 
-## Deploy the SGA application
+## Deploy the LangStream application
 
 ```
-./bin/sga-cli apps deploy text-extractor -app examples/applications/text-processing -i examples/instances/kafka-kubernetes.yaml
+./bin/langstream apps deploy text-extractor -app examples/applications/text-processing -i examples/instances/kafka-kubernetes.yaml
 ```
 
 ## Write a document in the S3 bucket
@@ -63,5 +63,5 @@ dev/s3_upload.sh documents examples/applications/text-processing/simple.pdf
 Use the gateway to start a consumer that will read the output of the application.
 
 ```
-./bin/sga-cli gateway consume text-extractor consume-chunks
+./bin/langstream gateway consume text-extractor consume-chunks
 ```

@@ -20,13 +20,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>com.datastax.oss</groupId>
-		<artifactId>streaming-gen-ai</artifactId>
+		<artifactId>langstream-ai</artifactId>
 		<version>0.0.2-SNAPSHOT</version>
 	</parent>
 	<groupId>com.datastax.oss</groupId>
 	<artifactId>api-gateway</artifactId>
 	<version>0.0.2-SNAPSHOT</version>
-	<name>Streaming GenAI - API Gateway</name>
+	<name>LangStream - API Gateway</name>
 	<properties>
 		<java.version>17</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -51,7 +51,7 @@
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sga-kafka</artifactId>
+			<artifactId>langstream-kafka</artifactId>
 			<version>${project.version}</version>
 			<scope>runtime</scope>
 		</dependency>
@@ -88,7 +88,7 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sga-kafka</artifactId>
+			<artifactId>langstream-kafka</artifactId>
 			<version>${project.version}</version>
 			<classifier>tests</classifier>
 			<scope>test</scope>
@@ -150,7 +150,7 @@
 						</execution>
 					</executions>
 					<configuration>
-						<mainClass>ai.langstream.apigateway.SgaApiGateway</mainClass>
+						<mainClass>ai.langstream.apigateway.LangStreamApiGateway</mainClass>
 					</configuration>
 				</plugin>
 			</plugins>
@@ -175,7 +175,7 @@
 						</platforms>
 					</from>
 					<to>
-						<image>datastax/sga-api-gateway:latest-dev</image>
+						<image>datastax/langstream-api-gateway:latest-dev</image>
 					</to>
 					<container>
 						<entrypoint>

@@ -40,10 +40,10 @@ secrets:
       project: myproject
 ```
 
-## Deploy the SGA application
+## Deploy the LangStream application
 
 ```
-./bin/sga-cli apps deploy test -app examples/applications/compute-vertex -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/compute-vertex -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Start a Producer

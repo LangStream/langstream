@@ -114,7 +114,7 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                                                                     String... expectedAgents) {
         for (String agentId : expectedAgents) {
             final String fullPath =
-                    "/apis/sga.oss.datastax.com/v1alpha1/namespaces/%s/agents/%s".formatted(
+                    "/apis/langstream.ai/v1alpha1/namespaces/%s/agents/%s".formatted(
                             namespace, agentId);
             server.expect()
                     .patch()
@@ -198,7 +198,7 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
     }
 
     public void expectTenantCreated(String tenant) {
-        final String namespace = "sga-" + tenant;
+        final String namespace = "langstream-" + tenant;
 
         server.expect()
                 .patch()

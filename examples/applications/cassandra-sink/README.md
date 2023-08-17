@@ -31,9 +31,9 @@ VALUES (
 
 Update the same file and set username, password and the other parameters.
 
-## Deploy the SGA application
+## Deploy the LangStream application
 
-./bin/sga-cli apps deploy test -app examples/applications/cassandra-sink -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/cassandra-sink -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 
 
 ## Start a Producer

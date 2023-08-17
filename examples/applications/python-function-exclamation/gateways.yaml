@@ -23,7 +23,7 @@ gateways:
       - sessionId
     produceOptions:
       headers:
-        - key: sga-client-session-id
+        - key: langstream-client-session-id
           valueFromParameters: sessionId
 
   - id: consume-output
@@ -34,6 +34,6 @@ gateways:
     consumeOptions:
       filters:
         headers:
-          - key: sga-client-session-id
+          - key: langstream-client-session-id
             valueFromParameters: sessionId
 

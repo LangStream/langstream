@@ -15,10 +15,10 @@
  */
 package ai.langstream.kafka;
 
-import com.datastax.oss.sga.api.runner.code.AgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
+import ai.langstream.api.runner.code.AgentCode;
+import ai.langstream.api.runner.code.AgentCodeProvider;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;

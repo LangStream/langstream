@@ -15,16 +15,16 @@
  */
 package ai.langstream.webservice.application;
 
-import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
-import com.datastax.oss.sga.api.model.ApplicationStatus;
-import com.datastax.oss.sga.api.model.Gateways;
-import com.datastax.oss.sga.api.model.Instance;
-import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.model.Pipeline;
-import com.datastax.oss.sga.api.model.Resource;
-import com.datastax.oss.sga.api.model.TopicDefinition;
+import ai.langstream.api.model.AgentLifecycleStatus;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.ApplicationLifecycleStatus;
+import ai.langstream.api.model.ApplicationStatus;
+import ai.langstream.api.model.Gateways;
+import ai.langstream.api.model.Instance;
+import ai.langstream.api.model.Module;
+import ai.langstream.api.model.Pipeline;
+import ai.langstream.api.model.Resource;
+import ai.langstream.api.model.TopicDefinition;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

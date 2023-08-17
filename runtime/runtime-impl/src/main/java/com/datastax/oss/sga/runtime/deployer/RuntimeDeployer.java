@@ -17,12 +17,12 @@ package com.datastax.oss.sga.runtime.deployer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.Secrets;
-import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.PluginsRegistry;
-import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.Secrets;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.runtime.api.deployer.RuntimeDeployerConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;

@@ -15,17 +15,17 @@
  */
 package ai.langstream.pulsar;
 
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.Connection;
-import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.AgentNode;
-import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.PluginsRegistry;
-import com.datastax.oss.sga.impl.common.DefaultAgentNode;
-import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
-import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.Connection;
+import ai.langstream.api.model.Module;
+import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runtime.AgentNode;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.impl.common.DefaultAgentNode;
+import ai.langstream.impl.deploy.ApplicationDeployer;
+import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.pulsar.agents.PulsarAgentNodeMetadata;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;

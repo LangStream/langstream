@@ -17,7 +17,7 @@ package ai.langstream.apigateway.websocket;
 
 import ai.langstream.apigateway.websocket.handlers.ConsumeHandler;
 import ai.langstream.apigateway.websocket.handlers.ProduceHandler;
-import com.datastax.oss.sga.api.storage.ApplicationStore;
+import ai.langstream.api.storage.ApplicationStore;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

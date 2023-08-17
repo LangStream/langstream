@@ -15,14 +15,14 @@
  */
 package com.datastax.oss.sga.common;
 
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
-import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
-import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
-import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import ai.langstream.impl.deploy.ApplicationDeployer;
+import ai.langstream.impl.k8s.tests.KubeTestServer;
+import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import com.datastax.oss.sga.runtime.agent.api.AgentInfo;

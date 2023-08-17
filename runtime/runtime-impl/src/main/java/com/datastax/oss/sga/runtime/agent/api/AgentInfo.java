@@ -15,10 +15,10 @@
  */
 package com.datastax.oss.sga.runtime.agent.api;
 
-import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
-import com.datastax.oss.sga.api.runner.code.AgentProcessor;
-import com.datastax.oss.sga.api.runner.code.AgentSink;
-import com.datastax.oss.sga.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.AgentStatusResponse;
+import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.AgentSink;
+import ai.langstream.api.runner.code.AgentSource;
 
 import java.util.ArrayList;
 import java.util.List;

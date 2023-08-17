@@ -16,8 +16,8 @@
 package ai.langstream.pulsar.agents;
 
 import ai.langstream.pulsar.PulsarName;
-import com.datastax.oss.sga.api.runtime.AgentNodeMetadata;
-import com.datastax.oss.sga.api.runtime.ComponentType;
+import ai.langstream.api.runtime.AgentNodeMetadata;
+import ai.langstream.api.runtime.ComponentType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

@@ -17,7 +17,7 @@ package ai.langstream.webservice;
 
 import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.webservice.config.TenantProperties;
-import com.datastax.oss.sga.api.model.TenantConfiguration;
+import ai.langstream.api.model.TenantConfiguration;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationListener;

@@ -15,10 +15,10 @@
  */
 package com.datastax.oss.sga.runtime.agent.simple;
 
-import com.datastax.oss.sga.api.runner.code.AgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentCodeProvider;
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.code.SingleRecordAgentProcessor;
+import ai.langstream.api.runner.code.AgentCode;
+import ai.langstream.api.runner.code.AgentCodeProvider;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 
 import java.util.List;
 

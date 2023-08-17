@@ -15,8 +15,8 @@
  */
 package ai.langstream.pulsar;
 
-import com.datastax.oss.sga.api.runtime.ComputeClusterRuntime;
-import com.datastax.oss.sga.api.runtime.ComputeClusterRuntimeProvider;
+import ai.langstream.api.runtime.ComputeClusterRuntime;
+import ai.langstream.api.runtime.ComputeClusterRuntimeProvider;
 
 public class PulsarComputeClusterRuntimeProvider implements ComputeClusterRuntimeProvider {
 

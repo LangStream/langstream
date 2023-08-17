@@ -16,11 +16,11 @@
 package ai.langstream.webservice.application;
 
 import ai.langstream.webservice.config.StorageProperties;
-import com.datastax.oss.sga.api.codestorage.CodeArchiveMetadata;
-import com.datastax.oss.sga.api.codestorage.CodeStorage;
-import com.datastax.oss.sga.api.codestorage.CodeStorageException;
-import com.datastax.oss.sga.api.codestorage.CodeStorageRegistry;
-import com.datastax.oss.sga.impl.codestorage.LocalFileUploadableCodeArchive;
+import ai.langstream.api.codestorage.CodeArchiveMetadata;
+import ai.langstream.api.codestorage.CodeStorage;
+import ai.langstream.api.codestorage.CodeStorageException;
+import ai.langstream.api.codestorage.CodeStorageRegistry;
+import ai.langstream.impl.codestorage.LocalFileUploadableCodeArchive;
 import lombok.extern.jbosslog.JBossLog;
 import org.springframework.stereotype.Service;
 

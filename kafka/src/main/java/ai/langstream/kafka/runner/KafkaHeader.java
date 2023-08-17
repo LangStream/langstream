@@ -15,7 +15,7 @@
  */
 package ai.langstream.kafka.runner;
 
-import com.datastax.oss.sga.api.runner.code.Header;
+import ai.langstream.api.runner.code.Header;
 import java.nio.charset.StandardCharsets;
 
 record KafkaHeader(org.apache.kafka.common.header.Header header) implements Header {

@@ -16,12 +16,11 @@
 package com.datastax.oss.sga.deployer.k8s.apps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
-import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
+import ai.langstream.api.model.ApplicationLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationStatus;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
-import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
+import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.SecretBuilder;

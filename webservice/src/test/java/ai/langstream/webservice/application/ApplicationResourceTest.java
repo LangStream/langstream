@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import ai.langstream.cli.commands.applications.AbstractDeployApplicationCmd;
-import com.datastax.oss.sga.impl.k8s.tests.KubeK3sServer;
+import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.webservice.WebAppTestConfig;
 import java.io.File;
 import java.nio.charset.StandardCharsets;

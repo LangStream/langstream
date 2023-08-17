@@ -15,8 +15,8 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.Dependency;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.Dependency;
 
 import ai.langstream.cli.util.MultiPartBodyPublisher;
 import java.io.BufferedInputStream;
@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import ai.langstream.impl.parser.ModelBuilder;
 import lombok.SneakyThrows;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;

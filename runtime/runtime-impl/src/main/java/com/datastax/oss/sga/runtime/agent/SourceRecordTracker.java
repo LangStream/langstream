@@ -15,15 +15,14 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
-import com.datastax.oss.sga.api.runner.code.AgentProcessor;
-import com.datastax.oss.sga.api.runner.code.AgentSink;
-import com.datastax.oss.sga.api.runner.code.AgentSource;
-import com.datastax.oss.sga.api.runner.code.Record;
+import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.AgentSink;
+import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.Record;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;

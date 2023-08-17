@@ -15,13 +15,13 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
-import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
-import com.datastax.oss.sga.api.runner.code.AgentProcessor;
-import com.datastax.oss.sga.api.runner.code.AgentSink;
-import com.datastax.oss.sga.api.runner.code.AgentSource;
-import com.datastax.oss.sga.api.runner.code.Record;
+import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentContext;
+import ai.langstream.api.runner.code.AgentStatusResponse;
+import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.AgentSink;
+import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.Record;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;

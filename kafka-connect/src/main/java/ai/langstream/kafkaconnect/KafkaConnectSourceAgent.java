@@ -16,13 +16,13 @@
 package ai.langstream.kafkaconnect;
 
 import ai.langstream.kafka.runner.KafkaRecord;
-import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentSource;
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionProvider;
-import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentContext;
+import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicConnectionProvider;
+import ai.langstream.api.runner.topics.TopicProducer;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;

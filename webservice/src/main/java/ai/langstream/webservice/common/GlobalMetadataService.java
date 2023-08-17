@@ -16,11 +16,11 @@
 package ai.langstream.webservice.common;
 
 import ai.langstream.webservice.config.StorageProperties;
-import com.datastax.oss.sga.api.model.TenantConfiguration;
-import com.datastax.oss.sga.api.storage.ApplicationStore;
-import com.datastax.oss.sga.api.storage.GlobalMetadataStore;
-import com.datastax.oss.sga.api.storage.GlobalMetadataStoreRegistry;
-import com.datastax.oss.sga.impl.storage.GlobalMetadataStoreManager;
+import ai.langstream.api.model.TenantConfiguration;
+import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.storage.GlobalMetadataStore;
+import ai.langstream.api.storage.GlobalMetadataStoreRegistry;
+import ai.langstream.impl.storage.GlobalMetadataStoreManager;
 
 import java.util.Map;
 import lombok.SneakyThrows;

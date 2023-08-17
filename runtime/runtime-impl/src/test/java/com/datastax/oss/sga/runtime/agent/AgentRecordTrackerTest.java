@@ -15,18 +15,16 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
-import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentProcessor;
-import com.datastax.oss.sga.api.runner.code.AgentSource;
-import com.datastax.oss.sga.api.runner.code.Header;
-import com.datastax.oss.sga.api.runner.code.Record;
+import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.Record;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

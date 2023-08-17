@@ -15,7 +15,7 @@
  */
 package ai.langstream.agents.text;
 
-import com.datastax.oss.sga.api.runner.code.Header;
+import ai.langstream.api.runner.code.Header;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;

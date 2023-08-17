@@ -15,11 +15,11 @@
  */
 package ai.langstream.kafka.runner;
 
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.topics.OffsetPerPartition;
-import com.datastax.oss.sga.api.runner.topics.TopicReadResult;
-import com.datastax.oss.sga.api.runner.topics.TopicReader;
-import com.datastax.oss.sga.api.runner.topics.TopicOffsetPosition;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.topics.OffsetPerPartition;
+import ai.langstream.api.runner.topics.TopicReadResult;
+import ai.langstream.api.runner.topics.TopicReader;
+import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.ArrayList;

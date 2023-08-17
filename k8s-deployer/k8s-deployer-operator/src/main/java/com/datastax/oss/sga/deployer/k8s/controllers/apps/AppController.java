@@ -15,13 +15,12 @@
  */
 package com.datastax.oss.sga.deployer.k8s.controllers.apps;
 
-import com.datastax.oss.sga.api.model.ApplicationLifecycleStatus;
+import ai.langstream.api.model.ApplicationLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.datastax.oss.sga.deployer.k8s.apps.AppResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.controllers.BaseController;
 import com.datastax.oss.sga.deployer.k8s.util.JSONComparator;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
-import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SpecDiffer;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
@@ -31,7 +30,7 @@ import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
-import java.util.Map;
+
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.jbosslog.JBossLog;

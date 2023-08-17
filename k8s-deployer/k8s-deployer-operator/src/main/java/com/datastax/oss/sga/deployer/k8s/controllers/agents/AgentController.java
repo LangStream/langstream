@@ -15,16 +15,12 @@
  */
 package com.datastax.oss.sga.deployer.k8s.controllers.agents;
 
-import com.datastax.oss.sga.api.model.AgentLifecycleStatus;
+import ai.langstream.api.model.AgentLifecycleStatus;
 import com.datastax.oss.sga.deployer.k8s.ResolvedDeployerConfiguration;
 import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.controllers.BaseController;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
-import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
-import com.datastax.oss.sga.runtime.api.agent.CodeStorageConfig;
-import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
-import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
@@ -35,16 +31,9 @@ import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
-import io.javaoperatorsdk.operator.processing.dependent.external.PerResourcePollingDependentResource;
-import io.javaoperatorsdk.operator.processing.dependent.external.PollingDependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
-import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDependentResource;
-import io.javaoperatorsdk.operator.processing.event.ResourceID;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Map;
 import jakarta.inject.Inject;
-import java.util.Set;
+
 import java.util.concurrent.TimeUnit;
 import lombok.extern.jbosslog.JBossLog;
 

@@ -15,7 +15,7 @@
  */
 package ai.langstream.kafka.runtime;
 
-import com.datastax.oss.sga.api.runtime.StreamingClusterRuntimeProvider;
+import ai.langstream.api.runtime.StreamingClusterRuntimeProvider;
 
 public class KafkaStreamingClusterRuntimeProvider implements StreamingClusterRuntimeProvider {
 

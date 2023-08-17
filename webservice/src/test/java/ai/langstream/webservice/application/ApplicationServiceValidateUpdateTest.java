@@ -16,16 +16,16 @@
 package ai.langstream.webservice.application;
 
 import ai.langstream.webservice.config.ApplicationDeployProperties;
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.ResourcesSpec;
-import com.datastax.oss.sga.api.model.SchemaDefinition;
-import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.ClusterRuntimeRegistry;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.api.runtime.PluginsRegistry;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.ResourcesSpec;
+import ai.langstream.api.model.SchemaDefinition;
+import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.PluginsRegistry;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
-import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
-import com.datastax.oss.sga.impl.parser.ModelBuilder;
+import ai.langstream.impl.deploy.ApplicationDeployer;
+import ai.langstream.impl.parser.ModelBuilder;
 
 import java.util.List;
 import java.util.Map;

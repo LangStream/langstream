@@ -15,7 +15,7 @@
  */
 package ai.langstream.apigateway.websocket;
 
-import com.datastax.oss.sga.api.gateway.GatewayRequestContext;
+import ai.langstream.api.gateway.GatewayRequestContext;
 import java.util.Map;
 
 public interface AuthenticatedGatewayRequestContext extends GatewayRequestContext {

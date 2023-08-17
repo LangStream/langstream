@@ -15,20 +15,20 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
-import com.datastax.oss.sga.api.runner.code.AgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentCodeRegistry;
-import com.datastax.oss.sga.api.runner.code.AgentContext;
-import com.datastax.oss.sga.api.runner.code.AgentProcessor;
-import com.datastax.oss.sga.api.runner.code.AgentSink;
-import com.datastax.oss.sga.api.runner.code.AgentSource;
-import com.datastax.oss.sga.api.runner.code.BadRecordHandler;
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.topics.TopicAdmin;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntime;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionsRuntimeRegistry;
-import com.datastax.oss.sga.api.runner.topics.TopicConsumer;
-import com.datastax.oss.sga.api.runner.topics.TopicConnectionProvider;
-import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import ai.langstream.api.runner.code.AgentCode;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
+import ai.langstream.api.runner.code.AgentContext;
+import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.AgentSink;
+import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.BadRecordHandler;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.topics.TopicAdmin;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicConnectionProvider;
+import ai.langstream.api.runner.topics.TopicProducer;
 import com.datastax.oss.sga.runtime.agent.api.AgentInfo;
 import com.datastax.oss.sga.runtime.agent.api.AgentInfoServlet;
 import com.datastax.oss.sga.runtime.agent.api.MetricsHttpServlet;
@@ -59,9 +59,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static com.datastax.oss.sga.api.model.ErrorsSpec.DEAD_LETTER;
-import static com.datastax.oss.sga.api.model.ErrorsSpec.FAIL;
-import static com.datastax.oss.sga.api.model.ErrorsSpec.SKIP;
+import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
+import static ai.langstream.api.model.ErrorsSpec.FAIL;
+import static ai.langstream.api.model.ErrorsSpec.SKIP;
 
 /**
  * This is the main entry point for the pods that run the SGA runtime and Java code.

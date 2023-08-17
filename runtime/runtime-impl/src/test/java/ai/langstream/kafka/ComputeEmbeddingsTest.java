@@ -16,11 +16,11 @@
 package ai.langstream.kafka;
 
 import ai.langstream.kafka.runtime.KafkaTopic;
-import com.datastax.oss.sga.api.model.Application;
-import com.datastax.oss.sga.api.model.Connection;
-import com.datastax.oss.sga.api.model.Module;
-import com.datastax.oss.sga.api.model.TopicDefinition;
-import com.datastax.oss.sga.api.runtime.ExecutionPlan;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.Connection;
+import ai.langstream.api.model.Module;
+import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runtime.ExecutionPlan;
 import com.datastax.oss.sga.common.AbstractApplicationRunner;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;

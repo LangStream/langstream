@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 package ai.langstream.kafka;
-import com.datastax.oss.sga.api.runner.code.AgentStatusResponse;
+import ai.langstream.api.runner.code.AgentStatusResponse;
 import com.datastax.oss.sga.common.AbstractApplicationRunner;
 import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;

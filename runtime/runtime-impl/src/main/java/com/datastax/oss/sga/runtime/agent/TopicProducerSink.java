@@ -15,10 +15,10 @@
  */
 package com.datastax.oss.sga.runtime.agent;
 
-import com.datastax.oss.sga.api.runner.code.AbstractAgentCode;
-import com.datastax.oss.sga.api.runner.code.AgentSink;
-import com.datastax.oss.sga.api.runner.code.Record;
-import com.datastax.oss.sga.api.runner.topics.TopicProducer;
+import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentSink;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.topics.TopicProducer;
 
 import java.util.List;
 import java.util.Map;

@@ -33,6 +33,7 @@
     </properties>
     <modules>
         <module>langstream-agent-s3</module>
+        <module>langstream-agent-webcrawler</module>
         <module>langstream-agents-text-processing</module>
     </modules>
 </project>

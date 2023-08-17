@@ -150,7 +150,7 @@
 						</execution>
 					</executions>
 					<configuration>
-						<mainClass>com.datastax.oss.sga.apigateway.SgaApiGateway</mainClass>
+						<mainClass>ai.langstream.apigateway.SgaApiGateway</mainClass>
 					</configuration>
 				</plugin>
 			</plugins>

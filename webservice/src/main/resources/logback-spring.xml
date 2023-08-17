@@ -43,7 +43,7 @@
   </root>
   -->
 
-  <logger name="com.datastax.oss.sga.webservice" level="INFO" />
+  <logger name="ai.langstream.webservice" level="INFO" />
 
   <logger name="ch.qos.logback" level="WARN" />
   <logger name="com.sun" level="WARN" />

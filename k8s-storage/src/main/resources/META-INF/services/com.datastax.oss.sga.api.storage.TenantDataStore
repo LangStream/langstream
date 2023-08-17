@@ -1,2 +1,0 @@
-com.datastax.oss.sga.impl.storage.k8s.SecretsKubernetesTenantDataStore
-com.datastax.oss.sga.impl.storage.k8s.ConfigMapKubernetesTenantDataStore

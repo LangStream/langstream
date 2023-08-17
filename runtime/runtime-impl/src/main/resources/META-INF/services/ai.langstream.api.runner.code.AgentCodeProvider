@@ -1,4 +1,4 @@
-com.datastax.oss.sga.runtime.agent.simple.NoOpAgentProvider
-com.datastax.oss.sga.runtime.agent.simple.IdentityAgentProvider
-com.datastax.oss.sga.runtime.agent.python.PythonCodeAgentProvider
-com.datastax.oss.sga.runtime.agent.CompositeAgentProcessorProvider
+ai.langstream.runtime.agent.simple.NoOpAgentProvider
+ai.langstream.runtime.agent.simple.IdentityAgentProvider
+ai.langstream.runtime.agent.python.PythonCodeAgentProvider
+ai.langstream.runtime.agent.CompositeAgentProcessorProvider

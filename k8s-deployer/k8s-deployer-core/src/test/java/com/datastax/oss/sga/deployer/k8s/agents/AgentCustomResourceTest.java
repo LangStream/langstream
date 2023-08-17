@@ -21,7 +21,7 @@ import ai.langstream.api.model.ApplicationStatus;
 import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
-import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;
+import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;

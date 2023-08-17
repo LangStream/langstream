@@ -35,12 +35,12 @@ Configure the list of seed URLs, for instance with your home page.
 ## Deploy the LangStream application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/webcrawler-source -i examples/instances/kafka-kubernetes.yaml
+./bin/langstream apps deploy test -app examples/applications/webcrawler-source -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Talk with the Chat bot using the CLI
 Since the application opens a gateway, we can use the gateway API to send and consume messages.
 
 ```
-./bin/langstream gateway test chat-bot -cg bot-output -pg user-input -p sessionId=$(uuidgen)
+./bin/langstream gateway chat test -cg bot-output -pg user-input -p sessionId=$(uuidgen)
 ```

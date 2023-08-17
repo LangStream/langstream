@@ -126,7 +126,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     @Override
     public List<Record> read() throws Exception {
         if (finished) {
-            return List.of();
+            return sleepForNoResults();
         }
         if (foundDocuments.isEmpty()) {
             boolean somethingDone = crawler.runCycle();
@@ -135,12 +135,17 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             }
         }
         if (foundDocuments.isEmpty()) {
-            return List.of();
+            return sleepForNoResults();
         }
 
         Document document = foundDocuments.remove();
         return List.of(new WebCrawlerSourceRecord(document.content().getBytes(StandardCharsets.UTF_8),
                 document.url()));
+    }
+
+    private List<Record> sleepForNoResults() throws Exception {
+        Thread.sleep(1000);
+        return List.of();
     }
 
     @Override

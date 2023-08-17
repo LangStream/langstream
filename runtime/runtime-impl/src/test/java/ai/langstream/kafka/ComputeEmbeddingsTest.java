@@ -21,7 +21,7 @@ import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.ExecutionPlan;
-import com.datastax.oss.sga.common.AbstractApplicationRunner;
+import ai.langstream.AbstractApplicationRunner;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import lombok.AllArgsConstructor;

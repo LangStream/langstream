@@ -25,7 +25,7 @@ import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource
 import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationSpec;
 import com.datastax.oss.sga.deployer.k8s.util.KubeUtil;
 import com.datastax.oss.sga.deployer.k8s.util.SerializationUtil;
-import com.datastax.oss.sga.runtime.api.deployer.RuntimeDeployerConfiguration;
+import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EmptyDirVolumeSource;

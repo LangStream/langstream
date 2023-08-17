@@ -15,7 +15,7 @@
  */
 package ai.langstream.kafka;
 
-import com.datastax.oss.sga.common.AbstractApplicationRunner;
+import ai.langstream.AbstractApplicationRunner;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;

@@ -15,7 +15,7 @@
  */
 package ai.langstream.kafka;
 
-import com.datastax.oss.sga.common.AbstractApplicationRunner;
+import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.kafka.extensions.KafkaRegistryContainerExtension;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;

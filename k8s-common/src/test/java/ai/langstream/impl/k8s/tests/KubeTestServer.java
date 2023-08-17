@@ -16,7 +16,7 @@
 package ai.langstream.impl.k8s.tests;
 
 import static org.mockito.ArgumentMatchers.isNull;
-import com.datastax.oss.sga.deployer.k8s.api.crds.agents.AgentCustomResource;
+import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;

@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
-import com.datastax.oss.sga.deployer.k8s.api.crds.apps.ApplicationCustomResource;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.util.List;

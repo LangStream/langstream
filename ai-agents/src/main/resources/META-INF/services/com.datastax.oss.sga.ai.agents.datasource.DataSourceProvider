@@ -1,2 +1,0 @@
-com.datastax.oss.sga.ai.agents.datasource.impl.AstraDataSource
-com.datastax.oss.sga.ai.agents.datasource.impl.JdbcDataSourceProvider

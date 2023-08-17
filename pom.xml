@@ -72,9 +72,9 @@
   </properties>
 
   <scm>
-    <connection>scm:git:git@github.com:riptano/langstream-ai.git</connection>
-    <developerConnection>scm:git:git@github.com:riptano/langstream-ai.git</developerConnection>
-    <url>https://github.com/riptano/langstream-ai</url>
+    <connection>scm:git:git@github.com:LangStream/langstream.git</connection>
+    <developerConnection>scm:git:git@github.com:LangStream/langstream.git</developerConnection>
+    <url>https://github.com/LangStream/langstream</url>
     <tag>HEAD</tag>
   </scm>
 

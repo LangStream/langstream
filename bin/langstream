@@ -32,8 +32,8 @@ BINDIR=$(dirname "$PRG")
 ROOT_DIR=`cd -P $BINDIR/..;pwd`
 
 pushd $ROOT_DIR > /dev/null
-if [ ! -d cli/target/cli ]; then
-  ./mvnw clean install -DskipTests -pl cli -am
+if [ ! -d langstream-cli/target/cli ]; then
+  ./mvnw clean install -DskipTests -pl langstream-cli -am
 fi
 popd > /dev/null
 LANGSTREAM_CLI_CONFIG=${LANGSTREAM_CLI_CONFIG:-""}
@@ -42,6 +42,6 @@ if [ -n "$LANGSTREAM_CLI_CONFIG" ]; then
   LANGSTREAM_CLI_CONFIG="--conf $LANGSTREAM_CLI_CONFIG"
 fi
 
-"$ROOT_DIR/cli/target/cli/bin/langstream" $LANGSTREAM_CLI_CONFIG "$@"
+"$ROOT_DIR/langstream-cli/target/cli/bin/langstream" $LANGSTREAM_CLI_CONFIG "$@"
 
 

@@ -42,5 +42,5 @@ Configure the list of seed URLs, for instance with your home page.
 Since the application opens a gateway, we can use the gateway API to send and consume messages.
 
 ```
-./bin/langstream gateway test chat-bot -cg bot-output -pg user-input -p sessionId=$(uuidgen)
+./bin/langstream gateway chat test -cg bot-output -pg user-input -p sessionId=$(uuidgen)
 ```

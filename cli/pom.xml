@@ -99,7 +99,7 @@
           </platforms>
           <programs>
             <program>
-              <mainClass>com.datastax.oss.sga.cli.SgaCLI</mainClass>
+              <mainClass>ai.langstream.cli.SgaCLI</mainClass>
               <id>sga</id>
               <platforms>
                 <platform>unix</platform>

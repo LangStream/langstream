@@ -1,1 +1,1 @@
-com.datastax.oss.sga.ai.kafkaconnect.KafkaConnectCodeProvider
+ai.langstream.kafkaconnect.KafkaConnectCodeProvider

@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.sga.runtime.impl.k8s;
 
-import com.dastastax.oss.sga.kafka.runtime.KafkaTopic;
+import ai.langstream.kafka.runtime.KafkaTopic;
 import com.datastax.oss.sga.api.model.Application;
 import com.datastax.oss.sga.api.model.Connection;
 import com.datastax.oss.sga.api.model.Module;

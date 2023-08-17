@@ -34,7 +34,7 @@ import ai.langstream.apigateway.websocket.api.ProduceRequest;
 import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.datastax.oss.sga.kafka.extensions.KafkaContainerExtension;
+import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;

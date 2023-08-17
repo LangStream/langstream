@@ -23,7 +23,7 @@ import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
 import com.datastax.oss.sga.impl.deploy.ApplicationDeployer;
 import com.datastax.oss.sga.impl.k8s.tests.KubeTestServer;
 import com.datastax.oss.sga.impl.parser.ModelBuilder;
-import com.datastax.oss.sga.kafka.extensions.KafkaContainerExtension;
+import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import com.datastax.oss.sga.runtime.agent.api.AgentInfo;
 import com.datastax.oss.sga.runtime.api.agent.RuntimePodConfiguration;

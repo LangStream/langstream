@@ -36,15 +36,15 @@ build_docker_image() {
 }
 
 if [ "$only_image" == "control-plane" ]; then
-  build_docker_image webservice
+  build_docker_image langstream-webservice
 elif [ "$only_image" == "operator" ]; then
-  build_docker_image k8s-deployer/k8s-deployer-operator
+  build_docker_image langstream-k8s-deployer/langstream-k8s-deployer-operator
 elif [ "$only_image" == "runtime" ]; then
-  build_docker_image runtime/runtime-impl
+  build_docker_image langstream-runtime/langstream-runtime-impl
 elif [ "$only_image" == "cli" ]; then
-  build_docker_image cli
+  build_docker_image langstream-cli
 elif [ "$only_image" == "api-gateway" ]; then
-  build_docker_image api-gateway
+  build_docker_image langstream-api-gateway
 else
   ./mvnw package -am -DskipTests -Pdocker -T 1C -Ddocker.platforms="$(docker_platforms)"
   docker images | head -n 5

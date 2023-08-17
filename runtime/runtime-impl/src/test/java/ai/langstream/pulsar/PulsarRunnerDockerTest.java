@@ -22,7 +22,7 @@ import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
-import com.datastax.oss.sga.deployer.k8s.agents.AgentResourcesFactory;
+import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.parser.ModelBuilder;

@@ -144,7 +144,7 @@ def run_main_loop(source: Source, sink: Sink, processor: Processor, errors_handl
                         for source_record_and_result in sink_records:
                             if isinstance(source_record_and_result[1], Exception):
                                 # commit skipped records
-                                source.commit([source_record_and_result[0]])
+                                call_method_if_exists(source, 'commit', [source_record_and_result[0]])
                             else:
                                 sink.write(source_record_and_result[1])
                     except Exception as e:

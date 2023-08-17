@@ -23,9 +23,10 @@ from confluent_kafka import Consumer, Producer, TopicPartition
 from confluent_kafka.serialization import StringDeserializer, StringSerializer
 from testcontainers.kafka import KafkaContainer
 
-from langstream.internal import kafka_connection, runtime
 from langstream.api import Record
 from langstream.util import SimpleRecord, SingleRecordProcessor
+from langstream_runtime import kafka_connection
+from langstream_runtime import runtime
 
 
 def test_kafka_topic_connection():
@@ -51,7 +52,7 @@ def test_kafka_topic_connection():
             applicationId: testApplicationId
             agentId: testAgentId
             configuration:
-                className: tests.test_kafka_connection.TestSuccessProcessor
+                className: langstream_runtime.tests.test_kafka_connection.TestSuccessProcessor
         """
 
         config = yaml.safe_load(config_yaml)
@@ -149,7 +150,7 @@ def test_kafka_dlq():
             applicationId: testApplicationId
             agentId: testAgentId
             configuration:
-                className: tests.test_kafka_connection.TestFailingProcessor
+                className: langstream_runtime.tests.test_kafka_connection.TestFailingProcessor
             errorHandlerConfiguration:
                 retries: 5
                 onFailure: dead-letter

@@ -112,5 +112,3 @@ class TopicProducerSink(Sink):
 
     def __str__(self):
         return f'TopicProducerSink{{producer={self.producer}}}'
-
-

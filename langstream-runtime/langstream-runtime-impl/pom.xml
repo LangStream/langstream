@@ -247,7 +247,7 @@
                 <echo>copy python runtime</echo>
                 <mkdir dir="${basedir}/target/python" />
                 <copydir src="${basedir}/src/main/python/langstream" dest="${basedir}/target/python/langstream" />
-                <copydir src="${basedir}/src/main/python/tests" dest="${basedir}/target/python/tests" />
+                <copydir src="${basedir}/src/main/python/langstream_runtime" dest="${basedir}/target/python/langstream_runtime" />
                 <copy file="${basedir}/src/main/python/tox.ini" todir="${basedir}/target/python" />
                 <copy file="${basedir}/src/main/python/Pipfile" todir="${basedir}/target/python" />
                 <copy file="${basedir}/src/main/python/Pipfile.lock" todir="${basedir}/target/python" />

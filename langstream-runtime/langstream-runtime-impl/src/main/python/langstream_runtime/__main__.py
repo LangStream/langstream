@@ -19,7 +19,7 @@ import sys
 
 import yaml
 
-from .internal import runtime
+from . import runtime
 
 if __name__ == '__main__':
     print(sys.argv)

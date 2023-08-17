@@ -32,7 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
@@ -134,7 +136,13 @@ class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
             try (KafkaProducer<String, String> producer = createProducer()) {
                 sendMessage("input-topic2", "err", producer);
                 sendMessage("input-topic2", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
-                executeAgentRunners(applicationRuntime);
+                try {
+                    executeAgentRunners(applicationRuntime);
+                    fail();
+                } catch (Exception err) {
+                    // expected
+                    assertEquals("Injected record conversion error", err.getCause().getMessage());
+                }
                 Thread.sleep(1000);
                 // todo: assert on processed counter (incremented before error handling)
                 DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));

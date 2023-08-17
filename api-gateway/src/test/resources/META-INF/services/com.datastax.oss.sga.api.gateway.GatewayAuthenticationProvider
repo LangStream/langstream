@@ -1,1 +1,1 @@
-com.datastax.oss.sga.apigateway.websocket.TestGatewayAuthenticationProvider
+ai.langstream.apigateway.websocket.TestGatewayAuthenticationProvider

@@ -1,1 +1,1 @@
-com.datastax.oss.sga.apigateway.auth.impl.github.GitHubAuthenticationProvider
+ai.langstream.apigateway.auth.impl.github.GitHubAuthenticationProvider

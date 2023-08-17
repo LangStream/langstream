@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -202,6 +203,7 @@ public abstract class AbstractApplicationRunner {
             List<CompletableFuture> futures = new ArrayList<>();
             for (RuntimePodConfiguration podConfiguration : pods) {
                 CompletableFuture<?> handle = new CompletableFuture<>();
+                futures.add(handle);
                 executorService.submit(() -> {
                     String originalName = Thread.currentThread().getName();
                     Thread.currentThread().setName(podConfiguration.agent().agentId() + "runner-tid-" + runnerExecutionId);
@@ -222,7 +224,16 @@ public abstract class AbstractApplicationRunner {
                     }
                 });
             }
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+            try {
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+            } catch (ExecutionException executionException) {
+                // unwrap the exception in order to easily perform assertions
+                if (executionException instanceof Exception) {
+                    throw (Exception) executionException.getCause();
+                } else {
+                    throw executionException;
+                }
+            }
             executorService.shutdown();
             assertTrue(executorService.awaitTermination(1, TimeUnit.MINUTES), "the pods didn't finish in time");
         } finally {

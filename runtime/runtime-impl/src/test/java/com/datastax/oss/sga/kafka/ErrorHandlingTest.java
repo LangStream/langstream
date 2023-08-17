@@ -17,6 +17,7 @@ package com.datastax.oss.sga.kafka;
 
 
 import com.datastax.oss.sga.common.AbstractApplicationRunner;
+import com.datastax.oss.sga.runtime.agent.AgentRunner;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -25,6 +26,9 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 class ErrorHandlingTest extends AbstractApplicationRunner {
@@ -119,6 +123,62 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
 
                 waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
                 waitForMessages(consumer, expectedMessages);
+            }
+        }
+    }
+
+    @Test
+    public void testFailOnErrors() throws Exception {
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step"};
+
+        Map<String, String> application = Map.of(
+                "module.yaml", """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                    options:
+                                      # we want to read more than one record at a time
+                                      consumer.max.poll.records: 10
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                errors:
+                                    on-failure: fail
+                                    retries: 5
+                                pipeline:
+                                  - name: "some agent"
+                                    id: "step"
+                                    type: "mock-failing-processor"
+                                    input: "input-topic"
+                                    output: "output-topic"
+                                    configuration:
+                                      fail-on-content: "fail-me"
+                                """);
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer();) {
+
+                sendMessage("input-topic", "fail-me", producer);
+                sendMessage("input-topic", "keep-me", producer);
+
+                try {
+                    executeAgentRunners(applicationRuntime);
+                    fail("Expected an exception");
+                } catch (AgentRunner.PermanentFailureException e) {
+                    // expected
+                    assertEquals("Failing on content: fail-me", e.getCause().getMessage());
+                }
+
+                // the pipeline is stuck, always failing on the first message
+
+                try {
+                    executeAgentRunners(applicationRuntime);
+                    fail("Expected an exception");
+                } catch (AgentRunner.PermanentFailureException e) {
+                    // expected
+                    assertEquals("Failing on content: fail-me", e.getCause().getMessage());
+                }
             }
         }
     }

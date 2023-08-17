@@ -449,7 +449,12 @@ public class AgentRunner
                             break;
                         case FAIL:
                             log.error("Unrecoverable error while processing some the records, failing", error);
-                            source.permanentFailure(sourceRecord, new PermanentFailureException(error));
+                            PermanentFailureException permanentFailureException = new PermanentFailureException(error);
+                            source.permanentFailure(sourceRecord, permanentFailureException);
+                            if (errorsHandler.failProcessingOnPermanentErrors()) {
+                                log.error("Failing processing on permanent error");
+                                throw permanentFailureException;
+                            }
                             // in case the source does not throw an exception we mark the record as "skipped"
                             resultsByRecord.put(sourceRecord,
                                     new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));

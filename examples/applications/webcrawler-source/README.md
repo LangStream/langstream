@@ -6,6 +6,24 @@ This sample application shows how to use the WebCrawler Source Connector
 
 Create a S3 bucket, it will contain only a metadata file for the WebCrawler.
 
+Create a table in Astra DB with the following schema.
+This example assumes that you have a KEYSPACE named `documents` and a TABLE named `documents`.
+
+```
+USE documents;
+CREATE TABLE IF NOT EXISTS documents (  
+  filename TEXT,
+  chunk_id int,
+  num_tokens int,
+  language TEXT,  
+  text TEXT,
+  embeddings_vector VECTOR<FLOAT, 1536>,
+  PRIMARY KEY (filename, chunk_id)
+);
+CREATE CUSTOM INDEX IF NOT EXISTS ann_index 
+  ON documents(embeddings_vector) USING 'StorageAttachedIndex';
+```
+
 ## Configure the pipeline
 
 Update the same file and set username, password and the other parameters.
@@ -20,9 +38,9 @@ Configure the list of seed URLs, for instance with your home page.
 ./bin/langstream apps deploy test -app examples/applications/webcrawler-source -i examples/instances/kafka-kubernetes.yaml
 ```
 
-## Start a Consumer
-```
-kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
-```
+## Talk with the Chat bot using the CLI
+Since the application opens a gateway, we can use the gateway API to send and consume messages.
 
-The content of the files will be displayed on the Kafka consumer terminal.
+```
+./bin/langstream gateway test chat-bot -cg bot-output -pg user-input -p sessionId=$(uuidgen)
+```

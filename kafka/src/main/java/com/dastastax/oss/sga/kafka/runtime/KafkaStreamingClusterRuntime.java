@@ -38,6 +38,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.DeleteTopicsOptions;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -169,7 +170,15 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         switch (topic.createMode()) {
             case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
                 log.info("Deleting Kafka topic {}", topic.name());
-                admin.deleteTopics(List.of(topic.name()), new DeleteTopicsOptions()).all().get();
+                try {
+                    admin.deleteTopics(List.of(topic.name()), new DeleteTopicsOptions()).all().get();
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof UnknownTopicOrPartitionException) {
+                        log.info("Topic {} does not exist", topic.name());
+                    } else {
+                        throw e;
+                    }
+                }
                 break;
             }
             default:

@@ -118,7 +118,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
                 log.debug("Skipping directory {}", name);
                 continue;
             }
-            boolean extensionAllowed = isExtensionAllowed(name);
+            boolean extensionAllowed = isExtensionAllowed(name, extensions);
             if (!extensionAllowed) {
                 log.debug("Skipping file with bad extension {}", name);
                 continue;
@@ -153,10 +153,18 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         return records;
     }
 
-    private boolean isExtensionAllowed(String name) {
-        String extension = name.indexOf('.') >= 0 ? name.substring(name.lastIndexOf('.')) : "";
-        if (extensions.contains(ALL_FILES)
-            || extensions.contains(extension)) {
+    static boolean isExtensionAllowed(String name, Set<String> extensions) {
+        if (extensions.contains(ALL_FILES)) {
+            return true;
+        }
+        String extension;
+        int extensionIndex = name.lastIndexOf('.');
+        if (extensionIndex < 0 || extensionIndex == name.length() - 1) {
+            extension = "";
+        } else {
+            extension = name.substring(extensionIndex + 1);
+        }
+        if (extensions.contains(extension)) {
             return true;
         } else {
             return false;

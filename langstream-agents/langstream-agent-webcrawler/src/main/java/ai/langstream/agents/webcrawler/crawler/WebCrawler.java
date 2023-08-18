@@ -17,6 +17,7 @@ package ai.langstream.agents.webcrawler.crawler;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -44,10 +45,7 @@ public class WebCrawler {
         if (!configuration.isAllowedDomain(startUrl)) {
             return;
         }
-        if (status.isVisited(startUrl)) {
-            return;
-        }
-        status.addUrl(startUrl);
+        status.addUrl(startUrl, true);
     }
 
     public boolean runCycle() throws Exception {
@@ -55,54 +53,30 @@ public class WebCrawler {
         if (current == null) {
             return false;
         }
-        Document document = Jsoup.connect(current).get();
+        Connection connect = Jsoup.connect(current);
+        if (configuration.getUserAgent() != null) {
+            connect.userAgent(configuration.getUserAgent());
+        }
+        Document document = connect.get();
         document.getElementsByAttribute("href").forEach(element -> {
             if (configuration.isAllowedTag(element.tagName())) {
                 String url = element.absUrl("href");
-                if (status.isVisited(url)) {
-                    return;
-                }
                 if (configuration.isAllowedDomain(url)) {
-                    System.out.println("Found url: " + url);
-                    status.addUrl(url);
+                    status.addUrl(url, true);
                 } else {
-                    System.out.println("Not allowed url: " + url);
+                    log.info("Ignoring not allowed url: {}", url);
+                    status.addUrl(url, false);
                 }
-                status.addVisited(url);
             }
         });
         visitor.visit(new ai.langstream.agents.webcrawler.crawler.Document(current, document.html()));
-        status.urlProcessed(current);
-        return true;
-    }
 
-
-    public static void main(String ... args) throws Exception {
-        WebCrawlerConfiguration configuration = WebCrawlerConfiguration
-                .builder()
-                .allowedDomains(Set.of("https://docs.langstream.ai/"))
-                .build();
-
-        WebCrawlerStatus status = new WebCrawlerStatus();
-        WebCrawler crawler = new WebCrawler(configuration, status, new DocumentVisitor() {
-            @Override
-            public void visit(ai.langstream.agents.webcrawler.crawler.Document doc) {
-                System.out.println("Visited: " + doc);
-            }
-        });
-        crawler.crawl("https://docs.langstream.ai/");
-
-        while (crawler.runCycle()) {
-            System.out.println("Visited: " + status.getVisited().size());
-            System.out.println("Remaining urls: " + status.getUrls().size());
-            Thread.sleep(1000);
+        // prevent from being banned for flooding
+        if (configuration.getMinTimeBetweenRequests() > 0) {
+            Thread.sleep(configuration.getMinTimeBetweenRequests());
         }
 
-        status.getVisited().forEach(url -> {
-            System.out.println("Visited: " + url);
-        });
-
+        return true;
     }
-
 
 }

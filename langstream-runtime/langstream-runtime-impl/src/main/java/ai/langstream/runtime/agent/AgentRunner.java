@@ -560,7 +560,7 @@ public class AgentRunner
         }
 
         @Override
-        public String getAgentId() {
+        public String getGlobalAgentId() {
             return agentId;
         }
 

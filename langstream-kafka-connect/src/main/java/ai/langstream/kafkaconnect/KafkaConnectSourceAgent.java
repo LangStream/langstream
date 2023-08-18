@@ -244,7 +244,7 @@ public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentS
 
     public void setContext(AgentContext context) throws Exception {
         this.topicAdmin = (TopicAdmin) context.getTopicAdmin().getNativeTopicAdmin();
-        this.agentId = context.getAgentId();
+        this.agentId = context.getGlobalAgentId();
         this.topicConnectionProvider = context.getTopicConnectionProvider();
     }
 

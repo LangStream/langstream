@@ -25,6 +25,8 @@ import java.util.Set;
 public class WebCrawlerConfiguration {
     @Builder.Default
     private Set<String> allowedDomains = Set.of();
+    private String userAgent;
+    private int minTimeBetweenRequests = 100;
     @Builder.Default
     private Set<String> allowedTags = Set.of("a");
 

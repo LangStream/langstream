@@ -54,14 +54,15 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      - name: 'Init: install python tools'
+        if: ${{ matrix.name == 'Runtime' }}
+        run: pip install -r requirements.txt
+
       - name: 'Init: build project'
         run: |
           chmod +x mvnw
-          ./mvnw clean install -DskipTests
-
-      - name: 'Init: install tox'
-        if: ${{ matrix.name == 'Runtime' }}
-        run: pip install -r requirements.txt
+          ./mvnw clean install -DskipTests -PskipPython
 
       - name: 'Test: Runtime'
         if: ${{ matrix.name == 'Runtime' }}
@@ -71,23 +72,23 @@ jobs:
       - name: 'Test: Api Gateway'
         if: ${{ matrix.name == 'Api Gateway' }}
         run: |
-          ./mvnw verify -pl ":langstream-api-gateway" -Pdocker
+          ./mvnw verify -pl ":langstream-api-gateway" -Pdocker -PskipPython
 
       - name: 'Test: Deployer'
         if: ${{ matrix.name == 'Deployer' }}
         run: |
-          ./mvnw verify -f langstream-k8s-deployer -Pdocker
+          ./mvnw verify -f langstream-k8s-deployer -Pdocker -PskipPython
 
       - name: 'Test: Control plane'
         if: ${{ matrix.name == 'Control plane' }}
         run: |
-          ./mvnw verify -pl langstream-webservice -Pdocker
+          ./mvnw verify -pl langstream-webservice -Pdocker -PskipPython
 
       - name: 'Test: Other'
         if: ${{ matrix.name == 'Other' }}
         run: |
           #/bin/bash
-          ./mvnw verify -PtestSuiteOthers
+          ./mvnw verify -PtestSuiteOthers -PskipPython
   e2e-tests:
     name: End to End tests
     runs-on: ubuntu-latest

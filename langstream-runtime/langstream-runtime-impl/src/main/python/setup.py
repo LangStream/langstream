@@ -14,43 +14,13 @@
 # limitations under the License.
 #
 
-from setuptools import setup, find_packages
-import pathlib
+from setuptools import setup
 
-here = pathlib.Path(__file__).parent.resolve()
+from pathlib import Path
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
 
 setup(
-    name='langstream',
-    version='0.1.0',
-    author='Christophe Bornet',
-    author_email='christophe.bornet@datastax.com',
-    packages=find_packages(include='langstream'),
-
-    py_modules=['langstream.api', 'langstream.util'],
-    url='https://github.com/LangStream/langstream',
-    license='LICENSE',
-    description='LangStream user API',
-    long_description=(here / "README.md").read_text(encoding="utf-8"),
-    long_description_content_type="text/markdown",
-    install_requires=[],
-    python_requires=">=3.5",
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: Apache Software License",
-        #
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Programming Language :: Python :: 3 :: Only",
-        "Topic :: Scientific/Engineering",
-        "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    ],
-    keywords="streaming, ai, llm",
+    long_description=long_description,
+    long_description_content_type='text/markdown'
 )

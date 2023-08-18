@@ -24,6 +24,9 @@ pipeline:
     configuration:
       seed-urls: "https://docs.langstream.ai/"
       allowed-domains: "https://docs.langstream.ai"
+      min-time-between-requests: 100
+      max-unflushed-pages: 100
+      user-agent: "langstream.ai-webcrawler/1.0"
       bucketName: "{{{secrets.s3-credentials.bucket-name}}}"
       endpoint: "{{{secrets.s3-credentials.endpoint}}}"
       access-key: "{{{secrets.s3-credentials.access-key}}}"

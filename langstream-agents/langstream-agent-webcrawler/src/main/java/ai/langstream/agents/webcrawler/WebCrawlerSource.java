@@ -16,15 +16,20 @@
 package ai.langstream.agents.webcrawler;
 
 import ai.langstream.agents.webcrawler.crawler.Document;
+import ai.langstream.agents.webcrawler.crawler.StatusStorage;
 import ai.langstream.agents.webcrawler.crawler.WebCrawler;
 import ai.langstream.agents.webcrawler.crawler.WebCrawlerConfiguration;
 import ai.langstream.agents.webcrawler.crawler.WebCrawlerStatus;
 import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
+import io.minio.GetObjectResponse;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.errors.ErrorResponseException;
@@ -34,6 +39,7 @@ import io.minio.errors.InvalidResponseException;
 import io.minio.errors.ServerException;
 import io.minio.errors.XmlParserException;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -41,17 +47,21 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import lombok.AllArgsConstructor;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
+
+    private int maxUnflushedPages = 100;
+    private String userAgent;
+
     private String bucketName;
     private Set<String> allowedDomains;
     private Set<String> seedUrls;
@@ -59,11 +69,19 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
     private int idleTime;
 
+    private int minTimeBetweenRequests = 100;
+
+    private String statusFileName;
+
     private WebCrawler crawler;
 
     private boolean finished;
 
-    private BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
+    private final AtomicInteger flushNext = new AtomicInteger(100);
+
+    private final BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
+
+    private final StatusStorage statusStorage = new S3StatusStorage();
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
@@ -72,15 +90,22 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         String username =  configuration.getOrDefault("access-key", "minioadmin").toString();
         String password =  configuration.getOrDefault("secret-key", "minioadmin").toString();
         String region = configuration.getOrDefault("region", "").toString();
-        Set<String> allowedDomains = Set.of(configuration.getOrDefault("allowed-domains", "")
+        allowedDomains = Set.of(configuration.getOrDefault("allowed-domains", "")
                 .toString().split(","));
-        Set<String> seedUrls = Set.of(configuration.getOrDefault("seed-urls", "")
+        seedUrls = Set.of(configuration.getOrDefault("seed-urls", "")
                 .toString().split(","));
-        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
+        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 1).toString());
+        maxUnflushedPages = Integer.parseInt(configuration.getOrDefault("max-unflushed-pages", 100).toString());
+        flushNext.set(maxUnflushedPages);
+        minTimeBetweenRequests = Integer.parseInt(configuration.getOrDefault("min-time-between-requests", 100).toString());
+        userAgent = configuration.getOrDefault("user-agent", "langstream.ai-webcrawler/1.0").toString();
 
         log.info("Connecting to S3 Bucket at {} in region {} with user {}", endpoint, region, username);
         log.info("allowed-domains: {}", allowedDomains);
         log.info("seed-urls: {}", seedUrls);
+        log.info("user-agent: {}", userAgent);
+        log.info("max-unflushed-pages: {}", maxUnflushedPages);
+        log.info("min-time-between-requests: {}", minTimeBetweenRequests);
 
         MinioClient.Builder builder = MinioClient.builder()
                 .endpoint(endpoint)
@@ -95,17 +120,24 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         WebCrawlerConfiguration webCrawlerConfiguration = WebCrawlerConfiguration
                 .builder()
                 .allowedDomains(allowedDomains)
+                .minTimeBetweenRequests(minTimeBetweenRequests)
+                .userAgent(userAgent)
                 .build();
 
-        // TODO: reload from S3 Bucket
         WebCrawlerStatus status = new WebCrawlerStatus();
         crawler = new WebCrawler(webCrawlerConfiguration, status, foundDocuments::add);
 
-        for (String url :seedUrls) {
-            crawler.crawl(url);
-        }
+
 
     }
+
+    @Override
+    public void setContext(AgentContext context) throws Exception {
+        String globalAgentId = context.getGlobalAgentId();
+        statusFileName = globalAgentId + ".webcrawler.status.json";
+        log.info("Status file is {}", statusFileName);
+    }
+
 
     private void makeBucketIfNotExists(String bucketName)
         throws ServerException, InsufficientDataException, ErrorResponseException, IOException,
@@ -123,6 +155,24 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
     }
 
+    private void flushStatus() {
+        try {
+            crawler.getStatus().persist(statusStorage);
+        } catch (Exception e) {
+            log.error("Error persisting status", e);
+        }
+    }
+
+
+    @Override
+    public void start() throws Exception {
+        crawler.getStatus().reloadFrom(statusStorage);
+
+        for (String url :seedUrls) {
+            crawler.crawl(url);
+        }
+    }
+
     @Override
     public List<Record> read() throws Exception {
         if (finished) {
@@ -132,6 +182,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             boolean somethingDone = crawler.runCycle();
             if (!somethingDone) {
                 finished = true;
+                log.info("No more documents found.");
+                flushStatus();
             }
         }
         if (foundDocuments.isEmpty()) {
@@ -144,13 +196,14 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     }
 
     private List<Record> sleepForNoResults() throws Exception {
-        Thread.sleep(1000);
+        Thread.sleep(idleTime * 1000);
         return List.of();
     }
 
     @Override
     protected Map<String, Object> buildAdditionalInfo() {
         return Map.of("bucketName", bucketName,
+                "statusFileName", statusFileName,
                 "seed-Urls", seedUrls,
                 "allowed-domains", allowedDomains);
     }
@@ -162,6 +215,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             WebCrawlerSourceRecord webCrawlerSourceRecord = (WebCrawlerSourceRecord) record;
             String objectName = webCrawlerSourceRecord.url;
             crawler.getStatus().urlProcessed(objectName);
+
+            if (flushNext.decrementAndGet() == 0) {
+                flushStatus();
+                flushNext.set(maxUnflushedPages);
+            }
         }
     }
 
@@ -209,6 +267,41 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             return "WebCrawlerSourceRecord{" +
                     "url='" + url + '\'' +
                     '}';
+        }
+    }
+
+    private class S3StatusStorage implements StatusStorage {
+        private static final ObjectMapper MAPPER = new ObjectMapper();
+
+        @Override
+        public void storeStatus(Map<String, Object> metadata) throws Exception {
+            byte[] content = MAPPER.writeValueAsBytes(metadata);
+            log.info("Storing status in {}, {} bytes", statusFileName, content.length);
+            minioClient.putObject(io.minio.PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(statusFileName)
+                    .contentType("text/json")
+                    .stream(new ByteArrayInputStream(content), content.length, -1)
+                    .build());
+        }
+
+        @Override
+        public Map<String, Object> getCurrentStatus() throws Exception {
+            try {
+                GetObjectResponse result = minioClient.getObject(GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(statusFileName)
+                        .build());
+                byte[] content = result.readAllBytes();
+                log.info("Restoring status from {}, {} bytes", statusFileName, content.length);
+                return MAPPER.readValue(content, Map.class);
+            } catch (ErrorResponseException e) {
+                if (e.errorResponse().code().equals("NoSuchKey")) {
+                    log.info("No status file found, starting from scratch");
+                    return Map.of();
+                }
+                throw e;
+            }
         }
     }
 }

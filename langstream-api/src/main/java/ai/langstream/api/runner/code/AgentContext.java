@@ -36,7 +36,7 @@ public interface AgentContext {
 
     TopicProducer getTopicProducer();
 
-    String getAgentId();
+    String getGlobalAgentId();
 
     TopicAdmin getTopicAdmin();
 

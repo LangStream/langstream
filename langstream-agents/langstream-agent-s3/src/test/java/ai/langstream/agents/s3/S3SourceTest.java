@@ -18,6 +18,7 @@ package ai.langstream.agents.s3;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentSource;
@@ -35,6 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -72,7 +74,7 @@ public class S3SourceTest {
             minioClient.putObject(
                 PutObjectArgs.builder()
                     .bucket(bucket)
-                    .object("test-" + i)
+                    .object("test-" + i + ".txt")
                     .stream(new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)), s.length(), -1)
                     .build()
             );
@@ -96,7 +98,7 @@ public class S3SourceTest {
         Iterator<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build()).iterator();
         for (int i = 2; i < 10; i++) {
             Result<Item> item = results.next();
-            assertEquals("test-" + i, item.get().objectName());
+            assertEquals("test-" + i + ".txt", item.get().objectName());
         }
 
         List<Record> all = new ArrayList<>();
@@ -156,5 +158,23 @@ public class S3SourceTest {
         agentSource.init(configs);
         agentSource.start();
         return agentSource;
+    }
+
+    @Test
+    void testIsExtensionAllowed() {
+        assertTrue(S3Source.isExtensionAllowed("aaa", Set.of("*")));
+        assertTrue(S3Source.isExtensionAllowed("", Set.of("*")));
+        assertTrue(S3Source.isExtensionAllowed(".aaa", Set.of("*")));
+        assertTrue(S3Source.isExtensionAllowed("aaa.", Set.of("*")));
+
+        assertFalse(S3Source.isExtensionAllowed("aaa", Set.of("aaa")));
+        assertFalse(S3Source.isExtensionAllowed("", Set.of("aaa")));
+        assertTrue(S3Source.isExtensionAllowed(".aaa", Set.of("aaa")));
+        assertFalse(S3Source.isExtensionAllowed("aaa.", Set.of("aaa")));
+
+        assertFalse(S3Source.isExtensionAllowed("aaa", Set.of("bbb")));
+        assertFalse(S3Source.isExtensionAllowed("", Set.of("bbb")));
+        assertFalse(S3Source.isExtensionAllowed(".aaa", Set.of("bbb")));
+        assertFalse(S3Source.isExtensionAllowed("aaa.", Set.of("b")));
     }
 }

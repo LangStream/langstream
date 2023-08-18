@@ -23,6 +23,7 @@ pipeline:
     type: "s3-source"
     output: "output-topic"
     configuration:
+      file-extensions: "pdf,docx,html,htm,md,txt"
       bucketName: "{{{secrets.s3-credentials.bucket-name}}}"
       endpoint: "{{{secrets.s3-credentials.endpoint}}}"
       access-key: "{{{secrets.s3-credentials.access-key}}}"

@@ -55,6 +55,10 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
     private int idleTime;
 
+    public static final String ALL_FILES = "*";
+    public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
+    private Set<String> extensions = Set.of();
+
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
         bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
@@ -63,8 +67,11 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         String password =  configuration.getOrDefault("secret-key", "minioadmin").toString();
         String region = configuration.getOrDefault("region", "").toString();
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
+        extensions = Set.of(
+                configuration.getOrDefault("file-extensions", DEFAULT_EXTENSIONS_FILTER).toString().split(","));
 
         log.info("Connecting to S3 Bucket at {} in region {} with user {}", endpoint, region, username);
+        log.info("Getting files with extensions {} (use '*' to no filter)", extensions);
 
         MinioClient.Builder builder = MinioClient.builder()
                 .endpoint(endpoint)
@@ -108,7 +115,12 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
             Item item = object.get();
             String name = item.objectName();
             if (item.isDir()) {
-                log.info("Skipping directory {}", name);
+                log.debug("Skipping directory {}", name);
+                continue;
+            }
+            boolean extensionAllowed = isExtensionAllowed(name, extensions);
+            if (!extensionAllowed) {
+                log.debug("Skipping file with bad extension {}", name);
                 continue;
             }
             if (!objectsToCommit.contains(name)) {
@@ -139,6 +151,24 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
             processed(0, 1);
         }
         return records;
+    }
+
+    static boolean isExtensionAllowed(String name, Set<String> extensions) {
+        if (extensions.contains(ALL_FILES)) {
+            return true;
+        }
+        String extension;
+        int extensionIndex = name.lastIndexOf('.');
+        if (extensionIndex < 0 || extensionIndex == name.length() - 1) {
+            extension = "";
+        } else {
+            extension = name.substring(extensionIndex + 1);
+        }
+        if (extensions.contains(extension)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override

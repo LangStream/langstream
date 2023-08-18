@@ -40,6 +40,11 @@ public interface AgentCode {
     default void init(Map<String, Object> configuration) throws Exception {
     }
 
+    /**
+     * Set the context of the agent. This is invoked after {@link #init(Map)} and before {@link #start()}
+     * @param context
+     * @throws Exception
+     */
     default void setContext(AgentContext context) throws Exception {
     }
 

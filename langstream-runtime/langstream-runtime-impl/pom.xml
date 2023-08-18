@@ -314,7 +314,7 @@
             </goals>
             <configuration>
               <workingDirectory>${project.build.directory}/python</workingDirectory>
-              <executable>python</executable>
+              <executable>python3</executable>
               <arguments>
                 <argument>-m</argument>
                 <argument>build</argument>

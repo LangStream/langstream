@@ -20,9 +20,9 @@ from typing import List
 import pytest
 import yaml
 
-from langstream.internal import runtime
 from langstream.api import Source, Sink, CommitCallback, Record
 from langstream.util import SimpleRecord, SingleRecordProcessor
+from langstream_runtime import runtime
 
 
 def test_simple_agent():
@@ -33,12 +33,12 @@ def test_simple_agent():
             applicationId: testApplicationId
             agentId: testAgentId
             configuration:
-                className: tests.test_runtime.TestAgent
+                className: langstream_runtime.tests.test_runtime.TestAgent
     """
     config = yaml.safe_load(config_yaml)
     agent = runtime.init_agent(config)
     runtime.run(config, agent=agent, max_loops=2)
-    assert agent.context['config'] == [{'className': 'tests.test_runtime.TestAgent'}]
+    assert agent.context['config'] == [{'className': 'langstream_runtime.tests.test_runtime.TestAgent'}]
     assert agent.context['start'] == 1
     assert agent.context['close'] == 1
     assert agent.context['set_commit_callback'] == 1

@@ -19,7 +19,7 @@ from typing import List
 
 from langstream.api import Source, Record
 from langstream.util import SimpleRecord
-from langstream.internal.source_record_tracker import SourceRecordTracker
+from langstream_runtime.source_record_tracker import SourceRecordTracker
 
 
 def test_tracker():

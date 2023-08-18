@@ -25,4 +25,10 @@ maven-build.properties
 
 langstream-data
 
+# Python
 __pycache__
+dist
+*.egg-info
+.pytest_cache
+.tox
+build/

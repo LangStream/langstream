@@ -30,8 +30,8 @@ docker_platforms() {
 
 build_docker_image() {
   module=$1
-  ./mvnw install -am -DskipTests -pl $module -T 1C
-  ./mvnw package -DskipTests -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)"
+  ./mvnw install -am -DskipTests -pl $module -T 1C -PskipPython
+  ./mvnw package -DskipTests -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)" -PskipPython
   docker images | head -n 2
 }
 
@@ -46,7 +46,7 @@ elif [ "$only_image" == "cli" ]; then
 elif [ "$only_image" == "api-gateway" ]; then
   build_docker_image langstream-api-gateway
 else
-  ./mvnw package -am -DskipTests -Pdocker -T 1C -Ddocker.platforms="$(docker_platforms)"
+  ./mvnw package -am -DskipTests -Pdocker -T 1C -Ddocker.platforms="$(docker_platforms)" -PskipPython
   docker images | head -n 5
 fi
 

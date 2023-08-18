@@ -239,25 +239,51 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.11</version>
+        <executions>
+          <execution>
+            <id>regex-property</id>
+            <goals>
+              <goal>regex-property</goal>
+            </goals>
+            <configuration>
+              <name>pythonpackage.version</name>
+              <value>${project.version}</value>
+              <regex>-SNAPSHOT</regex>
+              <replacement>.dev</replacement>
+              <failIfNoMatch>false</failIfNoMatch>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
         <version>3.1.0</version>
         <executions>
           <execution>
+            <id>copy-python-files</id>
             <phase>compile</phase>
             <goals>
               <goal>run</goal>
             </goals>
             <configuration>
-              <skip>${skipTests}</skip>
               <target>
-                <echo>copy python runtime</echo>
+                <echo>copy python runtime files</echo>
                 <mkdir dir="${basedir}/target/python" />
+                <copydir src="${basedir}/src/main/python" dest="${basedir}/target/python" />
                 <copydir src="${basedir}/src/main/python/langstream" dest="${basedir}/target/python/langstream" />
-                <copydir src="${basedir}/src/main/python/tests" dest="${basedir}/target/python/tests" />
-                <copy file="${basedir}/src/main/python/tox.ini" todir="${basedir}/target/python" />
+                <copydir src="${basedir}/src/main/python/langstream_runtime" dest="${basedir}/target/python/langstream_runtime" />
+                <copy file="${basedir}/src/main/python/LICENSE" todir="${basedir}/target/python" />
                 <copy file="${basedir}/src/main/python/Pipfile" todir="${basedir}/target/python" />
                 <copy file="${basedir}/src/main/python/Pipfile.lock" todir="${basedir}/target/python" />
+                <copy file="${basedir}/src/main/python/pyproject.toml" todir="${basedir}/target/python" />
+                <replaceregexp file="${basedir}/target/python/pyproject.toml" match='version = "0.0.0"' replace='version="${pythonpackage.version}"' />
+                <copy file="${basedir}/src/main/python/README.md" todir="${basedir}/target/python" />
+                <copy file="${basedir}/src/main/python/setup.py" todir="${basedir}/target/python" />
+                <copy file="${basedir}/src/main/python/tox.ini" todir="${basedir}/target/python" />
               </target>
             </configuration>
           </execution>
@@ -275,12 +301,23 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <skip>${skipTests}</skip>
+              <workingDirectory>${project.build.directory}/python</workingDirectory>
               <executable>tox</executable>
-              <workingDirectory>${project.build.directory}</workingDirectory>
+              <skip>${skipTests}</skip>
+            </configuration>
+          </execution>
+          <execution>
+            <id>python-package</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <workingDirectory>${project.build.directory}/python</workingDirectory>
+              <executable>python</executable>
               <arguments>
-                <argument>-c</argument>
-                <argument>python</argument>
+                <argument>-m</argument>
+                <argument>build</argument>
               </arguments>
             </configuration>
           </execution>
@@ -290,6 +327,37 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>skipPython</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-python-files</id>
+                <phase>none</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>python-test</id>
+                <phase>none</phase>
+              </execution>
+              <execution>
+                <id>python-package</id>
+                <phase>none</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>docker</id>
       <activation>

@@ -2,7 +2,7 @@ controlPlane:
   image:
     repository: public.ecr.aws/y3i6u2n7/datastax-public/langstream-control-plane
     pullPolicy: IfNotPresent
-    tag: 0.0.1-alpha
+    tag: 0.0.2-alpha
   app:
     config:
       logging.level.ai.langstream: debug
@@ -13,7 +13,7 @@ deployer:
   image:
     repository: public.ecr.aws/y3i6u2n7/datastax-public/langstream-deployer
     pullPolicy: IfNotPresent
-    tag: 0.0.1-alpha
+    tag: 0.0.2-alpha
   app:
     config: {}
 
@@ -22,19 +22,19 @@ client:
   image:
     repository: public.ecr.aws/y3i6u2n7/datastax-public/langstream-cli
     pullPolicy: IfNotPresent
-    tag: 0.0.1-alpha
+    tag: 0.0.2-alpha
 
 apiGateway:
   image:
     repository: public.ecr.aws/y3i6u2n7/datastax-public/langstream-api-gateway
     pullPolicy: IfNotPresent
-    tag: 0.0.1-alpha
+    tag: 0.0.2-alpha
   app:
     config:
       logging.level.ai.langstream: debug
 
 runtime:
-  image: public.ecr.aws/y3i6u2n7/datastax-public/langstream-runtime:0.0.1-alpha
+  image: public.ecr.aws/y3i6u2n7/datastax-public/langstream-runtime:0.0.2-alpha
   imagePullPolicy: IfNotPresent
 
 codeStorage:

@@ -96,33 +96,6 @@
 
   <build>
     <plugins>
-
-      <plugin>
-        <artifactId>maven-resources-plugin</artifactId>
-        <version>3.0.2</version>
-        <executions>
-          <!--resources:copy-resources@sync-crd-->
-          <execution>
-            <id>sync-crd</id>
-            <phase>package</phase>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${project.basedir}/../../helm/langstream/crds</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>${project.build.directory}/kubernetes</directory>
-                  <includes>
-                    <include>*.ai.langstream-*.yml</include>
-                  </includes>
-                  <filtering>false</filtering>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
@@ -161,6 +134,32 @@
                 <goals>
                   <goal>build</goal>
                 </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-resources-plugin</artifactId>
+            <version>3.0.2</version>
+            <executions>
+              <!--resources:copy-resources@sync-crd-->
+              <execution>
+                <id>sync-crd</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <configuration>
+                  <outputDirectory>${project.basedir}/../../helm/crds</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.build.directory}/kubernetes</directory>
+                      <includes>
+                        <include>*.langstream.ai-*.yml</include>
+                      </includes>
+                      <filtering>false</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
               </execution>
             </executions>
           </plugin>

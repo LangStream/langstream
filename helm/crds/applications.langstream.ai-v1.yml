@@ -36,16 +36,16 @@ spec:
             properties:
               status:
                 properties:
-                  reason:
-                    type: string
                   status:
                     enum:
-                    - DELETING
                     - ERROR_DELETING
-                    - CREATED
-                    - DEPLOYED
-                    - DEPLOYING
                     - ERROR_DEPLOYING
+                    - DEPLOYING
+                    - DELETING
+                    - DEPLOYED
+                    - CREATED
+                    type: string
+                  reason:
                     type: string
                 type: object
               lastApplied:

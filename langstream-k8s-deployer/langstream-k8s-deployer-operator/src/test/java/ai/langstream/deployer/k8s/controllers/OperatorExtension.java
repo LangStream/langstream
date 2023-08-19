@@ -96,7 +96,7 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
 
     private void applyCRDs() throws IOException, ExecutionException, InterruptedException {
         final KubectlContainer kubectl = k3s.kubectl();
-        Files.list(Path.of("..", "..", "helm", "langstream", "crds")).forEach(path -> {
+        Files.list(Path.of("..", "..", "helm", "crds")).forEach(path -> {
             try {
                 kubectl.copyFileToContainer(Transferable.of(Files.readAllBytes(path)), "/crds/" + path.getFileName());
             } catch (IOException e) {

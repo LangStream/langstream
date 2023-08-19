@@ -40,10 +40,12 @@ Then, run the following command:
 The above command will automatically start the port-forward for the LangStream control plane and the API Gateway.
 
 ### LangStream deployment
-To install LangStream only, you can run use the `langstream` Helm chart: (NOTE: requires to clone the repository)
+To install LangStream only, you can use the `langstream` Helm chart:
 
 ```
-helm install -n langstream --create-namespace langstream helm/langstream --values helm/examples/simple.yaml
+helm repo add langstream https://langstream.github.io/charts
+helm repo update
+helm install -n langstream --create-namespace langstream langstream/langstream --values helm/examples/simple.yaml
 kubectl wait -n langstream deployment/langstream-control-plane --for condition=available --timeout=300s
 ```
 

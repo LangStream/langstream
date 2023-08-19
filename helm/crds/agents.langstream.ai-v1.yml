@@ -19,13 +19,6 @@ spec:
             properties:
               codeArchiveId:
                 type: string
-              resources:
-                properties:
-                  parallelism:
-                    type: integer
-                  size:
-                    type: integer
-                type: object
               agentConfigSecretRef:
                 type: string
               agentConfigSecretRefChecksum:
@@ -38,6 +31,13 @@ spec:
                 type: string
               applicationId:
                 type: string
+              resources:
+                properties:
+                  parallelism:
+                    type: integer
+                  size:
+                    type: integer
+                type: object
               tenant:
                 type: string
             required:
@@ -49,10 +49,10 @@ spec:
                 properties:
                   status:
                     enum:
-                    - DEPLOYING
                     - ERROR
-                    - DEPLOYED
                     - CREATED
+                    - DEPLOYED
+                    - DEPLOYING
                     type: string
                   reason:
                     type: string

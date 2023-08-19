@@ -35,25 +35,20 @@ trap echo_failed_command EXIT
 
 clear
 
-echo "
 
-   _____ _                            _                _____                     _____
-  / ____| |                          (_)              / ____|              /\   |_   _|
- | (___ | |_ _ __ ___  __ _ _ __ ___  _ _ __   __ _  | |  __  ___ _ __    /  \    | |
-  \___ \| __| '__/ _ \/ _\` | '_ \` _ \| | \'_ \ / _\` | | | |_ |/ _ \ '_ \  / /\ \   | |
-  ____) | |_| | |  __/ (_| | | | | | | | | | | (_| | | |__| |  __/ | | |/ ____ \ _| |_
- |_____/ \__|_|  \___|\__,_|_| |_| |_|_|_| |_|\__, |  \_____|\___|_| |_/_/    \_\_____|
-                                               __/ |
-                                              |___/
-"
+echo "  _                      ____  _                            ";
+echo " | |    __ _ _ __   __ _/ ___|| |_ _ __ ___  __ _ _ __ ___  ";
+echo " | |   / _\` | '_ \ / _\` \___ \| __| '__/ _ \/ _\` | '_ \` _ \ ";
+echo " | |__| (_| | | | | (_| |___) | |_| | |  __/ (_| | | | | | |";
+echo " |_____\__,_|_| |_|\__, |____/ \__|_|  \___|\__,_|_| |_| |_|";
+echo "                   |___/                                    ";
+
 
 echo "Installing $(tput setaf 6)LangStream CLI$(tput setaf 7) please wait...      "
 # Local installation
 BIN_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ROOT_DIR=$( cd -P "$( dirname "$BIN_DIR" )" >/dev/null 2>&1 && pwd )
-echo "ROOT_DIR: $ROOT_DIR"
-DEFAULT_ZIP="file://$(realpath $ROOT_DIR/cli/target/cli-*-SNAPSHOT.zip)"
-echo $DEFAULT_ZIP
+DEFAULT_ZIP="https://github.com/LangStream/langstream/releases/download/0.0.2-alpha/langstream-cli-0.0.2-alpha.zip"
 ZIP_DOWNLOAD_URL="${1:-$DEFAULT_ZIP}"
 candidate_base_name=$(basename $ZIP_DOWNLOAD_URL)
 
@@ -142,6 +137,15 @@ function inject_if_not_found() {
     fi
 }
 
+function inject_completions_if_not_found() {
+    local file=$1
+    touch "$file"
+    if [[ -z $(grep 'langstream generate-completion' "$file") ]]; then
+        echo -e "source <(langstream generate-completion)" >> "$file"
+        echo "$(tput setaf 2)[OK]$(tput setaf 7) - langstream completions added to ${file}"
+    fi
+}
+
 
 
 bash_profile="${HOME}/.bash_profile"
@@ -149,18 +153,20 @@ bashrc="${HOME}/.bashrc"
 zshrc="${ZDOTDIR:-${HOME}}/.zshrc"
 init_snipped=$( cat << EOF
 export PATH=\$PATH:$langstream_current_symlink/bin
-source <(langstream generate-completion)
 EOF
 )
 
 if [[ $darwin == true ]]; then
   inject_if_not_found $bash_profile
+  inject_completions_if_not_found $bash_profile
 else
   inject_if_not_found $bashrc
+  inject_completions_if_not_found $bashrc
 fi
 
 if [[ -s "$zshrc" ]]; then
   inject_if_not_found $zshrc
+  inject_completions_if_not_found $zshrc
 fi
 
 echo "$(tput setaf 2)[OK]$(tput setaf 7) - Installation Successful"

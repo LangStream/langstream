@@ -1,8 +1,35 @@
 # LangStream
 
-# Quick Start
+## CLI
 
-## Run in local Kubernetes (minikube)
+### Installation
+There are multiple ways to install the CLI.
+
+- MacOS:
+  - Homebrew
+  ```
+  brew install LangStream/langstream/langstream
+  ```
+  - Binary with curl
+  ```
+  curl -Ls "https://raw.githubusercontent.com/LangStream/langstream/main/bin/get-cli.sh" | bash
+  ```  
+
+- Unix:
+  - Binary with curl
+  ```
+  curl -Ls "https://raw.githubusercontent.com/LangStream/langstream/main/bin/get-cli.sh" | bash
+  ```  
+
+### Enable auto-completion
+Installing directly the binary will enable auto-completion for the CLI. If you installed the CLI with Homebrew, you can enable it with the following command:
+```
+[[ $(grep 'langstream generate-completion' "$HOME/.zshrc") ]] || echo -e "source <(langstream generate-completion)" >> "$HOME/.zshrc"
+source $HOME/.zshrc # or open another terminal
+```
+
+
+# Run in local Kubernetes (minikube)
 
 ### Requirements
 - Minikube

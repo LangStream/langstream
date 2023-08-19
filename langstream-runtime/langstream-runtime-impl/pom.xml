@@ -28,6 +28,7 @@
 
   <properties>
     <docker.platforms>linux/amd64</docker.platforms>
+    <skipPythonPackage>false</skipPythonPackage>
   </properties>
 
 
@@ -315,6 +316,7 @@
             <configuration>
               <workingDirectory>${project.build.directory}/python</workingDirectory>
               <executable>python</executable>
+              <skip>${skipPythonPackage}</skip>
               <arguments>
                 <argument>-m</argument>
                 <argument>build</argument>

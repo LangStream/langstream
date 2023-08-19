@@ -36,9 +36,15 @@ if [ ! -d langstream-cli/target/cli ]; then
   ./mvnw clean install -DskipTests -pl langstream-cli -am
 fi
 popd > /dev/null
-LANGSTREAM_CLI_CONFIG=${LANGSTREAM_CLI_CONFIG:-""}
+LANGSTREAM_CLI_CONFIG=${LANGSTREAM_CLI_CONFIG:-"conf/cli.yaml"}
 if [ -n "$LANGSTREAM_CLI_CONFIG" ]; then
-  echo "Using CLI config file from ENV variable LANGSTREAM_CLI_CONFIG: $LANGSTREAM_CLI_CONFIG"
+  if [ ! -f "$LANGSTREAM_CLI_CONFIG" ]; then
+    echo "ERROR: CLI config file not found: $LANGSTREAM_CLI_CONFIG"
+    exit 1
+  fi
+  if [ $LANGSTREAM_CLI_CONFIG != "conf/cli.yaml" ]; then
+    echo "Using CLI config file from ENV variable LANGSTREAM_CLI_CONFIG: $LANGSTREAM_CLI_CONFIG"
+  fi
   LANGSTREAM_CLI_CONFIG="--conf $LANGSTREAM_CLI_CONFIG"
 fi
 

@@ -1,5 +1,11 @@
 # LangStream
 
+- [LangStream](#langstream)
+  - [CLI](#cli)
+    - [Installation](#installation)
+    - [Enable auto-completion](#enable-auto-completion)
+  - [Run locally](#run-in-local-kubernetes-minikube)
+
 ## CLI
 
 ### Installation
@@ -29,7 +35,7 @@ source $HOME/.zshrc # or open another terminal
 ```
 
 
-# Run in local Kubernetes (minikube)
+## Run in local Kubernetes (minikube)
 
 ### Requirements
 - Minikube

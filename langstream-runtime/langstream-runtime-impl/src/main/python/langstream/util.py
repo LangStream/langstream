@@ -19,8 +19,15 @@ from typing import Any, List, Tuple, Union
 
 from .api import Record, Processor
 
+__all__ = [
+    'SimpleRecord',
+    'SingleRecordProcessor'
+]
+
 
 class SimpleRecord(Record):
+    """A basic implementation of the Record interface"""
+
     def __init__(self, value, key=None, origin: str = None, timestamp: int = None,
                  headers: List[Tuple[str, Any]] = None):
         self._value = value
@@ -53,8 +60,11 @@ class SimpleRecord(Record):
 
 
 class SingleRecordProcessor(Processor):
+    """A Processor that processes records one-by-one"""
+
     @abstractmethod
     def process_record(self, record: Record) -> List[Record]:
+        """Process one record and return a list of records or raise an exception"""
         pass
 
     def process(self, records: List[Record]) -> List[Tuple[Record, Union[List[Record], Exception]]]:

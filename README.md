@@ -1,6 +1,63 @@
 # LangStream
 
-# Quick Start
+- [LangStream](#langstream)
+  - [CLI](#cli)
+    - [Installation](#installation)
+    - [Enable auto-completion](#enable-auto-completion)
+    - [Usage](#usage)
+  - [Run locally](#run-in-local-kubernetes-minikube)
+
+## CLI
+
+### Installation
+There are multiple ways to install the CLI.
+
+- MacOS:
+  - Homebrew
+  ```
+  brew install LangStream/langstream/langstream
+  ```
+  - Binary with curl
+  ```
+  curl -Ls "https://raw.githubusercontent.com/LangStream/langstream/main/bin/get-cli.sh" | bash
+  ```  
+
+- Unix:
+  - Binary with curl
+  ```
+  curl -Ls "https://raw.githubusercontent.com/LangStream/langstream/main/bin/get-cli.sh" | bash
+  ```  
+
+### Enable auto-completion
+Installing directly the binary will enable auto-completion for the CLI. If you installed the CLI with Homebrew, you can enable it with the following command:
+```
+[[ $(grep 'langstream generate-completion' "$HOME/.zshrc") ]] || echo -e "source <(langstream generate-completion)" >> "$HOME/.zshrc"
+source $HOME/.zshrc # or open another terminal
+```
+
+### Usage
+To get started, run `langstream --help` to see the available commands.
+By default the CLI will connect to the control plane running on `localhost:8090`. You can change this by setting the `LANGSTREAM_webServiceUrl` environment variable.
+
+To change permanently it, you can run:
+```
+langstream configure webServiceUrl <url>
+```
+
+The above applies for all the configuration options:
+
+| Name          | Description                             | Default               |
+|---------------|-----------------------------------------|-----------------------|
+| webServiceUrl | The URL of the LangStream Control Plane | http://localhost:8090 |
+| apiGatewayUrl | The URL of the LangStream API Gateway   | http://localhost:8091 |
+| tenant        | The tenant to use                       | default               |
+| token         | The token to use                        |                       |
+
+To get your applications, run:
+```
+langstream apps list
+```
+
 
 ## Run in local Kubernetes (minikube)
 

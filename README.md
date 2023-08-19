@@ -1,11 +1,60 @@
 # LangStream
 
-- [LangStream](#langstream)
-  - [CLI](#cli)
-    - [Installation](#installation)
-    - [Enable auto-completion](#enable-auto-completion)
-    - [Usage](#usage)
-  - [Run locally](#run-in-local-kubernetes-minikube)
+
+* [LangStream](#langstream)
+  * [Run LangStream server](#run-langstream-server)
+    * [Quick start (All-in-one deployment)](#quick-start-all-in-one-deployment)
+    * [LangStream deployment](#langstream-deployment)
+  * [CLI](#cli)
+    * [Installation](#installation)
+    * [Enable auto-completion](#enable-auto-completion)
+    * [Usage](#usage)
+  * [Deploy your first application](#deploy-your-first-application)
+  * [Development](#development)
+    * [Start minikube](#start-minikube)
+    * [Build docker images and deploy all the components](#build-docker-images-and-deploy-all-the-components)
+    * [Deploying to GKE or similar K8s test cluster](#deploying-to-gke-or-similar-k8s-test-cluster)
+    * [Deploying to a Persistent Cluster](#deploying-to-a-persistent-cluster)
+
+## Run LangStream server
+To run LangStream, you need to the following components:
+- Apache Kafka or Apache Pulsar cluster
+- S3 bucket or API-compatible storage
+- Kubernetes Cluster (AWS EKS, Azure AKS, Google GKE, Minikube, etc.)
+
+### Quick start (All-in-one deployment)
+
+You can install all the required components in one-shot.
+First, prepare the kubernetes local context:
+
+```
+kubectl config use-context minikube
+```
+
+Then, run the following command:
+
+```
+./dev/start-simple.sh
+```
+
+The above command will automatically start the port-forward for the LangStream control plane and the API Gateway.
+
+### LangStream deployment
+To install LangStream only, you can run use the `langstream` Helm chart: (NOTE: requires to clone the repository)
+
+```
+helm install -n langstream --create-namespace langstream helm/langstream --values helm/examples/simple.yaml
+kubectl wait -n langstream deployment/langstream-control-plane --for condition=available --timeout=300s
+```
+
+You can then port-forward the control plane and the API Gateway:
+
+```
+kubectl port-forward svc/langstream-control-plane 8090:8090 &
+kubectl port-forward svc/langstream-api-gateway 8091:8091 &
+```
+
+
 
 ## CLI
 
@@ -37,7 +86,7 @@ source $HOME/.zshrc # or open another terminal
 
 ### Usage
 To get started, run `langstream --help` to see the available commands.
-By default the CLI will connect to the control plane running on `localhost:8090`. You can change this by setting the `LANGSTREAM_webServiceUrl` environment variable.
+By default, the CLI will connect to the control plane running on `localhost:8090`. You can change this by setting the `LANGSTREAM_webServiceUrl` environment variable.
 
 To change permanently it, you can run:
 ```
@@ -58,56 +107,13 @@ To get your applications, run:
 langstream apps list
 ```
 
+## Deploy your first application
 
-## Run in local Kubernetes (minikube)
+Inside the [examples](./examples) folder, you can find some examples of applications.
 
-### Requirements
-- Minikube
-- Helm
-- Docker
-- Java 17
+In this example, you will deploy an application that performs AI completion and return information about a known person.
 
-```
-brew install minikube
-minikube start
-```
-
-Deploy MinIO (S3 BlobStorage implementation for local testing)
-
-```
-kubectl apply -f helm/examples/minio-dev.yaml
-```
-
-Deploy Kafka:
-```
-kubectl create namespace kafka
-kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
-kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka  
-```
-
-NOTE: If the `kubectl apply` times out then you should take a look at your cluster with `k9s -A` and probably wait.
-
-Deploy the LangStream Control Plane and the operator:
-
-```
-helm install langstream helm/langstream --values helm/examples/simple.yaml --wait --timeout 60s
-```
-
-NOTE: If the `helm install` times out then you should take a look at your cluster with `k9s -A` and possibly try with a larger timeout value.
-
-Port forward control plane and the gateway to localhost:
-```
-kubectl port-forward svc/langstream-control-plane 8090:8090 &
-kubectl port-forward svc/langstream-api-gateway 8091:8091 &
-```
-
-Wait for Kafka to be up and running:
-
-```
-kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
-```
-
-Create a sample app using the CLI:
+1. Create the secrets file containing the OpenAI URL and access key:
 ```
 
 OPEN_AI_URL=xx
@@ -121,51 +127,53 @@ secrets:
       url: $OPEN_AI_URL
       access-key: $OPEN_AI_ACCESS_KEY
 """ > /tmp/secrets.yaml
-
-./bin/langstream apps deploy test -app examples/applications/compute-openai-embeddings -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml 
-./bin/langstream apps get test
 ```
 
-Check your k8s cluster with `k9s -A` or run `./bin/langstream apps get test` until the app is deployed.
-
-Start producing messages:
+2. Deploy the `openai-completions` application
 
 ```
-kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic
+./bin/langstream apps deploy openai-completions -app examples/applications/openai-completions -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+./bin/langstream apps get openai-completions
 ```
 
-Insert a JSON with "name" and "description":
+Check your k8s cluster with `k9s -A` or run `./bin/langstream apps get openai-completions` until the app is deployed.
 
+Test the AI completion using the API gateway. Pass a person name as input to get information about them:
 ```
-{"name": "test", "description": "test"}
-```
-
-In another terminal:
-
-```
-kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
+session="$(uuidgen)"
+./bin/langstream gateway produce openai-completions produce-input -p sessionId="$session" -v "Barack Obama"
+./bin/langstream gateway consume openai-completions consume-output -p sessionId="$session"
 ```
 
-## Building the docker images locally
-
-Build docker images and push them into the minikube environment
-
+Another approach to test values is to use gateway `chat` CLI feature:
 ```
-./docker/build.sh
-minikube image load datastax/langstream-cli:latest-dev
-minikube image load datastax/langstream-deployer:latest-dev
-minikube image load datastax/langstream-control-plane:latest-dev
-minikube image load datastax/langstream-runtime:latest-dev
-minikube image load datastax/langstream-api-gateway:latest-dev
+./bin/langstream gateway chat openai-completions -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
 ```
 
-If you want to use the docker images you just built, use `helm/examples/local.yaml` values file:
+## Development
 
+Requirements:
+- Minikube
+- Helm
+- Docker
+- Java 17
+
+### Start minikube
+  
 ```
-helm install langstream helm/langstream --values helm/examples/local.yaml --wait --timeout 60s
+brew install minikube
+minikube start
 ```
 
-## Deploying to GKE or similar K8s test cluster
+### Build docker images and deploy all the components
+```
+./dev/start-local.sh
+```
+
+The above command will automatically start the port-forward for the LangStream control plane and the API Gateway.
+
+
+### Deploying to GKE or similar K8s test cluster
 
 Instead of `minio-dev.yaml` use the `helm/examples/minio-gke.yaml` file:
 
@@ -173,6 +181,6 @@ Instead of `minio-dev.yaml` use the `helm/examples/minio-gke.yaml` file:
 kubectl apply -f helm/examples/minio-gke.yaml
 ```
 
-## Deploying to a Persistent Cluster
+### Deploying to a Persistent Cluster
 
 TODO: instructions on configuring with S3.

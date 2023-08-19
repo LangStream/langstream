@@ -28,8 +28,9 @@ kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-singl
 kubectl apply -f helm/examples/minio-dev.yaml
 
 # Start LangStream
-kubectl apply -f helm/langstream/crds
-helm install langstream helm/langstream --values helm/examples/simple.yaml || helm upgrade langstream helm/langstream --values helm/examples/simple.yaml
+helm repo add langstream https://langstream.github.io/charts
+helm repo update
+helm install langstream langstream/langstream --values helm/examples/simple.yaml || helm upgrade langstream langstream/langstream --values helm/examples/simple.yaml
 kubectl wait deployment/langstream-control-plane --for condition=available --timeout=300s
 
 

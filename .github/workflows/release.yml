@@ -49,7 +49,7 @@ jobs:
       - name: Push to ECR
         run: |
           repo=public.ecr.aws/y3i6u2n7/datastax-public
-          docker_tag=${GITHUB_REF/refs\/tags\/v-/}
+          docker_tag=${GITHUB_REF/refs\/tags\/v/}
           echo "Using docker tag: $docker_tag"
           tag_and_push() {
             image=$1

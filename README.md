@@ -1,12 +1,20 @@
 # LangStream
 
-- [LangStream](#langstream)
-  - [CLI](#cli)
-    - [Installation](#installation)
-    - [Enable auto-completion](#enable-auto-completion)
-    - [Usage](#usage)
-  - [Run locally](#run-in-local-kubernetes-minikube)
 
+* [LangStream](#langstream)
+  * [Run LangStream server](#run-langstream-server)
+    * [Quick start (All-in-one deployment)](#quick-start-all-in-one-deployment)
+    * [LangStream deployment](#langstream-deployment)
+  * [CLI](#cli)
+    * [Installation](#installation)
+    * [Enable auto-completion](#enable-auto-completion)
+    * [Usage](#usage)
+  * [Deploy your first application](#deploy-your-first-application)
+  * [Development](#development)
+    * [Start minikube](#start-minikube)
+    * [Build docker images and deploy all the components](#build-docker-images-and-deploy-all-the-components)
+    * [Deploying to GKE or similar K8s test cluster](#deploying-to-gke-or-similar-k8s-test-cluster)
+    * [Deploying to a Persistent Cluster](#deploying-to-a-persistent-cluster)
 
 ## Run LangStream server
 To run LangStream, you need to the following components:
@@ -99,11 +107,11 @@ To get your applications, run:
 langstream apps list
 ```
 
-## Install your first application
+## Deploy your first application
 
 Inside the [examples](./examples) folder, you can find some examples of applications.
 
-In this example, you will create an application that performs AI completion and return information about a known person.
+In this example, you will deploy an application that performs AI completion and return information about a known person.
 
 1. Create the secrets file containing the OpenAI URL and access key:
 ```
@@ -157,7 +165,7 @@ brew install minikube
 minikube start
 ```
 
-### Build docker images and deploy all the components (Kafka, MinIO, LangStream)
+### Build docker images and deploy all the components
 ```
 ./dev/start-local.sh
 ```
@@ -165,7 +173,7 @@ minikube start
 The above command will automatically start the port-forward for the LangStream control plane and the API Gateway.
 
 
-## Deploying to GKE or similar K8s test cluster
+### Deploying to GKE or similar K8s test cluster
 
 Instead of `minio-dev.yaml` use the `helm/examples/minio-gke.yaml` file:
 
@@ -173,6 +181,6 @@ Instead of `minio-dev.yaml` use the `helm/examples/minio-gke.yaml` file:
 kubectl apply -f helm/examples/minio-gke.yaml
 ```
 
-## Deploying to a Persistent Cluster
+### Deploying to a Persistent Cluster
 
 TODO: instructions on configuring with S3.

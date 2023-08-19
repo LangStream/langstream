@@ -9,6 +9,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions: write-all
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
@@ -40,10 +41,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Build
+      - name: Build CLI
         run: |
           chmod +x mvnw
-          ./docker/build.sh
+          ./mvnw install -pl langstream-cli -am -DskipTests
 
       - uses: ncipollo/release-action@v1
         with:

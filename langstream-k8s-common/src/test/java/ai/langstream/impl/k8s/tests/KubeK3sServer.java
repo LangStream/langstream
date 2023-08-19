@@ -114,12 +114,12 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
             }
 
             try (final InputStream fin = Files.newInputStream(
-                    Path.of(basePath.toFile().getAbsolutePath(), "langstream", "crds",
+                    Path.of(basePath.toFile().getAbsolutePath(),  "crds",
                             "applications.langstream.ai-v1.yml"))) {
                 client.load(fin).create();
             }
             try (final InputStream fin = Files.newInputStream(
-                    Path.of(basePath.toFile().getAbsolutePath(), "langstream", "crds",
+                    Path.of(basePath.toFile().getAbsolutePath(),  "crds",
                             "agents.langstream.ai-v1.yml"))) {
                 client.load(fin).create();
             }

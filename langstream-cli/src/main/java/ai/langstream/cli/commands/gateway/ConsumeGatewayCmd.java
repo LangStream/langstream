@@ -44,6 +44,9 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
             + "The offset value can be retrieved after consuming a message of the same topic.")
     private String initialPosition;
 
+    @CommandLine.Option(names = {"-n", "--num-messages"}, description = "Number of messages to wait. Negative or zero means infinite.")
+    private int numMessages = 0;
+
 
 
     @Override
@@ -59,22 +62,39 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
                 .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, gatewayId,
                         computeQueryString(credentials, params, options));
 
-        CountDownLatch latch = new CountDownLatch(1);
+        final Integer expectedMessages = numMessages > 0 ? numMessages : null;
+        final CountDownLatch latch;
+        if (numMessages > 0) {
+            latch = new CountDownLatch(numMessages);
+        }else {
+            latch = new CountDownLatch(1);
+        }
         try (final WebSocketClient client = new WebSocketClient(new WebSocketClient.Handler() {
             @Override
             public void onMessage(String msg) {
-                log(msg);
+                if (latch.getCount() > 0) {
+                    if (expectedMessages != null) {
+                        latch.countDown();
+                    }
+                    log(msg);
+                }
             }
 
             @Override
             public void onClose(CloseReason closeReason) {
-                latch.countDown();
+                exit();
+            }
+
+            private void exit() {
+                while (latch.getCount() > 0) {
+                    latch.countDown();
+                }
             }
 
             @Override
             public void onError(Throwable throwable) {
                 log("Connection error: %s".formatted(throwable.getMessage()));
-                latch.countDown();
+                exit();
             }
         })
                 .connect(URI.create(consumePath))) {

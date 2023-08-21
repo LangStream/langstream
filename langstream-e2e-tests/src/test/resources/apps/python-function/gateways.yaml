@@ -16,9 +16,9 @@
 #
 
 gateways:
-- id: produce-input
-type: produce
-topic: input-topic
-- id: consume-output
-type: consume
-topic: output-topic
+  - id: produce-input
+    type: produce
+    topic: TEST_TOPIC_0
+  - id: consume-output
+    type: consume
+    topic: TEST_TOPIC_1

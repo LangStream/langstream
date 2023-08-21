@@ -26,9 +26,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
-import io.fabric8.kubernetes.api.model.PersistentVolume;
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Status;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRole;
@@ -36,10 +35,13 @@ import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.ContainerResource;
+import io.fabric8.kubernetes.client.dsl.ExecListener;
+import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -53,20 +55,24 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.BiPredicate;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestWatcher;
 import org.testcontainers.DockerClientFactory;
@@ -77,7 +83,7 @@ public class BaseEndToEndTest implements TestWatcher {
 
 
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
-    protected static final String TENANT_NAMESPACE_PREFIX = "sga-tenant-";
+    protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
     protected static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
     interface KubeServer {
@@ -119,7 +125,7 @@ public class BaseEndToEndTest implements TestWatcher {
     static class LocalK3sContainer implements PythonFunctionIT.KubeServer {
 
         K3sContainer container;
-        final Path basePath = Paths.get("/tmp", "sga-tests-image");
+        final Path basePath = Paths.get("/tmp", "ls-tests-image");
 
         @Override
         public void start() {
@@ -181,9 +187,9 @@ public class BaseEndToEndTest implements TestWatcher {
     protected static KubeServer kubeServer;
     protected static Helm3Container helm3Container;
     protected static KubernetesClient client;
-    protected static String controlPlaneBaseUrl;
-    protected static String apiGatewayBaseUrl;
     protected static String namespace;
+
+    protected final Map<String, String> resolvedTopics = new HashMap<>();
 
     @Override
     public void testAborted(ExtensionContext context, Throwable cause) {
@@ -211,11 +217,53 @@ public class BaseEndToEndTest implements TestWatcher {
                 .serverSideApply();
     }
 
+    @SneakyThrows
+    protected void copyFileToClientContainer(File file, String toPath) {
+        final String podName = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "langstream-client")
+                .list()
+                .getItems()
+
+                .get(0)
+                .getMetadata().getName();
+        if (file.isFile()) {
+            String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+            final Path temp = Files.createTempFile("langstream", ".replaced");
+            for (Map.Entry<String, String> e : resolvedTopics.entrySet()) {
+                content = content.replace(e.getKey(), e.getValue());
+            }
+            Files.write(temp, content.getBytes(StandardCharsets.UTF_8));
+            runProcess(
+                    "kubectl cp %s %s:%s -n %s".formatted(temp.toFile().getAbsolutePath(), podName, toPath, namespace)
+                            .split(" "));
+        } else {
+            runProcess(
+                    "kubectl cp %s %s:%s -n %s".formatted(file.getAbsolutePath(), podName, toPath, namespace)
+                            .split(" "));
+        }
+    }
+
+    @SneakyThrows
+    protected String executeCommandOnClient(String... args) {
+        return executeCommandOnClient(1, TimeUnit.MINUTES, args);
+    }
+
+    @SneakyThrows
+    protected String executeCommandOnClient(long timeout, TimeUnit unit, String... args) {
+        final Pod pod = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "langstream-client")
+                .list()
+                .getItems()
+                .get(0);
+        return execInPod(pod.getMetadata().getName(), pod.getSpec().getContainers().get(0).getName(), args)
+                .get(timeout, unit);
+
+    }
+
+
     protected void executeCliCommand(String... args)
             throws InterruptedException, IOException {
 
         String[] allArgs = new String[args.length + 1];
-        allArgs[0] = "bin/sga-cli";
+        allArgs[0] = "bin/langstream-cli";
         System.arraycopy(args, 0, allArgs, 1, args.length);
         runProcess(allArgs);
     }
@@ -224,7 +272,7 @@ public class BaseEndToEndTest implements TestWatcher {
             throws InterruptedException, IOException {
 
         String[] allArgs = new String[args.length + 1];
-        allArgs[0] = "bin/sga-cli";
+        allArgs[0] = "bin/langstream-cli";
         System.arraycopy(args, 0, allArgs, 1, args.length);
         runProcessUntilOutput(allArgs, predicate);
     }
@@ -283,6 +331,108 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
+
+    public static CompletableFuture<String> execInPod(String podName, String containerName,
+                                                      String... cmds) {
+
+        final String cmd = Arrays.stream(cmds).collect(Collectors.joining(" "));
+        log.info("Executing in pod {}: {}",
+                    containerName == null ? podName : podName + "/" + containerName, cmd);
+        final AtomicBoolean completed = new AtomicBoolean(false);
+        final CompletableFuture<String> response = new CompletableFuture<>();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final ByteArrayOutputStream error = new ByteArrayOutputStream();
+
+        final ExecListener listener = new ExecListener() {
+            @Override
+            public void onOpen() {
+            }
+
+            @Override
+            public void onFailure(Throwable t, Response failureResponse) {
+                if (!completed.compareAndSet(false, true)) {
+                    return;
+                }
+                log.warn("Error executing {} encountered; \nstderr: {}\nstdout: {}",
+                        cmd,
+                        error.toString(StandardCharsets.UTF_8),
+                        out.toString(StandardCharsets.UTF_8),
+                        t);
+                response.completeExceptionally(t);
+            }
+
+            @Override
+            public void onExit(int code, Status status) {
+                if (!completed.compareAndSet(false, true)) {
+                    return;
+                }
+                if (code != 0) {
+                    log.warn("Error executing {} encountered; \ncode: {}\n stderr: {}\nstdout: {}",
+                            cmd,
+                            code,
+                            error.toString(StandardCharsets.UTF_8),
+                            out.toString(StandardCharsets.UTF_8));
+                    response.completeExceptionally(new RuntimeException("Command failed with err code: " + code + ", stderr: " + error.toString(StandardCharsets.UTF_8)));
+                } else {
+                    log.info("Command completed {}; \nstderr: {}\nstdout: {}",
+                            cmd,
+                            error.toString(StandardCharsets.UTF_8),
+                            out.toString(StandardCharsets.UTF_8));
+                    response.complete(out.toString(StandardCharsets.UTF_8));
+                }
+            }
+
+            @Override
+            public void onClose(int rc, String reason) {
+                if (!completed.compareAndSet(false, true)) {
+                    return;
+                }
+                log.info("Command completed {}; \nstderr: {}\nstdout: {}",
+                        cmd,
+                        error.toString(StandardCharsets.UTF_8),
+                        out.toString(StandardCharsets.UTF_8));
+                response.complete(out.toString(StandardCharsets.UTF_8));
+            }
+        };
+
+        ExecWatch exec = null;
+
+        try {
+            exec = client
+                    .pods()
+                    .inNamespace(namespace)
+                    .withName(podName)
+                    .inContainer(containerName)
+                    .writingOutput(out)
+                    .writingError(error)
+                    .usingListener(listener)
+                    .exec("bash", "-c", cmd);
+        } catch (Throwable t) {
+            log.error("Execution failed for {}", cmd, t);
+            completed.set(true);
+            response.completeExceptionally(t);
+        }
+
+        final ExecWatch execToClose = exec;
+        response.whenComplete((s, ex) -> {
+            closeQuietly(execToClose);
+            closeQuietly(out);
+            closeQuietly(error);
+        });
+
+        return response;
+    }
+
+    public static void closeQuietly(Closeable c) {
+        if (c != null) {
+            try {
+                c.close();
+            } catch (IOException e) {
+                log.error("error while closing {}: {}", c, e);
+            }
+        }
+    }
+
     @AfterAll
     @SneakyThrows
     public static void destroy() {
@@ -297,11 +447,20 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
+    @BeforeEach
+    @SneakyThrows
+    public void beforeEach() {
+        resolvedTopics.clear();
+        for (int i = 0; i < 100; i++) {
+            resolvedTopics.put("TEST_TOPIC_" + i, "topic-" + i + "-" + System.nanoTime());
+        }
+    }
+
 
     @BeforeAll
     @SneakyThrows
     public static void setup() {
-        namespace = "sga-test-" + UUID.randomUUID().toString().substring(0, 8);
+        namespace = "ls-test-" + UUID.randomUUID().toString().substring(0, 8);
 
         // kubeServer = new LocalK3sContainer();
         kubeServer = new RunningHostCluster();
@@ -312,7 +471,7 @@ public class BaseEndToEndTest implements TestWatcher {
                 .build();
 
         // cleanup previous runs
-        client.namespaces().withLabel("app", "sga-test")
+        client.namespaces().withLabel("app", "ls-test")
                 .delete();
         client.namespaces()
                 .list()
@@ -324,13 +483,13 @@ public class BaseEndToEndTest implements TestWatcher {
         client.resource(new NamespaceBuilder()
                         .withNewMetadata()
                         .withName(namespace)
-                        .withLabels(Map.of("app", "sga-test"))
+                        .withLabels(Map.of("app", "ls-test"))
                         .endMetadata()
                         .build())
                 .serverSideApply();
 
 
-        final Path tempFile = Files.createTempFile("sga-test-kube", ".yaml");
+        final Path tempFile = Files.createTempFile("ls-test-kube", ".yaml");
         Files.write(tempFile,
                 kubeServer.getKubeConfig().getBytes(StandardCharsets.UTF_8));
         System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
@@ -340,78 +499,75 @@ public class BaseEndToEndTest implements TestWatcher {
         List<CompletableFuture<Void>> imagesFutures = new ArrayList<>();
 
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("datastax/sga-control-plane:latest-dev")));
+                kubeServer.ensureImage("datastax/langstream-control-plane:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage( "datastax/sga-deployer:latest-dev")));
+                kubeServer.ensureImage( "datastax/langstream-deployer:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("datastax/sga-runtime:latest-dev")));
+                kubeServer.ensureImage("datastax/langstream-runtime:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("datastax/sga-api-gateway:latest-dev")));
+                kubeServer.ensureImage("datastax/langstream-api-gateway:latest-dev")));
 
-        final CompletableFuture<Void> sgaFuture =
-                CompletableFuture.runAsync(() -> installSga());
+        final CompletableFuture<Void> allFuture =
+                CompletableFuture.runAsync(() -> installLangStream());
         CompletableFuture.allOf(kafkaFuture, minioFuture, imagesFutures.get(0), imagesFutures.get(1), imagesFutures.get(2),
-                sgaFuture).join();
+                allFuture).join();
         awaitControlPlaneReady();
         awaitApiGatewayReady();
     }
 
     @SneakyThrows
-    private static void installSga() {
-        final String hostPath = Paths.get("..", "helm", "sga").toFile().getAbsolutePath();
-
+    private static void installLangStream() {
         client.resources(ClusterRole.class)
-                .withName("sga-deployer")
+                .withName("langstream-deployer")
                 .delete();
         client.resources(ClusterRole.class)
-                .withName("sga-control-plane")
+                .withName("langstream-control-plane")
                 .delete();
         client.resources(ClusterRole.class)
-                .withName("sga-api-gateway")
+                .withName("langstream-api-gateway")
                 .delete();
         client.resources(ClusterRole.class)
-                .withName("sga-client")
+                .withName("langstream-client")
                 .delete();
 
         client.resources(ClusterRoleBinding.class)
-                .withName("sga-control-plane-role-binding")
+                .withName("langstream-control-plane-role-binding")
                 .delete();
         client.resources(ClusterRoleBinding.class)
-                .withName("sga-deployer-role-binding")
+                .withName("langstream-deployer-role-binding")
                 .delete();
         client.resources(ClusterRoleBinding.class)
-                .withName("sga-api-gateway-role-binding")
+                .withName("langstream-api-gateway-role-binding")
                 .delete();
         client.resources(ClusterRoleBinding.class)
-                .withName("sga-client-role-binding")
+                .withName("langstream-client-role-binding")
                 .delete();
 
 
-        log.info("installing sga with helm, using chart from {}", hostPath);
         final String deleteCmd =
-                "helm delete %s -n %s".formatted("sga", namespace);
+                "helm delete %s -n %s".formatted("langstream", namespace);
         log.info("Running {}", deleteCmd);
         runProcess(deleteCmd.split(" "), true);
 
         final String values = """
                 controlPlane:
+                  image:
+                    repository: datastax/langstream-control-plane
+                    tag: latest-dev
+                    pullPolicy: Never
                   resources:
                     requests:
                       cpu: 256m
                       memory: 512Mi
                   app:
                     config:
-                      application.storage.apps.type: kubernetes
-                      application.storage.apps.configuration.namespaceprefix: %s
-                      application.storage.apps.configuration.deployer-runtime.image: datastax/sga-runtime:latest-dev
-                      application.storage.apps.configuration.deployer-runtime.image-pull-policy: Never
                       application.storage.global.type: kubernetes
-                      application.storage.code.type: s3
-                      application.storage.code.configuration.endpoint: http://minio.minio-dev.svc.cluster.local:9000
-                      application.storage.code.configuration.access-key: minioadmin
-                      application.storage.code.configuration.secret-key: minioadmin
                                 
                 deployer:
+                  image:
+                    repository: datastax/langstream-deployer
+                    tag: latest-dev
+                    pullPolicy: Never
                   replicaCount: 1
                   resources:
                     requests:
@@ -422,30 +578,40 @@ public class BaseEndToEndTest implements TestWatcher {
                       agentResources:
                         cpuPerUnit: 0.1
                         memPerUnit: 128
-                      clusterRuntime:
-                          kubernetes:
-                            namespace-prefix: %s
-                      codeStorage:
-                        type: s3
-                        endpoint: http://minio.minio-dev.svc.cluster.local:9000
-                        access-key: minioadmin
-                        secret-key: minioadmin
+                client:
+                  image:
+                    repository: datastax/langstream-cli
+                    tag: latest-dev
+                    pullPolicy: Never
                                 
                 apiGateway:
-                  podAnnotations: {}
-                  podSecurityContext: {}
-                  securityContext: {}
-                  app:
-                    config:
-                      application.storage.apps.configuration.namespaceprefix: %s
+                  image:
+                    repository: datastax/langstream-api-gateway
+                    tag: latest-dev
+                    pullPolicy: Never
+                
+                runtime:
+                    image: datastax/langstream-runtime:latest-dev
+                    imagePullPolicy: Never
+                tenants:
+                    defaultTenant:
+                        create: false
+                    namespacePrefix: %s
+                codeStorage:
+                  type: s3
+                  configuration:
+                    endpoint: http://minio.minio-dev.svc.cluster.local:9000
+                    access-key: minioadmin
+                    secret-key: minioadmin
                 """.formatted(TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX);
-        final Path tempFile = Files.createTempFile("sga-test", ".yaml");
+        final Path tempFile = Files.createTempFile("langstream-test", ".yaml");
         Files.write(tempFile, values.getBytes(StandardCharsets.UTF_8));
 
 
+        runProcess("helm repo add langstream https://langstream.github.io/charts/".split(" "), true);
         final String cmd =
-                "helm install --debug --timeout 360s %s -n %s %s --values %s".formatted(
-                        "sga", namespace, hostPath, tempFile.toFile().getAbsolutePath());
+                "helm install --debug --timeout 360s %s langstream/langstream -n %s --values %s".formatted(
+                        "langstream", namespace, tempFile.toFile().getAbsolutePath());
         log.info("Running {}", cmd);
         runProcess(cmd.split(" "));
         log.info("Helm install completed");
@@ -455,43 +621,22 @@ public class BaseEndToEndTest implements TestWatcher {
     private static void awaitControlPlaneReady() {
         log.info("waiting for control plane to be ready");
 
-        client.apps().deployments().inNamespace(namespace).withName("sga-control-plane")
+        client.apps().deployments().inNamespace(namespace).withName("langstream-control-plane")
                 .waitUntilCondition(
                         d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 120,
                         TimeUnit.SECONDS);
-        log.info("control plane ready, port forwarding");
-
-        final String podName = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "sga-control-plane")
-                .list()
-                .getItems()
-                .get(0)
-                .getMetadata().getName();
-        final int webServicePort = nextFreePort();
-        client.pods().inNamespace(namespace)
-                .withName(podName)
-                .portForward(8090, webServicePort);
-        controlPlaneBaseUrl = "http://localhost:" + webServicePort;
+        log.info("control plane ready");
     }
 
     @SneakyThrows
     private static void awaitApiGatewayReady() {
         log.info("waiting for api gateway to be ready");
 
-        client.apps().deployments().inNamespace(namespace).withName("sga-api-gateway")
+        client.apps().deployments().inNamespace(namespace).withName("langstream-api-gateway")
                 .waitUntilCondition(
                         d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 120,
                         TimeUnit.SECONDS);
-        log.info("api gateway ready, port forwarding");
-
-        final String podName = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "sga-api-gateway")
-                .list()
-                .getItems()
-                .get(0)
-                .getMetadata().getName();
-        final int port = nextFreePort();
-        runProcessAsync("kubectl port-forward -n %s %s %d:8091".formatted(namespace, podName, port).split(" "));
-        log.info("api gateway port forwarding started {}", port);
-        apiGatewayBaseUrl = "ws://localhost:" + port;
+        log.info("api gateway ready");
     }
 
     @SneakyThrows
@@ -509,24 +654,6 @@ public class BaseEndToEndTest implements TestWatcher {
         runProcess("kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka".split(" "));
         log.info("kafka installed");
     }
-
-
-
-
-    private static synchronized int nextFreePort() {
-        int exceptionCount = 0;
-        while (true) {
-            try (ServerSocket ss = new ServerSocket(0)) {
-                return ss.getLocalPort();
-            } catch (Exception e) {
-                exceptionCount++;
-                if (exceptionCount > 100) {
-                    throw new RuntimeException("Unable to allocate socket port", e);
-                }
-            }
-        }
-    }
-
 
     static void installMinio() {
         applyManifestNoNamespace("""
@@ -683,6 +810,9 @@ public class BaseEndToEndTest implements TestWatcher {
             log.error("failed to write events logs to file {}", outputFile, e);
         }
     }
+
+
+
 
 
 }

@@ -98,6 +98,7 @@ jobs:
             echo "Found CRD changed after building, please build the operator and commit the changes. "
             echo "Also make sure to update the CRDs version."
             git status
+            git diff
             exit 1
           fi
   e2e-tests:
@@ -128,8 +129,6 @@ jobs:
           version: v3.7.0
 
       - uses: azure/setup-kubectl@v3
-      - name: Debugging with ssh
-        uses: lhotari/action-upterm@v1
 
       - name: 'Build and test'
         run: |

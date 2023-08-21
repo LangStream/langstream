@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.webservice.application;
+package ai.langstream.api.webservice.application;
 
 import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.api.model.Application;
@@ -56,6 +56,7 @@ public class ApplicationDescription {
     }
 
     @Data
+    @NoArgsConstructor
     public static class ApplicationDefinition {
 
         private ApplicationDefinition(Application application) {
@@ -66,19 +67,19 @@ public class ApplicationDescription {
             this.instance = application.getInstance();
         }
 
-        private final Map<String, Resource> resources;
-        private final List<ModuleDefinition> modules;
-        private final Gateways gateways;
-        private final Instance instance;
+        private Map<String, Resource> resources;
+        private List<ModuleDefinition> modules;
+        private Gateways gateways;
+        private Instance instance;
     }
 
     @Data
+    @NoArgsConstructor
     public static class ModuleDefinition {
-        private final String id;
+        private String id;
+        private List<Pipeline> pipelines;
 
-        private final List<Pipeline> pipelines;
-
-        private final List<TopicDefinition> topics;
+        private List<TopicDefinition> topics;
 
         ModuleDefinition(Module module) {
             this.id = module.getId();
@@ -88,6 +89,7 @@ public class ApplicationDescription {
     }
 
     @Data
+    @NoArgsConstructor
     public static class AgentStatusDescription {
         private ApplicationLifecycleStatus status;
         private List<ExecutorDescription> executors;
@@ -104,6 +106,7 @@ public class ApplicationDescription {
     }
 
     @Data
+    @NoArgsConstructor
     public static class ExecutorDescription {
         private String id;
         private AgentLifecycleStatus status;

@@ -17,6 +17,7 @@ package ai.langstream.webservice.application;
 
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.webservice.application.ApplicationDescription;
 import ai.langstream.impl.parser.ModelBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

@@ -36,6 +36,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -54,6 +56,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
 import static ai.langstream.api.model.ErrorsSpec.FAIL;
@@ -348,8 +351,21 @@ public class ModelBuilder {
         if (log.isDebugEnabled()) { // don't write secrets in logs
             log.debug("Secrets: {}", secretsFileModel);
         }
+        final Set<String> ids = new HashSet<>();
+        secretsFileModel.secrets.stream().forEach(s -> {
+            validateSecret(s, ids);
+        });
         application.setSecrets(new Secrets(secretsFileModel.secrets()
                 .stream().collect(Collectors.toMap(Secret::id, Function.identity()))));
+    }
+
+    private static void validateSecret(Secret s, Set<String> ids) {
+        if (StringUtils.isBlank(s.id())) {
+            throw new IllegalArgumentException("Found secret without id: " + s);
+        }
+        if (!ids.add(s.id())) {
+            throw new IllegalArgumentException("Found duplicate secret id: " + s.id());
+        }
     }
 
     private static void parseInstance(String content, Application application) throws IOException {

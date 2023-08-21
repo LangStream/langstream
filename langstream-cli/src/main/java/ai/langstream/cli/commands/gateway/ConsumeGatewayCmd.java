@@ -15,6 +15,7 @@
  */
 package ai.langstream.cli.commands.gateway;
 
+import ai.langstream.api.model.Gateway;
 import ai.langstream.cli.websocket.WebSocketClient;
 import jakarta.websocket.CloseReason;
 
@@ -27,6 +28,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "consume",
+        mixinStandardHelpOptions = true,
         description = "Consume messages from a gateway")
 public class ConsumeGatewayCmd extends BaseGatewayCmd {
 
@@ -53,11 +55,8 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
         if (initialPosition != null) {
             options.put("position", initialPosition);
         }
-
-
-        final String consumePath = "%s/v1/consume/%s/%s/%s?%s"
-                .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, gatewayId,
-                        computeQueryString(credentials, params, options));
+        final String consumePath = validateGatewayAndGetUrl(applicationId, gatewayId, Gateway.GatewayType.consume,
+                params, options, credentials);
 
         CountDownLatch latch = new CountDownLatch(1);
         try (final WebSocketClient client = new WebSocketClient(new WebSocketClient.Handler() {

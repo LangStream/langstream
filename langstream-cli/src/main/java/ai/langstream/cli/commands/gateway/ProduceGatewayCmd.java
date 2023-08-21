@@ -15,6 +15,7 @@
  */
 package ai.langstream.cli.commands.gateway;
 
+import ai.langstream.api.model.Gateway;
 import ai.langstream.cli.websocket.WebSocketClient;
 import jakarta.websocket.CloseReason;
 import java.net.URI;
@@ -24,6 +25,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "produce",
+        mixinStandardHelpOptions = true,
         description = "Produce messages to a gateway")
 public class ProduceGatewayCmd extends BaseGatewayCmd {
 
@@ -55,9 +57,8 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final String producePath = "%s/v1/produce/%s/%s/%s?%s"
-                .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, gatewayId,
-                        computeQueryString(credentials, params, Map.of()));
+        final String producePath = validateGatewayAndGetUrl(applicationId, gatewayId, Gateway.GatewayType.produce,
+                params, Map.of(), credentials);
         CountDownLatch countDownLatch = new CountDownLatch(1);
         try (final WebSocketClient client = new WebSocketClient(new WebSocketClient.Handler() {
             @Override

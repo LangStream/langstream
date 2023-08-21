@@ -19,16 +19,17 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "delete",
+        mixinStandardHelpOptions = true,
         description = "Delete an application")
 public class DeleteApplicationCmd extends BaseApplicationCmd {
 
-    @CommandLine.Parameters(description = "Name of the application")
-    private String name;
+    @CommandLine.Parameters(description = "ID of the application")
+    private String applicationId;
 
     @Override
     @SneakyThrows
     public void run() {
-        http(newDelete(tenantAppPath("/" + name)));
-        log("Application %s deleted".formatted(name));
+        getClient().applications().delete(applicationId);
+        log("Application %s deleted".formatted(applicationId));
     }
 }

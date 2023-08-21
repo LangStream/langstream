@@ -21,6 +21,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "put",
+        mixinStandardHelpOptions = true,
         description = "Put a tenant")
 public class PutTenantCmd extends BaseTenantCmd {
 
@@ -30,7 +31,7 @@ public class PutTenantCmd extends BaseTenantCmd {
     @Override
     @SneakyThrows
     public void run() {
-        http(newPut(pathForTenant(name),
+        getClient().http(getClient().newPut(pathForTenant(name),
                 "application/json",
                 HttpRequest.BodyPublishers.ofString("{}")));
         log("tenant %s created/updated".formatted(name));

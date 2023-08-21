@@ -16,6 +16,7 @@
 package ai.langstream.cli.commands;
 
 import ai.langstream.cli.LangStreamCLIConfig;
+import ai.langstream.cli.client.LangStreamClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -50,7 +51,7 @@ public abstract class BaseCmd implements Runnable {
         yaml
     }
 
-    protected static final ObjectMapper yamlConfigReader = new ObjectMapper(new YAMLFactory());
+
     protected static final ObjectMapper jsonPrinter = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
@@ -60,168 +61,35 @@ public abstract class BaseCmd implements Runnable {
 
     @CommandLine.Spec
     protected CommandLine.Model.CommandSpec command;
+    private LangStreamClient client;
+
 
     protected abstract RootCmd getRootCmd();
 
-    private HttpClient httpClient;
-    private LangStreamCLIConfig config;
+    protected LangStreamClient getClient() {
+        if (client == null) {
+            client = new LangStreamClient(getRootCmd().getConfigPath(), new LangStreamClient.Logger() {
+                @Override
+                public void log(Object message) {
+                    BaseCmd.this.log(message);
+                }
 
+                @Override
+                public void error(Object message) {
+                    BaseCmd.this.err(message);
+                }
 
-    @SneakyThrows
+                @Override
+                public void debug(Object message) {
+                    BaseCmd.this.debug(message);
+                }
+            });
+        }
+        return client;
+    }
+
     protected LangStreamCLIConfig getConfig() {
-        if (config == null) {
-            File configFile;
-            final RootCmd rootCmd = getRootCmd();
-            if (rootCmd.getConfigPath() == null) {
-                String configBaseDir = System.getProperty("basedir");
-                if (configBaseDir == null) {
-                    configBaseDir = System.getProperty("user.dir");
-                }
-                configFile = Path.of(configBaseDir, "conf", "cli.yaml").toFile();
-            } else {
-                configFile = new File(rootCmd.getConfigPath());
-            }
-            if (!configFile.exists()) {
-                throw new IllegalStateException("Config file not found: " + configFile);
-            }
-            config = yamlConfigReader.readValue(configFile, LangStreamCLIConfig.class);
-            overrideFromEnv(config);
-        }
-        return config;
-    }
-
-    @SneakyThrows
-    protected void updateConfig(Consumer<LangStreamCLIConfig> consumer) {
-        consumer.accept(getConfig());
-        File configFile = computeConfigFile();
-        Files.write(configFile.toPath(), yamlConfigReader.writeValueAsBytes(config));
-    }
-
-    private File computeConfigFile() {
-        File configFile;
-        final RootCmd rootCmd = getRootCmd();
-        if (rootCmd.getConfigPath() == null) {
-            String configBaseDir = System.getProperty("basedir");
-            if (configBaseDir == null) {
-                configBaseDir = System.getProperty("user.dir");
-            }
-            configFile = Path.of(configBaseDir, "conf", "cli.yaml").toFile();
-        } else {
-            configFile = new File(rootCmd.getConfigPath());
-        }
-        return configFile;
-    }
-
-
-    @SneakyThrows
-    private void overrideFromEnv(LangStreamCLIConfig config) {
-        for (Field field : LangStreamCLIConfig.class.getDeclaredFields()) {
-            final String name = field.getName();
-            final String newValue = System.getenv("LANGSTREAM_" + name);
-            if (newValue != null) {
-                log("Using env variable: %s=%s".formatted(name, newValue));
-                field.trySetAccessible();
-                field.set(config, newValue);
-            }
-        }
-    }
-
-    protected String getBaseWebServiceUrl() {
-        return getConfig().getWebServiceUrl();
-    }
-
-    protected synchronized HttpClient getHttpClient() {
-        if (httpClient == null) {
-            httpClient = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(30))
-                    .followRedirects(HttpClient.Redirect.ALWAYS)
-                    .build();
-        }
-        return httpClient;
-    }
-
-    @SneakyThrows
-    protected HttpResponse<String> http(HttpRequest httpRequest) {
-        return http(httpRequest, HttpResponse.BodyHandlers.ofString());
-    }
-
-    protected <T> HttpResponse<T> http(HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler) {
-        try {
-            final HttpResponse<T> response = getHttpClient().send(httpRequest, bodyHandler);
-            final int status = response.statusCode();
-            if (status >= 200 && status < 300) {
-                return response;
-            }
-            if (status >= 400) {
-                final T body = response.body();
-                if (body != null) {
-                    err(body);
-                }
-                throw new RuntimeException("Request failed: " + response.statusCode());
-            }
-            throw new RuntimeException("Unexpected status code: " + status);
-        } catch (ConnectException error) {
-            throw new RuntimeException("Cannot connect to " + httpRequest.uri(), error);
-        } catch (IOException | InterruptedException error) {
-            throw new RuntimeException("Unexpected network error " + error, error);
-        }
-    }
-
-    private HttpRequest.Builder withAuth(HttpRequest.Builder builder) {
-        final String token = getConfig().getToken();
-        if (token == null) {
-            return builder;
-        }
-        return builder.header("Authorization", "Bearer " + token);
-    }
-
-    protected HttpRequest newGet(String uri) {
-        return withAuth(
-                HttpRequest.newBuilder()
-                        .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
-                        .version(HttpClient.Version.HTTP_1_1)
-                        .GET()
-        )
-                .build();
-    }
-
-    protected HttpRequest newDependencyGet(URL uri) throws URISyntaxException {
-        return withAuth(HttpRequest.newBuilder()
-                .uri(uri.toURI())
-                .version(HttpClient.Version.HTTP_1_1)
-                .GET()
-        )
-                .build();
-    }
-
-    protected HttpRequest newDelete(String uri) {
-        return withAuth(HttpRequest.newBuilder()
-                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
-                .version(HttpClient.Version.HTTP_1_1)
-                .DELETE()
-        )
-                .build();
-    }
-
-    protected HttpRequest newPut(String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
-        return withAuth(HttpRequest.newBuilder()
-                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
-                .header("Content-Type", contentType)
-                .version(HttpClient.Version.HTTP_1_1)
-                .PUT(bodyPublisher)
-        )
-                .build();
-    }
-
-
-    protected HttpRequest newPost(String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
-        return withAuth(HttpRequest.newBuilder()
-                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
-                .header("Content-Type", contentType)
-                .version(HttpClient.Version.HTTP_1_1)
-                .POST(bodyPublisher)
-        )
-                .build();
+        return getClient().getConfig();
     }
 
 

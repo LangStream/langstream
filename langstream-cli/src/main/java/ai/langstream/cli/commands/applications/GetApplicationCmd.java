@@ -19,11 +19,12 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "get",
+        mixinStandardHelpOptions = true,
         description = "Get LangStream application status")
 public class GetApplicationCmd extends BaseApplicationCmd {
 
-    @CommandLine.Parameters(description = "Name of the application")
-    private String name;
+    @CommandLine.Parameters(description = "ID of the application")
+    private String applicationId;
 
     @CommandLine.Option(names = {"-o"}, description = "Output format")
     private Formats format = Formats.raw;
@@ -31,7 +32,7 @@ public class GetApplicationCmd extends BaseApplicationCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final String body = http(newGet(tenantAppPath("/" + name))).body();
+        final String body = getClient().applications().get(applicationId);
         print(format, body, ListApplicationCmd.COLUMNS_FOR_RAW, ListApplicationCmd.getRawFormatValuesSupplier());
     }
 }

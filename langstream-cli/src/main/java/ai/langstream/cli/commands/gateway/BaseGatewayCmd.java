@@ -15,6 +15,10 @@
  */
 package ai.langstream.cli.commands.gateway;
 
+import ai.langstream.api.model.Gateway;
+import ai.langstream.api.model.Gateways;
+import ai.langstream.api.webservice.application.ApplicationDescription;
+import ai.langstream.cli.client.LangStreamClient;
 import ai.langstream.cli.commands.BaseCmd;
 import ai.langstream.cli.commands.RootCmd;
 import ai.langstream.cli.commands.RootGatewayCmd;
@@ -39,7 +43,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     }
 
 
-    protected String computeQueryString(String credentials, Map<String, String> userParams, Map<String, String> options) {
+    private static String computeQueryString(String credentials, Map<String, String> userParams, Map<String, String> options) {
         String paramsPart = "";
         String optionsPart = "";
         if (userParams != null) {
@@ -66,15 +70,67 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                 .stream().collect(Collectors.joining("&"));
     }
 
-
-
-    private String encodeParam(Map.Entry<String, String> e, String prefix) {
+    private static String encodeParam(Map.Entry<String, String> e, String prefix) {
         return encodeParam(e.getKey(), e.getValue(), prefix);
     }
 
     @SneakyThrows
-    private String encodeParam(String key, String value, String prefix) {
+    private static String encodeParam(String key, String value, String prefix) {
         return "%s=%s".formatted(prefix + key, URLEncoder.encode(value, "UTF-8"));
+    }
+
+    protected String validateGatewayAndGetUrl(String applicationId, String gatewayId, Gateway.GatewayType type,
+                                              Map<String, String> params, Map<String, String> options, String credentials) {
+        validateGateway(applicationId, gatewayId, type, params, options, credentials);
+        return "%s/v1/%s/%s/%s/%s?%s"
+                .formatted(getConfig().getApiGatewayUrl(), type.toString(), getConfig().getTenant(), applicationId, gatewayId,
+                        computeQueryString(credentials, params, options));
+
+    }
+
+    @SneakyThrows
+    protected void validateGateway(String application, String gatewayId, Gateway.GatewayType type,
+                                   Map<String, String> params, Map<String, String> options, String credentials) {
+
+        final LangStreamClient client = getClient();
+
+        final String applicationContent = client.applications()
+                .get(application);
+
+        final ApplicationDescription applicationDescription =
+                messageMapper.readValue(applicationContent, ApplicationDescription.class);
+        final Gateways gatewaysWrapper = applicationDescription.getApplication()
+                .getGateways();
+        if (gatewaysWrapper == null || gatewaysWrapper.gateways() == null || gatewaysWrapper.gateways().isEmpty()) {
+            throw new IllegalArgumentException("No gateway defined for application " + application);
+        }
+
+        Gateway selectedGateway = null;
+        for (Gateway gateway : gatewaysWrapper.gateways()) {
+            if (gateway.id().equals(gatewayId) && type == gateway.type()) {
+                selectedGateway = gateway;
+                break;
+            }
+        }
+        if (selectedGateway == null) {
+            throw new IllegalArgumentException(
+                    "gateway " + gatewayId + " of type " + type + " is not defined in the application");
+        }
+        final List<String> requiredParameters = selectedGateway.parameters();
+        if (requiredParameters != null) {
+            for (String requiredParameter : requiredParameters) {
+                if (params == null || !params.containsKey(requiredParameter)) {
+                    throw new IllegalArgumentException(
+                            "gateway " + gatewayId + " of type " + type + " requires parameter " + requiredParameter);
+                }
+            }
+        }
+        if (selectedGateway.authentication() != null) {
+            if (credentials == null) {
+                throw new IllegalArgumentException(
+                        "gateway " + gatewayId + " of type " + type + " requires credentials");
+            }
+        }
     }
 
 

@@ -63,7 +63,9 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
 
     @Override
     public List<Record> processRecord(Record record) throws Exception {
-        log.info("Processing {}", record);
+        if (log.isDebugEnabled()) {
+            log.debug("Processing {}", record);
+        }
         TransformContext context = recordToTransformContext(record);
         if (config.isAttemptJsonConversion()) {
             context.setKeyObject(TransformFunctionUtil.attemptJsonConversion(context.getKeyObject()));

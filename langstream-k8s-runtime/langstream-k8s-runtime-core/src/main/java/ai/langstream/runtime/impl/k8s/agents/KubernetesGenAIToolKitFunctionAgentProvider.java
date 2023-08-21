@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.runtime.impl.k8s.agents.ai;
+package ai.langstream.runtime.impl.k8s.agents;
 
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;

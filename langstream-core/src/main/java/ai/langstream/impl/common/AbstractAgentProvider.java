@@ -101,7 +101,7 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
 
     protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module,
                                           Pipeline pipeline,
-                                          ExecutionPlan applicationInstance,
+                                          ExecutionPlan executionPlan,
                                           ComputeClusterRuntime clusterRuntime) {
         return new HashMap<>(agentConfiguration.getConfiguration());
     }

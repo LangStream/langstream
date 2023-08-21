@@ -34,6 +34,8 @@ public class VectorAgentsCodeProvider implements AgentCodeProvider {
         switch (agentType) {
             case "vector-db-query":
                 return new VectorDBQueryAgent();
+            default:
+                throw new IllegalStateException();
         }
     }
 }

@@ -15,22 +15,59 @@
  */
 package ai.langstream.agents.vector;
 
+import ai.langstream.ai.agents.GenAIToolKitAgent;
+import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import com.datastax.oss.streaming.ai.QueryStep;
+import com.datastax.oss.streaming.ai.TransformContext;
+import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
+import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
+import com.datastax.oss.streaming.ai.model.config.QueryConfig;
+import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class VectorDBQueryAgent extends SingleRecordAgentProcessor {
 
+    private QueryStepDataSource dataSource;
+    private QueryStep queryExecutor;
+
+    private Collection<StepPredicatePair> steps;
+
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
+        Map<String, Object> datasourceConfiguration = (Map<String, Object>) configuration.get("datasource");
+        dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
+        QueryConfig queryConfig = new QueryConfig();
+        queryExecutor = (QueryStep) TransformFunctionUtil.newQuery(queryConfig, dataSource);
+        steps = List.of(new StepPredicatePair(queryExecutor, it -> true));
     }
 
     @Override
     public List<Record> processRecord(Record record) throws Exception {
-        return List.of(record);
+        TransformContext context = GenAIToolKitAgent.recordToTransformContext(record, true);
+        TransformFunctionUtil.processTransformSteps(context, steps);
+        context.convertMapToStringOrBytes();
+        Optional<Record> recordResult = GenAIToolKitAgent.transformContextToRecord(context, record.headers());
+        return recordResult.isPresent() ? List.of(recordResult.get()) : List.of();
     }
 
+    @Override
+    public void start() throws Exception {
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (queryExecutor != null) {
+            queryExecutor.close();
+        }
+        if (dataSource != null) {
+            dataSource.close();
+        }
+    }
 }

@@ -66,27 +66,8 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         if (log.isDebugEnabled()) {
             log.debug("Processing {}", record);
         }
-        TransformContext context = recordToTransformContext(record);
-        if (config.isAttemptJsonConversion()) {
-            context.setKeyObject(TransformFunctionUtil.attemptJsonConversion(context.getKeyObject()));
-            context.setValueObject(TransformFunctionUtil.attemptJsonConversion(context.getValueObject()));
-        }
-        // the headers must be Strings, this is a tentative conversion
-        // in the future we need a better way to handle headers
-        context.setProperties(record
-                .headers()
-                .stream()
-                .filter(h -> h.key() != null && h.value() != null)
-                .collect(Collectors.toMap(Header::key, (h -> {
-                    if (h.value() == null) {
-                        return null;
-                    }
-                    if (h.value() instanceof byte[]) {
-                        return new String((byte[]) h.value(), StandardCharsets.UTF_8);
-                    } else {
-                        return h.value().toString();
-                    }
-                }))));
+        TransformContext context = recordToTransformContext(record, config.isAttemptJsonConversion());
+
         TransformFunctionUtil.processTransformSteps(context, steps);
         context.convertMapToStringOrBytes();
         Optional<Record> recordResult = transformContextToRecord(context, record.headers());
@@ -123,7 +104,7 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         }
     }
 
-    private TransformContext recordToTransformContext(Record record) {
+    public static TransformContext recordToTransformContext(Record record, boolean attemptJsonConversion) {
         TransformContext context = new TransformContext();
         context.setKeyObject(record.key());
         context.setKeySchemaType(record.key() == null ? null : getSchemaType(record.key().getClass()));
@@ -139,10 +120,30 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         }
         context.setInputTopic(record.origin());
         context.setEventTime(record.timestamp());
+        if (attemptJsonConversion) {
+            context.setKeyObject(TransformFunctionUtil.attemptJsonConversion(context.getKeyObject()));
+            context.setValueObject(TransformFunctionUtil.attemptJsonConversion(context.getValueObject()));
+        }
+        // the headers must be Strings, this is a tentative conversion
+        // in the future we need a better way to handle headers
+        context.setProperties(record
+                .headers()
+                .stream()
+                .filter(h -> h.key() != null && h.value() != null)
+                .collect(Collectors.toMap(Header::key, (h -> {
+                    if (h.value() == null) {
+                        return null;
+                    }
+                    if (h.value() instanceof byte[]) {
+                        return new String((byte[]) h.value(), StandardCharsets.UTF_8);
+                    } else {
+                        return h.value().toString();
+                    }
+                }))));
         return context;
     }
 
-    private Optional<Record> transformContextToRecord(TransformContext context, Collection<Header> headers) {
+    public static Optional<Record> transformContextToRecord(TransformContext context, Collection<Header> headers) {
         if (context.isDropCurrentRecord()) {
             return Optional.empty();
         }

@@ -120,6 +120,7 @@ In this example, you will deploy an application that performs AI completion and 
 
 OPEN_AI_URL=xx
 OPEN_AI_ACCESS_KEY=xx
+GOOGLE_CLIENT_ID=xx
 
 echo """
 secrets:
@@ -128,6 +129,10 @@ secrets:
     data:
       url: $OPEN_AI_URL
       access-key: $OPEN_AI_ACCESS_KEY
+  - name: google
+    id: google
+    data:
+      client-id: $GOOGLE_CLIENT_ID
 """ > /tmp/secrets.yaml
 ```
 

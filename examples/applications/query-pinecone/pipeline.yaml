@@ -25,14 +25,12 @@ pipeline:
     id: "step1"
     type: "compute-ai-embeddings"
     input: "input-topic"
-    output: "output-topic"
     configuration:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings"
       text: "{{% value }}"
   - name: "Execute Query"
     type: "query-vector-db"
-    input: "input-topic"
     output: "output-topic"
     configuration:
       datasource: "PineconeDatasource"

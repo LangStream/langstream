@@ -27,7 +27,7 @@ configuration:
       name: "PineconeDatasource"
       configuration:
         service: "pinecone"
-        access-key: "{{{secrets.pinecone.access-key}}}"
+        api-key: "{{{secrets.pinecone.api-key}}}"
         environment: "{{{secrets.pinecone.environment}}}"
         index-name: "{{{secrets.pinecone.index-name}}}"
         project-name: "{{{secrets.pinecone.project-name}}}"

@@ -19,13 +19,20 @@ import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
+import io.grpc.ManagedChannel;
+import io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.NegotiationType;
+import io.grpc.netty.NettyChannelBuilder;
 import io.pinecone.PineconeClient;
 import io.pinecone.PineconeClientConfig;
 import io.pinecone.PineconeConnection;
+import io.pinecone.PineconeConnectionConfig;
+import io.pinecone.PineconeException;
 import io.pinecone.proto.QueryRequest;
 import io.pinecone.proto.QueryResponse;
 import io.pinecone.proto.QueryVector;
@@ -34,16 +41,19 @@ import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.net.ssl.SSLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class PineconeDataSource implements DataSourceProvider {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
@@ -60,6 +70,8 @@ public class PineconeDataSource implements DataSourceProvider {
         private String projectName;
         @JsonProperty(value = "index-name", required = true)
         private String indexName;
+        @JsonProperty(value = "endpoint")
+        private String endpoint;
         @JsonProperty("server-side-timeout-sec")
         private int serverSideTimeoutSec = 10;
     }
@@ -90,7 +102,36 @@ public class PineconeDataSource implements DataSourceProvider {
                     .withProjectName(clientConfig.getProjectName())
                     .withServerSideTimeoutSec(clientConfig.getServerSideTimeoutSec());
             PineconeClient pineconeClient = new PineconeClient(pineconeClientConfig);
-            connection = pineconeClient.connect(clientConfig.getIndexName());
+            PineconeConnectionConfig connectionConfig = new PineconeConnectionConfig()
+                    .withIndexName(clientConfig.getIndexName());
+
+            PineconeConnectionConfig finalConnectionConfig = connectionConfig;
+            finalConnectionConfig = connectionConfig.withCustomChannelBuilder(new BiFunction<PineconeClientConfig, PineconeConnectionConfig, ManagedChannel>() {
+                        @Override
+                        public ManagedChannel apply(PineconeClientConfig pineconeClientConfig, PineconeConnectionConfig pineconeConnectionConfig) {
+                            if (clientConfig.getEndpoint() != null) {
+                                return buildChannel(clientConfig.getEndpoint());
+                            } else {
+                                return PineconeConnection.buildChannel(pineconeClientConfig, connectionConfig);
+                            }
+                        }
+                    });
+
+            connection = pineconeClient.connect(finalConnectionConfig);
+        }
+
+        public static ManagedChannel buildChannel(String endpoint) {
+            NettyChannelBuilder builder = NettyChannelBuilder.forTarget(endpoint);
+
+            try {
+                builder = builder.overrideAuthority(endpoint)
+                        .negotiationType(NegotiationType.TLS)
+                        .sslContext(GrpcSslContexts.forClient().build());
+            } catch (SSLException e) {
+                throw new PineconeException("SSL error opening gRPC channel", e);
+            }
+
+            return builder.build();
         }
 
         @Override

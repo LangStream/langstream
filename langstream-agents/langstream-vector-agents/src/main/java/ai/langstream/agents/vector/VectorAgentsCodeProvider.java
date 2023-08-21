@@ -22,7 +22,7 @@ public class VectorAgentsCodeProvider implements AgentCodeProvider {
     @Override
     public boolean supports(String agentType) {
         switch (agentType) {
-            case "vector-db-query":
+            case "query-vector-db":
                 return true;
             default:
                 return false;
@@ -32,7 +32,7 @@ public class VectorAgentsCodeProvider implements AgentCodeProvider {
     @Override
     public AgentCode createInstance(String agentType) {
         switch (agentType) {
-            case "vector-db-query":
+            case "query-vector-db":
                 return new VectorDBQueryAgent();
             default:
                 throw new IllegalStateException();

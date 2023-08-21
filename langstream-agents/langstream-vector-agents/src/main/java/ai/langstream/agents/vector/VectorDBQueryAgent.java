@@ -27,12 +27,18 @@ import com.datastax.oss.streaming.ai.QueryStep;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
+import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import com.datastax.oss.streaming.ai.model.config.QueryConfig;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class VectorDBQueryAgent extends SingleRecordAgentProcessor {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private QueryStepDataSource dataSource;
     private QueryStep queryExecutor;
@@ -41,9 +47,14 @@ public class VectorDBQueryAgent extends SingleRecordAgentProcessor {
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
+
         Map<String, Object> datasourceConfiguration = (Map<String, Object>) configuration.get("datasource");
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
-        QueryConfig queryConfig = new QueryConfig();
+        DataSourceConfig dataSourceConfig = MAPPER.convertValue(datasourceConfiguration, DataSourceConfig.class);
+        dataSource.initialize(dataSourceConfig);
+
+        configuration.put("type", "query");
+        QueryConfig queryConfig = MAPPER.convertValue(configuration, QueryConfig.class);
         queryExecutor = (QueryStep) TransformFunctionUtil.newQuery(queryConfig, dataSource);
         steps = List.of(new StepPredicatePair(queryExecutor, it -> true));
     }

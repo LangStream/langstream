@@ -35,7 +35,7 @@ import java.util.Set;
 @Slf4j
 public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider {
 
-    public QueryVectorDBAgentProvider(Set<String> supportedTypes) {
+    public QueryVectorDBAgentProvider() {
         super(Set.of("query-vector-db"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
     }
 

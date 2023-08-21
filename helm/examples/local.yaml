@@ -17,6 +17,9 @@ deployer:
   app:
     config: {}
 
+runtime:
+  image: datastax/langstream-runtime:latest-dev
+  imagePullPolicy: Never
 
 client:
   replicaCount: 1

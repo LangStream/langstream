@@ -19,6 +19,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "get",
+        mixinStandardHelpOptions = true,
         description = "Get tenant configuration")
 public class GetTenantCmd extends BaseTenantCmd {
 
@@ -28,7 +29,7 @@ public class GetTenantCmd extends BaseTenantCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final String body = http(newGet(pathForTenant(name))).body();
+        final String body = getClient().http(getClient().newGet(pathForTenant(name))).body();
         log(body);
     }
 }

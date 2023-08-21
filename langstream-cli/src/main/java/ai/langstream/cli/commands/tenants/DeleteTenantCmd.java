@@ -19,6 +19,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "delete",
+        mixinStandardHelpOptions = true,
         description = "Delete a tenant")
 public class DeleteTenantCmd extends BaseTenantCmd {
 
@@ -28,7 +29,7 @@ public class DeleteTenantCmd extends BaseTenantCmd {
     @Override
     @SneakyThrows
     public void run() {
-        http(newDelete(pathForTenant(name)));
+        getClient().http(getClient().newDelete(pathForTenant(name)));
         log("Tenant %s deleted".formatted(name));
     }
 }

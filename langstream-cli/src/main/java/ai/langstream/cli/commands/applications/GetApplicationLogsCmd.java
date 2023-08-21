@@ -15,6 +15,7 @@
  */
 package ai.langstream.cli.commands.applications;
 
+import ai.langstream.cli.client.LangStreamClient;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -24,6 +25,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "logs",
+        mixinStandardHelpOptions = true,
         description = "Get LangStream application logs")
 public class GetApplicationLogsCmd extends BaseApplicationCmd {
 
@@ -37,7 +39,8 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
     @SneakyThrows
     public void run() {
         final String filterStr = filter == null ? "" : "?filter=" + String.join(",", filter);
-        getHttpClient().sendAsync(newGet(tenantAppPath("/" + name + "/logs" + filterStr)), HttpResponse.BodyHandlers.ofByteArrayConsumer(
+        final LangStreamClient client = getClient();
+        client.getHttpClient().sendAsync(client.newGet(client.tenantAppPath("/" + name + "/logs" + filterStr)), HttpResponse.BodyHandlers.ofByteArrayConsumer(
                         new Consumer<Optional<byte[]>>() {
                             @Override
                             public void accept(Optional<byte[]> bytes) {

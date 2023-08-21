@@ -19,13 +19,14 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "list",
+        mixinStandardHelpOptions = true,
         description = "List all tenants")
 public class ListTenantCmd extends BaseTenantCmd {
 
     @Override
     @SneakyThrows
     public void run() {
-        final String body = http(newGet("/tenants")).body();
+        final String body = getClient().http(getClient().newGet("/tenants")).body();
         log(body);
     }
 }

@@ -45,7 +45,7 @@ public class ConfigureCmd extends BaseCmd {
     @Override
     @SneakyThrows
     public void run() {
-        updateConfig(clientConfig -> {
+        getClient().updateConfig(clientConfig -> {
             switch (configKey) {
                 case tenant:
                     clientConfig.setTenant(newValue);
@@ -59,6 +59,8 @@ public class ConfigureCmd extends BaseCmd {
                 case token:
                     clientConfig.setToken(newValue);
                     break;
+                default:
+                    throw new IllegalArgumentException("Unknown config key: " + configKey + ". Only: " + ConfigKey.values());
             }
         });
         log("Config updated: " + configKey + "=" + newValue);

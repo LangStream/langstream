@@ -15,6 +15,7 @@
  */
 package ai.langstream.cli.commands.gateway;
 
+import ai.langstream.api.model.Gateway;
 import ai.langstream.cli.websocket.WebSocketClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.websocket.CloseReason;
@@ -31,6 +32,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "chat",
+        mixinStandardHelpOptions = true,
         description = "Produce and consume messages from gateway in a chat-like fashion")
 public class ChatGatewayCmd extends BaseGatewayCmd {
 
@@ -48,12 +50,11 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final String consumePath = "%s/v1/consume/%s/%s/%s?%s"
-                .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, consumeFromGatewayId,
-                        computeQueryString(credentials, params, Map.of("position", "earliest")));
-        final String producePath = "%s/v1/produce/%s/%s/%s?%s"
-                .formatted(getConfig().getApiGatewayUrl(), getConfig().getTenant(), applicationId, produceToGatewayId,
-                        computeQueryString(credentials, params, Map.of()));
+        final Map<String, String> consumeGatewayOptions = Map.of("position", "earliest");
+        final String consumePath = validateGatewayAndGetUrl(applicationId, consumeFromGatewayId, Gateway.GatewayType.consume,
+                params, consumeGatewayOptions, credentials);
+        final String producePath = validateGatewayAndGetUrl(applicationId, produceToGatewayId, Gateway.GatewayType.produce,
+                params, Map.of(), credentials);
 
         AtomicBoolean waitingProduceResponse = new AtomicBoolean(false);
         AtomicBoolean waitingConsumeMessage = new AtomicBoolean(false);

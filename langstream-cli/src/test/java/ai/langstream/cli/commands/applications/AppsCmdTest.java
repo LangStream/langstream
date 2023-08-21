@@ -18,6 +18,7 @@ package ai.langstream.cli.commands.applications;
 import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
 import static com.github.tomakehurst.wiremock.client.WireMock.binaryEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -103,8 +104,8 @@ class AppsCmdTest extends CommandTestBase {
         final String secrets = createTempFile("secrets: []");
 
         final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), o -> System.out.println(o));
-        wireMock.register(WireMock.put("/api/applications/%s/my-app"
-                        .formatted(TENANT))
+        wireMock.register(WireMock.patch(urlEqualTo("/api/applications/%s/my-app"
+                        .formatted(TENANT)))
                 .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
                 .withMultipartRequestBody(aMultipart("instance").withBody(equalTo("instance: {}")))
                 .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))

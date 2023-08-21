@@ -45,6 +45,7 @@ import picocli.CommandLine;
 public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
     @CommandLine.Command(name = "deploy",
+            mixinStandardHelpOptions = true,
             description = "Deploy a LangStream application")
     public static class DeployApplicationCmd extends AbstractDeployApplicationCmd {
 
@@ -64,7 +65,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
 
         @Override
-        String appName() {
+        String applicationId() {
             return name;
         }
 
@@ -91,6 +92,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
 
     @CommandLine.Command(name = "update",
+            mixinStandardHelpOptions = true,
             description = "Update an existing LangStream application")
     public static class UpdateApplicationCmd extends AbstractDeployApplicationCmd {
 
@@ -110,7 +112,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
 
         @Override
-        String appName() {
+        String applicationId() {
             return name;
         }
 
@@ -135,7 +137,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
     }
 
-    abstract String appName();
+    abstract String applicationId();
 
     abstract String appPath();
 
@@ -152,7 +154,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         final File appDirectory = checkFileExists(appPath());
         final File instanceFile = checkFileExists(instanceFilePath());
         final File secretsFile = checkFileExists(secretFilePath());
-        final String name = appName();
+        final String applicationId = applicationId();
 
         if (isUpdate() && appDirectory == null && instanceFile == null && secretsFile == null) {
             throw new IllegalArgumentException("no application, instance or secrets file provided");
@@ -170,9 +172,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         final Path tempZip = buildZip(appDirectory, s -> log(s));
 
         long size = Files.size(tempZip);
-        log("deploying application: %s (%d KB)".formatted(name, size / 1024));
+        log("deploying application: %s (%d KB)".formatted(applicationId, size / 1024));
 
-        final String path = tenantAppPath("/" + name);
         final Map<String, Object> contents = new HashMap<>();
         contents.put("app", tempZip);
         contents.put("instance", Files.readString(instanceFile.toPath()));
@@ -180,16 +181,13 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             contents.put("secrets", Files.readString(secretsFile.toPath()));
         }
         final MultiPartBodyPublisher bodyPublisher = buildMultipartContentForAppZip(contents);
-        final String contentType = "multipart/form-data; boundary=%s".formatted(bodyPublisher.getBoundary());
 
         if (isUpdate()) {
-            final HttpRequest request = newPut(path, contentType, bodyPublisher.build());
-            http(request);
-            log("application %s updated".formatted(name));
+            getClient().applications().update(applicationId, bodyPublisher);
+            log("application %s updated".formatted(applicationId));
         } else {
-            final HttpRequest request = newPost(path, contentType, bodyPublisher.build());
-            http(request);
-            log("application %s deployed".formatted(name));
+            getClient().applications().deploy(applicationId, bodyPublisher);
+            log("application %s deployed".formatted(applicationId));
         }
 
     }
@@ -222,8 +220,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 }
 
                 log("downloading dependency: %s to %s".formatted(fileName, fileName.toAbsolutePath()));
-                final HttpRequest request = newDependencyGet(url);
-                http(request, HttpResponse.BodyHandlers.ofFile(fileName));
+                final HttpRequest request = getClient().newDependencyGet(url);
+                getClient().http(request, HttpResponse.BodyHandlers.ofFile(fileName));
 
                 if (!checkChecksum(fileName, dependency.sha512sum())) {
                     log("File still seems corrupted. Please double check the checksum and try again.");

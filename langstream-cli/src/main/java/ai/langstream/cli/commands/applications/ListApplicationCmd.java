@@ -24,6 +24,7 @@ import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "list",
+        mixinStandardHelpOptions = true,
         description = "List all LangStream applications")
 public class ListApplicationCmd extends BaseApplicationCmd {
 
@@ -34,7 +35,7 @@ public class ListApplicationCmd extends BaseApplicationCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final String body = http(newGet(tenantAppPath(""))).body();
+        final String body = getClient().applications().list();
         print(format, body, COLUMNS_FOR_RAW, getRawFormatValuesSupplier());
     }
 

@@ -10,6 +10,10 @@
     * [Enable auto-completion](#enable-auto-completion)
     * [Usage](#usage)
   * [Deploy your first application](#deploy-your-first-application)
+  * [Install Kubernetes Environment on MacOS](#install-kubernetes-environment-on-macos)
+    * [Minikube](#minikube)
+    * [kubectl](#kubectl)
+    * [Helm](#helm)
   * [Development](#development)
     * [Start minikube](#start-minikube)
     * [Build docker images and deploy all the components](#build-docker-images-and-deploy-all-the-components)
@@ -18,9 +22,12 @@
 
 ## Run LangStream server
 To run LangStream, you need to the following components:
+- Kubernetes Cluster (Minikube, AWS EKS, Azure AKS, Google GKE, etc.)
 - Apache Kafka or Apache Pulsar cluster
-- S3 bucket or API-compatible storage
-- Kubernetes Cluster (AWS EKS, Azure AKS, Google GKE, Minikube, etc.)
+- S3 bucket or API-compatible storage (ex Minio)
+
+For local application development, Minikube is recommended. For information on setting up a Minikube 
+environment see [Install Kubernetes Environment on MacOS](#install-kubernetes-environment-on-macos).
 
 ### Quick start (All-in-one deployment)
 
@@ -151,11 +158,91 @@ Another approach to test values is to use gateway `chat` CLI feature:
 ```
 ./bin/langstream gateway chat openai-completions -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
 ```
+## Install Kubernetes Environment on MacOS
 
+### Minikube
+
+To install Minikube on MacOS:
+
+1. Install Homebrew.
+
+   If you haven't installed Homebrew yet, use the following command:
+
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+2. Update Homebrew.
+
+   It's a good practice to ensure you get the latest packages.
+
+```
+brew update
+```
+
+3. Install Minikube.
+
+   Use the following command to install MiniKube.
+
+```
+brew install minikube
+```
+
+4. Install a Hypervisor
+
+Minikube requires a hypervisor to create a virtual machine where the Kubernetes cluster will run. 
+Here's how to install HyperKit, which is recommended for macOS:
+
+```
+brew install hyperkit
+```
+
+After installation, set Minikube to use HyperKit and 4 CPUs:
+
+```
+minikube config set driver hyperkit
+minikube config set cpus 4
+```
+
+5. Start Minikube:
+
+To start your local Kubernetes cluster:
+
+```
+minikube start
+```
+
+For additional information on installing minikube or installing in other environments, 
+see this [page](https://minikube.sigs.k8s.io/docs/start/).
+
+If you no longer need Minikube, you
+can stop (`minikube stop`) and delete the cluster (`minikube delete`).
+
+#### Kubectl
+
+To install kubectl, use the following command:
+```
+brew install kubectl
+```
+
+For additional information on installing kubectl or installing in other environments, 
+see this [page](https://kubernetes.io/docs/tasks/tools/#kubectl).
+
+#### Helm
+
+To install Helm, use the following command:
+
+```
+brew install helm
+```
+
+For additional information on installing Helm or installing in other environments, 
+see this [page](https://helm.sh/docs/intro/install/).
 ## Development
 
 Requirements:
 - Minikube
+- kubectl
 - Helm
 - Docker
 - Java 17
@@ -163,7 +250,6 @@ Requirements:
 ### Start minikube
   
 ```
-brew install minikube
 minikube start
 ```
 

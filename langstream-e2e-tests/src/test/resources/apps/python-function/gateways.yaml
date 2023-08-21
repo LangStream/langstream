@@ -15,19 +15,10 @@
 # limitations under the License.
 #
 
-module: "module-1"
-id: "pipeline-1"
-name: "Exclamation processor"
-topics:
-  - name: "input-topic"
-    creation-mode: create-if-not-exists
-  - name: "output-topic"
-    creation-mode: create-if-not-exists
-pipeline:
-  - name: "Process using Python"
-    type: "python-function"
-    input: "input-topic"
-    output: "output-topic"
-    configuration:
-      secret_value: "{{ secrets.secret1.value-key }}"
-      className: example.Exclamation
+gateways:
+- id: produce-input
+type: produce
+topic: input-topic
+- id: consume-output
+type: consume
+topic: output-topic

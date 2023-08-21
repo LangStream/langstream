@@ -15,17 +15,34 @@
  */
 package ai.langstream.tests;
 
+import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.K3sContainerVersion;
 import com.dajudge.kindcontainer.KubernetesImageSpec;
 import com.dajudge.kindcontainer.helm.Helm3Container;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.fabric8.kubernetes.api.model.Event;
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.PersistentVolume;
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRole;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.LocalPortForward;
+import io.fabric8.kubernetes.client.dsl.ContainerResource;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -35,22 +52,33 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.BindMode;
 
 @Slf4j
-public abstract class BaseEndToEndTest {
+public class BaseEndToEndTest implements TestWatcher {
 
-    protected static final String TENANT_NAMESPACE_PREFIX = "langstream-tenant-";
+
+    public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
+    protected static final String TENANT_NAMESPACE_PREFIX = "sga-tenant-";
+    protected static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
     interface KubeServer {
         void start();
@@ -91,7 +119,7 @@ public abstract class BaseEndToEndTest {
     static class LocalK3sContainer implements PythonFunctionIT.KubeServer {
 
         K3sContainer container;
-        final Path basePath = Paths.get("/tmp", "langstream-tests-image");
+        final Path basePath = Paths.get("/tmp", "sga-tests-image");
 
         @Override
         public void start() {
@@ -154,72 +182,23 @@ public abstract class BaseEndToEndTest {
     protected static Helm3Container helm3Container;
     protected static KubernetesClient client;
     protected static String controlPlaneBaseUrl;
+    protected static String apiGatewayBaseUrl;
     protected static String namespace;
 
-    protected void receiveKafkaMessages(String topic, int count) {
-        applyManifest("""
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  name: kafka-client-consumer
-                  labels:
-                    role: kafka-client-consumer
-                spec:
-                  template:
-                    metadata:
-                      labels:
-                        role: kafka-client-consumer
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                        - name: kclient
-                          image: confluentinc/cp-kafka
-                          command: ["/bin/sh"]
-                          args:
-                            - "-c"
-                            - >-
-                              set -e &&
-                              echo 'bootstrap.servers=my-cluster-kafka-bootstrap.kafka:9092\\n' >> consumer-props.conf &&
-                              kafka-consumer-perf-test  --bootstrap-server my-cluster-kafka-bootstrap.kafka:9092 --topic %s --timeout 240000 --consumer.config consumer-props.conf --print-metrics --messages %d --show-detailed-stats --reporting-interval 1000
-                """.formatted(topic, count));
-
-        client.batch().v1()
-                .jobs()
-                .inNamespace(namespace)
-                .withName("kafka-client-consumer")
-                .waitUntilCondition(
-                        pod -> pod.getStatus().getSucceeded() != null && pod.getStatus().getSucceeded() == 1, 2,
-                        TimeUnit.MINUTES);
+    @Override
+    public void testAborted(ExtensionContext context, Throwable cause) {
+        testFailed(context, cause);
     }
 
-    protected void produceKafkaMessages(String topic, int count) {
-        applyManifest("""
-                apiVersion: apps/v1
-                kind: Deployment
-                metadata:
-                  name: kafka-client-producer
-                  labels:
-                    role: kafka-client-producer
-                spec:
-                  replicas: 1
-                  selector:
-                    matchLabels:
-                      role: kafka-client-producer
-                  template:
-                    metadata:
-                      labels:
-                        role: kafka-client-producer
-                    spec:
-                      containers:
-                        - name: kclient
-                          image: confluentinc/cp-kafka
-                          command: ["/bin/sh"]
-                          args:
-                            - "-c"
-                            - >-
-                              echo 'bootstrap.servers=my-cluster-kafka-bootstrap.kafka:9092\\n' >> producer.conf &&
-                              kafka-producer-perf-test --topic %s --num-records %d --record-size 10240 --throughput 1000 --producer.config producer.conf
-                """.formatted(topic, count));
+    @Override
+    public void testFailed(ExtensionContext context, Throwable cause) {
+        log.error("Test {} failed", context.getDisplayName(), cause);
+        final String prefix = "%s.%s".formatted(context.getTestClass().get().getSimpleName(),
+                context.getTestMethod().get().getName());
+        dumpAllPodsLogs(prefix, namespace);
+        dumpEvents(prefix);
+        dumpAllResources(prefix);
+
     }
 
     protected static void applyManifest(String manifest) {
@@ -236,10 +215,20 @@ public abstract class BaseEndToEndTest {
             throws InterruptedException, IOException {
 
         String[] allArgs = new String[args.length + 1];
-        allArgs[0] = "bin/langstream";
+        allArgs[0] = "bin/sga-cli";
         System.arraycopy(args, 0, allArgs, 1, args.length);
         runProcess(allArgs);
     }
+
+    protected void executeCliCommandUntilOutput(Predicate<String> predicate, String... args)
+            throws InterruptedException, IOException {
+
+        String[] allArgs = new String[args.length + 1];
+        allArgs[0] = "bin/sga-cli";
+        System.arraycopy(args, 0, allArgs, 1, args.length);
+        runProcessUntilOutput(allArgs, predicate);
+    }
+
     private static void runProcess(String[] allArgs) throws InterruptedException, IOException {
         runProcess(allArgs, false);
     }
@@ -252,7 +241,45 @@ public abstract class BaseEndToEndTest {
                 .redirectError(ProcessBuilder.Redirect.INHERIT);
         final int exitCode = processBuilder.start().waitFor();
         if (exitCode != 0 && !allowFailures) {
-            throw new RuntimeException();
+            throw new RuntimeException("Command failed with code: " + exitCode + " args: " + Arrays.toString(allArgs));
+        }
+    }
+
+    private static Process runProcessAsync(String[] allArgs) throws InterruptedException, IOException {
+        ProcessBuilder processBuilder = new ProcessBuilder(allArgs)
+                .directory(Paths.get("..").toFile())
+                .inheritIO()
+                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                .redirectError(ProcessBuilder.Redirect.INHERIT);
+        return processBuilder.start();
+    }
+
+
+    private static void runProcessUntilOutput(String[] allArgs, Predicate<String> lineTester) throws InterruptedException, IOException {
+
+        final Path output = Files.createTempFile("output", "txt");
+        final Path error = Files.createTempFile("error", "txt");
+
+        ProcessBuilder processBuilder = new ProcessBuilder(allArgs)
+                .directory(Paths.get("..").toFile())
+                .redirectOutput(output.toFile())
+                .redirectError(error.toFile());
+
+        final BufferedReader br = new BufferedReader(new FileReader(output.toFile()));
+        final Process process = processBuilder.start();
+        try {
+
+            Awaitility.await().until(() -> {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    if (lineTester.test(line)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        } finally {
+            process.destroyForcibly();
         }
     }
 
@@ -274,10 +301,10 @@ public abstract class BaseEndToEndTest {
     @BeforeAll
     @SneakyThrows
     public static void setup() {
-        namespace = "langstream-test-" + UUID.randomUUID().toString().substring(0, 8);
+        namespace = "sga-test-" + UUID.randomUUID().toString().substring(0, 8);
 
         // kubeServer = new LocalK3sContainer();
-        kubeServer = new PythonFunctionIT.RunningHostCluster();
+        kubeServer = new RunningHostCluster();
         kubeServer.start();
 
         client = new KubernetesClientBuilder()
@@ -285,8 +312,8 @@ public abstract class BaseEndToEndTest {
                 .build();
 
         // cleanup previous runs
-        client.namespaces().withLabel("app", "langstream-test")
-                        .delete();
+        client.namespaces().withLabel("app", "sga-test")
+                .delete();
         client.namespaces()
                 .list()
                 .getItems()
@@ -297,13 +324,13 @@ public abstract class BaseEndToEndTest {
         client.resource(new NamespaceBuilder()
                         .withNewMetadata()
                         .withName(namespace)
-                        .withLabels(Map.of("app", "langstream-test"))
+                        .withLabels(Map.of("app", "sga-test"))
                         .endMetadata()
                         .build())
                 .serverSideApply();
 
 
-        final Path tempFile = Files.createTempFile("langstream-test-kube", ".yaml");
+        final Path tempFile = Files.createTempFile("sga-test-kube", ".yaml");
         Files.write(tempFile,
                 kubeServer.getKubeConfig().getBytes(StandardCharsets.UTF_8));
         System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
@@ -313,40 +340,56 @@ public abstract class BaseEndToEndTest {
         List<CompletableFuture<Void>> imagesFutures = new ArrayList<>();
 
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("datastax/langstream-control-plane:latest-dev")));
+                kubeServer.ensureImage("datastax/sga-control-plane:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage( "datastax/langstream-deployer:latest-dev")));
+                kubeServer.ensureImage( "datastax/sga-deployer:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("datastax/langstream-runtime:latest-dev")));
+                kubeServer.ensureImage("datastax/sga-runtime:latest-dev")));
+        imagesFutures.add(CompletableFuture.runAsync(() ->
+                kubeServer.ensureImage("datastax/sga-api-gateway:latest-dev")));
 
-        final CompletableFuture<Void> serviceFuture =
-                CompletableFuture.runAsync(() -> installAndPrepareControlPlaneUrl());
+        final CompletableFuture<Void> sgaFuture =
+                CompletableFuture.runAsync(() -> installSga());
         CompletableFuture.allOf(kafkaFuture, minioFuture, imagesFutures.get(0), imagesFutures.get(1), imagesFutures.get(2),
-                serviceFuture).join();
+                sgaFuture).join();
         awaitControlPlaneReady();
+        awaitApiGatewayReady();
     }
 
     @SneakyThrows
-    private static void installAndPrepareControlPlaneUrl() {
-        final String hostPath = Paths.get("..", "helm", "langstream").toFile().getAbsolutePath();
+    private static void installSga() {
+        final String hostPath = Paths.get("..", "helm", "sga").toFile().getAbsolutePath();
 
         client.resources(ClusterRole.class)
-                        .withName("langstream-deployer")
-                        .delete();
+                .withName("sga-deployer")
+                .delete();
         client.resources(ClusterRole.class)
-                .withName("langstream-control-plane")
+                .withName("sga-control-plane")
+                .delete();
+        client.resources(ClusterRole.class)
+                .withName("sga-api-gateway")
+                .delete();
+        client.resources(ClusterRole.class)
+                .withName("sga-client")
+                .delete();
+
+        client.resources(ClusterRoleBinding.class)
+                .withName("sga-control-plane-role-binding")
                 .delete();
         client.resources(ClusterRoleBinding.class)
-                .withName("langstream-control-plane-role-binding")
+                .withName("sga-deployer-role-binding")
                 .delete();
         client.resources(ClusterRoleBinding.class)
-                .withName("langstream-deployer-role-binding")
+                .withName("sga-api-gateway-role-binding")
+                .delete();
+        client.resources(ClusterRoleBinding.class)
+                .withName("sga-client-role-binding")
                 .delete();
 
 
-        log.info("installing langstream with helm, using chart from {}", hostPath);
+        log.info("installing sga with helm, using chart from {}", hostPath);
         final String deleteCmd =
-                "helm delete %s -n %s".formatted("langstream", namespace);
+                "helm delete %s -n %s".formatted("sga", namespace);
         log.info("Running {}", deleteCmd);
         runProcess(deleteCmd.split(" "), true);
 
@@ -354,13 +397,13 @@ public abstract class BaseEndToEndTest {
                 controlPlane:
                   resources:
                     requests:
-                      cpu: 500m
+                      cpu: 256m
                       memory: 512Mi
                   app:
                     config:
                       application.storage.apps.type: kubernetes
                       application.storage.apps.configuration.namespaceprefix: %s
-                      application.storage.apps.configuration.deployer-runtime.image: datastax/langstream-runtime:latest-dev
+                      application.storage.apps.configuration.deployer-runtime.image: datastax/sga-runtime:latest-dev
                       application.storage.apps.configuration.deployer-runtime.image-pull-policy: Never
                       application.storage.global.type: kubernetes
                       application.storage.code.type: s3
@@ -370,8 +413,15 @@ public abstract class BaseEndToEndTest {
                                 
                 deployer:
                   replicaCount: 1
+                  resources:
+                    requests:
+                      cpu: 256m
+                      memory: 512Mi
                   app:
                     config:
+                      agentResources:
+                        cpuPerUnit: 0.1
+                        memPerUnit: 128
                       clusterRuntime:
                           kubernetes:
                             namespace-prefix: %s
@@ -380,14 +430,22 @@ public abstract class BaseEndToEndTest {
                         endpoint: http://minio.minio-dev.svc.cluster.local:9000
                         access-key: minioadmin
                         secret-key: minioadmin
-                """.formatted(TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX);
-        final Path tempFile = Files.createTempFile("langstream-test", ".yaml");
+                                
+                apiGateway:
+                  podAnnotations: {}
+                  podSecurityContext: {}
+                  securityContext: {}
+                  app:
+                    config:
+                      application.storage.apps.configuration.namespaceprefix: %s
+                """.formatted(TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX);
+        final Path tempFile = Files.createTempFile("sga-test", ".yaml");
         Files.write(tempFile, values.getBytes(StandardCharsets.UTF_8));
 
 
         final String cmd =
                 "helm install --debug --timeout 360s %s -n %s %s --values %s".formatted(
-                        "langstream", namespace, hostPath, tempFile.toFile().getAbsolutePath());
+                        "sga", namespace, hostPath, tempFile.toFile().getAbsolutePath());
         log.info("Running {}", cmd);
         runProcess(cmd.split(" "));
         log.info("Helm install completed");
@@ -397,13 +455,13 @@ public abstract class BaseEndToEndTest {
     private static void awaitControlPlaneReady() {
         log.info("waiting for control plane to be ready");
 
-        client.apps().deployments().inNamespace(namespace).withName("langstream-control-plane")
+        client.apps().deployments().inNamespace(namespace).withName("sga-control-plane")
                 .waitUntilCondition(
                         d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 120,
                         TimeUnit.SECONDS);
         log.info("control plane ready, port forwarding");
 
-        final String podName = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "langstream-control-plane")
+        final String podName = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "sga-control-plane")
                 .list()
                 .getItems()
                 .get(0)
@@ -416,14 +474,35 @@ public abstract class BaseEndToEndTest {
     }
 
     @SneakyThrows
+    private static void awaitApiGatewayReady() {
+        log.info("waiting for api gateway to be ready");
+
+        client.apps().deployments().inNamespace(namespace).withName("sga-api-gateway")
+                .waitUntilCondition(
+                        d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 120,
+                        TimeUnit.SECONDS);
+        log.info("api gateway ready, port forwarding");
+
+        final String podName = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "sga-api-gateway")
+                .list()
+                .getItems()
+                .get(0)
+                .getMetadata().getName();
+        final int port = nextFreePort();
+        runProcessAsync("kubectl port-forward -n %s %s %d:8091".formatted(namespace, podName, port).split(" "));
+        log.info("api gateway port forwarding started {}", port);
+        apiGatewayBaseUrl = "ws://localhost:" + port;
+    }
+
+    @SneakyThrows
     private static void installKafka() {
         log.info("installing kafka");
         client.resource(new NamespaceBuilder()
-                .withNewMetadata()
-                .withName("kafka")
-                .endMetadata()
-                .build())
-                        .serverSideApply();
+                        .withNewMetadata()
+                        .withName("kafka")
+                        .endMetadata()
+                        .build())
+                .serverSideApply();
         runProcess("kubectl apply -f https://strimzi.io/install/latest?namespace=kafka -n kafka".split(" "));
         runProcess("kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka".split(" "));
         log.info("waiting kafka to be ready");
@@ -517,6 +596,92 @@ public abstract class BaseEndToEndTest {
                   selector:
                     app: minio
                 """);
+    }
+
+    protected void withPodLogs(String podName, String namespace, int tailingLines, BiConsumer<String, String> consumer) {
+        if (podName != null) {
+            try {
+                client.pods().inNamespace(namespace)
+                        .withName(podName)
+                        .get().getSpec().getContainers().forEach(container -> {
+                            final ContainerResource containerResource = client.pods().inNamespace(namespace)
+                                    .withName(podName)
+                                    .inContainer(container.getName());
+                            if (tailingLines > 0) {
+                                containerResource.tailingLines(tailingLines);
+                            }
+                            final String containerLog = containerResource.getLog();
+                            consumer.accept(container.getName(), containerLog);
+                        });
+            } catch (Throwable t) {
+                log.error("failed to get pod {} logs: {}", podName, t.getMessage());
+            }
+        }
+    }
+
+
+    protected void dumpAllPodsLogs(String filePrefix, String namespace) {
+        client.pods().inNamespace(namespace).list().getItems()
+                .forEach(pod -> dumpPodLogs(pod.getMetadata().getName(), namespace, filePrefix));
+    }
+
+    protected void dumpPodLogs(String podName, String namespace, String filePrefix) {
+        TEST_LOGS_DIR.mkdirs();
+        withPodLogs(podName, namespace, -1, (container, logs) -> {
+            final File outputFile = new File(TEST_LOGS_DIR, "%s.%s.%s.log".formatted(filePrefix, podName, container));
+            try (FileWriter writer = new FileWriter(outputFile)) {
+                writer.write(logs);
+            } catch (IOException e) {
+                log.error("failed to write pod {} logs to file {}", podName, outputFile, e);
+            }
+        });
+    }
+
+    protected void dumpAllResources(String filePrefix) {
+        dumpResources(filePrefix, Pod.class);
+        dumpResources(filePrefix, StatefulSet.class);
+        dumpResources(filePrefix, Job.class);
+        dumpResources(filePrefix, AgentCustomResource.class);
+        dumpResources(filePrefix, ApplicationCustomResource.class);
+    }
+
+    private void dumpResources(String filePrefix, Class<? extends HasMetadata> clazz) {
+        client.resources(clazz)
+                .inNamespace(namespace)
+                .list()
+                .getItems()
+                .forEach(resource -> dumpResource(filePrefix, resource));
+    }
+
+    protected void dumpResource(String filePrefix, HasMetadata resource) {
+        TEST_LOGS_DIR.mkdirs();
+        final File outputFile = new File(TEST_LOGS_DIR,
+                "%s-%s-%s.log".formatted(filePrefix, resource.getKind(), resource.getMetadata().getName()));
+        try (FileWriter writer = new FileWriter(outputFile)) {
+            writer.write(MAPPER.writeValueAsString(resource));
+        } catch (Throwable e) {
+            log.error("failed to write resource to file {}", outputFile, e);
+        }
+    }
+
+    protected void dumpEvents(String filePrefix) {
+        TEST_LOGS_DIR.mkdirs();
+        final File outputFile = new File(TEST_LOGS_DIR, "%s-events.log".formatted(filePrefix));
+        try (FileWriter writer = new FileWriter(outputFile)) {
+            client.resources(Event.class).inAnyNamespace().list()
+                    .getItems()
+                    .forEach(event -> {
+                        try {
+                            writer.write("[%s] [%s/%s] %s: %s\n".formatted(event.getMetadata().getNamespace(),
+                                    event.getInvolvedObject().getKind(),
+                                    event.getInvolvedObject().getName(), event.getReason(), event.getMessage()));
+                        } catch (IOException e) {
+                            log.error("failed to write event {} to file {}", event, outputFile, e);
+                        }
+                    });
+        } catch (Throwable e) {
+            log.error("failed to write events logs to file {}", outputFile, e);
+        }
     }
 
 

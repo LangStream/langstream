@@ -1,6 +1,7 @@
 controlPlane:
   image:
     pullPolicy: Never
+    repository: datastax/langstream-control-plane
     tag: "latest-dev"
   app:
     config:
@@ -26,6 +27,7 @@ client:
 
 apiGateway:
   image:
+    repository: datastax/langstream-api-gateway
     pullPolicy: Never
     tag: "latest-dev"
   app:

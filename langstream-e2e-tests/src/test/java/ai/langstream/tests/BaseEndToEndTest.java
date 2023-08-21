@@ -258,25 +258,6 @@ public class BaseEndToEndTest implements TestWatcher {
 
     }
 
-
-    protected void executeCliCommand(String... args)
-            throws InterruptedException, IOException {
-
-        String[] allArgs = new String[args.length + 1];
-        allArgs[0] = "bin/langstream-cli";
-        System.arraycopy(args, 0, allArgs, 1, args.length);
-        runProcess(allArgs);
-    }
-
-    protected void executeCliCommandUntilOutput(Predicate<String> predicate, String... args)
-            throws InterruptedException, IOException {
-
-        String[] allArgs = new String[args.length + 1];
-        allArgs[0] = "bin/langstream-cli";
-        System.arraycopy(args, 0, allArgs, 1, args.length);
-        runProcessUntilOutput(allArgs, predicate);
-    }
-
     private static void runProcess(String[] allArgs) throws InterruptedException, IOException {
         runProcess(allArgs, false);
     }
@@ -292,45 +273,6 @@ public class BaseEndToEndTest implements TestWatcher {
             throw new RuntimeException("Command failed with code: " + exitCode + " args: " + Arrays.toString(allArgs));
         }
     }
-
-    private static Process runProcessAsync(String[] allArgs) throws InterruptedException, IOException {
-        ProcessBuilder processBuilder = new ProcessBuilder(allArgs)
-                .directory(Paths.get("..").toFile())
-                .inheritIO()
-                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-                .redirectError(ProcessBuilder.Redirect.INHERIT);
-        return processBuilder.start();
-    }
-
-
-    private static void runProcessUntilOutput(String[] allArgs, Predicate<String> lineTester) throws InterruptedException, IOException {
-
-        final Path output = Files.createTempFile("output", "txt");
-        final Path error = Files.createTempFile("error", "txt");
-
-        ProcessBuilder processBuilder = new ProcessBuilder(allArgs)
-                .directory(Paths.get("..").toFile())
-                .redirectOutput(output.toFile())
-                .redirectError(error.toFile());
-
-        final BufferedReader br = new BufferedReader(new FileReader(output.toFile()));
-        final Process process = processBuilder.start();
-        try {
-
-            Awaitility.await().until(() -> {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    if (lineTester.test(line)) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-        } finally {
-            process.destroyForcibly();
-        }
-    }
-
 
     public static CompletableFuture<String> execInPod(String podName, String containerName,
                                                       String... cmds) {
@@ -436,6 +378,7 @@ public class BaseEndToEndTest implements TestWatcher {
     @AfterAll
     @SneakyThrows
     public static void destroy() {
+        cleanupAllEndToEndTestsNamespaces();
         if (client != null) {
             client.close();
         }
@@ -471,14 +414,7 @@ public class BaseEndToEndTest implements TestWatcher {
                 .build();
 
         // cleanup previous runs
-        client.namespaces().withLabel("app", "ls-test")
-                .delete();
-        client.namespaces()
-                .list()
-                .getItems()
-                .stream().filter(ns -> ns.getMetadata().getName().startsWith(TENANT_NAMESPACE_PREFIX)).forEach(ns -> {
-                    client.namespaces().withName(ns.getMetadata().getName()).delete();
-                });
+        cleanupAllEndToEndTestsNamespaces();
 
         client.resource(new NamespaceBuilder()
                         .withNewMetadata()
@@ -513,6 +449,17 @@ public class BaseEndToEndTest implements TestWatcher {
                 allFuture).join();
         awaitControlPlaneReady();
         awaitApiGatewayReady();
+    }
+
+    private static void cleanupAllEndToEndTestsNamespaces() {
+        client.namespaces().withLabel("app", "ls-test")
+                .delete();
+        client.namespaces()
+                .list()
+                .getItems()
+                .stream().filter(ns -> ns.getMetadata().getName().startsWith(TENANT_NAMESPACE_PREFIX)).forEach(ns -> {
+                    client.namespaces().withName(ns.getMetadata().getName()).delete();
+                });
     }
 
     @SneakyThrows
@@ -589,6 +536,13 @@ public class BaseEndToEndTest implements TestWatcher {
                     repository: datastax/langstream-api-gateway
                     tag: latest-dev
                     pullPolicy: Never
+                  resources:
+                    requests:
+                      cpu: 256m
+                      memory: 512Mi
+                  app:
+                    config:
+                     logging.level.org.apache.tomcat.websocket: debug
                 
                 runtime:
                     image: datastax/langstream-runtime:latest-dev

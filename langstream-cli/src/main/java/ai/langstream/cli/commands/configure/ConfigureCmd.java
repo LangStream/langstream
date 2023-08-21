@@ -17,6 +17,7 @@ package ai.langstream.cli.commands.configure;
 
 import ai.langstream.cli.commands.BaseCmd;
 import ai.langstream.cli.commands.RootCmd;
+import java.util.Arrays;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
@@ -60,7 +61,8 @@ public class ConfigureCmd extends BaseCmd {
                     clientConfig.setToken(newValue);
                     break;
                 default:
-                    throw new IllegalArgumentException("Unknown config key: " + configKey + ". Only: " + ConfigKey.values());
+                    throw new IllegalArgumentException("Unknown config key: " + configKey
+                            + ". Only: " + Arrays.toString(ConfigKey.values()));
             }
         });
         log("Config updated: " + configKey + "=" + newValue);

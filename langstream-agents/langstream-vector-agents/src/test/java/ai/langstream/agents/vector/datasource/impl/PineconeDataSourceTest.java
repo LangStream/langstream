@@ -23,8 +23,6 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @Slf4j
 class PineconeDataSourceTest {
 
@@ -37,7 +35,7 @@ class PineconeDataSourceTest {
                 "environment","asia-southeast1-gcp-free",
                 "project-name", "032e3d0",
                 "index-name", "example-index");
-        QueryStepDataSource implementation = dataSource.createImplementation(config);
+        QueryStepDataSource implementation = dataSource.createDataSourceImplementation(config);
         implementation.initialize(null);
 
         String query = """
@@ -62,7 +60,7 @@ class PineconeDataSourceTest {
                 "environment","asia-southeast1-gcp-free",
                 "project-name", "032e3d0",
                 "index-name", "example-index");
-        QueryStepDataSource implementation = dataSource.createImplementation(config);
+        QueryStepDataSource implementation = dataSource.createDataSourceImplementation(config);
         implementation.initialize(null);
 
         String query = """

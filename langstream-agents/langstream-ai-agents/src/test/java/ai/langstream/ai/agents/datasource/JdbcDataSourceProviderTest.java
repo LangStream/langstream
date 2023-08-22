@@ -34,7 +34,7 @@ public class JdbcDataSourceProviderTest {
     @Test
     public void testQuery() throws Exception {
         JdbcDataSourceProvider jdbcDataSourceProvider = new JdbcDataSourceProvider();
-        QueryStepDataSource implementation = jdbcDataSourceProvider.createImplementation(Map.of("url", "jdbc:h2:mem:test",
+        QueryStepDataSource implementation = jdbcDataSourceProvider.createDataSourceImplementation(Map.of("url", "jdbc:h2:mem:test",
                 "user", "sa", "password", "sa", "driverClass", "org.h2.Driver"));
 
         try (Connection conn = DriverManager.

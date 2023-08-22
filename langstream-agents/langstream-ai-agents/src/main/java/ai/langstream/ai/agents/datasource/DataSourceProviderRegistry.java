@@ -42,7 +42,7 @@ public class DataSourceProviderRegistry {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No DataSource found for resource " + dataSourceConfig));
 
-        final QueryStepDataSource implementation = provider.get().createImplementation(dataSourceConfig);
+        final QueryStepDataSource implementation = provider.get().createDataSourceImplementation(dataSourceConfig);
         return implementation;
     }
 

@@ -36,7 +36,7 @@ import java.util.Set;
 public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider {
 
     public QueryVectorDBAgentProvider() {
-        super(Set.of("query-vector-db"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
+        super(Set.of("query-vector-db", "vector-db-sink"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override

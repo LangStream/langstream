@@ -15,11 +15,14 @@
  */
 package ai.langstream.api.runner.code;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+@Slf4j
 public abstract class SingleRecordAgentProcessor extends AbstractAgentCode implements AgentProcessor {
 
     private final AtomicLong errors = new AtomicLong();
@@ -37,6 +40,7 @@ public abstract class SingleRecordAgentProcessor extends AbstractAgentCode imple
                     result.add(new SourceRecordAndResult(record, process, null));
                 }
             } catch (Throwable error) {
+                log.error("Error processing record: {}", record, error);
                 errors.incrementAndGet();
                 result.add(new SourceRecordAndResult(record, null, error));
             }

@@ -35,5 +35,7 @@
         <module>langstream-agent-s3</module>
         <module>langstream-agent-webcrawler</module>
         <module>langstream-agents-text-processing</module>
+        <module>langstream-ai-agents</module>
+        <module>langstream-vector-agents</module>
     </modules>
 </project>

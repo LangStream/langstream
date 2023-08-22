@@ -616,7 +616,6 @@
         <module>langstream-k8s-runtime</module>
         <module>langstream-codestorage-s3</module>
         <module>langstream-runtime</module>
-        <module>langstream-ai-agents</module>
         <module>langstream-webservice</module>
         <module>langstream-k8s-storage</module>
         <module>langstream-k8s-deployer</module>
@@ -643,7 +642,6 @@
         <module>langstream-kafka-connect</module>
         <module>langstream-k8s-runtime</module>
         <module>langstream-codestorage-s3</module>
-        <module>langstream-ai-agents</module>
         <module>langstream-k8s-storage</module>
         <module>langstream-k8s-common</module>
         <module>langstream-api-gateway-auth</module>

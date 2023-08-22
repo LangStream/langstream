@@ -33,8 +33,8 @@ public class TestGenericAgentProvider extends AbstractAgentProvider {
     }
 
     @Override
-    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, Pipeline pipeline,  ExecutionPlan physicalApplicationInstance, ComputeClusterRuntime clusterRuntime) {
-        Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, pipeline, physicalApplicationInstance, clusterRuntime);
+    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, Pipeline pipeline, ExecutionPlan executionPlan, ComputeClusterRuntime clusterRuntime) {
+        Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
         // TODO.....
         return copy;
     }

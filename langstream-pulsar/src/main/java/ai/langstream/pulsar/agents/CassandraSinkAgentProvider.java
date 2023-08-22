@@ -46,11 +46,11 @@ public class CassandraSinkAgentProvider extends AbstractPulsarAgentProvider {
 
     @Override
     protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, Pipeline pipeline,
-                                                            ExecutionPlan applicationInstance, ComputeClusterRuntime clusterRuntime) {
-        Map<String, Object> configuration = super.computeAgentConfiguration(agentConfiguration, module, pipeline, applicationInstance, clusterRuntime);
+                                                            ExecutionPlan executionPlan, ComputeClusterRuntime clusterRuntime) {
+        Map<String, Object> configuration = super.computeAgentConfiguration(agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
 
         // We have to automatically compute the list of topics (this is an additional configuration in the Sink that must match the input topics list)
-        ConnectionImplementation connectionImplementation = applicationInstance.getConnectionImplementation(module, agentConfiguration.getInput());
+        ConnectionImplementation connectionImplementation = executionPlan.getConnectionImplementation(module, agentConfiguration.getInput());
         if (connectionImplementation instanceof Topic topic) {
             configuration.put("topics", topic.topicName());
         }

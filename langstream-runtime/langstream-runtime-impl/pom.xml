@@ -135,6 +135,20 @@
       <scope>runtime</scope>
     </dependency>
 
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-vector-agents</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- used by Pulsar and Pinecone -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>3.24.1</version>
+      <scope>runtime</scope>
+    </dependency>
 
     <!-- metrics -->
     <dependency>

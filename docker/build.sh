@@ -30,7 +30,7 @@ docker_platforms() {
 
 build_docker_image() {
   module=$1
-  ./mvnw install -am -DskipTests -pl $module -T 1C -PskipPython
+  ./mvnw clean install -am -DskipTests -pl $module -T 1C -PskipPython
   ./mvnw package -DskipTests -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)" -PskipPython
   docker images | head -n 2
 }

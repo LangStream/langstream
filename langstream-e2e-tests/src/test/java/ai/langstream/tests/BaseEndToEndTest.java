@@ -207,10 +207,14 @@ public class BaseEndToEndTest implements TestWatcher {
 
     }
 
-    protected static void applyManifest(String manifest) {
+    protected static void applyManifest(String manifest, String namespace) {
         client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
                 .inNamespace(namespace)
                 .serverSideApply();
+    }
+
+    protected static void applyManifest(String manifest) {
+        applyManifest(manifest, namespace);
     }
     protected static void applyManifestNoNamespace(String manifest) {
         client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
@@ -519,7 +523,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   resources:
                     requests:
                       cpu: 256m
-                      memory: 512Mi
+                      memory: 256Mi
                   app:
                     config:
                       agentResources:
@@ -530,6 +534,10 @@ public class BaseEndToEndTest implements TestWatcher {
                     repository: langstream/langstream-cli
                     tag: latest-dev
                     pullPolicy: Never
+                  resources:
+                    requests:
+                      cpu: 256m
+                      memory: 512Mi
                                 
                 apiGateway:
                   image:
@@ -602,10 +610,65 @@ public class BaseEndToEndTest implements TestWatcher {
                         .endMetadata()
                         .build())
                 .serverSideApply();
-        runProcess("kubectl apply -f https://strimzi.io/install/latest?namespace=kafka -n kafka".split(" "));
-        runProcess("kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka".split(" "));
+        applyManifest("""
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  labels:
+                    app: kafka-broker
+                  name: kafka-service
+                  namespace: kafka
+                spec:
+                  ports:
+                  - port: 9092
+                  - port: 9093
+                  selector:
+                    app: kafka-broker
+                ---
+                apiVersion: apps/v1
+                kind: Deployment
+                metadata:
+                  labels:
+                    app: kafka-broker
+                  name: kafka-broker
+                  namespace: kafka
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      app: kafka-broker
+                  template:
+                    metadata:
+                      labels:
+                        app: kafka-broker
+                    spec:
+                      hostname: kafka-broker
+                      containers:
+                      - env:
+                        - name: KAFKA_CFG_NODE_ID
+                          value: "0"
+                        - name: KAFKA_CFG_PROCESS_ROLES
+                          value: controller,broker
+                        - name: KAFKA_CFG_LISTENERS
+                          value: PLAINTEXT://:9092,CONTROLLER://:9093
+                        - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+                          value: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+                        - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
+                          value: 0@kafka:9093
+                        - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
+                          value: CONTROLLER
+                        image: bitnami/kafka:3.5.1
+                        imagePullPolicy: IfNotPresent
+                        name: kafka-broker
+                        ports:
+                        - containerPort: 9092
+                        resources:
+                            requests:
+                                cpu: 200m
+                                memory: 512Mi
+                """, "kafka");
         log.info("waiting kafka to be ready");
-        runProcess("kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka".split(" "));
+        runProcess("kubectl wait deployment/kafka-broker --for=condition=Ready --timeout=5m -n kafka".split(" "));
         log.info("kafka installed");
     }
 
@@ -651,6 +714,10 @@ public class BaseEndToEndTest implements TestWatcher {
                       -  containerPort: 9000
                          protocol: TCP
                          name: s3
+                    resources:
+                      requests:
+                        cpu: 100m
+                        memory: 512Mi
                   volumes:
                   - name: localvolume
                     hostPath: # MinIO generally recommends using locally-attached volumes

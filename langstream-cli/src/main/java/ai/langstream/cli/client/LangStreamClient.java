@@ -151,7 +151,7 @@ public class LangStreamClient {
             }
             throw new RuntimeException("Unexpected status code: " + status);
         } catch (ConnectException error) {
-            throw new RuntimeException("Cannot connect to " + httpRequest.uri(), error);
+            throw new RuntimeException("Cannot connect to " + httpRequest.uri() + ": " + error.getMessage(), error);
         } catch (IOException | InterruptedException error) {
             throw new RuntimeException("Unexpected network error " + error, error);
         }

@@ -27,7 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(BaseEndToEndTest.class)
 public class PythonFunctionIT extends BaseEndToEndTest {
 
-    // @Test
+    @Test
     public void test() throws Exception {
         final String tenant = "ten-" + System.currentTimeMillis();
         executeCommandOnClient("""
@@ -50,6 +50,9 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                 .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)
                 .withName(applicationId + "-module-1-pipeline-1-python-function-1")
                 .waitUntilReady(2, TimeUnit.MINUTES);
+
+        System.out.println("please now debug");
+        Thread.sleep(Long.MAX_VALUE);
 
         executeCommandOnClient("bin/langstream gateway produce %s produce-input -v my-value".formatted(applicationId).split(" "));
 

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.websocket.CloseReason;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.CancellationException;
@@ -46,6 +47,8 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
     private Map<String, String> params;
     @CommandLine.Option(names = {"-c", "--credentials"}, description = "Credentials for the gateway. Required if the gateway requires authentication.")
     private String credentials;
+    @CommandLine.Option(names = {"--connect-timeout"}, description = "Connect timeout for WebSocket connections in seconds.")
+    private long connectTimeoutSeconds = 0;
 
     @Override
     @SneakyThrows
@@ -55,6 +58,8 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                 params, consumeGatewayOptions, credentials);
         final String producePath = validateGatewayAndGetUrl(applicationId, produceToGatewayId, Gateway.GatewayType.produce,
                 params, Map.of(), credentials);
+
+        final Duration connectTimeout = connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;
 
         AtomicBoolean waitingProduceResponse = new AtomicBoolean(false);
         AtomicBoolean waitingConsumeMessage = new AtomicBoolean(false);
@@ -132,11 +137,11 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
             }
         };
         try (final WebSocketClient consumeClient = new WebSocketClient(consumeHandler)
-                .connect(URI.create(consumePath))) {
+                .connect(URI.create(consumePath), connectTimeout)) {
             consumerReady.await();
             log("Connected to %s".formatted(consumePath));
             try (final WebSocketClient produceClient = new WebSocketClient(produceHandler).connect(
-                    URI.create(producePath))) {
+                    URI.create(producePath), connectTimeout)) {
                 log("Connected to %s".formatted(producePath));
 
 

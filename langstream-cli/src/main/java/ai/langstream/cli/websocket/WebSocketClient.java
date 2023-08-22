@@ -16,9 +16,11 @@
 package ai.langstream.cli.websocket;
 
 import jakarta.websocket.ClientEndpoint;
+import jakarta.websocket.ClientEndpointConfig;
 import jakarta.websocket.CloseReason;
 import jakarta.websocket.ContainerProvider;
 import jakarta.websocket.DeploymentException;
+import jakarta.websocket.Endpoint;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnError;
 import jakarta.websocket.OnMessage;
@@ -26,10 +28,14 @@ import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
 import java.net.URI;
+import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.websocket.Constants;
+import org.apache.tomcat.websocket.pojo.PojoEndpointClient;
 
 @ClientEndpoint
 @Slf4j
@@ -56,10 +62,22 @@ public class WebSocketClient implements AutoCloseable {
         container.setDefaultMaxTextMessageBufferSize(32768);
     }
 
-    @SneakyThrows
+
     public WebSocketClient connect(URI uri) {
+        return connect(uri, null);
+
+    }
+    @SneakyThrows
+    public WebSocketClient connect(URI uri, Duration timeout) {
         try {
-            userSession = container.connectToServer(this, uri);
+            final Endpoint endpoint = new PojoEndpointClient(this, List.of(), null);
+
+            final ClientEndpointConfig clientEndpointConfig = ClientEndpointConfig.Builder.create().build();
+            if (timeout != null) {
+                clientEndpointConfig.getUserProperties()
+                        .put(Constants.IO_TIMEOUT_MS_PROPERTY, timeout.toMillis());
+            }
+            userSession = container.connectToServer(endpoint, clientEndpointConfig, uri);
         } catch (DeploymentException e) {
             String message = e.getMessage();
             if (Objects.equals("The HTTP response from the server [403] did not permit the HTTP upgrade to WebSocket", message)) {

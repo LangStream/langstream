@@ -18,6 +18,7 @@ package ai.langstream.deployer.k8s.controllers.apps;
 import ai.langstream.api.model.ApplicationLifecycleStatus;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
+import ai.langstream.deployer.k8s.controllers.InfiniteRetry;
 import ai.langstream.deployer.k8s.util.JSONComparator;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.deployer.k8s.util.SpecDiffer;
@@ -35,7 +36,10 @@ import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.jbosslog.JBossLog;
 
-@ControllerConfiguration(namespaces = Constants.WATCH_ALL_NAMESPACES, name = "app-controller")
+@ControllerConfiguration(
+        namespaces = Constants.WATCH_ALL_NAMESPACES,
+        name = "app-controller",
+        retry = InfiniteRetry.class)
 @JBossLog
 public class AppController extends BaseController<ApplicationCustomResource> implements
         ErrorStatusHandler<ApplicationCustomResource> {

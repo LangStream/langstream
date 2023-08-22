@@ -21,7 +21,7 @@
 
   <groupId>ai.langstream</groupId>
   <artifactId>langstream-ai</artifactId>
-  <version>0.0.5-SNAPSHOT</version>
+  <version>0.0.4</version>
   <name>LangStream</name>
   <description>LangStream is a library to build GenAI applications based on Streaming</description>
   <packaging>pom</packaging>
@@ -75,7 +75,7 @@
     <connection>scm:git:git@github.com:LangStream/langstream.git</connection>
     <developerConnection>scm:git:git@github.com:LangStream/langstream.git</developerConnection>
     <url>https://github.com/LangStream/langstream</url>
-    <tag>HEAD</tag>
+    <tag>v0.0.4</tag>
   </scm>
 
   <dependencyManagement>

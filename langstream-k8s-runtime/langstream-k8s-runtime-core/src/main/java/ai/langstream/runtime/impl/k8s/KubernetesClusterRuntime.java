@@ -25,7 +25,6 @@ import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentSpec;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
-import ai.langstream.impl.agents.ai.GenAIToolKitExecutionPlanOptimizer;
 import ai.langstream.impl.common.BasicClusterRuntime;
 import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
@@ -52,8 +51,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     public static final String CLUSTER_TYPE = "kubernetes";
 
     static final List<ExecutionPlanOptimiser> OPTIMISERS = List.of(
-            new ComposableAgentExecutionPlanOptimiser(),
-            new GenAIToolKitExecutionPlanOptimizer());
+            new ComposableAgentExecutionPlanOptimiser());
 
     private KubernetesClusterRuntimeConfiguration configuration;
     private KubernetesClient client;

@@ -28,7 +28,6 @@ import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.pulsar.PulsarClientUtils;
-import ai.langstream.pulsar.PulsarClusterRuntime;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Consumer;
@@ -56,7 +55,7 @@ import java.util.stream.Collectors;
 public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRuntimeProvider {
     @Override
     public boolean supports(String streamingClusterType) {
-        return PulsarClusterRuntime.CLUSTER_TYPE.equals(streamingClusterType);
+        return "pulsar".equals(streamingClusterType);
     }
 
     @Override

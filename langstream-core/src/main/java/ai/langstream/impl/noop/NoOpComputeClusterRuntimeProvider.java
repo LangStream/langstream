@@ -19,7 +19,6 @@ import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ComputeClusterRuntimeProvider;
 import ai.langstream.api.runtime.ExecutionPlanOptimiser;
 import ai.langstream.impl.agents.ComposableAgentExecutionPlanOptimiser;
-import ai.langstream.impl.agents.ai.GenAIToolKitExecutionPlanOptimizer;
 import ai.langstream.impl.common.BasicClusterRuntime;
 
 import java.util.List;
@@ -45,7 +44,6 @@ public class NoOpComputeClusterRuntimeProvider implements ComputeClusterRuntimeP
     public static class NoOpClusterRuntime extends BasicClusterRuntime {
 
         static final List<ExecutionPlanOptimiser> OPTIMISERS = List.of(
-                new GenAIToolKitExecutionPlanOptimizer(),
                 new ComposableAgentExecutionPlanOptimiser());
 
         @Override

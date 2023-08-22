@@ -73,3 +73,6 @@ WORKDIR /app
 # The UID must be non-zero. Otherwise, it is arbitrary. No logic should rely on its specific value.
 USER 10000
 ENTRYPOINT ["/app/entrypoint.sh"]
+
+LABEL org.opencontainers.image.source=https://github.com/LangStream/langstream
+LABEL org.opencontainers.image.licenses=Apache-2.0

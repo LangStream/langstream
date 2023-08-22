@@ -20,10 +20,10 @@
 
 set -x
 rm -f /tmp/langstream-runtime.tar
-docker save datastax/langstream-runtime:latest-dev > /tmp/langstream-runtime.tar
+docker save langstream/langstream-runtime:latest-dev > /tmp/langstream-runtime.tar
 
 eval $(minikube docker-env)
-docker image rm -f datastax/langstream-runtime:latest-dev
+docker image rm -f langstream/langstream-runtime:latest-dev
 docker load < /tmp/langstream-runtime.tar
 rm /tmp/langstream-runtime.tar
 

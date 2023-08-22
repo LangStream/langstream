@@ -38,10 +38,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class PineconeWriterTest {
 
     @Test
+    @Disabled
     void testPineconeWrite() throws Exception {
 
         Map<String, Object> datasourceConfig = Map.of("service", "pinecone",
-                "api-key", "1ba1052e-e4a7-48a0-8568-42dba961207e",
+                "api-key", "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
                 "environment", "asia-southeast1-gcp-free",
                 "project-name", "032e3d0",
                 "index-name", "example-index");

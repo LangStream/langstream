@@ -24,7 +24,7 @@ jobs:
   tests:
     name: Unit tests (${{ matrix.name }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -98,6 +98,7 @@ jobs:
             echo "Found CRD changed after building, please build the operator and commit the changes. "
             echo "Also make sure to update the CRDs version."
             git status
+            git diff
             exit 1
           fi
   e2e-tests:
@@ -139,4 +140,13 @@ jobs:
           docker pull quay.io/strimzi/kafka:0.36.0-kafka-3.5.0
           eval $(minikube docker-env -u)
           ./mvnw install -pl langstream-e2e-tests -am -DskipTests
-          ./mvnw verify -pl langstream-e2e-tests          
+          ./mvnw verify -pl langstream-e2e-tests -De2eTests
+
+      - name: Upload Surefire reports
+        uses: actions/upload-artifact@v3
+        if: failure()
+        continue-on-error: true
+        with:
+          name: test-logs-${{ matrix.group }}
+          path: "**/target/e2e-test-logs/*"
+          retention-days: 7

@@ -508,7 +508,7 @@ public class BaseEndToEndTest implements TestWatcher {
                     pullPolicy: Never
                   resources:
                     requests:
-                      cpu: 256m
+                      cpu: 0.1
                       memory: 512Mi
                   app:
                     config:
@@ -522,7 +522,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   replicaCount: 1
                   resources:
                     requests:
-                      cpu: 256m
+                      cpu: 0.1
                       memory: 256Mi
                   app:
                     config:
@@ -536,7 +536,7 @@ public class BaseEndToEndTest implements TestWatcher {
                     pullPolicy: Never
                   resources:
                     requests:
-                      cpu: 256m
+                      cpu: 0.1
                       memory: 512Mi
                                 
                 apiGateway:
@@ -546,7 +546,7 @@ public class BaseEndToEndTest implements TestWatcher {
                     pullPolicy: Never
                   resources:
                     requests:
-                      cpu: 256m
+                      cpu: 0.1
                       memory: 512Mi
                   app:
                     config:
@@ -679,7 +679,7 @@ public class BaseEndToEndTest implements TestWatcher {
                             port: 9092
                         resources:
                             requests:
-                                cpu: 200m
+                                cpu: 0.1
                                 memory: 512Mi
                 """, "kafka");
         log.info("waiting kafka to be ready");

@@ -9,6 +9,8 @@ confluent-kafka = "*"
 langchain = "*"
 boto3 = "*"
 unstructured = "*"
+llama-index = "*"
+cassio = "*"
 
 [dev-packages]
 tox = "*"

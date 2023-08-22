@@ -63,6 +63,7 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
 
     @Override
     public List<Record> processRecord(Record record) throws Exception {
+        log.info("Processing {}", record);
         if (log.isDebugEnabled()) {
             log.debug("Processing {}", record);
         }
@@ -71,6 +72,7 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         TransformFunctionUtil.processTransformSteps(context, steps);
         context.convertMapToStringOrBytes();
         Optional<Record> recordResult = transformContextToRecord(context, record.headers());
+        log.info("Result {}", recordResult);
         return recordResult.isPresent() ? List.of(recordResult.get()) : List.of();
     }
 

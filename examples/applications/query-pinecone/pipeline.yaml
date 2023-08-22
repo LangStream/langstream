@@ -20,6 +20,8 @@ topics:
     creation-mode: create-if-not-exists
   - name: "output-topic"
     creation-mode: create-if-not-exists
+errors:
+    on-failure: skip
 pipeline:
   - name: "compute-embeddings"
     id: "step1"
@@ -28,10 +30,9 @@ pipeline:
     configuration:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings"
-      text: "{{% value }}"
+      text: "{{% value.question }}"
   - name: "Execute Query"
     type: "query-vector-db"
-    output: "output-topic"
     configuration:
       datasource: "PineconeDatasource"
       query: |
@@ -39,8 +40,14 @@ pipeline:
               "vector": ?,
               "topK": 5,
               "filter":
-                {"$and": [{"genre": "comedy}, {"year":2019}]}
+                {"$or": [{"genre": "comedy"}, {"year":2019}]}
          }
       fields:
         - "value.embeddings"
       output-field: "value.query-result"
+  - name: "Remove embeddings from the output"
+    type: "drop-fields"
+    output: "output-topic"
+    configuration:
+      fields:
+        - "embeddings"

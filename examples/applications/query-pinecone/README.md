@@ -12,10 +12,18 @@ Create an index on Pinecone.
 Create your Pinecone index following the official documentation.
 https://docs.pinecone.io/docs/quickstart
 
+
 Then you have to fill in the secrets.yaml file with the Pinecone API key and the index name.
 
 Please ensure that when you create the index you set the dimension to 1536 that is the default vector size for 
 the embedding-ada-002 model we are using to compute the embeddings.
+
+```python
+import pinecone;
+pinecone.init(api_key="xxxxxx",environment="xxxx")
+pinecone.create_index("example-index", dimension=1536)
+pinecone.list_indexes()
+```
 
 You also have to set your OpenAI API keys in the secrets.yaml file. 
 

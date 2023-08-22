@@ -33,7 +33,7 @@ public class VectorAgentsCodeProvider implements AgentCodeProvider {
     public AgentCode createInstance(String agentType) {
         switch (agentType) {
             case "query-vector-db":
-                return new VectorDBQueryAgent();
+                return new QueryVectorDBAgent();
             default:
                 throw new IllegalStateException();
         }

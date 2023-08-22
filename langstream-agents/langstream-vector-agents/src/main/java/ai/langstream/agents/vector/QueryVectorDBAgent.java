@@ -35,7 +35,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class VectorDBQueryAgent extends SingleRecordAgentProcessor {
+public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -61,10 +61,12 @@ public class VectorDBQueryAgent extends SingleRecordAgentProcessor {
 
     @Override
     public List<Record> processRecord(Record record) throws Exception {
+        log.info("Processing record {}", record);
         TransformContext context = GenAIToolKitAgent.recordToTransformContext(record, true);
         TransformFunctionUtil.processTransformSteps(context, steps);
         context.convertMapToStringOrBytes();
         Optional<Record> recordResult = GenAIToolKitAgent.transformContextToRecord(context, record.headers());
+        log.info("recordResult {}", recordResult);
         return recordResult.isPresent() ? List.of(recordResult.get()) : List.of();
     }
 

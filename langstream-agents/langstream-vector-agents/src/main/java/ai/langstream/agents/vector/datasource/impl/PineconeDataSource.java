@@ -121,13 +121,19 @@ public class PineconeDataSource implements DataSourceProvider {
             try {
                 Query parsedQuery;
                 try {
+                    log.info("Query {}", query);
+                    params.forEach(param -> {
+                        log.info("Param {} {}", param, param != null ?param.getClass() : null);
+                    });
                     // interpolate the query
                     query = interpolate(query, params);
+                    log.info("Interpolated query {}", query);
 
                     parsedQuery = MAPPER.readValue(query, Query.class);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
+                log.info("Parsed query: {}", parsedQuery);
 
                 QueryVector.Builder builder = QueryVector.newBuilder();
 
@@ -175,6 +181,7 @@ public class PineconeDataSource implements DataSourceProvider {
                     if (log.isDebugEnabled()) {
                         log.debug("Query response: {}", queryResponse);
                     }
+                    log.info("Query response: {}", queryResponse);
 
                     results = new ArrayList<>();
                     queryResponse.getResultsList()

@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.ai.agents.datasource;
+package ai.langstream.api.database;
 
-import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
+import ai.langstream.api.gateway.GatewayAuthenticationResult;
+import ai.langstream.api.gateway.GatewayRequestContext;
 
 import java.util.Map;
 
-public interface DataSourceProvider {
+public interface VectorDatabaseWriterProvider {
 
-    boolean supports(Map<String, Object> dataSourceConfig);
+    boolean supports(Map<String, Object> datasource);
 
-    QueryStepDataSource createDataSourceImplementation(Map<String, Object> dataSourceConfig);
+    VectorDatabaseWriter createImplementation(Map<String, Object> datasource);
+
 }

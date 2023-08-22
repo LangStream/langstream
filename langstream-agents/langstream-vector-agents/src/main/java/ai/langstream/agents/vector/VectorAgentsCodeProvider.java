@@ -23,6 +23,7 @@ public class VectorAgentsCodeProvider implements AgentCodeProvider {
     public boolean supports(String agentType) {
         switch (agentType) {
             case "query-vector-db":
+            case "vector-db-sink":
                 return true;
             default:
                 return false;
@@ -34,6 +35,8 @@ public class VectorAgentsCodeProvider implements AgentCodeProvider {
         switch (agentType) {
             case "query-vector-db":
                 return new QueryVectorDBAgent();
+            case "vector-db-sink":
+                return new VectorDBSinkAgent();
             default:
                 throw new IllegalStateException();
         }

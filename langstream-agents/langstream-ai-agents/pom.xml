@@ -45,12 +45,21 @@
       <artifactId>java-driver-core</artifactId>
     </dependency>
     <dependency>
+      <!-- Transform Function -->
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-client</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>streaming-ai</artifactId>
       <exclusions>
         <exclusion>
           <groupId>ai.langstream</groupId>
           <artifactId>java-driver-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>pulsar-functions-api</artifactId>
         </exclusion>
       </exclusions>
     </dependency>

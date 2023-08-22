@@ -33,15 +33,32 @@ You also have to set your OpenAI API keys in the secrets.yaml file.
 ./bin/langstream apps deploy test -app examples/applications/query-pinecone -i examples/instances/kafka-kubernetes.yaml -s /path/to/secrets.yaml
 ```
 
-## Start a Producer
-```
-kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic
-```
+## Start a Producer to index a document
 
-Insert a JSON with "id", "name" and "description":
+Let's start a produce that sends messages to the vectors-topic:
 
 ```
-Hello
+kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic vectors-topic
+```
+
+Insert a JSON with "id" and "document" and a genre:
+
+```json
+{"id": "myid", "document": "Hello", "genre": "comedy"}
+```
+
+The Write pipeline will compute the embeddings on the "document" field and then write a Vector into Pinecone.
+
+## Start a Producer to Trigger a query
+
+```
+kubectl -n kafka run kafka-producer-question -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic
+```
+
+Insert a JSON with a "question":
+
+```json
+{"question": "Hello"}
 ```
 
 

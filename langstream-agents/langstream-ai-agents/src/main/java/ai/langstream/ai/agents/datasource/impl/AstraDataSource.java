@@ -30,7 +30,7 @@ public class AstraDataSource implements DataSourceProvider {
     }
 
     @Override
-    public QueryStepDataSource createImplementation(Map<String, Object> dataSourceConfig) {
+    public QueryStepDataSource createDataSourceImplementation(Map<String, Object> dataSourceConfig) {
         AstraDBDataSource result =  new AstraDBDataSource();
         DataSourceConfig implConfig = new DataSourceConfig();
         implConfig.setPassword((String) dataSourceConfig.get("password"));

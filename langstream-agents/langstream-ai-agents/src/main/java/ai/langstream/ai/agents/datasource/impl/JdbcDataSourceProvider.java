@@ -46,7 +46,7 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
 
     @Override
     @SneakyThrows
-    public QueryStepDataSource createImplementation(Map<String, Object> dataSourceConfig){
+    public QueryStepDataSource createDataSourceImplementation(Map<String, Object> dataSourceConfig){
         return new DataSourceImpl(dataSourceConfig);
     }
 

@@ -101,6 +101,11 @@
         <version>${pulsar.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.pulsar</groupId>
+        <artifactId>pulsar-client</artifactId>
+        <version>${pulsar.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.datastax.oss</groupId>
         <artifactId>streaming-ai</artifactId>
         <version>${streaming-ai.version}</version>

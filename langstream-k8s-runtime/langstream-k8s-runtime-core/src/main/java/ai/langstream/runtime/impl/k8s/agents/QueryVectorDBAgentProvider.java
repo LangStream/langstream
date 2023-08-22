@@ -36,12 +36,19 @@ import java.util.Set;
 public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider {
 
     public QueryVectorDBAgentProvider() {
-        super(Set.of("query-vector-db"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
+        super(Set.of("query-vector-db", "vector-db-sink"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        return ComponentType.PROCESSOR;
+        switch (agentConfiguration.getType()) {
+            case "query-vector-db":
+                return ComponentType.PROCESSOR;
+            case "vector-db-sink":
+                return ComponentType.SINK;
+            default:
+                throw new IllegalStateException();
+        }
     }
 
     @Override

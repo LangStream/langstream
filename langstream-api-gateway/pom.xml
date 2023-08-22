@@ -175,7 +175,7 @@
 						</platforms>
 					</from>
 					<to>
-						<image>datastax/langstream-api-gateway:latest-dev</image>
+						<image>langstream/langstream-api-gateway:latest-dev</image>
 					</to>
 					<container>
 						<entrypoint>
@@ -188,10 +188,13 @@
 						</ports>
 						<environment>
 							<SPRING_OUTPUT_ANSI_ENABLED>ALWAYS</SPRING_OUTPUT_ANSI_ENABLED>
-							<JHIPSTER_SLEEP>0</JHIPSTER_SLEEP>
 						</environment>
 						<creationTime>USE_CURRENT_TIMESTAMP</creationTime>
 						<user>1000</user>
+						<labels>
+							<org.opencontainers.image.source>https://github.com/LangStream/langstream</org.opencontainers.image.source>
+							<org.opencontainers.image.licenses>Apache-2.0</org.opencontainers.image.licenses>
+						</labels>
 					</container>
 					<extraDirectories>
 						<paths>src/main/docker/jib</paths>

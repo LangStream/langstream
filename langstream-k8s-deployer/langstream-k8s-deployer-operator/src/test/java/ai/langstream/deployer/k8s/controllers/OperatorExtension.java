@@ -72,7 +72,7 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
         Testcontainers.exposeHostPorts(k3s.getFirstMappedPort());
         final Path kubeconfigFile = writeKubeConfigForOperatorContainer();
         container =
-                new GenericContainer<>(DockerImageName.parse("datastax/langstream-deployer:latest-dev"));
+                new GenericContainer<>(DockerImageName.parse("langstream/langstream-deployer:latest-dev"));
         container.withFileSystemBind(kubeconfigFile.toFile().getAbsolutePath(), "/tmp/kubeconfig.yaml");
         container.withEnv("KUBECONFIG", "/tmp/kubeconfig.yaml");
         container.withEnv("QUARKUS_KUBERNETES_CLIENT_TRUST_CERTS", "true");

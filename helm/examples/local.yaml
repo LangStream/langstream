@@ -1,7 +1,7 @@
 controlPlane:
   image:
     pullPolicy: Never
-    repository: datastax/langstream-control-plane
+    repository: langstream/langstream-control-plane
     tag: "latest-dev"
   app:
     config:
@@ -11,26 +11,26 @@ controlPlane:
 deployer:
   replicaCount: 1
   image:
-    repository: datastax/langstream-deployer
+    repository: langstream/langstream-deployer
     pullPolicy: Never
     tag: "latest-dev"
   app:
     config: {}
 
 runtime:
-  image: datastax/langstream-runtime:latest-dev
+  image: langstream/langstream-runtime:latest-dev
   imagePullPolicy: Never
 
 client:
   replicaCount: 1
   image:
-    repository: datastax/langstream-cli
+    repository: langstream/langstream-cli
     pullPolicy: Never
     tag: "latest-dev"
 
 apiGateway:
   image:
-    repository: datastax/langstream-api-gateway
+    repository: langstream/langstream-api-gateway
     pullPolicy: Never
     tag: "latest-dev"
   app:

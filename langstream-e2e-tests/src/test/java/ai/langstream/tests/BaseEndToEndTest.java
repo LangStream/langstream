@@ -435,13 +435,13 @@ public class BaseEndToEndTest implements TestWatcher {
         List<CompletableFuture<Void>> imagesFutures = new ArrayList<>();
 
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("datastax/langstream-control-plane:latest-dev")));
+                kubeServer.ensureImage("langstream/langstream-control-plane:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage( "datastax/langstream-deployer:latest-dev")));
+                kubeServer.ensureImage( "langstream/langstream-deployer:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("datastax/langstream-runtime:latest-dev")));
+                kubeServer.ensureImage("langstream/langstream-runtime:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("datastax/langstream-api-gateway:latest-dev")));
+                kubeServer.ensureImage("langstream/langstream-api-gateway:latest-dev")));
 
         final CompletableFuture<Void> allFuture =
                 CompletableFuture.runAsync(() -> installLangStream());
@@ -499,7 +499,7 @@ public class BaseEndToEndTest implements TestWatcher {
         final String values = """
                 controlPlane:
                   image:
-                    repository: datastax/langstream-control-plane
+                    repository: langstream/langstream-control-plane
                     tag: latest-dev
                     pullPolicy: Never
                   resources:
@@ -512,7 +512,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                 
                 deployer:
                   image:
-                    repository: datastax/langstream-deployer
+                    repository: langstream/langstream-deployer
                     tag: latest-dev
                     pullPolicy: Never
                   replicaCount: 1
@@ -527,13 +527,13 @@ public class BaseEndToEndTest implements TestWatcher {
                         memPerUnit: 128
                 client:
                   image:
-                    repository: datastax/langstream-cli
+                    repository: langstream/langstream-cli
                     tag: latest-dev
                     pullPolicy: Never
                                 
                 apiGateway:
                   image:
-                    repository: datastax/langstream-api-gateway
+                    repository: langstream/langstream-api-gateway
                     tag: latest-dev
                     pullPolicy: Never
                   resources:
@@ -545,7 +545,7 @@ public class BaseEndToEndTest implements TestWatcher {
                      logging.level.org.apache.tomcat.websocket: debug
                 
                 runtime:
-                    image: datastax/langstream-runtime:latest-dev
+                    image: langstream/langstream-runtime:latest-dev
                     imagePullPolicy: Never
                 tenants:
                     defaultTenant:

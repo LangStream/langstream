@@ -59,13 +59,12 @@ jobs:
           ./docker/build.sh
 
       - name: Push to ECR
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
         run: |
           
           repo=public.ecr.aws/y3i6u2n7/datastax-public
           tag_and_push() {
             image=$1
-            docker tag datastax/$image:latest-dev $repo/$image:latest
+            docker tag langstream/$image:latest-dev $repo/$image:latest
             docker push $repo/$image:latest
           }
           tag_and_push langstream-runtime

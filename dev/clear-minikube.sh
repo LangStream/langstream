@@ -20,9 +20,9 @@
 
 eval $(minikube docker-env)
 set -x
-docker image rm -f datastax/langstream-runtime:latest-dev
-docker image rm -f datastax/langstream-deployer:latest-dev
-docker image rm -f datastax/langstream-control-plane:latest-dev
-docker image rm -f datastax/langstream-api-gateway:latest-dev
-docker image rm -f datastax/langstream-cli:latest-dev
+docker image rm -f langstream/langstream-runtime:latest-dev
+docker image rm -f langstream/langstream-deployer:latest-dev
+docker image rm -f langstream/langstream-control-plane:latest-dev
+docker image rm -f langstream/langstream-api-gateway:latest-dev
+docker image rm -f langstream/langstream-cli:latest-dev
 

@@ -20,6 +20,6 @@ instance:
     type: "kafka"
     configuration:
       admin:
-        bootstrap.servers: my-cluster-kafka-bootstrap.kafka:9092
+        bootstrap.servers: kafka.kafka.svc.cluster.local:9092
   computeCluster:
     type: "kubernetes"

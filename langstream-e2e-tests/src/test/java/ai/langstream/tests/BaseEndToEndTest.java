@@ -616,12 +616,14 @@ public class BaseEndToEndTest implements TestWatcher {
                 metadata:
                   labels:
                     app: kafka-broker
-                  name: kafka-service
+                  name: kafka
                   namespace: kafka
                 spec:
                   ports:
                   - port: 9092
+                    name: kafka
                   - port: 9093
+                    name: controller
                   selector:
                     app: kafka-broker
                 ---
@@ -646,7 +648,11 @@ public class BaseEndToEndTest implements TestWatcher {
                       containers:
                       - env:
                         - name: KAFKA_CFG_NODE_ID
-                          value: "0"
+                          value: "1"
+                        - name: KAFKA_BROKER_ID
+                          value: "1"
+                        - name: ALLOW_PLAINTEXT_LISTENER
+                          value: "yes"
                         - name: KAFKA_CFG_PROCESS_ROLES
                           value: controller,broker
                         - name: KAFKA_CFG_LISTENERS
@@ -654,21 +660,30 @@ public class BaseEndToEndTest implements TestWatcher {
                         - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
                           value: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
                         - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
-                          value: 0@kafka:9093
+                          value: 1@127.0.0.1:9093
                         - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
                           value: CONTROLLER
+                        - name: KAFKA_CFG_ADVERTISED_LISTENERS
+                          value: PLAINTEXT://127.0.0.1:9092
                         image: bitnami/kafka:3.5.1
                         imagePullPolicy: IfNotPresent
                         name: kafka-broker
                         ports:
                         - containerPort: 9092
+                        - containerPort: 9093
+                        livenessProbe:
+                          tcpSocket:
+                            port: 9092
+                        readinessProbe:
+                          tcpSocket:
+                            port: 9092
                         resources:
                             requests:
                                 cpu: 200m
                                 memory: 512Mi
                 """, "kafka");
         log.info("waiting kafka to be ready");
-        runProcess("kubectl wait deployment/kafka-broker --for=condition=Ready --timeout=5m -n kafka".split(" "));
+        runProcess("kubectl wait pods -l app=kafka-broker --for=condition=Ready --timeout=5m -n kafka".split(" "));
         log.info("kafka installed");
     }
 

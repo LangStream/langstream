@@ -18,6 +18,7 @@ package ai.langstream.deployer.k8s.controllers.agents;
 import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.deployer.k8s.ResolvedDeployerConfiguration;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
+import ai.langstream.deployer.k8s.controllers.InfiniteRetry;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.controllers.BaseController;
@@ -43,7 +44,8 @@ import lombok.extern.jbosslog.JBossLog;
         dependents = {
                 @Dependent(type = AgentController.StsDependantResource.class),
                 @Dependent(type = AgentController.ServiceDependantResource.class)
-        })
+        },
+        retry = InfiniteRetry.class)
 @JBossLog
 public class AgentController extends BaseController<AgentCustomResource>
         implements ErrorStatusHandler<AgentCustomResource> {

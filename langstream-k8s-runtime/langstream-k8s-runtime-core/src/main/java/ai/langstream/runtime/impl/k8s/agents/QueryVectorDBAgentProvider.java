@@ -41,7 +41,14 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        return ComponentType.PROCESSOR;
+        switch (agentConfiguration.getType()) {
+            case "query-vector-db":
+                return ComponentType.PROCESSOR;
+            case "vector-db-sink":
+                return ComponentType.SINK;
+            default:
+                throw new IllegalStateException();
+        }
     }
 
     @Override

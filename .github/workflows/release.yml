@@ -41,7 +41,7 @@ jobs:
 
       - name: Push to ECR
         run: |
-          repo=ghcr.io/LangStream
+          repo=ghcr.io/langstream
           docker_tag=${GITHUB_REF/refs\/tags\/v/}
           echo "Using docker tag: $docker_tag"
           tag_and_push() {

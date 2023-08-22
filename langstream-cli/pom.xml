@@ -153,7 +153,7 @@
               <verbose>true</verbose>
               <images>
                 <image>
-                  <name>datastax/langstream-cli:latest-dev</name>
+                  <name>langstream/langstream-cli:latest-dev</name>
                   <build>
                     <dockerFile>${project.basedir}/src/main/docker/Dockerfile</dockerFile>
                     <assembly>

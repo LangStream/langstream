@@ -175,7 +175,7 @@
 						</platforms>
 					</from>
 					<to>
-						<image>datastax/langstream-api-gateway:latest-dev</image>
+						<image>langstream/langstream-api-gateway:latest-dev</image>
 					</to>
 					<container>
 						<entrypoint>

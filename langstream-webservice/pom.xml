@@ -262,7 +262,7 @@
 						</platforms>
 					</from>
 					<to>
-						<image>datastax/langstream-control-plane:latest-dev</image>
+						<image>langstream/langstream-control-plane:latest-dev</image>
 					</to>
 					<container>
 						<entrypoint>

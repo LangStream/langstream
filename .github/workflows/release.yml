@@ -20,19 +20,6 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Login to Amazon ECR Public
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          registry-type: public
-
       - name: Init maven repo
         uses: actions/cache@v2
         with:
@@ -48,12 +35,12 @@ jobs:
 
       - name: Push to ECR
         run: |
-          repo=public.ecr.aws/y3i6u2n7/datastax-public
+          repo=ghcr.io/LangStream
           docker_tag=${GITHUB_REF/refs\/tags\/v/}
           echo "Using docker tag: $docker_tag"
           tag_and_push() {
             image=$1
-            docker tag datastax/$image:latest-dev $repo/$image:$docker_tag
+            docker tag langstream/$image:latest-dev $repo/$image:$docker_tag
             docker push $repo/$image:$docker_tag
           }
           tag_and_push langstream-runtime

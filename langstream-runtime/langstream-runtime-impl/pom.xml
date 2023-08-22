@@ -376,7 +376,7 @@
               <verbose>true</verbose>
               <images>
                 <image>
-                  <name>datastax/langstream-runtime:latest-dev</name>
+                  <name>langstream/langstream-runtime:latest-dev</name>
                   <build>
                     <dockerFile>${project.basedir}/src/main/docker/Dockerfile</dockerFile>
                     <assembly>

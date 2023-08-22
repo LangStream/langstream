@@ -42,11 +42,11 @@ if [ "true" == "$(use_minikube_load)" ]; then
   if [ "$SKIP_BUILD" == "false" ]; then
     . ./docker/build.sh
   fi
-  minikube image load --overwrite datastax/langstream-deployer:latest-dev
-  minikube image load --overwrite datastax/langstream-control-plane:latest-dev
-  minikube image load --overwrite datastax/langstream-runtime:latest-dev
-  minikube image load --overwrite datastax/langstream-api-gateway:latest-dev
-  minikube image load --overwrite datastax/langstream-cli:latest-dev
+  minikube image load --overwrite langstream/langstream-deployer:latest-dev
+  minikube image load --overwrite langstream/langstream-control-plane:latest-dev
+  minikube image load --overwrite langstream/langstream-runtime:latest-dev
+  minikube image load --overwrite langstream/langstream-api-gateway:latest-dev
+  minikube image load --overwrite langstream/langstream-cli:latest-dev
 else
   eval $(minikube docker-env)
   if [ "$SKIP_BUILD" == "false" ]; then

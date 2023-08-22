@@ -63,7 +63,7 @@ class KubernetesClusterRuntimeDockerTest {
     private ApplicationDeployer getDeployer() {
         final KubernetesClusterRuntimeConfiguration config =
                 new KubernetesClusterRuntimeConfiguration();
-        config.setImage("datastax/langstream-generic-agent:latest");
+        config.setImage("langstream/langstream-generic-agent:latest");
         config.setImagePullPolicy("Never");
         config.setNamespacePrefix("langstream-");
 
@@ -154,7 +154,7 @@ class KubernetesClusterRuntimeDockerTest {
         final AgentCustomResource agent = agentsCRs.values().iterator().next();
 
         assertEquals(tenant, agent.getSpec().getTenant());
-        assertEquals("datastax/langstream-generic-agent:latest", agent.getSpec().getImage());
+        assertEquals("langstream/langstream-generic-agent:latest", agent.getSpec().getImage());
         assertEquals("Never", agent.getSpec().getImagePullPolicy());
         assertEquals("step1", agent.getSpec().getAgentId());
         assertEquals("app", agent.getSpec().getApplicationId());

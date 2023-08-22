@@ -16,6 +16,7 @@
 #
 
 import logging
+import re
 from typing import List, Dict, Optional
 
 from confluent_kafka import Consumer, Producer, Message, TopicPartition, KafkaException
@@ -33,6 +34,15 @@ STRING_DESERIALIZER = StringDeserializer()
 def apply_default_configuration(streaming_cluster, configs):
     if 'admin' in streaming_cluster['configuration']:
         configs.update(streaming_cluster['configuration']['admin'])
+
+    # Compatibility with JAAS conf
+    if 'sasl.jaas.config' in configs:
+        for prop in ['username', 'password']:
+            if 'sasl.' + prop not in configs:
+                prop_value = extract_jaas_property(prop, configs['sasl.jaas.config'])
+                if prop_value:
+                    configs['sasl.' + prop] = prop_value
+        del configs['sasl.jaas.config']
 
 
 def create_topic_consumer(agent_id, streaming_cluster, configuration):
@@ -67,6 +77,15 @@ def create_dlq_producer(agent_id, streaming_cluster, configuration):
         return None
     logging.info(f'Creating dead-letter topic producer for agent {agent_id} using configuration {configuration}')
     return create_topic_producer(agent_id, streaming_cluster, dlq_conf)
+
+
+def extract_jaas_property(prop, jaas_entry):
+    re_pattern = re.compile(prop + r'\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|(\S+))')
+    re_match = re_pattern.search(jaas_entry)
+    if re_match:
+        return re_match.group(1) or re_match.group(2) or re_match.group(3)
+    else:
+        return None
 
 
 class KafkaRecord(SimpleRecord):

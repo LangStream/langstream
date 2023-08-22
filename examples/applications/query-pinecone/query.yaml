@@ -16,24 +16,37 @@
 
 name: "Index Products on Vector Database"
 topics:
-  - name: "vectors-topic"
+  - name: "input-topic"
+    creation-mode: create-if-not-exists
+  - name: "output-topic"
     creation-mode: create-if-not-exists
 errors:
     on-failure: skip
 pipeline:
   - name: "compute-embeddings"
-    id: "step1"
     type: "compute-ai-embeddings"
-    input: "vectors-topic"
+    input: "input-topic"
     configuration:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings"
-      text: "{{% value.document }}"
-  - name: "Write to Pinecone"
-    type: "vector-db-sink"
+      text: "{{% value.question }}"
+  - name: "Execute Query"
+    type: "query-vector-db"
     configuration:
       datasource: "PineconeDatasource"
-      vector.id: "value.id"
-      vector.vector: "value.embeddings"
-      vector.namespace: ""
-      vector.metadata.genre: "value.genre"
+      query: |
+        {
+              "vector": ?,
+              "topK": 5,
+              "filter":
+                {"$or": [{"genre": "comedy"}, {"year":2019}]}
+         }
+      fields:
+        - "value.embeddings"
+      output-field: "value.query-result"
+  - name: "Remove embeddings from the output"
+    type: "drop-fields"
+    output: "output-topic"
+    configuration:
+      fields:
+        - "embeddings"

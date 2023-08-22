@@ -19,12 +19,14 @@ import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import io.grpc.ManagedChannel;
+import io.grpc.StatusRuntimeException;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NegotiationType;
 import io.grpc.netty.NettyChannelBuilder;
@@ -42,6 +44,11 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLException;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -104,118 +111,111 @@ public class PineconeDataSource implements DataSourceProvider {
             PineconeClient pineconeClient = new PineconeClient(pineconeClientConfig);
             PineconeConnectionConfig connectionConfig = new PineconeConnectionConfig()
                     .withIndexName(clientConfig.getIndexName());
-
-            PineconeConnectionConfig finalConnectionConfig = connectionConfig;
-            finalConnectionConfig = connectionConfig.withCustomChannelBuilder(new BiFunction<PineconeClientConfig, PineconeConnectionConfig, ManagedChannel>() {
-                        @Override
-                        public ManagedChannel apply(PineconeClientConfig pineconeClientConfig, PineconeConnectionConfig pineconeConnectionConfig) {
-                            if (clientConfig.getEndpoint() != null) {
-                                return buildChannel(clientConfig.getEndpoint());
-                            } else {
-                                return PineconeConnection.buildChannel(pineconeClientConfig, connectionConfig);
-                            }
-                        }
-                    });
-
-            connection = pineconeClient.connect(finalConnectionConfig);
-        }
-
-        public static ManagedChannel buildChannel(String endpoint) {
-            NettyChannelBuilder builder = NettyChannelBuilder.forTarget(endpoint);
-
-            try {
-                builder = builder.overrideAuthority(endpoint)
-                        .negotiationType(NegotiationType.TLS)
-                        .sslContext(GrpcSslContexts.forClient().build());
-            } catch (SSLException e) {
-                throw new PineconeException("SSL error opening gRPC channel", e);
+            if (clientConfig.getEndpoint() == null) {
+                connection = pineconeClient.connect(connectionConfig);
             }
-
-            return builder.build();
         }
 
         @Override
         public List<Map<String, String>> fetchData(String query, List<Object> params) {
-            Query parsedQuery;
             try {
-                // interpolate the query
-                query = interpolate(query, params);
+                Query parsedQuery;
+                try {
+                    // interpolate the query
+                    query = interpolate(query, params);
 
-                parsedQuery = MAPPER.readValue(query, Query.class);
-            } catch (Exception e) {
+                    parsedQuery = MAPPER.readValue(query, Query.class);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+                QueryVector.Builder builder = QueryVector.newBuilder();
+
+                if (parsedQuery.vector != null) {
+                    builder.addAllValues(parsedQuery.vector);
+                }
+
+                if (parsedQuery.sparseVector != null) {
+                    builder.setSparseValues(SparseValues.newBuilder()
+                            .addAllValues(parsedQuery.sparseVector.getValues())
+                            .addAllIndices(parsedQuery.sparseVector.getIndices())
+                            .build());
+                }
+
+                if (parsedQuery.filter != null && !parsedQuery.filter.isEmpty()) {
+                    builder.setFilter(buildFilter(parsedQuery.filter));
+                }
+
+                if (parsedQuery.namespace != null) {
+                    builder.setNamespace(parsedQuery.namespace);
+                }
+
+                QueryVector queryVector = builder.build();
+                QueryRequest.Builder requestBuilder = QueryRequest.newBuilder();
+
+                if (parsedQuery.namespace != null) {
+                    requestBuilder.setNamespace(parsedQuery.namespace);
+                }
+
+                QueryRequest batchQueryRequest = requestBuilder
+                        .addQueries(queryVector)
+                        .setTopK(parsedQuery.topK)
+                        .setIncludeMetadata(parsedQuery.includeMetadata)
+                        .setIncludeValues(parsedQuery.includeValues)
+                        .build();
+
+                List<Map<String, String>> results;
+
+                if (clientConfig.getEndpoint() == null) {
+
+                    QueryResponse queryResponse = connection
+                            .getBlockingStub()
+                            .query(batchQueryRequest);
+
+                    if (log.isDebugEnabled()) {
+                        log.debug("Query response: {}", queryResponse);
+                    }
+
+                    results = new ArrayList<>();
+                    queryResponse.getResultsList()
+                            .forEach(res -> {
+                                res.getMatchesList().forEach(match -> {
+                                    String id = match.getId();
+                                    Map<String, String> row = new HashMap<>();
+
+                                    if (parsedQuery.includeMetadata) {
+                                        // put all the metadata
+                                        if (match.getMetadata() != null) {
+                                            match.getMetadata().getFieldsMap().forEach((key, value) -> {
+                                                if (log.isDebugEnabled()) {
+                                                    log.debug("Key: {}, value: {} {}", key, value, value != null ? value.getClass() : null);
+                                                }
+                                                Object converted = valueToObject(value);
+                                                row.put(key, converted != null ? converted.toString() : null);
+                                            });
+                                        }
+                                    }
+                                    row.put("id", id);
+                                    results.add(row);
+                                });
+                            });
+                } else {
+                    HttpClient client = HttpClient.newHttpClient();
+                    HttpRequest request = HttpRequest
+                            .newBuilder(URI.create(clientConfig.getEndpoint()))
+                            .POST(HttpRequest.BodyPublishers
+                                    .ofString(batchQueryRequest.toString()))
+                            .build();
+                    String body = client.send(request, HttpResponse.BodyHandlers.ofString())
+                            .body();
+                    log.info("Mock result {}", body);
+                    results = MAPPER.readValue(body, new TypeReference<List<Map<String, String>>>() {
+                    });
+                }
+                return results;
+            } catch (IOException | StatusRuntimeException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
-
-            QueryVector.Builder builder = QueryVector.newBuilder();
-
-            if (parsedQuery.vector != null) {
-                builder.addAllValues(parsedQuery.vector);
-            }
-
-            if (parsedQuery.sparseVector != null) {
-                builder.setSparseValues(SparseValues.newBuilder()
-                                .addAllValues(parsedQuery.sparseVector.getValues())
-                                .addAllIndices(parsedQuery.sparseVector.getIndices())
-                        .build());
-            }
-
-            if (parsedQuery.filter != null && !parsedQuery.filter.isEmpty()) {
-                builder.setFilter(buildFilter(parsedQuery.filter));
-            }
-
-            if (parsedQuery.namespace != null) {
-                builder.setNamespace(parsedQuery.namespace);
-            }
-
-            QueryVector queryVector = builder.build();
-            QueryRequest.Builder requestBuilder = QueryRequest.newBuilder();
-
-            if (parsedQuery.namespace != null) {
-                requestBuilder.setNamespace(parsedQuery.namespace);
-            }
-
-            QueryRequest batchQueryRequest = requestBuilder
-                    .addQueries(queryVector)
-                    .setTopK(parsedQuery.topK)
-                    .setIncludeMetadata(parsedQuery.includeMetadata)
-                    .setIncludeValues(parsedQuery.includeValues)
-                    .build();
-
-            QueryResponse queryResponse = connection
-                    .getBlockingStub()
-                    .query(batchQueryRequest);
-
-            if (log.isDebugEnabled()) {
-                log.debug("Query response: {}", queryResponse);
-            }
-
-            List<Map<String, String>> results = new ArrayList<>();
-
-            queryResponse.getResultsList()
-                .forEach(res -> {
-                res.getMatchesList().forEach(match -> {
-                    String id = match.getId();
-                    Map<String, String> row = new HashMap<>();
-
-                    if (parsedQuery.includeMetadata) {
-                        // put all the metadata
-                        if (match.getMetadata() != null) {
-                            match.getMetadata().getFieldsMap().forEach((key, value) -> {
-                                if (log.isDebugEnabled()) {
-                                    log.debug("Key: {}, value: {} {}", key, value, value != null ? value.getClass() : null);
-                                }
-                                Object converted = valueToObject(value);
-                                row.put(key, converted != null ? converted.toString() : null);
-                            });
-                        }
-                    }
-                    row.put("id", id);
-                    results.add(row);
-                });
-            });
-
-
-            return results;
         }
 
         static String interpolate(String query, List<Object> array) {

@@ -16,6 +16,8 @@
 package ai.langstream.kafka;
 
 import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.ai.agents.services.impl.HuggingFaceProvider;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import lombok.extern.slf4j.Slf4j;
@@ -27,22 +29,37 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+
 @Slf4j
 @WireMockTest
 class QueryVectorDBTest extends AbstractApplicationRunner {
 
 
-    @AfterAll
-    public static void cleanupDNS() {
-        HostResolutionRequestInterceptor.INSTANCE.uninstall();
-    }
-
     @Test
     public void testQueryPinecone(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
-
-        String endpoint = "localhost:" + vmRuntimeInfo.getHttpPort();
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
+
+        // this is a mock version, Pinecode uses GRPC, but we are mocking the query endpoint
+        // and in the Pinecone client we are using a dummy HTTP client
+
+        String endpoint = vmRuntimeInfo.getHttpBaseUrl() + "/query";
+        stubFor(post("/query").willReturn(okJson("""
+             [
+                   {
+                    "id": "C"                   
+                   },
+                   {
+                    "id": "B"                    
+                   },
+                   {
+                    "id": "D"                    
+                   }
+               ]
+        """)));
 
         Map<String, String> application = Map.of(
                 "configuration.yaml", """
@@ -92,7 +109,7 @@ class QueryVectorDBTest extends AbstractApplicationRunner {
                 sendMessage("input-topic","{\"embeddings\":[0.1,0.2,0.3]}", producer);
 
                 executeAgentRunners(applicationRuntime);
-                waitForMessages(consumer, List.of("this text is written in english, but it is very"));
+                waitForMessages(consumer, List.of("{\"embeddings\":[0.1,0.2,0.3],\"query-result\":[{\"id\":\"C\"},{\"id\":\"B\"},{\"id\":\"D\"}]}"));
             }
         }
 

@@ -49,10 +49,7 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                 .statefulSets()
                 .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)
                 .withName(applicationId + "-module-1-pipeline-1-python-function-1")
-                .waitUntilReady(2, TimeUnit.MINUTES);
-
-        System.out.println("please now debug");
-        Thread.sleep(Long.MAX_VALUE);
+                .waitUntilReady(4, TimeUnit.MINUTES);
 
         executeCommandOnClient("bin/langstream gateway produce %s produce-input -v my-value".formatted(applicationId).split(" "));
 

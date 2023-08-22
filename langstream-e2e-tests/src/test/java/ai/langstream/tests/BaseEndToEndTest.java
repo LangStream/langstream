@@ -509,7 +509,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   resources:
                     requests:
                       cpu: 0.1
-                      memory: 512Mi
+                      memory: 256Mi
                   app:
                     config:
                       application.storage.global.type: kubernetes
@@ -537,7 +537,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   resources:
                     requests:
                       cpu: 0.1
-                      memory: 512Mi
+                      memory: 256Mi
                                 
                 apiGateway:
                   image:
@@ -547,7 +547,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   resources:
                     requests:
                       cpu: 0.1
-                      memory: 512Mi
+                      memory: 256Mi
                   app:
                     config:
                      logging.level.org.apache.tomcat.websocket: debug

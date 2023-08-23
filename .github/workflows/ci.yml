@@ -104,7 +104,7 @@ jobs:
   e2e-tests:
     name: End to End tests
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
@@ -129,8 +129,6 @@ jobs:
           version: v3.7.0
 
       - uses: azure/setup-kubectl@v3
-      - name: Debugging with ssh
-        uses: lhotari/action-upterm@v1
 
       - name: 'Build and test'
         run: |

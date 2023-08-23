@@ -15,8 +15,6 @@
  */
 package ai.langstream.api.runner.code;
 
-import java.net.URLClassLoader;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,7 +33,9 @@ public class AgentCodeRegistry {
         this.classloaders.add(AgentCodeRegistry.class.getClassLoader());
     }
 
-    public AgentCode getAgentCode(String agentType) {
+
+
+    public AgentCodeAndLoader getAgentCode(String agentType) {
         Objects.requireNonNull(agentType, "agentType cannot be null");
 
         for (ClassLoader classLoader :classloaders) {
@@ -46,7 +46,7 @@ public class AgentCodeRegistry {
                     .findFirst();
 
             if (agentCodeProviderProvider.isPresent()) {
-                return agentCodeProviderProvider.get().get().createInstance(agentType);
+                return new AgentCodeAndLoader(agentCodeProviderProvider.get().get().createInstance(agentType), classLoader);
             }
         }
 

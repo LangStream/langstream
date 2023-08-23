@@ -16,6 +16,8 @@
 package ai.langstream.runtime.agent;
 
 import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentCode;
+import ai.langstream.api.runner.code.AgentCodeAndLoader;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentStatusResponse;
@@ -68,14 +70,16 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
             String agentId1 = (String) sourceDefinition.get("agentId");
             String agentType1 = (String) sourceDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) sourceDefinition.get("configuration");
-            source = (AgentSource) AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration, agentCodeRegistry);
+            source = AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration, agentCodeRegistry)
+                    .asSource();
         }
 
         for (Map<String, Object> agentDefinition : processorsDefinition) {
             String agentId1 = (String) agentDefinition.get("agentId");
             String agentType1 = (String) agentDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) agentDefinition.get("configuration");
-            AgentProcessor agent = (AgentProcessor) AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration, agentCodeRegistry);
+            AgentProcessor agent = AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration, agentCodeRegistry)
+                            .asProcessor();
             processors.add(agent);
         }
 
@@ -83,7 +87,8 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
             String agentId1 = (String) sinkDefinition.get("agentId");
             String agentType1 = (String) sinkDefinition.get("agentType");
             Map<String, Object> agentConfiguration = (Map<String, Object>) sinkDefinition.get("configuration");
-            sink = (AgentSink) AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration, agentCodeRegistry);
+            sink = AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration, agentCodeRegistry)
+                    .asSink();
         }
     }
 

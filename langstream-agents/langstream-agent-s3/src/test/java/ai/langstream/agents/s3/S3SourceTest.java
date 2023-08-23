@@ -150,7 +150,7 @@ public class S3SourceTest {
     }
 
     private AgentSource buildAgentSource(String bucket) throws Exception {
-        AgentSource agentSource = (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("s3-source");
+        AgentSource agentSource = (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("s3-source").agentCode();
         Map<String, Object> configs = new HashMap<>();
         String endpoint = localstack.getEndpointOverride(S3).toString();
         configs.put("endpoint", endpoint);

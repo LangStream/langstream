@@ -15,6 +15,7 @@
  */
 package ai.langstream.runtime.agent.api;
 
+import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentStatusResponse;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.AgentSink;
@@ -25,19 +26,19 @@ import java.util.List;
 
 public class AgentInfo {
     private AgentProcessor processor;
-    private AgentSource source;
-    private AgentSink sink;
+    private AgentCode source;
+    private AgentCode sink;
 
 
     public void watchProcessor(AgentProcessor processor) {
         this.processor = processor;
     }
 
-    public void watchSource(AgentSource source) {
+    public void watchSource(AgentCode source) {
         this.source = source;
     }
 
-    public void watchSink(AgentSink sink) {
+    public void watchSink(AgentCode sink) {
         this.sink = sink;
     }
 

@@ -35,6 +35,7 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>langstream-api</artifactId>
       <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -75,4 +76,25 @@
       <artifactId>junit-jupiter</artifactId>
     </dependency>
   </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-nar-maven-plugin</artifactId>
+        <extensions>true</extensions>
+        <configuration>
+          <classifier>nar</classifier>
+        </configuration>
+        <executions>
+          <execution>
+            <id>default-nar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>nar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

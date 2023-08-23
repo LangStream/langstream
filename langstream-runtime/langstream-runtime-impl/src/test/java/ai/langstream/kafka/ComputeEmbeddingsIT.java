@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 @WireMockTest
-class ComputeEmbeddingsTest extends AbstractApplicationRunner {
+class ComputeEmbeddingsIT extends AbstractApplicationRunner {
 
 
     @AllArgsConstructor

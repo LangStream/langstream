@@ -46,7 +46,7 @@ class PineconeWriterTest {
                 "environment", "asia-southeast1-gcp-free",
                 "project-name", "032e3d0",
                 "index-name", "example-index");
-        VectorDBSinkAgent agent = (VectorDBSinkAgent) new AgentCodeRegistry().getAgentCode("vector-db-sink");
+        VectorDBSinkAgent agent = (VectorDBSinkAgent) new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode();
         Map<String, Object> configuration = new HashMap<>();
         configuration.put("datasource", datasourceConfig);
 

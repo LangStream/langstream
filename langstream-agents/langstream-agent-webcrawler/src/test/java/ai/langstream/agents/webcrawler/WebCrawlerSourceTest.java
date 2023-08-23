@@ -178,7 +178,7 @@ public class WebCrawlerSourceTest {
     }
 
     private WebCrawlerSource buildAgentSource(String bucket, String domain, String seedUrl) throws Exception {
-        AgentSource agentSource = (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("webcrawler-source");
+        AgentSource agentSource = (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("webcrawler-source").agentCode();
         Map<String, Object> configs = new HashMap<>();
         String endpoint = localstack.getEndpointOverride(S3).toString();
         configs.put("endpoint", endpoint);

@@ -15,8 +15,11 @@
  */
 package ai.langstream.api.runner.code;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * The runtime registry is a singleton that holds all the runtime information about the
@@ -24,16 +27,33 @@ import java.util.ServiceLoader;
  */
 public class AgentCodeRegistry {
 
-    public AgentCode getAgentCode(String agentType) {
-        Objects.requireNonNull(agentType, "agentType cannot be null");
-        ServiceLoader<AgentCodeProvider> loader = ServiceLoader.load(AgentCodeProvider.class);
-        ServiceLoader.Provider<AgentCodeProvider> agentCodeProviderProvider = loader
-                .stream()
-                .filter(p -> p.get().supports(agentType))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No AgentCodeProvider found for type " + agentType));
+    private List<ClassLoader> classloaders = new CopyOnWriteArrayList<>();
 
-        return agentCodeProviderProvider.get().createInstance(agentType);
+    public AgentCodeRegistry() {
+        this.classloaders.add(AgentCodeRegistry.class.getClassLoader());
     }
 
+
+
+    public AgentCodeAndLoader getAgentCode(String agentType) {
+        Objects.requireNonNull(agentType, "agentType cannot be null");
+
+        for (ClassLoader classLoader :classloaders) {
+            ServiceLoader<AgentCodeProvider> loader = ServiceLoader.load(AgentCodeProvider.class, classLoader);
+            Optional<ServiceLoader.Provider<AgentCodeProvider>> agentCodeProviderProvider = loader
+                    .stream()
+                    .filter(p -> p.get().supports(agentType))
+                    .findFirst();
+
+            if (agentCodeProviderProvider.isPresent()) {
+                return new AgentCodeAndLoader(agentCodeProviderProvider.get().get().createInstance(agentType), classLoader);
+            }
+        }
+
+        throw new RuntimeException("No AgentCodeProvider found for type " + agentType);
+    }
+
+    public void addClassloaders(List<? extends ClassLoader> classloaders) {
+        this.classloaders.addAll(classloaders);
+    }
 }

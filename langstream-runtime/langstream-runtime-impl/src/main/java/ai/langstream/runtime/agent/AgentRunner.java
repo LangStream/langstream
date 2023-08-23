@@ -16,6 +16,7 @@
 package ai.langstream.runtime.agent;
 
 import ai.langstream.api.runner.code.AgentCode;
+import ai.langstream.api.runner.code.AgentCodeAndLoader;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
@@ -32,6 +33,7 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.agent.api.AgentInfoServlet;
 import ai.langstream.runtime.agent.api.MetricsHttpServlet;
+import ai.langstream.runtime.agent.nar.NarFileHandler;
 import ai.langstream.runtime.agent.python.PythonCodeAgentProvider;
 import ai.langstream.runtime.agent.simple.IdentityAgentProvider;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
@@ -70,7 +72,6 @@ import static ai.langstream.api.model.ErrorsSpec.SKIP;
 public class AgentRunner
 {
     private static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY = new TopicConnectionsRuntimeRegistry();
-    private static final AgentCodeRegistry AGENT_CODE_REGISTRY = new AgentCodeRegistry();
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
     private static MainErrorHandler mainErrorHandler = error -> {
@@ -99,7 +100,11 @@ public class AgentRunner
             try {
                 Path codeDirectory = Path.of(args[1]);
                 log.info("Loading code from {}", codeDirectory);
-                run(configuration, podRuntimeConfiguration, codeDirectory, agentInfo, -1);
+
+                // handle compatibility with old statefullsets
+                Path agentsDirectory = args.length >= 3 ? Path.of(args[2]) : Path.of("/app/agents");
+                log.info("Loading agents from {}", codeDirectory);
+                run(configuration, podRuntimeConfiguration, codeDirectory, agentsDirectory, agentInfo, -1);
             } finally {
                 server.stop();;
             }
@@ -130,6 +135,7 @@ public class AgentRunner
     public static void run(RuntimePodConfiguration configuration,
                            Path podRuntimeConfiguration,
                            Path codeDirectory,
+                           Path agentsDirectory,
                            AgentInfo agentInfo,
                            int maxLoops) throws Exception {
         log.info("Pod Configuration {}", configuration);
@@ -140,28 +146,29 @@ public class AgentRunner
 
         log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
 
-        TopicConnectionsRuntime topicConnectionsRuntime =
-                TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
+        try (NarFileHandler narFileHandler = new NarFileHandler(agentsDirectory);) {
+            narFileHandler.scan();
+            ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, Thread.currentThread().getContextClassLoader());
+            narFileHandler.createClassloaders(customLibClassloader);
 
-        log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
-        try {
-            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+            AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
+            agentCodeRegistry.addClassloaders(narFileHandler.getClassloaders());
+
+            TopicConnectionsRuntime topicConnectionsRuntime =
+                    TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
+
+            log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
             try {
-                ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, contextClassLoader);
-                Thread.currentThread().setContextClassLoader(customLibClassloader);
-                AgentCode agentCode = initAgent(configuration);
-                if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode)) {
+                AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
+                if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
                     runPythonAgent(
-                        podRuntimeConfiguration, codeDirectory);
+                            podRuntimeConfiguration, codeDirectory);
                 } else {
                     runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode, agentInfo);
                 }
             } finally {
-                Thread.currentThread().setContextClassLoader(contextClassLoader);
+                topicConnectionsRuntime.close();
             }
-
-        } finally {
-            topicConnectionsRuntime.close();
         }
     }
 
@@ -230,8 +237,9 @@ public class AgentRunner
                                      int maxLoops,
                                      String agentId,
                                      TopicConnectionsRuntime topicConnectionsRuntime,
-                                     AgentCode agentCode,
+                                     AgentCodeAndLoader agentCodeWithLoader,
                                      AgentInfo agentInfo) throws Exception {
+
         topicConnectionsRuntime.init(configuration.streamingCluster());
 
         // this is closed by the TopicSource
@@ -265,10 +273,9 @@ public class AgentRunner
                 configuration.output());
 
         try {
-
             AgentProcessor mainProcessor;
-            if (agentCode instanceof AgentProcessor agentProcessor) {
-                mainProcessor = agentProcessor;
+            if (agentCodeWithLoader.isProcessor()) {
+                mainProcessor = agentCodeWithLoader.asProcessor();
             } else {
                 mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
                 mainProcessor.setMetadata("identity", "identity", System.currentTimeMillis());
@@ -276,10 +283,10 @@ public class AgentRunner
             agentInfo.watchProcessor(mainProcessor);
 
             AgentSource source = null;
-            if (agentCode instanceof AgentSource agentSource) {
-                source = agentSource;
-            } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
-                source = compositeAgentProcessor.getSource();
+            if (agentCodeWithLoader.isSource()) {
+                source = agentCodeWithLoader.asSource();
+            } else if (agentCodeWithLoader.is(code -> code instanceof CompositeAgentProcessor)) {
+                source = ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSource();
             }
 
             if (source == null) {
@@ -290,10 +297,10 @@ public class AgentRunner
             agentInfo.watchSource(source);
 
             AgentSink sink = null;
-            if (agentCode instanceof AgentSink agentSink) {
-                sink = agentSink;
-            } else if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
-                sink = compositeAgentProcessor.getSink();
+            if (agentCodeWithLoader.isSink()) {
+                sink = agentCodeWithLoader.asSink();
+            } else if (agentCodeWithLoader.is(code -> code instanceof CompositeAgentProcessor)) {
+                sink = ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSink();
             }
             if (sink == null) {
                 sink = new TopicProducerSink(producer);
@@ -494,18 +501,26 @@ public class AgentRunner
         }
     }
 
-    private static AgentCode initAgent(RuntimePodConfiguration configuration) throws Exception {
+    private static AgentCodeAndLoader initAgent(RuntimePodConfiguration configuration, AgentCodeRegistry agentCodeRegistry) throws Exception {
         log.info("Bootstrapping agent with configuration {}", configuration.agent());
         return initAgent(configuration.agent().agentId(), configuration.agent().agentType(),
                 System.currentTimeMillis(),
-                configuration.agent().configuration());
+                configuration.agent().configuration(),
+                agentCodeRegistry);
     }
 
-    public static AgentCode initAgent(String agentId, String agentType, long startedAt, Map<String, Object> configuration) throws Exception {
-        AgentCode agentCode = AGENT_CODE_REGISTRY.getAgentCode(agentType);
-        agentCode.setMetadata(agentId, agentType, startedAt);
-        agentCode.init(configuration);
-        return agentCode;
+    public static AgentCodeAndLoader initAgent(String agentId, String agentType, long startedAt, Map<String, Object> configuration,
+                                               AgentCodeRegistry agentCodeRegistry) throws Exception {
+        AgentCodeAndLoader agentCodeAndLoader = agentCodeRegistry.getAgentCode(agentType);
+        agentCodeAndLoader.executeWithContextClassloader((AgentCode agentCode) ->  {
+                 if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
+                     compositeAgentProcessor.configureAgentCodeRegistry(agentCodeRegistry);
+                 }
+
+                 agentCode.setMetadata(agentId, agentType, startedAt);
+                 agentCode.init(configuration);
+         });
+        return agentCodeAndLoader;
     }
 
     public static MainErrorHandler getErrorHandler() {

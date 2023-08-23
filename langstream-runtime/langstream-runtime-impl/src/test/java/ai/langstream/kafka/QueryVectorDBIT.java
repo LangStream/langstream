@@ -16,15 +16,11 @@
 package ai.langstream.kafka;
 
 import ai.langstream.AbstractApplicationRunner;
-import ai.langstream.ai.agents.services.impl.HuggingFaceProvider;
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.burningwave.tools.net.HostResolutionRequestInterceptor;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +31,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 
 @Slf4j
 @WireMockTest
-class QueryVectorDBTest extends AbstractApplicationRunner {
+class QueryVectorDBIT extends AbstractApplicationRunner {
 
 
     @Test

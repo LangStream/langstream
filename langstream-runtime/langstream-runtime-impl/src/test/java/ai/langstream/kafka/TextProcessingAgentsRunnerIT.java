@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-class TextProcessingAgentsRunnerTest extends AbstractApplicationRunner {
+class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
 
     @Test
     public void testFullLanguageProcessingPipeline() throws Exception {

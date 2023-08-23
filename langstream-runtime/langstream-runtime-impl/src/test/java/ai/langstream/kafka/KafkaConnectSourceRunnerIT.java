@@ -31,7 +31,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 @Slf4j
-class KafkaConnectSourceRunnerTest extends AbstractApplicationRunner {
+class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
 
     @Test
     public void testRunKafkaConnectSource() throws Exception {

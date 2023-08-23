@@ -15,6 +15,7 @@
  */
 package ai.langstream.pulsar;
 
+import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -56,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Slf4j
 class PulsarRunnerDockerTest {
 
-    private static final String IMAGE = "datastax/lunastreaming-all:2.10_4.9";
+    private static final String IMAGE = "apachepulsar/pulsar:3.1.0";
 
     private static PulsarContainer pulsarContainer;
 
@@ -125,7 +126,7 @@ class PulsarRunnerDockerTest {
                     .send();
             producer.flush();
 
-            AgentRunner.run(runtimePodConfiguration, null, null, new AgentInfo(), 5);
+            AgentRunner.run(runtimePodConfiguration, null, null, AbstractApplicationRunner.agentsDirectory, new AgentInfo(), 5);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
             Message<byte[]> record = consumer.receive();
@@ -158,7 +159,6 @@ class PulsarRunnerDockerTest {
     public static void setup() throws Exception {
         pulsarContainer = new PulsarContainer(DockerImageName.parse(IMAGE)
                 .asCompatibleSubstituteFor("apachepulsar/pulsar"))
-                .withFunctionsWorker()
                 .withStartupTimeout(Duration.ofSeconds(120)) // Mac M1 is slow with Intel docker images
                 .withLogConsumer(new Consumer<OutputFrame>() {
                     @Override

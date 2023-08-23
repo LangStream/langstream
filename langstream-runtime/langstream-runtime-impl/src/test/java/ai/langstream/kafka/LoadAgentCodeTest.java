@@ -33,7 +33,7 @@ class LoadAgentCodeTest {
     @Test
     public void testLoadNoop() throws Exception {
         AgentCodeRegistry registry = new AgentCodeRegistry();
-        AgentProcessor noop = (AgentProcessor) registry.getAgentCode("noop");
+        AgentProcessor noop = (AgentProcessor) registry.getAgentCode("noop").agentCode();
         MyRecord myRecord = new MyRecord();
         assertTrue(noop.process(List.of(myRecord)).isEmpty());
     }
@@ -41,7 +41,7 @@ class LoadAgentCodeTest {
     @Test
     public void testLoadIdentity() throws Exception {
         AgentCodeRegistry registry = new AgentCodeRegistry();
-        AgentProcessor noop = (AgentProcessor) registry.getAgentCode("identity");
+        AgentProcessor noop = (AgentProcessor) registry.getAgentCode("identity").agentCode();
         MyRecord myRecord = new MyRecord();
         assertEquals(1, noop.process(List.of(myRecord)).get(0).getResultRecords().size());
         assertSame(myRecord, noop.process(List.of(myRecord)).get(0).getResultRecords().get(0));

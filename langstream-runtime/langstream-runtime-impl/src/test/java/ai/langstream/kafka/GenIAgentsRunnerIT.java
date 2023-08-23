@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Slf4j
-class GenIAgentsRunnerTest extends AbstractApplicationRunner  {
+class GenIAgentsRunnerIT extends AbstractApplicationRunner  {
 
 
 

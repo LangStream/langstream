@@ -45,6 +45,8 @@ public class PythonFunctionIT extends BaseEndToEndTest {
 
 
         executeCommandOnClient("bin/langstream apps deploy %s -app /tmp/python-function -i /tmp/instance.yaml -s /tmp/secrets.yaml".formatted(applicationId).split(" "));
+        System.out.println("time to debug...");
+        Thread.sleep(Long.MAX_VALUE);
         client.apps()
                 .statefulSets()
                 .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)

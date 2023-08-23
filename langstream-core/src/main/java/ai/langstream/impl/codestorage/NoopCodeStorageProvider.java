@@ -21,6 +21,9 @@ import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.codestorage.CodeStorageProvider;
 import ai.langstream.api.codestorage.DownloadedCodeArchive;
 import ai.langstream.api.codestorage.UploadableCodeArchive;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
@@ -45,6 +48,18 @@ public class NoopCodeStorageProvider implements CodeStorageProvider {
             @Override
             public void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive) throws CodeStorageException {
                 codeArchive.accept(new DownloadedCodeArchive() {
+
+                    @Override
+                    public byte[] getData() throws IOException, CodeStorageException {
+                        return "content-of-the-code-archive-%s-%s".formatted(tenant, codeStoreId).getBytes(
+                                StandardCharsets.UTF_8);
+                    }
+
+                    @Override
+                    public InputStream getInputStream() throws IOException, CodeStorageException {
+                        throw new UnsupportedOperationException();
+                    }
+
                     @Override
                     public void extractTo(Path directory) throws CodeStorageException {
                         log.info("CodeArchive should have been extracted to {}, but this is a no-op implementation", directory);

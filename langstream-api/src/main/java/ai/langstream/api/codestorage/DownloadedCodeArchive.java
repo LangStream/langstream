@@ -16,6 +16,7 @@
 package ai.langstream.api.codestorage;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 
 
@@ -27,6 +28,10 @@ import java.nio.file.Path;
  * - connectors: contains the jars for Kafka Connect connectors
  */
 public interface DownloadedCodeArchive {
+
+    InputStream getInputStream() throws IOException, CodeStorageException;
+
+    byte[] getData() throws IOException, CodeStorageException;
 
     /**
      * This method is used to extract the contents of the archive to a directory.

@@ -15,16 +15,21 @@
  */
 package ai.langstream.webservice.application;
 
+import ai.langstream.api.codestorage.CodeStorage;
+import ai.langstream.api.codestorage.CodeStorageException;
+import ai.langstream.api.codestorage.DownloadedCodeArchive;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.webservice.application.ApplicationDescription;
 import ai.langstream.impl.parser.ModelBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -33,14 +38,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -48,6 +59,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -182,37 +194,32 @@ public class ApplicationResource {
                 });
     }
 
-    @DeleteMapping("/{tenant}/{name}")
-    @Operation(summary = "Delete application by name")
+    @DeleteMapping("/{tenant}/{applicationId}")
+    @Operation(summary = "Delete application by id")
     void deleteApplication(@NotBlank @PathVariable("tenant") String tenant,
-                           @NotBlank @PathVariable("name") String name) {
-        applicationService.deleteApplication(tenant, name);
-        log.info("Deleted application {}", name);
+                           @NotBlank @PathVariable("applicationId") String applicationId) {
+        applicationService.deleteApplication(tenant, applicationId);
+        log.info("Deleted application {}", applicationId);
     }
 
-    @GetMapping("/{tenant}/{name}")
-    @Operation(summary = "Get an application by name")
+    @GetMapping("/{tenant}/{applicationId}")
+    @Operation(summary = "Get an application by id")
     ApplicationDescription getApplication(@NotBlank @PathVariable("tenant") String tenant,
-                                     @NotBlank @PathVariable("name") String name) {
-        final StoredApplication app = applicationService.getApplication(tenant, name);
-        if (app == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "application not found"
-            );
-        }
+                                     @NotBlank @PathVariable("applicationId") String applicationId) {
+        final StoredApplication app = getAppOrThrow(tenant, applicationId, true);
         return new ApplicationDescription(app.getApplicationId(), app.getInstance(), app.getStatus());
     }
 
 
-    @GetMapping(value = "/{tenant}/{name}/logs", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @GetMapping(value = "/{tenant}/{applicationId}/logs", produces = MediaType.APPLICATION_NDJSON_VALUE)
     @Operation(summary = "Get application logs by name")
     Flux<String> getApplicationLogs(@NotBlank @PathVariable("tenant") String tenant,
-                                    @NotBlank @PathVariable("name") String name,
+                                    @NotBlank @PathVariable("applicationId") String applicationId,
                                     @RequestParam("filter") Optional<List<String>> filterReplicas) {
 
 
         final List<ApplicationStore.PodLogHandler> podLogs =
-                applicationService.getPodLogs(tenant, name,
+                applicationService.getPodLogs(tenant, applicationId,
                         new ApplicationStore.LogOptions(filterReplicas.orElse(null)));
         if (podLogs.isEmpty()) {
             return Flux.empty();
@@ -231,6 +238,48 @@ public class ApplicationResource {
                 });
             }
         }).subscribeOn(Schedulers.fromExecutor(logsThreadPool));
+    }
+
+    @GetMapping(value = "/{tenant}/{applicationId}/code", produces = "application/zip")
+    @Operation(summary = "Get code of an application by id")
+    @ResponseBody
+    Resource getApplicationCode(@NotBlank @PathVariable("tenant") String tenant,
+                              @NotBlank @PathVariable("applicationId") String applicationId,
+                              HttpServletResponse response) throws Exception {
+        final StoredApplication app = getAppOrThrow(tenant, applicationId, false);
+        final String codeArchiveId = app.getCodeArchiveReference();
+        return downloadCode(tenant, applicationId, response, codeArchiveId);
+    }
+
+    @GetMapping(value = "/{tenant}/{applicationId}/code/{codeArchiveReference}", produces = "application/zip")
+    @Operation(summary = "Get code of an application by id and code archive reference")
+    @ResponseBody
+    Resource getApplicationCode(@NotBlank @PathVariable("tenant") String tenant,
+                                   @NotBlank @PathVariable("applicationId") String applicationId,
+                                   @NotBlank @PathVariable("codeArchiveReference") String codeArchiveReference,
+                                   HttpServletResponse response) throws Exception {
+        getAppOrThrow(tenant, applicationId, false);
+        return downloadCode(tenant, applicationId, response, codeArchiveReference);
+    }
+
+    private Resource downloadCode(String tenant, String applicationId, HttpServletResponse response,
+                                  String codeArchiveId) throws CodeStorageException {
+
+        final byte[] code = codeStorageService.downloadApplicationCode(tenant, applicationId, codeArchiveId);
+        final String filename = "%s-%s.zip".formatted(tenant, applicationId);
+
+        response.addHeader("Content-Disposition", "attachment; filename=\"%s\"".formatted(filename));
+        return new ByteArrayResource(code);
+    }
+
+    private StoredApplication getAppOrThrow(String tenant, String applicationId, boolean queryPods) {
+        final StoredApplication app = applicationService.getApplication(tenant, applicationId, queryPods);
+        if (app == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "application not found"
+            );
+        }
+        return app;
     }
 }
 

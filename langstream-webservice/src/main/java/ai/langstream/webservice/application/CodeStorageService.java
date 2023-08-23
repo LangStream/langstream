@@ -15,12 +15,16 @@
  */
 package ai.langstream.webservice.application;
 
+import ai.langstream.api.codestorage.DownloadedCodeArchive;
 import ai.langstream.webservice.config.StorageProperties;
 import ai.langstream.api.codestorage.CodeArchiveMetadata;
 import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.codestorage.CodeStorageRegistry;
 import ai.langstream.impl.codestorage.LocalFileUploadableCodeArchive;
+import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicReference;
+import lombok.SneakyThrows;
 import lombok.extern.jbosslog.JBossLog;
 import org.springframework.stereotype.Service;
 
@@ -51,6 +55,25 @@ public class CodeStorageService {
                     " for tenant " + tenant + " and application " + application);
         }
         return archiveMetadata.codeStoreId();
+    }
+
+    public byte[] downloadApplicationCode(String tenant, String applicationId, String codeStoreId) throws CodeStorageException {
+        final CodeArchiveMetadata codeArchiveMetadata = codeStorage.describeApplicationCode(tenant, codeStoreId);
+        if (!Objects.equals(codeArchiveMetadata.tenant(), tenant)) {
+            throw new IllegalArgumentException("Invalid tenant " + tenant + " for code archive " + codeStoreId);
+        }
+        if (!Objects.equals(codeArchiveMetadata.applicationId(), applicationId)) {
+            throw new IllegalArgumentException("Invalid application id " + tenant + " for code archive " + codeStoreId);
+        }
+        AtomicReference<byte[]> result = new AtomicReference<>();
+        codeStorage.downloadApplicationCode(tenant, codeStoreId, new CodeStorage.DownloadedCodeHandled() {
+            @Override
+            @SneakyThrows
+            public void accept(DownloadedCodeArchive archive) throws CodeStorageException {
+                result.set(archive.getData());
+            }
+        });
+        return result.get();
     }
 
 }

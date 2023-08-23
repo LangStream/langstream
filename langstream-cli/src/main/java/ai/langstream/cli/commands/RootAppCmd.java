@@ -17,6 +17,7 @@ package ai.langstream.cli.commands;
 
 import ai.langstream.cli.commands.applications.AbstractDeployApplicationCmd;
 import ai.langstream.cli.commands.applications.DeleteApplicationCmd;
+import ai.langstream.cli.commands.applications.DownloadApplicationCodeCmd;
 import ai.langstream.cli.commands.applications.GetApplicationCmd;
 import ai.langstream.cli.commands.applications.GetApplicationLogsCmd;
 import ai.langstream.cli.commands.applications.ListApplicationCmd;
@@ -30,7 +31,8 @@ import picocli.CommandLine;
                 ListApplicationCmd.class,
                 DeleteApplicationCmd.class,
                 GetApplicationCmd.class,
-                GetApplicationLogsCmd.class
+                GetApplicationLogsCmd.class,
+                DownloadApplicationCodeCmd.class
         })
 @Getter
 public class RootAppCmd {

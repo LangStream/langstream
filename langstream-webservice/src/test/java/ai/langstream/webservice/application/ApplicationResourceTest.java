@@ -178,49 +178,49 @@ class ApplicationResourceTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(result -> assertEquals("""
-                         {
-                           "application-id" : "test",
-                           "application" : {
-                             "resources" : { },
-                             "modules" : [ {
-                               "id" : "default",
-                               "pipelines" : [ {
-                                 "id" : "app1",
-                                 "module" : "default",
-                                 "name" : "test",
-                                 "resources" : {
-                                   "parallelism" : 1,
-                                   "size" : 1
-                                 },
-                                 "errors" : {
-                                   "retries" : 0,
-                                   "on-failure" : "fail"
-                                 },
-                                 "agents" : [ ]
-                               } ],
-                               "topics" : [ ]
-                             } ],
-                             "gateways" : null,
-                             "instance" : {
-                               "streamingCluster" : {
-                                 "type" : "pulsar",
-                                 "configuration" : { }
-                               },
-                               "computeCluster" : {
-                                 "type" : "none",
-                                 "configuration" : { }
-                               },
-                               "globals" : null
-                             }
-                           },
-                           "status" : {
-                             "status" : {
-                               "status" : "CREATED",
-                               "reason" : null
-                             },
-                             "executors" : [ ]
-                           }
-                         }""", result.getResponse().getContentAsString()));
+                        {
+                          "application-id" : "test",
+                          "application" : {
+                            "resources" : { },
+                            "modules" : [ {
+                              "id" : "default",
+                              "pipelines" : [ {
+                                "id" : "app1",
+                                "module" : "default",
+                                "name" : "test",
+                                "resources" : {
+                                  "parallelism" : 1,
+                                  "size" : 1
+                                },
+                                "errors" : {
+                                  "retries" : 0,
+                                  "on-failure" : "fail"
+                                },
+                                "agents" : [ ]
+                              } ],
+                              "topics" : [ ]
+                            } ],
+                            "gateways" : null,
+                            "instance" : {
+                              "streamingCluster" : {
+                                "type" : "pulsar",
+                                "configuration" : { }
+                              },
+                              "computeCluster" : {
+                                "type" : "none",
+                                "configuration" : { }
+                              },
+                              "globals" : null
+                            }
+                          },
+                          "status" : {
+                            "status" : {
+                              "status" : "CREATED",
+                              "reason" : null
+                            },
+                            "executors" : [ ]
+                          }
+                        }""", result.getResponse().getContentAsString()));
 
         mockMvc
                 .perform(
@@ -241,5 +241,45 @@ class ApplicationResourceTest {
                 )
                 .andExpect(status().isNotFound());
     }
+
+
+    @Test
+    void testDownloadCode() throws Exception {
+        mockMvc.perform(put("/api/tenants/my-tenant2"))
+                .andExpect(status().isOk());
+        mockMvc
+                .perform(
+                        multipart(HttpMethod.POST, "/api/applications/my-tenant2/test")
+                                .file(getMultipartFile("""
+                                        id: app1
+                                        name: test
+                                        topics: []
+                                        pipeline: []
+                                        """))
+                                .part(new MockPart("instance",
+                                        """
+                                                instance:
+                                                  streamingCluster:
+                                                    type: pulsar
+                                                  computeCluster:
+                                                    type: none
+                                                """.getBytes(StandardCharsets.UTF_8)
+                                ))
+                )
+                .andExpect(status().isOk());
+
+        mockMvc
+                .perform(
+                        multipart(HttpMethod.GET, "/api/applications/my-tenant2/test/code")
+                )
+                .andExpect(status().isOk())
+                .andExpect(result -> {
+                    assertEquals("attachment; filename=\"my-tenant2-test.zip\"", result.getResponse().getHeader("Content-Disposition"));
+                    assertEquals("application/zip", result.getResponse().getHeader("Content-Type"));
+                    assertEquals("content-of-the-code-archive-my-tenant2-my-tenant2-test", result.getResponse().getContentAsString());
+                });
+
+    }
+
 
 }

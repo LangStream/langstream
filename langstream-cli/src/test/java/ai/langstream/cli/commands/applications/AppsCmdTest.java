@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,7 +53,8 @@ class AppsCmdTest extends CommandTestBase {
                 .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", langstream.toAbsolutePath().toString(), "-i", instance);
+        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app",
+                langstream.toAbsolutePath().toString(), "-i", instance);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }
@@ -62,7 +64,8 @@ class AppsCmdTest extends CommandTestBase {
     public void testDeployWithDependencies() throws Exception {
 
         final String fileContent = "dep-content";
-        final String fileContentSha = "e1ebfd0f4e4a624eeeffc52c82b048739ea615dca9387630ae7767cb9957aa4ce2cf7afbd032ac8d5fcb73f42316655ea390e37399f14155ed794a6f53c066ec";
+        final String fileContentSha =
+                "e1ebfd0f4e4a624eeeffc52c82b048739ea615dca9387630ae7767cb9957aa4ce2cf7afbd032ac8d5fcb73f42316655ea390e37399f14155ed794a6f53c066ec";
         wireMock.register(WireMock.get("/local/get-dependency.jar")
                 .willReturn(WireMock.ok(fileContent)));
 
@@ -76,8 +79,10 @@ class AppsCmdTest extends CommandTestBase {
                       sha512sum: "%s"
                       type: "java-library"
                 """.formatted(wireMockBaseUrl + "/local/get-dependency.jar", fileContentSha);
-        Files.write(Path.of(langstream.toFile().getAbsolutePath(), "configuration.yaml"), configurationYamlContent.getBytes(StandardCharsets.UTF_8));
-        Files.write(Path.of(langstream.toFile().getAbsolutePath(), "java", "lib", "get-dependency.jar"), fileContent.getBytes(StandardCharsets.UTF_8));
+        Files.write(Path.of(langstream.toFile().getAbsolutePath(), "configuration.yaml"),
+                configurationYamlContent.getBytes(StandardCharsets.UTF_8));
+        Files.write(Path.of(langstream.toFile().getAbsolutePath(), "java", "lib", "get-dependency.jar"),
+                fileContent.getBytes(StandardCharsets.UTF_8));
         final String app = createTempFile("module: module-1", langstream);
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
@@ -90,7 +95,8 @@ class AppsCmdTest extends CommandTestBase {
                 .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app", langstream.toAbsolutePath().toString(), "-i", instance);
+        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app",
+                langstream.toAbsolutePath().toString(), "-i", instance);
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals(0, result.exitCode());
 
@@ -111,7 +117,8 @@ class AppsCmdTest extends CommandTestBase {
                 .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
                 .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result = executeCommand("apps", "update", "my-app", "-s", secrets, "-app", langstream.toAbsolutePath().toString(), "-i", instance);
+        CommandResult result = executeCommand("apps", "update", "my-app", "-s", secrets, "-app",
+                langstream.toAbsolutePath().toString(), "-i", instance);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }
@@ -922,8 +929,9 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("""
-                ID               STREAMING        COMPUTE          STATUS           EXECUTORS        REPLICAS      \s
-                test             kafka            kubernetes       DEPLOYED         2/2              2/2""", result.out());
+                        ID               STREAMING        COMPUTE          STATUS           EXECUTORS        REPLICAS      \s
+                        test             kafka            kubernetes       DEPLOYED         2/2              2/2""",
+                result.out());
         ObjectMapper jsonPrinter = new ObjectMapper()
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
@@ -967,12 +975,14 @@ class AppsCmdTest extends CommandTestBase {
         CommandResult result = executeCommand("apps", "list");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
-        Assertions.assertEquals("ID               STREAMING        COMPUTE          STATUS           EXECUTORS        REPLICAS", result.out());
-        result = executeCommand("apps", "list",  "-o", "json");
+        Assertions.assertEquals(
+                "ID               STREAMING        COMPUTE          STATUS           EXECUTORS        REPLICAS",
+                result.out());
+        result = executeCommand("apps", "list", "-o", "json");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("[ ]", result.out());
-        result = executeCommand("apps", "list",  "-o", "yaml");
+        result = executeCommand("apps", "list", "-o", "yaml");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("--- []", result.out());
@@ -988,6 +998,32 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("", result.out());
+
+    }
+
+    @Test
+    public void testDownload() throws Exception {
+        wireMock.register(WireMock.get("/api/applications/%s/my-app/code"
+                .formatted(TENANT)).willReturn(WireMock.ok()));
+
+        CommandResult result = executeCommand("apps", "download", "my-app");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertEquals(
+                "Downloaded application code to " + new File("%s-my-app.zip".formatted(TENANT)).getAbsolutePath(),
+                result.out());
+
+    }
+
+    @Test
+    public void testDownloadToFile() throws Exception {
+        wireMock.register(WireMock.get("/api/applications/%s/my-app/code"
+                .formatted(TENANT)).willReturn(WireMock.ok()));
+
+        CommandResult result = executeCommand("apps", "download", "my-app", "-o", "/tmp/download.zip");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertEquals("Downloaded application code to /tmp/download.zip", result.out());
 
     }
 }

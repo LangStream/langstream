@@ -27,8 +27,12 @@ import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.MakeBucketArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.StatObjectArgs;
+import io.minio.StatObjectResponse;
+import io.minio.errors.ErrorResponseException;
 import io.minio.http.HttpUtils;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -44,12 +48,16 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.UUID;
 import okhttp3.OkHttpClient;
+import okhttp3.internal.http2.ErrorCode;
 
 @Slf4j
 public class S3CodeStorage implements CodeStorage {
 
     private static final ObjectMapper mapper = new ObjectMapper();
     protected static final long DEFAULT_CONNECTION_TIMEOUT = TimeUnit.MINUTES.toMillis(5L);
+    protected static final String OBJECT_METADATA_KEY_TENANT = "langstream-tenant";
+    protected static final String OBJECT_METADATA_KEY_APPLICATION = "langstream-application";
+    protected static final String OBJECT_METADATA_KEY_VERSION = "langstream-version";
     private String bucketName;
     private OkHttpClient httpClient;
     private MinioClient minioClient;
@@ -103,9 +111,11 @@ public class S3CodeStorage implements CodeStorage {
 
                 minioClient.uploadObject(
                         UploadObjectArgs.builder()
-                                .userMetadata(Map.of("langstream-tenant", tenant,
-                                        "langstream-application", applicationId,
-                                        "langstream-version", version))
+                                .userMetadata(Map.of(
+                                        OBJECT_METADATA_KEY_TENANT, tenant,
+                                        OBJECT_METADATA_KEY_APPLICATION, applicationId,
+                                        OBJECT_METADATA_KEY_VERSION, version)
+                                )
                                 .bucket(bucketName)
                                 .object(tenant + "/" + codeStoreId)
                                 .contentType("application/zip")
@@ -151,12 +161,26 @@ public class S3CodeStorage implements CodeStorage {
     @Override
     public CodeArchiveMetadata describeApplicationCode(String tenant, String codeStoreId) throws CodeStorageException {
         try {
-            // validate that the object exists
-            GetObjectResponse object = minioClient.getObject(GetObjectArgs.builder()
+            final String objectName = tenant + "/" + codeStoreId;
+            final StatObjectResponse statObjectResponse = minioClient.statObject(StatObjectArgs.builder()
                     .bucket(bucketName)
-                    .object(tenant + "/" + codeStoreId)
+                    .object(objectName)
                     .build());
-            return new CodeArchiveMetadata(tenant, codeStoreId, null);
+            final Map<String, String> metadata = statObjectResponse.userMetadata();
+            final String objectTenant = metadata.get(OBJECT_METADATA_KEY_TENANT);
+            if (!Objects.equals(objectTenant, tenant)) {
+                throw new CodeStorageException(
+                        "Tenant mismatch in S3 object " + objectName + ": " + objectTenant + " != " + tenant);
+            }
+            final String applicationId = metadata.get(OBJECT_METADATA_KEY_APPLICATION);
+            Objects.requireNonNull("S3 object " + objectName + " contains empty application", applicationId);
+            return new CodeArchiveMetadata(tenant, codeStoreId, applicationId);
+        } catch (ErrorResponseException errorResponseException) {
+            // https://github.com/minio/minio-java/blob/7ca9500165ee13d39f293691943b93c19c31ebc2/api/src/main/java/io/minio/S3Base.java#L682-L692
+            if ("NoSuchKey".equals(errorResponseException.errorResponse().code())) {
+                return null;
+            }
+            throw new CodeStorageException(errorResponseException);
         } catch (MinioException | NoSuchAlgorithmException | InvalidKeyException | IOException e) {
             throw new CodeStorageException(e);
         }

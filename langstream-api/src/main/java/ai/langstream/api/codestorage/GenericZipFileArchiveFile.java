@@ -28,14 +28,12 @@ import java.util.zip.ZipInputStream;
  */
 public abstract class GenericZipFileArchiveFile implements DownloadedCodeArchive {
 
-    public abstract InputStream getData()  throws IOException, CodeStorageException ;
-
     @Override
     public void extractTo(Path directory) throws CodeStorageException {
         try {
             File destDirectory = directory.toFile();
             byte[] buffer = new byte[1024];
-            ZipInputStream zis = new ZipInputStream(getData());
+            ZipInputStream zis = new ZipInputStream(getInputStream());
             ZipEntry zipEntry = zis.getNextEntry();
             while (zipEntry != null) {
                 File newFile = newFile(destDirectory, zipEntry);

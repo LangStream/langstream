@@ -247,9 +247,9 @@ public class ApplicationService {
     }
 
     @SneakyThrows
-    public StoredApplication getApplication(String tenant, String applicationId) {
+    public StoredApplication getApplication(String tenant, String applicationId, boolean queryPods) {
         checkTenant(tenant);
-        return applicationStore.get(tenant, applicationId, true);
+        return applicationStore.get(tenant, applicationId, queryPods);
     }
 
     @SneakyThrows

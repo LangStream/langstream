@@ -58,6 +58,7 @@ public class LangStreamClient {
         void delete(String application);
         String get(String application);
         String list();
+        HttpResponse<byte[]> download(String application);
     }
 
     public LangStreamClient(String configPath, Logger logger) {
@@ -266,6 +267,11 @@ public class LangStreamClient {
             @Override
             public String list() {
                 return http(newGet(tenantAppPath(""))).body();
+            }
+
+            @Override
+            public HttpResponse<byte[]> download(String application) {
+                return http(newGet(tenantAppPath("/" + application + "/code")), HttpResponse.BodyHandlers.ofByteArray());
             }
         };
     }

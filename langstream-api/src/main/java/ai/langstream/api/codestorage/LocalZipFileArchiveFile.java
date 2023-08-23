@@ -32,8 +32,12 @@ public class LocalZipFileArchiveFile extends GenericZipFileArchiveFile {
     }
 
     @Override
-    public InputStream getData() throws IOException, CodeStorageException {
+    public InputStream getInputStream() throws IOException, CodeStorageException {
         return Files.newInputStream(path);
     }
 
+    @Override
+    public byte[] getData() throws IOException, CodeStorageException {
+        return Files.readAllBytes(path);
+    }
 }

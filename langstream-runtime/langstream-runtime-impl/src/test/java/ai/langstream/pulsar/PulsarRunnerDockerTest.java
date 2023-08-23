@@ -159,7 +159,6 @@ class PulsarRunnerDockerTest {
     public static void setup() throws Exception {
         pulsarContainer = new PulsarContainer(DockerImageName.parse(IMAGE)
                 .asCompatibleSubstituteFor("apachepulsar/pulsar"))
-                .withFunctionsWorker()
                 .withStartupTimeout(Duration.ofSeconds(120)) // Mac M1 is slow with Intel docker images
                 .withLogConsumer(new Consumer<OutputFrame>() {
                     @Override

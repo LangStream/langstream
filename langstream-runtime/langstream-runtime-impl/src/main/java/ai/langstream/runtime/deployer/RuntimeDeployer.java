@@ -55,7 +55,7 @@ public class RuntimeDeployer {
 
             final String arg0 = args[0];
 
-            if (args.length < 4) {
+            if (args.length < 3) {
                 throw new IllegalArgumentException("Missing runtime deployer configuration");
             }
 

@@ -130,7 +130,6 @@ public class NarFileHandler implements AutoCloseable {
                     try (DirectoryStream<Path> allFiles = Files.newDirectoryStream(dependencies);) {
                         for (Path file : allFiles) {
                             if (file.getFileName().toString().endsWith(".jar")) {
-                                log.info("Adding dependency {}", file);
                                 urls.add(file.toUri().toURL());
                             }
                         }

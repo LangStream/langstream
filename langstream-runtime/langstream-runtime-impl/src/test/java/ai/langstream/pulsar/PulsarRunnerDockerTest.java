@@ -57,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Slf4j
 class PulsarRunnerDockerTest {
 
-    private static final String IMAGE = "datastax/lunastreaming-all:2.10_4.9";
+    private static final String IMAGE = "apachepulsar/pulsar:3.1.0";
 
     private static PulsarContainer pulsarContainer;
 

@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-class LoadAgentCodeIT {
+class LoadAgentCodeTest {
 
     @Test
     public void testLoadNoop() throws Exception {

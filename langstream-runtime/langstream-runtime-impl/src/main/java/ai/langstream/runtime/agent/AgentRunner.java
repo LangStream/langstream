@@ -148,7 +148,8 @@ public class AgentRunner
 
         try (NarFileHandler narFileHandler = new NarFileHandler(agentsDirectory);) {
             narFileHandler.scan();
-            narFileHandler.createClassloaders(Thread.currentThread().getContextClassLoader());
+            ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, Thread.currentThread().getContextClassLoader());
+            narFileHandler.createClassloaders(customLibClassloader);
 
             AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
             agentCodeRegistry.addClassloaders(narFileHandler.getClassloaders());
@@ -158,22 +159,13 @@ public class AgentRunner
 
             log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
             try {
-                ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-                try {
-                    ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, contextClassLoader);
-                    Thread.currentThread().setContextClassLoader(customLibClassloader);
-
-                    AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
-                    if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
-                        runPythonAgent(
-                                podRuntimeConfiguration, codeDirectory);
-                    } else {
-                        runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode, agentInfo);
-                    }
-                } finally {
-                    Thread.currentThread().setContextClassLoader(contextClassLoader);
+                AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
+                if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
+                    runPythonAgent(
+                            podRuntimeConfiguration, codeDirectory);
+                } else {
+                    runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode, agentInfo);
                 }
-
             } finally {
                 topicConnectionsRuntime.close();
             }
@@ -293,7 +285,7 @@ public class AgentRunner
             AgentSource source = null;
             if (agentCodeWithLoader.isSource()) {
                 source = agentCodeWithLoader.asSource();
-            } else if (agentCodeWithLoader.is(code -> code instanceof CompositeAgentProcessor compositeAgentProcessor)) {
+            } else if (agentCodeWithLoader.is(code -> code instanceof CompositeAgentProcessor)) {
                 source = ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSource();
             }
 
@@ -307,7 +299,7 @@ public class AgentRunner
             AgentSink sink = null;
             if (agentCodeWithLoader.isSink()) {
                 sink = agentCodeWithLoader.asSink();
-            } else if (agentCodeWithLoader.is(code -> code instanceof CompositeAgentProcessor compositeAgentProcessor)) {
+            } else if (agentCodeWithLoader.is(code -> code instanceof CompositeAgentProcessor)) {
                 sink = ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSink();
             }
             if (sink == null) {

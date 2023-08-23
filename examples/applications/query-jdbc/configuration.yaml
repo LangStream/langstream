@@ -24,7 +24,7 @@ configuration:
         driverClass: "org.postgresql.Driver"
         url: "jdbc:postgresql://postgresql.default.svc.cluster.local:5432/"
         user: "postgres"
-        password: "dL3WGSrrpq"
+        password: "pCVieR3u1q"
   dependencies:
     - name: "PostGRES JDBC Driver"
       url: "https://jdbc.postgresql.org/download/postgresql-42.6.0.jar"

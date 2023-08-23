@@ -344,6 +344,8 @@
                   <groupId>${project.groupId}</groupId>
                   <artifactId>langstream-agent-s3</artifactId>
                   <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
                   <overWrite>false</overWrite>
                   <outputDirectory>${build.directory}/agents</outputDirectory>
                 </artifactItem>
@@ -352,6 +354,8 @@
                   <groupId>${project.groupId}</groupId>
                   <artifactId>langstream-agent-webcrawler</artifactId>
                   <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
                   <overWrite>false</overWrite>
                   <outputDirectory>${build.directory}/agents</outputDirectory>
                 </artifactItem>
@@ -360,6 +364,8 @@
                   <groupId>${project.groupId}</groupId>
                   <artifactId>langstream-vector-agents</artifactId>
                   <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
                   <overWrite>false</overWrite>
                   <outputDirectory>${build.directory}/agents</outputDirectory>
                 </artifactItem>

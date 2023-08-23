@@ -1,5 +1,12 @@
 # LangStream
+[Have a question? Join our Slack channel!](https://join.slack.com/t/langstream/shared_invite/zt-21leloc9c-lNaGLdiecHuWU5N31L2AeQ)
 
+For the complete documentation, go [here](https://docs.langstream.ai)
+
+Get the LangStream VS Code extension [here](https://marketplace.visualstudio.com/items?itemName=DataStax.langstream).
+
+
+## Contents
 
 * [LangStream](#langstream)
   * [Run LangStream server](#run-langstream-server)

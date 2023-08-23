@@ -15,25 +15,18 @@
  */
 package ai.langstream.cli.commands;
 
+import ai.langstream.admin.client.AdminClient;
+import ai.langstream.admin.client.AdminClientConfiguration;
+import ai.langstream.admin.client.AdminClientLogger;
 import ai.langstream.cli.LangStreamCLIConfig;
-import ai.langstream.cli.client.LangStreamClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
-import java.net.ConnectException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -51,7 +44,7 @@ public abstract class BaseCmd implements Runnable {
         yaml
     }
 
-
+    private static final ObjectMapper yamlConfigReader = new ObjectMapper(new YAMLFactory());
     protected static final ObjectMapper jsonPrinter = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
@@ -61,14 +54,15 @@ public abstract class BaseCmd implements Runnable {
 
     @CommandLine.Spec
     protected CommandLine.Model.CommandSpec command;
-    private LangStreamClient client;
+    private AdminClient client;
+    private LangStreamCLIConfig config;
 
 
     protected abstract RootCmd getRootCmd();
 
-    protected LangStreamClient getClient() {
+    protected AdminClient getClient() {
         if (client == null) {
-            client = new LangStreamClient(getRootCmd().getConfigPath(), new LangStreamClient.Logger() {
+            final AdminClientLogger logger = new AdminClientLogger() {
                 @Override
                 public void log(Object message) {
                     BaseCmd.this.log(message);
@@ -83,13 +77,71 @@ public abstract class BaseCmd implements Runnable {
                 public void debug(Object message) {
                     BaseCmd.this.debug(message);
                 }
-            });
+            };
+            client = new AdminClient(toAdminConfiguration(getConfig()), logger);
         }
         return client;
     }
 
     protected LangStreamCLIConfig getConfig() {
-        return getClient().getConfig();
+        loadConfig();
+        return config;
+    }
+
+    private static AdminClientConfiguration toAdminConfiguration(LangStreamCLIConfig config) {
+        return AdminClientConfiguration.builder()
+                .apiGatewayUrl(config.getApiGatewayUrl())
+                .webServiceUrl(config.getWebServiceUrl())
+                .token(config.getToken())
+                .tenant(config.getTenant())
+                .build();
+    }
+
+
+    @SneakyThrows
+    private void loadConfig() {
+        if (config == null) {
+            File configFile = computeConfigFile();
+            config = yamlConfigReader.readValue(configFile, LangStreamCLIConfig.class);
+            overrideFromEnv(config);
+        }
+    }
+
+
+    @SneakyThrows
+    public void updateConfig(Consumer<LangStreamCLIConfig> consumer) {
+        consumer.accept(getConfig());
+        File configFile = computeConfigFile();
+        Files.write(configFile.toPath(), yamlConfigReader.writeValueAsBytes(config));
+    }
+
+    private File computeConfigFile() {
+        File configFile;
+        final String configPath = getRootCmd().getConfigPath();
+        if (configPath == null) {
+            String configBaseDir = System.getProperty("basedir");
+            if (configBaseDir == null) {
+                configBaseDir = System.getProperty("user.dir");
+            }
+            configFile = Path.of(configBaseDir, "conf", "cli.yaml").toFile();
+        } else {
+            configFile = new File(configPath);
+        }
+        return configFile;
+    }
+
+
+    @SneakyThrows
+    private void overrideFromEnv(LangStreamCLIConfig config) {
+        for (Field field : AdminClientConfiguration.class.getDeclaredFields()) {
+            final String name = field.getName();
+            final String newValue = System.getenv("LANGSTREAM_" + name);
+            if (newValue != null) {
+                log("Using env variable: %s=%s".formatted(name, newValue));
+                field.trySetAccessible();
+                field.set(config, newValue);
+            }
+        }
     }
 
 

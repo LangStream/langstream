@@ -626,6 +626,7 @@
         <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
+        <module>langstream-admin-client</module>
         <module>langstream-api</module>
         <module>langstream-cli</module>
         <module>langstream-core</module>

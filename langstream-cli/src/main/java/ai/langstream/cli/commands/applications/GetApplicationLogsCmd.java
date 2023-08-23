@@ -15,7 +15,7 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import ai.langstream.cli.client.LangStreamClient;
+import ai.langstream.admin.client.AdminClient;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -39,7 +39,7 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
     @SneakyThrows
     public void run() {
         final String filterStr = filter == null ? "" : "?filter=" + String.join(",", filter);
-        final LangStreamClient client = getClient();
+        final AdminClient client = getClient();
         client.getHttpClient().sendAsync(client.newGet(client.tenantAppPath("/" + name + "/logs" + filterStr)), HttpResponse.BodyHandlers.ofByteArrayConsumer(
                         new Consumer<Optional<byte[]>>() {
                             @Override

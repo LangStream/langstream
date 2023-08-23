@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.cli.client;
+package ai.langstream.admin.client;
 
-import ai.langstream.cli.LangStreamCLIConfig;
-import ai.langstream.cli.commands.RootCmd;
-import ai.langstream.cli.util.MultiPartBodyPublisher;
+import ai.langstream.admin.client.model.Applications;
+import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
@@ -37,88 +36,22 @@ import java.util.function.Consumer;
 import lombok.Builder;
 import lombok.SneakyThrows;
 
+public class AdminClient {
 
-public class LangStreamClient {
-    private static final ObjectMapper yamlConfigReader = new ObjectMapper(new YAMLFactory());
-    private final String configPath;
-    private final Logger logger;
-    private LangStreamCLIConfig config;
+    private final AdminClientConfiguration configuration;
+    private final AdminClientLogger logger;
     private HttpClient httpClient;
 
-    public interface Logger {
-        void log(Object message);
-        void error(Object message);
-        void debug(Object message);
-    }
 
 
-    public interface Applications {
-        void deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher);
-        void update(String application, MultiPartBodyPublisher multiPartBodyPublisher);
-        void delete(String application);
-        String get(String application);
-        String list();
-        HttpResponse<byte[]> download(String application);
-    }
 
-    public LangStreamClient(String configPath, Logger logger) {
-        this.configPath = configPath;
+    public AdminClient(AdminClientConfiguration adminClientConfiguration, AdminClientLogger logger) {
+        this.configuration = adminClientConfiguration;
         this.logger = logger;
-        loadConfig();
-    }
-
-    @SneakyThrows
-    private void loadConfig() {
-        if (config == null) {
-            File configFile = computeConfigFile();
-            config = yamlConfigReader.readValue(configFile, LangStreamCLIConfig.class);
-            overrideFromEnv(config);
-        }
-    }
-
-
-    @SneakyThrows
-    public LangStreamCLIConfig getConfig() {
-        return config;
-    }
-
-    @SneakyThrows
-    public void updateConfig(Consumer<LangStreamCLIConfig> consumer) {
-        consumer.accept(getConfig());
-        File configFile = computeConfigFile();
-        Files.write(configFile.toPath(), yamlConfigReader.writeValueAsBytes(config));
-    }
-
-    private File computeConfigFile() {
-        File configFile;
-        if (configPath == null) {
-            String configBaseDir = System.getProperty("basedir");
-            if (configBaseDir == null) {
-                configBaseDir = System.getProperty("user.dir");
-            }
-            configFile = Path.of(configBaseDir, "conf", "cli.yaml").toFile();
-        } else {
-            configFile = new File(configPath);
-        }
-        return configFile;
-    }
-
-
-    @SneakyThrows
-    private void overrideFromEnv(LangStreamCLIConfig config) {
-        for (Field field : LangStreamCLIConfig.class.getDeclaredFields()) {
-            final String name = field.getName();
-            final String newValue = System.getenv("LANGSTREAM_" + name);
-            if (newValue != null) {
-                logger.log("Using env variable: %s=%s".formatted(name, newValue));
-                field.trySetAccessible();
-                field.set(config, newValue);
-            }
-        }
     }
 
     protected String getBaseWebServiceUrl() {
-        return getConfig().getWebServiceUrl();
+        return configuration.getWebServiceUrl();
     }
 
     public synchronized HttpClient getHttpClient() {
@@ -159,7 +92,7 @@ public class LangStreamClient {
     }
 
     private HttpRequest.Builder withAuth(HttpRequest.Builder builder) {
-        final String token = getConfig().getToken();
+        final String token = configuration.getToken();
         if (token == null) {
             return builder;
         }
@@ -226,7 +159,7 @@ public class LangStreamClient {
     }
 
     public String tenantAppPath(String uri) {
-        final String tenant = getConfig().getTenant();
+        final String tenant = configuration.getTenant();
         if (tenant == null) {
             throw new IllegalStateException("Tenant not set. Run 'langstream configure tenant <tenant>' to set it.");
         }
@@ -237,43 +170,46 @@ public class LangStreamClient {
 
 
     public Applications applications() {
-        return new Applications() {
-            @Override
-            public void deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
-                final String path = tenantAppPath("/" + application);
-                final String contentType = "multipart/form-data; boundary=%s".formatted(multiPartBodyPublisher.getBoundary());
-                final HttpRequest request = newPost(path, contentType, multiPartBodyPublisher.build());
-                http(request);
-            }
+        return new ApplicationsImpl();
+    }
 
-            @Override
-            public void update(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
-                final String path = tenantAppPath("/" + application);
-                final String contentType = "multipart/form-data; boundary=%s".formatted(multiPartBodyPublisher.getBoundary());
-                final HttpRequest request = newPatch(path, contentType, multiPartBodyPublisher.build());
-                http(request);
-            }
+    private class ApplicationsImpl implements Applications {
+        @Override
+        public void deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
+            final String path = tenantAppPath("/" + application);
+            final String contentType = "multipart/form-data; boundary=%s".formatted(multiPartBodyPublisher.getBoundary());
+            final HttpRequest request = newPost(path, contentType, multiPartBodyPublisher.build());
+            http(request);
+        }
 
-            @Override
-            public void delete(String application) {
-                http(newDelete(tenantAppPath("/" + application)));
-            }
+        @Override
+        public void update(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
+            final String path = tenantAppPath("/" + application);
+            final String contentType = "multipart/form-data; boundary=%s".formatted(multiPartBodyPublisher.getBoundary());
+            final HttpRequest request = newPatch(path, contentType, multiPartBodyPublisher.build());
+            http(request);
+        }
 
-            @Override
-            public String get(String application) {
-                return http(newGet(tenantAppPath("/" + application))).body();
-            }
+        @Override
+        public void delete(String application) {
+            http(newDelete(tenantAppPath("/" + application)));
+        }
 
-            @Override
-            public String list() {
-                return http(newGet(tenantAppPath(""))).body();
-            }
+        @Override
+        public String get(String application) {
+            return http(newGet(tenantAppPath("/" + application))).body();
+        }
 
-            @Override
-            public HttpResponse<byte[]> download(String application) {
-                return http(newGet(tenantAppPath("/" + application + "/code")), HttpResponse.BodyHandlers.ofByteArray());
-            }
-        };
+        @Override
+        public String list() {
+            return http(newGet(tenantAppPath(""))).body();
+        }
+
+        @Override
+        public HttpResponse<byte[]> download(String application) {
+            return http(newGet(tenantAppPath("/" + application + "/code")), HttpResponse.BodyHandlers.ofByteArray());
+        }
+
     }
 
 

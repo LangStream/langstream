@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.cli.util;
+package ai.langstream.admin.client.util;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +22,11 @@ import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public class MultiPartBodyPublisher {
@@ -83,7 +87,7 @@ public class MultiPartBodyPublisher {
             STRING, FILE, STREAM, FINAL_BOUNDARY
         }
 
-        PartsSpecification.TYPE type;
+        TYPE type;
         String name;
         String value;
         Path path;

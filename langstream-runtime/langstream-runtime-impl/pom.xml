@@ -99,13 +99,6 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- main implementation for the AI Agents -->
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-ai-agents</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>langstream-k8s-runtime-core</artifactId>
@@ -327,6 +320,15 @@
               <artifactItems>
 
                 <!-- main implementation for the Agents -->
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>langstream-ai-agents</artifactId>
+                  <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${build.directory}/agents</outputDirectory>
+                </artifactItem>
 
                 <artifactItem>
                     <groupId>${project.groupId}</groupId>

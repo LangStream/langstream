@@ -17,14 +17,8 @@ package ai.langstream.runtime.agent.nar;
 
 import ai.langstream.api.codestorage.GenericZipFileArchiveFile;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
-import com.datastax.dse.driver.api.core.cql.reactive.ReactiveSession;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.compress.archivers.zip.ZipUtil;
-import org.apache.pulsar.common.nar.FileUtils;
-
-import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.DirectoryStream;

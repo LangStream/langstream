@@ -68,6 +68,8 @@ ADD maven/lib /app/lib
 ADD maven/entrypoint.sh /app/entrypoint.sh
 ADD maven/langstream /app/langstream
 ADD maven/langstream_runtime /app/langstream_runtime
+ADD maven/agents /app/agents
+
 WORKDIR /app
 
 # The UID must be non-zero. Otherwise, it is arbitrary. No logic should rely on its specific value.

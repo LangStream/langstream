@@ -197,7 +197,7 @@ public class ApplicationResource {
     @DeleteMapping("/{tenant}/{applicationId}")
     @Operation(summary = "Delete application by id")
     void deleteApplication(@NotBlank @PathVariable("tenant") String tenant,
-                           @NotBlank @PathVariable("applciationId") String applicationId) {
+                           @NotBlank @PathVariable("applicationId") String applicationId) {
         applicationService.deleteApplication(tenant, applicationId);
         log.info("Deleted application {}", applicationId);
     }

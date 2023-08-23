@@ -245,11 +245,11 @@ class ApplicationResourceTest {
 
     @Test
     void testDownloadCode() throws Exception {
-        mockMvc.perform(put("/api/tenants/my-tenant"))
+        mockMvc.perform(put("/api/tenants/my-tenant2"))
                 .andExpect(status().isOk());
         mockMvc
                 .perform(
-                        multipart(HttpMethod.POST, "/api/applications/my-tenant/test")
+                        multipart(HttpMethod.POST, "/api/applications/my-tenant2/test")
                                 .file(getMultipartFile("""
                                         id: app1
                                         name: test
@@ -270,13 +270,13 @@ class ApplicationResourceTest {
 
         mockMvc
                 .perform(
-                        multipart(HttpMethod.GET, "/api/applications/my-tenant/test/code")
+                        multipart(HttpMethod.GET, "/api/applications/my-tenant2/test/code")
                 )
                 .andExpect(status().isOk())
                 .andExpect(result -> {
-                    assertEquals("attachment; filename=\"my-tenant-test.zip\"", result.getResponse().getHeader("Content-Disposition"));
+                    assertEquals("attachment; filename=\"my-tenant2-test.zip\"", result.getResponse().getHeader("Content-Disposition"));
                     assertEquals("application/zip", result.getResponse().getHeader("Content-Type"));
-                    assertEquals("content-of-the-code-archive-my-tenant-my-tenant-test", result.getResponse().getContentAsString());
+                    assertEquals("content-of-the-code-archive-my-tenant2-my-tenant2-test", result.getResponse().getContentAsString());
                 });
 
     }

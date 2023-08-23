@@ -55,6 +55,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -207,10 +208,14 @@ public class BaseEndToEndTest implements TestWatcher {
 
     }
 
-    protected static void applyManifest(String manifest) {
+    protected static void applyManifest(String manifest, String namespace) {
         client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
                 .inNamespace(namespace)
                 .serverSideApply();
+    }
+
+    protected static void applyManifest(String manifest) {
+        applyManifest(manifest, namespace);
     }
     protected static void applyManifestNoNamespace(String manifest) {
         client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
@@ -504,8 +509,8 @@ public class BaseEndToEndTest implements TestWatcher {
                     pullPolicy: Never
                   resources:
                     requests:
-                      cpu: 256m
-                      memory: 512Mi
+                      cpu: 0.1
+                      memory: 256Mi
                   app:
                     config:
                       application.storage.global.type: kubernetes
@@ -518,8 +523,8 @@ public class BaseEndToEndTest implements TestWatcher {
                   replicaCount: 1
                   resources:
                     requests:
-                      cpu: 256m
-                      memory: 512Mi
+                      cpu: 0.1
+                      memory: 256Mi
                   app:
                     config:
                       agentResources:
@@ -530,6 +535,10 @@ public class BaseEndToEndTest implements TestWatcher {
                     repository: langstream/langstream-cli
                     tag: latest-dev
                     pullPolicy: Never
+                  resources:
+                    requests:
+                      cpu: 0.1
+                      memory: 256Mi
                                 
                 apiGateway:
                   image:
@@ -538,8 +547,8 @@ public class BaseEndToEndTest implements TestWatcher {
                     pullPolicy: Never
                   resources:
                     requests:
-                      cpu: 256m
-                      memory: 512Mi
+                      cpu: 0.1
+                      memory: 256Mi
                   app:
                     config:
                      logging.level.org.apache.tomcat.websocket: debug
@@ -598,14 +607,18 @@ public class BaseEndToEndTest implements TestWatcher {
         log.info("installing kafka");
         client.resource(new NamespaceBuilder()
                         .withNewMetadata()
-                        .withName("kafka")
+                        .withName("kafka-ns")
                         .endMetadata()
                         .build())
                 .serverSideApply();
-        runProcess("kubectl apply -f https://strimzi.io/install/latest?namespace=kafka -n kafka".split(" "));
-        runProcess("kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka".split(" "));
+
+        runProcess("helm delete redpanda --namespace kafka-ns".split(" "), true);
+        runProcess("helm repo add redpanda https://charts.redpanda.com/".split(" "), true);
+        runProcess("helm repo update".split(" "));
+        // ref https://github.com/redpanda-data/helm-charts/blob/main/charts/redpanda/values.yaml
+        runProcess("helm install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.5 --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console.enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc.cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true".split(" "));
         log.info("waiting kafka to be ready");
-        runProcess("kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka".split(" "));
+        runProcess("kubectl wait pods redpanda-0 --for=condition=Ready --timeout=5m -n kafka-ns".split(" "));
         log.info("kafka installed");
     }
 
@@ -651,6 +664,10 @@ public class BaseEndToEndTest implements TestWatcher {
                       -  containerPort: 9000
                          protocol: TCP
                          name: s3
+                    resources:
+                      requests:
+                        cpu: 100m
+                        memory: 512Mi
                   volumes:
                   - name: localvolume
                     hostPath: # MinIO generally recommends using locally-attached volumes

@@ -136,8 +136,6 @@ jobs:
           uname -m
           eval $(minikube docker-env)
           ./docker/build.sh
-          docker pull confluentinc/cp-kafka
-          docker pull quay.io/strimzi/kafka:0.36.0-kafka-3.5.0
           eval $(minikube docker-env -u)
           ./mvnw install -pl langstream-e2e-tests -am -DskipTests
           ./mvnw verify -pl langstream-e2e-tests -De2eTests

@@ -20,6 +20,7 @@ import ai.langstream.cli.websocket.WebSocketClient;
 import jakarta.websocket.CloseReason;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -49,6 +50,9 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
     @CommandLine.Option(names = {"-n", "--num-messages"}, description = "Number of messages to wait. Negative or zero means infinite.")
     private int numMessages = 0;
 
+    @CommandLine.Option(names = {"--connect-timeout"}, description = "Connect timeout for WebSocket connections in seconds.")
+    private long connectTimeoutSeconds = 0;
+
 
 
     @Override
@@ -60,6 +64,8 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
         }
         final String consumePath = validateGatewayAndGetUrl(applicationId, gatewayId, Gateway.GatewayType.consume,
                 params, options, credentials);
+
+        final Duration connectTimeout = connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;
 
         final Integer expectedMessages = numMessages > 0 ? numMessages : null;
         final CountDownLatch latch;
@@ -96,7 +102,7 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
                 exit();
             }
         })
-                .connect(URI.create(consumePath))) {
+                .connect(URI.create(consumePath), connectTimeout)) {
             log("Connected to %s".formatted(consumePath));
             latch.await();
         }

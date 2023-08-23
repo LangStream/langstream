@@ -20,6 +20,6 @@ instance:
     type: "kafka"
     configuration:
       admin:
-        bootstrap.servers: my-cluster-kafka-bootstrap.kafka:9092
+          bootstrap.servers: redpanda-0.redpanda.kafka-ns.svc.cluster.local:9093
   computeCluster:
     type: "kubernetes"

@@ -19,6 +19,7 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.cli.websocket.WebSocketClient;
 import jakarta.websocket.CloseReason;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import lombok.SneakyThrows;
@@ -53,12 +54,16 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
     @CommandLine.Option(names = {"--header"}, description = "Messages headers. Format: key=value")
     private Map<String, String> headers;
 
+    @CommandLine.Option(names = {"--connect-timeout"}, description = "Connect timeout for WebSocket connections in seconds.")
+    private long connectTimeoutSeconds = 0;
+
 
     @Override
     @SneakyThrows
     public void run() {
         final String producePath = validateGatewayAndGetUrl(applicationId, gatewayId, Gateway.GatewayType.produce,
                 params, Map.of(), credentials);
+        final Duration connectTimeout = connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;
         CountDownLatch countDownLatch = new CountDownLatch(1);
         try (final WebSocketClient client = new WebSocketClient(new WebSocketClient.Handler() {
             @Override
@@ -81,7 +86,7 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
                 err("Connection error: %s".formatted(throwable.getMessage()));
             }
         })
-                .connect(URI.create(producePath))) {
+                .connect(URI.create(producePath), connectTimeout)) {
             final ProduceRequest produceRequest = new ProduceRequest(messageKey, messageValue, headers);
             final String json = messageMapper.writeValueAsString(produceRequest);
             client.send(json);

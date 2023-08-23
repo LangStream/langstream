@@ -55,6 +55,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -606,84 +607,18 @@ public class BaseEndToEndTest implements TestWatcher {
         log.info("installing kafka");
         client.resource(new NamespaceBuilder()
                         .withNewMetadata()
-                        .withName("kafka")
+                        .withName("kafka-ns")
                         .endMetadata()
                         .build())
                 .serverSideApply();
-        applyManifest("""
-                apiVersion: v1
-                kind: Service
-                metadata:
-                  labels:
-                    app: kafka-broker
-                  name: kafka
-                  namespace: kafka
-                spec:
-                  ports:
-                  - port: 9092
-                    name: kafka
-                  - port: 9093
-                    name: controller
-                  selector:
-                    app: kafka-broker
-                ---
-                apiVersion: apps/v1
-                kind: Deployment
-                metadata:
-                  labels:
-                    app: kafka-broker
-                  name: kafka-broker
-                  namespace: kafka
-                spec:
-                  replicas: 1
-                  selector:
-                    matchLabels:
-                      app: kafka-broker
-                  template:
-                    metadata:
-                      labels:
-                        app: kafka-broker
-                    spec:
-                      hostname: kafka-broker
-                      containers:
-                      - env:
-                        - name: KAFKA_CFG_NODE_ID
-                          value: "1"
-                        - name: KAFKA_BROKER_ID
-                          value: "1"
-                        - name: ALLOW_PLAINTEXT_LISTENER
-                          value: "yes"
-                        - name: KAFKA_CFG_PROCESS_ROLES
-                          value: controller,broker
-                        - name: KAFKA_CFG_LISTENERS
-                          value: PLAINTEXT://:9092,CONTROLLER://:9093
-                        - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
-                          value: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-                        - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
-                          value: 1@127.0.0.1:9093
-                        - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
-                          value: CONTROLLER
-                        - name: KAFKA_CFG_ADVERTISED_LISTENERS
-                          value: PLAINTEXT://127.0.0.1:9092
-                        image: bitnami/kafka:3.5.1
-                        imagePullPolicy: IfNotPresent
-                        name: kafka-broker
-                        ports:
-                        - containerPort: 9092
-                        - containerPort: 9093
-                        livenessProbe:
-                          tcpSocket:
-                            port: 9092
-                        readinessProbe:
-                          tcpSocket:
-                            port: 9092
-                        resources:
-                            requests:
-                                cpu: 0.1
-                                memory: 512Mi
-                """, "kafka");
+
+        runProcess("helm delete redpanda --namespace kafka-ns".split(" "), true);
+        runProcess("helm repo add redpanda https://charts.redpanda.com/".split(" "), true);
+        runProcess("helm repo update".split(" "));
+        // ref https://github.com/redpanda-data/helm-charts/blob/main/charts/redpanda/values.yaml
+        runProcess("helm install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.5 --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console.enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc.cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true".split(" "));
         log.info("waiting kafka to be ready");
-        runProcess("kubectl wait pods -l app=kafka-broker --for=condition=Ready --timeout=5m -n kafka".split(" "));
+        runProcess("kubectl wait pods redpanda-0 --for=condition=Ready --timeout=5m -n kafka-ns".split(" "));
         log.info("kafka installed");
     }
 

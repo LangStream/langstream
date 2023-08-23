@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
-class KafkaConnectSinkRunnerTest extends AbstractApplicationRunner  {
+class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
 
 
     @Test

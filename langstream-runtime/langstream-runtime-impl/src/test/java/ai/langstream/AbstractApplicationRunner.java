@@ -28,6 +28,8 @@ import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
+
+import java.nio.file.Path;
 import java.util.HashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -59,6 +61,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 public abstract class AbstractApplicationRunner {
+
+    public static final Path agentsDirectory;
+
+    static {
+        agentsDirectory = Path.of(System.getProperty("user.dir"), "target", "agents");
+        log.info("Agents directory is {}", agentsDirectory);
+    }
 
 
     @RegisterExtension
@@ -211,7 +220,7 @@ public abstract class AbstractApplicationRunner {
                         log.info("{} AgentPod {} Started", runnerExecutionId, podConfiguration.agent().agentId());
                         AgentInfo agentInfo = new AgentInfo();
                         allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
-                        AgentRunner.run(podConfiguration, null, null, agentInfo, 10);
+                        AgentRunner.run(podConfiguration, null, null, agentsDirectory, agentInfo, 10);
                         List<?> infos = agentInfo.serveWorkerStatus();
                         log.info("{} AgentPod {} AgentInfo {}", runnerExecutionId, podConfiguration.agent().agentId(), infos);
                         handle.complete(null);

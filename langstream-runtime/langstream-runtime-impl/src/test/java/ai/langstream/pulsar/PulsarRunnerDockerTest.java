@@ -15,6 +15,7 @@
  */
 package ai.langstream.pulsar;
 
+import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -125,7 +126,7 @@ class PulsarRunnerDockerTest {
                     .send();
             producer.flush();
 
-            AgentRunner.run(runtimePodConfiguration, null, null, new AgentInfo(), 5);
+            AgentRunner.run(runtimePodConfiguration, null, null, AbstractApplicationRunner.agentsDirectory, new AgentInfo(), 5);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
             Message<byte[]> record = consumer.receive();

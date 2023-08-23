@@ -1,0 +1,10 @@
+drop-fields
+merge-key-value
+unwrap-key-value
+cast
+flatten
+drop
+compute
+compute-ai-embeddings
+query
+ai-chat-completions

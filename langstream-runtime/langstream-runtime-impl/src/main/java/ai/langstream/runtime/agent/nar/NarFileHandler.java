@@ -17,10 +17,18 @@ package ai.langstream.runtime.agent.nar;
 
 import ai.langstream.api.codestorage.GenericZipFileArchiveFile;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
+import lombok.Data;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.StringReader;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,15 +37,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 @Slf4j
 
-public class NarFileHandler implements AutoCloseable {
+public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPackageLoader {
 
     private final Path packagesDirectory;
     private final Path temporaryDirectory;
 
-    @Getter
     private List<URLClassLoader> classloaders;
     private Map<String, PackageMetadata> packages = new HashMap<>();
 
@@ -62,8 +71,9 @@ public class NarFileHandler implements AutoCloseable {
 
     public void close() {
 
-        if (classloaders != null) {
-            for (URLClassLoader classLoader : classloaders) {
+        for (PackageMetadata metadata : packages.values()) {
+            URLClassLoader classLoader  = metadata.getClassLoader();
+            if (classLoader != null) {
                 try {
                     classLoader.close();
                 } catch (Exception err) {
@@ -79,7 +89,32 @@ public class NarFileHandler implements AutoCloseable {
         }
     }
 
-    record PackageMetadata (Path nar, String name, Set<String> agents, Path directory) {}
+    @Data
+    final class PackageMetadata {
+        private final Path nar;
+        private final String name;
+        private final Set<String> agents;
+        private Path directory;
+        private URLClassLoader classLoader;
+
+        public PackageMetadata(Path nar, String name, Set<String> agents) {
+            this.nar = nar;
+            this.name = name;
+            this.agents = agents;
+        }
+
+        public void unpack() throws Exception {
+            if (directory != null) {
+                return;
+            }
+            Path dest = temporaryDirectory.resolve(nar.getFileName().toString() + ".dir");
+            log.info("Unpacking NAR file {} to {}", nar, dest);
+            GenericZipFileArchiveFile file = new LocalZipFileArchiveFile(nar);
+            file.extractTo(dest);
+            directory = dest;
+        }
+
+    }
 
     public void scan() throws Exception {
         try (DirectoryStream<Path> all = Files.newDirectoryStream(packagesDirectory, "*.nar")) {
@@ -94,52 +129,117 @@ public class NarFileHandler implements AutoCloseable {
 
     public void handleNarFile(Path narFile) throws Exception {
         String filename = narFile.getFileName().toString();
-        Path dest = temporaryDirectory.resolve(narFile.getFileName().toString() + ".dir");
-        log.info("Unpacking NAR file {} to {}", narFile, dest);
-        GenericZipFileArchiveFile file = new LocalZipFileArchiveFile(narFile);
-        file.extractTo(dest);
 
-
-        Path services = dest.resolve("META-INF/services");
-        if (Files.isDirectory(services)) {
-            Path agents = services.resolve("ai.langstream.api.runner.code.AgentCodeProvider");
-            if (Files.isRegularFile(agents)) {
-                PackageMetadata metadata = new PackageMetadata(narFile, filename, Set.of(), dest);
+        // first of all we look for an index file
+        try (ZipFile zipFile = new ZipFile(narFile.toFile());) {
+            ZipEntry entry = zipFile.getEntry("META-INF/ai.langstream.agents.index");
+            if (entry != null) {
+                InputStream inputStream = zipFile.getInputStream(entry);
+                byte[] bytes = inputStream.readAllBytes();
+                String string = new String(bytes, StandardCharsets.UTF_8);
+                BufferedReader reader = new BufferedReader(new StringReader(string));
+                List<String> agents = reader.lines()
+                        .filter(s -> !s.isBlank() && !s.startsWith("#"))
+                        .toList();
+                log.info("The file {} contains a static index, skipping the unpacking. It is expected that handles these agents: {}", narFile, agents);
+                PackageMetadata metadata = new PackageMetadata(narFile, filename, Set.copyOf(agents));
                 packages.put(filename, metadata);
+                return;
+            }
+
+            ZipEntry serviceProvider = zipFile.getEntry("META-INF/services/ai.langstream.api.runner.code.AgentCodeProvider");
+            if (serviceProvider == null) {
+                log.info("The file {} does not contain any AgentCodeProvider, skipping the file", narFile);
+                return;
             }
         }
+
+        log.info("The file {} does not contain an index, still adding the file", narFile);
+        PackageMetadata metadata = new PackageMetadata(narFile, filename, null);
+        packages.put(filename, metadata);
     }
 
 
+    @Override
+    @SneakyThrows
+    public AgentCodeRegistry.AgentPackage loadPackageForAgent(String agentType, ClassLoader parentClassloader) {
+        PackageMetadata packageForAgentType = getPackageForAgentType(agentType);
+        if (packageForAgentType == null) {
+            return null;
+        }
+        URLClassLoader classLoader = createClassloaderForPackage(parentClassloader, packageForAgentType);
 
-    public void createClassloaders(ClassLoader parent) throws Exception {
+        return new AgentCodeRegistry.AgentPackage() {
+            @Override
+            public ClassLoader getClassloader() {
+                return classLoader;
+            }
+
+            @Override
+            public String getName() {
+                return packageForAgentType.getName();
+            }
+        };
+    }
+
+    public PackageMetadata getPackageForAgentType(String name) {
+        return packages
+                .values()
+                .stream()
+                .filter(p -> p.agents != null && p.agents.contains(name))
+                .findFirst()
+                .orElse(null);
+    }
+
+
+    @Override
+    public List<? extends ClassLoader> getAllClassloaders(ClassLoader parentClassloader) throws Exception {
+        if (classloaders != null) {
+            return classloaders;
+        }
+
         classloaders = new ArrayList<>();
         for (PackageMetadata metadata : packages.values()) {
-            log.info("Creating classloader for package {}", metadata.name);
-            List<URL> urls = new ArrayList<>();
+            metadata.unpack();
+            URLClassLoader result = createClassloaderForPackage(parentClassloader, metadata);
+            classloaders.add(result);
+        }
+        return classloaders;
+    }
 
-            log.info("Adding agents code {}", metadata.directory);
-            urls.add(metadata.directory.toFile().toURI().toURL());
+    private static URLClassLoader createClassloaderForPackage(ClassLoader parent, PackageMetadata metadata) throws Exception {
 
-            Path metaInfDirectory = metadata.directory
-                    .resolve("META-INF");
-            if (Files.isDirectory(metaInfDirectory)) {
+        if (metadata.classLoader != null) {
+            return metadata.classLoader;
+        }
 
-                Path dependencies = metaInfDirectory.resolve("bundled-dependencies");
-                if (Files.isDirectory(dependencies)) {
-                    try (DirectoryStream<Path> allFiles = Files.newDirectoryStream(dependencies);) {
-                        for (Path file : allFiles) {
-                            if (file.getFileName().toString().endsWith(".jar")) {
-                                urls.add(file.toUri().toURL());
-                            }
+        metadata.unpack();
+
+        log.info("Creating classloader for package {}", metadata.name);
+        List<URL> urls = new ArrayList<>();
+
+        log.info("Adding agents code {}", metadata.directory);
+        urls.add(metadata.directory.toFile().toURI().toURL());
+
+        Path metaInfDirectory = metadata.directory
+                .resolve("META-INF");
+        if (Files.isDirectory(metaInfDirectory)) {
+
+            Path dependencies = metaInfDirectory.resolve("bundled-dependencies");
+            if (Files.isDirectory(dependencies)) {
+                try (DirectoryStream<Path> allFiles = Files.newDirectoryStream(dependencies);) {
+                    for (Path file : allFiles) {
+                        if (file.getFileName().toString().endsWith(".jar")) {
+                            urls.add(file.toUri().toURL());
                         }
                     }
                 }
             }
-
-            URLClassLoader result = new URLClassLoader(urls.toArray(URL[]::new), parent);
-            classloaders.add(result);
         }
+
+        URLClassLoader result = new URLClassLoader(urls.toArray(URL[]::new), parent);
+        metadata.classLoader = result;
+        return result;
     }
 
 }

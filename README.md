@@ -89,7 +89,7 @@ There are multiple ways to install the CLI.
 ### Enable auto-completion
 Installing directly the binary will enable auto-completion for the CLI. 
 
-If you installed the CLI with Homebrew, you can enable it with the following command:
+If you installed the CLI with Homebrew, you can enable auto-completion with the following command:
 - ZSH
 
 ```

@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceLoader;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * The runtime registry is a singleton that holds all the runtime information about the
@@ -43,9 +42,11 @@ public class AgentCodeRegistry {
     }
 
     public interface AgentPackageLoader {
-        AgentPackage loadPackageForAgent(String agentType, ClassLoader parentClassloader) throws Exception;
+        AgentPackage loadPackageForAgent(String agentType) throws Exception;
 
-        List<? extends ClassLoader> getAllClassloaders(ClassLoader parentClassloader) throws Exception;
+        List<? extends ClassLoader> getAllClassloaders() throws Exception;
+
+        ClassLoader getCustomCodeClassloader();
     }
 
 
@@ -54,18 +55,15 @@ public class AgentCodeRegistry {
         log.info("Loading agent code for type {}", agentType);
         Objects.requireNonNull(agentType, "agentType cannot be null");
 
-        ClassLoader parentClassloader = Thread.currentThread().getContextClassLoader();
-
-
         // always allow to find the system agents
-        AgentCodeAndLoader agentCodeProviderProviderFromSystem = loadFromClassloader(agentType, this.getClass().getClassLoader());
+        AgentCodeAndLoader agentCodeProviderProviderFromSystem = loadFromClassloader(agentType, agentPackageLoader.getCustomCodeClassloader());
         if (agentCodeProviderProviderFromSystem != null) {
             log.info("The agent {} is loaded from the system classpath", agentType);
             return agentCodeProviderProviderFromSystem;
         }
 
         if (agentPackageLoader != null) {
-            AgentPackage agentPackage = agentPackageLoader.loadPackageForAgent(agentType, parentClassloader);
+            AgentPackage agentPackage = agentPackageLoader.loadPackageForAgent(agentType);
 
             if (agentPackage != null) {
                 log.info("Found the package the agent belongs to: {}", agentPackage.getName());
@@ -81,7 +79,7 @@ public class AgentCodeRegistry {
 
             List<ClassLoader> candidateClassloaders = new ArrayList<>();
             // we are not lucky, let's try to find the agent in all the packages
-            candidateClassloaders.addAll(agentPackageLoader.getAllClassloaders(parentClassloader));
+            candidateClassloaders.addAll(agentPackageLoader.getAllClassloaders());
 
             for (ClassLoader classLoader : candidateClassloaders) {
                 AgentCodeAndLoader agentCodeProviderProvider = loadFromClassloader(agentType, classLoader);

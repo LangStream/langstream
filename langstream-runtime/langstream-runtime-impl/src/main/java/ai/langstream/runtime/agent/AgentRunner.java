@@ -146,33 +146,26 @@ public class AgentRunner
 
         log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
 
-        try (NarFileHandler narFileHandler = new NarFileHandler(agentsDirectory);) {
+        ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, Thread.currentThread().getContextClassLoader());
+        try (NarFileHandler narFileHandler = new NarFileHandler(agentsDirectory, customLibClassloader);) {
             narFileHandler.scan();
-            ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, Thread.currentThread().getContextClassLoader());
-            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+            AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
+            agentCodeRegistry.setAgentPackageLoader(narFileHandler);
+
+            TopicConnectionsRuntime topicConnectionsRuntime =
+                    TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
+
+            log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
             try {
-                Thread.currentThread().setContextClassLoader(customLibClassloader);
-
-                AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
-                agentCodeRegistry.setAgentPackageLoader(narFileHandler);
-
-                TopicConnectionsRuntime topicConnectionsRuntime =
-                        TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
-
-                log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
-                try {
-                    AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
-                    if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
-                        runPythonAgent(
-                                podRuntimeConfiguration, codeDirectory);
-                    } else {
-                        runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode, agentInfo);
-                    }
-                } finally {
-                    topicConnectionsRuntime.close();
+                AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
+                if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
+                    runPythonAgent(
+                            podRuntimeConfiguration, codeDirectory);
+                } else {
+                    runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode, agentInfo);
                 }
             } finally {
-                Thread.currentThread().setContextClassLoader(contextClassLoader);
+                topicConnectionsRuntime.close();
             }
         }
     }

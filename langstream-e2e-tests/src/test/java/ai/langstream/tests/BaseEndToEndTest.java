@@ -64,6 +64,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -228,6 +229,11 @@ public class BaseEndToEndTest implements TestWatcher {
 
     @SneakyThrows
     protected void copyFileToClientContainer(File file, String toPath) {
+        copyFileToClientContainer(file, toPath, Function.identity());
+    }
+
+    @SneakyThrows
+    protected void copyFileToClientContainer(File file, String toPath, Function<String, String> contentTransformer) {
         final String podName = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "langstream-client")
                 .list()
                 .getItems()
@@ -236,6 +242,7 @@ public class BaseEndToEndTest implements TestWatcher {
                 .getMetadata().getName();
         if (file.isFile()) {
             String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+            content = contentTransformer.apply(content);
             final Path temp = Files.createTempFile("langstream", ".replaced");
             for (Map.Entry<String, String> e : resolvedTopics.entrySet()) {
                 content = content.replace(e.getKey(), e.getValue());
@@ -267,7 +274,7 @@ public class BaseEndToEndTest implements TestWatcher {
 
     }
 
-    private static void runProcess(String[] allArgs) throws InterruptedException, IOException {
+    protected static void runProcess(String[] allArgs) throws InterruptedException, IOException {
         runProcess(allArgs, false);
     }
 
@@ -582,110 +589,6 @@ public class BaseEndToEndTest implements TestWatcher {
         log.info("Running {}", cmd);
         runProcess(cmd.split(" "));
         log.info("Helm install completed");
-
-    }
-
-    private static final String CASSANDRA_MANIFEST = """
-            apiVersion: v1
-            kind: Service
-            metadata:
-              name: cassandra
-              labels:
-                app: cassandra
-            spec:
-              ports:
-              - port: 9042
-                name: cassandra
-              clusterIP: None
-              selector:
-                app: cassandra
-            ---
-            apiVersion: apps/v1
-            kind: StatefulSet
-            metadata:
-              name: cassandra
-            spec:
-              selector:
-                matchLabels:
-                  app: cassandra
-              serviceName: "cassandra"
-              replicas: 1
-              minReadySeconds: 10 # by default is 0
-              template:
-                metadata:
-                  labels:
-                    app: cassandra
-                spec:
-                  terminationGracePeriodSeconds: 10
-                  containers:
-                  - name: cassandra
-                    image: cassandra:latest
-                    ports:
-                    - containerPort: 9042
-                      name: cassandra
-                  resources:
-                      requests:
-                        cpu: "100m"
-                        memory: 256Mi
-            """;
-
-    @SneakyThrows
-    protected static void installCassandra() {
-
-        final Path tempFile = Files.createTempFile("cassandra-test", ".yaml");
-        Files.write(tempFile, CASSANDRA_MANIFEST.getBytes(StandardCharsets.UTF_8));
-
-        String cmd = "kubectl apply -n %s -f %s".formatted(namespace, tempFile.toFile().getAbsolutePath());
-        log.info("Running {}", cmd);
-        runProcess(cmd.split(" "));
-
-        applyManifest(CASSANDRA_MANIFEST, namespace);
-
-        cmd = "kubectl rollout status --watch --timeout=600s sts/cassandra -n %s"
-                .formatted(namespace);
-        log.info("Running {}", cmd);
-        runProcess(cmd.split(" "));
-
-
-        log.info("Cassandra install completed");
-
-        // Cassandra takes much time to boostrap
-        Awaitility.await()
-                .pollInterval(5, TimeUnit.SECONDS)
-                .atMost(5, TimeUnit.MINUTES).untilAsserted(() -> {
-            try {
-                execInPod("cassandra-0", "cassandra","cqlsh -e \"DESCRIBE keyspaces;\"").get();
-            } catch (Throwable t) {
-                log.error("Failed to execute cqlsh command: {}", t.getMessage());
-                fail("Failed to execute cqlsh command: "+ t.getMessage());
-            }
-        });
-
-        log.info("Cassandra is up and running");
-
-    }
-
-    @SneakyThrows
-    protected static String  executeCQL(String command) {
-        log.info("Executing CQL: {}", command);
-        String somename = UUID.randomUUID() + ".txt";
-        String podName = "cassandra-0";
-        execInPod("cassandra-0", "cassandra", "echo  \"%s\" > /tmp/%s".formatted(command, somename)).get();
-        String result  = execInPod("cassandra-0", "cassandra", "cat /tmp/%s | cqlsh ".formatted(somename)).get();
-        log.info("CQL result: {}", result);
-        return result;
-    }
-
-    @SneakyThrows
-    protected static void uninstallCassandra() {
-
-        final Path tempFile = Files.createTempFile("cassandra-test", ".yaml");
-        Files.write(tempFile, CASSANDRA_MANIFEST.getBytes(StandardCharsets.UTF_8));
-
-        final String cmd = "kubectl delete -n %s -f %s".formatted(namespace, tempFile.toFile().getAbsolutePath());
-        log.info("Running {}", cmd);
-        runProcess(cmd.split(" "));
-        log.info("Cassandra uninstall completed");
 
     }
 

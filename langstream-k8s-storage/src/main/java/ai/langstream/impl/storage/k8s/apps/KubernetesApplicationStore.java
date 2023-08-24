@@ -33,6 +33,7 @@ import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -69,7 +70,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
     private static final String[] LOG_COLORS = new String[]{"32", "33", "34", "35", "36", "37", "38"};
     protected static final String SECRET_KEY = "secrets";
 
-    private static ObjectMapper mapper = new ObjectMapper();
+    private static ObjectMapper mapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private KubernetesClient client;
     private KubernetesApplicationStoreProperties properties;
 
@@ -182,8 +184,6 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .build());
         final ApplicationSpec spec = ApplicationSpec.builder()
                 .tenant(tenant)
-                .image(properties.getDeployerRuntime().getImage())
-                .imagePullPolicy(properties.getDeployerRuntime().getImagePullPolicy())
                 .application(appJson)
                 .codeArchiveId(codeArchiveId)
                 .build();

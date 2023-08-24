@@ -30,6 +30,8 @@ public class ResolvedDeployerConfiguration {
         this.codeStorage = SerializationUtil.readYaml(configuration.codeStorage(), Map.class);
         this.agentResources = SerializationUtil.readYaml(configuration.agentResources(), AgentResourceUnitConfiguration.class);
         this.podTemplate = SerializationUtil.readYaml(configuration.podTemplate(), PodTemplate.class);
+        this.runtimeImage = configuration.runtimeImage().orElse(null);
+        this.runtimeImagePullPolicy = configuration.runtimeImagePullPolicy().orElse(null);
     }
 
     @Getter
@@ -43,5 +45,11 @@ public class ResolvedDeployerConfiguration {
 
     @Getter
     private PodTemplate podTemplate;
+
+    @Getter
+    private String runtimeImage;
+
+    @Getter
+    private String runtimeImagePullPolicy;
 
 }

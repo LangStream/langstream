@@ -148,7 +148,10 @@ class ApplicationCustomResourceTest {
         }
         resource.setStatus(status);
         k3s.getClient().resource(resource).inNamespace(namespace).updateStatus();
-        final Job jo = AppResourcesFactory.generateJob(resource, Map.of(), deleteJob);
+        final Job jo = AppResourcesFactory.generateJob(AppResourcesFactory.GenerateJobParams.builder()
+                .applicationCustomResource(resource)
+                .deleteJob(deleteJob)
+                .build());
         k3s.getClient().resource(jo).inNamespace(namespace).serverSideApply();
         return resource;
     }

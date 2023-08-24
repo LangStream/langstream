@@ -23,7 +23,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class ApplicationSpec extends NamespacedSpec {
+    @Deprecated
     private String image;
+    @Deprecated
     private String imagePullPolicy;
     private String application;
 

@@ -55,19 +55,18 @@ ADD maven/Pipfile.lock /app/Pipfile.lock
 
 ENV NLTK_DATA="/app/nltk_data"
 
-# install python runtime deps
+# Install python runtime deps
 RUN cd /app && pipenv requirements --categories="packages full" > /app/requirements.txt \
     && python3 -m pip install -r /app/requirements.txt \
     && python3 -m nltk.downloader -d /app/nltk_data punkt averaged_perceptron_tagger
 
-ENV PYTHONPATH="$PYTHONPATH:/app/langstream"
-ENV PYTHONPATH="$PYTHONPATH:/app/langstream_runtime"
+ENV PYTHONPATH="$PYTHONPATH:/app/python_libs"
 
-# Add the runtime code at the end. This optimize docker layers to not depend on artifacts-specific changes.
+# Add the runtime code at the end. This optimizes docker layers to not depend on artifacts-specific changes.
 ADD maven/lib /app/lib
 ADD maven/entrypoint.sh /app/entrypoint.sh
-ADD maven/langstream /app/langstream
-ADD maven/langstream_runtime /app/langstream_runtime
+ADD maven/langstream /app/python_libs/langstream
+ADD maven/langstream_runtime /app/python_libs/langstream_runtime
 ADD maven/agents /app/agents
 
 WORKDIR /app

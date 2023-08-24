@@ -85,11 +85,25 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                     switch (k) {
                         case "datasource":
                             Map<String, Object> datasource = (Map<String, Object>) v;
-                            configuration.put("contactPoints", datasource
-                                    .get("contact-points").toString());
-                            configuration.put("loadBalancing.localDc", datasource
-                                    .getOrDefault("loadBalancing-localDc", "datacenter1").toString());
+
+                            // this is the same format supported by the QueryStepDataSource for Cassandra
+
+                            // Cassandra
+                            configuration.put("contactPoints", datasource.getOrDefault("contact-points", "").toString());
+                            configuration.put("loadBalancing.localDc", datasource.getOrDefault("loadBalancing-localDc", "").toString());
                             configuration.put("port", datasource.getOrDefault("port", "9042").toString());
+
+                            // AstraDB
+                            if (datasource.containsKey("secureBundle")) {
+                                configuration.put("cloud.secureConnectBundle", datasource
+                                        .getOrDefault("secureBundle", "").toString());
+                            }
+
+                            configuration.put("auth.username", datasource
+                                    .getOrDefault("username", "").toString());
+                            configuration.put("auth.password", datasource
+                                    .getOrDefault("password", "").toString());
+
                             break;
                         default:
                             throw new IllegalArgumentException("Only string values can be passed to the Cassandra sink, found " + v.getClass() + " for " + k);

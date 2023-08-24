@@ -23,6 +23,7 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.CassandraContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -87,6 +88,44 @@ public class CassandraWriterTest {
 
         ResultSet execute = session.execute("SELECT * FROM vsearch.products WHERE id=1");
         assertEquals(1, execute.all().size());
+
+    }
+
+    @Test
+    @Disabled
+    void testWriteAstra() throws Exception {
+
+        Map<String, Object> datasourceConfig = Map.of("service", "astra",
+                "username", "xxxx",
+                    "password", "xxxxx+-ZR9QqyI-z+FfHm7e92eClu,sriPeUoc2OkWALvPoOtvDT0pqtHbDjyzgdKTk5ghMW49tdol8vg-YfjE,qklG-jd_HLK.t",
+                    "secureBundle", "base64:xxxx");
+
+        VectorDBSinkAgent agent = (VectorDBSinkAgent) new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode();
+        Map<String, Object> configuration = new HashMap<>();
+        configuration.put("datasource", datasourceConfig);
+
+        configuration.put("table", "vsearch.products");
+        configuration.put("mapping", "id=value.id,description=value.description,name=value.name");
+
+        agent.init(configuration);
+        agent.start();
+        List<Record> committed = new ArrayList<>();
+        agent.setCommitCallback(new AgentSink.CommitCallback() {
+            @Override
+            public void commit(List<Record> records) {
+                committed.addAll(records);
+            }
+        });
+
+        Map<String, Object> value = Map.of("id", "1",
+                "description", "test-description", "name", "test-name");
+        SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
+        agent.write(List.of(record));
+
+        assertEquals(committed.get(0), record);
+        agent.close();
+
+
 
     }
 }

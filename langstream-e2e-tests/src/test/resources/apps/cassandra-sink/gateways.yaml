@@ -18,7 +18,4 @@
 gateways:
   - id: produce-input
     type: produce
-    topic: TEST_TOPIC_0
-  - id: consume-output
-    type: consume
-    topic: TEST_TOPIC_1
+    topic: TEST_TOPIC_C1

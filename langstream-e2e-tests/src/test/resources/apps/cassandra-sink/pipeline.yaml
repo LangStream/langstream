@@ -16,17 +16,17 @@
 
 name: "Write to Cassandra"
 topics:
-  - name: "input-topic"
+  - name: "TEST_TOPIC_C1"
     creation-mode: create-if-not-exists
 pipeline:
   - name: "Write to Cassandra"
     type: "sink"
-    input: "input-topic"
+    input: "TEST_TOPIC_C1"
     configuration:
       connector.class: com.datastax.oss.kafka.sink.CassandraSinkConnector
       key.converter: org.apache.kafka.connect.storage.StringConverter
       value.converter: org.apache.kafka.connect.storage.StringConverter
-      cloud.secureConnectBundle: "{{{ secrets.cassandra.secure-connect-bundle }}}"
+      contactPoints: "{{{ secrets.cassandra.contact-points }}}"
       auth.username: "{{{ secrets.cassandra.username }}}"
       auth.password: "{{{ secrets.cassandra.password }}}"
       topic.input-topic.vsearch.products.mapping: "id=value.id,description=value.description,name=value.name"

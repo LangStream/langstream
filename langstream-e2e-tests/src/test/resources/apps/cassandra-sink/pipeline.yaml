@@ -26,8 +26,7 @@ pipeline:
       connector.class: com.datastax.oss.kafka.sink.CassandraSinkConnector
       key.converter: org.apache.kafka.connect.storage.StringConverter
       value.converter: org.apache.kafka.connect.storage.StringConverter
-      loadBalancing:
-        localDc: "datacenter1"
+      loadBalancing.localDc: "datacenter1"
       contactPoints: "{{{ secrets.cassandra.contact-points }}}"
-      topic.input-topic.vsearch.products.mapping: "id=value.id,description=value.description,name=value.name"
+      topic.TEST_TOPIC_C1.vsearch.products.mapping: "id=value.id,description=value.description,name=value.name"
       name: cassandra-sink

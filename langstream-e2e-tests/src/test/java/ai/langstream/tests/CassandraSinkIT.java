@@ -32,6 +32,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
@@ -45,7 +46,7 @@ public class CassandraSinkIT extends BaseEndToEndTest {
         executeCQL("CREATE KEYSPACE IF NOT EXISTS vsearch WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : '1' };");
         executeCQL("CREATE TABLE IF NOT EXISTS vsearch.products (id int PRIMARY KEY,name TEXT,description TEXT);");
         executeCQL("SELECT * FROM vsearch.products;");
-        executeCQL("INSERT INTO vsearch.products(id, name, description) VALUES (1, 'test', 'test');");
+        executeCQL("INSERT INTO vsearch.products(id, name, description) VALUES (1, 'test-init', 'test-init');");
         executeCQL("SELECT * FROM vsearch.products;");
     }
 
@@ -80,9 +81,12 @@ public class CassandraSinkIT extends BaseEndToEndTest {
                 .withName(applicationId + "-module-1-pipeline-1-cassandra-sink-1")
                 .waitUntilReady(4, TimeUnit.MINUTES);
 
-        executeCommandOnClient("bin/langstream gateway produce %s produce-input -v '{\"id\": 10, \"name\": \"test\", \"description\": \"test\"}'".formatted(applicationId).split(" "));
+        executeCommandOnClient("bin/langstream gateway produce %s produce-input -v '{\"id\": 10, \"name\": \"test-from-sink\", \"description\": \"test-from-sink\"}'".formatted(applicationId).split(" "));
 
-        executeCQL("SELECT * FROM vsearch.products");
+        Awaitility.await().untilAsserted(() -> {
+            String contents = executeCQL("SELECT * FROM vsearch.products");
+            assertTrue(contents.contains("test-from-sink"));
+        });
 
     }
 

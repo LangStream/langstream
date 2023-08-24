@@ -64,8 +64,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -78,6 +81,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestWatcher;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.BindMode;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 public class BaseEndToEndTest implements TestWatcher {
@@ -224,6 +229,11 @@ public class BaseEndToEndTest implements TestWatcher {
 
     @SneakyThrows
     protected void copyFileToClientContainer(File file, String toPath) {
+        copyFileToClientContainer(file, toPath, Function.identity());
+    }
+
+    @SneakyThrows
+    protected void copyFileToClientContainer(File file, String toPath, Function<String, String> contentTransformer) {
         final String podName = client.pods().inNamespace(namespace).withLabel("app.kubernetes.io/name", "langstream-client")
                 .list()
                 .getItems()
@@ -232,6 +242,7 @@ public class BaseEndToEndTest implements TestWatcher {
                 .getMetadata().getName();
         if (file.isFile()) {
             String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+            content = contentTransformer.apply(content);
             final Path temp = Files.createTempFile("langstream", ".replaced");
             for (Map.Entry<String, String> e : resolvedTopics.entrySet()) {
                 content = content.replace(e.getKey(), e.getValue());
@@ -263,7 +274,7 @@ public class BaseEndToEndTest implements TestWatcher {
 
     }
 
-    private static void runProcess(String[] allArgs) throws InterruptedException, IOException {
+    protected static void runProcess(String[] allArgs) throws InterruptedException, IOException {
         runProcess(allArgs, false);
     }
 
@@ -442,18 +453,18 @@ public class BaseEndToEndTest implements TestWatcher {
         imagesFutures.add(CompletableFuture.runAsync(() ->
                 kubeServer.ensureImage("langstream/langstream-control-plane:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage( "langstream/langstream-deployer:latest-dev")));
+                kubeServer.ensureImage("langstream/langstream-deployer:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
                 kubeServer.ensureImage("langstream/langstream-runtime:latest-dev")));
         imagesFutures.add(CompletableFuture.runAsync(() ->
                 kubeServer.ensureImage("langstream/langstream-api-gateway:latest-dev")));
-
         final CompletableFuture<Void> allFuture =
                 CompletableFuture.runAsync(() -> installLangStream());
         CompletableFuture.allOf(kafkaFuture, minioFuture, imagesFutures.get(0), imagesFutures.get(1), imagesFutures.get(2),
                 allFuture).join();
         awaitControlPlaneReady();
         awaitApiGatewayReady();
+
     }
 
     private static void cleanupAllEndToEndTestsNamespaces() {
@@ -509,7 +520,7 @@ public class BaseEndToEndTest implements TestWatcher {
                     pullPolicy: Never
                   resources:
                     requests:
-                      cpu: 0.1
+                      cpu: 0.2
                       memory: 256Mi
                   app:
                     config:
@@ -523,7 +534,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   replicaCount: 1
                   resources:
                     requests:
-                      cpu: 0.1
+                      cpu: 0.2
                       memory: 256Mi
                   app:
                     config:
@@ -547,7 +558,7 @@ public class BaseEndToEndTest implements TestWatcher {
                     pullPolicy: Never
                   resources:
                     requests:
-                      cpu: 0.1
+                      cpu: 0.2
                       memory: 256Mi
                   app:
                     config:

@@ -389,6 +389,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         this.consumer = (Consumer<?, ?>) context.getTopicConsumer().getNativeConsumer();
         log.info("Getting consumer from context {}", consumer);
         Objects.requireNonNull(consumer);
+        log.info("Loading class {} from classloader {}", kafkaConnectorFQClassName, Thread.currentThread().getContextClassLoader());
 
         Class<?> clazz = Class.forName(kafkaConnectorFQClassName, true, Thread.currentThread().getContextClassLoader());
         connector = (SinkConnector) clazz.getConstructor().newInstance();

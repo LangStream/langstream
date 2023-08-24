@@ -19,7 +19,6 @@ import ai.langstream.api.codestorage.GenericZipFileArchiveFile;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import lombok.Data;
-import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,12 +46,15 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
     private final Path packagesDirectory;
     private final Path temporaryDirectory;
 
+    private final ClassLoader customCodeClassloader;
+
     private List<URLClassLoader> classloaders;
     private Map<String, PackageMetadata> packages = new HashMap<>();
 
-    public NarFileHandler(Path packagesDirectory) throws Exception {
+    public NarFileHandler(Path packagesDirectory, ClassLoader customCodeClassloader) throws Exception {
         this.packagesDirectory = packagesDirectory;
         this.temporaryDirectory = Files.createTempDirectory("nar");
+        this.customCodeClassloader = customCodeClassloader;
     }
 
 
@@ -162,13 +164,14 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
 
     @Override
     @SneakyThrows
-    public AgentCodeRegistry.AgentPackage loadPackageForAgent(String agentType, ClassLoader parentClassloader) {
+    public AgentCodeRegistry.AgentPackage loadPackageForAgent(String agentType) {
         PackageMetadata packageForAgentType = getPackageForAgentType(agentType);
         if (packageForAgentType == null) {
             return null;
         }
-        URLClassLoader classLoader = createClassloaderForPackage(parentClassloader, packageForAgentType);
-
+        URLClassLoader classLoader = createClassloaderForPackage(customCodeClassloader, packageForAgentType);
+        log.info("For package {}, classloader {}, parent {}", packageForAgentType.getName(),
+                classLoader, classLoader.getParent());
         return new AgentCodeRegistry.AgentPackage() {
             @Override
             public ClassLoader getClassloader() {
@@ -193,7 +196,7 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
 
 
     @Override
-    public List<? extends ClassLoader> getAllClassloaders(ClassLoader parentClassloader) throws Exception {
+    public List<? extends ClassLoader> getAllClassloaders() throws Exception {
         if (classloaders != null) {
             return classloaders;
         }
@@ -201,10 +204,15 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
         classloaders = new ArrayList<>();
         for (PackageMetadata metadata : packages.values()) {
             metadata.unpack();
-            URLClassLoader result = createClassloaderForPackage(parentClassloader, metadata);
+            URLClassLoader result = createClassloaderForPackage(customCodeClassloader, metadata);
             classloaders.add(result);
         }
         return classloaders;
+    }
+
+    @Override
+    public ClassLoader getCustomCodeClassloader() {
+        return customCodeClassloader;
     }
 
     private static URLClassLoader createClassloaderForPackage(ClassLoader parent, PackageMetadata metadata) throws Exception {

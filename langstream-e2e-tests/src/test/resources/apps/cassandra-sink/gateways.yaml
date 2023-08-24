@@ -15,12 +15,7 @@
 # limitations under the License.
 #
 
-secrets:
-  - name: secret1
-    id: secret1
-    data:
-      value-key: super secret value
-  - name: cassandra
-    id: cassandra
-    data:
-      contact-points: CASSANDRA-HOST-INJECTED
+gateways:
+  - id: produce-input
+    type: produce
+    topic: TEST_TOPIC_C1

@@ -15,7 +15,6 @@
  */
 package ai.langstream.cli.commands;
 
-import ai.langstream.cli.client.LangStreamClient;
 import ai.langstream.cli.commands.configure.ConfigureCmd;
 import lombok.Getter;
 import picocli.AutoComplete;

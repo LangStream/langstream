@@ -46,7 +46,7 @@ public class ConfigureCmd extends BaseCmd {
     @Override
     @SneakyThrows
     public void run() {
-        getClient().updateConfig(clientConfig -> {
+        updateConfig(clientConfig -> {
             switch (configKey) {
                 case tenant:
                     clientConfig.setTenant(newValue);

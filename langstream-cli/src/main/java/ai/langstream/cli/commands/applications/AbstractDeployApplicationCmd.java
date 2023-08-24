@@ -15,10 +15,9 @@
  */
 package ai.langstream.cli.commands.applications;
 
+import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Dependency;
-
-import ai.langstream.cli.util.MultiPartBodyPublisher;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;

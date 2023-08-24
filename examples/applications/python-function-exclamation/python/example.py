@@ -20,4 +20,4 @@ from langstream.util import SimpleRecord, SingleRecordProcessor
 # Example Python processor that adds an exclamation mark to the end of the record value
 class Exclamation(SingleRecordProcessor):
   def process_record(self, record):
-      return [SimpleRecord(record.value() + "!!")]
+      return [SimpleRecord(record.value() + "!!", headers=record.headers())]

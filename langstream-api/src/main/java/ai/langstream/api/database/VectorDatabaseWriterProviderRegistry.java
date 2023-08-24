@@ -15,9 +15,12 @@
  */
 package ai.langstream.api.database;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Map;
 import java.util.ServiceLoader;
 
+@Slf4j
 public class VectorDatabaseWriterProviderRegistry {
 
 
@@ -27,6 +30,7 @@ public class VectorDatabaseWriterProviderRegistry {
         final VectorDatabaseWriterProvider store = loader
                 .stream()
                 .filter(p -> {
+                    log.info("Checking if provider {} supports {}", p.get().getClass().getName(), conf);
                     return p.get().supports(conf);
                 })
                 .findFirst()

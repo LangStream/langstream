@@ -17,8 +17,8 @@
 
 configuration:
   resources:
-    - type: "datasource"
-      name: "vector-database"
+    - type: "vector-database"
+      name: "AstraDatasource"
       configuration:
         service: "astra"
         username: "{{{ secrets.astra.username }}}"

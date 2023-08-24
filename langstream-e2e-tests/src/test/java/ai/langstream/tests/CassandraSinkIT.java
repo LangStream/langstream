@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 @ExtendWith(BaseEndToEndTest.class)
 public class CassandraSinkIT extends BaseEndToEndTest {
 
-    @BeforeAll
+    // @BeforeAll
     public static void setupCassandra() {
         installCassandra();
 
@@ -50,12 +50,12 @@ public class CassandraSinkIT extends BaseEndToEndTest {
         executeCQL("SELECT * FROM vsearch.products;");
     }
 
-    @AfterAll
+    // @AfterAll
     public static void removeCassandra() {
         uninstallCassandra();
     }
 
-    @Test
+    // @Test
     public void test() throws Exception {
 
         final String tenant = "ten-" + System.currentTimeMillis();

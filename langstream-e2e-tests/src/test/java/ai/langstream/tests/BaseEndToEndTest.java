@@ -607,7 +607,7 @@ public class BaseEndToEndTest implements TestWatcher {
 
         client.apps().deployments().inNamespace(namespace).withName("langstream-control-plane")
                 .waitUntilCondition(
-                        d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 120,
+                           d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 120,
                         TimeUnit.SECONDS);
         log.info("control plane ready");
     }

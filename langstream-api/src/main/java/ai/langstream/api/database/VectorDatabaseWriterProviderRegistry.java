@@ -23,14 +23,12 @@ import java.util.ServiceLoader;
 @Slf4j
 public class VectorDatabaseWriterProviderRegistry {
 
-
     public static VectorDatabaseWriter createWriter(Map<String, Object> configuration) {
         Map<String, Object> conf = configuration == null ? Map.of() : configuration;
         ServiceLoader<VectorDatabaseWriterProvider> loader = ServiceLoader.load(VectorDatabaseWriterProvider.class);
         final VectorDatabaseWriterProvider store = loader
                 .stream()
                 .filter(p -> {
-                    log.info("Checking if provider {} supports {}", p.get().getClass().getName(), conf);
                     return p.get().supports(conf);
                 })
                 .findFirst()

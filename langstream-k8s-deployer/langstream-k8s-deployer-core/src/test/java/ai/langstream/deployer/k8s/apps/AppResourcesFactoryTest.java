@@ -81,6 +81,13 @@ class AppResourcesFactoryTest {
                                 - /cluster-runtime-config/config
                                 - /app-config/config
                                 - /app-secrets/secrets
+                                env:
+                                - name: LANGSTREAM_RUNTIME_DEPLOYER_APP_CONFIGURATION
+                                  value: /app-config/config
+                                - name: LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION
+                                  value: /cluster-runtime-config/config
+                                - name: LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS
+                                  value: /app-secrets/secrets
                                 image: ubuntu
                                 imagePullPolicy: Always
                                 name: deployer
@@ -160,6 +167,13 @@ class AppResourcesFactoryTest {
                                 - /cluster-runtime-config/config
                                 - /app-config/config
                                 - /app-secrets/secrets
+                                env:
+                                - name: LANGSTREAM_RUNTIME_DEPLOYER_APP_CONFIGURATION
+                                  value: /app-config/config
+                                - name: LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION
+                                  value: /cluster-runtime-config/config
+                                - name: LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS
+                                  value: /app-secrets/secrets
                                 image: ubuntu
                                 imagePullPolicy: Always
                                 name: deployer

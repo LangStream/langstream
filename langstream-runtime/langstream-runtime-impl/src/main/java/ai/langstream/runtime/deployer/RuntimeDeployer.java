@@ -15,6 +15,12 @@
  */
 package ai.langstream.runtime.deployer;
 
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV_DEFAULT;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV_DEFAULT;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 import ai.langstream.api.model.Application;
@@ -24,6 +30,7 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
+import ai.langstream.runtime.api.deployer.RuntimeDeployerConstants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -38,64 +45,8 @@ public class RuntimeDeployer {
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(FAIL_ON_UNKNOWN_PROPERTIES, false); // this helps with forward compatibility
-    private static ErrorHandler errorHandler = error -> {
-        log.error("Unexpected error", error);
-        System.exit(-1);
-    };
 
-    public interface ErrorHandler {
-        void handleError(Throwable error);
-    }
-
-    public static void main(String... args) {
-        try {
-            if (args.length < 1) {
-                throw new IllegalArgumentException("Missing runtime deployer command");
-            }
-
-            final String arg0 = args[0];
-
-            if (args.length < 3) {
-                throw new IllegalArgumentException("Missing runtime deployer configuration");
-            }
-
-
-            Path clusterRuntimeConfigPath = Path.of(args[1]);
-            log.info("Loading cluster runtime config from {}", clusterRuntimeConfigPath);
-            final Map<String, Map<String, Object>> clusterRuntimeConfiguration =
-                    (Map<String, Map<String, Object>>) MAPPER.readValue(clusterRuntimeConfigPath.toFile(), Map.class);
-            log.info("clusterRuntimeConfiguration {}", clusterRuntimeConfiguration);
-
-            Path appConfigPath = Path.of(args[2]);
-            log.info("Loading configuration from {}", appConfigPath);
-            final RuntimeDeployerConfiguration configuration =
-                    MAPPER.readValue(appConfigPath.toFile(), RuntimeDeployerConfiguration.class);
-            log.info("RuntimeDeployerConfiguration {}", configuration);
-
-            Secrets secrets = null;
-            if (args.length > 1) {
-                Path secretsPath = Path.of(args[3]);
-                log.info("Loading secrets from {}", secretsPath);
-                secrets = MAPPER.readValue(secretsPath.toFile(), Secrets.class);
-            }
-
-            switch (arg0) {
-                case "delete":
-                    delete(clusterRuntimeConfiguration, configuration, secrets);
-                    break;
-                case "deploy":
-                    deploy(clusterRuntimeConfiguration, configuration, secrets);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown command " + arg0);
-            }
-        } catch (Throwable error) {
-            errorHandler.handleError(error);
-            return;
-        }
-    }
-
-    private static void deploy(Map<String, Map<String, Object>> clusterRuntimeConfiguration,
+    public void deploy(Map<String, Map<String, Object>> clusterRuntimeConfiguration,
                                RuntimeDeployerConfiguration configuration, Secrets secrets) throws IOException {
 
 
@@ -120,7 +71,7 @@ public class RuntimeDeployer {
         }
     }
 
-    private static void delete(Map<String, Map<String, Object>> clusterRuntimeConfiguration,
+    public void delete(Map<String, Map<String, Object>> clusterRuntimeConfiguration,
                                RuntimeDeployerConfiguration configuration,
                                Secrets secrets) throws IOException {
 

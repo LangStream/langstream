@@ -220,7 +220,7 @@ public abstract class AbstractApplicationRunner {
                         log.info("{} AgentPod {} Started", runnerExecutionId, podConfiguration.agent().agentId());
                         AgentInfo agentInfo = new AgentInfo();
                         allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
-                        AgentRunner.run(podConfiguration, null, null, agentsDirectory, agentInfo, 10);
+                        AgentRunner.runAgent(podConfiguration, null, null, agentsDirectory, agentInfo, 10);
                         List<?> infos = agentInfo.serveWorkerStatus();
                         log.info("{} AgentPod {} AgentInfo {}", runnerExecutionId, podConfiguration.agent().agentId(), infos);
                         handle.complete(null);

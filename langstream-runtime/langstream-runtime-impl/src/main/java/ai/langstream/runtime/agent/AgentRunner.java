@@ -64,6 +64,12 @@ import java.util.stream.StreamSupport;
 import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
 import static ai.langstream.api.model.ErrorsSpec.FAIL;
 import static ai.langstream.api.model.ErrorsSpec.SKIP;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV_DEFAULT;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV_DEFAULT;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
 
 /**
  * This is the main entry point for the pods that run the LangStream runtime and Java code.
@@ -83,39 +89,6 @@ public class AgentRunner
         void handleError(Throwable error);
     }
 
-    @SneakyThrows
-    public static void main(String ... args) {
-        try {
-            if (args.length < 1) {
-                throw new IllegalArgumentException("Missing pod configuration file argument");
-            }
-            Path podRuntimeConfiguration = Path.of(args[0]);
-            log.info("Loading pod configuration from {}", podRuntimeConfiguration);
-
-            RuntimePodConfiguration configuration = MAPPER.readValue(podRuntimeConfiguration.toFile(),
-                    RuntimePodConfiguration.class);
-
-            AgentInfo agentInfo = new AgentInfo();
-            Server server = bootstrapHttpServer(agentInfo);
-            try {
-                Path codeDirectory = Path.of(args[1]);
-                log.info("Loading code from {}", codeDirectory);
-
-                // handle compatibility with old statefullsets
-                Path agentsDirectory = args.length >= 3 ? Path.of(args[2]) : Path.of("/app/agents");
-                log.info("Loading agents from {}", codeDirectory);
-                run(configuration, podRuntimeConfiguration, codeDirectory, agentsDirectory, agentInfo, -1);
-            } finally {
-                server.stop();;
-            }
-
-        } catch (Throwable error) {
-            log.info("Error, NOW SLEEPING", error);
-            Thread.sleep(60000);
-            mainErrorHandler.handleError(error);
-        }
-    }
-
     private static Server bootstrapHttpServer(AgentInfo agentInfo) throws Exception {
         DefaultExports.initialize();
         Server server = new Server(8080);
@@ -131,42 +104,58 @@ public class AgentRunner
         return server;
     }
 
+    public static void runAgent(RuntimePodConfiguration configuration,
+                    Path podRuntimeConfiguration,
+                    Path codeDirectory,
+                    Path agentsDirectory,
+                    AgentInfo agentInfo,
+                    int maxLoops) throws Exception {
+        new AgentRunner().run(configuration, podRuntimeConfiguration, codeDirectory, agentsDirectory, agentInfo, maxLoops);
 
-    public static void run(RuntimePodConfiguration configuration,
+    }
+
+
+    public void run(RuntimePodConfiguration configuration,
                            Path podRuntimeConfiguration,
                            Path codeDirectory,
                            Path agentsDirectory,
                            AgentInfo agentInfo,
                            int maxLoops) throws Exception {
-        log.info("Pod Configuration {}", configuration);
 
-        // agentId is the identity of the agent in the cluster
-        // it is shared by all the instances of the agent
-        String agentId = configuration.agent().applicationId() + "-" + configuration.agent().agentId();
+        Server server = bootstrapHttpServer(agentInfo);
+        try {
+            log.info("Pod Configuration {}", configuration);
 
-        log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
+            // agentId is the identity of the agent in the cluster
+            // it is shared by all the instances of the agent
+            String agentId = configuration.agent().applicationId() + "-" + configuration.agent().agentId();
 
-        ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, Thread.currentThread().getContextClassLoader());
-        try (NarFileHandler narFileHandler = new NarFileHandler(agentsDirectory, customLibClassloader);) {
-            narFileHandler.scan();
-            AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
-            agentCodeRegistry.setAgentPackageLoader(narFileHandler);
+            log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
 
-            TopicConnectionsRuntime topicConnectionsRuntime =
-                    TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
+            ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, Thread.currentThread().getContextClassLoader());
+            try (NarFileHandler narFileHandler = new NarFileHandler(agentsDirectory, customLibClassloader);) {
+                narFileHandler.scan();
+                AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
+                agentCodeRegistry.setAgentPackageLoader(narFileHandler);
 
-            log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
-            try {
-                AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
-                if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
-                    runPythonAgent(
-                            podRuntimeConfiguration, codeDirectory);
-                } else {
-                    runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode, agentInfo);
+                TopicConnectionsRuntime topicConnectionsRuntime =
+                        TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
+
+                log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
+                try {
+                    AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
+                    if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
+                        runPythonAgent(
+                                podRuntimeConfiguration, codeDirectory);
+                    } else {
+                        runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode, agentInfo);
+                    }
+                } finally {
+                    topicConnectionsRuntime.close();
                 }
-            } finally {
-                topicConnectionsRuntime.close();
             }
+        } finally {
+            server.stop();
         }
     }
 

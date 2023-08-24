@@ -26,9 +26,11 @@ import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
+import ai.langstream.runtime.api.deployer.RuntimeDeployerConstants;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EmptyDirVolumeSource;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
@@ -111,6 +113,20 @@ public class AppResourcesFactory {
                 .withName("deployer")
                 .withImage(containerImage)
                 .withImagePullPolicy(containerImagePullPolicy)
+                .withEnv(new EnvVarBuilder()
+                        .withName(RuntimeDeployerConstants.APP_CONFIG_ENV)
+                        .withValue("/app-config/config")
+                        .build(),
+                        new EnvVarBuilder()
+                                .withName(RuntimeDeployerConstants.CLUSTER_RUNTIME_CONFIG_ENV)
+                                .withValue("/cluster-runtime-config/config")
+                                .build(),
+                        new EnvVarBuilder()
+                                .withName(RuntimeDeployerConstants.APP_SECRETS_ENV)
+                                .withValue("/app-secrets/secrets")
+                                .build()
+                        )
+                // keep args for backward compatibility
                 .withArgs("deployer-runtime", command, "/cluster-runtime-config/config", "/app-config/config",
                         "/app-secrets/secrets")
                 .withVolumeMounts(new VolumeMountBuilder()

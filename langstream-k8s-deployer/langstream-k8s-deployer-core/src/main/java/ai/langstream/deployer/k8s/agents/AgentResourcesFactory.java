@@ -24,6 +24,7 @@ import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentSpec;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
+import ai.langstream.runtime.api.agent.AgentRunnerConstants;
 import ai.langstream.runtime.api.agent.CodeStorageConfig;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -32,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -169,6 +171,16 @@ public class AgentResourcesFactory {
 //                .withLivenessProbe(createLivenessProbe())
 //                .withReadinessProbe(createReadinessProbe())
                 .withResources(convertResources(spec.getResources(), agentResourceUnitConfiguration))
+                .withEnv(new EnvVarBuilder()
+                        .withName(AgentRunnerConstants.POD_CONFIG_ENV)
+                        .withValue("/app-config/config")
+                        .build(),
+                        new EnvVarBuilder()
+                                .withName(AgentRunnerConstants.CODE_CONFIG_ENV)
+                                .withValue("/app-code-download")
+                                .build()
+                )
+                // keep args for backward compatibility
                 .withArgs("agent-runtime", "/app-config/config", "/app-code-download")
                 .withVolumeMounts(new VolumeMountBuilder()
                         .withName(appConfigVolume)

@@ -85,7 +85,7 @@ import org.testcontainers.containers.BindMode;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
-public class BaseEndToEndTest implements TestWatcher {
+public abstract class BaseEndToEndTest implements TestWatcher {
 
 
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");

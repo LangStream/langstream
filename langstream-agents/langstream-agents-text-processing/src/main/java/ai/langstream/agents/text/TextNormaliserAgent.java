@@ -44,16 +44,23 @@ public class TextNormaliserAgent extends SingleRecordAgentProcessor {
         Object value = record.value();
         String stream = Utils.toText(value);
 
+        if (trimSpaces) {
+            stream = trimSpaces(stream);
+        }
         if (makeLowercase) {
             stream = stream.toLowerCase(Locale.ENGLISH);
-        }
-        if (trimSpaces) {
-            stream = stream.trim();
         }
         return List.of(SimpleRecord
                 .copyFrom(record)
                 .value(stream)
                 .build());
+    }
 
+    static String trimSpaces(String stream) {
+        return stream
+                .replaceAll("\t+", " ")  // convert tabs to spaces
+                .replaceAll(" +", " ") // remove multiple spaces
+                .replaceAll("\n\n\n", "\n\n") // remove repeated newlines (3 or more)
+                .trim();
     }
 }

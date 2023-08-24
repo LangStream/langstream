@@ -36,14 +36,10 @@
       <groupId>info.picocli</groupId>
       <artifactId>picocli</artifactId>
     </dependency>
-
     <dependency>
-      <groupId>net.lingala.zip4j</groupId>
-      <artifactId>zip4j</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-admin-client</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.tomakehurst</groupId>
@@ -52,7 +48,7 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>ai.langstream</groupId>
+      <groupId>${project.groupId}</groupId>
       <artifactId>langstream-api</artifactId>
       <version>${project.version}</version>
     </dependency>

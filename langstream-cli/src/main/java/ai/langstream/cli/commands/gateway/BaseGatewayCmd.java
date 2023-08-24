@@ -15,10 +15,10 @@
  */
 package ai.langstream.cli.commands.gateway;
 
+import ai.langstream.admin.client.AdminClient;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Gateways;
 import ai.langstream.api.webservice.application.ApplicationDescription;
-import ai.langstream.cli.client.LangStreamClient;
 import ai.langstream.cli.commands.BaseCmd;
 import ai.langstream.cli.commands.RootCmd;
 import ai.langstream.cli.commands.RootGatewayCmd;
@@ -92,7 +92,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     protected void validateGateway(String application, String gatewayId, Gateway.GatewayType type,
                                    Map<String, String> params, Map<String, String> options, String credentials) {
 
-        final LangStreamClient client = getClient();
+        final AdminClient client = getClient();
 
         final String applicationContent = client.applications()
                 .get(application);

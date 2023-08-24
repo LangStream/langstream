@@ -136,7 +136,15 @@ public class CassandraSinkIT extends BaseEndToEndTest {
                       - name: MAX_HEAP_SIZE
                         value: 512M
                       - name: HEAP_NEWSIZE
-                        value: 100M
+                        value: 128M
+                      - name: CASSANDRA_SNITCH
+                        value: GossipingPropertyFileSnitch
+                      - name: JVM_OPTS
+                        value: "-Dcassandra.skip_wait_for_gossip_to_settle=0 -Dcassandra.initial_token=0"
+                      - name: CASSANDRA_ENDPOINT_SNITCH
+                        value: GossipingPropertyFileSnitch
+                      - name:  CASSANDRA_DC
+                        value: datacenter1
             """;
 
     @SneakyThrows

@@ -270,36 +270,7 @@ public class PineconeDataSource implements DataSourceProvider {
             }
         }
 
-        private static Value convertToValue(Object value) {
-            if (value instanceof Map) {
-                Struct.Builder builder = Struct.newBuilder();
-                ((Map<String, Object>) value).forEach((key, val) -> {
-                    builder.putFields(key, convertToValue(val));
-                });
-                return Value.newBuilder().setStructValue(builder.build()).build();
-            } else if (value instanceof String){
-                return Value.newBuilder()
-                        .setStringValue(value.toString())
-                        .build();
-            } else if (value instanceof Number n){
-                return Value.newBuilder()
-                        .setNumberValue(n.doubleValue())
-                        .build();
-            } else if (value instanceof Boolean b) {
-                return Value.newBuilder()
-                        .setBoolValue(b.booleanValue())
-                        .build();
-            } else if (value instanceof List list) {
-                ListValue.Builder listValue = ListValue.newBuilder();
-                for (Object item : list) {
-                    listValue.addValues(convertToValue(item));
-                }
-                return Value.newBuilder()
-                        .setListValue(listValue).build();
-            } else {
-                throw new IllegalArgumentException("Unsupported value of type: " + value.getClass().getName() + " in Pinecone filter");
-            }
-        }
+
 
         private Struct buildFilter(Map<String, Object> filter) {
             Struct.Builder builder = Struct.newBuilder();
@@ -355,4 +326,34 @@ public class PineconeDataSource implements DataSourceProvider {
         private List<Float> values;
     }
 
+    static Value convertToValue(Object value) {
+        if (value instanceof Map) {
+            Struct.Builder builder = Struct.newBuilder();
+            ((Map<String, Object>) value).forEach((key, val) -> {
+                builder.putFields(key, convertToValue(val));
+            });
+            return Value.newBuilder().setStructValue(builder.build()).build();
+        } else if (value instanceof String){
+            return Value.newBuilder()
+                    .setStringValue(value.toString())
+                    .build();
+        } else if (value instanceof Number n){
+            return Value.newBuilder()
+                    .setNumberValue(n.doubleValue())
+                    .build();
+        } else if (value instanceof Boolean b) {
+            return Value.newBuilder()
+                    .setBoolValue(b.booleanValue())
+                    .build();
+        } else if (value instanceof List list) {
+            ListValue.Builder listValue = ListValue.newBuilder();
+            for (Object item : list) {
+                listValue.addValues(convertToValue(item));
+            }
+            return Value.newBuilder()
+                    .setListValue(listValue).build();
+        } else {
+            throw new IllegalArgumentException("Unsupported value of type: " + value.getClass().getName() + " in Pinecone filter");
+        }
+    }
 }

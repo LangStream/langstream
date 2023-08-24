@@ -55,8 +55,10 @@ public class AgentCodeRegistry {
         log.info("Loading agent code for type {}", agentType);
         Objects.requireNonNull(agentType, "agentType cannot be null");
 
+        ClassLoader customCodeClassloader = agentPackageLoader != null ?
+                agentPackageLoader.getCustomCodeClassloader() : AgentCodeRegistry.class.getClassLoader();
         // always allow to find the system agents
-        AgentCodeAndLoader agentCodeProviderProviderFromSystem = loadFromClassloader(agentType, agentPackageLoader.getCustomCodeClassloader());
+        AgentCodeAndLoader agentCodeProviderProviderFromSystem = loadFromClassloader(agentType, customCodeClassloader);
         if (agentCodeProviderProviderFromSystem != null) {
             log.info("The agent {} is loaded from the system classpath", agentType);
             return agentCodeProviderProviderFromSystem;

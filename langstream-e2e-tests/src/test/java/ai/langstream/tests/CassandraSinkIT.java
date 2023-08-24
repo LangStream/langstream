@@ -73,18 +73,17 @@ public class CassandraSinkIT extends BaseEndToEndTest {
         copyFileToClientContainer(Paths.get(testInstanceBaseDir, "kafka-kubernetes.yaml").toFile(), "/tmp/instance.yaml");
         copyFileToClientContainer(Paths.get(testSecretBaseDir, "secret1.yaml").toFile(), "/tmp/secrets.yaml", file -> file.replace("CASSANDRA-HOST-INJECTED", cassandraHost));
 
-
         executeCommandOnClient("bin/langstream apps deploy %s -app /tmp/cassandra-sink -i /tmp/instance.yaml -s /tmp/secrets.yaml".formatted(applicationId).split(" "));
         client.apps()
                 .statefulSets()
                 .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)
-                .withName(applicationId + "-module-1-pipeline-1-cassandra-sink-1")
+                .withName(applicationId + "-module-1-pipeline-1-sink-1")
                 .waitUntilReady(4, TimeUnit.MINUTES);
 
         executeCommandOnClient("bin/langstream gateway produce %s produce-input -v '{\"id\": 10, \"name\": \"test-from-sink\", \"description\": \"test-from-sink\"}'".formatted(applicationId).split(" "));
 
         Awaitility.await().untilAsserted(() -> {
-            String contents = executeCQL("SELECT * FROM vsearch.products");
+            String contents = executeCQL("SELECT * FROM vsearch.products;");
             assertTrue(contents.contains("test-from-sink"));
         });
 

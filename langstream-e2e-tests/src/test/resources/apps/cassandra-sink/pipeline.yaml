@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+module: "module-1"
+id: "pipeline-1"
 name: "Write to Cassandra"
 topics:
   - name: "TEST_TOPIC_C1"

@@ -26,16 +26,17 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import lombok.SneakyThrows;
 
-public class AdminClient {
+public class AdminClient implements AutoCloseable {
 
     private final AdminClientConfiguration configuration;
     private final AdminClientLogger logger;
+    private ExecutorService executorService;
     private HttpClient httpClient;
-
-
-
+    
 
     public AdminClient(AdminClientConfiguration adminClientConfiguration, AdminClientLogger logger) {
         this.configuration = adminClientConfiguration;
@@ -48,7 +49,9 @@ public class AdminClient {
 
     public synchronized HttpClient getHttpClient() {
         if (httpClient == null) {
+            executorService = Executors.newCachedThreadPool();
             httpClient = HttpClient.newBuilder()
+                    .executor(executorService)
                     .connectTimeout(Duration.ofSeconds(30))
                     .followRedirects(HttpClient.Redirect.ALWAYS)
                     .build();
@@ -199,12 +202,35 @@ public class AdminClient {
 
         @Override
         public HttpResponse<byte[]> download(String application) {
-            return http(newGet(tenantAppPath("/" + application + "/code")), HttpResponse.BodyHandlers.ofByteArray());
+            return download(application, (String) null);
         }
 
+        @Override
+        public HttpResponse<byte[]> download(String application, String codeStorageId) {
+            return download(application, null, HttpResponse.BodyHandlers.ofByteArray());
+        }
+
+
+
+        @Override
+        public <T> HttpResponse<T> download(String application, HttpResponse.BodyHandler<T> responseBodyHandler) {
+            return download(application, null, responseBodyHandler);
+        }
+
+        @Override
+        public <T> HttpResponse<T> download(String application, String codeStorageId,
+                                            HttpResponse.BodyHandler<T> responseBodyHandler) {
+
+            final String uri = codeStorageId == null ? tenantAppPath("/" + application + "/code") :
+                    tenantAppPath("/" + application + "/code/" + codeStorageId);
+            return http(newGet(uri), responseBodyHandler);
+        }
     }
 
-
-
-
+    @Override
+    public void close() throws Exception {
+        if (executorService != null) {
+            executorService.shutdown();
+        }
+    }
 }

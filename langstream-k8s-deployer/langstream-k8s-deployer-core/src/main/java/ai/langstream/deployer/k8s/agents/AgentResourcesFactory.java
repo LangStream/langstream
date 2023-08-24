@@ -24,8 +24,9 @@ import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentSpec;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
+import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
 import ai.langstream.runtime.api.agent.AgentRunnerConstants;
-import ai.langstream.runtime.api.agent.CodeStorageConfig;
+import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -108,27 +109,28 @@ public class AgentResourcesFactory {
     }
 
     public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource,
-                                                  Map<String, Object> codeStoreConfiguration,
                                                   AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
-        return generateStatefulSet(agentCustomResource, codeStoreConfiguration, agentResourceUnitConfiguration, null);
+        return generateStatefulSet(agentCustomResource, agentResourceUnitConfiguration, null);
     }
 
 
     public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource,
-                                                  Map<String, Object> codeStoreConfiguration,
                                                   AgentResourceUnitConfiguration agentResourceUnitConfiguration,
                                                   PodTemplate podTemplate) {
 
         final AgentSpec spec = agentCustomResource.getSpec();
 
-        final CodeStorageConfig codeStorageConfig =
-                new CodeStorageConfig(spec.getTenant(), codeStoreConfiguration.getOrDefault("type", "none").toString(),
-                        spec.getCodeArchiveId(),
-                        codeStoreConfiguration);
-
         final String appConfigVolume = "app-config";
-        final String codeConfigVolume = "code-config";
-        final String downloadedCodeVolume = "code-download";
+        final String clusterConfigVolume = "cluster-config";
+        final String downloadConfigVolume = "download-config";
+
+        final String downloadCodeVolume = "code-download";
+        final String downloadCodePath = "/app-code-download";
+
+        final DownloadAgentCodeConfiguration downloadAgentCodeConfiguration =
+                new DownloadAgentCodeConfiguration(downloadCodePath, spec.getTenant(), spec.getApplicationId(),
+                        spec.getCodeArchiveId());
+
         final Container injectConfigForDownloadCodeInitContainer = new ContainerBuilder()
                 .withName("code-download-init")
                 .withImage(spec.getImage())
@@ -136,10 +138,10 @@ public class AgentResourcesFactory {
                 .withResources(new ResourceRequirementsBuilder().withRequests(Map.of("cpu", Quantity.parse("100m"),
                         "memory", Quantity.parse("100Mi"))).build())
                 .withCommand("bash", "-c")
-                .withArgs("echo '%s' > /code-config/config".formatted(SerializationUtil.writeAsJson(codeStorageConfig).replace("'", "'\"'\"'")))
+                .withArgs("echo '%s' > /download-config/config".formatted(writeInlineBashJson(downloadAgentCodeConfiguration)))
                 .withVolumeMounts(new VolumeMountBuilder()
-                        .withName(codeConfigVolume)
-                        .withMountPath("/code-config")
+                        .withName(downloadConfigVolume)
+                        .withMountPath("/download-config")
                         .build()
                 )
                 .withTerminationMessagePolicy("FallbackToLogsOnError")
@@ -149,15 +151,32 @@ public class AgentResourcesFactory {
                 .withName("code-download")
                 .withImage(spec.getImage())
                 .withImagePullPolicy(spec.getImagePullPolicy())
-                .withArgs("agent-code-download", "/code-config/config", "/app-code-download")
+                .withArgs("agent-code-download")
+                .withEnv(new EnvVarBuilder()
+                        .withName(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV)
+                        .withValue("/cluster-config/config")
+                        .build(),
+                        new EnvVarBuilder()
+                                .withName(AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV)
+                                .withValue("/download-config/config")
+                                .build(),
+                        new EnvVarBuilder()
+                                .withName(AgentCodeDownloaderConstants.TOKEN_ENV)
+                                .withValue("/var/run/secrets/kubernetes.io/serviceaccount/token")
+                                .build()
+                )
                 .withVolumeMounts(
                         new VolumeMountBuilder()
-                        .withName(codeConfigVolume)
-                        .withMountPath("/code-config")
-                        .build(),
+                                .withName(clusterConfigVolume)
+                                .withMountPath("/cluster-config")
+                                .build(),
                         new VolumeMountBuilder()
-                                .withName(downloadedCodeVolume)
-                                .withMountPath("/app-code-download")
+                                .withName(downloadConfigVolume)
+                                .withMountPath("/download-config")
+                                .build(),
+                        new VolumeMountBuilder()
+                                .withName(downloadCodeVolume)
+                                .withMountPath(downloadCodePath)
                                 .build()
                 )
                 .withTerminationMessagePolicy("FallbackToLogsOnError")
@@ -176,20 +195,21 @@ public class AgentResourcesFactory {
                         .withValue("/app-config/config")
                         .build(),
                         new EnvVarBuilder()
-                                .withName(AgentRunnerConstants.CODE_CONFIG_ENV)
-                                .withValue("/app-code-download")
+                                .withName(AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV)
+                                .withValue(downloadCodePath)
                                 .build()
                 )
                 // keep args for backward compatibility
-                .withArgs("agent-runtime", "/app-config/config", "/app-code-download")
-                .withVolumeMounts(new VolumeMountBuilder()
+                .withArgs("agent-runtime", "/app-config/config", downloadCodePath)
+                .withVolumeMounts(
+                        new VolumeMountBuilder()
                         .withName(appConfigVolume)
                         .withMountPath("/app-config")
                         .build(),
                         new VolumeMountBuilder()
-                                .withName(downloadedCodeVolume)
-                                .withMountPath("/app-code-download")
-                                .build()
+                            .withName(downloadCodeVolume)
+                            .withMountPath(downloadCodePath)
+                            .build()
                 )
                 .withTerminationMessagePolicy("FallbackToLogsOnError")
                 .build();
@@ -234,11 +254,22 @@ public class AgentResourcesFactory {
                         .endSecret()
                         .build(),
                         new VolumeBuilder()
-                                .withName(codeConfigVolume)
+                                .withName(clusterConfigVolume)
+                                .withNewSecret()
+                                .withSecretName(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET)
+                                .withItems(new io.fabric8.kubernetes.api.model.KeyToPathBuilder()
+                                        .withKey(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET_KEY)
+                                        .withPath("config")
+                                        .build()
+                                )
+                                .endSecret()
+                                .build(),
+                        new VolumeBuilder()
+                                .withName(downloadCodeVolume)
                                 .withNewEmptyDir().endEmptyDir()
                                 .build(),
                         new VolumeBuilder()
-                                .withName(downloadedCodeVolume)
+                                .withName(downloadConfigVolume)
                                 .withNewEmptyDir().endEmptyDir()
                                 .build()
                 )
@@ -246,6 +277,10 @@ public class AgentResourcesFactory {
                 .endTemplate()
                 .endSpec()
                 .build();
+    }
+
+    private static String writeInlineBashJson(DownloadAgentCodeConfiguration downloadAgentCodeConfiguration) {
+        return SerializationUtil.writeAsJson(downloadAgentCodeConfiguration).replace("'", "'\"'\"'");
     }
 
     public static Secret generateAgentSecret(String agentFullName, RuntimePodConfiguration runtimePodConfiguration) {
@@ -498,7 +533,6 @@ public class AgentResourcesFactory {
                 .stream()
                 .map(e -> {
                     KubeUtil.PodStatus podStatus = e.getValue();
-                    log.info("Pod {} status: {} url: {} agentRunnerSpec {}", e.getKey(), podStatus.getState(), podStatus.getUrl(), agentRunnerSpec);
                     ApplicationStatus.AgentWorkerStatus status = switch (podStatus.getState()) {
                         case RUNNING -> ApplicationStatus.AgentWorkerStatus.RUNNING(podStatus.getUrl());
                         case WAITING -> ApplicationStatus.AgentWorkerStatus.INITIALIZING();

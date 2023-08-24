@@ -15,6 +15,7 @@
  */
 package ai.langstream.webservice.application;
 
+import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.webservice.config.ApplicationDeployProperties;
 import ai.langstream.api.model.Application;
@@ -248,6 +249,12 @@ public class ApplicationService {
     public StoredApplication getApplication(String tenant, String applicationId, boolean queryPods) {
         checkTenant(tenant);
         return applicationStore.get(tenant, applicationId, queryPods);
+    }
+
+    @SneakyThrows
+    public ApplicationSpecs getApplicationSpecs(String tenant, String applicationId) {
+        checkTenant(tenant);
+        return applicationStore.getSpecs(tenant, applicationId);
     }
 
     @SneakyThrows

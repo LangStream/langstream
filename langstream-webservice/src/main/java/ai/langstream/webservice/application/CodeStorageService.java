@@ -57,6 +57,9 @@ public class CodeStorageService {
 
     public byte[] downloadApplicationCode(String tenant, String applicationId, String codeStoreId) throws CodeStorageException {
         final CodeArchiveMetadata codeArchiveMetadata = codeStorage.describeApplicationCode(tenant, codeStoreId);
+        if (codeArchiveMetadata == null) {
+            throw new IllegalArgumentException("Invalid code archive " + codeStoreId + " for tenant " + tenant + " and application " + applicationId);
+        }
         if (!Objects.equals(codeArchiveMetadata.tenant(), tenant)) {
             throw new IllegalArgumentException("Invalid tenant " + tenant + " for code archive " + codeStoreId);
         }

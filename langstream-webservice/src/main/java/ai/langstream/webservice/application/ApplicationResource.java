@@ -16,10 +16,13 @@
 package ai.langstream.webservice.application;
 
 import ai.langstream.api.codestorage.CodeStorageException;
+import ai.langstream.api.codestorage.DownloadedCodeArchive;
+import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.webservice.application.ApplicationDescription;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.webservice.security.infrastructure.primary.TokenAuthFilter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
@@ -44,6 +47,10 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -73,10 +80,31 @@ public class ApplicationResource {
 
     @GetMapping("/{tenant}")
     @Operation(summary = "Get all applications")
-    Collection<ApplicationDescription> getApplications(@NotBlank @PathVariable("tenant") String tenant) {
+    Collection<ApplicationDescription> getApplications(Authentication authentication, @NotBlank @PathVariable("tenant") String tenant) {
+        checkAuthentication(authentication, tenant);
         return applicationService.getAllApplications(tenant).values().stream()
                 .map(app -> new ApplicationDescription(app.getApplicationId(), app.getInstance(), app.getStatus()))
                 .toList();
+    }
+
+    private void checkAuthentication(Authentication authentication, final String tenant) {
+        if (authentication == null) {
+            return;
+        }
+        if (!authentication.isAuthenticated()) {
+            throw new IllegalStateException();
+        }
+        if (authentication.getAuthorities().contains(TokenAuthFilter.ROLE_ADMIN)) {
+            return;
+        }
+        if (authentication.getPrincipal() == null) {
+            throw new IllegalStateException();
+        }
+        final String principal = authentication.getPrincipal().toString();
+        if (tenant.equals(principal)) {
+            return;
+        }
+        throw new AuthenticationServiceException("Authentication failed");
     }
 
     @PostMapping(value = "/{tenant}/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -190,6 +218,7 @@ public class ApplicationResource {
     @Operation(summary = "Delete application by id")
     void deleteApplication(@NotBlank @PathVariable("tenant") String tenant,
                            @NotBlank @PathVariable("applicationId") String applicationId) {
+        getAppOrThrow(tenant, applicationId);
         applicationService.deleteApplication(tenant, applicationId);
         log.info("Deleted application {}", applicationId);
     }
@@ -198,7 +227,7 @@ public class ApplicationResource {
     @Operation(summary = "Get an application by id")
     ApplicationDescription getApplication(@NotBlank @PathVariable("tenant") String tenant,
                                      @NotBlank @PathVariable("applicationId") String applicationId) {
-        final StoredApplication app = getAppOrThrow(tenant, applicationId, true);
+        final StoredApplication app = getAppWithStatusOrThrow(tenant, applicationId, true);
         return new ApplicationDescription(app.getApplicationId(), app.getInstance(), app.getStatus());
     }
 
@@ -208,7 +237,7 @@ public class ApplicationResource {
     Flux<String> getApplicationLogs(@NotBlank @PathVariable("tenant") String tenant,
                                     @NotBlank @PathVariable("applicationId") String applicationId,
                                     @RequestParam("filter") Optional<List<String>> filterReplicas) {
-
+        getAppOrThrow(tenant, applicationId);
 
         final List<ApplicationStore.PodLogHandler> podLogs =
                 applicationService.getPodLogs(tenant, applicationId,
@@ -238,7 +267,7 @@ public class ApplicationResource {
     Resource getApplicationCode(@NotBlank @PathVariable("tenant") String tenant,
                               @NotBlank @PathVariable("applicationId") String applicationId,
                               HttpServletResponse response) throws Exception {
-        final StoredApplication app = getAppOrThrow(tenant, applicationId, false);
+        final ApplicationSpecs app = getAppOrThrow(tenant, applicationId);
         final String codeArchiveId = app.getCodeArchiveReference();
         return downloadCode(tenant, applicationId, response, codeArchiveId);
     }
@@ -250,7 +279,7 @@ public class ApplicationResource {
                                    @NotBlank @PathVariable("applicationId") String applicationId,
                                    @NotBlank @PathVariable("codeArchiveReference") String codeArchiveReference,
                                    HttpServletResponse response) throws Exception {
-        getAppOrThrow(tenant, applicationId, false);
+        getAppOrThrow(tenant, applicationId);
         return downloadCode(tenant, applicationId, response, codeArchiveReference);
     }
 
@@ -264,8 +293,18 @@ public class ApplicationResource {
         return new ByteArrayResource(code);
     }
 
-    private StoredApplication getAppOrThrow(String tenant, String applicationId, boolean queryPods) {
+    private StoredApplication getAppWithStatusOrThrow(String tenant, String applicationId, boolean queryPods) {
         final StoredApplication app = applicationService.getApplication(tenant, applicationId, queryPods);
+        if (app == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "application not found"
+            );
+        }
+        return app;
+    }
+
+    private ApplicationSpecs getAppOrThrow(String tenant, String applicationId) {
+        final ApplicationSpecs app = applicationService.getApplicationSpecs(tenant, applicationId);
         if (app == null) {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "application not found"

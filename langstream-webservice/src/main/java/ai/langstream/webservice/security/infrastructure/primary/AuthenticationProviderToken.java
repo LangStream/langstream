@@ -36,11 +36,14 @@ import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.List;
+import java.util.Map;
 import javax.crypto.SecretKey;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
+@Slf4j
 public class AuthenticationProviderToken {
 
     public static final class AuthenticationException extends Exception {
@@ -122,10 +125,21 @@ public class AuthenticationProviderToken {
     }
 
     private String getPrincipal(Jwt<?, Claims> jwt) {
+        final Claims body = jwt.getBody();
         try {
-            return jwt.getBody().get(this.roleClaim, String.class);
+            log.info("Token body: {}", body);
+            if (body.containsKey("kubernetes.io")) {
+                final Map map = body.get("kubernetes.io", Map.class);
+                if (map.containsKey("serviceaccount")) {
+                    final Map serviceAccount = (Map) map.get("serviceaccount");
+                    if (serviceAccount.containsKey("name")) {
+                        return (String) serviceAccount.get("name");
+                    }
+                }
+            }
+            return body.get(this.roleClaim, String.class);
         } catch (RequiredTypeException var4) {
-            List list = (jwt.getBody()).get(this.roleClaim, List.class);
+            List list = body.get(this.roleClaim, List.class);
             return list != null && !list.isEmpty() && list.get(0) instanceof String ? (String) list.get(0) : null;
         }
     }

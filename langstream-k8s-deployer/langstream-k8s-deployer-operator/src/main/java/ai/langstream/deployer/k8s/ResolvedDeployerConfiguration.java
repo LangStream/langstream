@@ -27,7 +27,6 @@ public class ResolvedDeployerConfiguration {
 
     public ResolvedDeployerConfiguration(DeployerConfiguration configuration) {
         this.clusterRuntime = SerializationUtil.readYaml(configuration.clusterRuntime(), Map.class);
-        this.codeStorage = SerializationUtil.readYaml(configuration.codeStorage(), Map.class);
         this.agentResources = SerializationUtil.readYaml(configuration.agentResources(), AgentResourceUnitConfiguration.class);
         this.podTemplate = SerializationUtil.readYaml(configuration.podTemplate(), PodTemplate.class);
         this.runtimeImage = configuration.runtimeImage().orElse(null);
@@ -36,9 +35,6 @@ public class ResolvedDeployerConfiguration {
 
     @Getter
     private Map<String, Object> clusterRuntime;
-
-    @Getter
-    private Map<String, Object> codeStorage;
 
     @Getter
     private AgentResourceUnitConfiguration agentResources;

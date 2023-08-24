@@ -31,6 +31,11 @@ public class CRDConstants {
     public static final String JOB_PREFIX_CLEANUP = "langstream-runtime-deployer-cleanup-";
     public static final String JOB_PREFIX_DEPLOYER = "langstream-runtime-deployer-";
 
+    // The name of the secret containing the cluster configuration.
+    // This secret cannot clash with application's secrets since this is an invalid application id (more than 20 chars).
+    public static final String TENANT_CLUSTER_CONFIG_SECRET = "langstream-cluster-config";
+    public static final String TENANT_CLUSTER_CONFIG_SECRET_KEY = "cluster-config";
+
     // 63 is the max length for a pod.
     // - 30 for the prefix
     // - 11 for the pod template hash + separator

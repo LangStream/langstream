@@ -19,8 +19,9 @@ public class AgentRunnerConstants {
 
     public static final String POD_CONFIG_ENV = "LANGSTREAM_AGENT_RUNNER_POD_CONFIGURATION";
     public static final String POD_CONFIG_ENV_DEFAULT = "/app-config/config";
-    public static final String CODE_CONFIG_ENV = "LANGSTREAM_AGENT_RUNNER_CODE_CONFIGURATION";
-    public static final String CODE_CONFIG_ENV_DEFAULT = "/app-code-download";
+    public static final String DOWNLOADED_CODE_PATH_ENV = "LANGSTREAM_AGENT_RUNNER_CODE_PATH";
+    public static final String DOWNLOADED_CODE_PATH_ENV_DEFAULT = "/app-code-download";
     public static final String AGENTS_ENV = "LANGSTREAM_AGENT_RUNNER_AGENTS";
     public static final String AGENTS_ENV_DEFAULT = "/app/agents";
+
 }

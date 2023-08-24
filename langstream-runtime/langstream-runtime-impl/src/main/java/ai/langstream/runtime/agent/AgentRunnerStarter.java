@@ -17,8 +17,8 @@ package ai.langstream.runtime.agent;
 
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV_DEFAULT;
-import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV;
-import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV_DEFAULT;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV_DEFAULT;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
 import ai.langstream.runtime.agent.api.AgentInfo;
@@ -66,11 +66,11 @@ public class AgentRunnerStarter {
         if (args.length == 0) {
             podRuntimeConfiguration =
                     getPathFromEnv(POD_CONFIG_ENV, POD_CONFIG_ENV_DEFAULT);
-            codeDirectory = getPathFromEnv(CODE_CONFIG_ENV, CODE_CONFIG_ENV_DEFAULT);
+            codeDirectory = getPathFromEnv(DOWNLOADED_CODE_PATH_ENV, DOWNLOADED_CODE_PATH_ENV_DEFAULT);
             agentsDirectory = getPathFromEnv(AGENTS_ENV, AGENTS_ENV_DEFAULT);
         } else if (args.length == 1) {
             podRuntimeConfiguration = Path.of(args[0]);
-            codeDirectory = getPathFromEnv(CODE_CONFIG_ENV, CODE_CONFIG_ENV_DEFAULT);
+            codeDirectory = getPathFromEnv(DOWNLOADED_CODE_PATH_ENV, DOWNLOADED_CODE_PATH_ENV_DEFAULT);
             agentsDirectory = getPathFromEnv(AGENTS_ENV, AGENTS_ENV_DEFAULT);
         } else if (args.length == 2) {
             podRuntimeConfiguration = Path.of(args[0]);

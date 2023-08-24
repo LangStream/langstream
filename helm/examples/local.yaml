@@ -5,8 +5,9 @@ controlPlane:
     tag: "latest-dev"
   app:
     config:
-      logging.level.ai.langstream: debug
+      logging.level.ai.langstream.webservice: debug
       application.storage.global.type: kubernetes
+      application.storage.apps.configuration.control-plane-url: http://langstream-control-plane.default.svc.cluster.local:8090
 
 deployer:
   replicaCount: 1
@@ -35,7 +36,7 @@ apiGateway:
     tag: "latest-dev"
   app:
     config:
-      logging.level.ai.langstream: debug
+      logging.level.ai.langstream.apigateway: debug
 
 
 codeStorage:

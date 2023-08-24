@@ -16,6 +16,7 @@
 package ai.langstream.api.storage;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
 
@@ -37,7 +38,7 @@ public interface ApplicationStore extends GenericStore {
 
     StoredApplication get(String tenant, String applicationId, boolean queryPods);
 
-    Application getSpecs(String tenant, String applicationId);
+    ApplicationSpecs getSpecs(String tenant, String applicationId);
 
     Secrets getSecrets(String tenant, String applicationId);
 

@@ -16,6 +16,7 @@
 package ai.langstream.impl.storage.k8s.apps;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.ApplicationStatus;
 import ai.langstream.api.model.Gateways;
 import ai.langstream.api.model.Instance;
@@ -27,23 +28,19 @@ import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
+import ai.langstream.runtime.api.ClusterConfiguration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
-import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
-import io.fabric8.kubernetes.api.model.rbac.PolicyRuleBuilder;
-import io.fabric8.kubernetes.api.model.rbac.RoleBindingBuilder;
-import io.fabric8.kubernetes.api.model.rbac.RoleBuilder;
-import io.fabric8.kubernetes.api.model.rbac.SubjectBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PodResource;
@@ -93,66 +90,12 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
 
     @Override
+    @SneakyThrows
     public void onTenantCreated(String tenant) {
         final String namespace = tenantToNamespace(tenant);
-        if (client.namespaces().withName(namespace).get() == null) {
-            client.resource(new NamespaceBuilder()
-                            .withNewMetadata()
-                            .withName(namespace)
-                            .endMetadata().build())
-                    .serverSideApply();
-            log.info("Created namespace {} for tenant {}", namespace, tenant);
+        new TenantResources(properties, client, tenant, namespace)
+                .ensureTenantResources();
 
-            client.resource(new ServiceAccountBuilder()
-                            .withNewMetadata()
-                            .withName(tenant)
-                            .endMetadata()
-                            .build())
-                    .inNamespace(namespace)
-                    .serverSideApply();
-            log.info("Created service account for tenant {}", tenant);
-
-            client.resource(new RoleBuilder()
-                            .withNewMetadata()
-                            .withName(tenant)
-                            .endMetadata()
-                            .withRules(new PolicyRuleBuilder()
-                                    .withApiGroups("langstream.ai")
-                                    .withResources("agents")
-                                    .withVerbs("*")
-                                    .build(),
-                                    new PolicyRuleBuilder()
-                                            .withApiGroups("")
-                                            .withResources("secrets")
-                                            .withVerbs("*")
-                                            .build()
-                            ).build())
-                    .inNamespace(namespace)
-                    .serverSideApply();
-
-            log.info("Created role for tenant {}", tenant);
-
-            client.resource(new RoleBindingBuilder()
-                            .withNewMetadata()
-                            .withName(tenant)
-                            .endMetadata()
-                            .withNewRoleRef()
-                            .withKind("Role")
-                            .withApiGroup("rbac.authorization.k8s.io")
-                            .withName(tenant)
-                            .endRoleRef()
-                            .withSubjects(new SubjectBuilder()
-                                    .withName(tenant)
-                                    .withNamespace(namespace)
-                                    .withKind("ServiceAccount")
-                                    .build()
-                            )
-                            .build())
-                    .inNamespace(namespace)
-                    .serverSideApply();
-            log.info("Created role binding for tenant {}", tenant);
-
-        }
     }
 
     @Override
@@ -222,14 +165,20 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @Override
-    public Application getSpecs(String tenant, String applicationId) {
+    public ApplicationSpecs getSpecs(String tenant, String applicationId) {
         final ApplicationCustomResource application =
                 getApplicationCustomResource(tenant, applicationId);
         if (application == null) {
             return null;
         }
         SerializedApplicationInstance serializedApplicationInstanceFromCr = getSerializedApplicationInstanceFromCr(application);
-        return serializedApplicationInstanceFromCr.toApplicationInstance();
+        final Application app = serializedApplicationInstanceFromCr.toApplicationInstance();
+        return ApplicationSpecs.builder()
+                .application(app)
+                .codeArchiveReference(application.getSpec().getCodeArchiveId())
+                .applicationId(applicationId)
+                .build();
+
     }
 
     @Override
@@ -398,7 +347,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
         }
     }
 
-    private static String encodeSecret(String value) {
+    static String encodeSecret(String value) {
         return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 

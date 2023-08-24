@@ -44,9 +44,9 @@ class AgentRunnerStarterTest {
         runTest(false, Map.of(), podRuntimeFile, codeDir);
         runTest(true, Map.of(), podRuntimeFile, codeDir, agentsDir);
         runTest(false, Map.of(AgentRunnerConstants.POD_CONFIG_ENV, podRuntimeFile,
-                        AgentRunnerConstants.CODE_CONFIG_ENV, codeDir));
+                        AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV, codeDir));
         runTest(true, Map.of(AgentRunnerConstants.POD_CONFIG_ENV, podRuntimeFile,
-                AgentRunnerConstants.CODE_CONFIG_ENV, codeDir, AgentRunnerConstants.AGENTS_ENV, agentsDir));
+                AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV, codeDir, AgentRunnerConstants.AGENTS_ENV, agentsDir));
     }
 
     @SneakyThrows

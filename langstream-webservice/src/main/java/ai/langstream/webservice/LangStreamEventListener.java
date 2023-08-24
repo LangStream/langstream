@@ -46,7 +46,7 @@ public class LangStreamEventListener implements
         } else {
             log.info("No default tenant configured");
         }
-
+        globalMetadataService.syncTenantsConfiguration();
 
     }
 

@@ -47,7 +47,6 @@ class KubernetesApplicationStoreLogsTest {
         cr = k3s.getClient().resource(cr).inNamespace("langstream-mytenant").get();
         final StatefulSet sts = AgentResourcesFactory.generateStatefulSet(
                 cr,
-                Map.of(),
                 new AgentResourceUnitConfiguration()
         );
         sts.getSpec().getTemplate().getSpec().getInitContainers().clear();

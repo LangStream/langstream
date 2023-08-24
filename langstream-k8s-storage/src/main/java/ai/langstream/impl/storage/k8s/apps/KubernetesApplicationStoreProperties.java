@@ -23,4 +23,6 @@ import lombok.NoArgsConstructor;
 public class KubernetesApplicationStoreProperties {
     private String namespaceprefix;
 
+    @JsonAlias({"control-plane-url", "controlplaneurl"})
+    private String controlPlaneUrl;
 }

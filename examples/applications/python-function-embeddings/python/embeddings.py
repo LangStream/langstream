@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from langstream.util import SimpleRecord
+from langstream import SimpleRecord
 import openai
 import json
 from openai.embeddings_utils import get_embedding

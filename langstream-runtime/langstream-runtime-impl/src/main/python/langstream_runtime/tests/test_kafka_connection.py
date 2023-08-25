@@ -26,8 +26,7 @@ from kafka.errors import KafkaError, UnrecognizedBrokerVersion, NoBrokersAvailab
 from testcontainers.core.waiting_utils import wait_container_is_ready
 from testcontainers.kafka import KafkaContainer
 
-from langstream.api import Record
-from langstream.util import SimpleRecord, SingleRecordProcessor
+from langstream import Record, SimpleRecord, SingleRecordProcessor
 from langstream_runtime import kafka_connection
 from langstream_runtime import runtime
 

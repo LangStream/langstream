@@ -25,8 +25,7 @@ from langchain.document_loaders.base import BaseLoader
 from langchain.document_loaders.unstructured import UnstructuredFileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from langstream.api import Source, Record
-from langstream.util import SimpleRecord
+from langstream import Source, Record, SimpleRecord
 
 
 class S3Record(SimpleRecord):

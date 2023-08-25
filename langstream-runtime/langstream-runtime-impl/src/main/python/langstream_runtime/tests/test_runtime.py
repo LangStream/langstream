@@ -20,8 +20,7 @@ from typing import List
 import pytest
 import yaml
 
-from langstream.api import Source, Sink, CommitCallback, Record
-from langstream.util import SimpleRecord, SingleRecordProcessor
+from langstream import Source, Sink, CommitCallback, Record, SimpleRecord, SingleRecordProcessor
 from langstream_runtime import runtime
 
 

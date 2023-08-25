@@ -17,7 +17,7 @@
 
 from typing import List, Tuple
 
-from langstream.api import CommitCallback, Record, Source
+from langstream import CommitCallback, Record, Source
 
 
 class SourceRecordTracker(CommitCallback):

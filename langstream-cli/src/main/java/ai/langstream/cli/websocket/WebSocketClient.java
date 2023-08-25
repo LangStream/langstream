@@ -75,7 +75,7 @@ public class WebSocketClient implements AutoCloseable {
             final ClientEndpointConfig clientEndpointConfig = ClientEndpointConfig.Builder.create().build();
             if (timeout != null) {
                 clientEndpointConfig.getUserProperties()
-                        .put(Constants.IO_TIMEOUT_MS_PROPERTY, timeout.toMillis());
+                        .put(Constants.IO_TIMEOUT_MS_PROPERTY, timeout.toMillis() + "");
             }
             userSession = container.connectToServer(endpoint, clientEndpointConfig, uri);
         } catch (DeploymentException e) {

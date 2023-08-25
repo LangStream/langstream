@@ -26,6 +26,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Status;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
@@ -74,6 +75,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.awaitility.Awaitility;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -212,7 +214,7 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     private static void dumpTest(String prefix) {
-        dumpAllPodsLogs(prefix, namespace);
+        dumpAllPodsLogs(prefix);
         dumpEvents(prefix);
         dumpAllResources(prefix);
     }
@@ -738,6 +740,9 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
+    protected static void dumpAllPodsLogs(String filePrefix) {
+        getAllUserNamespaces().forEach(ns -> dumpAllPodsLogs(filePrefix, ns));
+    }
 
     protected static void dumpAllPodsLogs(String filePrefix, String namespace) {
         client.pods().inNamespace(namespace).list().getItems()
@@ -757,17 +762,23 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     protected static void dumpAllResources(String filePrefix) {
+        final List<String> namespaces = getAllUserNamespaces();
+        dumpResources(filePrefix, Pod.class, namespaces);
+        dumpResources(filePrefix, StatefulSet.class, namespaces);
+        dumpResources(filePrefix, Job.class, namespaces);
+        dumpResources(filePrefix, AgentCustomResource.class, namespaces);
+        dumpResources(filePrefix, ApplicationCustomResource.class, namespaces);
+        dumpResources(filePrefix, Node.class, namespaces);
+    }
+
+    private static List<String> getAllUserNamespaces() {
         final List<String> namespaces = client.namespaces()
                 .list()
                 .getItems().stream()
                 .map(n -> n.getMetadata().getName())
                 .filter(n -> !n.equals("kube-system"))
                 .collect(Collectors.toList());
-        dumpResources(filePrefix, Pod.class, namespaces);
-        dumpResources(filePrefix, StatefulSet.class, namespaces);
-        dumpResources(filePrefix, Job.class, namespaces);
-        dumpResources(filePrefix, AgentCustomResource.class, namespaces);
-        dumpResources(filePrefix, ApplicationCustomResource.class, namespaces);
+        return namespaces;
     }
 
     private static void dumpResources(String filePrefix, Class<? extends HasMetadata> clazz, List<String> namespaces) {
@@ -785,7 +796,7 @@ public class BaseEndToEndTest implements TestWatcher {
     protected static void dumpResource(String filePrefix, HasMetadata resource) {
         TEST_LOGS_DIR.mkdirs();
         final File outputFile = new File(TEST_LOGS_DIR,
-                "%s-%s-%s.log".formatted(filePrefix, resource.getKind(), resource.getMetadata().getName()));
+                "%s-%s-%s.txt".formatted(filePrefix, resource.getKind(), resource.getMetadata().getName()));
         try (FileWriter writer = new FileWriter(outputFile)) {
             writer.write(MAPPER.writeValueAsString(resource));
         } catch (Throwable e) {
@@ -795,13 +806,16 @@ public class BaseEndToEndTest implements TestWatcher {
 
     protected static void dumpEvents(String filePrefix) {
         TEST_LOGS_DIR.mkdirs();
-        final File outputFile = new File(TEST_LOGS_DIR, "%s-events.log".formatted(filePrefix));
+        final File outputFile = new File(TEST_LOGS_DIR, "%s-events.txt".formatted(filePrefix));
         try (FileWriter writer = new FileWriter(outputFile)) {
             client.resources(Event.class).inAnyNamespace().list()
                     .getItems()
                     .forEach(event -> {
                         try {
-                            writer.write("[%s] [%s/%s] %s: %s\n".formatted(event.getMetadata().getNamespace(),
+
+                            writer.write("[%s] [%s] [%s/%s] %s: %s\n".formatted(
+                                    event.getEventTime().getTime(),
+                                    event.getMetadata().getNamespace(),
                                     event.getInvolvedObject().getKind(),
                                     event.getInvolvedObject().getName(), event.getReason(), event.getMessage()));
                         } catch (IOException e) {

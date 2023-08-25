@@ -547,7 +547,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   replicaCount: 1
                   resources:
                     requests:
-                      cpu: 0.2
+                      cpu: 0.1
                       memory: 256Mi
                   app:
                     config:
@@ -640,7 +640,7 @@ public class BaseEndToEndTest implements TestWatcher {
         runProcess("helm repo add redpanda https://charts.redpanda.com/".split(" "), true);
         runProcess("helm repo update".split(" "));
         // ref https://github.com/redpanda-data/helm-charts/blob/main/charts/redpanda/values.yaml
-        runProcess("helm install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.5 --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console.enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc.cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true".split(" "));
+        runProcess("helm install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.3 --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console.enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc.cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true".split(" "));
         log.info("waiting kafka to be ready");
         runProcess("kubectl wait pods redpanda-0 --for=condition=Ready --timeout=5m -n kafka-ns".split(" "));
         log.info("kafka installed");
@@ -690,7 +690,7 @@ public class BaseEndToEndTest implements TestWatcher {
                          name: s3
                     resources:
                       requests:
-                        cpu: 100m
+                        cpu: 50m
                         memory: 512Mi
                   volumes:
                   - name: localvolume

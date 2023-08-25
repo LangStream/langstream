@@ -117,6 +117,12 @@ public class AppControllerIT {
             assertEquals("/app-config/config", container.getArgs().get(args++));
             assertEquals("/app-secrets/secrets", container.getArgs().get(args++));
         }
+        assertEquals("/app-config/config",
+                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_APP_CONFIGURATION".equals(e.getName())).findFirst().get().getValue());
+        assertEquals("/cluster-runtime-config/config",
+                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION".equals(e.getName())).findFirst().get().getValue());
+        assertEquals("/app-secrets/secrets",
+                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS".equals(e.getName())).findFirst().get().getValue());
 
         final Container initContainer = templateSpec.getInitContainers().get(0);
         assertEquals("busybox", initContainer.getImage());

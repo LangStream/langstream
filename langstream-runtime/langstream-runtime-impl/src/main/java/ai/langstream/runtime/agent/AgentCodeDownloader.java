@@ -20,6 +20,7 @@ import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageRegistry;
 import ai.langstream.runtime.api.agent.CodeStorageConfig;
 import ai.langstream.runtime.deployer.RuntimeDeployer;
+import ai.langstream.runtime.deployer.RuntimeDeployerStarter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.file.Path;
@@ -33,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AgentCodeDownloader {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static RuntimeDeployer.ErrorHandler errorHandler = error -> {
+    private static RuntimeDeployerStarter.ErrorHandler errorHandler = error -> {
         log.error("Unexpected error", error);
         System.exit(-1);
     };

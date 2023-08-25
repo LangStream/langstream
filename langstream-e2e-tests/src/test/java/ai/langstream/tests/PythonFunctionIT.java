@@ -51,10 +51,10 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                 .withName(applicationId + "-module-1-pipeline-1-python-function-1")
                 .waitUntilReady(4, TimeUnit.MINUTES);
 
-        executeCommandOnClient("bin/langstream gateway produce %s produce-input -v my-value".formatted(applicationId).split(" "));
+        executeCommandOnClient("bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30".formatted(applicationId).split(" "));
 
         final String output = executeCommandOnClient(
-                "bin/langstream gateway consume %s consume-output --position earliest -n 1".formatted(applicationId)
+                "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30".formatted(applicationId)
                         .split(" "));
         log.info("Output: {}", output);
         Assertions.assertTrue(output.contains("{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value\","

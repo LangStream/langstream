@@ -89,6 +89,11 @@ class AgentResourcesFactoryTest {
                                 - agent-runtime
                                 - /app-config/config
                                 - /app-code-download
+                                env:
+                                - name: LANGSTREAM_AGENT_RUNNER_POD_CONFIGURATION
+                                  value: /app-config/config
+                                - name: LANGSTREAM_AGENT_RUNNER_CODE_CONFIGURATION
+                                  value: /app-code-download
                                 image: busybox
                                 imagePullPolicy: Never
                                 name: runtime

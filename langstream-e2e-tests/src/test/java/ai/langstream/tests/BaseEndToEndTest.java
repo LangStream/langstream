@@ -217,6 +217,7 @@ public class BaseEndToEndTest implements TestWatcher {
         dumpAllPodsLogs(prefix);
         dumpEvents(prefix);
         dumpAllResources(prefix);
+        dumpProcessOutput(prefix, "kubectl-nodes", "kubectl describe nodes".split(" "));
     }
 
     protected static void applyManifest(String manifest, String namespace) {
@@ -804,6 +805,23 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
+    protected static void dumpProcessOutput(String filePrefix, String filename, String... args) {
+        final File outputFile = new File(TEST_LOGS_DIR,
+                "%s-%s-stdout.txt".formatted(filePrefix, filename));
+        final File outputFileErr = new File(TEST_LOGS_DIR,
+                "%s-%s-stderr.txt".formatted(filePrefix, filename));
+
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder(args)
+                    .directory(Paths.get("..").toFile())
+                    .redirectOutput(ProcessBuilder.Redirect.to(outputFile))
+                    .redirectError(ProcessBuilder.Redirect.to(outputFileErr));
+            processBuilder.start().waitFor();
+        } catch (Throwable e) {
+            log.error("failed to write process output to file {}", outputFile, e);
+        }
+    }
+
     protected static void dumpEvents(String filePrefix) {
         TEST_LOGS_DIR.mkdirs();
         final File outputFile = new File(TEST_LOGS_DIR, "%s-events.txt".formatted(filePrefix));
@@ -813,8 +831,7 @@ public class BaseEndToEndTest implements TestWatcher {
                     .forEach(event -> {
                         try {
 
-                            writer.write("[%s] [%s] [%s/%s] %s: %s\n".formatted(
-                                    event.getEventTime().getTime(),
+                            writer.write("[%s] [%s/%s] %s: %s\n".formatted(
                                     event.getMetadata().getNamespace(),
                                     event.getInvolvedObject().getKind(),
                                     event.getInvolvedObject().getName(), event.getReason(), event.getMessage()));

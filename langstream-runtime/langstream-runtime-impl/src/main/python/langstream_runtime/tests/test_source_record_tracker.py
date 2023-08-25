@@ -17,8 +17,7 @@
 
 from typing import List
 
-from langstream.api import Source, Record
-from langstream.util import SimpleRecord
+from langstream import Source, Record, SimpleRecord
 from langstream_runtime.source_record_tracker import SourceRecordTracker
 
 

@@ -21,8 +21,7 @@ import time
 from enum import Enum
 from typing import List, Tuple, Union
 
-from langstream.api import Source, Sink, Processor, Record
-from langstream.util import SingleRecordProcessor
+from langstream import Source, Sink, Processor, Record, SingleRecordProcessor
 from . import topic_connections_registry
 from .source_record_tracker import SourceRecordTracker
 from .topic_connector import TopicConsumer, TopicProducer, TopicProducerSink, \

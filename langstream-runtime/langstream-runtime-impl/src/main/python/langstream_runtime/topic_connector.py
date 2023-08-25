@@ -17,7 +17,7 @@
 import logging
 from typing import List
 
-from langstream.api import Source, Record, Sink, CommitCallback
+from langstream import Source, Record, Sink, CommitCallback
 
 
 class TopicConsumer(object):

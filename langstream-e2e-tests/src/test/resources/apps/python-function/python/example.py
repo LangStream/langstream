@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from langstream.util import SimpleRecord, SingleRecordProcessor
+from langstream import SimpleRecord, SingleRecordProcessor
 
 class Exclamation(SingleRecordProcessor):
   def init(self, config):

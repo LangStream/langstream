@@ -99,8 +99,15 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
 
     @SneakyThrows
     private void createJob(ApplicationCustomResource applicationCustomResource, boolean delete) {
-        final Job job = AppResourcesFactory.generateJob(applicationCustomResource,
-                configuration.getClusterRuntime(), delete, configuration.getPodTemplate());
+        final AppResourcesFactory.GenerateJobParams params = AppResourcesFactory.GenerateJobParams.builder()
+                .applicationCustomResource(applicationCustomResource)
+                .deleteJob(delete)
+                .clusterRuntimeConfiguration(configuration.getClusterRuntime())
+                .podTemplate(configuration.getPodTemplate())
+                .image(configuration.getRuntimeImage())
+                .imagePullPolicy(configuration.getRuntimeImagePullPolicy())
+                .build();
+        final Job job = AppResourcesFactory.generateJob(params);
         KubeUtil.patchJob(client, job);
     }
 

@@ -45,7 +45,7 @@ class KubernetesApplicationStoreLogsTest {
     @Test
     void testLogs() {
         final KubernetesApplicationStore store = new KubernetesApplicationStore();
-        store.initialize(Map.of("namespaceprefix", "langstream-", "deployer-runtime", Map.of("image", "busybox", "image-pull-policy", "IfNotPresent")));
+        store.initialize(Map.of("namespaceprefix", "langstream-"));
         store.onTenantCreated("mytenant");
         AgentCustomResource cr = agentCustomResource("mytenant", "myapp");
         k3s.getClient().resource(cr).inNamespace("langstream-mytenant").serverSideApply();

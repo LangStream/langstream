@@ -38,22 +38,35 @@ import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.SneakyThrows;
 
 public class AppResourcesFactory {
 
+    @Builder
+    @Getter
+    public static class GenerateJobParams {
+        private ApplicationCustomResource applicationCustomResource;
+        private boolean deleteJob;
+        @Builder.Default
+        private Map<String, Object> clusterRuntimeConfiguration = Map.of();
+        private String image;
+        private String imagePullPolicy;
+        private PodTemplate podTemplate;
 
-    public static Job generateJob(ApplicationCustomResource applicationCustomResource,
-                                  final Map<String, Object> clusterRuntimeConfiguration,
-                                  boolean delete) {
-        return generateJob(applicationCustomResource, clusterRuntimeConfiguration, delete, null);
     }
 
+
     @SneakyThrows
-    public static Job generateJob(ApplicationCustomResource applicationCustomResource,
-                                  final Map<String, Object> clusterRuntimeConfiguration,
-                                  boolean delete,
-                                  PodTemplate podTemplate) {
+    public static Job generateJob(GenerateJobParams params) {
+        final ApplicationCustomResource applicationCustomResource = Objects.requireNonNull(params.getApplicationCustomResource());
+        final boolean isDeleteJob = params.isDeleteJob();
+        final Map<String, Object> clusterRuntimeConfiguration = params.getClusterRuntimeConfiguration();
+        final String image = params.getImage();
+        final String imagePullPolicy = params.getImagePullPolicy();
+        final PodTemplate podTemplate = params.getPodTemplate();
 
         final String applicationId = applicationCustomResource.getMetadata().getName();
         final ApplicationSpec spec = applicationCustomResource.getSpec();
@@ -67,10 +80,18 @@ public class AppResourcesFactory {
                 spec.getCodeArchiveId()
         );
 
+        final String containerImage = image != null && !image.isBlank() ? image: spec.getImage();
+        final String containerImagePullPolicy = imagePullPolicy != null && !imagePullPolicy.isBlank() ? imagePullPolicy: spec.getImagePullPolicy();
+        if (containerImage == null) {
+            throw new IllegalStateException("Runtime image is not specified, neither in the resource and in the deployer configuration.");
+        }
+        if (containerImagePullPolicy == null) {
+            throw new IllegalStateException("Runtime image pull policy is not specified, neither in the resource and in the deployer configuration.");
+        }
         final Container initContainer = new ContainerBuilder()
                 .withName("deployer-init-config")
-                .withImage(spec.getImage())
-                .withImagePullPolicy(spec.getImagePullPolicy())
+                .withImage(containerImage)
+                .withImagePullPolicy(containerImagePullPolicy)
                 .withCommand("bash", "-c")
                 .withArgs("echo '%s' > /app-config/config && echo '%s' > /cluster-runtime-config/config".formatted(
                         SerializationUtil.writeAsJson(config).replace("'", "'\"'\"'"),
@@ -84,12 +105,12 @@ public class AppResourcesFactory {
                                 .withMountPath("/cluster-runtime-config")
                                 .build())
                 .build();
-        final String command = delete ? "delete" : "deploy";
+        final String command = isDeleteJob ? "delete" : "deploy";
 
         final Container container = new ContainerBuilder()
                 .withName("deployer")
-                .withImage(spec.getImage())
-                .withImagePullPolicy(spec.getImagePullPolicy())
+                .withImage(containerImage)
+                .withImagePullPolicy(containerImagePullPolicy)
                 .withArgs("deployer-runtime", command, "/cluster-runtime-config/config", "/app-config/config",
                         "/app-secrets/secrets")
                 .withVolumeMounts(new VolumeMountBuilder()
@@ -111,10 +132,10 @@ public class AppResourcesFactory {
                 .build();
 
 
-        final Map<String, String> labels = getLabels(delete, applicationId);
+        final Map<String, String> labels = getLabels(isDeleteJob, applicationId);
         final Job job = new JobBuilder()
                 .withNewMetadata()
-                .withName(getJobName(applicationId, delete))
+                .withName(getJobName(applicationId, isDeleteJob))
                 .withNamespace(applicationCustomResource.getMetadata().getNamespace())
                 .withLabels(labels)
                 .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(applicationCustomResource))

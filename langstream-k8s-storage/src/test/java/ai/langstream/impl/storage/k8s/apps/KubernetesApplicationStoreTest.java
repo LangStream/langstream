@@ -38,7 +38,7 @@ class KubernetesApplicationStoreTest {
     void testApp() {
 
         final KubernetesApplicationStore store = new KubernetesApplicationStore();
-        store.initialize(Map.of("namespaceprefix", "s", "deployer-runtime", Map.of("image", "busybox", "image-pull-policy", "IfNotPresent")));
+        store.initialize(Map.of("namespaceprefix", "s"));
 
         final String tenant = getTenant();
         store.onTenantCreated(tenant);
@@ -53,9 +53,9 @@ class KubernetesApplicationStoreTest {
                         .withName("myapp")
                         .get();
 
-        assertEquals("IfNotPresent", createdCr.getSpec().getImagePullPolicy());
+        assertNull(createdCr.getSpec().getImage());
+        assertNull(createdCr.getSpec().getImagePullPolicy());
         assertEquals("{\"resources\":{},\"modules\":{},\"instance\":null,\"gateways\":null,\"agentRunners\":{}}", createdCr.getSpec().getApplication());
-        assertEquals("busybox", createdCr.getSpec().getImage());
         assertEquals(tenant, createdCr.getSpec().getTenant());
 
 
@@ -108,7 +108,7 @@ class KubernetesApplicationStoreTest {
     void testBlockDeployWhileDeleting() {
 
         final KubernetesApplicationStore store = new KubernetesApplicationStore();
-        store.initialize(Map.of("namespaceprefix", "s", "deployer-runtime", Map.of("image", "busybox", "image-pull-policy", "IfNotPresent")));
+        store.initialize(Map.of("namespaceprefix", "s"));
 
         final String tenant = getTenant();
         store.onTenantCreated(tenant);

@@ -26,6 +26,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Status;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
@@ -74,6 +75,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.awaitility.Awaitility;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -207,10 +209,15 @@ public class BaseEndToEndTest implements TestWatcher {
         log.error("Test {} failed", context.getDisplayName(), cause);
         final String prefix = "%s.%s".formatted(context.getTestClass().get().getSimpleName(),
                 context.getTestMethod().get().getName());
-        dumpAllPodsLogs(prefix, namespace);
+        dumpTest(prefix);
+
+    }
+
+    private static void dumpTest(String prefix) {
+        dumpAllPodsLogs(prefix);
         dumpEvents(prefix);
         dumpAllResources(prefix);
-
+        dumpProcessOutput(prefix, "kubectl-nodes", "kubectl describe nodes".split(" "));
     }
 
     protected static void applyManifest(String manifest, String namespace) {
@@ -439,32 +446,38 @@ public class BaseEndToEndTest implements TestWatcher {
                         .endMetadata()
                         .build())
                 .serverSideApply();
+        try {
 
 
-        final Path tempFile = Files.createTempFile("ls-test-kube", ".yaml");
-        Files.write(tempFile,
-                kubeServer.getKubeConfig().getBytes(StandardCharsets.UTF_8));
-        System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
+            final Path tempFile = Files.createTempFile("ls-test-kube", ".yaml");
+            Files.write(tempFile,
+                    kubeServer.getKubeConfig().getBytes(StandardCharsets.UTF_8));
+            System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
 
-        final CompletableFuture<Void> kafkaFuture = CompletableFuture.runAsync(() -> installKafka());
-        final CompletableFuture<Void> minioFuture = CompletableFuture.runAsync(() -> installMinio());
-        List<CompletableFuture<Void>> imagesFutures = new ArrayList<>();
+            final CompletableFuture<Void> kafkaFuture = CompletableFuture.runAsync(() -> installKafka());
+            final CompletableFuture<Void> minioFuture = CompletableFuture.runAsync(() -> installMinio());
+            List<CompletableFuture<Void>> imagesFutures = new ArrayList<>();
 
-        imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("langstream/langstream-control-plane:latest-dev")));
-        imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("langstream/langstream-deployer:latest-dev")));
-        imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("langstream/langstream-runtime:latest-dev")));
-        imagesFutures.add(CompletableFuture.runAsync(() ->
-                kubeServer.ensureImage("langstream/langstream-api-gateway:latest-dev")));
-        final CompletableFuture<Void> allFuture =
-                CompletableFuture.runAsync(() -> installLangStream());
-        CompletableFuture.allOf(kafkaFuture, minioFuture, imagesFutures.get(0), imagesFutures.get(1), imagesFutures.get(2),
-                allFuture).join();
-        awaitControlPlaneReady();
-        awaitApiGatewayReady();
+            imagesFutures.add(CompletableFuture.runAsync(() ->
+                    kubeServer.ensureImage("langstream/langstream-control-plane:latest-dev")));
+            imagesFutures.add(CompletableFuture.runAsync(() ->
+                    kubeServer.ensureImage( "langstream/langstream-deployer:latest-dev")));
+            imagesFutures.add(CompletableFuture.runAsync(() ->
+                    kubeServer.ensureImage("langstream/langstream-runtime:latest-dev")));
+            imagesFutures.add(CompletableFuture.runAsync(() ->
+                    kubeServer.ensureImage("langstream/langstream-api-gateway:latest-dev")));
 
+            final CompletableFuture<Void> allFuture =
+                    CompletableFuture.runAsync(() -> installLangStream());
+            CompletableFuture.allOf(kafkaFuture, minioFuture, imagesFutures.get(0), imagesFutures.get(1), imagesFutures.get(2),
+                    allFuture).join();
+
+            awaitControlPlaneReady();
+            awaitApiGatewayReady();
+        } catch (Throwable ee) {
+            dumpTest("BeforeAll");
+            throw ee;
+        }
     }
 
     private static void cleanupAllEndToEndTestsNamespaces() {
@@ -534,7 +547,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   replicaCount: 1
                   resources:
                     requests:
-                      cpu: 0.2
+                      cpu: 0.1
                       memory: 256Mi
                   app:
                     config:
@@ -597,7 +610,7 @@ public class BaseEndToEndTest implements TestWatcher {
 
         client.apps().deployments().inNamespace(namespace).withName("langstream-control-plane")
                 .waitUntilCondition(
-                        d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 120,
+                           d -> d.getStatus().getReadyReplicas() != null && d.getStatus().getReadyReplicas() == 1, 120,
                         TimeUnit.SECONDS);
         log.info("control plane ready");
     }
@@ -627,7 +640,7 @@ public class BaseEndToEndTest implements TestWatcher {
         runProcess("helm repo add redpanda https://charts.redpanda.com/".split(" "), true);
         runProcess("helm repo update".split(" "));
         // ref https://github.com/redpanda-data/helm-charts/blob/main/charts/redpanda/values.yaml
-        runProcess("helm install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.5 --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console.enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc.cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true".split(" "));
+        runProcess("helm install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.3 --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console.enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc.cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true".split(" "));
         log.info("waiting kafka to be ready");
         runProcess("kubectl wait pods redpanda-0 --for=condition=Ready --timeout=5m -n kafka-ns".split(" "));
         log.info("kafka installed");
@@ -677,7 +690,7 @@ public class BaseEndToEndTest implements TestWatcher {
                          name: s3
                     resources:
                       requests:
-                        cpu: 100m
+                        cpu: 50m
                         memory: 512Mi
                   volumes:
                   - name: localvolume
@@ -707,7 +720,7 @@ public class BaseEndToEndTest implements TestWatcher {
                 """);
     }
 
-    protected void withPodLogs(String podName, String namespace, int tailingLines, BiConsumer<String, String> consumer) {
+    protected static void withPodLogs(String podName, String namespace, int tailingLines, BiConsumer<String, String> consumer) {
         if (podName != null) {
             try {
                 client.pods().inNamespace(namespace)
@@ -728,13 +741,16 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
+    protected static void dumpAllPodsLogs(String filePrefix) {
+        getAllUserNamespaces().forEach(ns -> dumpAllPodsLogs(filePrefix, ns));
+    }
 
-    protected void dumpAllPodsLogs(String filePrefix, String namespace) {
+    protected static void dumpAllPodsLogs(String filePrefix, String namespace) {
         client.pods().inNamespace(namespace).list().getItems()
                 .forEach(pod -> dumpPodLogs(pod.getMetadata().getName(), namespace, filePrefix));
     }
 
-    protected void dumpPodLogs(String podName, String namespace, String filePrefix) {
+    protected static void dumpPodLogs(String podName, String namespace, String filePrefix) {
         TEST_LOGS_DIR.mkdirs();
         withPodLogs(podName, namespace, -1, (container, logs) -> {
             final File outputFile = new File(TEST_LOGS_DIR, "%s.%s.%s.log".formatted(filePrefix, podName, container));
@@ -746,26 +762,42 @@ public class BaseEndToEndTest implements TestWatcher {
         });
     }
 
-    protected void dumpAllResources(String filePrefix) {
-        dumpResources(filePrefix, Pod.class);
-        dumpResources(filePrefix, StatefulSet.class);
-        dumpResources(filePrefix, Job.class);
-        dumpResources(filePrefix, AgentCustomResource.class);
-        dumpResources(filePrefix, ApplicationCustomResource.class);
+    protected static void dumpAllResources(String filePrefix) {
+        final List<String> namespaces = getAllUserNamespaces();
+        dumpResources(filePrefix, Pod.class, namespaces);
+        dumpResources(filePrefix, StatefulSet.class, namespaces);
+        dumpResources(filePrefix, Job.class, namespaces);
+        dumpResources(filePrefix, AgentCustomResource.class, namespaces);
+        dumpResources(filePrefix, ApplicationCustomResource.class, namespaces);
+        dumpResources(filePrefix, Node.class, namespaces);
     }
 
-    private void dumpResources(String filePrefix, Class<? extends HasMetadata> clazz) {
-        client.resources(clazz)
-                .inNamespace(namespace)
+    private static List<String> getAllUserNamespaces() {
+        final List<String> namespaces = client.namespaces()
                 .list()
-                .getItems()
-                .forEach(resource -> dumpResource(filePrefix, resource));
+                .getItems().stream()
+                .map(n -> n.getMetadata().getName())
+                .filter(n -> !n.equals("kube-system"))
+                .collect(Collectors.toList());
+        return namespaces;
     }
 
-    protected void dumpResource(String filePrefix, HasMetadata resource) {
+    private static void dumpResources(String filePrefix, Class<? extends HasMetadata> clazz, List<String> namespaces) {
+        for (String namespace : namespaces) {
+            client.resources(clazz)
+                    .inNamespace(namespace)
+                    .list()
+                    .getItems()
+                    .forEach(resource -> dumpResource(filePrefix, resource));
+        }
+
+
+    }
+
+    protected static void dumpResource(String filePrefix, HasMetadata resource) {
         TEST_LOGS_DIR.mkdirs();
         final File outputFile = new File(TEST_LOGS_DIR,
-                "%s-%s-%s.log".formatted(filePrefix, resource.getKind(), resource.getMetadata().getName()));
+                "%s-%s-%s.txt".formatted(filePrefix, resource.getKind(), resource.getMetadata().getName()));
         try (FileWriter writer = new FileWriter(outputFile)) {
             writer.write(MAPPER.writeValueAsString(resource));
         } catch (Throwable e) {
@@ -773,15 +805,34 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
-    protected void dumpEvents(String filePrefix) {
+    protected static void dumpProcessOutput(String filePrefix, String filename, String... args) {
+        final File outputFile = new File(TEST_LOGS_DIR,
+                "%s-%s-stdout.txt".formatted(filePrefix, filename));
+        final File outputFileErr = new File(TEST_LOGS_DIR,
+                "%s-%s-stderr.txt".formatted(filePrefix, filename));
+
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder(args)
+                    .directory(Paths.get("..").toFile())
+                    .redirectOutput(ProcessBuilder.Redirect.to(outputFile))
+                    .redirectError(ProcessBuilder.Redirect.to(outputFileErr));
+            processBuilder.start().waitFor();
+        } catch (Throwable e) {
+            log.error("failed to write process output to file {}", outputFile, e);
+        }
+    }
+
+    protected static void dumpEvents(String filePrefix) {
         TEST_LOGS_DIR.mkdirs();
-        final File outputFile = new File(TEST_LOGS_DIR, "%s-events.log".formatted(filePrefix));
+        final File outputFile = new File(TEST_LOGS_DIR, "%s-events.txt".formatted(filePrefix));
         try (FileWriter writer = new FileWriter(outputFile)) {
             client.resources(Event.class).inAnyNamespace().list()
                     .getItems()
                     .forEach(event -> {
                         try {
-                            writer.write("[%s] [%s/%s] %s: %s\n".formatted(event.getMetadata().getNamespace(),
+
+                            writer.write("[%s] [%s/%s] %s: %s\n".formatted(
+                                    event.getMetadata().getNamespace(),
                                     event.getInvolvedObject().getKind(),
                                     event.getInvolvedObject().getName(), event.getReason(), event.getMessage()));
                         } catch (IOException e) {

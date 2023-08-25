@@ -213,7 +213,10 @@ public class AgentRunner
         log.info("Python code directory {}", pythonCodeDirectory);
 
         final String pythonPath = System.getenv("PYTHONPATH");
-        final String newPythonPath = "%s:%s".formatted(pythonPath, pythonCodeDirectory.toAbsolutePath().toString());
+        final String newPythonPath = "%s:%s:%s".formatted(
+            pythonPath,
+            pythonCodeDirectory.toAbsolutePath(),
+            pythonCodeDirectory.resolve("lib").toAbsolutePath());
 
         // copy input/output to standard input/output of the java process
         // this allows to use "kubectl logs" easily

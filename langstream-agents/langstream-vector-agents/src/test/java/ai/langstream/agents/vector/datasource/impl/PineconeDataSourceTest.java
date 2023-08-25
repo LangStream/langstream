@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.vector.datasource.impl;
 
+import ai.langstream.agents.vector.pinecone.PineconeDataSource;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;

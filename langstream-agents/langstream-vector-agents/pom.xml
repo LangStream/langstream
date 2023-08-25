@@ -43,6 +43,13 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <!-- DataStax Cassandra Connector for Apache Kafka -->
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>messaging-connectors-commons-core</artifactId>
+      <version>1.0.15</version>
+    </dependency>
+    <dependency>
+      <!-- Pinecone connector -->
       <groupId>io.pinecone</groupId>
       <artifactId>pinecone-client</artifactId>
       <version>0.2.3</version>
@@ -74,6 +81,12 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>junit-jupiter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>cassandra</artifactId>
+      <version>1.19.0</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
   <build>

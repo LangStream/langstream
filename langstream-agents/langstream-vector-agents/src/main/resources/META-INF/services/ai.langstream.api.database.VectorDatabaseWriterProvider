@@ -1,1 +1,2 @@
-ai.langstream.agents.vector.datasource.impl.PineconeWriter
+ai.langstream.agents.vector.pinecone.PineconeWriter
+ai.langstream.agents.vector.cassandra.CassandraWriter

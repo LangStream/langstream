@@ -1,4 +1,7 @@
-# Writing to a Cassandra or Datastax Astra DB Database 
+# Using a Kafka Connect Sink 
+
+With LangStream you can use Kafka Connect components, both Sinks and Sources.
+This example shows how to use a Kafka Connect Sink to write data to Apache Cassandra or to DataStax Astra DB.
 
 This sample application shows how to use the DataStax Cassandra Sink Connector
 https://github.com/datastax/kafka-sink
@@ -33,7 +36,7 @@ Update the same file and set username, password and the other parameters.
 
 ## Deploy the LangStream application
 
-./bin/langstream apps deploy test -app examples/applications/cassandra-sink -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/kafka-connect -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 
 
 ## Start a Producer

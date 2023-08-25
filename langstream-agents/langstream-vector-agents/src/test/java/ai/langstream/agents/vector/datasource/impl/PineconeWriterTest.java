@@ -16,6 +16,7 @@
 package ai.langstream.agents.vector.datasource.impl;
 
 import ai.langstream.agents.vector.VectorDBSinkAgent;
+import ai.langstream.agents.vector.pinecone.PineconeDataSource;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;

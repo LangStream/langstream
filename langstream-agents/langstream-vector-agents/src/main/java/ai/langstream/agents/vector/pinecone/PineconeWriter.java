@@ -1,0 +1,174 @@
+/**
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package ai.langstream.agents.vector.pinecone;
+
+import ai.langstream.ai.agents.GenAIToolKitAgent;
+import ai.langstream.api.database.VectorDatabaseWriter;
+import ai.langstream.api.database.VectorDatabaseWriterProvider;
+import ai.langstream.api.runner.code.Record;
+import com.datastax.oss.streaming.ai.TransformContext;
+import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
+import com.datastax.oss.streaming.ai.jstl.JstlEvaluator;
+import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.ListValue;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Value;
+import io.grpc.StatusRuntimeException;
+import io.pinecone.PineconeClient;
+import io.pinecone.PineconeClientConfig;
+import io.pinecone.PineconeConnection;
+import io.pinecone.PineconeConnectionConfig;
+import io.pinecone.proto.QueryRequest;
+import io.pinecone.proto.QueryResponse;
+import io.pinecone.proto.QueryVector;
+import io.pinecone.proto.SparseValues;
+import io.pinecone.proto.UpsertRequest;
+import io.pinecone.proto.UpsertResponse;
+import io.pinecone.proto.Vector;
+import lombok.Data;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Slf4j
+public class PineconeWriter implements VectorDatabaseWriterProvider {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    @Override
+    public boolean supports(Map<String, Object> dataSourceConfig) {
+        return "pinecone".equals(dataSourceConfig.get("service"));
+    }
+
+    @Override
+    public VectorDatabaseWriter createImplementation(Map<String, Object> datasourceConfig) {
+        return new PineconeVectorDatabaseWriter(datasourceConfig);
+    }
+
+    private static class PineconeVectorDatabaseWriter implements VectorDatabaseWriter {
+
+        private PineconeConnection connection;
+        private JstlEvaluator idFunction;
+        private JstlEvaluator namespaceFunction;
+        private JstlEvaluator vectorFunction;
+        private Map<String, JstlEvaluator> metadataFunctions;
+        private final PineconeConfig clientConfig;
+
+        public PineconeVectorDatabaseWriter(Map<String, Object> datasourceConfig) {
+            this.clientConfig = MAPPER.convertValue(datasourceConfig, PineconeConfig.class);
+        }
+
+        @Override
+        public void initialise(Map<String, Object> agentConfiguration) throws Exception {
+
+            this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
+            this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
+            this.namespaceFunction = buildEvaluator(agentConfiguration, "vector.namespace", String.class);
+
+            this.metadataFunctions = new HashMap<>();
+            agentConfiguration.forEach((key, value) -> {
+                if (key.startsWith("vector.metadata.")) {
+                    String metadataKey = key.substring("vector.metadata.".length());
+                    metadataFunctions.put(metadataKey, buildEvaluator(agentConfiguration, key, Object.class));
+                }
+            });
+
+
+            PineconeClientConfig pineconeClientConfig = new PineconeClientConfig()
+                    .withApiKey(clientConfig.getApiKey())
+                    .withEnvironment(clientConfig.getEnvironment())
+                    .withProjectName(clientConfig.getProjectName())
+                    .withServerSideTimeoutSec(clientConfig.getServerSideTimeoutSec());
+            PineconeClient pineconeClient = new PineconeClient(pineconeClientConfig);
+            PineconeConnectionConfig connectionConfig = new PineconeConnectionConfig()
+                    .withIndexName(clientConfig.getIndexName());
+            connection = pineconeClient.connect(connectionConfig);
+        }
+
+        @Override
+        public void upsert(Record record, Map<String, Object> context) throws Exception {
+
+            TransformContext transformContext = GenAIToolKitAgent.recordToTransformContext(record, true);
+            String id = idFunction != null ? (String) idFunction.evaluate(transformContext) : null;
+            String namespace = namespaceFunction != null ? (String) namespaceFunction.evaluate(transformContext) : null;
+            List<Object> vector = vectorFunction != null ? (List<Object>) vectorFunction.evaluate(transformContext) : null;
+            Map<String, Object> metadata = metadataFunctions.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().evaluate(transformContext)));
+            Struct metadataStruct = Struct.newBuilder()
+                    .putAllFields(metadata.entrySet().stream()
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> PineconeDataSource.convertToValue(e.getValue()))))
+                    .build();
+
+            List<Float> vectorFloat = null;
+            if (vector != null) {
+                vectorFloat = vector.stream()
+                        .map(n -> {
+                            if (n instanceof String s) {
+                                return Float.parseFloat(s);
+                            } else if (n instanceof Number u) {
+                                return u.floatValue();
+                            } else {
+                                throw new IllegalArgumentException("only vectors of floats are supported");
+                            }
+                        })
+                        .collect(Collectors.toList());
+            }
+
+            Vector v1 = Vector.newBuilder()
+                    .setId(id)
+                    .addAllValues(vectorFloat)
+                    .setMetadata(metadataStruct)
+                    .build();
+
+            UpsertRequest.Builder builder = UpsertRequest.newBuilder()
+                    .addVectors(v1);
+
+            if (namespace != null) {
+                builder.setNamespace(namespace);
+            }
+            UpsertRequest upsertRequest = builder.build();
+
+            UpsertResponse upsertResponse = connection.getBlockingStub()
+                    .upsert(upsertRequest);
+
+            log.info("Result {}", upsertResponse);
+
+        }
+    }
+
+    private static JstlEvaluator buildEvaluator(Map<String, Object> agentConfiguration, String param, Class type) {
+        String expression = agentConfiguration.getOrDefault(param, "").toString();
+        if (expression == null || expression.isEmpty()) {
+            return null;
+        }
+        return new JstlEvaluator("${" + expression + "}", type);
+    }
+}

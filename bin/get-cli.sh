@@ -44,13 +44,37 @@ echo " |_____\__,_|_| |_|\__, |____/ \__|_|  \___|\__,_|_| |_| |_|";
 echo "                   |___/                                    ";
 
 
+get_latest_release_tarball_url() {
+  if ! command -v jq > /dev/null; then
+  	echo "Not found."
+  	echo "======================================================================================================"
+  	echo " Please install jq on your system using your favourite package manager."
+  	echo ""
+  	echo " Restart after installing jq."
+  	echo "======================================================================================================"
+  	echo " In alternative you can set a fixed LangStream CLI version by setting LANGSTREAM_CLI_URL."
+    echo "======================================================================================================"
+  	echo ""
+  	exit 1
+  fi
+   curl -Ss https://api.github.com/repos/LangStream/langstream/releases/latest | jq -r '.assets[] | select((.name | contains("langstream-cli")) and (.name | contains(".zip"))) | .browser_download_url'
+}
+
+
 echo "Installing $(tput setaf 6)LangStream CLI$(tput setaf 7) please wait...      "
 # Local installation
 BIN_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ROOT_DIR=$( cd -P "$( dirname "$BIN_DIR" )" >/dev/null 2>&1 && pwd )
-DEFAULT_ZIP="https://github.com/LangStream/langstream/releases/download/0.0.2-alpha/langstream-cli-0.0.2-alpha.zip"
-ZIP_DOWNLOAD_URL="${1:-$DEFAULT_ZIP}"
-candidate_base_name=$(basename $ZIP_DOWNLOAD_URL)
+echo ""
+echo "$(tput setaf 6)Checking archive:$(tput setaf 7)"
+if [ -z "$LANGSTREAM_CLI_URL" ]; then
+  echo "$(tput setaf 2)LANGSTREAM_CLI_URL$(tput setaf 7) environment not set, checking for the latest release"
+  LANGSTREAM_CLI_URL=$(get_latest_release_tarball_url)
+  echo "$(tput setaf 2)[OK]$(tput setaf 7) - Using $LANGSTREAM_CLI_URL"
+else
+  echo "$(tput setaf 2)[OK]$(tput setaf 7) - LangStream CLI url set to $LANGSTREAM_CLI_URL (from LANGSTREAM_CLI_URL)"
+fi
+candidate_base_name=$(basename $LANGSTREAM_CLI_URL)
 
 
 langstream_root_dir="$HOME/.langstream"
@@ -64,7 +88,7 @@ langstream_current_symlink="$langstream_candidates_dir/current"
 mkdir -p $langstream_candidates_dir
 
 downloaded_zip_path=$langstream_downloads_dir/$candidate_base_name
-downloaded_extracted_dir=${ZIP_DOWNLOAD_URL//\.zip}
+downloaded_extracted_dir=${LANGSTREAM_CLI_URL//\.zip}
 downloaded_extracted_path="$langstream_candidates_dir/$(basename $downloaded_extracted_dir)"
 
 darwin=false
@@ -106,7 +130,7 @@ echo "$(tput setaf 6)Downloading archive:$(tput setaf 7)"
 if [ -f "$downloaded_zip_path" ]; then
 	echo "$(tput setaf 2)[OK]$(tput setaf 7) - Archive is already there"
 else
-	curl --fail --location --progress-bar "$ZIP_DOWNLOAD_URL" > "$downloaded_zip_path"
+	curl --fail --location --progress-bar "$LANGSTREAM_CLI_URL" > "$downloaded_zip_path"
 	echo "$(tput setaf 2)[OK]$(tput setaf 7) - File downloaded"
 fi
 

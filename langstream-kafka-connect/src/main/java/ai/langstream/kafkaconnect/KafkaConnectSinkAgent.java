@@ -110,7 +110,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
     // has to be the same consumer as used to read records to process,
     // otherwise pause/resume won't work
     @Override
-    public void setContext(AgentContext context) throws Exception {
+    public void setContext(AgentContext context) {
         this.context = context;
     }
 
@@ -156,7 +156,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         try {
             task.put(sinkRecords);
 
-            recordsWithOffset.stream()
+            recordsWithOffset
                     .forEach(op -> {
                         currentBatchSize.addAndGet(getRecordSize(op));
                         taskContext.updateOffset(op.getTopicPartition(),
@@ -242,7 +242,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         }
 
         final KafkaRecord lastNotFlushed = pendingFlushQueue.getLast();
-        Map<TopicPartition, OffsetAndMetadata> committedOffsets = null;
+        Map<TopicPartition, OffsetAndMetadata> committedOffsets;
         try {
             Map<TopicPartition, OffsetAndMetadata> currentOffsets = taskContext.currentOffsets();
             committedOffsets = task.preCommit(currentOffsets);

@@ -62,14 +62,14 @@ class ApplicationResourceTest {
     protected Path tempDir;
 
     @BeforeEach
-    public void beforeEach(@TempDir Path tempDir) throws Exception {
+    public void beforeEach(@TempDir Path tempDir) {
         this.tempDir = tempDir;
     }
 
     protected File createTempFile(String content) {
         try {
             Path tempFile = Files.createTempFile(tempDir, "langstream-cli-test", ".yaml");
-            Files.write(tempFile, content.getBytes(StandardCharsets.UTF_8));
+            Files.writeString(tempFile, content);
             return tempFile.toFile();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -79,12 +79,10 @@ class ApplicationResourceTest {
 
     private MockMultipartFile getMultipartFile(String application) throws Exception {
         final Path zip = AbstractDeployApplicationCmd.buildZip(
-                application == null ? null : createTempFile(application), s -> log.info(s));
-        MockMultipartFile firstFile = new MockMultipartFile(
+                application == null ? null : createTempFile(application), log::info);
+        return new MockMultipartFile(
                 "app", "content.zip", MediaType.APPLICATION_OCTET_STREAM_VALUE,
                 Files.newInputStream(zip));
-        return firstFile;
-
     }
 
 

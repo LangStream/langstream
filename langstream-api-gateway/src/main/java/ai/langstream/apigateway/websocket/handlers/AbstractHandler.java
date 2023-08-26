@@ -26,6 +26,7 @@ import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,7 +59,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     abstract String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString);
 
 
-    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext gatewayRequestContext) throws Exception {};
+    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext gatewayRequestContext) throws Exception {}
 
     abstract void onOpen(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext gatewayRequestContext) throws Exception;
 
@@ -81,8 +82,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     }
 
     private AuthenticatedGatewayRequestContext getContext(WebSocketSession session) {
-        final AuthenticatedGatewayRequestContext context = (AuthenticatedGatewayRequestContext) session.getAttributes().get("context");
-        return context;
+        return (AuthenticatedGatewayRequestContext) session.getAttributes().get("context");
     }
 
     private void closeSession(WebSocketSession session, Throwable throwable) throws IOException {
@@ -253,9 +253,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         if (currentCloseable == null) {
             currentCloseable = new ArrayList<>();
         }
-        for (AutoCloseable closeable : closeables) {
-            currentCloseable.add(closeable);
-        }
+        Collections.addAll(currentCloseable, closeables);
         webSocketSession.getAttributes().put("closeables", currentCloseable);
     }
 

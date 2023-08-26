@@ -21,8 +21,6 @@ import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import java.util.Set;
-
 @Slf4j
 @Getter
 public class WebCrawler {
@@ -41,7 +39,7 @@ public class WebCrawler {
         this.status = status;
     }
 
-    public void crawl(String startUrl) throws Exception {
+    public void crawl(String startUrl) {
         if (!configuration.isAllowedDomain(startUrl)) {
             return;
         }

@@ -39,18 +39,18 @@ public class AgentRecordTrackerTest {
         List<Record> committed = new ArrayList<>();
 
         @Override
-        public void commit(List<Record> records) throws Exception {
+        public void commit(List<Record> records) {
             committed.addAll(records);
         }
 
         @Override
-        public List<Record> read() throws Exception {
+        public List<Record> read() {
             return List.of();
         }
     }
 
     @Test
-    public void testTracker() throws Exception {
+    public void testTracker() {
 
         MySource agentSource = new MySource();
         SourceRecordTracker tracker = new SourceRecordTracker(agentSource);
@@ -72,7 +72,7 @@ public class AgentRecordTrackerTest {
     }
 
     @Test
-    public void testChunking() throws Exception {
+    public void testChunking() {
         MySource agentSource = new MySource();
         SourceRecordTracker tracker = new SourceRecordTracker(agentSource);
 
@@ -97,7 +97,7 @@ public class AgentRecordTrackerTest {
     }
 
     @Test
-    public void testSkippedRecord() throws Exception {
+    public void testSkippedRecord() {
 
         MySource agentSource = new MySource();
         SourceRecordTracker tracker = new SourceRecordTracker(agentSource);

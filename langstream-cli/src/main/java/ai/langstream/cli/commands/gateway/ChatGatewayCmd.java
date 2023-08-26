@@ -136,7 +136,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                 err("Connection error: %s".formatted(throwable.getMessage()));
             }
         };
-        try (final WebSocketClient consumeClient = new WebSocketClient(consumeHandler)
+        try (final WebSocketClient ignored = new WebSocketClient(consumeHandler)
                 .connect(URI.create(consumePath), connectTimeout)) {
             consumerReady.await();
             log("Connected to %s".formatted(consumePath));
@@ -183,6 +183,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                 try {
                     future.join();
                 } catch (CancellationException cancel) {
+                    // ignore
                 }
 
             }

@@ -19,11 +19,9 @@ import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.servlet.common.adapter.HttpServletRequestAdapter;
 import io.prometheus.client.servlet.common.adapter.HttpServletResponseAdapter;
 import io.prometheus.client.servlet.common.exporter.Exporter;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -31,7 +29,7 @@ public class MetricsHttpServlet extends HttpServlet {
     private final Exporter exporter = new Exporter(CollectorRegistry.defaultRegistry, (s) -> true);
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         exporter.doGet(new HttpServletRequestAdapter() {
             @Override
             public String getHeader(String s) {

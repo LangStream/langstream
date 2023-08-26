@@ -38,7 +38,7 @@ public class TopicProducerSink extends AbstractAgentCode implements AgentSink {
     }
 
     @Override
-    public void init(Map<String, Object> configuration) throws Exception {
+    public void init(Map<String, Object> configuration) {
         // the producer is already initialized
     }
 

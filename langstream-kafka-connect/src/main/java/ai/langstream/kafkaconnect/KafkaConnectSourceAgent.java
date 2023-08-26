@@ -15,18 +15,32 @@
  */
 package ai.langstream.kafkaconnect;
 
-import ai.langstream.kafka.runner.KafkaRecord;
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.kafka.connect.runtime.TopicCreationConfig.PARTITIONS_VALIDATOR;
+import static org.apache.kafka.connect.runtime.TopicCreationConfig.REPLICATION_FACTOR_VALIDATOR;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.CONFIG_TOPIC_CONFIG;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.GROUP_ID_CONFIG;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.OFFSET_STORAGE_PARTITIONS_CONFIG;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.OFFSET_STORAGE_REPLICATION_FACTOR_CONFIG;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.OFFSET_STORAGE_TOPIC_CONFIG;
+import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.STATUS_STORAGE_TOPIC_CONFIG;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicConnectionProvider;
+import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.kafka.runner.KafkaRecord;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -47,23 +61,6 @@ import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.apache.kafka.connect.storage.OffsetStorageReaderImpl;
 import org.apache.kafka.connect.storage.OffsetStorageWriter;
 import org.apache.kafka.connect.util.TopicAdmin;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.kafka.connect.runtime.TopicCreationConfig.PARTITIONS_VALIDATOR;
-import static org.apache.kafka.connect.runtime.TopicCreationConfig.REPLICATION_FACTOR_VALIDATOR;
-import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.CONFIG_TOPIC_CONFIG;
-import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.GROUP_ID_CONFIG;
-import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.OFFSET_STORAGE_PARTITIONS_CONFIG;
-import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.OFFSET_STORAGE_REPLICATION_FACTOR_CONFIG;
-import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.OFFSET_STORAGE_TOPIC_CONFIG;
-import static org.apache.kafka.connect.runtime.distributed.DistributedConfig.STATUS_STORAGE_TOPIC_CONFIG;
 
 @Slf4j
 public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentSource {
@@ -101,7 +98,7 @@ public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentS
     TopicProducer topicProducerToOffsetStore;
 
     // just to get access to baseConfigDef()
-    class WorkerConfigImpl extends org.apache.kafka.connect.runtime.WorkerConfig {
+    static class WorkerConfigImpl extends org.apache.kafka.connect.runtime.WorkerConfig {
         public WorkerConfigImpl(Map<String, String> props) {
             super(baseConfigDef().define(OFFSET_STORAGE_TOPIC_CONFIG,
                             ConfigDef.Type.STRING,
@@ -242,7 +239,7 @@ public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentS
 
     }
 
-    public void setContext(AgentContext context) throws Exception {
+    public void setContext(AgentContext context) {
         this.topicAdmin = (TopicAdmin) context.getTopicAdmin().getNativeTopicAdmin();
         this.agentId = context.getGlobalAgentId();
         this.topicConnectionProvider = context.getTopicConnectionProvider();
@@ -250,7 +247,7 @@ public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentS
 
     @Override
     public void start() throws Exception {
-        kafkaConnectorFQClassName = adapterConfig.get(CONNECTOR_CLASS).toString();
+        kafkaConnectorFQClassName = adapterConfig.get(CONNECTOR_CLASS);
         Class<?> clazz = Class.forName(kafkaConnectorFQClassName);
         connector = (SourceConnector) clazz.getConstructor().newInstance();
 

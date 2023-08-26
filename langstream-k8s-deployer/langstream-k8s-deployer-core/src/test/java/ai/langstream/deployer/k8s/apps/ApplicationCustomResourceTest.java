@@ -96,11 +96,8 @@ class ApplicationCustomResourceTest {
         k3s.getClient().resource(cr).delete();
 
         Awaitility.await()
-                .untilAsserted(() -> {
-                    assertEquals(0, k3s.getClient().batch().v1().jobs().inNamespace(namespace)
-                            .list().getItems().size());
-
-                });
+                .untilAsserted(() -> assertEquals(0, k3s.getClient().batch().v1().jobs().inNamespace(namespace)
+                        .list().getItems().size()));
     }
 
     static AtomicInteger counter = new AtomicInteger(0);

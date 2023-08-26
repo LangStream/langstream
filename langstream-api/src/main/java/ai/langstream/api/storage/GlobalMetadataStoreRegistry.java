@@ -27,9 +27,7 @@ public class GlobalMetadataStoreRegistry {
         ServiceLoader<GlobalMetadataStore> loader = ServiceLoader.load(GlobalMetadataStore.class);
         final GlobalMetadataStore store = loader
                 .stream()
-                .filter(p -> {
-                    return type.equals(p.get().storeType());
-                })
+                .filter(p -> type.equals(p.get().storeType()))
                 .findFirst()
                 .orElseThrow(
                         () -> new RuntimeException("No GlobalMetadataStore found for type " + type)

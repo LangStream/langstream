@@ -17,8 +17,6 @@ package ai.langstream.runtime;
 
 import ai.langstream.runtime.agent.AgentCodeDownloader;
 import ai.langstream.runtime.agent.AgentRunnerStarter;
-import ai.langstream.runtime.deployer.RuntimeDeployer;
-import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.deployer.RuntimeDeployerStarter;
 
 public class Main {
@@ -32,17 +30,12 @@ public class Main {
         final String[] newArgs = new String[args.length - 1];
         System.arraycopy(args, 1, newArgs, 0, newArgs.length);
         switch (command) {
-            case "agent-runtime":
-                AgentRunnerStarter.main(newArgs);
-                break;
-            case "agent-code-download":
-                AgentCodeDownloader.main(newArgs);
-                break;
-            case "deployer-runtime":
-                RuntimeDeployerStarter.main(newArgs);
-                break;
-            default: {
-                System.err.println("Unknown command. Only ['agent-runtime', 'deployer-runtime', 'agent-code-download']");
+            case "agent-runtime" -> AgentRunnerStarter.main(newArgs);
+            case "agent-code-download" -> AgentCodeDownloader.main(newArgs);
+            case "deployer-runtime" -> RuntimeDeployerStarter.main(newArgs);
+            default -> {
+                System.err.println(
+                    "Unknown command. Only ['agent-runtime', 'deployer-runtime', 'agent-code-download']");
                 System.exit(1);
             }
         }

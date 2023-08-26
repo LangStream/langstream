@@ -42,8 +42,8 @@ public interface AgentCode {
 
     /**
      * Set the context of the agent. This is invoked after {@link #init(Map)} and before {@link #start()}
-     * @param context
-     * @throws Exception
+     * @param context the context of the agent
+     * @throws Exception if an error occurs
      */
     default void setContext(AgentContext context) throws Exception {
     }
@@ -54,7 +54,7 @@ public interface AgentCode {
     /**
      * Return information about the agent.
      * This is a List because an Agent can be the composition of multiple agents.
-     * @return
+     * @return information about the agent
      */
     List<AgentStatusResponse> getAgentStatus();
 }

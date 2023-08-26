@@ -15,15 +15,25 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.kafka.runtime.KafkaTopic;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.kafka.runtime.KafkaTopic;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -32,18 +42,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Stream;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 @WireMockTest
@@ -81,38 +79,36 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                  resources:
                                     - type: "vertex-configuration"
                                       name: "Vertex configuration"
-                                      configuration:                                        
-                                        url: "%s"     
+                                      configuration:
+                                        url: "%s"
                                         region: "us-east1"
                                         project: "the-project"
                                         token: "some-token"
                         """.formatted(wireMockRuntimeInfo.getHttpBaseUrl()),
-                                () -> {
-                                    stubFor(post("/v1/projects/the-project/locations/us-east1/publishers/google/models/textembedding-gecko:predict")
-                                            .willReturn(okJson(""" 
-                                               {
-                                                  "predictions": [
-                                                    {
-                                                      "embeddings": {
-                                                        "statistics": {
-                                                          "truncated": false,
-                                                          "token_count": 6
-                                                        },
-                                                        "values": [ 1.0, 5.4, 8.7]
-                                                      }
-                                                    }
-                                                  ]
+                                () -> stubFor(post("/v1/projects/the-project/locations/us-east1/publishers/google/models/textembedding-gecko:predict")
+                                        .willReturn(okJson(""" 
+                                           {
+                                              "predictions": [
+                                                {
+                                                  "embeddings": {
+                                                    "statistics": {
+                                                      "truncated": false,
+                                                      "token_count": 6
+                                                    },
+                                                    "values": [ 1.0, 5.4, 8.7]
+                                                  }
                                                 }
-                """)));
-                                })),
+                                              ]
+                                            }
+            """))))),
                 Arguments.of(new EmbeddingsConfig("some-model", """
                              configuration:
                                  resources:
                                     - type: "hugging-face-configuration"
                                       name: "Hugging Face API configuration"
-                                      configuration:                                        
+                                      configuration:
                                         api-url: "%s"
-                                        model-check-url: "%s"                                             
+                                        model-check-url: "%s"
                                         access-key: "some-token"
                                         provider: "api"
                         """.formatted(wireMockRuntimeInfo.getHttpBaseUrl()+"/embeddings/",
@@ -162,14 +158,12 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                     type: "compute-ai-embeddings"
                                     input: "%s"
                                     output: "%s"
-                                    configuration:                                      
+                                    configuration:
                                       model: "%s"
                                       embeddings-field: "value.embeddings"
                                       text: "something to embed"
                                 """.formatted(inputTopic, outputTopic, inputTopic, outputTopic, config.model));
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, appId, application, buildInstanceYaml(), expectedAgents);) {
-
-
+        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
             ExecutionPlan implementation = applicationRuntime.implementation();
             Application applicationInstance = applicationRuntime.applicationInstance();
 

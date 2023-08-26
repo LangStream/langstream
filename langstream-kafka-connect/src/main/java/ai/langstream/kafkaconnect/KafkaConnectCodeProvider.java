@@ -26,14 +26,11 @@ public class KafkaConnectCodeProvider implements AgentCodeProvider {
 
     @Override
     public AgentCode createInstance(String agentType) {
-        switch (agentType) {
-            case "sink":
-                return new KafkaConnectSinkAgent();
-            case "source":
-                return new KafkaConnectSourceAgent();
-            default:
-                throw new IllegalStateException();
-        }
+        return switch (agentType) {
+            case "sink" -> new KafkaConnectSinkAgent();
+            case "source" -> new KafkaConnectSourceAgent();
+            default -> throw new IllegalStateException();
+        };
 
     }
 }

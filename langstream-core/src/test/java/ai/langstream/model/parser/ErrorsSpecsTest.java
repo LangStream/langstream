@@ -37,14 +37,14 @@ public class ErrorsSpecsTest {
                                 id: "pipeline-1"
                                 errors:
                                    retries: 7
-                                   on-failure: skip             
+                                   on-failure: skip
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                 pipeline:
-                                  - name: "step1"                                    
+                                  - name: "step1"
                                     type: "noop"
-                                    input: "input-topic"                                    
+                                    input: "input-topic"
                                   - name: "step2"
                                     type: "noop"
                                     errors:
@@ -52,7 +52,7 @@ public class ErrorsSpecsTest {
                                   - name: "step3"
                                     type: "noop"
                                     errors:
-                                       retries: 3                                      
+                                       retries: 3
                                   - name: "step4"
                                     type: "noop"
                                     errors:
@@ -61,14 +61,14 @@ public class ErrorsSpecsTest {
                                 """,
                         "module2.yaml", """
                                 module: "module-2"
-                                id: "pipeline-2"             
+                                id: "pipeline-2"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                 pipeline:
-                                  - name: "step1"                                    
+                                  - name: "step1"
                                     type: "noop"
-                                    input: "input-topic"                                    
+                                    input: "input-topic"
                                   - name: "step2"
                                     type: "noop"
                                     errors:
@@ -76,7 +76,7 @@ public class ErrorsSpecsTest {
                                   - name: "step3"
                                     type: "noop"
                                     errors:
-                                       retries: 3                                      
+                                       retries: 3
                                   - name: "step3"
                                     type: "noop"
                                     errors:

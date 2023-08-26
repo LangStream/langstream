@@ -25,8 +25,9 @@ class TextNormaliserAgentTest {
     void testTrimSpaces() {
         String text = "  some text with \t \tspaces \n\n\n this is a new line";
         String result = TextNormaliserAgent.trimSpaces(text);
-        assertEquals("some text with spaces \n" +
-                "\n" +
-                " this is a new line", result);
+        assertEquals("""
+            some text with spaces\s
+
+             this is a new line""", result);
     }
 }

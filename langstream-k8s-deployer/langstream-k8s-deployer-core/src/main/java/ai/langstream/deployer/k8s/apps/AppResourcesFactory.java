@@ -149,7 +149,7 @@ public class AppResourcesFactory {
 
 
         final Map<String, String> labels = getLabels(isDeleteJob, applicationId);
-        final Job job = new JobBuilder()
+        return new JobBuilder()
                 .withNewMetadata()
                 .withName(getJobName(applicationId, isDeleteJob))
                 .withNamespace(applicationCustomResource.getMetadata().getNamespace())
@@ -189,15 +189,13 @@ public class AppResourcesFactory {
                 .endTemplate()
                 .endSpec()
                 .build();
-        return job;
     }
 
     public static Map<String, String> getLabels(boolean delete, String applicationId) {
-        final Map<String, String> labels = Map.of(
+        return Map.of(
                 CRDConstants.COMMON_LABEL_APP, "langstream-deployer",
                 CRDConstants.APP_LABEL_APPLICATION, applicationId,
                 CRDConstants.APP_LABEL_SCOPE, delete ? CRDConstants.APP_LABEL_SCOPE_DELETE : CRDConstants.APP_LABEL_SCOPE_DEPLOY);
-        return labels;
     }
 
     public static String getJobName(String applicationId, boolean delete) {
@@ -211,18 +209,10 @@ public class AppResourcesFactory {
     public static ApplicationLifecycleStatus computeApplicationStatus(KubernetesClient client,
                                                                       ApplicationCustomResource customResource) {
 
-        switch (customResource.getStatus().getStatus().getStatus()) {
-            case CREATED:
-            case DEPLOYED:
-            case ERROR_DEPLOYING:
-            case ERROR_DELETING:
-                return customResource.getStatus().getStatus();
-            case DEPLOYING:
-            case DELETING:
-                return getStatusFromJob(client, customResource);
-            default:
-                throw new IllegalStateException("Unknown status " + customResource.getStatus().getStatus().getStatus());
-        }
+        return switch (customResource.getStatus().getStatus().getStatus()) {
+            case CREATED, DEPLOYED, ERROR_DEPLOYING, ERROR_DELETING -> customResource.getStatus().getStatus();
+            case DEPLOYING, DELETING -> getStatusFromJob(client, customResource);
+        };
     }
 
 
@@ -239,14 +229,11 @@ public class AppResourcesFactory {
         }
         final KubeUtil.PodStatus podStatus = KubeUtil.getPodsStatuses(pods).values().iterator().next();
 
-        switch (podStatus.getState()) {
-            case RUNNING:
-            case WAITING:
-                return customResource.getStatus().getStatus();
-            case ERROR:
-            default:
-                return delete ? ApplicationLifecycleStatus.errorDeleting(podStatus.getMessage()) : ApplicationLifecycleStatus.errorDeploying(podStatus.getMessage());
-        }
+        return switch (podStatus.getState()) {
+            case RUNNING, WAITING -> customResource.getStatus().getStatus();
+            case ERROR -> delete ? ApplicationLifecycleStatus.errorDeleting(podStatus.getMessage()) :
+                ApplicationLifecycleStatus.errorDeploying(podStatus.getMessage());
+        };
     }
 
 

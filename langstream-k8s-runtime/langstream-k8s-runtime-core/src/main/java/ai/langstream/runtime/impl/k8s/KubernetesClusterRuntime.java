@@ -119,10 +119,9 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             ExecutionPlan applicationInstance,
             String codeStorageArchiveId) {
         log.info("Building configuration for Agent {}, codeStorageArchiveId {}", agent, codeStorageArchiveId);
-        if (!(agent instanceof DefaultAgentNode)) {
+        if (!(agent instanceof DefaultAgentNode defaultAgentImplementation)) {
             throw new UnsupportedOperationException("Only default agent implementations are supported");
         }
-        DefaultAgentNode defaultAgentImplementation = (DefaultAgentNode) agent;
 
         Map<String, Object> inputConfiguration = new HashMap<>();
         if (defaultAgentImplementation.getInputConnectionImplementation() != null) {
@@ -200,8 +199,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
 
     private static String bytesToHex(byte[] hash) {
         StringBuilder hexString = new StringBuilder(2 * hash.length);
-        for (int i = 0; i < hash.length; i++) {
-            String hex = Integer.toHexString(0xff & hash[i]);
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
             if (hex.length() == 1) {
                 hexString.append('0');
             }
@@ -244,8 +243,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     }
 
     private String computeNamespace(String tenant) {
-        final String namespace = configuration.getNamespacePrefix() + tenant;
-        return namespace;
+        return configuration.getNamespacePrefix() + tenant;
     }
 
     @Override

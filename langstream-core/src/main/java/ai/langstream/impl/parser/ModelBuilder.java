@@ -87,9 +87,9 @@ public class ModelBuilder {
      * instance.yaml file and the secrets.yaml file.
      * This is server side code and it is expected that the directories are local to the server.
      *
-     * @param applicationDirectories
+     * @param applicationDirectories a list of directories containing the application definition
      * @return a fully built application instance (application model + instance + secrets)
-     * @throws Exception
+     * @throws Exception if an error occurs
      */
     public static ApplicationWithPackageInfo buildApplicationInstance(List<Path> applicationDirectories,
                                                                       String instanceContent,

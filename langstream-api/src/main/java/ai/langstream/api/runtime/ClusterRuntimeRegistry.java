@@ -63,9 +63,7 @@ public class ClusterRuntimeRegistry implements AutoCloseable {
         ServiceLoader<ComputeClusterRuntimeProvider> loader = ServiceLoader.load(ComputeClusterRuntimeProvider.class);
         ServiceLoader.Provider<ComputeClusterRuntimeProvider> clusterRuntimeProviderProvider = loader
                 .stream()
-                .filter(p -> {
-                    return p.get().supports(clusterType);
-                })
+                .filter(p -> p.get().supports(clusterType))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No ClusterRuntimeProvider found for type " + clusterType));
 
@@ -78,9 +76,7 @@ public class ClusterRuntimeRegistry implements AutoCloseable {
         ServiceLoader<StreamingClusterRuntimeProvider> loader = ServiceLoader.load(StreamingClusterRuntimeProvider.class);
         ServiceLoader.Provider<StreamingClusterRuntimeProvider> clusterRuntimeProviderProvider = loader
                 .stream()
-                .filter(p -> {
-                    return p.get().supports(streamingClusterType);
-                })
+                .filter(p -> p.get().supports(streamingClusterType))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No StreamingClusterRuntimeProvider found for type " + streamingClusterType));
 

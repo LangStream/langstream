@@ -31,7 +31,7 @@ public record Connection(ConnectionType connectionType, String definition, boole
 
     public enum ConnectionType {
         AGENT,
-        TOPIC;
+        TOPIC
     }
 
 }

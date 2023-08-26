@@ -16,6 +16,7 @@
 package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runtime.ComponentType;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -40,17 +41,9 @@ public interface AgentProcessor extends AgentCode {
         return ComponentType.PROCESSOR;
     }
 
-    @Getter
-    @ToString
-    static class SourceRecordAndResult {
-        final Record sourceRecord;
-        final List<Record> resultRecords;
-        final Throwable error;
-
-        public SourceRecordAndResult(Record sourceRecord, List<Record> resultRecords, Throwable error) {
-            this.sourceRecord = sourceRecord;
-            this.resultRecords = resultRecords == null ? List.of() : resultRecords;
-            this.error = error;
+    record SourceRecordAndResult(Record sourceRecord, List<Record> resultRecords, Throwable error) {
+        public SourceRecordAndResult {
+            resultRecords = Objects.requireNonNullElseGet(resultRecords, List::of);
         }
     }
 }

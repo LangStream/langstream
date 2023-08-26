@@ -146,7 +146,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         }
         if (!somethingFound) {
             log.info("Nothing found, sleeping for {} seconds", idleTime);
-            Thread.sleep(idleTime * 1000);
+            Thread.sleep(idleTime * 1000L);
         } else {
             processed(0, 1);
         }
@@ -164,11 +164,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         } else {
             extension = name.substring(extensionIndex + 1);
         }
-        if (extensions.contains(extension)) {
-            return true;
-        } else {
-            return false;
-        }
+        return extensions.contains(extension);
     }
 
     @Override
@@ -204,7 +200,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         /**
          * the key is used for routing, so it is better to set it to something meaningful.
          * In case of retransmission the message will be sent to the same partition.
-         * @return
+         * @return the key
          */
         @Override
         public Object key() {
@@ -233,7 +229,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
 
         @AllArgsConstructor
         @ToString
-        private class S3RecordHeader implements Header {
+        private static class S3RecordHeader implements Header {
 
             final String key;
             final String value;

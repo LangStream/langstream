@@ -15,15 +15,15 @@
  */
 package ai.langstream.apigateway.websocket;
 
-import ai.langstream.apigateway.websocket.handlers.AbstractHandler;
-import ai.langstream.api.gateway.GatewayAuthenticationResult;
-import ai.langstream.api.model.Application;
 import ai.langstream.api.gateway.GatewayAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationProviderRegistry;
-import ai.langstream.api.model.Gateway;
+import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
-import java.io.UnsupportedEncodingException;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.Gateway;
+import ai.langstream.apigateway.websocket.handlers.AbstractHandler;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -180,18 +180,13 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
         }
         String[] params = queryString.split("&");
         for (String param : params) {
-            try {
-                String[] keyValuePair = param.split("=", 2);
-                String name = URLDecoder.decode(keyValuePair[0], "UTF-8");
-                if (name == "") {
-                    continue;
-                }
-                String value = keyValuePair.length > 1 ? URLDecoder.decode(
-                        keyValuePair[1], "UTF-8") : "";
-                map.put(name, value);
-            } catch (UnsupportedEncodingException e) {
-                // ignore this parameter if it can't be decoded
+            String[] keyValuePair = param.split("=", 2);
+            String name = URLDecoder.decode(keyValuePair[0], StandardCharsets.UTF_8);
+            if ("".equals(name)) {
+                continue;
             }
+            String value = keyValuePair.length > 1 ? URLDecoder.decode(keyValuePair[1], StandardCharsets.UTF_8) : "";
+            map.put(name, value);
         }
         return map;
     }

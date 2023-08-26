@@ -15,6 +15,9 @@
  */
 package ai.langstream.runtime.agent;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSink;
@@ -22,18 +25,12 @@ import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
 
 @Slf4j
 class AgentRunnerTest {
@@ -52,7 +49,7 @@ class AgentRunnerTest {
     }
 
     @Test
-    void failWithRetries() throws Exception {
+    void failWithRetries() {
         SimpleSource source = new SimpleSource(List.of(SimpleRecord.of("key", "fail-me")));
         AgentSink sink = new SimpleSink();
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
@@ -66,7 +63,7 @@ class AgentRunnerTest {
     }
 
     @Test
-    void failNoRetries() throws Exception {
+    void failNoRetries() {
         SimpleSource source = new SimpleSource(List.of(SimpleRecord.of("key", "fail-me")));
         AgentSink sink = new SimpleSink();
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
@@ -145,7 +142,7 @@ class AgentRunnerTest {
         CommitCallback callback;
 
         @Override
-        public void write(List<Record> records) throws Exception {
+        public void write(List<Record> records) {
             callback.commit(records);
         }
 
@@ -173,7 +170,7 @@ class AgentRunnerTest {
         }
 
         @Override
-        public List<Record> read() throws Exception {
+        public List<Record> read() {
             if (records.isEmpty()) {
                 return List.of();
             }
@@ -190,7 +187,7 @@ class AgentRunnerTest {
         }
 
         @Override
-        public void commit(List<Record> records) throws Exception {
+        public void commit(List<Record> records) {
             uncommitted.removeAll(records);
         }
 
@@ -209,10 +206,10 @@ class AgentRunnerTest {
         }
 
         @Override
-        public List<Record> processRecord(Record record) throws Exception {
+        public List<Record> processRecord(Record record) {
             log.info("Processing {}", record.value());
             executionCount++;
-            if (failOnContent.contains(record.value())) {
+            if (failOnContent.contains((String) record.value())) {
                 throw new RuntimeException("Failed on " + record.value());
             }
             return List.of(record);

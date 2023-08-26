@@ -15,25 +15,22 @@
  */
 package ai.langstream.agents.vector.datasource.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import ai.langstream.agents.vector.VectorDBSinkAgent;
 import ai.langstream.agents.vector.pinecone.PineconeDataSource;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
-import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 @Slf4j
 class PineconeWriterTest {
@@ -59,16 +56,11 @@ class PineconeWriterTest {
         agent.init(configuration);
         agent.start();
         List<Record> committed = new ArrayList<>();
-        agent.setCommitCallback(new AgentSink.CommitCallback() {
-            @Override
-            public void commit(List<Record> records) {
-                committed.addAll(records);
-            }
-        });
+        agent.setCommitCallback(committed::addAll);
         String genre = "random" + UUID.randomUUID();
         List<Float> vector = new ArrayList<>();
         for (int i = 0; i < 1536; i++) {
-            vector.add((float) (1f / i));
+            vector.add(1f / i);
         }
         Map<String, Object> value = Map.of("id", "1",
                 "vector", vector, "genre", genre);

@@ -34,14 +34,11 @@ public class CodeStorageRegistry {
         ServiceLoader<CodeStorageProvider> loader = ServiceLoader.load(CodeStorageProvider.class);
         ServiceLoader.Provider<CodeStorageProvider> codeStorageProvider = loader
                 .stream()
-                .filter(p -> {
-                    return p.get().supports(codeStorageType);
-                })
+                .filter(p -> p.get().supports(codeStorageType))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No CodeStorage found for type " + codeStorageType));
 
-        final CodeStorage implementation = codeStorageProvider.get().createImplementation(codeStorageType, configuration);
-        return implementation;
+        return codeStorageProvider.get().createImplementation(codeStorageType, configuration);
     }
 
 

@@ -31,7 +31,7 @@ class StandardErrorsHandler implements ErrorsHandler {
     private final int retries;
     private final String onFailureAction;
 
-    private AtomicInteger failures = new AtomicInteger(0);
+    private final AtomicInteger failures = new AtomicInteger(0);
 
 
     public StandardErrorsHandler(Map<String, Object> configuration) {
@@ -49,14 +49,11 @@ class StandardErrorsHandler implements ErrorsHandler {
         log.info("Handling error {} for source record {}, errors count {} (max retries {})", error + "",
                 sourceRecord, currentFailures, retries);
         if (currentFailures >= retries) {
-            switch (onFailureAction) {
-                case SKIP:
-                    return ErrorsProcessingOutcome.SKIP;
-                case FAIL:
-                case DEAD_LETTER:
-                default:
-                    return ErrorsProcessingOutcome.FAIL;
-            }
+            return switch (onFailureAction) {
+                case SKIP -> ErrorsProcessingOutcome.SKIP;
+                case FAIL, DEAD_LETTER -> ErrorsProcessingOutcome.FAIL;
+                default -> ErrorsProcessingOutcome.FAIL;
+            };
         } else {
             return ErrorsProcessingOutcome.RETRY;
         }
@@ -64,13 +61,10 @@ class StandardErrorsHandler implements ErrorsHandler {
 
     @Override
     public boolean failProcessingOnPermanentErrors() {
-        switch (onFailureAction) {
-            case SKIP:
-            case DEAD_LETTER:
-                return false;
-            case FAIL:
-            default:
-                return true;
-        }
+        return switch (onFailureAction) {
+            case SKIP, DEAD_LETTER -> false;
+            case FAIL -> true;
+            default -> true;
+        };
     }
 }

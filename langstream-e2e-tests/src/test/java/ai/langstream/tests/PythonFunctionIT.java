@@ -17,7 +17,6 @@ package ai.langstream.tests;
 
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -28,7 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class PythonFunctionIT extends BaseEndToEndTest {
 
     @Test
-    public void test() throws Exception {
+    public void test() {
         final String tenant = "ten-" + System.currentTimeMillis();
         executeCommandOnClient("""
                 bin/langstream tenants put %s && 

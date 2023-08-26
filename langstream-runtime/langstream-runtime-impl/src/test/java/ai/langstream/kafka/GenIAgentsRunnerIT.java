@@ -14,26 +14,23 @@
  * limitations under the License.
  */
 package ai.langstream.kafka;
-import ai.langstream.api.runner.code.AgentStatusResponse;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.api.runner.code.AgentStatusResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Test;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Slf4j
 class GenIAgentsRunnerIT extends AbstractApplicationRunner  {
-
-
 
     @Test
     public void testRunAITools() throws Exception {

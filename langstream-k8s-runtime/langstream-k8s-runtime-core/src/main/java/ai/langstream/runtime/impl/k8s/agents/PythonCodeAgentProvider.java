@@ -36,16 +36,12 @@ public class PythonCodeAgentProvider extends AbstractAgentProvider {
 
     @Override
     protected final ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        switch (agentConfiguration.getType()) {
-            case "python-source":
-                return ComponentType.SOURCE;
-            case "python-sink":
-                return ComponentType.SINK;
-            case "python-function":
-                return ComponentType.PROCESSOR;
-            default:
-                throw new IllegalArgumentException("Unsupported agent type: " + agentConfiguration.getType());
-        }
+        return switch (agentConfiguration.getType()) {
+            case "python-source" -> ComponentType.SOURCE;
+            case "python-sink" -> ComponentType.SINK;
+            case "python-function" -> ComponentType.PROCESSOR;
+            default -> throw new IllegalArgumentException("Unsupported agent type: " + agentConfiguration.getType());
+        };
     }
 
 

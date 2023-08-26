@@ -24,6 +24,7 @@ import ai.langstream.cli.commands.RootCmd;
 import ai.langstream.cli.commands.RootGatewayCmd;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -66,8 +67,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             credentialsPart = encodeParam("credentials", credentials, "");
         }
 
-        return List.of(credentialsPart, paramsPart, optionsPart)
-                .stream().collect(Collectors.joining("&"));
+        return String.join("&", List.of(credentialsPart, paramsPart, optionsPart));
     }
 
     private static String encodeParam(Map.Entry<String, String> e, String prefix) {
@@ -76,7 +76,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
     @SneakyThrows
     private static String encodeParam(String key, String value, String prefix) {
-        return "%s=%s".formatted(prefix + key, URLEncoder.encode(value, "UTF-8"));
+        return "%s=%s".formatted(prefix + key, URLEncoder.encode(value, StandardCharsets.UTF_8));
     }
 
     protected String validateGatewayAndGetUrl(String applicationId, String gatewayId, Gateway.GatewayType type,

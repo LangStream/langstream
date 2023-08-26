@@ -83,8 +83,10 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
             Map<String, String> options = (Map)additionalConfiguration.get("options");
             Map<String, String> arguments = (Map)additionalConfiguration.get("arguments");
             switch (provider) {
-                case "LOCAL":
-                    AbstractHuggingFaceEmbeddingService.HuggingFaceConfig.HuggingFaceConfigBuilder builder = AbstractHuggingFaceEmbeddingService.HuggingFaceConfig.builder().options(options).arguments(arguments);
+                case "LOCAL" -> {
+                    AbstractHuggingFaceEmbeddingService.HuggingFaceConfig.HuggingFaceConfigBuilder builder =
+                        AbstractHuggingFaceEmbeddingService.HuggingFaceConfig.builder().options(options)
+                            .arguments(arguments);
                     if (model != null && !model.isEmpty()) {
                         builder.modelName(model);
                         if (modelUrl == null || modelUrl.isEmpty()) {
@@ -92,31 +94,30 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                             log.info("Automatically computed model URL {}", modelUrl);
                         }
                     }
-
                     builder.modelUrl(modelUrl);
                     return new HuggingFaceEmbeddingService(builder.build());
-                case "API":
+                }
+                case "API" -> {
                     Objects.requireNonNull(model, "model name is required");
-                    HuggingFaceRestEmbeddingService.HuggingFaceApiConfig.HuggingFaceApiConfigBuilder apiBuilder = HuggingFaceRestEmbeddingService.HuggingFaceApiConfig.builder().accessKey((String)this.providerConfiguration.get("access-key")).model(model);
-                    String apiUurl = (String)this.providerConfiguration.get("api-url");
+                    HuggingFaceRestEmbeddingService.HuggingFaceApiConfig.HuggingFaceApiConfigBuilder apiBuilder =
+                        HuggingFaceRestEmbeddingService.HuggingFaceApiConfig.builder()
+                            .accessKey((String) this.providerConfiguration.get("access-key")).model(model);
+                    String apiUurl = (String) this.providerConfiguration.get("api-url");
                     if (apiUurl != null && !apiUurl.isEmpty()) {
                         apiBuilder.hfUrl(apiUurl);
                     }
-
-                    String modelCheckUrl = (String)this.providerConfiguration.get("model-check-url");
+                    String modelCheckUrl = (String) this.providerConfiguration.get("model-check-url");
                     if (modelCheckUrl != null && !modelCheckUrl.isEmpty()) {
                         apiBuilder.hfCheckUrl(modelCheckUrl);
                     }
-
                     if (options != null && !options.isEmpty()) {
                         apiBuilder.options(options);
                     } else {
                         apiBuilder.options(Map.of("wait_for_model", "true"));
                     }
-
                     return new HuggingFaceRestEmbeddingService(apiBuilder.build());
-                default:
-                    throw new IllegalArgumentException("Unsupported HuggingFace service type: " + provider);
+                }
+                default -> throw new IllegalArgumentException("Unsupported HuggingFace service type: " + provider);
             }
         }
 
@@ -160,7 +161,7 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                         .build(), HttpResponse.BodyHandlers.ofString());
                 String body = response.body();
                 log.info("Response: {}", body);
-                List<ResponseBean> responseBeans = MAPPER.readValue(body, new TypeReference<List<ResponseBean>>() {
+                List<ResponseBean> responseBeans = MAPPER.readValue(body, new TypeReference<>() {
                 });
                 ChatCompletions result = new ChatCompletions();
                 result.setChoices(responseBeans.stream().map(r-> new ChatChoice(

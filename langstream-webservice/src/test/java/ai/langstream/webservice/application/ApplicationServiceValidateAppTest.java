@@ -15,6 +15,7 @@
  */
 package ai.langstream.webservice.application;
 
+import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.webservice.config.ApplicationDeployProperties;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -36,7 +37,7 @@ class ApplicationServiceValidateAppTest {
     static final KubeTestServer k3s = new KubeTestServer();
 
     @Test
-    void testApplicationId() throws Exception {
+    void testApplicationId() {
         final Map<String, String> files = filesWithOneAgent(null, null, "s");
         validate(null, files, false);
         validate("", files, false);
@@ -51,7 +52,7 @@ class ApplicationServiceValidateAppTest {
     }
 
     @Test
-    void testAgentWithFixedId() throws Exception {
+    void testAgentWithFixedId() {
         final String appId = "app";
         validate(appId, filesWithOneAgent(null, null, "agent"), true);
         validate(appId, filesWithOneAgent(null, null, "agent01-"), true);
@@ -64,7 +65,7 @@ class ApplicationServiceValidateAppTest {
     }
 
     @Test
-    void testAgentWithComputedId() throws Exception {
+    void testAgentWithComputedId() {
         final String appId = "app";
         validate(appId, filesWithOneAgent(null, null, null), true);
         validate(appId, filesWithOneAgent("m".repeat(21), null, null), true);
@@ -78,7 +79,7 @@ class ApplicationServiceValidateAppTest {
         if (pipeline == null) {
             pipeline = "pipeline";
         }
-        final Map<String, String> files = Map.of("%s.yaml".formatted(pipeline), """
+        return Map.of("%s.yaml".formatted(pipeline), """
                         module: %s
                         id: %s
                         topics:
@@ -90,9 +91,8 @@ class ApplicationServiceValidateAppTest {
                           - id: %s
                             type: "drop"
                             input: "input-topic"
-                            output: "output-topic"                         
+                            output: "output-topic"
                         """.formatted(module, pipeline, agentId));
-        return files;
     }
 
     @SneakyThrows
@@ -113,7 +113,7 @@ class ApplicationServiceValidateAppTest {
                     applicationId,
                     application
             );
-            log.info("Got agents: {}", plan.getAgents().values().stream().map(a -> a.getId()).toList());
+            log.info("Got agents: {}", plan.getAgents().values().stream().map(AgentNode::getId).toList());
             if (expectValid) {
                 ok = true;
             }
@@ -137,9 +137,8 @@ class ApplicationServiceValidateAppTest {
 
     @NotNull
     private static ApplicationService getApplicationService() {
-        final ApplicationService service = new ApplicationService(null, null, new ApplicationDeployProperties(
+        return new ApplicationService(null, null, new ApplicationDeployProperties(
                 new ApplicationDeployProperties.GatewayProperties(false)));
-        return service;
     }
 
 }

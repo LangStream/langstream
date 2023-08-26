@@ -88,13 +88,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             Map<String, Object> copy = new HashMap<>(configuration);
             final TopicConsumer consumer = createConsumer(null, streamingCluster, configuration);
             switch (initialPosition.position()) {
-                case Earliest:
-                    copy.put("subscriptionInitialPosition", SubscriptionInitialPosition.Earliest);
-                    break;
-                case Latest:
-                    copy.put("subscriptionInitialPosition", SubscriptionInitialPosition.Latest);
-                    break;
-                default:
+                case Earliest -> copy.put("subscriptionInitialPosition", SubscriptionInitialPosition.Earliest);
+                case Latest -> copy.put("subscriptionInitialPosition", SubscriptionInitialPosition.Latest);
+                default ->
                     throw new IllegalArgumentException("Unsupported initial position: " + initialPosition.position());
             }
             return new TopicReader() {
@@ -321,9 +317,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                             .properties(r
                                     .headers()
                                     .stream()
-                                    .collect(Collectors.toMap(Header::key, h -> {
-                                        return h.value() != null ? h.value().toString() : null;
-                                    })))
+                                    .collect(Collectors.toMap(
+                                        Header::key,
+                                        h -> h.value() != null ? h.value().toString() : null)))
                             .sendAsync());
                 }
                 CompletableFuture.allOf(handles.toArray(new CompletableFuture[0])).join();

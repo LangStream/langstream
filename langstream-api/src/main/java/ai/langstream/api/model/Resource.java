@@ -15,10 +15,6 @@
  */
 package ai.langstream.api.model;
 
-import lombok.Data;
-
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 public record Resource(String id, String name, String type, Map<String, Object> configuration) {

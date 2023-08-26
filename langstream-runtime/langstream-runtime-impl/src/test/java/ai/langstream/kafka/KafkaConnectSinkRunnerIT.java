@@ -15,8 +15,14 @@
  */
 package ai.langstream.kafka;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import ai.langstream.AbstractApplicationRunner;
 import com.google.common.base.Strings;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.ConfigDef;
@@ -27,18 +33,8 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
 @Slf4j
 class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
-
 
     @Test
     @Disabled
@@ -146,7 +142,7 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
                 Thread.sleep(1000);
                 // todo: assert on processed counter (incremented before error handling)
                 DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
-                assertTrue(DummySink.receivedRecords.size() == 0);
+                assertEquals(0, DummySink.receivedRecords.size());
             }
         }
     }
@@ -187,7 +183,7 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
                 Awaitility.await().untilAsserted(() -> {
                     DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
                     // todo: assert on processed counter (incremented before error handling)
-                    assertTrue(DummySink.receivedRecords.size() == 1);
+                    assertEquals(1, DummySink.receivedRecords.size());
                 });
             }
         }
@@ -231,7 +227,7 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
                     DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
                     // todo: assert on processed counter (incremented before error handling)
                     // todo: check DLQ's content
-                    assertTrue(DummySink.receivedRecords.size() == 1);
+                    assertEquals(1, DummySink.receivedRecords.size());
                 });
             }
         }

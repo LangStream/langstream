@@ -15,7 +15,6 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -25,7 +24,7 @@ class TenantsCmdTest extends CommandTestBase {
 
 
     @Test
-    public void testPut() throws Exception {
+    public void testPut() {
         wireMock.register(WireMock.put("/api/tenants/%s".formatted("newt")).willReturn(WireMock.ok("{ \"name\": \"newt\" }")));
         CommandResult result = executeCommand("tenants", "put", "newt");
         Assertions.assertEquals(0, result.exitCode());
@@ -36,7 +35,7 @@ class TenantsCmdTest extends CommandTestBase {
 
 
     @Test
-    public void testGet() throws Exception {
+    public void testGet() {
         wireMock.register(WireMock.get("/api/tenants/%s".formatted("newt")).willReturn(WireMock.ok("{ \"name\": \"newt\" }")));
         CommandResult result = executeCommand("tenants", "get", "newt");
         Assertions.assertEquals(0, result.exitCode());
@@ -46,7 +45,7 @@ class TenantsCmdTest extends CommandTestBase {
     }
 
     @Test
-    public void testDelete() throws Exception {
+    public void testDelete() {
         wireMock.register(WireMock.delete("/api/tenants/%s"
                 .formatted("newt")).willReturn(WireMock.ok()));
 
@@ -58,9 +57,8 @@ class TenantsCmdTest extends CommandTestBase {
     }
 
     @Test
-    public void testList() throws Exception {
-        wireMock.register(WireMock.get("/api/tenants"
-                .formatted(TENANT)).willReturn(WireMock.ok("{}")));
+    public void testList() {
+        wireMock.register(WireMock.get("/api/tenants").willReturn(WireMock.ok("{}")));
 
         CommandResult result = executeCommand("tenants", "list");
         Assertions.assertEquals(0, result.exitCode());

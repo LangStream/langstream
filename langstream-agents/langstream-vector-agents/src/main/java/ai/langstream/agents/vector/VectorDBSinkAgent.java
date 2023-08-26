@@ -16,12 +16,10 @@
 package ai.langstream.agents.vector;
 
 import ai.langstream.api.database.VectorDatabaseWriter;
-import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.database.VectorDatabaseWriterProviderRegistry;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
-
 import java.util.List;
 import java.util.Map;
 
@@ -38,7 +36,7 @@ public class VectorDBSinkAgent extends AbstractAgentCode implements AgentSink {
     }
 
     @Override
-    public void start() throws Exception {
+    public void start() {
     }
 
     @Override

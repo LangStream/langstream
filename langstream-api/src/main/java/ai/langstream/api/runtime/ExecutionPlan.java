@@ -36,8 +36,8 @@ public final class ExecutionPlan {
 
     private final Map<TopicDefinition, Topic> topics = new HashMap<>();
     private final Map<String, AgentNode> agents = new HashMap<>();
-    protected final String applicationId;
-    protected final Application application;
+    private final String applicationId;
+    private final Application application;
 
     public ExecutionPlan(String applicationId, Application applicationInstance) {
         this.applicationId = applicationId;
@@ -53,9 +53,9 @@ public final class ExecutionPlan {
     }
 
     /**
-     * Get a connection
-     * @param module
-     * @param connection
+     * Get a connection implementation.
+     * @param module the module
+     * @param connection the connection
      * @return the connection implementation
      */
     public ConnectionImplementation getConnectionImplementation(Module module, Connection connection) {
@@ -75,8 +75,8 @@ public final class ExecutionPlan {
 
     /**
      * Register the implementation of a topic
-     * @param topicDefinition
-     * @param topicImplementation
+     * @param topicDefinition the topic definition
+     * @param topicImplementation the topic implementation
      */
     public void registerTopic(TopicDefinition topicDefinition, Topic topicImplementation) {
         topics.put(topicDefinition, topicImplementation);
@@ -84,7 +84,7 @@ public final class ExecutionPlan {
 
     /**
      * Discard a topic implementation
-     * @param topicImplementation
+     * @param topicImplementation the topic implementation
      */
     public void discardTopic(ConnectionImplementation topicImplementation) {
         topics.entrySet()
@@ -99,8 +99,8 @@ public final class ExecutionPlan {
 
     /**
      * Get an existing agent implementation
-     * @param module
-     * @param id
+     * @param module the module
+     * @param id the id of the agent
      * @return the agent
      */
     public AgentNode getAgentImplementation(Module module, String id) {

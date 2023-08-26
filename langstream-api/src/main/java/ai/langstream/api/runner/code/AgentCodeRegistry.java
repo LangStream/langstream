@@ -79,9 +79,8 @@ public class AgentCodeRegistry {
 
             log.info("No agent found in the package, let's try to find it among all the packages");
 
-            List<ClassLoader> candidateClassloaders = new ArrayList<>();
             // we are not lucky, let's try to find the agent in all the packages
-            candidateClassloaders.addAll(agentPackageLoader.getAllClassloaders());
+            List<ClassLoader> candidateClassloaders = new ArrayList<>(agentPackageLoader.getAllClassloaders());
 
             for (ClassLoader classLoader : candidateClassloaders) {
                 AgentCodeAndLoader agentCodeProviderProvider = loadFromClassloader(agentType, classLoader);
@@ -101,10 +100,9 @@ public class AgentCodeRegistry {
                 .filter(p -> p.get().supports(agentType))
                 .findFirst();
 
-        if (agentCodeProviderProvider.isPresent()) {
-            return new AgentCodeAndLoader(agentCodeProviderProvider.get().get().createInstance(agentType), classLoader);
-        }
-        return null;
+        return agentCodeProviderProvider
+            .map(provider -> new AgentCodeAndLoader(provider.get().createInstance(agentType), classLoader))
+            .orElse(null);
     }
 
     public void setAgentPackageLoader(AgentPackageLoader loader) {

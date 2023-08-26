@@ -61,9 +61,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @PreDestroy
     public void onDestroy() {
-        if (consumeThreadPool != null) {
-            consumeThreadPool.shutdown();
-        }
+        consumeThreadPool.shutdown();
     }
 
 }

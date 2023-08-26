@@ -15,28 +15,24 @@
  */
 package ai.langstream.agents.vector.datasource.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import ai.langstream.agents.vector.VectorDBSinkAgent;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
-import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.CassandraContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Testcontainers
 public class CassandraWriterTest {
@@ -70,12 +66,7 @@ public class CassandraWriterTest {
         agent.init(configuration);
         agent.start();
         List<Record> committed = new ArrayList<>();
-        agent.setCommitCallback(new AgentSink.CommitCallback() {
-            @Override
-            public void commit(List<Record> records) {
-                committed.addAll(records);
-            }
-        });
+        agent.setCommitCallback(committed::addAll);
 
         Map<String, Object> value = Map.of("id", "1",
                 "description", "test-description", "name", "test-name");
@@ -110,12 +101,7 @@ public class CassandraWriterTest {
         agent.init(configuration);
         agent.start();
         List<Record> committed = new ArrayList<>();
-        agent.setCommitCallback(new AgentSink.CommitCallback() {
-            @Override
-            public void commit(List<Record> records) {
-                committed.addAll(records);
-            }
-        });
+        agent.setCommitCallback(committed::addAll);
 
         Map<String, Object> value = Map.of("id", "1",
                 "description", "test-description", "name", "test-name");

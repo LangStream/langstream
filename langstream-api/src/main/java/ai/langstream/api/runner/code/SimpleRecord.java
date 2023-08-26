@@ -62,8 +62,8 @@ public final class SimpleRecord implements Record {
 
     /**
      * Copy all fields from {@link Record} to new {@link SimpleRecordBuilder}.
-     * @param record
-     * @return
+     * @param record record to copy from
+     * @return the new {@link SimpleRecordBuilder}
      */
     public static SimpleRecordBuilder copyFrom(Record record) {
         return builder()

@@ -90,14 +90,14 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
     }
 
     @Override
-    public void beforeEach(ExtensionContext extensionContext) throws Exception {
+    public void beforeEach(ExtensionContext extensionContext) {
         server.reset();
         currentAgents.clear();
         currentAgentsSecrets.clear();
     }
 
     @Override
-    public void beforeAll(ExtensionContext extensionContext) throws Exception {
+    public void beforeAll(ExtensionContext extensionContext) {
         start();
     }
 
@@ -107,8 +107,8 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
     }
 
 
-    private Map<String, AgentCustomResource> currentAgents = new HashMap<>();
-    private Map<String, Secret> currentAgentsSecrets = new HashMap<>();
+    private final Map<String, AgentCustomResource> currentAgents = new HashMap<>();
+    private final Map<String, Secret> currentAgentsSecrets = new HashMap<>();
 
     public Map<String, AgentCustomResource> spyAgentCustomResources(final String namespace,
                                                                     String... expectedAgents) {
@@ -205,18 +205,14 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                 .withPath("/api/v1/namespaces/%s?fieldManager=fabric8".formatted(namespace))
                 .andReply(
                         HttpURLConnection.HTTP_OK,
-                        recordedRequest -> {
-                            return null;
-                        }
+                        recordedRequest -> null
                 ).always();
         server.expect()
                 .patch()
                 .withPath("/api/v1/namespaces/%s/serviceaccounts/%s?fieldManager=fabric8".formatted(namespace, tenant))
                 .andReply(
                         HttpURLConnection.HTTP_OK,
-                        recordedRequest -> {
-                            return null;
-                        }
+                        recordedRequest -> null
                 ).always();
         server.expect()
                 .patch()
@@ -224,9 +220,7 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                         namespace, tenant))
                 .andReply(
                         HttpURLConnection.HTTP_OK,
-                        recordedRequest -> {
-                            return null;
-                        }
+                        recordedRequest -> null
                 ).always();
 
         server.expect()
@@ -236,9 +230,7 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                                 namespace, tenant))
                 .andReply(
                         HttpURLConnection.HTTP_OK,
-                        recordedRequest -> {
-                            return null;
-                        }
+                        recordedRequest -> null
                 ).always();
     }
 

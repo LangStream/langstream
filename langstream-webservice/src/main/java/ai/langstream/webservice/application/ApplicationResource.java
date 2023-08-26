@@ -15,9 +15,7 @@
  */
 package ai.langstream.webservice.application;
 
-import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageException;
-import ai.langstream.api.codestorage.DownloadedCodeArchive;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.webservice.application.ApplicationDescription;
@@ -27,9 +25,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -38,20 +34,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -165,7 +157,7 @@ public class ApplicationResource {
             final Path tempZip = Files.createTempFile("app", ".zip");
             try {
                 file.get().transferTo(tempZip);
-                try (ZipFile zipFile = new ZipFile(tempZip.toFile());) {
+                try (ZipFile zipFile = new ZipFile(tempZip.toFile())) {
                     zipFile.extractAll(tempdir.toFile().getAbsolutePath());
                     appDirectoriesConsumer.accept(tempZip, List.of(tempdir));
                 }

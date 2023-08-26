@@ -18,12 +18,11 @@ package ai.langstream.model.parser;
 import ai.langstream.api.model.Application;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.parser.ModelBuilder;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
 
 @Slf4j
 class ModelBuilderTest {
@@ -32,7 +31,7 @@ class ModelBuilderTest {
     void testParseApplication1() throws Exception {
         Path path = Paths.get("src/test/resources/application1");
         final ModelBuilder.ApplicationWithPackageInfo applicationWithPackageInfo =
-                ModelBuilder.buildApplicationInstance(Arrays.asList(path), """
+                ModelBuilder.buildApplicationInstance(List.of(path), """
                                         instance:
                                           globals:
                                             tableName: "vsearch.products"

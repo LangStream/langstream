@@ -18,8 +18,8 @@ package ai.langstream.cli.commands.applications;
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Dependency;
+import ai.langstream.impl.parser.ModelBuilder;
 import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -33,8 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-
-import ai.langstream.impl.parser.ModelBuilder;
 import lombok.SneakyThrows;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
@@ -168,7 +166,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             downloadDependencies(applicationInstance, appDirectory.toPath());
         }
 
-        final Path tempZip = buildZip(appDirectory, s -> log(s));
+        final Path tempZip = buildZip(appDirectory, this::log);
 
         long size = Files.size(tempZip);
         log("deploying application: %s (%d KB)".formatted(applicationId, size / 1024));
@@ -236,7 +234,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
     private boolean checkChecksum(Path fileName, String sha512sum) throws Exception {
         MessageDigest instance = MessageDigest.getInstance("SHA-512");
         try (DigestInputStream inputStream = new DigestInputStream(
-                new BufferedInputStream(Files.newInputStream(fileName)), instance);) {
+                new BufferedInputStream(Files.newInputStream(fileName)), instance)) {
             while (inputStream.read() != -1) {
             }
         }
@@ -251,8 +249,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
     private static String bytesToHex(byte[] hash) {
         StringBuilder hexString = new StringBuilder(2 * hash.length);
-        for (int i = 0; i < hash.length; i++) {
-            String hex = Integer.toHexString(0xff & hash[i]);
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
             if (hex.length() == 1) {
                 hexString.append('0');
             }
@@ -263,7 +261,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
     public static Path buildZip(File appDirectory, Consumer<String> logger) throws IOException {
         final Path tempZip = Files.createTempFile("app", ".zip");
-        try (final ZipFile zip = new ZipFile(tempZip.toFile());) {
+        try (final ZipFile zip = new ZipFile(tempZip.toFile())) {
             addApp(appDirectory, zip, logger);
         }
         return tempZip;
@@ -299,8 +297,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         return file;
     }
 
-    public static MultiPartBodyPublisher buildMultipartContentForAppZip(Map<String, Object> formData)
-            throws IOException {
+    public static MultiPartBodyPublisher buildMultipartContentForAppZip(Map<String, Object> formData) {
         final MultiPartBodyPublisher multiPartBodyPublisher = new MultiPartBodyPublisher();
         for (Map.Entry<String, Object> formDataEntry : formData.entrySet()) {
             if (formDataEntry.getValue() instanceof Path) {
@@ -310,15 +307,6 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             }
         }
         return multiPartBodyPublisher;
-    }
-
-    @SneakyThrows
-    private static byte[] concatBytes(byte[]... arrays) {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        for (byte[] array : arrays) {
-            outputStream.write(array);
-        }
-        return outputStream.toByteArray();
     }
 
 }

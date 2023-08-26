@@ -21,24 +21,18 @@ import ai.langstream.api.runner.code.AgentCodeProvider;
 public class VectorAgentsCodeProvider implements AgentCodeProvider {
     @Override
     public boolean supports(String agentType) {
-        switch (agentType) {
-            case "query-vector-db":
-            case "vector-db-sink":
-                return true;
-            default:
-                return false;
-        }
+        return switch (agentType) {
+            case "query-vector-db", "vector-db-sink" -> true;
+            default -> false;
+        };
     }
 
     @Override
     public AgentCode createInstance(String agentType) {
-        switch (agentType) {
-            case "query-vector-db":
-                return new QueryVectorDBAgent();
-            case "vector-db-sink":
-                return new VectorDBSinkAgent();
-            default:
-                throw new IllegalStateException();
-        }
+        return switch (agentType) {
+            case "query-vector-db" -> new QueryVectorDBAgent();
+            case "vector-db-sink" -> new VectorDBSinkAgent();
+            default -> throw new IllegalStateException();
+        };
     }
 }

@@ -64,7 +64,7 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
     }
 
     @Override
-    public UpdateControl<T> reconcile(T resource, Context<T> context) throws Exception {
+    public UpdateControl<T> reconcile(T resource, Context<T> context) {
         String lastApplied;
         UpdateControl<T> result;
         final BaseStatus baseStatus = resource.getStatus();

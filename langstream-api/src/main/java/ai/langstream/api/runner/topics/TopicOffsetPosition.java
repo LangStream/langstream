@@ -20,7 +20,7 @@ public record TopicOffsetPosition(Position position, String offset) {
     public enum Position {
         Latest,
         Earliest,
-        Absolute;
+        Absolute
     }
 
     public static final TopicOffsetPosition LATEST = new TopicOffsetPosition(Position.Latest, null);

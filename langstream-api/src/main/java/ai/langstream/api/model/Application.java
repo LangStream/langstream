@@ -36,6 +36,6 @@ public class Application {
 
     @JsonIgnore
     public Module getModule(String module) {
-        return modules.computeIfAbsent(module, m -> new Module(m));
+        return modules.computeIfAbsent(module, Module::new);
     }
 }

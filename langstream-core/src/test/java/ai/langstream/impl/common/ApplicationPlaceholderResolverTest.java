@@ -34,7 +34,7 @@ class ApplicationPlaceholderResolverTest {
                                     streamingCluster:
                                         type: pulsar
                                         configuration:
-                                            admin: 
+                                            admin:
                                                 serviceUrl: http://mypulsar.localhost:8080
                                     globals:
                                         another-url: another-value
@@ -130,7 +130,7 @@ class ApplicationPlaceholderResolverTest {
                         .stream()
                         .filter(agent -> agent.getId().equals("sink1"))
                         .findFirst()
-                        .get()
+                        .orElseThrow()
                         .getConfiguration()
                         .get("access-key"));
     }
@@ -149,9 +149,8 @@ class ApplicationPlaceholderResolverTest {
                                             credentials: "{{secrets.openai-credentials.invalid}}"
                                     
                                 """), null, null).getApplication();
-        Assertions.assertThrows(MustacheException.Context.class, () -> {
-            ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
-        });
+        Assertions.assertThrows(MustacheException.Context.class,
+            () -> ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance));
     }
 
     @Test
@@ -182,16 +181,17 @@ class ApplicationPlaceholderResolverTest {
 
 
     @Test
-    void testEscapeMustache() throws Exception {
-        Assertions.assertEquals("{{ do not resolve }} resolved\n" +
-                        "{{# value.related_documents}}\n" +
-                        "{{ text}}\n" +
-                        "{{/ value.related_documents}}",
+    void testEscapeMustache() {
+        Assertions.assertEquals("""
+                {{ do not resolve }} resolved
+                {{# value.related_documents}}
+                {{ text}}
+                {{/ value.related_documents}}""",
                 ApplicationPlaceholderResolver.resolveValue(Map.of("test", "resolved"),
-                        "{{% do not resolve }} {{ test }}" +
-                                "\n" +
-                                "{{%# value.related_documents}}\n" +
-                                "{{% text}}\n" +
-                                "{{%/ value.related_documents}}"));
+                    """
+                        {{% do not resolve }} {{ test }}
+                        {{%# value.related_documents}}
+                        {{% text}}
+                        {{%/ value.related_documents}}"""));
     }
 }

@@ -15,17 +15,15 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @Slf4j
@@ -65,9 +63,7 @@ public class WebCrawlerStatus {
 
             if (remainingUrls != null) {
                 log.info("Reloaded {} remaining urls", remainingUrls.size());
-                remainingUrls.forEach(u -> {
-                    log.info("Remaining {}", u);
-                });
+                remainingUrls.forEach(u -> log.info("Remaining {}", u));
                 this.pendingUrls.addAll(remainingUrls);
                 this.remainingUrls.addAll(remainingUrls);
             }
@@ -75,9 +71,7 @@ public class WebCrawlerStatus {
             List<String> visitedUrls = (List<String>) currentStatus.get("visitedUrls");
             if (visitedUrls != null) {
                 log.info("Reloaded {} visited urls", visitedUrls.size());
-                visitedUrls.forEach(u -> {
-                    log.info("Visited {}", u);
-                });
+                visitedUrls.forEach(u -> log.info("Visited {}", u));
                 this.visitedUrls.addAll(visitedUrls);
             }
         } else {

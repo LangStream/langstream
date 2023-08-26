@@ -49,7 +49,7 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
     private final ClassLoader customCodeClassloader;
 
     private List<URLClassLoader> classloaders;
-    private Map<String, PackageMetadata> packages = new HashMap<>();
+    private final Map<String, PackageMetadata> packages = new HashMap<>();
 
     public NarFileHandler(Path packagesDirectory, ClassLoader customCodeClassloader) throws Exception {
         this.packagesDirectory = packagesDirectory;
@@ -133,7 +133,7 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
         String filename = narFile.getFileName().toString();
 
         // first of all we look for an index file
-        try (ZipFile zipFile = new ZipFile(narFile.toFile());) {
+        try (ZipFile zipFile = new ZipFile(narFile.toFile())) {
             ZipEntry entry = zipFile.getEntry("META-INF/ai.langstream.agents.index");
             if (entry != null) {
                 InputStream inputStream = zipFile.getInputStream(entry);
@@ -235,7 +235,7 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
 
             Path dependencies = metaInfDirectory.resolve("bundled-dependencies");
             if (Files.isDirectory(dependencies)) {
-                try (DirectoryStream<Path> allFiles = Files.newDirectoryStream(dependencies);) {
+                try (DirectoryStream<Path> allFiles = Files.newDirectoryStream(dependencies)) {
                     for (Path file : allFiles) {
                         if (file.getFileName().toString().endsWith(".jar")) {
                             urls.add(file.toUri().toURL());

@@ -15,8 +15,6 @@
  */
 package ai.langstream.impl.noop;
 
-import ai.langstream.api.model.TopicDefinition;
-import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.StreamingClusterRuntimeProvider;
 import ai.langstream.api.runtime.Topic;
@@ -34,8 +32,8 @@ public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRunt
     @EqualsAndHashCode
     @ToString
     public static class SimpleTopic implements Topic {
-        private String name;
-        private boolean implicit;
+        private final String name;
+        private final boolean implicit;
         private Topic deadletterTopic;
 
         public SimpleTopic(String name, boolean implicit) {
@@ -65,11 +63,6 @@ public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRunt
     }
     @Override
     public StreamingClusterRuntime getImplementation() {
-        return new StreamingClusterRuntime() {
-            @Override
-            public Topic createTopicImplementation(TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
-                return new SimpleTopic(topicDefinition.getName(), topicDefinition.isImplicit());
-            }
-        };
+        return (topicDefinition, applicationInstance) -> new SimpleTopic(topicDefinition.getName(), topicDefinition.isImplicit());
     }
 }

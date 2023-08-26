@@ -46,13 +46,13 @@ class QueryVectorDBIT extends AbstractApplicationRunner {
         stubFor(post("/query").willReturn(okJson("""
              [
                    {
-                    "id": "C"                   
+                    "id": "C"
                    },
                    {
-                    "id": "B"                    
+                    "id": "B"
                    },
                    {
-                    "id": "D"                    
+                    "id": "D"
                    }
                ]
         """)));
@@ -78,7 +78,7 @@ class QueryVectorDBIT extends AbstractApplicationRunner {
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
-                                pipeline:    
+                                pipeline:
                                   - id: step1
                                     name: "Execute Query"
                                     type: "query-vector-db"

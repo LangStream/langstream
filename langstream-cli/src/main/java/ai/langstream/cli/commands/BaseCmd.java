@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import org.apache.commons.beanutils.PropertyUtils;
 import picocli.CommandLine;
@@ -163,10 +162,6 @@ public abstract class BaseCmd implements Runnable {
         }
     }
 
-    protected void print(Formats format, Object body, String... columnsForRaw) {
-        print(format, body, columnsForRaw, (node, column) -> node.get(column));
-    }
-
     @SneakyThrows
     protected void print(Formats format, Object body, String[] columnsForRaw,
                          BiFunction<JsonNode, String, Object> valueSupplier) {
@@ -201,8 +196,7 @@ public abstract class BaseCmd implements Runnable {
     private void printRawHeader(String[] columnsForRaw) {
         final String template = computeFormatTemplate(columnsForRaw.length);
         final Object[] columns = Arrays.stream(columnsForRaw)
-                .map(String::toUpperCase)
-                .collect(Collectors.toList()).stream().toArray();
+            .map(String::toUpperCase).toArray();
         final String header = String.format(template, columns);
         log(header);
     }
@@ -218,9 +212,8 @@ public abstract class BaseCmd implements Runnable {
             String strColumn;
 
             final Object appliedValue = valueSupplier.apply(readValue, column);
-            if (appliedValue instanceof JsonNode) {
-                final JsonNode columnValue = (JsonNode) appliedValue;
-                if (columnValue == null || columnValue.isNull()) {
+            if (appliedValue instanceof final JsonNode columnValue) {
+                if (columnValue.isNull()) {
                     strColumn = "";
                 } else {
                     strColumn = columnValue.asText();
@@ -239,14 +232,14 @@ public abstract class BaseCmd implements Runnable {
     }
 
     private String computeFormatTemplate(int numColumns) {
-        String formatTemplate = "";
+        StringBuilder formatTemplate = new StringBuilder();
         for (int i = 0; i < numColumns; i++) {
             if (i > 0) {
-                formatTemplate += "  ";
+                formatTemplate.append("  ");
             }
-            formatTemplate += "%-15.15s";
+            formatTemplate.append("%-15.15s");
         }
-        return formatTemplate;
+        return formatTemplate.toString();
     }
 
 

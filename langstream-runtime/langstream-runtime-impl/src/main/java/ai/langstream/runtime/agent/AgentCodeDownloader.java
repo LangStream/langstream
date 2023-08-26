@@ -19,12 +19,9 @@ package ai.langstream.runtime.agent;
 import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageRegistry;
 import ai.langstream.runtime.api.agent.CodeStorageConfig;
-import ai.langstream.runtime.deployer.RuntimeDeployer;
 import ai.langstream.runtime.deployer.RuntimeDeployerStarter;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.nio.file.Path;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -34,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AgentCodeDownloader {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static RuntimeDeployerStarter.ErrorHandler errorHandler = error -> {
+    private static final RuntimeDeployerStarter.ErrorHandler errorHandler = error -> {
         log.error("Unexpected error", error);
         System.exit(-1);
     };
@@ -54,23 +51,19 @@ public class AgentCodeDownloader {
             log.info("Code downloaded to {}", codeDownloadPath);
         } catch (Throwable error) {
             errorHandler.handleError(error);
-            return;
         }
     }
 
     private static void downloadCustomCode(CodeStorageConfig codeStorageConfig, Path codeDownloadPath) throws Exception {
-
-
-
         if (codeStorageConfig != null) {
             log.info("Downloading custom code from {}", codeStorageConfig);
             log.info("Custom code is stored in {}", codeDownloadPath);
             try (CodeStorage codeStorage =
-                    CodeStorageRegistry.getCodeStorage(codeStorageConfig.type(), codeStorageConfig.configuration());) {
-                codeStorage.downloadApplicationCode(codeStorageConfig.tenant(),
-                        codeStorageConfig.codeStorageArchiveId(), (downloadedCodeArchive -> {
-                            downloadedCodeArchive.extractTo(codeDownloadPath);
-                        }));
+                    CodeStorageRegistry.getCodeStorage(codeStorageConfig.type(), codeStorageConfig.configuration())) {
+                codeStorage.downloadApplicationCode(
+                        codeStorageConfig.tenant(),
+                        codeStorageConfig.codeStorageArchiveId(),
+                        (downloadedCodeArchive -> downloadedCodeArchive.extractTo(codeDownloadPath)));
             }
         }
     }

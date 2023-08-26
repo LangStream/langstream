@@ -49,7 +49,7 @@ public interface AgentSource extends AgentCode {
      * For instance the source may send the records to a dead letter queue
      * or throw an error
      * @param record the record that failed
-     * @throws Exception
+     * @throws Exception if the source fails to process the permanently failed record
      */
     default void permanentFailure(Record record, Exception error) throws Exception {
         throw error;

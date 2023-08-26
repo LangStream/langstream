@@ -36,7 +36,7 @@ public class NoOpAgentProvider implements AgentCodeProvider {
     private static class NoOpAgentCode extends SingleRecordAgentProcessor {
 
         @Override
-        public List<Record> processRecord(Record record) throws Exception {
+        public List<Record> processRecord(Record record) {
             return List.of();
         }
     }

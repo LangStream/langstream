@@ -39,7 +39,7 @@ public class AppControllerIT {
     static final OperatorExtension deployment = new OperatorExtension();
 
     @Test
-    void testAppController() throws Exception {
+    void testAppController() {
 
         final String tenant = "my-tenant";
         final String namespace = "langstream-" + tenant;
@@ -74,9 +74,7 @@ public class AppControllerIT {
 
         client.resource(resource).inNamespace(namespace).delete();
 
-        Awaitility.await().untilAsserted(() -> {
-            assertEquals(2, client.batch().v1().jobs().inNamespace(namespace).list().getItems().size());
-        });
+        Awaitility.await().untilAsserted(() -> assertEquals(2, client.batch().v1().jobs().inNamespace(namespace).list().getItems().size()));
         final Job cleanupJob =
                 client.batch().v1().jobs().inNamespace(namespace).withName("langstream-runtime-deployer-cleanup-" + applicationId)
                         .get();
@@ -118,11 +116,11 @@ public class AppControllerIT {
             assertEquals("/app-secrets/secrets", container.getArgs().get(args++));
         }
         assertEquals("/app-config/config",
-                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_APP_CONFIGURATION".equals(e.getName())).findFirst().get().getValue());
+                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_APP_CONFIGURATION".equals(e.getName())).findFirst().orElseThrow().getValue());
         assertEquals("/cluster-runtime-config/config",
-                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION".equals(e.getName())).findFirst().get().getValue());
+                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION".equals(e.getName())).findFirst().orElseThrow().getValue());
         assertEquals("/app-secrets/secrets",
-                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS".equals(e.getName())).findFirst().get().getValue());
+                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS".equals(e.getName())).findFirst().orElseThrow().getValue());
 
         final Container initContainer = templateSpec.getInitContainers().get(0);
         assertEquals("busybox", initContainer.getImage());

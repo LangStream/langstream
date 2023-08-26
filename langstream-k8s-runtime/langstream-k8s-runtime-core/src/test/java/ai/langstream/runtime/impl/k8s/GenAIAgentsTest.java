@@ -48,9 +48,9 @@ class GenAIAgentsTest {
         return """
                 instance:
                   streamingCluster:
-                    type: "noop"                    
+                    type: "noop"
                   computeCluster:
-                    type: "none"                    
+                    type: "none"
                 """;
     }
 
@@ -61,30 +61,30 @@ class GenAIAgentsTest {
                         
                         "configuration.yaml",
                         """
-                                configuration:  
+                                configuration:
                                   resources:
                                     - name: open-ai
                                       type: open-ai-configuration
                                       configuration:
-                                        url: "http://something"                                
+                                        url: "http://something"
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "compute-embeddings"
                                     id: "step1"
                                     type: "compute-ai-embeddings"
                                     input: "input-topic"
                                     output: "output-topic"
-                                    configuration:                                      
+                                    configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
@@ -94,7 +94,7 @@ class GenAIAgentsTest {
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();) {
+                .build()) {
 
             Module module = applicationInstance.getModule("module-1");
 
@@ -138,37 +138,37 @@ class GenAIAgentsTest {
                         
                         "configuration.yaml",
                         """
-                                configuration:  
+                                configuration:
                                   resources:
                                     - name: open-ai
                                       type: open-ai-configuration
                                       configuration:
-                                        url: "http://something"                                
+                                        url: "http://something"
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "compute-embeddings"
                                     id: "step1"
                                     type: "compute-ai-embeddings"
-                                    input: "input-topic"                                    
-                                    configuration:                                      
+                                    input: "input-topic"
+                                    configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
                                   - name: "drop"
                                     id: "step2"
-                                    type: "drop-fields"                                    
+                                    type: "drop-fields"
                                     output: "output-topic"
-                                    configuration:                                      
+                                    configuration:
                                       fields: "embeddings"
                                       part: "value"
                                 """), buildInstanceYaml(), null).getApplication();
@@ -238,41 +238,41 @@ class GenAIAgentsTest {
                         
                         "configuration.yaml",
                         """
-                                configuration:  
+                                configuration:
                                   resources:
                                     - name: open-ai
                                       type: open-ai-configuration
                                       configuration:
-                                        url: "http://something"                                
+                                        url: "http://something"
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "log-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "compute-embeddings"
                                     id: "step1"
                                     type: "compute-ai-embeddings"
                                     input: "input-topic"
-                                    output: "log-topic"                                    
-                                    configuration:                                      
+                                    output: "log-topic"
+                                    configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
                                   - name: "drop"
                                     id: "step2"
                                     type: "drop-fields"
-                                    input: "log-topic"                                    
+                                    input: "log-topic"
                                     output: "output-topic"
-                                    configuration:                                      
+                                    configuration:
                                       fields: "embeddings"
                                       part: "value"
                                 """), buildInstanceYaml(), null).getApplication();
@@ -355,53 +355,53 @@ class GenAIAgentsTest {
                         
                         "configuration.yaml",
                         """
-                                configuration:  
+                                configuration:
                                   resources:
                                     - name: open-ai
                                       type: open-ai-configuration
                                       configuration:
-                                        url: "http://something"                                
+                                        url: "http://something"
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                     - name: my-database
                                       type: datasource
                                       configuration:
-                                        connectionUrl: localhost:1544    
+                                        connectionUrl: localhost:1544
                                   """,
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "compute-embeddings"
                                     id: step1
                                     type: "compute-ai-embeddings"
-                                    input: "input-topic"                                    
-                                    configuration:                                      
+                                    input: "input-topic"
+                                    configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
                                   - name: "dropfields"
-                                    type: "drop-fields"                                    
-                                    configuration:                                      
+                                    type: "drop-fields"
+                                    configuration:
                                       fields: "embeddings"
                                       part: "value"
                                   - name: "drop"
-                                    type: "drop"                                    
-                                    configuration:                                      
+                                    type: "drop"
+                                    configuration:
                                       when: "true"
                                   - name: "query"
-                                    type: "query"                                    
+                                    type: "query"
                                     configuration:
-                                      datasource: "my-database"         
+                                      datasource: "my-database"
                                       query: "select * from table"
-                                      output-field: "value.queryresult"                             
+                                      output-field: "value.queryresult"
                                       fields:
-                                        - "value.field1"                                          
+                                        - "value.field1"
                                         - "key.field2"
                                   - name: "unwrap-key-value"
                                     type: "unwrap-key-value"
@@ -416,21 +416,21 @@ class GenAIAgentsTest {
                                           expression: "value.field1"
                                         - name: "field2"
                                           type: "string"
-                                          expression: "value.field2"                                         
+                                          expression: "value.field2"
                                   - name: "merge-key-value"
                                     type: "merge-key-value"
                                   - name: "ai-chat-completions"
                                     type: "ai-chat-completions"
-                                    configuration:   
-                                      model: "davinci"                                   
+                                    configuration:
+                                      model: "davinci"
                                       completion-field: "value.chatresult"
                                       messages:
                                          - role: user
                                            content: xxx
                                   - name: "casttojson"
-                                    type: "cast"                                    
+                                    type: "cast"
                                     output: "output-topic"
-                                    configuration:                                      
+                                    configuration:
                                       schema-type: "string"
                                 """), buildInstanceYaml(), null).getApplication();
 
@@ -490,12 +490,12 @@ class GenAIAgentsTest {
                         
                         "configuration.yaml",
                         """
-                                configuration:  
+                                configuration:
                                   resources:
                                     - name: open-ai
                                       type: open-ai-configuration
                                       configuration:
-                                        url: "http://something"                                
+                                        url: "http://something"
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                     - name: my-database-1
@@ -509,38 +509,38 @@ class GenAIAgentsTest {
                                   """,
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
-                                pipeline:                                  
+                                    creation-mode: create-if-not-exists
+                                pipeline:
                                   - name: "query1"
                                     id: query1
-                                    type: "query"                                    
+                                    type: "query"
                                     configuration:
                                       composable: false
-                                      datasource: "my-database-1"         
+                                      datasource: "my-database-1"
                                       query: "select * from table"
-                                      output-field: "value.queryresult"                             
+                                      output-field: "value.queryresult"
                                       fields:
-                                        - "value.field1"                                          
+                                        - "value.field1"
                                         - "key.field2"
                                   - name: "query2"
                                     id: query2
-                                    type: "query"                                    
-                                    configuration:                                      
-                                      datasource: "my-database-2"         
+                                    type: "query"
+                                    configuration:
+                                      datasource: "my-database-2"
                                       query: "select * from table2"
-                                      output-field: "value.queryresult2"                             
+                                      output-field: "value.queryresult2"
                                       fields:
-                                        - "value.field1"                                          
+                                        - "value.field1"
                                         - "key.field2"
                                   - name: "casttojson"
-                                    type: "cast"                                    
+                                    type: "cast"
                                     output: "output-topic"
-                                    configuration:                                      
+                                    configuration:
                                       schema-type: "string"
                                 """), buildInstanceYaml(), null).getApplication();
 
@@ -605,12 +605,12 @@ class GenAIAgentsTest {
                         
                         "configuration.yaml",
                         """
-                                configuration:  
+                                configuration:
                                   resources:
                                     - name: open-ai
                                       type: open-ai-configuration
                                       configuration:
-                                        url: "http://something"                                
+                                        url: "http://something"
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                     - name: my-database-1
@@ -620,36 +620,36 @@ class GenAIAgentsTest {
                                   """,
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "compute-embeddings"
                                     id: "step1"
                                     type: "compute-ai-embeddings"
-                                    input: "input-topic"                                    
-                                    configuration:                                      
+                                    input: "input-topic"
+                                    configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{% value.name }} {{% value.description }}"                                  
+                                      text: "{{% value.name }} {{% value.description }}"
                                   - name: "query1"
                                     id: query1
-                                    type: "query"                                    
+                                    type: "query"
                                     configuration:
-                                      datasource: "my-database-1"         
+                                      datasource: "my-database-1"
                                       query: "select * from table"
-                                      output-field: "value.queryresult"                             
+                                      output-field: "value.queryresult"
                                       fields:
-                                        - "value.field1"                                          
+                                        - "value.field1"
                                         - "key.field2"
                                   - name: "casttojson"
                                     id: casttojson
-                                    type: "cast"                                    
+                                    type: "cast"
                                     output: "output-topic"
-                                    configuration:                                      
+                                    configuration:
                                       schema-type: "string"
                                 """), buildInstanceYaml(), null).getApplication();
 

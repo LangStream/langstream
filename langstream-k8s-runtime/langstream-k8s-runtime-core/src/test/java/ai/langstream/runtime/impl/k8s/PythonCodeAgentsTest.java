@@ -15,6 +15,8 @@
  */
 package ai.langstream.runtime.impl.k8s;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
@@ -26,16 +28,11 @@ import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
+import java.util.Map;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
-
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class PythonCodeAgentsTest {
@@ -45,9 +42,9 @@ class PythonCodeAgentsTest {
         return """
                 instance:
                   streamingCluster:
-                    type: "noop"                    
+                    type: "noop"
                   computeCluster:
-                    type: "none"                    
+                    type: "none"
                 """;
     }
 
@@ -57,27 +54,27 @@ class PythonCodeAgentsTest {
                 .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 pipeline:
                                   - name: "source1"
                                     id: "source1"
                                     type: "python-source"
-                                    configuration:                                                                      
-                                      agent.class: my.python.module.MyClass                                 
+                                    configuration:
+                                      agent.class: my.python.module.MyClass
                                       config1: value1
                                       config2: value2
                                   - name: "process1"
                                     id: "process1"
                                     type: "python-function"
-                                    configuration:                                                                      
-                                      agent.class: my.python.module.MyClass                                 
+                                    configuration:
+                                      agent.class: my.python.module.MyClass
                                       config1: value1
                                       config2: value2
                                   - name: "sink1"
                                     id: "sink1"
                                     type: "python-sink"
-                                    configuration:                                                                      
-                                      agent.class: my.python.module.MyClass                                 
+                                    configuration:
+                                      agent.class: my.python.module.MyClass
                                       config1: value1
                                       config2: value2
                                 """), buildInstanceYaml(), null).getApplication();

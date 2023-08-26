@@ -77,25 +77,22 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
             log.info("Topic {} does not exist", topicName);
         }
         switch (createMode) {
-            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
+            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
                 if (!exists) {
                     log.info("Topic {} does not exist, creating", topicName);
                     if (topic.partitions() <= 0) {
                         admin
-                                .topics().createNonPartitionedTopic(topicName);
+                            .topics().createNonPartitionedTopic(topicName);
                     } else {
                         admin
-                                .topics().createPartitionedTopic(topicName, topic.partitions());
+                            .topics().createPartitionedTopic(topicName, topic.partitions());
                     }
                 }
-                break;
             }
-            case TopicDefinition.CREATE_MODE_NONE: {
+            case TopicDefinition.CREATE_MODE_NONE -> {
                 // do nothing
-                break;
             }
-            default:
-                throw new IllegalArgumentException("Unknown create mode " + createMode);
+            default -> throw new IllegalArgumentException("Unknown create mode " + createMode);
         }
 
         // deploy schema
@@ -131,25 +128,24 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
 
     private static SchemaInfo getSchemaInfo(SchemaDefinition logicalSchemaDefinition) {
         SchemaType pulsarSchemaType = SchemaType.valueOf(logicalSchemaDefinition.type().toUpperCase());
-        SchemaInfo keySchemaInfo = SchemaInfo
+        return SchemaInfo
                 .builder()
                 .type(pulsarSchemaType)
                 .name(logicalSchemaDefinition.name())
                 .properties(Map.of())
                 .schema(logicalSchemaDefinition.schema() != null ? logicalSchemaDefinition.schema().getBytes(StandardCharsets.UTF_8) : new byte[0])
                 .build();
-        return keySchemaInfo;
     }
 
     private static void deleteTopic(PulsarAdmin admin, PulsarTopic topic) throws PulsarAdminException {
 
         switch (topic.createMode()) {
-            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
-                break;
+            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
             }
-            default:
+            default -> {
                 log.info("Keeping Pulsar topic {}", topic.name());
                 return;
+            }
         }
 
         String topicName = topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
@@ -195,13 +191,12 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         String namespace = config.getDefaultNamespace();
         PulsarName topicName
                 = new PulsarName(tenant, namespace, name);
-        PulsarTopic pulsarTopic = new PulsarTopic(topicName,
+        return new PulsarTopic(topicName,
                 topicDefinition.getPartitions(),
                 keySchema,
                 valueSchema,
                 creationMode,
                 topicDefinition.isImplicit());
-        return pulsarTopic;
     }
 
 

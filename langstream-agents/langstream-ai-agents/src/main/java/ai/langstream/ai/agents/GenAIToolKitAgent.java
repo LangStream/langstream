@@ -73,7 +73,7 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         context.convertMapToStringOrBytes();
         Optional<Record> recordResult = transformContextToRecord(context, record.headers());
         log.info("Result {}", recordResult);
-        return recordResult.isPresent() ? List.of(recordResult.get()) : List.of();
+        return recordResult.map(List::of).orElseGet(List::of);
     }
 
     @Override

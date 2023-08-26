@@ -145,9 +145,7 @@ public class ApplicationService {
     }
 
     ExecutionPlan validateExecutionPlan(String applicationId, Application applicationInstance) {
-        final ExecutionPlan newPlan =
-                deployer.createImplementation(applicationId, applicationInstance);
-        return newPlan;
+        return deployer.createImplementation(applicationId, applicationInstance);
     }
 
     private void validateUpdate(String tenant, StoredApplication existing, Secrets existingSecrets,

@@ -37,14 +37,14 @@ public class ResourcesSpecsTest {
                                 id: "pipeline-1"
                                 resources:
                                    parallelism: 7
-                                   size: 7             
+                                   size: 7
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                 pipeline:
-                                  - name: "step1"                                    
+                                  - name: "step1"
                                     type: "noop"
-                                    input: "input-topic"                                    
+                                    input: "input-topic"
                                   - name: "step2"
                                     type: "noop"
                                     resources:
@@ -52,7 +52,7 @@ public class ResourcesSpecsTest {
                                   - name: "step3"
                                     type: "noop"
                                     resources:
-                                       size: 3                                      
+                                       size: 3
                                   - name: "step3"
                                     type: "noop"
                                     resources:
@@ -61,14 +61,14 @@ public class ResourcesSpecsTest {
                                 """,
                         "module2.yaml", """
                                 module: "module-2"
-                                id: "pipeline-2"             
+                                id: "pipeline-2"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                 pipeline:
-                                  - name: "step1"                                    
+                                  - name: "step1"
                                     type: "noop"
-                                    input: "input-topic"                                    
+                                    input: "input-topic"
                                   - name: "step2"
                                     type: "noop"
                                     resources:
@@ -76,7 +76,7 @@ public class ResourcesSpecsTest {
                                   - name: "step3"
                                     type: "noop"
                                     resources:
-                                       size: 3                                      
+                                       size: 3
                                   - name: "step3"
                                     type: "noop"
                                     resources:

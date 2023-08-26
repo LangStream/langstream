@@ -15,7 +15,6 @@
  */
 package ai.langstream.apigateway.auth.impl.google;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

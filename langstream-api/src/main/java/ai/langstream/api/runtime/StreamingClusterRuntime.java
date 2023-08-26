@@ -27,29 +27,29 @@ public interface StreamingClusterRuntime extends AutoCloseable {
 
     /**
      * Deploy the topics on the StreamingCluster
-     * @param applicationInstance
+     * @param applicationInstance the physical application instance
      */
     default void deploy(ExecutionPlan applicationInstance) {
     }
 
     /**
      * Undeploy all the resources created on the StreamingCluster
-     * @param applicationInstance
+     * @param applicationInstance the physical application instance
      */
     default void delete(ExecutionPlan applicationInstance){
     }
 
     /**
      * Map a Logical TopicDefinition to a Physical TopicImplementation
-     * @param topicDefinition
-     * @return
+     * @param topicDefinition the logical topic definition
+     * @return the physical topic implementation
      */
     Topic createTopicImplementation(TopicDefinition topicDefinition, ExecutionPlan applicationInstance);
 
     /**
      * Create the configuration to consume from a topic.
      * The contents of the map are specific to the StreamingCluster implementation.
-     * @param inputConnectionImplementation
+     * @param inputConnectionImplementation the input connection implementation
      * @return the configuration
      */
     default Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
@@ -59,7 +59,7 @@ public interface StreamingClusterRuntime extends AutoCloseable {
     /**
      * Create the configuration to produce to a topic.
      * The contents of the map are specific to the StreamingCluster implementation.
-     * @param outputConnectionImplementation
+     * @param outputConnectionImplementation the output connection implementation
      * @return the configuration
      */
     default Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, ConnectionImplementation outputConnectionImplementation) {

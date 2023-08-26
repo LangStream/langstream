@@ -17,7 +17,6 @@ package ai.langstream.api.model;
 
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Filter;
 
 public record Gateway(String id, GatewayType type, String topic,
                       Authentication authentication,
@@ -26,7 +25,7 @@ public record Gateway(String id, GatewayType type, String topic,
                       ConsumeOptions consumeOptions) {
     public enum GatewayType {
         produce,
-        consume;
+        consume
     }
 
     public Gateway(String id, GatewayType type, String topic, List<String> parameters,

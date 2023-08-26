@@ -45,19 +45,16 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
         final InputStream stream = Utils.toStream(value);
         Metadata metadata = new Metadata();
         ParseContext parseContext = new ParseContext();
-        Reader reader = new ParsingReader(parser, stream, metadata, parseContext);
-        try {
+        try (Reader reader = new ParsingReader(parser, stream, metadata, parseContext)) {
             StringWriter valueAsString = new StringWriter();
             String[] names = metadata.names();
             log.info("Document type: {} Content {}", Stream.of(names)
-                    .collect(Collectors.toMap(Function.identity(), metadata::get)), valueAsString);
+                .collect(Collectors.toMap(Function.identity(), metadata::get)), valueAsString);
             reader.transferTo(valueAsString);
             return List.of(SimpleRecord
-                    .copyFrom(record)
-                    .value(valueAsString.toString())
-                    .build());
-        } finally {
-            reader.close();
+                .copyFrom(record)
+                .value(valueAsString.toString())
+                .build());
         }
     }
 }

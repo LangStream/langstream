@@ -74,7 +74,7 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
         }else {
             latch = new CountDownLatch(1);
         }
-        try (final WebSocketClient client = new WebSocketClient(new WebSocketClient.Handler() {
+        try (final WebSocketClient ignored = new WebSocketClient(new WebSocketClient.Handler() {
             @Override
             public void onMessage(String msg) {
                 if (latch.getCount() > 0) {

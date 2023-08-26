@@ -15,22 +15,20 @@
  */
 package ai.langstream.webservice.application;
 
-import ai.langstream.api.codestorage.DownloadedCodeArchive;
-import ai.langstream.webservice.config.StorageProperties;
 import ai.langstream.api.codestorage.CodeArchiveMetadata;
 import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.codestorage.CodeStorageRegistry;
+import ai.langstream.api.codestorage.DownloadedCodeArchive;
 import ai.langstream.impl.codestorage.LocalFileUploadableCodeArchive;
-import java.io.InputStream;
+import ai.langstream.webservice.config.StorageProperties;
+import java.nio.file.Path;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.SneakyThrows;
 import lombok.extern.jbosslog.JBossLog;
 import org.springframework.stereotype.Service;
-
-import java.nio.file.Path;
-import java.util.Objects;
-import java.util.UUID;
 
 @Service
 @JBossLog
@@ -69,7 +67,7 @@ public class CodeStorageService {
         codeStorage.downloadApplicationCode(tenant, codeStoreId, new CodeStorage.DownloadedCodeHandled() {
             @Override
             @SneakyThrows
-            public void accept(DownloadedCodeArchive archive) throws CodeStorageException {
+            public void accept(DownloadedCodeArchive archive) {
                 result.set(archive.getData());
             }
         });

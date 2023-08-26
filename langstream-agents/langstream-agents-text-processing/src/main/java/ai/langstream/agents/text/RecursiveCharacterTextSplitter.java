@@ -22,7 +22,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 
 public class RecursiveCharacterTextSplitter extends TextSplitter {
-    private List<String> separators;
+    private final List<String> separators;
 
     public RecursiveCharacterTextSplitter(List<String> separators, boolean keepSeparator,
                                           int chunkSize,

@@ -114,7 +114,7 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    public void onOpen(WebSocketSession session, AuthenticatedGatewayRequestContext context) throws Exception {
+    public void onOpen(WebSocketSession session, AuthenticatedGatewayRequestContext context) {
         // we must return the caller thread to the thread pool
         final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             final Map<String, Object> attributes = session.getAttributes();
@@ -137,11 +137,11 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    public void onMessage(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, TextMessage message) throws Exception {
+    public void onMessage(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, TextMessage message) {
     }
 
     @Override
-    public void onClose(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, CloseStatus closeStatus) throws Exception {
+    public void onClose(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, CloseStatus closeStatus) {
         final CompletableFuture<Void> future = (CompletableFuture<Void>) webSocketSession.getAttributes().get("future");
         if (future != null && !future.isDone()) {
             future.cancel(true);
@@ -218,7 +218,7 @@ public class ConsumeHandler extends AbstractHandler {
             messageHeaders = Map.of();
         } else {
             messageHeaders = new HashMap<>();
-            headers.stream().forEach(h -> messageHeaders.put(h.key(), h.valueAsString()));
+            headers.forEach(h -> messageHeaders.put(h.key(), h.valueAsString()));
         }
         return messageHeaders;
     }
@@ -228,11 +228,8 @@ public class ConsumeHandler extends AbstractHandler {
         if (offsetPerPartition == null) {
             return null;
         }
-        final String offsets = Base64.getEncoder().encodeToString(mapper.writeValueAsBytes(offsetPerPartition));
-        return offsets;
+        return Base64.getEncoder().encodeToString(mapper.writeValueAsBytes(offsetPerPartition));
     }
-
-    public record Offset(String partition, String offset) {}
 
     private List<Function<Record, Boolean>> createMessageFilters(Gateway selectedGateway,
                                                                  Map<String, String> passedParameters,
@@ -247,29 +244,26 @@ public class ConsumeHandler extends AbstractHandler {
                         if (comparison.key() == null) {
                             throw new IllegalArgumentException("Key cannot be null");
                         }
-                        filters.add(new Function<Record, Boolean>() {
-                            @Override
-                            public Boolean apply(Record record) {
-                                final Header header = record.getHeader(comparison.key());
-                                if (header == null) {
-                                    return false;
-                                }
-                                final String expectedValue = header.valueAsString();
-                                if (expectedValue == null) {
-                                    return false;
-                                }
-                                String value = comparison.value();
-                                if (value == null && comparison.valueFromParameters() != null) {
-                                    value = passedParameters.get(comparison.valueFromParameters());
-                                }
-                                if (value == null && comparison.valueFromAuthentication() != null) {
-                                    value = principalValues.get(comparison.valueFromAuthentication());
-                                }
-                                if (value == null) {
-                                    return false;
-                                }
-                                return expectedValue.equals(value);
+                        filters.add(record -> {
+                            final Header header = record.getHeader(comparison.key());
+                            if (header == null) {
+                                return false;
                             }
+                            final String expectedValue = header.valueAsString();
+                            if (expectedValue == null) {
+                                return false;
+                            }
+                            String value = comparison.value();
+                            if (value == null && comparison.valueFromParameters() != null) {
+                                value = passedParameters.get(comparison.valueFromParameters());
+                            }
+                            if (value == null && comparison.valueFromAuthentication() != null) {
+                                value = principalValues.get(comparison.valueFromAuthentication());
+                            }
+                            if (value == null) {
+                                return false;
+                            }
+                            return expectedValue.equals(value);
                         });
                     }
 

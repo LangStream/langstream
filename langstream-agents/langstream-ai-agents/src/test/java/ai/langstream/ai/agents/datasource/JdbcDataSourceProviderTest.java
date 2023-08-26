@@ -39,7 +39,7 @@ public class JdbcDataSourceProviderTest {
 
         try (Connection conn = DriverManager.
                 getConnection("jdbc:h2:mem:test", "sa", "sa");
-                Statement statement = conn.createStatement();) {
+                Statement statement = conn.createStatement()) {
             statement.execute("CREATE TABLE products (id INT PRIMARY KEY, name VARCHAR(255), price INT)");
             statement.execute("INSERT INTO products (id, name, price) VALUES (1, 'product1', 100)");
             statement.execute("INSERT INTO products (id, name, price) VALUES (2, 'product2', 102)");

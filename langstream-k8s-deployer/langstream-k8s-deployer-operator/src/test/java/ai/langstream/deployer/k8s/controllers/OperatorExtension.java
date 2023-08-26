@@ -46,7 +46,7 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
     KubernetesClient client;
 
     @Override
-    public void afterAll(ExtensionContext extensionContext) throws Exception {
+    public void afterAll(ExtensionContext extensionContext) {
         if (container != null) {
             container.stop();
             container = null;

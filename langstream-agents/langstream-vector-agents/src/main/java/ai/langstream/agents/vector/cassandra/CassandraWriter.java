@@ -25,23 +25,19 @@ import com.datastax.oss.common.sink.AbstractSinkRecordHeader;
 import com.datastax.oss.common.sink.AbstractSinkTask;
 import com.datastax.oss.common.sink.config.CassandraSinkConfig;
 import com.datastax.oss.common.sink.util.SinkUtil;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.TopicPartition;
-
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 
 @Slf4j
 public class CassandraWriter implements VectorDatabaseWriterProvider {
@@ -120,7 +116,7 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
             processor.start(configuration);
         }
 
-        private AtomicReference<CompletableFuture<?>> currentRecordStatus = new AtomicReference<>();
+        private final AtomicReference<CompletableFuture<?>> currentRecordStatus = new AtomicReference<>();
 
         @Override
         public void upsert(Record record, Map<String, Object> context) throws Exception {

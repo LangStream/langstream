@@ -66,7 +66,7 @@ public class TenantResource {
     @PutMapping(value = "/{tenant}")
     @Operation(summary = "Create or update a tenant")
     void putTenant(
-            @NotBlank @PathVariable("tenant") String tenant) throws Exception {
+            @NotBlank @PathVariable("tenant") String tenant) {
         globalMetadataService.putTenant(tenant, TenantConfiguration.builder()
                 .name(tenant)
                 .build());

@@ -176,9 +176,7 @@ public class ApplicationPlaceholderResolver {
 
     static Collection<?> resolveCollection(Map<String, Object> context, Collection<?> config) {
         return config.stream()
-                .map(entry -> {
-                    return resolveValue(context, entry);
-                })
+                .map(entry -> resolveValue(context, entry))
                 .collect(Collectors.toList());
     }
 

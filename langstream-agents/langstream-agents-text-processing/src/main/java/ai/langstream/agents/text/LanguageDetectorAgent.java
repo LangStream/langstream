@@ -30,7 +30,7 @@ public class LanguageDetectorAgent extends SingleRecordAgentProcessor {
     private List<String> allowedLanguages;
 
     @Override
-    public void init(Map<String, Object> configuration) throws Exception {
+    public void init(Map<String, Object> configuration) {
         if (configuration.containsKey("property")) {
             property = (String) configuration.get("property");
         }
@@ -43,7 +43,7 @@ public class LanguageDetectorAgent extends SingleRecordAgentProcessor {
     }
 
     @Override
-    public List<Record> processRecord(Record record) throws Exception {
+    public List<Record> processRecord(Record record) {
         if (record == null) {
             return List.of();
         }

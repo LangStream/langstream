@@ -515,7 +515,7 @@
             </licenseSet>
           </licenseSets>
           <mapping>
-            <java>JAVADOC_STYLE</java>
+            <java>SLASHSTAR_STYLE</java>
             <yaml>SCRIPT_STYLE</yaml>
             <yml>SCRIPT_STYLE</yml>
             <sh>SCRIPT_STYLE</sh>

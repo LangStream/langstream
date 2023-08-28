@@ -118,7 +118,7 @@ class AppResourcesFactoryTest {
                                 - mountPath: /cluster-runtime-config
                                   name: cluster-runtime-config
                               restartPolicy: Never
-                              serviceAccount: my-tenant
+                              serviceAccountName: my-tenant
                               volumes:
                               - emptyDir: {}
                                 name: app-config
@@ -204,7 +204,7 @@ class AppResourcesFactoryTest {
                                 - mountPath: /cluster-runtime-config
                                   name: cluster-runtime-config
                               restartPolicy: Never
-                              serviceAccount: my-tenant
+                              serviceAccountName: my-tenant
                               volumes:
                               - emptyDir: {}
                                 name: app-config

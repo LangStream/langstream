@@ -148,6 +148,7 @@ class AgentResourcesFactoryTest {
                                   name: download-config
                                 - mountPath: /app-code-download
                                   name: code-download
+                              serviceAccountName: my-tenant
                               terminationGracePeriodSeconds: 60
                               volumes:
                               - name: app-config

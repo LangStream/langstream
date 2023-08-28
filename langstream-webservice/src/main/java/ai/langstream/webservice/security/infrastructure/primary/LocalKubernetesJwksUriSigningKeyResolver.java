@@ -17,8 +17,12 @@ package ai.langstream.webservice.security.infrastructure.primary;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SigningKeyResolver;
 import io.jsonwebtoken.io.Decoders;
 import java.io.IOException;
@@ -43,6 +47,7 @@ import java.util.regex.Pattern;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,12 +57,15 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
 
     private final HttpClient httpClient;
     private final String token;
+    private final String localK8sIssuer;
     private final Map<String, JwksUriSigningKeyResolver.JwksUri> cache = new ConcurrentHashMap<>();
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public LocalKubernetesJwksUriSigningKeyResolver(HttpClient httpClient) {
         this.httpClient = httpClient;
         token = loadToken();
+        localK8sIssuer = loadLocalIssuer();
+        log.info("Loaded local Kubernetes issuer: {}", localK8sIssuer);
     }
 
     @SneakyThrows
@@ -72,28 +80,52 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
         return null;
     }
 
+    @SneakyThrows
+    private String loadLocalIssuer() {
+        final String endpoint = composeWellKnownEndpoint("https://kubernetes.default.svc.cluster.local");
+        final Map<String, ?> response = getResponseFromWellKnownOpenIdConfiguration(endpoint);
+
+        if (response != null) {
+            Object issuer = response.get("issuer");
+            if (issuer != null) {
+                return issuer.toString();
+            }
+        }
+        return null;
+    }
+
 
     public JwksUriSigningKeyResolver.JwksUri getJwksUriFromIssuer(String issuer) {
-        if (issuer.equals("https://kubernetes.default.svc.cluster.local") || issuer.equals("https://kubernetes.default.svc")) {
-        } else {
-            log.debug("issuer is not kubernetes, returning null");
+        if (issuer == null) {
+            log.debug("no issuer");
+            return null;
+        }
+        if (!issuer.equals(localK8sIssuer)) {
+            log.debug("issuer ({}) doesn't match local k8s issuer ({})", issuer, localK8sIssuer);
             return null;
         }
 
+        final String kubeOpenIDUrl = composeWellKnownEndpoint(issuer);
+        return cache.computeIfAbsent(kubeOpenIDUrl, this::getJwksUri);
+    }
+
+    @NotNull
+    private String composeWellKnownEndpoint(String issuer) {
         final String kubeOpenIDUrl;
         if (issuer.endsWith("/")) {
             kubeOpenIDUrl = issuer + ".well-known/openid-configuration";
         } else {
             kubeOpenIDUrl = issuer + "/.well-known/openid-configuration";
         }
-        return cache.computeIfAbsent(kubeOpenIDUrl, this::getJwksUri);
+        return kubeOpenIDUrl;
     }
 
     @Nullable
     private JwksUriSigningKeyResolver.JwksUri getJwksUri(String kubeOpenIDUrl) {
         try {
-            final String value = getResponseFromWellKnownOpenIdConfiguration(kubeOpenIDUrl);
-            final Map response = MAPPER.readValue(value, Map.class);
+            final Map<String, ?> response =
+                    getResponseFromWellKnownOpenIdConfiguration(kubeOpenIDUrl);
+
             if (response != null) {
                 final Object jwksUri = response.get("jwks_uri");
                 if (jwksUri != null) {
@@ -106,7 +138,7 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
         return null;
     }
 
-    private String getResponseFromWellKnownOpenIdConfiguration(String kubeOpenIDUrl) {
+    private Map<String, ?> getResponseFromWellKnownOpenIdConfiguration(String kubeOpenIDUrl) throws IOException {
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(kubeOpenIDUrl))
@@ -128,6 +160,6 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
             throw new IllegalStateException("Failed to fetch keys from URL: " + kubeOpenIDUrl + ", got status code: " + httpResponse.statusCode());
         }
         final String value = httpResponse.body();
-        return value;
+        return (Map<String, Object>) MAPPER.readValue(value, Map.class);
     }
 }

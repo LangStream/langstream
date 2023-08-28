@@ -273,6 +273,7 @@ public class AgentResourcesFactory {
                                 .withNewEmptyDir().endEmptyDir()
                                 .build()
                 )
+                .withServiceAccountName(spec.getTenant())
                 .endSpec()
                 .endTemplate()
                 .endSpec()

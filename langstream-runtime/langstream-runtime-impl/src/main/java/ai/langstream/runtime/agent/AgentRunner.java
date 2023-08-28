@@ -423,13 +423,15 @@ public class AgentRunner
     }
 
     private static void setFatalError(Throwable e, AtomicReference<Exception> fatalError) {
+        Exception value;
         if (e instanceof PermanentFailureException pf) {
-            fatalError.set(pf);
+            value = pf;
         } else {
             // throw the error
             // this way the consumer will not commit the records
-            fatalError.set(new RuntimeException("Error while processing records", e));
+            value = new RuntimeException("Error while processing records", e);
         }
+        fatalError.compareAndSet(null, value);
     }
 
     private static void processRecordsOnTheSink(AgentSink sink, AgentProcessor.SourceRecordAndResult sourceRecordAndResult,

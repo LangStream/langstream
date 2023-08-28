@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
+import org.jsoup.UnsupportedMimeTypeException;
 import org.jsoup.nodes.Document;
 
 import java.net.CookieManager;
@@ -109,6 +110,17 @@ public class WebCrawler {
                     status.addUrl(current, true);
                 }
             }
+
+            // prevent from being banned for flooding
+            if (configuration.getMinTimeBetweenRequests() > 0) {
+                Thread.sleep(configuration.getMinTimeBetweenRequests());
+            }
+
+            // we did something
+            return true;
+        } catch (UnsupportedMimeTypeException notHtml) {
+            log.info("Url {} lead to a {} content-type document. Skipping", current, notHtml.getMimeType());
+            status.addUrl(current, false);
 
             // prevent from being banned for flooding
             if (configuration.getMinTimeBetweenRequests() > 0) {

@@ -130,25 +130,20 @@ public class WebCrawler {
             // we did something
             return true;
         }
-        try {
 
-            if (!redirectedToForbiddenDomain) {
-                document.getElementsByAttribute("href").forEach(element -> {
-                    if (configuration.isAllowedTag(element.tagName())) {
-                        String url = element.absUrl("href");
-                        if (configuration.isAllowedDomain(url)) {
-                            status.addUrl(url, true);
-                        } else {
-                            log.info("Ignoring not allowed url: {}", url);
-                            status.addUrl(url, false);
-                        }
+        if (!redirectedToForbiddenDomain) {
+            document.getElementsByAttribute("href").forEach(element -> {
+                if (configuration.isAllowedTag(element.tagName())) {
+                    String url = element.absUrl("href");
+                    if (configuration.isAllowedDomain(url)) {
+                        status.addUrl(url, true);
+                    } else {
+                        log.info("Ignoring not allowed url: {}", url);
+                        status.addUrl(url, false);
                     }
-                });
-                visitor.visit(new ai.langstream.agents.webcrawler.crawler.Document(current, document.html()));
-            }
-        } catch (RuntimeException error) {
-            log.error("Error while processing url: {}", current, error);
-            status.addUrl(current, false);
+                }
+            });
+            visitor.visit(new ai.langstream.agents.webcrawler.crawler.Document(current, document.html()));
         }
 
         // prevent from being banned for flooding

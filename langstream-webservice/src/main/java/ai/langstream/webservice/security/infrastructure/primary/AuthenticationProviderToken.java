@@ -127,7 +127,7 @@ public class AuthenticationProviderToken {
     private String getPrincipal(Jwt<?, Claims> jwt) {
         final Claims body = jwt.getBody();
         try {
-            log.info("Token body: {}", body);
+            log.debug("Token body: {}", body);
             if (body.containsKey("kubernetes.io")) {
                 final Map map = body.get("kubernetes.io", Map.class);
                 if (map.containsKey("serviceaccount")) {

@@ -67,7 +67,7 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
             log.info("Loading token from {}", defaultPath);
             return Files.readString(defaultPath);
         } else {
-            log.info("No token found at {}", defaultPath);
+            log.info("No token found at {}. Service account authentication might not work.", defaultPath);
         }
         return null;
     }
@@ -94,7 +94,6 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
         try {
             final String value = getResponseFromWellKnownOpenIdConfiguration(kubeOpenIDUrl);
             final Map response = MAPPER.readValue(value, Map.class);
-            log.info("got response from {}: {}", kubeOpenIDUrl, response);
             if (response != null) {
                 final Object jwksUri = response.get("jwks_uri");
                 if (jwksUri != null) {

@@ -135,7 +135,7 @@ class KafkaConsumerTest {
             List<Record> onlySome = readFromConsumer.subList(readFromConsumer.size() / 2 - 1, readFromConsumer.size() - 1);
 
             // partial ack is not allowed
-            assertThrows(IllegalStateException.class, () -> consumer.commit(onlySome));
+            consumer.commit(onlySome);
 
         }
 

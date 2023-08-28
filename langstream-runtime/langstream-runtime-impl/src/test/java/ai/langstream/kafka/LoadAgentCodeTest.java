@@ -39,7 +39,8 @@ class LoadAgentCodeTest {
         MyRecord myRecord = new MyRecord();
         List<AgentProcessor.SourceRecordAndResult> res = new ArrayList<>();
         noop.process(List.of(myRecord), res::add);
-        assertTrue(res.isEmpty());
+        assertEquals(1, res.size());
+        assertTrue(res.get(0).resultRecords().isEmpty());
     }
 
     @Test

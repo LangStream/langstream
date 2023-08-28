@@ -135,6 +135,8 @@ class AgentResourcesFactoryTest {
                                   value: /cluster-config/config
                                 - name: LANGSTREAM_AGENT_CODE_DOWNLOADER_DOWNLOAD_CONFIGURATION
                                   value: /download-config/config
+                                - name: LANGSTREAM_AGENT_CODE_DOWNLOADER_TOKEN
+                                  value: /var/run/secrets/kubernetes.io/serviceaccount/token
                                 image: busybox
                                 imagePullPolicy: Never
                                 name: code-download

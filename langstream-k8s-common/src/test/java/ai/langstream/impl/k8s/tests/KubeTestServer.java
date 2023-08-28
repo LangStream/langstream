@@ -16,7 +16,9 @@
 package ai.langstream.impl.k8s.tests;
 
 import static org.mockito.ArgumentMatchers.isNull;
+import ai.langstream.api.model.Application;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -94,6 +96,7 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
         server.reset();
         currentAgents.clear();
         currentAgentsSecrets.clear();
+        currentApplications.clear();
     }
 
     @Override
@@ -108,6 +111,7 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
 
 
     private final Map<String, AgentCustomResource> currentAgents = new HashMap<>();
+    private final Map<String, ApplicationCustomResource> currentApplications = new HashMap<>();
     private final Map<String, Secret> currentAgentsSecrets = new HashMap<>();
 
     public Map<String, AgentCustomResource> spyAgentCustomResources(final String namespace,
@@ -232,6 +236,81 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                         HttpURLConnection.HTTP_OK,
                         recordedRequest -> null
                 ).always();
+
+
+        server.expect()
+                .patch()
+                .withPath(
+                        "/api/v1/namespaces/%s/secrets/langstream-cluster-config?fieldManager=fabric8".formatted(
+                                namespace))
+                .andReply(
+                        HttpURLConnection.HTTP_OK,
+                        recordedRequest -> null
+                ).always();
+    }
+
+
+    public Map<String, ApplicationCustomResource> spyApplicationCustomResources(String namespace, String... applicationIds) {
+        for (String appId : applicationIds) {
+            final String fullPath =
+                    "/apis/langstream.ai/v1alpha1/namespaces/%s/applications/%s".formatted(
+                            namespace, appId);
+            server.expect()
+                    .patch()
+                    .withPath(fullPath + "?fieldManager=fabric8")
+                    .andReply(
+                            HttpURLConnection.HTTP_OK,
+                            recordedRequest -> {
+                                try {
+                                    final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                                    recordedRequest.getBody().copyTo(byteArrayOutputStream);
+                                    final ObjectMapper mapper = new ObjectMapper()
+                                            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+                                    final ApplicationCustomResource app =
+                                            mapper.readValue(byteArrayOutputStream.toByteArray(),
+                                                    ApplicationCustomResource.class);
+                                    log.info("received patch request for app {}", appId);
+                                    currentApplications.put(appId, app);
+                                    return app;
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                    ).always();
+
+            server.expect()
+                    .patch()
+                    .withPath(
+                            "/api/v1/namespaces/%s/secrets/%s?fieldManager=fabric8".formatted(
+                                    namespace, appId))
+                    .andReply(
+                            HttpURLConnection.HTTP_OK,
+                            recordedRequest -> null
+                    ).always();
+
+            server.expect()
+                    .get()
+                    .withPath(fullPath)
+                    .andReply(
+                            HttpURLConnection.HTTP_OK,
+                            recordedRequest -> {
+                                return currentApplications.get(appId);
+                            }
+                    ).always();
+
+            server.expect()
+                    .delete()
+                    .withPath(fullPath)
+                    .andReply(
+                            HttpURLConnection.HTTP_OK,
+                            recordedRequest -> {
+                                log.info("received delete request for app {}", appId);
+                                currentApplications.remove(appId);
+                                return List.of();
+                            }
+                    ).always();
+        }
+        return currentApplications;
     }
 
 }

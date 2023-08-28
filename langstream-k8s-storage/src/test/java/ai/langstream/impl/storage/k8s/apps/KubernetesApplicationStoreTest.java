@@ -25,6 +25,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
@@ -38,7 +39,7 @@ class KubernetesApplicationStoreTest {
     void testApp() {
 
         final KubernetesApplicationStore store = new KubernetesApplicationStore();
-        store.initialize(Map.of("namespaceprefix", "s"));
+        store.initialize(getInitMap());
 
         final String tenant = getTenant();
         store.onTenantCreated(tenant);
@@ -97,6 +98,11 @@ class KubernetesApplicationStoreTest {
         assertTrue(k3s.getClient().namespaces().withName("s" + tenant).get().isMarkedForDeletion());
     }
 
+    @NotNull
+    private Map<String, Object> getInitMap() {
+        return Map.of("namespaceprefix", "s", "controlPlaneUrl", "http://localhost:8090");
+    }
+
     static final AtomicInteger t = new AtomicInteger();
     String getTenant() {
         return "t" + t.incrementAndGet();
@@ -106,7 +112,7 @@ class KubernetesApplicationStoreTest {
     void testBlockDeployWhileDeleting() {
 
         final KubernetesApplicationStore store = new KubernetesApplicationStore();
-        store.initialize(Map.of("namespaceprefix", "s"));
+        store.initialize(getInitMap());
 
         final String tenant = getTenant();
         store.onTenantCreated(tenant);

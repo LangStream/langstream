@@ -56,6 +56,22 @@ class ApplicationLogsTest {
         mockMvc.perform(put("/api/tenants/default"))
                 .andExpect(status().isOk());
 
+        k3s.spyApplicationCustomResources("langstream-default", "test");
+        AppTestHelper.deployApp(mockMvc, "default", "test", """
+                        id: app1
+                        name: test
+                        topics: []
+                        pipeline: []
+                        """,
+                """
+                        instance:
+                          streamingCluster:
+                            type: pulsar
+                          computeCluster:
+                            type: none
+                        """, null);
+
+
         final Pod pod1 = Mockito.mock(Pod.class);
 
         when(pod1.getMetadata()).thenReturn(new ObjectMetaBuilder()
@@ -67,7 +83,9 @@ class ApplicationLogsTest {
                 .build());
         k3s.getServer().expect()
                 .get()
-                .withPath("/api/v1/namespaces/langstream-default/pods?labelSelector=app%3Dlangstream-runtime%2Clangstream-application%3Dtest")
+                .withPath(
+                        "/api/v1/namespaces/langstream-default/pods?labelSelector=app%3Dlangstream-runtime"
+                                + "%2Clangstream-application%3Dtest")
                 .andReply(
                         HttpURLConnection.HTTP_OK,
                         recordedRequest -> {

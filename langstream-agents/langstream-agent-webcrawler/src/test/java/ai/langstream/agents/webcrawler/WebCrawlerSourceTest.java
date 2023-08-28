@@ -96,6 +96,39 @@ public class WebCrawlerSourceTest {
         }
     }
 
+
+    @Test
+    @Disabled("This test is disabled because it connects to a real live website")
+    void testReadLangStreamGithubRepo() throws Exception {
+        try {
+            String bucket = "langstream-test-" + UUID.randomUUID();
+            String url = "https://github.com/LangStream/langstream";
+            String allowed = "https://github.com/LangStream/langstream";
+
+            // perform multiple iterations, in order to see the recovery mechanism in action
+
+            int count = 1000;
+            WebCrawlerSource agentSource = buildAgentSource(bucket, allowed, url);
+            List<Record> read = agentSource.read();
+            Set<String> urls = new HashSet<>();
+            while (count -- > 0) {
+                log.info("read: {}", read);
+                for (Record r : read) {
+                    String docUrl = r.key().toString();
+                    log.info("content: {}", new String((byte[]) r.value()));
+                    assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+                }
+                agentSource.commit(read);
+                read = agentSource.read();
+            }
+            agentSource.close();
+        } catch (Throwable error) {
+            log.error("Bad error", error);
+            throw error;
+        }
+    }
+
+
     @Test
     void testBasic(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
 

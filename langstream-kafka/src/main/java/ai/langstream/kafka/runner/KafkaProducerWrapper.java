@@ -194,4 +194,11 @@ class KafkaProducerWrapper implements TopicProducer {
         }
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "KafkaProducerWrapper{" +
+                "topicName='" + topicName + '\'' +
+                '}';
+    }
 }

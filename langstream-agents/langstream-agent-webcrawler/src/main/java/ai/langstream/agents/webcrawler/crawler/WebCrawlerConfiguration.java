@@ -17,21 +17,52 @@ package ai.langstream.agents.webcrawler.crawler;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
+import java.net.URI;
 import java.util.Set;
 
 @Data
 @Builder
+@Slf4j
 public class WebCrawlerConfiguration {
     @Builder.Default
     private Set<String> allowedDomains = Set.of();
-    private String userAgent;
+    @Builder.Default
+    private String userAgent = null;
+    @Builder.Default
     private int minTimeBetweenRequests = 100;
+    @Builder.Default
+    private int httpTimeout = 10000;
+    @Builder.Default
+    private int maxErrorCount = 5;
+    @Builder.Default
+    private boolean handleCookies = true;
     @Builder.Default
     private Set<String> allowedTags = Set.of("a");
 
     public boolean isAllowedDomain(String url) {
-        return allowedDomains.stream().anyMatch(url::startsWith);
+        final String domainOnly;
+        try {
+            URI uri = URI.create(url);
+            String host = uri.getHost();
+            domainOnly = host;
+        } catch (Exception e) {
+            log.info("Url {} doesn't have a domain, parsing error: {}", url, e + "");
+            return false;
+        }
+        return allowedDomains
+                .stream()
+                .anyMatch(domain -> {
+                    // the domain can be a dns name with the scheme and a part of the uri
+                    // https://domain/something/....
+                    // http://domain/....
+                    if (url.startsWith(domain)) {
+                        return true;
+                    }
+                    // or just the domain
+                    return domain.equalsIgnoreCase(domainOnly);
+                });
     }
 
     public boolean isAllowedTag(String tagName) {

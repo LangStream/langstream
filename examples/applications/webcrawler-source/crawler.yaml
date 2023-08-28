@@ -22,9 +22,12 @@ pipeline:
   - name: "Crawl the WebSite"
     type: "webcrawler-source"
     configuration:
-      seed-urls: "https://docs.langstream.ai/"
-      allowed-domains: "https://docs.langstream.ai"
+      seed-urls: ["https://docs.langstream.ai/", "https://github.com/LangStream/langstream"]
+      allowed-domains: ["https://docs.langstream.ai", "https://github.com/LangStream/langstream"]
       min-time-between-requests: 100
+      max-error-count: 5
+      http-timeout: 10000
+      handle-cookies: true
       max-unflushed-pages: 100
       user-agent: "langstream.ai-webcrawler/1.0"
       bucketName: "{{{secrets.s3-credentials.bucket-name}}}"

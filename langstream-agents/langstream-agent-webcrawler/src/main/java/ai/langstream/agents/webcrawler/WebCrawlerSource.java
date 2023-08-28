@@ -52,6 +52,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 
+import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
+import static ai.langstream.api.util.ConfigurationUtils.getInt;
+import static ai.langstream.api.util.ConfigurationUtils.getSet;
+import static ai.langstream.api.util.ConfigurationUtils.getString;
+
 @Slf4j
 public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
@@ -75,23 +80,27 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final StatusStorage statusStorage = new S3StatusStorage();
 
+
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
         bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
-        String endpoint = configuration.getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090").toString();
-        String username =  configuration.getOrDefault("access-key", "minioadmin").toString();
-        String password =  configuration.getOrDefault("secret-key", "minioadmin").toString();
-        String region = configuration.getOrDefault("region", "").toString();
-        allowedDomains = Set.of(configuration.getOrDefault("allowed-domains", "")
-                .toString().split(","));
-        seedUrls = Set.of(configuration.getOrDefault("seed-urls", "")
-                .toString().split(","));
-        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 1).toString());
-        maxUnflushedPages = Integer.parseInt(configuration.getOrDefault("max-unflushed-pages", 100).toString());
+        String endpoint = getString("endpoint", "http://minio-endpoint.-not-set:9090", configuration);
+        String username =  getString("access-key", "minioadmin", configuration);
+        String password =  getString("secret-key", "minioadmin", configuration);
+        String region = getString("region", "", configuration);
+        allowedDomains = getSet("allowed-domains", configuration);
+        seedUrls = getSet("seed-urls", configuration);
+        idleTime = getInt("idle-time", 1, configuration);
+        maxUnflushedPages = getInt("max-unflushed-pages", 100, configuration);
+
         flushNext.set(maxUnflushedPages);
         int minTimeBetweenRequests =
-            Integer.parseInt(configuration.getOrDefault("min-time-between-requests", 100).toString());
-        String userAgent = configuration.getOrDefault("user-agent", "langstream.ai-webcrawler/1.0").toString();
+            getInt("min-time-between-requests", 100, configuration);
+        String userAgent = getString("user-agent", "langstream.ai-webcrawler/1.0", configuration);
+        int maxErrorCount = getInt("max-error-count", 5, configuration);
+        int httpTimeout = getInt("http-timeout", 10000, configuration);
+
+        boolean handleCookies = getBoolean("handle-cookies", true, configuration);
 
         log.info("Connecting to S3 Bucket at {} in region {} with user {}", endpoint, region, username);
         log.info("allowed-domains: {}", allowedDomains);
@@ -115,6 +124,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 .allowedDomains(allowedDomains)
                 .minTimeBetweenRequests(minTimeBetweenRequests)
                 .userAgent(userAgent)
+                .handleCookies(handleCookies)
+                .httpTimeout(httpTimeout)
+                .maxErrorCount(maxErrorCount)
                 .build();
 
         WebCrawlerStatus status = new WebCrawlerStatus();
@@ -177,6 +189,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 finished = true;
                 log.info("No more documents found.");
                 flushStatus();
+            } else {
+                // we did something but no new documents were found (for instance a redirection has been processed)
+                // no need to sleep
+                if (foundDocuments.isEmpty()) {
+                    log.info("The last cycle didn't produce any new documents");
+                    return List.of();
+                }
             }
         }
         if (foundDocuments.isEmpty()) {

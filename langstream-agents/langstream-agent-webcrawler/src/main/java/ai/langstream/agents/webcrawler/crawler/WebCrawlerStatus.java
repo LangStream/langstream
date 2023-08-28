@@ -18,6 +18,7 @@ package ai.langstream.agents.webcrawler.crawler;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,12 @@ public class WebCrawlerStatus {
      * This structure only grows and is never cleared.
      */
     private final Set<String> visitedUrls = new HashSet<>();
+    /**
+     * Map of the URLs that have been seen by the Crawler and that have
+     * returned a temporary error.
+     * This status is not persisted.
+     */
+    private final Map<String, Integer> errorCount = new HashMap<>();
 
     public void reloadFrom(StatusStorage statusStorage) throws Exception {
         Map<String, Object> currentStatus = statusStorage.getCurrentStatus();
@@ -90,10 +97,7 @@ public class WebCrawlerStatus {
 
         // the '#' character is used to identify a fragment in a URL
         // we have to remove it to avoid duplicates
-        int hash = url.indexOf('#');
-        if (hash >= 0) {
-            url = url.substring(0, hash);
-        }
+        url = removeFragment(url);
 
         if (visitedUrls.contains(url)) {
             return;
@@ -106,6 +110,14 @@ public class WebCrawlerStatus {
         }
     }
 
+    private static String removeFragment(String url) {
+        int hash = url.indexOf('#');
+        if (hash >= 0) {
+            url = url.substring(0, hash);
+        }
+        return url;
+    }
+
     public String nextUrl() {
         return pendingUrls.poll();
     }
@@ -115,5 +127,21 @@ public class WebCrawlerStatus {
         // downstream (for instance stored in the Vector database)
         log.info("Url {} completely processed", url);
         remainingUrls.remove(url);
+
+        // forget the errors about the page
+        url = removeFragment(url);
+        errorCount.remove(url);
+    }
+
+    public int temporaryErrorOnUrl(String url) {
+        url = removeFragment(url);
+        visitedUrls.remove(url);
+        return errorCount.compute(url, (u, current) -> {
+            if (current == null) {
+                return 1;
+            } else {
+                return current + 1;
+            }
+        });
     }
 }

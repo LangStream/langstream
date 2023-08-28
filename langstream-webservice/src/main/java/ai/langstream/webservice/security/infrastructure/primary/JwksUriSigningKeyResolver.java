@@ -86,7 +86,11 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
             if (issuer != null) {
                 log.debug("No jwks_uri claim in JWT, checking issuer");
                 jwksUri = localKubernetesJwksUriSigningKeyResolver.getJwksUriFromIssuer(issuer);
-                log.debug("Got jwks_uri from issuer {}: {}", issuer, jwksUri.uri());
+                if (jwksUri == null) {
+                    log.debug("Not able to get jwks_uri from issuer {}", issuer);
+                } else {
+                    log.debug("Got jwks_uri from issuer {}: {}", issuer, jwksUri.uri());
+                }
             }
         }
         if (jwksUri == null) {

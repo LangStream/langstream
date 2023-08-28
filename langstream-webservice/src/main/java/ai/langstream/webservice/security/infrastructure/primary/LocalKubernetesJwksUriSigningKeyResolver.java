@@ -27,6 +27,7 @@ import io.jsonwebtoken.SigningKeyResolver;
 import io.jsonwebtoken.io.Decoders;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.ConnectException;
 import java.net.URI;
 import java.net.URL;
 import java.net.http.HttpClient;
@@ -75,7 +76,7 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
             log.info("Loading token from {}", defaultPath);
             return Files.readString(defaultPath);
         } else {
-            log.info("No token found at {}. Service account authentication might not work.", defaultPath);
+            log.info("No token found at {}. Kubernetes Service account authentication might not work.", defaultPath);
         }
         return null;
     }
@@ -83,7 +84,14 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
     @SneakyThrows
     private String loadLocalIssuer() {
         final String endpoint = composeWellKnownEndpoint("https://kubernetes.default.svc.cluster.local");
-        final Map<String, ?> response = getResponseFromWellKnownOpenIdConfiguration(endpoint);
+        final Map<String, ?> response;
+        try {
+            response = getResponseFromWellKnownOpenIdConfiguration(endpoint);
+        } catch (IOException connectException) {
+            log.debug("Failed to connect to local Kubernetes API. It's ok if not running in a kubernetes pod.", connectException);
+            log.info("Failed to connect to local Kubernetes API. It's ok if not running in a kubernetes pod.");
+            return null;
+        }
 
         if (response != null) {
             Object issuer = response.get("issuer");
@@ -109,8 +117,7 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
         return cache.computeIfAbsent(kubeOpenIDUrl, this::getJwksUri);
     }
 
-    @NotNull
-    private String composeWellKnownEndpoint(String issuer) {
+    private static String composeWellKnownEndpoint(String issuer) {
         final String kubeOpenIDUrl;
         if (issuer.endsWith("/")) {
             kubeOpenIDUrl = issuer + ".well-known/openid-configuration";
@@ -150,8 +157,6 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
         final HttpResponse<String> httpResponse;
         try {
             httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);

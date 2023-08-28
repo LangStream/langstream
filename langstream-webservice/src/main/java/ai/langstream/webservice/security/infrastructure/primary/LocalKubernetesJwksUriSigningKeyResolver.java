@@ -147,24 +147,37 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
 
     private Map<String, ?> getResponseFromWellKnownOpenIdConfiguration(String kubeOpenIDUrl) throws IOException {
 
-        final HttpRequest request = HttpRequest.newBuilder()
+        final String value;
+        final HttpResponse<String> httpResponse = sendGetRequest(kubeOpenIDUrl, false);
+        if (httpResponse.statusCode() != 200) {
+            // some kubernetes clusters require a token to access the well-known endpoint
+            final HttpResponse<String> responseWithToken = sendGetRequest(kubeOpenIDUrl, true);
+            if (responseWithToken.statusCode() != 200) {
+                log.warn("Failed to fetch keys from URL: {}, got {} {}", kubeOpenIDUrl, httpResponse.statusCode(), httpResponse.body());
+                throw new IllegalStateException("Failed to fetch keys from URL: " + kubeOpenIDUrl + ", got " + httpResponse.statusCode() + " " + httpResponse.body());
+            }
+            value = responseWithToken.body();
+        } else {
+            value = httpResponse.body();
+        }
+        return (Map<String, Object>) MAPPER.readValue(value, Map.class);
+    }
+
+    private HttpResponse<String> sendGetRequest(String kubeOpenIDUrl, boolean useToken) throws IOException {
+        final HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(kubeOpenIDUrl))
                 .version(HttpClient.Version.HTTP_1_1)
-                .header("Authorization", "Bearer " + token)
-                .GET()
-                .build();
-
+                .GET();
+        if (useToken) {
+            builder.header("Authorization", "Bearer " + token);
+        }
         final HttpResponse<String> httpResponse;
         try {
-            httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            httpResponse = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
-        if (httpResponse.statusCode() != 200) {
-            throw new IllegalStateException("Failed to fetch keys from URL: " + kubeOpenIDUrl + ", got status code: " + httpResponse.statusCode());
-        }
-        final String value = httpResponse.body();
-        return (Map<String, Object>) MAPPER.readValue(value, Map.class);
+        return httpResponse;
     }
 }

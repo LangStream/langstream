@@ -58,6 +58,7 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
         // so here we find the longest sequence of records that can be committed
         for (Record record : orderedSourceRecordsToCommit) {
             AtomicInteger remaining = remainingSinkRecordsForSourceRecord.get(record);
+            log.info("remaining {} for record {}", remaining, record);
             if (remaining.get() == 0) {
                 sourceRecordsToCommit.add(record);
             } else {
@@ -66,7 +67,10 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
             }
         }
 
-        sourceRecordsToCommit.forEach(remainingSinkRecordsForSourceRecord::remove);
+        sourceRecordsToCommit.forEach(r-> {
+            log.info("Record {} is done", r);
+            remainingSinkRecordsForSourceRecord.remove(r);
+        });
 
         source.commit(sourceRecordsToCommit);
 

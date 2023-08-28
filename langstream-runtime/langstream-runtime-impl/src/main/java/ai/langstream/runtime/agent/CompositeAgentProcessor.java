@@ -132,7 +132,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
                 public void emit(SourceRecordAndResult recordAndResult) {
                     if (recordAndResult.resultRecords().isEmpty()
                            || index == processors.size() - 1) {
-                        finalSink.emit(recordAndResult);
+                        finalSink.emit(new SourceRecordAndResult(initialSourceRecord, recordAndResult.resultRecords(), null));
                         processed(0, recordAndResult.resultRecords().size());
                         return;
                     }

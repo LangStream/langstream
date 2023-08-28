@@ -528,10 +528,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   app:
                     config:
                       application.storage.global.type: kubernetes
-                      application.security.enabled: true
-                      application.security.token.secret-key: jDdra78Vo1+RVMGY2easnWe0sAFrEa2581ra5YMotbE=
-                      application.security.token.auth-claim: iss
-                      application.security.token.admin-roles: admin
+                      application.security.enabled: false
                                 
                 deployer:
                   image:

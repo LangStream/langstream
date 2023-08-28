@@ -9,7 +9,6 @@ jobs:
   release:
     name: Release python package
     runs-on: ubuntu-latest
-    permissions: write-all
     steps:
       - name: 'Login to GitHub Container Registry'
         uses: docker/login-action@v1
@@ -48,7 +47,7 @@ jobs:
       - name: Build Runtime
         run: |
           chmod +x mvnw
-          ./mvnw clean package -pl ":langstream-runtime-impl" -DskipTests 
+          ./mvnw clean install -pl ":langstream-runtime-impl" -DskipTests -am 
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1

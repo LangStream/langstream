@@ -20,4 +20,4 @@ instance:
     type: "kafka"
     configuration:
       admin:
-        bootstrap.servers: my-cluster-kafka-bootstrap.kafka:9092
+        bootstrap.servers: host.minikube.internal:39092

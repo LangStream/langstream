@@ -385,9 +385,13 @@ public class AgentRunner
                 } catch (Throwable e) {
                     log.error("Error while processing records", e);
 
-                    // throw the error
-                    // this way the consumer will not commit the records
-                    throw new RuntimeException("Error while processing records", e);
+                    if (e instanceof PermanentFailureException) {
+                        throw e;
+                    } else {
+                        // throw the error
+                        // this way the consumer will not commit the records
+                        throw new RuntimeException("Error while processing records", e);
+                    }
                 }
 
             }
@@ -411,7 +415,7 @@ public class AgentRunner
         while (true) {
             try {
                 sink.write(forTheSink);
-                break;
+                return;
             } catch (Throwable error) {
                 // handle error
                 ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(sourceRecord, error);
@@ -420,6 +424,7 @@ public class AgentRunner
                         // skip (the whole batch)
                         log.error("Unrecoverable error while processing the records, skipping", error);
                         sourceRecordTracker.commit(forTheSink);
+                        return;
                     }
                     case RETRY -> {
                         log.error("Retryable error while processing the records, retrying", error);
@@ -435,6 +440,7 @@ public class AgentRunner
                         }
                         // in case the source does not throw an exception we mark the record as "skipped"
                         sourceRecordTracker.commit(forTheSink);
+                        return;
                     }
                     default -> throw new IllegalStateException("Unexpected value: " + action);
                 }

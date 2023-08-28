@@ -16,7 +16,6 @@
 package ai.langstream.webservice.application;
 
 import ai.langstream.api.codestorage.CodeStorageException;
-import ai.langstream.api.codestorage.DownloadedCodeArchive;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.storage.ApplicationStore;
@@ -47,10 +46,8 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -78,16 +75,8 @@ public class ApplicationResource {
 
     private final ExecutorService logsThreadPool = Executors.newCachedThreadPool();
 
-    @GetMapping("/{tenant}")
-    @Operation(summary = "Get all applications")
-    Collection<ApplicationDescription> getApplications(Authentication authentication, @NotBlank @PathVariable("tenant") String tenant) {
-        checkAuthentication(authentication, tenant);
-        return applicationService.getAllApplications(tenant).values().stream()
-                .map(app -> new ApplicationDescription(app.getApplicationId(), app.getInstance(), app.getStatus()))
-                .toList();
-    }
 
-    private void checkAuthentication(Authentication authentication, final String tenant) {
+    private void performAuthorization(Authentication authentication, final String tenant) {
         if (authentication == null) {
             return;
         }
@@ -104,17 +93,29 @@ public class ApplicationResource {
         if (tenant.equals(principal)) {
             return;
         }
-        throw new AuthenticationServiceException("Authentication failed");
+        throw new AuthenticationServiceException("Authorization failed");
     }
+
+    @GetMapping("/{tenant}")
+    @Operation(summary = "Get all applications")
+    Collection<ApplicationDescription> getApplications(Authentication authentication, @NotBlank @PathVariable("tenant") String tenant) {
+        performAuthorization(authentication, tenant);
+        return applicationService.getAllApplications(tenant).values().stream()
+                .map(app -> new ApplicationDescription(app.getApplicationId(), app.getInstance(), app.getStatus()))
+                .toList();
+    }
+
 
     @PostMapping(value = "/{tenant}/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create and deploy an application")
     void deployApplication(
+            Authentication authentication,
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("id") String applicationId,
             @RequestParam("app") MultipartFile appFile,
             @RequestParam String instance,
             @RequestParam Optional<String> secrets) throws Exception {
+        performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
                 parseApplicationInstance(applicationId,
                         Optional.of(appFile),
@@ -128,11 +129,13 @@ public class ApplicationResource {
     @PatchMapping(value = "/{tenant}/{id}", consumes = "multipart/form-data")
     @Operation(summary = "Update and re-deploy an application")
     void updateApplication(
+            Authentication authentication,
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("id") String applicationId,
             @NotNull @RequestParam("app") Optional<MultipartFile> appFile,
             @RequestParam Optional<String> instance,
             @RequestParam Optional<String> secrets) throws Exception {
+        performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication = parseApplicationInstance(applicationId,
                 appFile,
                 instance, secrets, tenant);
@@ -216,8 +219,11 @@ public class ApplicationResource {
 
     @DeleteMapping("/{tenant}/{applicationId}")
     @Operation(summary = "Delete application by id")
-    void deleteApplication(@NotBlank @PathVariable("tenant") String tenant,
+    void deleteApplication(
+            Authentication authentication,
+            @NotBlank @PathVariable("tenant") String tenant,
                            @NotBlank @PathVariable("applicationId") String applicationId) {
+        performAuthorization(authentication, tenant);
         getAppOrThrow(tenant, applicationId);
         applicationService.deleteApplication(tenant, applicationId);
         log.info("Deleted application {}", applicationId);
@@ -225,8 +231,11 @@ public class ApplicationResource {
 
     @GetMapping("/{tenant}/{applicationId}")
     @Operation(summary = "Get an application by id")
-    ApplicationDescription getApplication(@NotBlank @PathVariable("tenant") String tenant,
-                                     @NotBlank @PathVariable("applicationId") String applicationId) {
+    ApplicationDescription getApplication(
+            Authentication authentication,
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("applicationId") String applicationId) {
+        performAuthorization(authentication, tenant);
         final StoredApplication app = getAppWithStatusOrThrow(tenant, applicationId, true);
         return new ApplicationDescription(app.getApplicationId(), app.getInstance(), app.getStatus());
     }
@@ -234,9 +243,12 @@ public class ApplicationResource {
 
     @GetMapping(value = "/{tenant}/{applicationId}/logs", produces = MediaType.APPLICATION_NDJSON_VALUE)
     @Operation(summary = "Get application logs by name")
-    Flux<String> getApplicationLogs(@NotBlank @PathVariable("tenant") String tenant,
-                                    @NotBlank @PathVariable("applicationId") String applicationId,
-                                    @RequestParam("filter") Optional<List<String>> filterReplicas) {
+    Flux<String> getApplicationLogs(
+            Authentication authentication,
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("applicationId") String applicationId,
+            @RequestParam("filter") Optional<List<String>> filterReplicas) {
+        performAuthorization(authentication, tenant);
         getAppOrThrow(tenant, applicationId);
 
         final List<ApplicationStore.PodLogHandler> podLogs =
@@ -264,9 +276,12 @@ public class ApplicationResource {
     @GetMapping(value = "/{tenant}/{applicationId}/code", produces = "application/zip")
     @Operation(summary = "Get code of an application by id")
     @ResponseBody
-    Resource getApplicationCode(@NotBlank @PathVariable("tenant") String tenant,
-                              @NotBlank @PathVariable("applicationId") String applicationId,
-                              HttpServletResponse response) throws Exception {
+    Resource getApplicationCode(
+            Authentication authentication,
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("applicationId") String applicationId,
+            HttpServletResponse response) throws Exception {
+        performAuthorization(authentication, tenant);
         final ApplicationSpecs app = getAppOrThrow(tenant, applicationId);
         final String codeArchiveId = app.getCodeArchiveReference();
         return downloadCode(tenant, applicationId, response, codeArchiveId);
@@ -275,10 +290,13 @@ public class ApplicationResource {
     @GetMapping(value = "/{tenant}/{applicationId}/code/{codeArchiveReference}", produces = "application/zip")
     @Operation(summary = "Get code of an application by id and code archive reference")
     @ResponseBody
-    Resource getApplicationCode(@NotBlank @PathVariable("tenant") String tenant,
-                                   @NotBlank @PathVariable("applicationId") String applicationId,
-                                   @NotBlank @PathVariable("codeArchiveReference") String codeArchiveReference,
-                                   HttpServletResponse response) throws Exception {
+    Resource getApplicationCode(
+            Authentication authentication,
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("applicationId") String applicationId,
+            @NotBlank @PathVariable("codeArchiveReference") String codeArchiveReference,
+            HttpServletResponse response) throws Exception {
+        performAuthorization(authentication, tenant);
         getAppOrThrow(tenant, applicationId);
         return downloadCode(tenant, applicationId, response, codeArchiveReference);
     }

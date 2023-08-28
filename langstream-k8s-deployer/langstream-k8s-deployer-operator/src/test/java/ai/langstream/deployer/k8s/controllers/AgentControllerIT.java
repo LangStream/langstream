@@ -42,7 +42,7 @@ public class AgentControllerIT {
     static final OperatorExtension deployment = new OperatorExtension();
 
     @Test
-    void testAgentController() throws Exception {
+    void testAgentController() {
         final KubernetesClient client = deployment.getClient();
         final String namespace = "langstream-my-tenant";
         client.resource(new NamespaceBuilder()
@@ -108,9 +108,9 @@ public class AgentControllerIT {
         assertEquals("agent-runtime", container.getArgs().get(args++));
         assertEquals("/app-config/config", container.getArgs().get(args++));
         assertEquals("/app-config/config",
-                container.getEnv().stream().filter(e -> "LANGSTREAM_AGENT_RUNNER_POD_CONFIGURATION".equals(e.getName())).findFirst().get().getValue());
+                container.getEnv().stream().filter(e -> "LANGSTREAM_AGENT_RUNNER_POD_CONFIGURATION".equals(e.getName())).findFirst().orElseThrow().getValue());
         assertEquals("/app-code-download",
-                container.getEnv().stream().filter(e -> "LANGSTREAM_AGENT_RUNNER_CODE_CONFIGURATION".equals(e.getName())).findFirst().get().getValue());
+                container.getEnv().stream().filter(e -> "LANGSTREAM_AGENT_RUNNER_CODE_CONFIGURATION".equals(e.getName())).findFirst().orElseThrow().getValue());
 
     }
     private AgentCustomResource getCr(String yaml) {

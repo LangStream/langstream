@@ -15,9 +15,6 @@
  */
 package ai.langstream.api.database;
 
-import ai.langstream.api.gateway.GatewayAuthenticationResult;
-import ai.langstream.api.gateway.GatewayRequestContext;
-
 import java.util.Map;
 
 public interface VectorDatabaseWriterProvider {

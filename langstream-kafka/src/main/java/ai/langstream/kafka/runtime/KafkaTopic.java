@@ -65,16 +65,12 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
             return org.apache.kafka.common.serialization.StringDeserializer.class.getName();
         }
 
-        switch (schema.type()) {
-            case "string":
-                return org.apache.kafka.common.serialization.StringDeserializer.class.getName();
-            case "bytes":
-                return org.apache.kafka.common.serialization.ByteArrayDeserializer.class.getName();
-            case "avro":
-                return io.confluent.kafka.serializers.KafkaAvroDeserializer.class.getName();
-            default:
-                throw new IllegalArgumentException("Unsupported schema type: " + schema.type());
-        }
+        return switch (schema.type()) {
+            case "string" -> org.apache.kafka.common.serialization.StringDeserializer.class.getName();
+            case "bytes" -> org.apache.kafka.common.serialization.ByteArrayDeserializer.class.getName();
+            case "avro" -> io.confluent.kafka.serializers.KafkaAvroDeserializer.class.getName();
+            default -> throw new IllegalArgumentException("Unsupported schema type: " + schema.type());
+        };
     }
 
     private String getSerializerForSchema(SchemaDefinition schema) {
@@ -83,16 +79,12 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
             return org.apache.kafka.common.serialization.ByteArraySerializer.class.getName();
         }
 
-        switch (schema.type()) {
-            case "string":
-                return org.apache.kafka.common.serialization.StringSerializer.class.getName();
-            case "bytes":
-                return org.apache.kafka.common.serialization.ByteArraySerializer.class.getName();
-            case "avro":
-                return io.confluent.kafka.serializers.KafkaAvroSerializer.class.getName();
-            default:
-                throw new IllegalArgumentException("Unsupported schema type: " + schema.type());
-        }
+        return switch (schema.type()) {
+            case "string" -> org.apache.kafka.common.serialization.StringSerializer.class.getName();
+            case "bytes" -> org.apache.kafka.common.serialization.ByteArraySerializer.class.getName();
+            case "avro" -> io.confluent.kafka.serializers.KafkaAvroSerializer.class.getName();
+            default -> throw new IllegalArgumentException("Unsupported schema type: " + schema.type());
+        };
     }
 
     public Map<String,Object> createProducerConfiguration() {

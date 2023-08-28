@@ -37,17 +37,17 @@ public interface ComputeClusterRuntime extends AutoCloseable {
     /**
      * Create a physical application instance from the logical application instance.
      *
-     * @param application
-     * @param streamingClusterRuntime
+     * @param application the logical application instance
+     * @param streamingClusterRuntime the cluster runtime
      * @return the physical application instance
      */
     ExecutionPlan buildExecutionPlan(String applicationId, Application application, PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime);
 
 
     /**
-     * Get a connection
-     * @param module
-     * @param connection
+     * Get a connection implementation.
+     * @param module the module
+     * @param connection the connection
      * @return the connection implementation
      */
     ConnectionImplementation getConnectionImplementation(Module module,

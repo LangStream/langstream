@@ -30,10 +30,8 @@ import ai.langstream.api.runtime.ExecutionPlanOptimiser;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Map;
-import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -70,8 +68,8 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
     /**
      * Detects topics that are explicitly defined in the application instance.
-     * @param result
-     * @param streamingClusterRuntime
+     * @param result the execution plan
+     * @param streamingClusterRuntime the cluster runtime
      */
     protected void detectTopics(ExecutionPlan result,
                                 StreamingClusterRuntime streamingClusterRuntime) {
@@ -87,9 +85,9 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
     /**
      * Detects the Agaents and build connections to them.
      * This operation may implicitly declare additional topics.
-     * @param result
-     * @param streamingClusterRuntime
-     * @param pluginsRegistry
+     * @param result the execution plan
+     * @param streamingClusterRuntime the cluster runtime
+     * @param pluginsRegistry the plugins registry
      */
 
     protected void detectAgents(ExecutionPlan result,
@@ -147,7 +145,6 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                     log.info("Agent {} Output connection is {}", agent1.getId(), agent1OutputConnectionImplementation);
                     log.info("Agent {} Input connection is {}", agent2.getId(), agent2.getInputConnectionImplementation());
                     log.info("Agent {} the two agents are NOT consecutive in the pipeline", agentConfiguration.getId());
-                    consecutiveAgentsWithImplictTopic = false;
                 }
             }
 
@@ -184,9 +181,9 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                 if (result == null) {
                     throw new IllegalArgumentException("Topic " + connection.definition() + " not found, " +
                             "only " + physicalApplicationInstance.getTopics().keySet()
-                            .stream()
-                            .map(TopicDefinition::getName)
-                            .collect(Collectors.toList()) + " are available");
+                        .stream()
+                        .map(TopicDefinition::getName)
+                        .toList() + " are available");
                 }
 
                 ensureDeadLetterTopic(connection, physicalApplicationInstance, streamingClusterRuntime, result);

@@ -15,59 +15,19 @@
  */
 package ai.langstream.runtime.agent;
 
-import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
-import static ai.langstream.api.model.ErrorsSpec.FAIL;
-import static ai.langstream.api.model.ErrorsSpec.SKIP;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV_DEFAULT;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV_DEFAULT;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
-import ai.langstream.api.runner.code.AgentCode;
-import ai.langstream.api.runner.code.AgentCodeAndLoader;
-import ai.langstream.api.runner.code.AgentCodeRegistry;
-import ai.langstream.api.runner.code.AgentContext;
-import ai.langstream.api.runner.code.AgentProcessor;
-import ai.langstream.api.runner.code.AgentSink;
-import ai.langstream.api.runner.code.AgentSource;
-import ai.langstream.api.runner.code.BadRecordHandler;
-import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.topics.TopicAdmin;
-import ai.langstream.api.runner.topics.TopicConnectionProvider;
-import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
-import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
-import ai.langstream.api.runner.topics.TopicConsumer;
-import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.runtime.agent.api.AgentInfo;
-import ai.langstream.runtime.agent.api.AgentInfoServlet;
-import ai.langstream.runtime.agent.api.MetricsHttpServlet;
-import ai.langstream.runtime.agent.nar.NarFileHandler;
-import ai.langstream.runtime.agent.python.PythonCodeAgentProvider;
-import ai.langstream.runtime.agent.simple.IdentityAgentProvider;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.prometheus.client.hotspot.DefaultExports;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
 
 /**
  * This is the main entry point for the pods that run the LangStream runtime and Java code.
@@ -76,7 +36,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 public class AgentRunnerStarter {
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
-    private static MainErrorHandler mainErrorHandler = error -> {
+    private static final MainErrorHandler mainErrorHandler = error -> {
         log.error("Unexpected error", error);
         System.exit(-1);
     };

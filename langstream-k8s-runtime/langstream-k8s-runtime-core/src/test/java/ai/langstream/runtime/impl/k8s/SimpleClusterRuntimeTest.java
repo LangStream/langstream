@@ -48,7 +48,7 @@ class SimpleClusterRuntimeTest {
                   streamingCluster:
                     type: "noop"
                   computeCluster:
-                    type: "none"        
+                    type: "none"
                 """;
     }
 
@@ -58,7 +58,7 @@ class SimpleClusterRuntimeTest {
                 .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
@@ -69,14 +69,14 @@ class SimpleClusterRuntimeTest {
                                     id: "function-1-id"
                                     type: "generic-agent"
                                     input: "input-topic"
-                                    # the output is implicitly an intermediate topic                                    
+                                    # the output is implicitly an intermediate topic
                                     configuration:
                                       config1: "value"
                                       config2: "value2"
                                   - name: "function2"
                                     id: "function-2-id"
                                     type: "generic-agent"
-                                    # the input is implicitly an intermediate topic                                    
+                                    # the input is implicitly an intermediate topic
                                     output: "output-topic"
                                     configuration:
                                       config1: "value"
@@ -137,7 +137,7 @@ class SimpleClusterRuntimeTest {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 errors:
-                                   on-failure: dead-letter                                
+                                   on-failure: dead-letter
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
@@ -148,7 +148,7 @@ class SimpleClusterRuntimeTest {
                                     id: "function-1-id"
                                     type: "generic-agent"
                                     input: "input-topic"
-                                    # the output is implicitly an intermediate topic                                    
+                                    # the output is implicitly an intermediate topic
                                     configuration:
                                       config1: "value"
                                       config2: "value2"
@@ -156,7 +156,7 @@ class SimpleClusterRuntimeTest {
                                     id: "function-2-id"
                                     type: "generic-agent"
                                     # the input is implicitly an intermediate topic
-                                    # a dead letter is required for this intermediate topic                                                                        
+                                    # a dead letter is required for this intermediate topic
                                     output: "output-topic"
                                     configuration:
                                       config1: "value"
@@ -220,7 +220,7 @@ class SimpleClusterRuntimeTest {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 errors:
-                                   on-failure: dead-letter                                
+                                   on-failure: dead-letter
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
@@ -231,7 +231,7 @@ class SimpleClusterRuntimeTest {
                                     id: "function-1-id"
                                     type: "generic-agent"
                                     input: "input-topic"
-                                    # the output is implicitly an intermediate topic                                    
+                                    # the output is implicitly an intermediate topic
                                     configuration:
                                       config1: "value"
                                       config2: "value2"
@@ -240,9 +240,9 @@ class SimpleClusterRuntimeTest {
                                     type: "generic-agent"
                                     # the input is implicitly an intermediate topic
                                     # no dead letter is required for this intermediate topic
-                                    # as we are skipping errors 
+                                    # as we are skipping errors
                                     errors:
-                                        on-failure: skip                                    
+                                        on-failure: skip
                                     output: "output-topic"
                                     configuration:
                                       config1: "value"

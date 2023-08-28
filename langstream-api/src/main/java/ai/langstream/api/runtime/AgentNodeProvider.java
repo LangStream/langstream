@@ -23,12 +23,12 @@ public interface AgentNodeProvider {
 
     /**
      * Create an Implementation of an Agent that can be deployed on the give runtimes.
-     * @param agentConfiguration
-     * @param module
-     * @param physicalApplicationInstance
-     * @param clusterRuntime
-     * @param pluginsRegistry
-     * @param streamingClusterRuntime
+     * @param agentConfiguration the configuration of the agent
+     * @param module the module
+     * @param physicalApplicationInstance the physical application instance
+     * @param clusterRuntime the cluster runtime
+     * @param pluginsRegistry the plugins registry
+     * @param streamingClusterRuntime the streaming cluster runtime
      * @return the Agent
      */
     AgentNode createImplementation(AgentConfiguration agentConfiguration,
@@ -41,9 +41,9 @@ public interface AgentNodeProvider {
 
     /**
      * Returns the ability of an Agent to be deployed on the give runtimes.
-     * @param type
-     * @param clusterRuntime
-     * @return true if this provider that can create the implementation
+     * @param type the type of implementation
+     * @param clusterRuntime the compute cluster runtime
+     * @return true if this provider can create the implementation
      */
     boolean supports(String type, ComputeClusterRuntime clusterRuntime);
 

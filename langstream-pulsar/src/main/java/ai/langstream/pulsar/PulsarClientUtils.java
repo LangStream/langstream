@@ -38,9 +38,7 @@ public class PulsarClientUtils {
         if (pulsarClusterRuntimeConfiguration.getAuthentication() != null) {
             adminConfig.putAll(pulsarClusterRuntimeConfiguration.getAuthentication());
         }
-        if (adminConfig.get("serviceUrl") == null) {
-            adminConfig.put("serviceUrl", "http://localhost:8080");
-        }
+        adminConfig.putIfAbsent("serviceUrl", "http://localhost:8080");
         return PulsarAdmin
                 .builder()
                 .loadConf(adminConfig)
@@ -59,9 +57,7 @@ public class PulsarClientUtils {
         if (pulsarClusterRuntimeConfiguration.getAuthentication() != null) {
             clientConfig.putAll(pulsarClusterRuntimeConfiguration.getAuthentication());
         }
-        if (clientConfig.get("serviceUrl") == null) {
-            clientConfig.put("serviceUrl", "pulsar://localhost:6650");
-        }
+        clientConfig.putIfAbsent("serviceUrl", "pulsar://localhost:6650");
         return PulsarClient
                 .builder()
                 .loadConf(clientConfig)

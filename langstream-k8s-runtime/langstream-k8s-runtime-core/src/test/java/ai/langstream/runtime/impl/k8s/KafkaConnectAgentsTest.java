@@ -47,9 +47,9 @@ class KafkaConnectAgentsTest {
         return """
                 instance:
                   streamingCluster:
-                    type: "noop"                    
+                    type: "noop"
                   computeCluster:
-                    type: "none"                    
+                    type: "none"
                 """;
     }
 
@@ -58,7 +58,7 @@ class KafkaConnectAgentsTest {
         Application applicationInstance = ModelBuilder
                 .buildApplicationInstance(Map.of("module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
@@ -67,8 +67,8 @@ class KafkaConnectAgentsTest {
                                     id: "step1"
                                     type: "sink"
                                     input: "input-topic"
-                                    configuration:                                                                      
-                                      connector.class: FileStreamSink                                      
+                                    configuration:
+                                      connector.class: FileStreamSink
                                       file: /tmp/test.sink.txt
                                 """), buildInstanceYaml(), null).getApplication();
 
@@ -103,7 +103,7 @@ class KafkaConnectAgentsTest {
                 .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
@@ -112,8 +112,8 @@ class KafkaConnectAgentsTest {
                                     id: "step1"
                                     type: "source"
                                     output: "output-topic"
-                                    configuration:                                                                      
-                                      connector.class: FileStreamSource                                                              
+                                    configuration:
+                                      connector.class: FileStreamSource
                                       file: /tmp/test.txt
                                 """), buildInstanceYaml(), null).getApplication();
 

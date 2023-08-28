@@ -57,9 +57,7 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
 
     @Override
     public void offset(Map<TopicPartition, Long> map) {
-        map.forEach((key, value) -> {
-            seekAndUpdateOffset(key, value);
-        });
+        map.forEach(this::seekAndUpdateOffset);
 
         if (runRepartition.compareAndSet(true, false)) {
             cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.REPARTITION, currentOffsets.keySet()));

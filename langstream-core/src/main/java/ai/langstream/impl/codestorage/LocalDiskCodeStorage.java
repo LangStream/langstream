@@ -61,7 +61,7 @@ public class LocalDiskCodeStorage implements CodeStorage {
         log.info("Loading archives metadata from {}", file);
         if (file.exists()) {
             // load the metadata
-            List<CodeArchiveMetadata> codeArchives = MAPPER.readValue(file, new TypeReference<List<CodeArchiveMetadata>>() {
+            List<CodeArchiveMetadata> codeArchives = MAPPER.readValue(file, new TypeReference<>() {
             });
             archives.addAll(codeArchives);
         } else {
@@ -78,7 +78,7 @@ public class LocalDiskCodeStorage implements CodeStorage {
         }
         File file = metadataFilePath.toFile();
         log.info("Loading {} archives metadata from {}", archives.size(), file);
-        MAPPER.writeValue(file, new ArrayList(archives));
+        MAPPER.writeValue(file, new ArrayList<>(archives));
     }
 
 
@@ -113,7 +113,7 @@ public class LocalDiskCodeStorage implements CodeStorage {
     }
 
     @Override
-    public void deleteApplicationCode(String tenant, String codeStoreId) throws CodeStorageException {
+    public void deleteApplicationCode(String tenant, String codeStoreId) {
         archives.stream().filter(c -> c.tenant().equals(tenant) && c.codeStoreId().equals(codeStoreId))
                 .findFirst()
                 .ifPresent(c -> {
@@ -124,7 +124,7 @@ public class LocalDiskCodeStorage implements CodeStorage {
     }
 
     @Override
-    public void deleteApplication(String tenant, String application) throws CodeStorageException {
+    public void deleteApplication(String tenant, String application) {
         archives.stream().filter(c -> c.tenant().equals(tenant)
                         && c.applicationId().equals(application))
                 .findFirst()

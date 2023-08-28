@@ -31,13 +31,13 @@ public class TextNormaliserAgent extends SingleRecordAgentProcessor {
     private boolean trimSpaces = true;
 
     @Override
-    public void init(Map<String, Object> configuration) throws Exception {
+    public void init(Map<String, Object> configuration) {
         makeLowercase = Boolean.parseBoolean(configuration.getOrDefault("make-lowercase", "true").toString());
         trimSpaces = Boolean.parseBoolean(configuration.getOrDefault("trim-spaces", "true").toString());
     }
 
     @Override
-    public List<Record> processRecord(Record record) throws Exception {
+    public List<Record> processRecord(Record record) {
         if (record == null) {
             return List.of();
         }

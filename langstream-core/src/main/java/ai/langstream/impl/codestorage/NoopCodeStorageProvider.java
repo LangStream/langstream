@@ -21,14 +21,12 @@ import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.codestorage.CodeStorageProvider;
 import ai.langstream.api.codestorage.DownloadedCodeArchive;
 import ai.langstream.api.codestorage.UploadableCodeArchive;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import lombok.extern.slf4j.Slf4j;
-
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NoopCodeStorageProvider implements CodeStorageProvider {
@@ -36,9 +34,9 @@ public class NoopCodeStorageProvider implements CodeStorageProvider {
     @Override
     public CodeStorage createImplementation(String codeStorageType, Map<String, Object> configuration) {
         return new CodeStorage() {
-            private Map<String, CodeArchiveMetadata> archives = new ConcurrentHashMap<>();
+            private final Map<String, CodeArchiveMetadata> archives = new ConcurrentHashMap<>();
             @Override
-            public CodeArchiveMetadata storeApplicationCode(String tenant, String applicationId, String version, UploadableCodeArchive codeArchive) throws CodeStorageException {
+            public CodeArchiveMetadata storeApplicationCode(String tenant, String applicationId, String version, UploadableCodeArchive codeArchive) {
                 final String code = "%s-%s".formatted(tenant, applicationId);
                 CodeArchiveMetadata archiveMetadata = new CodeArchiveMetadata(tenant, code, applicationId);
                 archives.put(archiveMetadata.codeStoreId(), archiveMetadata);
@@ -50,35 +48,35 @@ public class NoopCodeStorageProvider implements CodeStorageProvider {
                 codeArchive.accept(new DownloadedCodeArchive() {
 
                     @Override
-                    public byte[] getData() throws IOException, CodeStorageException {
+                    public byte[] getData() {
                         return "content-of-the-code-archive-%s-%s".formatted(tenant, codeStoreId).getBytes(
                                 StandardCharsets.UTF_8);
                     }
 
                     @Override
-                    public InputStream getInputStream() throws IOException, CodeStorageException {
+                    public InputStream getInputStream() {
                         throw new UnsupportedOperationException();
                     }
 
                     @Override
-                    public void extractTo(Path directory) throws CodeStorageException {
+                    public void extractTo(Path directory) {
                         log.info("CodeArchive should have been extracted to {}, but this is a no-op implementation", directory);
                     }
                 });
             }
 
             @Override
-            public CodeArchiveMetadata describeApplicationCode(String tenant, String codeStoreId) throws CodeStorageException {
+            public CodeArchiveMetadata describeApplicationCode(String tenant, String codeStoreId) {
                 return archives.get(codeStoreId);
             }
 
             @Override
-            public void deleteApplicationCode(String tenant, String codeStoreId) throws CodeStorageException {
+            public void deleteApplicationCode(String tenant, String codeStoreId) {
                 archives.remove(codeStoreId);
             }
 
             @Override
-            public void deleteApplication(String tenant, String application) throws CodeStorageException {
+            public void deleteApplication(String tenant, String application) {
 
             }
 

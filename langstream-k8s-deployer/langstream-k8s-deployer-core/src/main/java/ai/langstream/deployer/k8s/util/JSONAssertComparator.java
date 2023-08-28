@@ -157,7 +157,7 @@ public class JSONAssertComparator implements JSONComparator {
             }
         }
         List<String> words = new ArrayList<>();
-        String currentWord = "";
+        StringBuilder currentWord = new StringBuilder();
         boolean openQuote = false;
         for (char c : key.toCharArray()) {
             if (c == '"') {
@@ -166,16 +166,16 @@ public class JSONAssertComparator implements JSONComparator {
             }
             if (c == '.') {
                 if (!openQuote) {
-                    if (!currentWord.isEmpty()) {
-                        words.add(currentWord);
+                    if (currentWord.length() > 0) {
+                        words.add(currentWord.toString());
                     }
-                    currentWord = "";
+                    currentWord = new StringBuilder();
                     continue;
                 }
             }
-            currentWord += c;
+            currentWord.append(c);
         }
-        words.add(currentWord);
+        words.add(currentWord.toString());
         Map<String, Object> currentMap = map;
         for (int i = 0; i < words.size() - 1; i++) {
             final String word = words.get(i);

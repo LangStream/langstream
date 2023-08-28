@@ -50,7 +50,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
 import lombok.Cleanup;
 import lombok.SneakyThrows;
 import org.awaitility.Awaitility;
@@ -62,8 +61,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -90,21 +87,13 @@ class ProduceConsumeHandlerTest {
         @Primary
         public ApplicationStore store() {
             final ApplicationStore mock = Mockito.mock(ApplicationStore.class);
-            doAnswer(new Answer() {
-                @Override
-                public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
-                    final StoredApplication storedApplication = new StoredApplication();
-                    final Application application = buildApp();
-                    storedApplication.setInstance(application);
-                    return storedApplication;
-                }
+            doAnswer(invocationOnMock -> {
+                final StoredApplication storedApplication = new StoredApplication();
+                final Application application = buildApp();
+                storedApplication.setInstance(application);
+                return storedApplication;
             }).when(mock).get(anyString(), anyString(), anyBoolean());
-            doAnswer(new Answer() {
-                @Override
-                public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
-                    return buildApp();
-                }
-            }).when(mock).getSpecs(anyString(), anyString());
+            doAnswer(invocationOnMock -> buildApp()).when(mock).getSpecs(anyString(), anyString());
 
             return mock;
 
@@ -125,8 +114,8 @@ class ProduceConsumeHandlerTest {
                                   streamingCluster:
                                     type: "kafka"
                                     configuration:
-                                      admin:                                      
-                                        bootstrap.servers: "%s"                  
+                                      admin:
+                                        bootstrap.servers: "%s"
                                   computeCluster:
                                      type: "none"
                                 """.formatted(kafkaContainer.getBootstrapServers()), null).getApplication();
@@ -163,7 +152,7 @@ class ProduceConsumeHandlerTest {
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
         List<String> messages = new ArrayList<>();
-        try (final TestWebSocketClient consumer = new TestWebSocketClient(new TestWebSocketClient.Handler() {
+        try (final TestWebSocketClient ignored = new TestWebSocketClient(new TestWebSocketClient.Handler() {
             @Override
             public void onMessage(String msg) {
                 messages.add(msg);
@@ -179,10 +168,10 @@ class ProduceConsumeHandlerTest {
             public void onError(Throwable throwable) {
                 countDownLatch.countDown();
             }
-        }).connect(URI.create("ws://localhost:%d/v1/consume/tenant1/application1/consume".formatted(port)));) {
+        }).connect(URI.create("ws://localhost:%d/v1/consume/tenant1/application1/consume".formatted(port)))) {
             try (final TestWebSocketClient producer = new TestWebSocketClient(TestWebSocketClient.NOOP)
                     .connect(
-                            URI.create("ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(port)));) {
+                            URI.create("ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(port)))) {
                 final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message", null);
                 produce(produceRequest, producer);
             }
@@ -208,7 +197,7 @@ class ProduceConsumeHandlerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"consume", "produce"})
-    void testParametersRequired(String type) throws Exception {
+    void testParametersRequired(String type) {
         final String topic = genTopic();
         prepareTopicsForTest(topic);
 
@@ -273,7 +262,7 @@ class ProduceConsumeHandlerTest {
                         URI.create(
                                 ("ws://localhost:%d/v1/produce/tenant1/application1/produce-non-langstream?param:session-id"
                                         + "=user1").formatted(
-                                        port)));) {
+                                        port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message non from langstream", null);
             produce(produceRequest, producer);
         }
@@ -282,7 +271,7 @@ class ProduceConsumeHandlerTest {
                 .connect(
                         URI.create(
                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user1".formatted(
-                                        port)));) {
+                                        port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message for everyone", null);
             produce(produceRequest, producer);
         }
@@ -301,7 +290,7 @@ class ProduceConsumeHandlerTest {
     }
 
     @Test
-    void testAuthentication() throws Exception {
+    void testAuthentication() {
         final String topic = genTopic();
         prepareTopicsForTest(topic);
 
@@ -338,7 +327,7 @@ class ProduceConsumeHandlerTest {
                         "ws://localhost:%d/v1/consume/tenant1/application1/consume?credentials=test-user-password-2&option:position=earliest".formatted(port)),
                 user2Messages);
 
-        ProduceResponse response = connectAndProduce(URI.create(
+        connectAndProduce(URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials=test-user-password".formatted(port)),
                 new ProduceRequest(null, "hello user", null));
 
@@ -405,7 +394,7 @@ class ProduceConsumeHandlerTest {
                 .connect(
                         URI.create(
                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user1".formatted(
-                                        port)));) {
+                                        port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message for user1", null);
             produce(produceRequest, producer);
         }
@@ -422,7 +411,7 @@ class ProduceConsumeHandlerTest {
                 .connect(
                         URI.create(
                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user1".formatted(
-                                        port)));) {
+                                        port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message for user1, again", null);
             produce(produceRequest, producer);
         }
@@ -438,7 +427,7 @@ class ProduceConsumeHandlerTest {
                 .connect(
                         URI.create(
                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user2".formatted(
-                                        port)));) {
+                                        port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "this is a message for user2", null);
             produce(produceRequest, producer);
         }
@@ -459,7 +448,7 @@ class ProduceConsumeHandlerTest {
     }
 
     @Test
-    void testProduce() throws Exception {
+    void testProduce() {
         final String topic = genTopic();
         prepareTopicsForTest(topic);
 
@@ -522,7 +511,7 @@ class ProduceConsumeHandlerTest {
                 .connect(
                         URI.create(
                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(
-                                        port)));) {
+                                        port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "msg1", null);
             produce(produceRequest, producer);
         }
@@ -539,7 +528,7 @@ class ProduceConsumeHandlerTest {
                 .connect(
                         URI.create(
                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(
-                                        port)));) {
+                                        port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "msg2", null);
             produce(produceRequest, producer);
         }
@@ -579,7 +568,7 @@ class ProduceConsumeHandlerTest {
                 .connect(
                         URI.create(
                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(
-                                        port)));) {
+                                        port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "msg3", null);
             produce(produceRequest, producer);
         }
@@ -644,7 +633,7 @@ class ProduceConsumeHandlerTest {
                     .connect(
                             URI.create(
                                     "ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(
-                                            port)));) {
+                                            port)))) {
                 final ProduceRequest produceRequest = new ProduceRequest(null, "msg1", null);
                 produce(produceRequest, producer);
             }
@@ -661,7 +650,7 @@ class ProduceConsumeHandlerTest {
                     .connect(
                             URI.create(
                                     "ws://localhost:%d/v1/produce/tenant1/application1/produce".formatted(
-                                            port)));) {
+                                            port)))) {
                 final ProduceRequest produceRequest = new ProduceRequest(null, "msg2", null);
                 produce(produceRequest, producer);
             }
@@ -712,7 +701,7 @@ class ProduceConsumeHandlerTest {
             public void onError(Throwable throwable) {
                 throw new RuntimeException(throwable);
             }
-        }).connect(connectTo);) {
+        }).connect(connectTo)) {
             Thread.sleep(5000);
             countDownLatch.await();
             assertEquals(expectedCloseReason.getReasonPhrase(), closeReason.get().getReasonPhrase());
@@ -744,7 +733,7 @@ class ProduceConsumeHandlerTest {
                 countDownLatch.countDown();
             }
 
-        }).connect(connectTo);) {
+        }).connect(connectTo)) {
             client.send("message");
             countDownLatch.await();
             assertNull(closeReason.get());
@@ -784,7 +773,7 @@ class ProduceConsumeHandlerTest {
                 countDownLatch.countDown();
             }
 
-        }).connect(connectTo);) {
+        }).connect(connectTo)) {
             client.send(json);
             countDownLatch.await();
             assertNull(closeReason.get());

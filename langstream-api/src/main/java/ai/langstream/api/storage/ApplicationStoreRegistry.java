@@ -27,9 +27,7 @@ public class ApplicationStoreRegistry {
         ServiceLoader<ApplicationStore> loader = ServiceLoader.load(ApplicationStore.class);
         final ApplicationStore store = loader
                 .stream()
-                .filter(p -> {
-                    return type.equals(p.get().storeType());
-                })
+                .filter(p -> type.equals(p.get().storeType()))
                 .findFirst()
                 .orElseThrow(
                         () -> new RuntimeException("No ApplicationStore found for type " + type)

@@ -30,7 +30,6 @@ import io.jsonwebtoken.security.SignatureException;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -90,7 +89,7 @@ public class AuthenticationProviderToken {
         try {
             Jwt<?, Claims> jwt = parser.parseClaimsJws(token);
             if (this.audienceClaim != null) {
-                Object object = ((Claims) jwt.getBody()).get(this.audienceClaim);
+                Object object = jwt.getBody().get(this.audienceClaim);
                 if (object == null) {
                     throw new JwtException("Found null Audience in token, for claimed field: " + this.audienceClaim);
                 }
@@ -100,9 +99,7 @@ public class AuthenticationProviderToken {
                     if (
                             audiences
                                     .stream()
-                                    .noneMatch(audienceInToken -> {
-                                        return audienceInToken.equals(this.audience);
-                                    })
+                                    .noneMatch(audienceInToken -> audienceInToken.equals(this.audience))
                     ) {
                         throw new AuthenticationException(
                                 "Audiences in token: [" + String.join(", ", audiences) + "] not contains this broker: " + this.audience
@@ -149,11 +146,11 @@ public class AuthenticationProviderToken {
 
     private static byte[] readKeyFromUrl(String keyConfUrl) throws IOException {
         if (!keyConfUrl.startsWith("data:") && !keyConfUrl.startsWith("file:")) {
-            if (Files.exists(Paths.get(keyConfUrl), new LinkOption[0])) {
+            if (Files.exists(Paths.get(keyConfUrl))) {
                 return Files.readAllBytes(Paths.get(keyConfUrl));
             } else if (Base64.isBase64(keyConfUrl.getBytes())) {
                 try {
-                    return (byte[]) Decoders.BASE64.decode(keyConfUrl);
+                    return Decoders.BASE64.decode(keyConfUrl);
                 } catch (DecodingException var3) {
                     String msg = "Illegal base64 character or Key file " + keyConfUrl + " doesn't exist";
                     throw new IOException(msg, var3);
@@ -177,7 +174,7 @@ public class AuthenticationProviderToken {
         return Keys.hmacShaKeyFor(secretKey);
     }
 
-    private String getTokenRoleClaim(AuthTokenProperties tokenProperties) throws IOException {
+    private String getTokenRoleClaim(AuthTokenProperties tokenProperties) {
         String tokenAuthClaim = tokenProperties.authClaim();
         return StringUtils.isNotBlank(tokenAuthClaim) ? tokenAuthClaim : "sub";
     }

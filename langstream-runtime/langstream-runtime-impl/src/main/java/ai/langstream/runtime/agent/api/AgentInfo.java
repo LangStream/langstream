@@ -16,11 +16,8 @@
 package ai.langstream.runtime.agent.api;
 
 import ai.langstream.api.runner.code.AgentCode;
-import ai.langstream.api.runner.code.AgentStatusResponse;
 import ai.langstream.api.runner.code.AgentProcessor;
-import ai.langstream.api.runner.code.AgentSink;
-import ai.langstream.api.runner.code.AgentSource;
-
+import ai.langstream.api.runner.code.AgentStatusResponse;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,7 +42,7 @@ public class AgentInfo {
     /**
      * This is serving the data to the Control Plane,
      * changing the format is a breaking change, please take care to backward compatibility.
-     * @return
+     * @return the status of the worker
      */
     public List<AgentStatusResponse> serveWorkerStatus() {
         List<AgentStatusResponse> result = new ArrayList<>();

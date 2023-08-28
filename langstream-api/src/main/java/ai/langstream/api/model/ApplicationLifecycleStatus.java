@@ -49,6 +49,6 @@ public class ApplicationLifecycleStatus {
         DEPLOYED,
         ERROR_DEPLOYING,
         DELETING,
-        ERROR_DELETING;
+        ERROR_DELETING
     }
 }

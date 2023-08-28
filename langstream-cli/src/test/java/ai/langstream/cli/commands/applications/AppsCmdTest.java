@@ -19,18 +19,14 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
 import static com.github.tomakehurst.wiremock.client.WireMock.binaryEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
-
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +40,7 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), o -> System.out.println(o));
+        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
 
         wireMock.register(WireMock.post("/api/applications/%s/my-app"
                         .formatted(TENANT))
@@ -79,15 +75,15 @@ class AppsCmdTest extends CommandTestBase {
                       sha512sum: "%s"
                       type: "java-library"
                 """.formatted(wireMockBaseUrl + "/local/get-dependency.jar", fileContentSha);
-        Files.write(Path.of(langstream.toFile().getAbsolutePath(), "configuration.yaml"),
-                configurationYamlContent.getBytes(StandardCharsets.UTF_8));
-        Files.write(Path.of(langstream.toFile().getAbsolutePath(), "java", "lib", "get-dependency.jar"),
-                fileContent.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(Path.of(langstream.toFile().getAbsolutePath(), "configuration.yaml"),
+            configurationYamlContent);
+        Files.writeString(Path.of(langstream.toFile().getAbsolutePath(), "java", "lib", "get-dependency.jar"),
+            fileContent);
         final String app = createTempFile("module: module-1", langstream);
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), o -> System.out.println(o));
+        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
         wireMock.register(WireMock.post("/api/applications/%s/my-app"
                         .formatted(TENANT))
                 .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -109,7 +105,7 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), o -> System.out.println(o));
+        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
         wireMock.register(WireMock.patch(urlEqualTo("/api/applications/%s/my-app"
                         .formatted(TENANT)))
                 .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -956,7 +952,7 @@ class AppsCmdTest extends CommandTestBase {
     }
 
     @Test
-    public void testDelete() throws Exception {
+    public void testDelete() {
         wireMock.register(WireMock.delete("/api/applications/%s/my-app"
                 .formatted(TENANT)).willReturn(WireMock.ok()));
 
@@ -968,7 +964,7 @@ class AppsCmdTest extends CommandTestBase {
     }
 
     @Test
-    public void testList() throws Exception {
+    public void testList() {
         wireMock.register(WireMock.get("/api/applications/%s"
                 .formatted(TENANT)).willReturn(WireMock.ok("[]")));
 
@@ -990,7 +986,7 @@ class AppsCmdTest extends CommandTestBase {
     }
 
     @Test
-    public void testLogs() throws Exception {
+    public void testLogs() {
         wireMock.register(WireMock.get("/api/applications/%s/my-app/logs"
                 .formatted(TENANT)).willReturn(WireMock.ok()));
 
@@ -1002,7 +998,7 @@ class AppsCmdTest extends CommandTestBase {
     }
 
     @Test
-    public void testDownload() throws Exception {
+    public void testDownload() {
         wireMock.register(WireMock.get("/api/applications/%s/my-app/code"
                 .formatted(TENANT)).willReturn(WireMock.ok()));
 
@@ -1016,7 +1012,7 @@ class AppsCmdTest extends CommandTestBase {
     }
 
     @Test
-    public void testDownloadToFile() throws Exception {
+    public void testDownloadToFile() {
         wireMock.register(WireMock.get("/api/applications/%s/my-app/code"
                 .formatted(TENANT)).willReturn(WireMock.ok()));
 

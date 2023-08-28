@@ -78,7 +78,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AgentResourcesFactory {
 
-    private static ObjectMapper MAPPER = new ObjectMapper()
+    private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     protected static final String AGENT_SECRET_DATA_APP = "app-config";
@@ -197,7 +197,7 @@ public class AgentResourcesFactory {
         final Map<String, String> labels = getAgentLabels(spec.getAgentId(), spec.getApplicationId());
 
         final String name = agentCustomResource.getMetadata().getName();
-        final StatefulSet statefulSet = new StatefulSetBuilder()
+        return new StatefulSetBuilder()
                 .withNewMetadata()
                 .withName(name)
                 .withNamespace(agentCustomResource.getMetadata().getNamespace())
@@ -246,7 +246,6 @@ public class AgentResourcesFactory {
                 .endTemplate()
                 .endSpec()
                 .build();
-        return statefulSet;
     }
 
     public static Secret generateAgentSecret(String agentFullName, RuntimePodConfiguration runtimePodConfiguration) {
@@ -314,11 +313,10 @@ public class AgentResourcesFactory {
     }
 
     public static Map<String, String> getAgentLabels(String agentId, String applicationId) {
-        final Map<String, String> labels = Map.of(
+        return Map.of(
                 CRDConstants.COMMON_LABEL_APP, "langstream-runtime",
                 CRDConstants.AGENT_LABEL_AGENT_ID, agentId,
                 CRDConstants.AGENT_LABEL_APPLICATION, applicationId);
-        return labels;
     }
 
     public static AgentCustomResource generateAgentCustomResource(final String applicationId,
@@ -478,7 +476,8 @@ public class AgentResourcesFactory {
                                     .build(),
                             HttpResponse.BodyHandlers.ofString())
                     .body();
-            return MAPPER.readValue(body, new TypeReference<List<AgentStatusResponse>>() {});
+            return MAPPER.readValue(body, new TypeReference<>() {
+            });
         } catch (IOException | InterruptedException e) {
             log.warn("Failed to query agent info from {}", url, e);
             return List.of();
@@ -504,7 +503,6 @@ public class AgentResourcesFactory {
                         case RUNNING -> ApplicationStatus.AgentWorkerStatus.RUNNING(podStatus.getUrl());
                         case WAITING -> ApplicationStatus.AgentWorkerStatus.INITIALIZING();
                         case ERROR -> ApplicationStatus.AgentWorkerStatus.ERROR(podStatus.getUrl(), podStatus.getMessage());
-                        default -> throw new RuntimeException("Unknown pod state: " + podStatus.getState());
                     };
                     if (agentRunnerSpec != null) {
                         status = status.withAgentSpec(agentRunnerSpec.getAgentId(),

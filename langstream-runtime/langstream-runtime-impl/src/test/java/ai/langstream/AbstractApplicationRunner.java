@@ -114,7 +114,7 @@ public abstract class AbstractApplicationRunner {
                     type: "kafka"
                     configuration:
                       admin:
-                        bootstrap.servers: "%s"                        
+                        bootstrap.servers: "%s"
                   computeCluster:
                      type: "kubernetes"
                 """.formatted(kafkaContainer.getBootstrapServers());
@@ -122,7 +122,7 @@ public abstract class AbstractApplicationRunner {
 
 
     @BeforeAll
-    public static void setup() throws Exception {
+    public static void setup() {
          applicationDeployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
@@ -131,11 +131,11 @@ public abstract class AbstractApplicationRunner {
     }
 
 
-    protected KafkaProducer createProducer() {
-        return new KafkaProducer<String, String>(
-                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
-                        "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
-                        "value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+    protected KafkaProducer<String, String> createProducer() {
+        return new KafkaProducer<>(
+            Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
         );
     }
 
@@ -158,7 +158,7 @@ public abstract class AbstractApplicationRunner {
     }
 
     protected List<ConsumerRecord> waitForMessages(KafkaConsumer consumer,
-                                                   List<Object> expected) throws Exception {
+                                                   List<Object> expected) {
         List<ConsumerRecord> result = new ArrayList<>();
         List<Object> received = new ArrayList<>();
 
@@ -172,9 +172,7 @@ public abstract class AbstractApplicationRunner {
                         result.add(record);
                     }
                     log.info("Result: {}", received);
-                    received.forEach(r -> {
-                        log.info("Received |{}|", r);
-                    });
+                    received.forEach(r -> log.info("Received |{}|", r));
 
                     assertEquals(expected.size(), received.size());
                     for (int i = 0; i < expected.size(); i++) {
@@ -193,7 +191,7 @@ public abstract class AbstractApplicationRunner {
     }
 
 
-    public record AgentRunResult(Map<String, AgentInfo> info){};
+    public record AgentRunResult(Map<String, AgentInfo> info){}
 
     protected AgentRunResult executeAgentRunners(ApplicationRuntime runtime) throws Exception {
         String runnerExecutionId = UUID.randomUUID().toString();
@@ -251,13 +249,13 @@ public abstract class AbstractApplicationRunner {
         return new AgentRunResult(allAgentsInfo);
     }
 
-    protected KafkaConsumer createConsumer(String topic) {
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(
-                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
-                        "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
-                        "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
-                        "group.id", "testgroup-"+ UUID.randomUUID(),
-                        "auto.offset.reset", "earliest")
+    protected KafkaConsumer<String, String> createConsumer(String topic) {
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(
+            Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "group.id", "testgroup-" + UUID.randomUUID(),
+                "auto.offset.reset", "earliest")
         );
         consumer.subscribe(List.of(topic));
         return consumer;

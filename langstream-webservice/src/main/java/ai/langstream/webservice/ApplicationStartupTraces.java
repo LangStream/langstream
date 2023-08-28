@@ -18,8 +18,6 @@ package ai.langstream.webservice;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -57,7 +55,7 @@ final class ApplicationStartupTraces {
       return "Application is running!";
     }
 
-    return new StringBuilder().append("Application '").append(applicationId).append("' is running!").toString();
+    return "Application '%s' is running!".formatted(applicationId);
   }
 
   private static String localUrl(Environment environment) {
@@ -73,16 +71,8 @@ final class ApplicationStartupTraces {
       return null;
     }
 
-    return new StringBuilder()
-      .append(type)
-      .append(": \t")
-      .append(protocol(environment))
-      .append("://")
-      .append(host)
-      .append(":")
-      .append(port(environment))
-      .append(contextPath(environment))
-      .toString();
+    return "%s: \t%s://%s:%s%s".formatted(type, protocol(environment), host, port(environment),
+        contextPath(environment));
   }
 
   private static boolean notWebEnvironment(Environment environment) {
@@ -112,7 +102,7 @@ final class ApplicationStartupTraces {
       return null;
     }
 
-    return new StringBuilder().append("Profile(s): \t").append(Stream.of(profiles).collect(Collectors.joining(", "))).toString();
+    return "Profile(s): \t%s".formatted(String.join(", ", profiles));
   }
 
   private static String hostAddress() {
@@ -142,7 +132,7 @@ final class ApplicationStartupTraces {
       return null;
     }
 
-    return new StringBuilder().append("Config Server: ").append(configServer).append(BREAK).append(SEPARATOR).append(BREAK).toString();
+    return "Config Server: %s%s%s%s".formatted(configServer, BREAK, SEPARATOR, BREAK);
   }
 
   private static class ApplicationStartupTracesBuilder {

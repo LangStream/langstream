@@ -31,14 +31,11 @@ public class KafkaConnectAgentsProvider extends AbstractAgentProvider {
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        switch (agentConfiguration.getType()) {
-            case "sink":
-                return ComponentType.SINK;
-                case "source":
-                    return ComponentType.SOURCE;
-            default:
-                throw new IllegalStateException();
-        }
+        return switch (agentConfiguration.getType()) {
+            case "sink" -> ComponentType.SINK;
+            case "source" -> ComponentType.SOURCE;
+            default -> throw new IllegalStateException();
+        };
     }
 
 }

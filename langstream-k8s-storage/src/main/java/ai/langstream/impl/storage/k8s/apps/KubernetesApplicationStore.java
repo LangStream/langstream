@@ -70,7 +70,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
     private static final String[] LOG_COLORS = new String[]{"32", "33", "34", "35", "36", "37", "38"};
     protected static final String SECRET_KEY = "secrets";
 
-    private static ObjectMapper mapper = new ObjectMapper()
+    private static final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private KubernetesClient client;
     private KubernetesApplicationStoreProperties properties;
@@ -83,9 +83,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     @Override
     public void initialize(Map<String, Object> configuration) {
-        final KubernetesApplicationStoreProperties props =
-                mapper.convertValue(configuration, KubernetesApplicationStoreProperties.class);
-        this.properties = props;
+        this.properties = mapper.convertValue(configuration, KubernetesApplicationStoreProperties.class);
         this.client = KubernetesClientFactory.get(null);
     }
 
@@ -256,14 +254,10 @@ public class KubernetesApplicationStore implements ApplicationStore {
     @Nullable
     private ApplicationCustomResource getApplicationCustomResource(String tenant, String applicationId) {
         final String namespace = tenantToNamespace(tenant);
-        final ApplicationCustomResource application = client.resources(ApplicationCustomResource.class)
+        return client.resources(ApplicationCustomResource.class)
                 .inNamespace(namespace)
                 .withName(applicationId)
                 .get();
-        if (application == null) {
-            return null;
-        }
-        return application;
     }
 
     @Override
@@ -455,7 +449,6 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     private int extractReplicas(String pod) {
         final String[] split = pod.split("-");
-        final int replicas = Integer.parseInt(split[split.length - 1]);
-        return replicas;
+        return Integer.parseInt(split[split.length - 1]);
     }
 }

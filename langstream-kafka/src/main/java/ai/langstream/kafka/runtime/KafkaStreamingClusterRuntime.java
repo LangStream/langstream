@@ -51,7 +51,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     static final ObjectMapper mapper = new ObjectMapper();
 
 
-    private AdminClient buildKafkaAdmin(StreamingCluster streamingCluster) throws Exception {
+    private AdminClient buildKafkaAdmin(StreamingCluster streamingCluster) {
         final KafkaClusterRuntimeConfiguration KafkaClusterRuntimeConfiguration =
                 getKafkaClusterRuntimeConfiguration(streamingCluster);
         Map<String, Object> adminConfig = KafkaClusterRuntimeConfiguration.getAdmin();
@@ -61,7 +61,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         log.info("AdminConfig: {}", adminConfig);
         return KafkaAdminClient.create(adminConfig);
     }
-    private CachedSchemaRegistryClient buildSchemaRegistryClient(StreamingCluster streamingCluster) throws Exception {
+    private CachedSchemaRegistryClient buildSchemaRegistryClient(StreamingCluster streamingCluster) {
         final KafkaClusterRuntimeConfiguration KafkaClusterRuntimeConfiguration =
                 getKafkaClusterRuntimeConfiguration(streamingCluster);
         Map<String, Object> adminConfig = KafkaClusterRuntimeConfiguration.getAdmin();
@@ -95,29 +95,26 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     private void deployTopic(AdminClient admin, KafkaTopic topic, StreamingCluster streamingCluster) {
         try {
             switch (topic.createMode()) {
-                case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
+                case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
                     log.info("Creating Kafka topic {}", topic.name());
                     NewTopic newTopic = new NewTopic(topic.name(), topic.partitions(), (short) 1);
                     if (topic.config() != null) {
                         newTopic.configs(topic
-                                .config()
-                                .entrySet()
-                                .stream()
-                                .filter(e -> e.getValue() != null)
-                                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
+                            .config()
+                            .entrySet()
+                            .stream()
+                            .filter(e -> e.getValue() != null)
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
                     }
                     admin.createTopics(List.of(newTopic))
-                            .all()
-                            .get();
+                        .all()
+                        .get();
                     enforceSchemaOnTopic(newTopic, topic.keySchema(), topic.valueSchema(), streamingCluster);
-                    break;
                 }
-                case TopicDefinition.CREATE_MODE_NONE: {
+                case TopicDefinition.CREATE_MODE_NONE -> {
                     // do nothing
-                    break;
                 }
-                default:
-                    throw new IllegalArgumentException("Unknown create mode " + topic.createMode());
+                default -> throw new IllegalArgumentException("Unknown create mode " + topic.createMode());
             }
         } catch (ExecutionException e) {
             if (e.getCause() instanceof org.apache.kafka.common.errors.TopicExistsException) {
@@ -168,7 +165,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     @SneakyThrows
     private void deleteTopic(AdminClient admin, KafkaTopic topic) {
         switch (topic.createMode()) {
-            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS: {
+            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
                 log.info("Deleting Kafka topic {}", topic.name());
                 try {
                     admin.deleteTopics(List.of(topic.name()), new DeleteTopicsOptions()).all().get();
@@ -179,11 +176,8 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
                         throw e;
                     }
                 }
-                break;
             }
-            default:
-                log.info("Keeping Kafka topic {}", topic.name());
-                break;
+            default -> log.info("Keeping Kafka topic {}", topic.name());
         }
     }
 
@@ -197,7 +191,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         }
         int replicationFactor = Integer.parseInt(options.getOrDefault("replication-factor", "1").toString());
         Map<String, Object> configs = topicDefinition.getConfig();
-        KafkaTopic kafkaTopic = new KafkaTopic(name,
+        return new KafkaTopic(name,
                 topicDefinition.getPartitions() <= 0 ? 1 : topicDefinition.getPartitions(),
                 replicationFactor,
                 topicDefinition.getKeySchema(),
@@ -206,20 +200,18 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
                 topicDefinition.isImplicit(),
                 configs,
                 options);
-        return kafkaTopic;
     }
 
     @Override
     public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
         KafkaTopic kafkaTopic = (KafkaTopic) inputConnectionImplementation;
-        Map<String, Object> configuration = new HashMap<>();
 
         // handle schema
-        configuration.putAll(kafkaTopic.createConsumerConfiguration());
+        Map<String, Object> configuration = new HashMap<>(kafkaTopic.createConsumerConfiguration());
 
         // TODO: handle other configurations
         configuration.computeIfAbsent("group.id", key -> "langstream-agent-" + agentImplementation.getId());
-        configuration.computeIfAbsent("auto.offset.reset", key -> "earliest");
+        configuration.putIfAbsent("auto.offset.reset", "earliest");
         return configuration;
     }
 
@@ -227,13 +219,8 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     public Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, ConnectionImplementation outputConnectionImplementation) {
         KafkaTopic kafkaTopic = (KafkaTopic) outputConnectionImplementation;
 
-        Map<String, Object> configuration = new HashMap<>();
         // handle schema
-        configuration.putAll(kafkaTopic.createProducerConfiguration());
-
-
         // TODO: handle other configurations
-
-        return configuration;
+        return new HashMap<>(kafkaTopic.createProducerConfiguration());
     }
 }

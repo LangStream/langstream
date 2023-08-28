@@ -46,7 +46,7 @@ public abstract class AbstractAgentCode implements AgentCode {
     }
 
     @Override
-    public final void setMetadata(String id, String agentType, long startedAt) throws Exception {
+    public final void setMetadata(String id, String agentType, long startedAt) {
         this.agentId = id;
         this.agentType = agentType;
         this.startedAt = startedAt;

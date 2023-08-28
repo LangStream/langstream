@@ -46,7 +46,7 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
     private Collection<StepPredicatePair> steps;
 
     @Override
-    public void init(Map<String, Object> configuration) throws Exception {
+    public void init(Map<String, Object> configuration) {
 
         Map<String, Object> datasourceConfiguration = (Map<String, Object>) configuration.get("datasource");
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
@@ -67,11 +67,11 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
         context.convertMapToStringOrBytes();
         Optional<Record> recordResult = GenAIToolKitAgent.transformContextToRecord(context, record.headers());
         log.info("recordResult {}", recordResult);
-        return recordResult.isPresent() ? List.of(recordResult.get()) : List.of();
+        return recordResult.map(List::of).orElseGet(List::of);
     }
 
     @Override
-    public void start() throws Exception {
+    public void start() {
     }
 
     @Override

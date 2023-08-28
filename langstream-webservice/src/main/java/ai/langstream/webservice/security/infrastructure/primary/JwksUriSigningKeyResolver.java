@@ -45,7 +45,7 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
     private final String algorithm;
     private final Pattern hostsAllowlist;
     private final Key fallbackKey;
-    private volatile Map<String, Key> keyMap = new ConcurrentHashMap<>();
+    private final Map<String, Key> keyMap = new ConcurrentHashMap<>();
 
     public JwksUriSigningKeyResolver(String algorithm, String hostsAllowlist, Key fallbackKey) {
         this.algorithm = algorithm;

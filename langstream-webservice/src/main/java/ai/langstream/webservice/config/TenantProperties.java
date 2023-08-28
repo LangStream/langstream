@@ -16,8 +16,6 @@
 package ai.langstream.webservice.config;
 
 import jakarta.validation.constraints.NotBlank;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

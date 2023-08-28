@@ -63,7 +63,7 @@ public class TestWebSocketClient implements AutoCloseable {
 
         default void onError(Throwable throwable) {
             throw new RuntimeException(throwable);
-        };
+        }
     }
 
     protected WebSocketContainer container;

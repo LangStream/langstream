@@ -15,6 +15,8 @@
  */
 package ai.langstream.pulsar;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
@@ -30,8 +32,11 @@ import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import lombok.Cleanup;
 import io.fabric8.kubernetes.api.model.Secret;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Map;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -43,16 +48,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.PulsarContainer;
-import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
-
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Map;
-import java.util.function.Consumer;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class PulsarRunnerDockerTest {
@@ -114,7 +110,7 @@ class PulsarRunnerDockerTest {
 
         try (PulsarClient client = PulsarClientUtils.buildPulsarClient(implementation.getApplication().getInstance().streamingCluster());
              Producer<byte[]> producer = client.newProducer().topic("input-topic").create();
-             org.apache.pulsar.client.api.Consumer<byte[]> consumer = client.newConsumer().topic("output-topic").subscriptionName("test").subscribe();
+             org.apache.pulsar.client.api.Consumer<byte[]> consumer = client.newConsumer().topic("output-topic").subscriptionName("test").subscribe()
              ) {
 
             // produce one message to the input-topic
@@ -143,10 +139,10 @@ class PulsarRunnerDockerTest {
                     type: "kubernetes"
                   streamingCluster:
                     type: "pulsar"
-                    configuration:                                      
-                      admin: 
+                    configuration:
+                      admin:
                         serviceUrl: "%s"
-                      service: 
+                      service:
                         serviceUrl: "%s"
                       defaultTenant: "public"
                       defaultNamespace: "default"
@@ -160,12 +156,7 @@ class PulsarRunnerDockerTest {
         pulsarContainer = new PulsarContainer(DockerImageName.parse(IMAGE)
                 .asCompatibleSubstituteFor("apachepulsar/pulsar"))
                 .withStartupTimeout(Duration.ofSeconds(120)) // Mac M1 is slow with Intel docker images
-                .withLogConsumer(new Consumer<OutputFrame>() {
-                    @Override
-                    public void accept(OutputFrame outputFrame) {
-                        log.info("pulsar> {}", outputFrame.getUtf8String().trim());
-                    }
-                });
+                .withLogConsumer(outputFrame -> log.info("pulsar> {}", outputFrame.getUtf8String().trim()));
         // start Pulsar and wait for it to be ready to accept requests
         pulsarContainer.start();
         admin =

@@ -16,6 +16,7 @@
 package ai.langstream.api.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -51,11 +52,7 @@ public class TopicDefinition  {
                            Map<String, Object> config) {
         this();
         this.name = name;
-        if (creationMode == null) {
-            this.creationMode = CREATE_MODE_NONE;
-        } else {
-            this.creationMode = creationMode;
-        }
+        this.creationMode = Objects.requireNonNullElse(creationMode, CREATE_MODE_NONE);
         this.implicit = implicit;
         this.partitions = partitions;
         this.keySchema = keySchema;

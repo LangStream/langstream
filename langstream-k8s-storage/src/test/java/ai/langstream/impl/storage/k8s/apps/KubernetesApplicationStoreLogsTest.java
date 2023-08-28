@@ -16,23 +16,18 @@
 package ai.langstream.impl.storage.k8s.apps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.storage.ApplicationStore;
-import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
+import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.runtime.api.agent.AgentSpec;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import java.util.List;
 import java.util.Map;
-
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -70,32 +65,23 @@ class KubernetesApplicationStoreLogsTest {
         List<ApplicationStore.PodLogHandler> podHandlers =
                 store.logs("mytenant", "myapp", new ApplicationStore.LogOptions());
         podHandlers.get(0)
-                .start(new ApplicationStore.LogLineConsumer() {
-                    @Override
-                    public boolean onLogLine(String line) {
-                        assertEquals("\u001B[32mmyapp-agent111-0 hello\u001B[0m\n", line);
-                        return false;
-                    }
+                .start(line -> {
+                    assertEquals("\u001B[32mmyapp-agent111-0 hello\u001B[0m\n", line);
+                    return false;
                 });
         podHandlers.get(1)
-                .start(new ApplicationStore.LogLineConsumer() {
-                    @Override
-                    public boolean onLogLine(String line) {
-                        assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
-                        return false;
-                    }
+                .start(line -> {
+                    assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
+                    return false;
                 });
 
         podHandlers = store.logs("mytenant", "myapp",
                 new ApplicationStore.LogOptions(List.of("myapp-agent111-1")));
         assertEquals(1, podHandlers.size());
         podHandlers.get(0)
-                .start(new ApplicationStore.LogLineConsumer() {
-                    @Override
-                    public boolean onLogLine(String line) {
-                        assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
-                        return false;
-                    }
+                .start(line -> {
+                    assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
+                    return false;
                 });
 
     }

@@ -15,7 +15,6 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import ai.langstream.cli.LangStreamCLI;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -50,7 +49,7 @@ public class CommandTestBase {
                 webServiceUrl: http://localhost:%d
                 tenant: %s
                 """.formatted(wmRuntimeInfo.getHttpPort(), TENANT);
-        Files.write(cliYaml, config.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(cliYaml, config);
         wireMock = wmRuntimeInfo.getWireMock();
         wireMockBaseUrl = wmRuntimeInfo.getHttpBaseUrl();
     }
@@ -62,7 +61,7 @@ public class CommandTestBase {
     protected String createTempFile(String content, Path tempDir) {
         try {
             Path tempFile = Files.createTempFile(tempDir, "langstream-cli-test", ".yaml");
-            Files.write(tempFile, content.getBytes(StandardCharsets.UTF_8));
+            Files.writeString(tempFile, content);
             return tempFile.toFile().getAbsolutePath();
         } catch (Exception e) {
             throw new RuntimeException(e);

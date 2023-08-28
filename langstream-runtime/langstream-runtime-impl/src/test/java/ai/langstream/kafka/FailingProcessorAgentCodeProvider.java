@@ -38,12 +38,12 @@ public class FailingProcessorAgentCodeProvider implements AgentCodeProvider {
 
             String failOnContent;
             @Override
-            public void init(Map<String, Object> configuration) throws Exception {
+            public void init(Map<String, Object> configuration) {
                 failOnContent = configuration.getOrDefault("fail-on-content", "").toString();
             }
 
             @Override
-            public List<Record> processRecord(Record record) throws Exception {
+            public List<Record> processRecord(Record record) {
                 log.info("Processing record value {}, failOnContent {}", record.value(), failOnContent);
                 if (Objects.equals(record.value(), failOnContent)) {
                     throw new RuntimeException("Failing on content: " + failOnContent);

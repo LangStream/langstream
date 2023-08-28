@@ -40,7 +40,7 @@ class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
-                                pipeline:    
+                                pipeline:
                                   - name: "Extract text"
                                     type: "text-extractor"
                                     input: "input-topic"

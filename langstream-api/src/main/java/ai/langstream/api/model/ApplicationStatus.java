@@ -200,7 +200,7 @@ public class ApplicationStatus {
         public enum Status {
             INITIALIZING,
             RUNNING,
-            ERROR;
+            ERROR
         }
 
     }

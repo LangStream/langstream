@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 class ApplicationServiceValidateUpdateTest {
 
     @Test
-    void testTopics() throws Exception {
+    void testTopics() {
         checkTopics(
                 List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null)),
                 List.of(new ModelBuilder.TopicDefinitionModel("input-topic", null, null, 0, null, null, null)),
@@ -131,9 +131,8 @@ class ApplicationServiceValidateUpdateTest {
 
     @NotNull
     private static ApplicationService getApplicationService() {
-        final ApplicationService service = new ApplicationService(null, null, new ApplicationDeployProperties(
+        return new ApplicationService(null, null, new ApplicationDeployProperties(
                 new ApplicationDeployProperties.GatewayProperties(false)));
-        return service;
     }
 
     @SneakyThrows
@@ -157,14 +156,14 @@ class ApplicationServiceValidateUpdateTest {
                                     - name: open-ai
                                       type: open-ai-configuration
                                       configuration:
-                                        url: "http://something"                                
+                                        url: "http://something"
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
                         "module.yaml", SerializationUtil.writeAsYaml(pipelineFileModel)), """
                         instance:
                                   streamingCluster:
-                                    type: "noop"     
+                                    type: "noop"
                                   computeCluster:
                                     type: "none"
                         """, null).getApplication();
@@ -172,7 +171,7 @@ class ApplicationServiceValidateUpdateTest {
     }
 
     @Test
-    void testAgents() throws Exception {
+    void testAgents() {
         checkAgents(
                 List.of(new ModelBuilder.AgentModel("agent", "My Agent", "drop", "input-topic",
                         "output-topic", Map.of(), null, null)),
@@ -329,7 +328,7 @@ class ApplicationServiceValidateUpdateTest {
                                     - name: open-ai
                                       type: open-ai-configuration
                                       configuration:
-                                        url: "http://something"                                
+                                        url: "http://something"
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
@@ -337,9 +336,9 @@ class ApplicationServiceValidateUpdateTest {
                         """
                                 instance:
                                   streamingCluster:
-                                    type: "noop"     
+                                    type: "noop"
                                   computeCluster:
-                                    type: "none"         
+                                    type: "none"
                                         """,
                         null)
                 .getApplication();

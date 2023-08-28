@@ -125,12 +125,12 @@ class WebCrawlerStatusTest {
         private Map<String, Object> lastMetadata;
 
         @Override
-        public void storeStatus(Map<String, Object> metadata) throws Exception {
+        public void storeStatus(Map<String, Object> metadata) {
             lastMetadata = new HashMap<>(metadata);
         }
 
         @Override
-        public Map<String, Object> getCurrentStatus() throws Exception {
+        public Map<String, Object> getCurrentStatus() {
             return lastMetadata != null ? new HashMap<>(lastMetadata) : Map.of();
         }
     }

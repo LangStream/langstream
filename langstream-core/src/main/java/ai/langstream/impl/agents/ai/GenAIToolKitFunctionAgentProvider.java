@@ -176,9 +176,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         // on every step you can put a "when" clause
         optionalField(step, agentConfiguration, originalConfiguration, "when", null);
 
-        DataSourceConfigurationGenerator dataSourceConfigurationInjector = (resourceId) -> {
-            generateDataSourceConfiguration(resourceId, application, configuration);
-        };
+        DataSourceConfigurationGenerator dataSourceConfigurationInjector =
+            (resourceId) -> generateDataSourceConfiguration(resourceId, application, configuration);
 
         STEP_TYPES.get(agentConfiguration.getType())
                 .generateSteps(step, originalConfiguration, agentConfiguration, dataSourceConfigurationInjector);

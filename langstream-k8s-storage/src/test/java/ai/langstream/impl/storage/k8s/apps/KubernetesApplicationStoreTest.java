@@ -89,12 +89,10 @@ class KubernetesApplicationStoreTest {
                 .withName("myapp")
                 .get());
 
-        Awaitility.await().untilAsserted(() -> {
-            assertNull(k3s.getClient().secrets()
-                    .inNamespace("s" + tenant)
-                    .withName("myapp")
-                    .get());
-        });
+        Awaitility.await().untilAsserted(() -> assertNull(k3s.getClient().secrets()
+                .inNamespace("s" + tenant)
+                .withName("myapp")
+                .get()));
         store.onTenantDeleted(tenant);
         assertTrue(k3s.getClient().namespaces().withName("s" + tenant).get().isMarkedForDeletion());
     }

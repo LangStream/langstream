@@ -28,9 +28,7 @@ public class VectorDatabaseWriterProviderRegistry {
         ServiceLoader<VectorDatabaseWriterProvider> loader = ServiceLoader.load(VectorDatabaseWriterProvider.class);
         final VectorDatabaseWriterProvider store = loader
                 .stream()
-                .filter(p -> {
-                    return p.get().supports(conf);
-                })
+                .filter(p -> p.get().supports(conf))
                 .findFirst()
                 .orElseThrow(
                         () -> new RuntimeException("No VectorDatabaseWriterProvider found for datasource " + configuration)

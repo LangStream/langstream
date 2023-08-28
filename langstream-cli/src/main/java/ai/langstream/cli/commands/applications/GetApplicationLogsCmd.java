@@ -19,8 +19,6 @@ import ai.langstream.admin.client.AdminClient;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
@@ -41,16 +39,13 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
         final String filterStr = filter == null ? "" : "?filter=" + String.join(",", filter);
         final AdminClient client = getClient();
         client.getHttpClient().sendAsync(client.newGet(client.tenantAppPath("/" + name + "/logs" + filterStr)), HttpResponse.BodyHandlers.ofByteArrayConsumer(
-                        new Consumer<Optional<byte[]>>() {
-                            @Override
-                            public void accept(Optional<byte[]> bytes) {
-                                if (bytes.isPresent()) {
-                                    command.commandLine().getOut().print(new String(bytes.get(), StandardCharsets.UTF_8));
-                                    command.commandLine().getOut().flush();
-                                }
+                bytes -> {
+                    if (bytes.isPresent()) {
+                        command.commandLine().getOut().print(new String(bytes.get(), StandardCharsets.UTF_8));
+                        command.commandLine().getOut().flush();
+                    }
 
-                            }
-                        }))
+                }))
                 .thenApply(HttpResponse::statusCode)
                 .thenAccept((status) -> {
                     if (status != 200) {

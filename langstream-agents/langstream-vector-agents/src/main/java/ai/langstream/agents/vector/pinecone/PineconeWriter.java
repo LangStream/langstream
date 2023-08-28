@@ -20,42 +20,22 @@ import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
 import com.datastax.oss.streaming.ai.TransformContext;
-import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.JstlEvaluator;
-import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.ListValue;
 import com.google.protobuf.Struct;
-import com.google.protobuf.Value;
-import io.grpc.StatusRuntimeException;
 import io.pinecone.PineconeClient;
 import io.pinecone.PineconeClientConfig;
 import io.pinecone.PineconeConnection;
 import io.pinecone.PineconeConnectionConfig;
-import io.pinecone.proto.QueryRequest;
-import io.pinecone.proto.QueryResponse;
-import io.pinecone.proto.QueryVector;
-import io.pinecone.proto.SparseValues;
 import io.pinecone.proto.UpsertRequest;
 import io.pinecone.proto.UpsertResponse;
 import io.pinecone.proto.Vector;
-import lombok.Data;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PineconeWriter implements VectorDatabaseWriterProvider {
@@ -87,7 +67,7 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
         }
 
         @Override
-        public void initialise(Map<String, Object> agentConfiguration) throws Exception {
+        public void initialise(Map<String, Object> agentConfiguration) {
 
             this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
             this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
@@ -114,7 +94,7 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
         }
 
         @Override
-        public void upsert(Record record, Map<String, Object> context) throws Exception {
+        public void upsert(Record record, Map<String, Object> context) {
 
             TransformContext transformContext = GenAIToolKitAgent.recordToTransformContext(record, true);
             String id = idFunction != null ? (String) idFunction.evaluate(transformContext) : null;

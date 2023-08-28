@@ -34,7 +34,7 @@ public final class ApplicationDeployer implements AutoCloseable {
 
     /**
      * Create a new implementation of the application instance.
-     * @param applicationInstance
+     * @param applicationInstance the application instance
      * @return the new application
      */
       public ExecutionPlan createImplementation(String applicationId, Application applicationInstance) {
@@ -50,8 +50,8 @@ public final class ApplicationDeployer implements AutoCloseable {
     /**
      * Deploy the application instance.
      *
-     * @param physicalApplicationInstance
-     * @param codeStorageArchiveId
+     * @param physicalApplicationInstance the application instance
+     * @param codeStorageArchiveId the code storage archive id
      */
     public Object deploy(String tenant, ExecutionPlan physicalApplicationInstance, String codeStorageArchiveId) {
       Application applicationInstance = physicalApplicationInstance.getApplication();
@@ -63,8 +63,8 @@ public final class ApplicationDeployer implements AutoCloseable {
     /**
      * Delete the application instance and all the resources associated with it.
      *
-     * @param physicalApplicationInstance
-     * @param codeStorageArchiveId
+     * @param physicalApplicationInstance the application instance
+     * @param codeStorageArchiveId the code storage archive id
      */
     public void delete(String tenant, ExecutionPlan physicalApplicationInstance, String codeStorageArchiveId) {
       Application applicationInstance = physicalApplicationInstance.getApplication();
@@ -75,8 +75,8 @@ public final class ApplicationDeployer implements AutoCloseable {
 
     /**
      * In the tests we don't have the operator, but we want to clean up the resources.
-     * @param tenant
-     * @param physicalApplicationInstance
+     * @param tenant the tenant
+     * @param physicalApplicationInstance the application instance
      */
     public void deleteStreamingClusterResourcesForTests(String tenant, ExecutionPlan physicalApplicationInstance) {
         Application applicationInstance = physicalApplicationInstance.getApplication();

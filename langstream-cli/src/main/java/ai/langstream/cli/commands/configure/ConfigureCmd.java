@@ -30,7 +30,7 @@ public class ConfigureCmd extends BaseCmd {
         webServiceUrl,
         apiGatewayUrl,
         tenant,
-        token;
+        token
     }
 
     @CommandLine.ParentCommand
@@ -48,23 +48,14 @@ public class ConfigureCmd extends BaseCmd {
     public void run() {
         updateConfig(clientConfig -> {
             switch (configKey) {
-                case tenant:
-                    clientConfig.setTenant(newValue);
-                    break;
-                case webServiceUrl:
-                    clientConfig.setWebServiceUrl(newValue);
-                    break;
-                case apiGatewayUrl:
-                    clientConfig.setApiGatewayUrl(newValue);
-                    break;
-                case token:
-                    clientConfig.setToken(newValue);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown config key: " + configKey
-                            + ". Only: " + Arrays.toString(ConfigKey.values()));
+                case tenant -> clientConfig.setTenant(newValue);
+                case webServiceUrl -> clientConfig.setWebServiceUrl(newValue);
+                case apiGatewayUrl -> clientConfig.setApiGatewayUrl(newValue);
+                case token -> clientConfig.setToken(newValue);
+                default -> throw new IllegalArgumentException(
+                    "Unknown config key: %s. Only: %s".formatted(configKey, Arrays.toString(ConfigKey.values())));
             }
         });
-        log("Config updated: " + configKey + "=" + newValue);
+        log("Config updated: %s=%s".formatted(configKey, newValue));
     }
 }

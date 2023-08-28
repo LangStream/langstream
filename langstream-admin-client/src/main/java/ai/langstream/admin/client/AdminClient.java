@@ -17,11 +17,7 @@ package ai.langstream.admin.client;
 
 import ai.langstream.admin.client.model.Applications;
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -29,11 +25,7 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
-import java.util.function.Consumer;
-import lombok.Builder;
 import lombok.SneakyThrows;
 
 public class AdminClient {

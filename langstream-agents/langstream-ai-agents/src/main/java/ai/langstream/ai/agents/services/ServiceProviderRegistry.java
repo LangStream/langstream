@@ -35,12 +35,12 @@ public class ServiceProviderRegistry {
         private static final NoServiceProvider INSTANCE = new NoServiceProvider();
 
         @Override
-        public CompletionsService getCompletionsService(Map<String, Object> map) throws Exception {
+        public CompletionsService getCompletionsService(Map<String, Object> map) {
             throw new IllegalArgumentException("No AI ServiceProvider found for resource " + map);
         }
 
         @Override
-        public EmbeddingsService getEmbeddingsService(Map<String, Object> map) throws Exception {
+        public EmbeddingsService getEmbeddingsService(Map<String, Object> map) {
             throw new IllegalArgumentException("No AI ServiceProvider found for resource " + map);
         }
 
@@ -60,9 +60,7 @@ public class ServiceProviderRegistry {
         ServiceLoader<ServiceProviderProvider> loader = ServiceLoader.load(ServiceProviderProvider.class);
         Optional<ServiceLoader.Provider<ServiceProviderProvider>> provider = loader
                 .stream()
-                .filter(p -> {
-                    return p.get().supports(agentConfiguration);
-                })
+                .filter(p -> p.get().supports(agentConfiguration))
                 .findFirst();
         if (provider.isPresent()) {
             return provider.get().get().createImplementation(agentConfiguration);

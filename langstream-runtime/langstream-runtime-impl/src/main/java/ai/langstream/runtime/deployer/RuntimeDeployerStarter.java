@@ -16,16 +16,10 @@
 package ai.langstream.runtime.deployer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
-import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Secrets;
-import ai.langstream.api.runtime.ClusterRuntimeRegistry;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConstants;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +32,7 @@ public class RuntimeDeployerStarter {
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(FAIL_ON_UNKNOWN_PROPERTIES, false); // this helps with forward compatibility
-    private static ErrorHandler errorHandler = error -> {
+    private static final ErrorHandler errorHandler = error -> {
         log.error("Unexpected error", error);
         System.exit(-1);
     };
@@ -54,7 +48,6 @@ public class RuntimeDeployerStarter {
                     .run(new RuntimeDeployer(), args);
         } catch (Throwable error) {
             errorHandler.handleError(error);
-            return;
         }
     }
 
@@ -110,14 +103,9 @@ public class RuntimeDeployerStarter {
         }
 
         switch (arg0) {
-            case "delete":
-                runtimeDeployer.delete(clusterRuntimeConfiguration, configuration, secrets);
-                break;
-            case "deploy":
-                runtimeDeployer.deploy(clusterRuntimeConfiguration, configuration, secrets);
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown command " + arg0);
+            case "delete" -> runtimeDeployer.delete(clusterRuntimeConfiguration, configuration, secrets);
+            case "deploy" -> runtimeDeployer.deploy(clusterRuntimeConfiguration, configuration, secrets);
+            default -> throw new IllegalArgumentException("Unknown command " + arg0);
         }
 
     }

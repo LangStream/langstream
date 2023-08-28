@@ -151,7 +151,7 @@ public class CassandraSinkIT extends BaseEndToEndTest {
     protected static void installCassandra() {
 
         final Path tempFile = Files.createTempFile("cassandra-test", ".yaml");
-        Files.write(tempFile, CASSANDRA_MANIFEST.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(tempFile, CASSANDRA_MANIFEST);
 
         String cmd = "kubectl apply -n %s -f %s".formatted(namespace, tempFile.toFile().getAbsolutePath());
         log.info("Running {}", cmd);
@@ -198,7 +198,7 @@ public class CassandraSinkIT extends BaseEndToEndTest {
     protected static void uninstallCassandra() {
 
         final Path tempFile = Files.createTempFile("cassandra-test", ".yaml");
-        Files.write(tempFile, CASSANDRA_MANIFEST.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(tempFile, CASSANDRA_MANIFEST);
 
         final String cmd = "kubectl delete -n %s -f %s".formatted(namespace, tempFile.toFile().getAbsolutePath());
         log.info("Running {}", cmd);

@@ -23,12 +23,12 @@ import java.util.function.Supplier;
 
 public class TextProcessingAgentsCodeProvider implements AgentCodeProvider {
 
-    private static Map<String, Supplier<SingleRecordAgentProcessor>> FACTORIES = Map.of(
-            "text-extractor", () -> new TikaTextExtractorAgent(),
-            "language-detector", () -> new LanguageDetectorAgent(),
-            "text-splitter", () -> new TextSplitterAgent(),
-            "text-normaliser", () -> new TextNormaliserAgent(),
-            "document-to-json", () -> new DocumentToJsonAgent()
+    private static final Map<String, Supplier<SingleRecordAgentProcessor>> FACTORIES = Map.of(
+            "text-extractor", TikaTextExtractorAgent::new,
+            "language-detector", LanguageDetectorAgent::new,
+            "text-splitter", TextSplitterAgent::new,
+            "text-normaliser", TextNormaliserAgent::new,
+            "document-to-json", DocumentToJsonAgent::new
     );
 
     @Override

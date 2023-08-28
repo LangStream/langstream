@@ -15,9 +15,7 @@
  */
 package ai.langstream.ai.agents.services;
 
-import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
-
 import java.util.Map;
 
 public interface ServiceProviderProvider {

@@ -36,7 +36,7 @@ class KubernetesGlobalMetadataStoreTest {
     static final KubeK3sServer k3s = new KubeK3sServer();
 
     @Test
-    public void testGlobalMetadataStore() throws Exception {
+    public void testGlobalMetadataStore() {
         final KubernetesClient client = k3s.getClient();
         final KubernetesGlobalMetadataStore store = new KubernetesGlobalMetadataStore();
         final String namespace = "default";

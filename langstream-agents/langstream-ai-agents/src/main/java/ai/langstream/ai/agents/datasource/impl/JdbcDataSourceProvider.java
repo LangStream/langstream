@@ -52,12 +52,10 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
 
     private static class DataSourceImpl implements QueryStepDataSource {
 
-        private final Properties properties;
-
         Connection connection;
 
         public DataSourceImpl(Map<String, Object> dataSourceConfig) throws Exception {
-            properties = new Properties();
+            Properties properties = new Properties();
             properties.putAll(dataSourceConfig);
             String driverClass = properties.getProperty("driverClass", "");
             log.info("Connecting to {}, config {}", properties.getProperty("url"), properties);
@@ -79,7 +77,7 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
             for (int i = 0; i < params.size(); i++) {
                 ps.setObject(i + 1, params.get(i));
             }
-            try (ResultSet resultSet = ps.executeQuery();) {
+            try (ResultSet resultSet = ps.executeQuery()) {
                 ResultSetMetaData metaData = resultSet.getMetaData();
                 int numColumns = metaData.getColumnCount();
                 List<Map<String, String>> results = new ArrayList<>();
@@ -108,7 +106,7 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
     }
 
     static class DriverShim implements Driver {
-        private Driver driver;
+        private final Driver driver;
         DriverShim(Driver d) {
             this.driver = d;
         }

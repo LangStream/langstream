@@ -15,7 +15,9 @@
  */
 package ai.langstream.runtime.impl.k8s;
 
-import ai.langstream.kafka.runtime.KafkaTopic;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -31,9 +33,13 @@ import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.kafka.runtime.KafkaTopic;
 import ai.langstream.runtime.api.agent.AgentSpec;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
@@ -41,17 +47,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.utility.DockerImageName;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class KubernetesClusterRuntimeDockerTest {
@@ -86,30 +82,30 @@ class KubernetesClusterRuntimeDockerTest {
                 .buildApplicationInstance(Map.of(
                         "configuration.yaml",
                         """
-                                configuration:  
+                                configuration:
                                   resources:
                                     - name: open-ai
                                       type: open-ai-configuration
                                       configuration:
-                                        url: "http://something"                                
+                                        url: "http://something"
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "compute-embeddings"
                                     id: "step1"
                                     type: "compute-ai-embeddings"
                                     input: "input-topic"
                                     output: "output-topic"
-                                    configuration:                                      
+                                    configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
@@ -201,7 +197,7 @@ class KubernetesClusterRuntimeDockerTest {
                   streamingCluster:
                     type: "kafka"
                     configuration:
-                      admin:                                      
+                      admin:
                         bootstrap.servers: "%s"
                   computeCluster:
                      type: "kubernetes"
@@ -210,14 +206,9 @@ class KubernetesClusterRuntimeDockerTest {
 
 
     @BeforeAll
-    public static void setup() throws Exception {
+    public static void setup() {
         kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
-                .withLogConsumer(new Consumer<OutputFrame>() {
-                    @Override
-                    public void accept(OutputFrame outputFrame) {
-                        log.info("kafka> {}", outputFrame.getUtf8String().trim());
-                    }
-                });
+                .withLogConsumer(outputFrame -> log.info("kafka> {}", outputFrame.getUtf8String().trim()));
         // start Pulsar and wait for it to be ready to accept requests
         kafkaContainer.start();
     }

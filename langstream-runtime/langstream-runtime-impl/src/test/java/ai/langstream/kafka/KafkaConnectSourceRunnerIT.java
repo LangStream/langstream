@@ -44,9 +44,9 @@ class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
                                 id: "pipeline-1"
                                 topics:
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                   - name: "offset-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                     partitions: 1
                                     options:
                                       replication-factor: 1

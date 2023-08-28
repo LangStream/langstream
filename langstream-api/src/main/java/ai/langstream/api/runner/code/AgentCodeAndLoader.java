@@ -124,12 +124,12 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
 
             @Override
             public void start() throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.start());
+                executeWithContextClassloader(AgentCode::start);
             }
 
             @Override
             public void close() throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.close());
+                executeWithContextClassloader(AgentCode::close);
             }
 
             @Override
@@ -185,12 +185,12 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
 
             @Override
             public void start() throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.start());
+                executeWithContextClassloader(AgentCode::start);
             }
 
             @Override
             public void close() throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.close());
+                executeWithContextClassloader(AgentCode::close);
             }
 
             @Override
@@ -240,12 +240,12 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
 
             @Override
             public void start() throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.start());
+                executeWithContextClassloader(AgentCode::start);
             }
 
             @Override
             public void close() throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.close());
+                executeWithContextClassloader(AgentCode::close);
             }
 
             @Override
@@ -256,7 +256,7 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
     }
 
     public void close() throws Exception {
-        executeWithContextClassloader(agentCode -> agentCode.close());
+        executeWithContextClassloader(AgentCode::close);
     }
 
     @FunctionalInterface

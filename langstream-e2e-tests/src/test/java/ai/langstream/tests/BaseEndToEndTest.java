@@ -39,24 +39,20 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.dsl.ContainerResource;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,16 +62,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.awaitility.Awaitility;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,8 +72,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestWatcher;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.BindMode;
-
-import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 public class BaseEndToEndTest implements TestWatcher {
@@ -117,7 +104,7 @@ public class BaseEndToEndTest implements TestWatcher {
         public void stop() {
             try (final KubernetesClient client = new KubernetesClientBuilder()
                     .withConfig(Config.fromKubeconfig(kubeServer.getKubeConfig()))
-                    .build();) {
+                    .build()) {
                 client.namespaces().withName(namespace).delete();
             }
         }
@@ -163,7 +150,7 @@ public class BaseEndToEndTest implements TestWatcher {
                         .saveImageCmd(image)
                         .exec();
 
-                try (final OutputStream outputStream = Files.newOutputStream(hostPath);) {
+                try (final OutputStream outputStream = Files.newOutputStream(hostPath)) {
                     in.transferTo(outputStream);
                 } catch (Exception ex) {
                     hostPath.toFile().delete();
@@ -207,8 +194,8 @@ public class BaseEndToEndTest implements TestWatcher {
     @Override
     public void testFailed(ExtensionContext context, Throwable cause) {
         log.error("Test {} failed", context.getDisplayName(), cause);
-        final String prefix = "%s.%s".formatted(context.getTestClass().get().getSimpleName(),
-                context.getTestMethod().get().getName());
+        final String prefix = "%s.%s".formatted(context.getTestClass().orElseThrow().getSimpleName(),
+                context.getTestMethod().orElseThrow().getName());
         dumpTest(prefix);
 
     }
@@ -226,9 +213,6 @@ public class BaseEndToEndTest implements TestWatcher {
                 .serverSideApply();
     }
 
-    protected static void applyManifest(String manifest) {
-        applyManifest(manifest, namespace);
-    }
     protected static void applyManifestNoNamespace(String manifest) {
         client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
                 .serverSideApply();
@@ -254,7 +238,7 @@ public class BaseEndToEndTest implements TestWatcher {
             for (Map.Entry<String, String> e : resolvedTopics.entrySet()) {
                 content = content.replace(e.getKey(), e.getValue());
             }
-            Files.write(temp, content.getBytes(StandardCharsets.UTF_8));
+            Files.writeString(temp, content);
             runProcess(
                     "kubectl cp %s %s:%s -n %s".formatted(temp.toFile().getAbsolutePath(), podName, toPath, namespace)
                             .split(" "));
@@ -300,7 +284,7 @@ public class BaseEndToEndTest implements TestWatcher {
     public static CompletableFuture<String> execInPod(String podName, String containerName,
                                                       String... cmds) {
 
-        final String cmd = Arrays.stream(cmds).collect(Collectors.joining(" "));
+        final String cmd = String.join(" ", cmds);
         log.info("Executing in pod {}: {}",
                     containerName == null ? podName : podName + "/" + containerName, cmd);
         final AtomicBoolean completed = new AtomicBoolean(false);
@@ -450,12 +434,11 @@ public class BaseEndToEndTest implements TestWatcher {
 
 
             final Path tempFile = Files.createTempFile("ls-test-kube", ".yaml");
-            Files.write(tempFile,
-                    kubeServer.getKubeConfig().getBytes(StandardCharsets.UTF_8));
+            Files.writeString(tempFile, kubeServer.getKubeConfig());
             System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
 
-            final CompletableFuture<Void> kafkaFuture = CompletableFuture.runAsync(() -> installKafka());
-            final CompletableFuture<Void> minioFuture = CompletableFuture.runAsync(() -> installMinio());
+            final CompletableFuture<Void> kafkaFuture = CompletableFuture.runAsync(BaseEndToEndTest::installKafka);
+            final CompletableFuture<Void> minioFuture = CompletableFuture.runAsync(BaseEndToEndTest::installMinio);
             List<CompletableFuture<Void>> imagesFutures = new ArrayList<>();
 
             imagesFutures.add(CompletableFuture.runAsync(() ->
@@ -468,7 +451,7 @@ public class BaseEndToEndTest implements TestWatcher {
                     kubeServer.ensureImage("langstream/langstream-api-gateway:latest-dev")));
 
             final CompletableFuture<Void> allFuture =
-                    CompletableFuture.runAsync(() -> installLangStream());
+                    CompletableFuture.runAsync(BaseEndToEndTest::installLangStream);
             CompletableFuture.allOf(kafkaFuture, minioFuture, imagesFutures.get(0), imagesFutures.get(1), imagesFutures.get(2),
                     allFuture).join();
 
@@ -486,9 +469,9 @@ public class BaseEndToEndTest implements TestWatcher {
         client.namespaces()
                 .list()
                 .getItems()
-                .stream().filter(ns -> ns.getMetadata().getName().startsWith(TENANT_NAMESPACE_PREFIX)).forEach(ns -> {
-                    client.namespaces().withName(ns.getMetadata().getName()).delete();
-                });
+                .stream()
+                .filter(ns -> ns.getMetadata().getName().startsWith(TENANT_NAMESPACE_PREFIX))
+                .forEach(ns -> client.namespaces().withName(ns.getMetadata().getName()).delete());
     }
 
     @SneakyThrows
@@ -590,9 +573,9 @@ public class BaseEndToEndTest implements TestWatcher {
                     endpoint: http://minio.minio-dev.svc.cluster.local:9000
                     access-key: minioadmin
                     secret-key: minioadmin
-                """.formatted(TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX, TENANT_NAMESPACE_PREFIX);
+                """.formatted(TENANT_NAMESPACE_PREFIX);
         final Path tempFile = Files.createTempFile("langstream-test", ".yaml");
-        Files.write(tempFile, values.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(tempFile, values);
 
 
         runProcess("helm repo add langstream https://langstream.github.io/charts/".split(" "), true);
@@ -773,13 +756,12 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     private static List<String> getAllUserNamespaces() {
-        final List<String> namespaces = client.namespaces()
+        return client.namespaces()
                 .list()
                 .getItems().stream()
                 .map(n -> n.getMetadata().getName())
                 .filter(n -> !n.equals("kube-system"))
                 .collect(Collectors.toList());
-        return namespaces;
     }
 
     private static void dumpResources(String filePrefix, Class<? extends HasMetadata> clazz, List<String> namespaces) {

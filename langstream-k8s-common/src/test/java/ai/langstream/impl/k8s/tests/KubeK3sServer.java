@@ -16,15 +16,14 @@
 package ai.langstream.impl.k8s.tests;
 
 import static org.mockito.ArgumentMatchers.isNull;
+import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.K3sContainerVersion;
 import com.dajudge.kindcontainer.KubernetesImageSpec;
-import ai.langstream.impl.k8s.KubernetesClientFactory;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -85,8 +84,8 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
                 (Consumer<OutputFrame>) outputFrame -> log.debug("k3s> {}", outputFrame.getUtf8String().trim()));
         k3sContainer.start();
         final Path tempFile = Files.createTempFile("langstream-test-kube", ".yaml");
-        Files.write(tempFile,
-                k3sContainer.getKubeconfig().getBytes(StandardCharsets.UTF_8));
+        Files.writeString(tempFile,
+            k3sContainer.getKubeconfig());
         System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
         client = new KubernetesClientBuilder()
                 .withConfig(Config.fromKubeconfig(k3sContainer.getKubeconfig()))
@@ -109,7 +108,7 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
                     break;
                 }
             }
-            if (basePath == null || !basePath.toFile().exists()) {
+            if (!basePath.toFile().exists()) {
                 throw new IllegalStateException("Could not find helm directory");
             }
 

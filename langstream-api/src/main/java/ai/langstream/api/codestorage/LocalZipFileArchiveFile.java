@@ -25,14 +25,14 @@ import java.nio.file.Path;
  */
 public class LocalZipFileArchiveFile extends GenericZipFileArchiveFile {
 
-    private Path path;
+    private final Path path;
 
     public LocalZipFileArchiveFile(Path path) {
         this.path = path;
     }
 
     @Override
-    public InputStream getInputStream() throws IOException, CodeStorageException {
+    public InputStream getInputStream() throws IOException {
         return Files.newInputStream(path);
     }
 

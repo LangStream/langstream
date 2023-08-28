@@ -28,7 +28,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Slf4j
-public class DocumentToJson {
+public class DocumentToJsonTest {
 
     @Test
     public void textConvertToJson() throws Exception {

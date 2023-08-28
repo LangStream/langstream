@@ -78,14 +78,14 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
 
     /**
      * Allow to override the component type
-     * @param agentConfiguration
+     * @param agentConfiguration the agent configuration
      * @return the component type
      */
     protected abstract ComponentType getComponentType(AgentConfiguration agentConfiguration);
 
     /**
      * Allow to override the agent type
-     * @param agentConfiguration
+     * @param agentConfiguration the agent configuration
      * @return the agent type
      */
     protected String getAgentType(AgentConfiguration agentConfiguration) {

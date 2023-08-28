@@ -42,6 +42,6 @@ public class AgentLifecycleStatus {
         CREATED,
         DEPLOYING,
         DEPLOYED,
-        ERROR;
+        ERROR
     }
 }

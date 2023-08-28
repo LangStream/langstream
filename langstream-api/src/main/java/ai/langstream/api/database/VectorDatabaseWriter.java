@@ -33,7 +33,7 @@ public interface VectorDatabaseWriter {
      * If value is NULL then the record is deleted.
      * @param record the record
      * @param context additional context
-     * @throws Exception
+     * @throws Exception if an error occurs
      */
     void upsert(Record record, Map<String, Object> context) throws Exception ;
     default void close() throws Exception {}

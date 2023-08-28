@@ -50,9 +50,9 @@ class CompositeAgentTest {
         return """
                 instance:
                   streamingCluster:
-                    type: "noop"                    
+                    type: "noop"
                   computeCluster:
-                    type: "none"                    
+                    type: "none"
                 """;
     }
 
@@ -63,24 +63,24 @@ class CompositeAgentTest {
                         
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "text-extractor"
                                     id: "step1"
                                     type: "text-extractor"
-                                    input: "input-topic"                                    
-                                    configuration:                                      
+                                    input: "input-topic"
+                                    configuration:
                                       param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
                                     type: "language-detector"
-                                    output: "output-topic"                                    
-                                    configuration:                                      
+                                    output: "output-topic"
+                                    configuration:
                                       param2: "value2"
                                 """), buildInstanceYaml(), null).getApplication();
 
@@ -88,7 +88,7 @@ class CompositeAgentTest {
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();) {
+                .build()) {
 
 
             ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
@@ -133,29 +133,29 @@ class CompositeAgentTest {
                         
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "text-extractor"
                                     id: "step1"
                                     type: "text-extractor"
-                                    input: "input-topic"                                    
-                                    configuration:                                      
+                                    input: "input-topic"
+                                    configuration:
                                       param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
-                                    type: "language-detector"                                    
-                                    configuration:                                      
+                                    type: "language-detector"
+                                    configuration:
                                       param2: "value2"
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
-                                    output: "output-topic"                                    
-                                    configuration:                                      
+                                    output: "output-topic"
+                                    configuration:
                                       param3: "value3"
                                 """), buildInstanceYaml(), null).getApplication();
 
@@ -163,7 +163,7 @@ class CompositeAgentTest {
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();) {
+                .build()) {
 
 
             ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
@@ -207,35 +207,35 @@ class CompositeAgentTest {
                 .buildApplicationInstance(Map.of(
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "text-extractor"
                                     id: "step1"
                                     type: "text-extractor"
-                                    input: "input-topic"                                    
-                                    configuration:                                      
+                                    input: "input-topic"
+                                    configuration:
                                       param1: "value1"
                                   - name: "language-detector"
                                     id: "step1b"
-                                    type: "language-detector"                                    
-                                    configuration:                                      
+                                    type: "language-detector"
+                                    configuration:
                                       param2: "value2"
                                   - name: "drop-if-not-english"
                                     id: "step2"
-                                    type: "drop"                                    
-                                    configuration:                                      
+                                    type: "drop"
+                                    configuration:
                                       when: "properties.language != 'en'"
                                       composable: false
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
-                                    output: "output-topic"                                    
-                                    configuration:                                      
+                                    output: "output-topic"
+                                    configuration:
                                       param3: "value3"
                                 """), buildInstanceYaml(), null).getApplication();
 
@@ -243,7 +243,7 @@ class CompositeAgentTest {
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();) {
+                .build()) {
 
 
             ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
@@ -318,31 +318,31 @@ class CompositeAgentTest {
                         
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "the-source"
                                     id: "source-1"
-                                    type: "s3-source"             
+                                    type: "s3-source"
                                     configuration:
-                                        paramSource: "source1param"                       
+                                        paramSource: "source1param"
                                   - name: "text-extractor"
                                     id: "step1"
-                                    type: "text-extractor"                                                                        
-                                    configuration:                                      
+                                    type: "text-extractor"
+                                    configuration:
                                       param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
-                                    type: "language-detector"                                    
-                                    configuration:                                      
+                                    type: "language-detector"
+                                    configuration:
                                       param2: "value2"
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
-                                    output: "output-topic"                                    
-                                    configuration:                                      
+                                    output: "output-topic"
+                                    configuration:
                                       param3: "value3"
                                 """), buildInstanceYaml(), null).getApplication();
 
@@ -350,7 +350,7 @@ class CompositeAgentTest {
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();) {
+                .build()) {
 
 
             ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
@@ -395,7 +395,7 @@ class CompositeAgentTest {
                         
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
@@ -403,22 +403,22 @@ class CompositeAgentTest {
                                   - name: "text-extractor"
                                     id: "step1"
                                     type: "text-extractor"
-                                    input: "input-topic"                                    
-                                    configuration:                                      
+                                    input: "input-topic"
+                                    configuration:
                                       param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
-                                    type: "language-detector"                                    
-                                    configuration:                                      
+                                    type: "language-detector"
+                                    configuration:
                                       param2: "value2"
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
-                                    configuration:                                      
+                                    configuration:
                                       param3: "value3"
-                                  - name: "generic-composable-sink"                                    
+                                  - name: "generic-composable-sink"
                                     type: "generic-composable-sink"
-                                    configuration:                                      
+                                    configuration:
                                       paramSink: "sink1param"
                                 """), buildInstanceYaml(), null).getApplication();
 
@@ -426,7 +426,7 @@ class CompositeAgentTest {
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();) {
+                .build()) {
 
 
             ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
@@ -471,31 +471,31 @@ class CompositeAgentTest {
                         
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 pipeline:
                                   - name: "the-source"
                                     id: "source-1"
-                                    type: "s3-source"             
+                                    type: "s3-source"
                                     configuration:
-                                        paramSource: "source1param"      
+                                        paramSource: "source1param"
                                   - name: "text-extractor"
                                     id: "step1"
-                                    type: "text-extractor"                                    
-                                    configuration:                                      
+                                    type: "text-extractor"
+                                    configuration:
                                       param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
-                                    type: "language-detector"                                    
-                                    configuration:                                      
+                                    type: "language-detector"
+                                    configuration:
                                       param2: "value2"
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
-                                    configuration:                                      
+                                    configuration:
                                       param3: "value3"
-                                  - name: "generic-composable-sink"                                    
+                                  - name: "generic-composable-sink"
                                     type: "generic-composable-sink"
-                                    configuration:                                      
+                                    configuration:
                                       paramSink: "sink1param"
                                 """), buildInstanceYaml(), null).getApplication();
 
@@ -503,7 +503,7 @@ class CompositeAgentTest {
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();) {
+                .build()) {
 
 
             ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
@@ -549,22 +549,22 @@ class CompositeAgentTest {
                         
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 pipeline:
                                   - name: "the-source"
                                     id: "source-1"
-                                    type: "s3-source"             
+                                    type: "s3-source"
                                     configuration:
-                                        paramSource: "source1param"      
+                                        paramSource: "source1param"
                                   - name: "text-extractor"
                                     id: "step1"
-                                    type: "text-extractor"                                    
-                                    configuration:                                      
+                                    type: "text-extractor"
+                                    configuration:
                                       param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
-                                    type: "language-detector"                                    
-                                    configuration:                                      
+                                    type: "language-detector"
+                                    configuration:
                                       param2: "value2"
                                   - name: "requires-buffer-topic"
                                     id: "bad-step"
@@ -574,11 +574,11 @@ class CompositeAgentTest {
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
-                                    configuration:                                      
+                                    configuration:
                                       param3: "value3"
-                                  - name: "generic-composable-sink"                                    
+                                  - name: "generic-composable-sink"
                                     type: "generic-composable-sink"
-                                    configuration:                                      
+                                    configuration:
                                       paramSink: "sink1param"
                                 """), buildInstanceYaml(), null).getApplication();
 
@@ -586,7 +586,7 @@ class CompositeAgentTest {
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();) {
+                .build()) {
 
 
             ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
@@ -625,7 +625,6 @@ class CompositeAgentTest {
 
             AgentNode secondNode = implementation.getAgentImplementation(module, "bad-step");
             DefaultAgentNode defaultSecondNode = (DefaultAgentNode) secondNode;
-            Map<String, Object> configurationSecondNode = defaultSecondNode.getConfiguration();
             assertEquals("drop", defaultSecondNode.getAgentType());
 
             Topic inputTopicSecondStep = (Topic) defaultSecondNode.getInputConnectionImplementation();
@@ -664,36 +663,36 @@ class CompositeAgentTest {
                         
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "text-extractor"
                                     id: "step1"
                                     type: "text-extractor"
-                                    input: "input-topic"                                    
+                                    input: "input-topic"
                                   - name: "language-detector"
                                     id: "step1b"
-                                    type: "language-detector"                                    
+                                    type: "language-detector"
                                   - name: "drop-if-not-english"
                                     id: "step2"
-                                    type: "drop"                                    
-                                    resources:                                      
+                                    type: "drop"
+                                    resources:
                                       size: 2
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
-                                    output: "output-topic"                                    
+                                    output: "output-topic"
                                 """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();) {
+                .build()) {
 
 
             ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
@@ -760,36 +759,36 @@ class CompositeAgentTest {
                         
                         "module.yaml", """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
-                                    creation-mode: create-if-not-exists                                    
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "text-extractor"
                                     id: "step1"
                                     type: "text-extractor"
-                                    input: "input-topic"                                    
+                                    input: "input-topic"
                                   - name: "language-detector"
                                     id: "step1b"
-                                    type: "language-detector"                                    
+                                    type: "language-detector"
                                   - name: "drop-if-not-english"
                                     id: "step2"
-                                    type: "drop"                                    
-                                    errors:                                      
+                                    type: "drop"
+                                    errors:
                                       on-failure: dead-letter
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
-                                    output: "output-topic"                                    
+                                    output: "output-topic"
                                 """), buildInstanceYaml(), null).getApplication();
 
         try (ApplicationDeployer deployer = ApplicationDeployer
                 .builder()
                 .registry(new ClusterRuntimeRegistry())
                 .pluginsRegistry(new PluginsRegistry())
-                .build();) {
+                .build()) {
 
 
             ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);

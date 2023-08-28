@@ -77,7 +77,7 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
-    public void onOpen(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) throws Exception {
+    public void onOpen(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) {
         Gateway selectedGateway = context.gateway();
 
         final List<Header> headers = getCommonHeaders(selectedGateway, context.userParameters(), context.principalValues());
@@ -161,15 +161,14 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
-    public void onClose(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, CloseStatus status) throws Exception {
+    public void onClose(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, CloseStatus status) {
     }
 
     @Override
     void validateOptions(Map<String, String> options) {
         for (Map.Entry<String, String> option : options.entrySet()) {
             switch (option.getKey()) {
-                default:
-                    throw new IllegalArgumentException("Unknown option " + option.getKey());
+                default -> throw new IllegalArgumentException("Unknown option " + option.getKey());
             }
         }
     }

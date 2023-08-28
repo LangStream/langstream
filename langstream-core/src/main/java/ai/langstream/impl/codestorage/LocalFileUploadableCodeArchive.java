@@ -31,7 +31,7 @@ public class LocalFileUploadableCodeArchive implements UploadableCodeArchive {
     }
 
     @Override
-    public InputStream getData() throws IOException, CodeStorageException {
+    public InputStream getData() throws IOException {
         return Files.newInputStream(zipFile);
     }
 }

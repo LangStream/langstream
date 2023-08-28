@@ -78,7 +78,7 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
                             creation-mode: create-if-not-exists
                             schema:
                               type: avro
-                              schema: '%s'             
+                              schema: '%s'
                           - name: "output-topic"
                             creation-mode: create-if-not-exists
                             schema:
@@ -120,24 +120,24 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
     }
 
 
-    protected KafkaProducer createAvroProducer() {
-        return new KafkaProducer<String, String>(
-                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
-                        "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
-                        "value.serializer", KafkaAvroSerializer.class.getName(),
-                        "schema.registry.url", registry.getSchemaRegistryUrl())
+    protected KafkaProducer<String, String> createAvroProducer() {
+        return new KafkaProducer<>(
+            Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "value.serializer", KafkaAvroSerializer.class.getName(),
+                "schema.registry.url", registry.getSchemaRegistryUrl())
         );
     }
 
 
-    protected KafkaConsumer createAvroConsumer(String topic) {
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(
-                Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
-                        "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
-                        "value.deserializer", KafkaAvroDeserializer.class.getName(),
-                        "group.id", "testgroup",
-                        "auto.offset.reset", "earliest",
-                        "schema.registry.url", registry.getSchemaRegistryUrl())
+    protected KafkaConsumer<String, String> createAvroConsumer(String topic) {
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(
+            Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
+                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "value.deserializer", KafkaAvroDeserializer.class.getName(),
+                "group.id", "testgroup",
+                "auto.offset.reset", "earliest",
+                "schema.registry.url", registry.getSchemaRegistryUrl())
         );
         consumer.subscribe(List.of(topic));
         return consumer;

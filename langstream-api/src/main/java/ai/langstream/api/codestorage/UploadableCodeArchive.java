@@ -30,7 +30,7 @@ public interface UploadableCodeArchive {
 
     /**
      * This method is used for raw file upload.
-     * @return
+     * @return the input stream to read the data from
      */
     InputStream getData() throws IOException, CodeStorageException;
 }

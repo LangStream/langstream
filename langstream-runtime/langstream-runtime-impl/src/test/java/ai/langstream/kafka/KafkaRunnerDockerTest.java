@@ -37,7 +37,7 @@ class KafkaRunnerDockerTest extends AbstractApplicationRunner {
         Map<String, String> application = Map.of(
                 "module.yaml", """
                          module: "module-1"
-                         id: "pipeline-1"                                
+                         id: "pipeline-1"
                          topics:
                            - name: "input-topic"
                              creation-mode: create-if-not-exists
@@ -47,7 +47,7 @@ class KafkaRunnerDockerTest extends AbstractApplicationRunner {
                            - id: "step1"
                              type: "identity"
                              input: "input-topic"
-                             output: "output-topic"    
+                             output: "output-topic"
                         """);
 
         try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {

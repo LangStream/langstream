@@ -38,9 +38,8 @@ public interface DownloadedCodeArchive {
      * The directory must exist.
      * It is expected that the archive is unzipped on the flight to the directory,
      * without creating a temporary file.
-     * @param directory
-     * @throws CodeStorageException
-     * @throws IOException
+     * @param directory the directory to extract to
+     * @throws CodeStorageException if the archive cannot be extracted
      */
     void extractTo(Path directory) throws CodeStorageException;
 }

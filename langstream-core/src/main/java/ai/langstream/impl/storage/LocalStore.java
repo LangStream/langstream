@@ -49,7 +49,7 @@ public class LocalStore implements GlobalMetadataStore {
 
     @SneakyThrows
     private void write(Path path, String value) {
-        Files.write(path, value.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(path, value);
     }
 
     @SneakyThrows
@@ -57,6 +57,7 @@ public class LocalStore implements GlobalMetadataStore {
         try {
             Files.delete(path);
         } catch (NoSuchFileException e) {
+            // ignore
         }
     }
 

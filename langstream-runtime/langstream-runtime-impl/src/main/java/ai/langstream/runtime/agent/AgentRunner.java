@@ -40,6 +40,7 @@ import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.prometheus.client.hotspot.DefaultExports;
+import java.util.Objects;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.server.Server;
@@ -64,12 +65,6 @@ import java.util.stream.StreamSupport;
 import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
 import static ai.langstream.api.model.ErrorsSpec.FAIL;
 import static ai.langstream.api.model.ErrorsSpec.SKIP;
-import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV;
-import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV_DEFAULT;
-import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV;
-import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV_DEFAULT;
-import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV;
-import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
 
 /**
  * This is the main entry point for the pods that run the LangStream runtime and Java code.
@@ -94,7 +89,7 @@ public class AgentRunner
         Server server = new Server(8080);
         log.info("Started metrics and agent server on port 8080");
         String url = "http://" + InetAddress.getLocalHost().getCanonicalHostName() + ":8080";
-        log.info("The addresses should be {}/metrics and {}/info}", url);
+        log.info("The addresses should be {}/metrics and {}/info}", url, url);
         ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/");
         server.setHandler(context);
@@ -133,7 +128,7 @@ public class AgentRunner
             log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
 
             ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, Thread.currentThread().getContextClassLoader());
-            try (NarFileHandler narFileHandler = new NarFileHandler(agentsDirectory, customLibClassloader);) {
+            try (NarFileHandler narFileHandler = new NarFileHandler(agentsDirectory, customLibClassloader)) {
                 narFileHandler.scan();
                 AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
                 agentCodeRegistry.setAgentPackageLoader(narFileHandler);
@@ -180,9 +175,8 @@ public class AgentRunner
                                 return null;
                             }
                         })
-                        .filter(p -> p != null)
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toList());
-                ;
             }
             customLibClassloader = new URLClassLoader(jars.toArray(URL[]::new), contextClassLoader);
         }
@@ -258,11 +252,9 @@ public class AgentRunner
 
         ErrorsHandler errorsHandler = new StandardErrorsHandler(configuration.agent().errorHandlerConfiguration());
 
-        TopicAdmin topicAdmin = topicConnectionsRuntime.createTopicAdmin(agentId,
-                configuration.streamingCluster(),
-                configuration.output());
-
-        try {
+        try (TopicAdmin topicAdmin = topicConnectionsRuntime.createTopicAdmin(agentId,
+            configuration.streamingCluster(),
+            configuration.output())) {
             AgentProcessor mainProcessor;
             if (agentCodeWithLoader.isProcessor()) {
                 mainProcessor = agentCodeWithLoader.asProcessor();
@@ -300,23 +292,25 @@ public class AgentRunner
             agentInfo.watchSink(sink);
 
             String onBadRecord = configuration.agent().errorHandlerConfiguration()
-                    .getOrDefault("onFailure", FAIL).toString();
+                .getOrDefault("onFailure", FAIL).toString();
             final BadRecordHandler brh = getBadRecordHandler(onBadRecord, deadLetterProducer);
 
             try {
                 topicAdmin.start();
                 AgentContext agentContext = new SimpleAgentContext(agentId, consumer, producer, topicAdmin, brh,
-                        new TopicConnectionProvider() {
-                            @Override
-                            public TopicConsumer createConsumer(String agentId, Map<String, Object> config) {
-                                return topicConnectionsRuntime.createConsumer(agentId, configuration.streamingCluster(), config);
-                            }
+                    new TopicConnectionProvider() {
+                        @Override
+                        public TopicConsumer createConsumer(String agentId, Map<String, Object> config) {
+                            return topicConnectionsRuntime.createConsumer(agentId, configuration.streamingCluster(),
+                                config);
+                        }
 
-                            @Override
-                            public TopicProducer createProducer(String agentId, Map<String, Object> config) {
-                                return topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), config);
-                            }
-                        });
+                        @Override
+                        public TopicProducer createProducer(String agentId, Map<String, Object> config) {
+                            return topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(),
+                                config);
+                        }
+                    });
                 log.info("Source: {}", source);
                 log.info("Processor: {}", mainProcessor);
                 log.info("Sink: {}", sink);
@@ -328,8 +322,6 @@ public class AgentRunner
                 source.close();
                 sink.close();
             }
-        } finally {
-            topicAdmin.close();
         }
     }
 
@@ -388,7 +380,7 @@ public class AgentRunner
                     // the function maps the record coming from the Source to records to be sent to the Sink
                     sourceRecordTracker.track(sinkRecords);
                     for (AgentProcessor.SourceRecordAndResult sourceRecordAndResult : sinkRecords) {
-                        List<Record> forTheSink = new ArrayList<>(sourceRecordAndResult.getResultRecords());
+                        List<Record> forTheSink = new ArrayList<>(sourceRecordAndResult.resultRecords());
                         sink.write(forTheSink);
                     }
                 } catch (Throwable e) {
@@ -426,25 +418,25 @@ public class AgentRunner
 
             recordToProcess = new ArrayList<>();
             for (AgentProcessor.SourceRecordAndResult result : results) {
-                Record sourceRecord = result.getSourceRecord();
+                Record sourceRecord = result.sourceRecord();
                 log.info("Result for record {}: {}", sourceRecord, result);
                 resultsByRecord.put(sourceRecord, result);
-                if (result.getError() != null) {
-                    Throwable error = result.getError();
+                if (result.error() != null) {
+                    Throwable error = result.error();
                     // handle error
-                    ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(sourceRecord, result.getError());
+                    ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(sourceRecord, result.error());
                     switch (action) {
-                        case SKIP:
+                        case SKIP -> {
                             log.error("Unrecoverable error while processing the records, skipping", error);
                             resultsByRecord.put(sourceRecord,
-                                    new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
-                            break;
-                        case RETRY:
+                                new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
+                        }
+                        case RETRY -> {
                             log.error("Retryable error while processing the records, retrying", error);
                             // retry
                             recordToProcess.add(sourceRecord);
-                            break;
-                        case FAIL:
+                        }
+                        case FAIL -> {
                             log.error("Unrecoverable error while processing some the records, failing", error);
                             PermanentFailureException permanentFailureException = new PermanentFailureException(error);
                             source.permanentFailure(sourceRecord, permanentFailureException);
@@ -454,10 +446,9 @@ public class AgentRunner
                             }
                             // in case the source does not throw an exception we mark the record as "skipped"
                             resultsByRecord.put(sourceRecord,
-                                    new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
-                            break;
-                        default:
-                            throw new IllegalStateException("Unexpected value: " + action);
+                                new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
+                        }
+                        default -> throw new IllegalStateException("Unexpected value: " + action);
                     }
                 }
             }
@@ -466,7 +457,7 @@ public class AgentRunner
         List<AgentProcessor.SourceRecordAndResult> finalResult = new ArrayList<>(sourceRecords.size());
         for (Record sourceRecord : sourceRecords) {
             AgentProcessor.SourceRecordAndResult sourceRecordAndResult = resultsByRecord.get(sourceRecord);
-            log.info("final {} with {} sink records", sourceRecord, sourceRecordAndResult.getResultRecords().size());
+            log.info("final {} with {} sink records", sourceRecord, sourceRecordAndResult.resultRecords().size());
             finalResult.add(sourceRecordAndResult);
         }
         return finalResult;

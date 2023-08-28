@@ -62,7 +62,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     output: "output-topic"
                                     errors:
                                         on-failure: skip
-                                        retries: 3                                          
+                                        retries: 3
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """);
@@ -101,7 +101,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     input: "input-topic"
                                     output: "output-topic"
                                     errors:
-                                        on-failure: dead-letter                                         
+                                        on-failure: dead-letter
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """);
@@ -157,7 +157,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                       fail-on-content: "fail-me"
                                 """);
         try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (KafkaProducer<String, String> producer = createProducer();) {
+            try (KafkaProducer<String, String> producer = createProducer()) {
 
                 sendMessage("input-topic", "fail-me", producer);
                 sendMessage("input-topic", "keep-me", producer);

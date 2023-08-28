@@ -30,7 +30,7 @@ public class LangStreamCLI {
         final CommandLine cmdLine = new CommandLine(new RootCmd());
         CommandLine gen = cmdLine.getSubcommands().get("generate-completion");
         gen.getCommandSpec().usageMessage().hidden(true);
-        int exitCode = cmdLine
+        return cmdLine
                 .setExecutionExceptionHandler((e, commandLine, parseResult) -> {
                     if (e.getMessage() != null) {
                         commandLine.getErr().println(commandLine.getColorScheme().errorText(e.getMessage()));
@@ -44,6 +44,5 @@ public class LangStreamCLI {
                     return 1;
                 })
                 .execute(args);
-        return exitCode;
     }
 }

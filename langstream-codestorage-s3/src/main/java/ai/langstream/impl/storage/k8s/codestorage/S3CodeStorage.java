@@ -23,22 +23,15 @@ import ai.langstream.api.codestorage.UploadableCodeArchive;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.BucketExistsArgs;
 import io.minio.DownloadObjectArgs;
-import io.minio.GetObjectArgs;
-import io.minio.GetObjectResponse;
 import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
 import io.minio.RemoveObjectArgs;
 import io.minio.StatObjectArgs;
 import io.minio.StatObjectResponse;
-import io.minio.errors.ErrorResponseException;
-import io.minio.http.HttpUtils;
-
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import io.minio.MinioClient;
 import io.minio.UploadObjectArgs;
+import io.minio.errors.ErrorResponseException;
 import io.minio.errors.MinioException;
+import io.minio.http.HttpUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,9 +39,12 @@ import java.nio.file.StandardCopyOption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
-import okhttp3.internal.http2.ErrorCode;
 
 @Slf4j
 public class S3CodeStorage implements CodeStorage {
@@ -58,9 +54,9 @@ public class S3CodeStorage implements CodeStorage {
     protected static final String OBJECT_METADATA_KEY_TENANT = "langstream-tenant";
     protected static final String OBJECT_METADATA_KEY_APPLICATION = "langstream-application";
     protected static final String OBJECT_METADATA_KEY_VERSION = "langstream-version";
-    private String bucketName;
-    private OkHttpClient httpClient;
-    private MinioClient minioClient;
+    private final String bucketName;
+    private final OkHttpClient httpClient;
+    private final MinioClient minioClient;
 
     @SneakyThrows
     public S3CodeStorage(Map<String, Object> configuration) {
@@ -121,8 +117,7 @@ public class S3CodeStorage implements CodeStorage {
                                 .contentType("application/zip")
                                 .filename(tempFile.toAbsolutePath().toString())
                                 .build());
-                CodeArchiveMetadata archiveMetadata = new CodeArchiveMetadata(tenant, codeStoreId, applicationId);
-                return archiveMetadata;
+                return new CodeArchiveMetadata(tenant, codeStoreId, applicationId);
             } catch (MinioException | NoSuchAlgorithmException | InvalidKeyException e) {
                 throw new CodeStorageException(e);
             } finally {
@@ -173,7 +168,7 @@ public class S3CodeStorage implements CodeStorage {
                         "Tenant mismatch in S3 object " + objectName + ": " + objectTenant + " != " + tenant);
             }
             final String applicationId = metadata.get(OBJECT_METADATA_KEY_APPLICATION);
-            Objects.requireNonNull("S3 object " + objectName + " contains empty application", applicationId);
+            Objects.requireNonNull(applicationId, "S3 object " + objectName + " contains empty application");
             return new CodeArchiveMetadata(tenant, codeStoreId, applicationId);
         } catch (ErrorResponseException errorResponseException) {
             // https://github.com/minio/minio-java/blob/7ca9500165ee13d39f293691943b93c19c31ebc2/api/src/main/java/io/minio/S3Base.java#L682-L692

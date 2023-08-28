@@ -15,7 +15,6 @@
  */
 package ai.langstream.admin.client;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;

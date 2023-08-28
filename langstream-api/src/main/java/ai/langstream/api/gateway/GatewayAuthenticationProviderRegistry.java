@@ -30,9 +30,7 @@ public class GatewayAuthenticationProviderRegistry {
         ServiceLoader<GatewayAuthenticationProvider> loader = ServiceLoader.load(GatewayAuthenticationProvider.class);
         final GatewayAuthenticationProvider store = loader
                 .stream()
-                .filter(p -> {
-                    return type.equals(p.get().type());
-                })
+                .filter(p -> type.equals(p.get().type()))
                 .findFirst()
                 .orElseThrow(
                         () -> new RuntimeException("No GatewayAuthenticationProvider found for type " + type)

@@ -42,7 +42,7 @@ import org.apache.tomcat.websocket.pojo.PojoEndpointClient;
 public class WebSocketClient implements AutoCloseable {
 
     public interface Handler {
-        default void onOpen() {};
+        default void onOpen() {}
 
         void onMessage(String msg);
 

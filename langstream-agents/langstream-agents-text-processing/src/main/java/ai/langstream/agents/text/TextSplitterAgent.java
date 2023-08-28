@@ -41,7 +41,7 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
     private LengthFunction lengthFunction;
 
     @Override
-    public void init(Map<String, Object> configuration) throws Exception {
+    public void init(Map<String, Object> configuration) {
         initTextSplitter(configuration);
     }
 
@@ -75,7 +75,7 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
     }
 
     @Override
-    public List<Record> processRecord(Record record) throws Exception {
+    public List<Record> processRecord(Record record) {
         if (record == null) {
             return List.of();
         }

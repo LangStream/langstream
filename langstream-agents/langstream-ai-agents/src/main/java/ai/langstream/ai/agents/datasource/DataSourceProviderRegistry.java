@@ -36,14 +36,11 @@ public class DataSourceProviderRegistry {
         ServiceLoader<DataSourceProvider> loader = ServiceLoader.load(DataSourceProvider.class);
         ServiceLoader.Provider<DataSourceProvider> provider = loader
                 .stream()
-                .filter(p -> {
-                    return p.get().supports(dataSourceConfig);
-                })
+                .filter(p -> p.get().supports(dataSourceConfig))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No DataSource found for resource " + dataSourceConfig));
 
-        final QueryStepDataSource implementation = provider.get().createDataSourceImplementation(dataSourceConfig);
-        return implementation;
+        return provider.get().createDataSourceImplementation(dataSourceConfig);
     }
 
 

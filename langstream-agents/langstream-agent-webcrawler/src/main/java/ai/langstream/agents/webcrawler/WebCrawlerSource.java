@@ -38,7 +38,6 @@ import io.minio.errors.InternalException;
 import io.minio.errors.InvalidResponseException;
 import io.minio.errors.ServerException;
 import io.minio.errors.XmlParserException;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -47,29 +46,22 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private int maxUnflushedPages = 100;
-    private String userAgent;
 
     private String bucketName;
     private Set<String> allowedDomains;
     private Set<String> seedUrls;
     private MinioClient minioClient;
-    private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
     private int idleTime;
-
-    private int minTimeBetweenRequests = 100;
 
     private String statusFileName;
 
@@ -97,8 +89,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 1).toString());
         maxUnflushedPages = Integer.parseInt(configuration.getOrDefault("max-unflushed-pages", 100).toString());
         flushNext.set(maxUnflushedPages);
-        minTimeBetweenRequests = Integer.parseInt(configuration.getOrDefault("min-time-between-requests", 100).toString());
-        userAgent = configuration.getOrDefault("user-agent", "langstream.ai-webcrawler/1.0").toString();
+        int minTimeBetweenRequests =
+            Integer.parseInt(configuration.getOrDefault("min-time-between-requests", 100).toString());
+        String userAgent = configuration.getOrDefault("user-agent", "langstream.ai-webcrawler/1.0").toString();
 
         log.info("Connecting to S3 Bucket at {} in region {} with user {}", endpoint, region, username);
         log.info("allowed-domains: {}", allowedDomains);
@@ -132,7 +125,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
-    public void setContext(AgentContext context) throws Exception {
+    public void setContext(AgentContext context) {
         String globalAgentId = context.getGlobalAgentId();
         statusFileName = globalAgentId + ".webcrawler.status.json";
         log.info("Status file is {}", statusFileName);
@@ -196,7 +189,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     }
 
     private List<Record> sleepForNoResults() throws Exception {
-        Thread.sleep(idleTime * 1000);
+        Thread.sleep(idleTime * 1000L);
         return List.of();
     }
 
@@ -210,7 +203,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
 
     @Override
-    public void commit(List<Record> records) throws Exception {
+    public void commit(List<Record> records) {
         for (Record record : records) {
             WebCrawlerSourceRecord webCrawlerSourceRecord = (WebCrawlerSourceRecord) record;
             String objectName = webCrawlerSourceRecord.url;
@@ -235,7 +228,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         /**
          * the key is used for routing, so it is better to set it to something meaningful.
          * In case of retransmission the message will be sent to the same partition.
-         * @return
+         * @return the key
          */
         @Override
         public Object key() {

@@ -222,7 +222,7 @@ public abstract class AbstractApplicationRunner {
                         log.info("{} AgentPod {} AgentInfo {}", runnerExecutionId, podConfiguration.agent().agentId(), infos);
                         handle.complete(null);
                     } catch (Throwable error) {
-                        log.error("{} Error on AgentPod {}{}", runnerExecutionId, podConfiguration.agent().agentId(), error);
+                        log.error("{} Error on AgentPod {}", runnerExecutionId, podConfiguration.agent().agentId(), error);
                         handle.completeExceptionally(error);
                     } finally {
                         log.info("{} AgentPod {} finished", runnerExecutionId, podConfiguration.agent().agentId());

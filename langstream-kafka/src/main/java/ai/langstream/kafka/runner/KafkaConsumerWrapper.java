@@ -27,8 +27,11 @@ import org.apache.kafka.common.TopicPartition;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -107,21 +110,45 @@ class KafkaConsumerWrapper implements TopicConsumer {
         return result;
     }
 
+
+    private Map<TopicPartition, TreeSet<Long>> committedOffsets = new HashMap<>();
+
     @Override
     public void commit(List<Record> records) {
         for (Record record :records) {
             KafkaRecord.KafkaConsumerOffsetProvider kafkaRecord = (KafkaRecord.KafkaConsumerOffsetProvider) record;
             TopicPartition topicPartition = kafkaRecord.getTopicPartition();
             long offset = kafkaRecord.offset();
-            log.info("Committing offset {} on partition {} (record: {})", offset, topicPartition, kafkaRecord);
-            committed.compute(topicPartition, (key, existing) -> {
-                log.info("Committing on partition {}: previous offset {}, new offset {}", key, existing, offset);
-                if (existing != null && offset != existing.offset() + 1) {
-                    throw new IllegalStateException("There is an hole in the commit sequence for partition " + key);
-                }
-                return new OffsetAndMetadata(offset);
+            TreeSet<Long> offsetsForPartition = committedOffsets.computeIfAbsent(topicPartition, (key) -> {
+                return new TreeSet<>();
             });
+            offsetsForPartition.add(offset);
+            OffsetAndMetadata offsetAndMetadata = committed.get(topicPartition);
+            if (offsetAndMetadata == null) {
+                offsetAndMetadata = consumer.committed(topicPartition);
+                log.info("Current position on partition {} is {}", topicPartition, offsetAndMetadata);
+                if (offsetAndMetadata != null) {
+                    committed.put(topicPartition, offsetAndMetadata);
+                }
+            }
+
+            long least = offsetsForPartition.first();
+            long currentOffset = offsetAndMetadata == null ? -1 : offsetAndMetadata.offset();
+            while (least == currentOffset + 1) {
+                offsetsForPartition.remove(least);
+                offsetAndMetadata = new OffsetAndMetadata(least);
+                currentOffset = least;
+                if (offsetsForPartition.isEmpty()) {
+                    break;
+                }
+                least = offsetsForPartition.first();
+            }
+            if (offsetAndMetadata != null) {
+                committed.put(topicPartition, offsetAndMetadata);
+                log.info("Committing offset {} on partition {} (record: {})", offset, topicPartition, kafkaRecord);
+            }
         }
+
         pendingCommits.incrementAndGet();
         consumer.commitAsync(committed, (map, e) -> {
             pendingCommits.decrementAndGet();

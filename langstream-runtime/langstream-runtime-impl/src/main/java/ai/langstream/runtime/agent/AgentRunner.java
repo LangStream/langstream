@@ -57,9 +57,9 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -360,42 +360,50 @@ public class AgentRunner
         sink.start();
         function.start();
 
-        SourceRecordTracker sourceRecordTracker =
-                new SourceRecordTracker(source);
+        SourceRecordTracker sourceRecordTracker = new SourceRecordTracker(source);
         sink.setCommitCallback(sourceRecordTracker);
+
+        AtomicReference<Exception> fatalError = new AtomicReference<>();
 
         List<Record> records = source.read();
         while ((maxLoops < 0) || (maxLoops-- > 0)) {
             if (records != null && !records.isEmpty()) {
                 // in case of permanent FAIL this method will throw an exception
-                List<AgentProcessor.SourceRecordAndResult> sinkRecords
-                        = runProcessorAgent(function, records, errorsHandler, source);
-                // sinkRecord == null is the SKIP case
+                runProcessorAgent(function, records, errorsHandler, source, new RecordSink() {
+                    @Override
+                    public void emit(AgentProcessor.SourceRecordAndResult sourceRecordAndResult) {
 
-                // in this case we do not send the records to the sink
-                // and the source has already committed the records
-                // This won't for the Kafka Connect Sink, because it does handle the commit
-                // itself, but on the other hand in the case of the Connect Sink we can see here
-                // only the IdentityAgentCode that is not supposed to fail
-                try {
-                    // the function maps the record coming from the Source to records to be sent to the Sink
-                    sourceRecordTracker.track(sinkRecords);
-                    for (AgentProcessor.SourceRecordAndResult sourceRecordAndResult : sinkRecords) {
-                        processRecordsOnTheSink(sink, sourceRecordAndResult, errorsHandler, sourceRecordTracker, source);
+                        if (sourceRecordAndResult.error() != null) {
+                            // handle error
+                            setFatalError(sourceRecordAndResult.error(), fatalError);
+                            return;
+                        }
+
+                        if (sourceRecordAndResult.resultRecords().isEmpty()) {
+                            // no records, we have to commit the source record to the source
+                            // no need to call the Sink with an empty list
+                            try {
+                                source.commit(List.of(sourceRecordAndResult.sourceRecord()));
+                            } catch (Throwable error) {
+                                log.error("Source could not commit the record", error);
+                                setFatalError(error, fatalError);
+                            }
+                            return;
+                        }
+
+                        sourceRecordTracker.track(List.of(sourceRecordAndResult));
+                        try {
+                            // the function maps the record coming from the Source to records to be sent to the Sink
+                            processRecordsOnTheSink(sink, sourceRecordAndResult, errorsHandler, sourceRecordTracker,
+                                    source, fatalError);
+                        } catch (Throwable e) {
+                            log.error("Error while processing records", e);
+                            setFatalError(e, fatalError);
+                        }
                     }
-                } catch (Throwable e) {
-                    log.error("Error while processing records", e);
-
-                    if (e instanceof PermanentFailureException) {
-                        throw e;
-                    } else {
-                        // throw the error
-                        // this way the consumer will not commit the records
-                        throw new RuntimeException("Error while processing records", e);
-                    }
-                }
-
+                });
             }
+            checkFatalError(fatalError);
 
             // commit (Kafka Connect Sink)
             if (sink.handlesCommit()) {
@@ -408,9 +416,25 @@ public class AgentRunner
         }
     }
 
+    private static void checkFatalError(AtomicReference<Exception> fatalError) throws Exception {
+        if (fatalError.get() != null) {
+            throw fatalError.get();
+        }
+    }
+
+    private static void setFatalError(Throwable e, AtomicReference<Exception> fatalError) {
+        if (e instanceof PermanentFailureException pf) {
+            fatalError.set(pf);
+        } else {
+            // throw the error
+            // this way the consumer will not commit the records
+            fatalError.set(new RuntimeException("Error while processing records", e));
+        }
+    }
+
     private static void processRecordsOnTheSink(AgentSink sink, AgentProcessor.SourceRecordAndResult sourceRecordAndResult,
                                                 ErrorsHandler errorsHandler, SourceRecordTracker sourceRecordTracker,
-                                                AgentSource source) throws Exception {
+                                                AgentSource source, AtomicReference<Exception> fatalError) throws Exception {
         Record sourceRecord = sourceRecordAndResult.sourceRecord();
         List<Record> forTheSink = new ArrayList<>(sourceRecordAndResult.resultRecords());
         while (true) {
@@ -437,10 +461,11 @@ public class AgentRunner
                         source.permanentFailure(sourceRecord, permanentFailureException);
                         if (errorsHandler.failProcessingOnPermanentErrors()) {
                             log.error("Failing processing on permanent error");
-                            throw permanentFailureException;
+                            setFatalError(permanentFailureException, fatalError);
+                        } else {
+                            // in case the source does not throw an exception we mark the record as "skipped"
+                            sourceRecordTracker.commit(forTheSink);
                         }
-                        // in case the source does not throw an exception we mark the record as "skipped"
-                        sourceRecordTracker.commit(forTheSink);
                         return;
                     }
                     default -> throw new IllegalStateException("Unexpected value: " + action);
@@ -450,76 +475,60 @@ public class AgentRunner
     }
 
 
-    private static List<AgentProcessor.SourceRecordAndResult> runProcessorAgent(AgentProcessor processor,
-                                                                                List<Record> sourceRecords,
-                                                                                ErrorsHandler errorsHandler,
-                                                                                AgentSource source) throws Exception {
-        List<Record> recordToProcess = sourceRecords;
-        Map<Record, AgentProcessor.SourceRecordAndResult> resultsByRecord = new HashMap<>();
-        int trialNumber = 0;
-        while (!recordToProcess.isEmpty()) {
-            log.info("runProcessor on {} records (trial #{})", recordToProcess.size(), trialNumber++);
-            List<AgentProcessor.SourceRecordAndResult> results = safeProcessRecords(processor, recordToProcess);
-
-            recordToProcess = new ArrayList<>();
-            for (AgentProcessor.SourceRecordAndResult result : results) {
-                Record sourceRecord = result.sourceRecord();
-                log.info("Result for record {}: {}", sourceRecord, result);
-                resultsByRecord.put(sourceRecord, result);
-                if (result.error() != null) {
-                    Throwable error = result.error();
-                    // handle error
-                    ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(sourceRecord, result.error());
-                    switch (action) {
-                        case SKIP -> {
-                            log.error("Unrecoverable error while processing the records, skipping", error);
-                            resultsByRecord.put(sourceRecord,
-                                new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
-                        }
-                        case RETRY -> {
-                            log.error("Retryable error while processing the records, retrying", error);
-                            // retry
-                            recordToProcess.add(sourceRecord);
-                        }
-                        case FAIL -> {
-                            log.error("Unrecoverable error while processing some the records, failing", error);
-                            PermanentFailureException permanentFailureException = new PermanentFailureException(error);
-                            source.permanentFailure(sourceRecord, permanentFailureException);
-                            if (errorsHandler.failProcessingOnPermanentErrors()) {
-                                log.error("Failing processing on permanent error");
-                                throw permanentFailureException;
+    private static void runProcessorAgent(AgentProcessor processor,
+                                            List<Record> sourceRecords,
+                                            ErrorsHandler errorsHandler,
+                                            AgentSource source,
+                                            RecordSink finalSink) throws Exception {
+        log.info("runProcessor on {} records", sourceRecords.size());
+        processor.process(sourceRecords,
+            new RecordSink() {
+                @Override
+                public void emit(AgentProcessor.SourceRecordAndResult result) {
+                    Record sourceRecord = result.sourceRecord();
+                    try {
+                        log.info("Result for record {}: {}", sourceRecord, result);
+                        if (result.error() != null) {
+                            Throwable error = result.error();
+                            // handle error
+                            ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(sourceRecord, result.error());
+                            switch (action) {
+                                case SKIP -> {
+                                    log.error("Unrecoverable error while processing the records, skipping", error);
+                                    finalSink.emit(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), null));
+                                }
+                                case RETRY -> {
+                                    log.error("Retryable error while processing the records, retrying", error);
+                                    // retry the single record (this leads to out-of-order processing)
+                                    runProcessorAgent(processor, List.of(sourceRecord), errorsHandler, source, finalSink);
+                                }
+                                case FAIL -> {
+                                    log.error("Unrecoverable error while processing some the records, failing", error);
+                                    PermanentFailureException permanentFailureException = new PermanentFailureException(error);
+                                    permanentFailureException.fillInStackTrace();
+                                    source.permanentFailure(sourceRecord, permanentFailureException);
+                                    if (errorsHandler.failProcessingOnPermanentErrors()) {
+                                        log.error("Failing processing on permanent error");
+                                        finalSink.emit(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), permanentFailureException));
+                                    } else {
+                                        // in case the source does not throw an exception we mark the record as "skipped"
+                                        finalSink.emit(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), null));
+                                    }
+                                }
+                                default -> {
+                                    finalSink.emit(
+                                            new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), new PermanentFailureException(new IllegalStateException())));
+                                }
                             }
-                            // in case the source does not throw an exception we mark the record as "skipped"
-                            resultsByRecord.put(sourceRecord,
-                                new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
+                        } else {
+                            finalSink.emit(result);
                         }
-                        default -> throw new IllegalStateException("Unexpected value: " + action);
+                    } catch (Throwable error) {
+                        log.error("Error while processing record {}", sourceRecord, error);
+                        finalSink.emit(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
                     }
                 }
-            }
-        }
-
-        List<AgentProcessor.SourceRecordAndResult> finalResult = new ArrayList<>(sourceRecords.size());
-        for (Record sourceRecord : sourceRecords) {
-            AgentProcessor.SourceRecordAndResult sourceRecordAndResult = resultsByRecord.get(sourceRecord);
-            log.info("final {} with {} sink records", sourceRecord, sourceRecordAndResult.resultRecords().size());
-            finalResult.add(sourceRecordAndResult);
-        }
-        return finalResult;
-    }
-
-    private static List<AgentProcessor.SourceRecordAndResult> safeProcessRecords(AgentProcessor processor,
-                                                                                 List<Record> recordToProcess) {
-        List<AgentProcessor.SourceRecordAndResult> results = new ArrayList<>();
-        try {
-            processor.process(recordToProcess, results::add);
-        } catch (Throwable error) {
-            results = recordToProcess
-                    .stream()
-                    .map(r -> new AgentProcessor.SourceRecordAndResult(r, null, error))
-                    .toList();
-        }
-        return results;
+            });
     }
 
     public static final class PermanentFailureException extends Exception {

@@ -72,8 +72,7 @@ class SingleRecordProcessor(Processor):
         for record in records:
             try:
                 processed = self.process_record(record)
-                if len(processed) > 0:
-                    results.append((record, processed))
+                results.append((record, processed))
             except Exception as e:
                 results.append((record, e))
         return results

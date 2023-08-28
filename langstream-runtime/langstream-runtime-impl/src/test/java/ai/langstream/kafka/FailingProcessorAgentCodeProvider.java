@@ -93,7 +93,7 @@ public class FailingProcessorAgentCodeProvider implements AgentCodeProvider {
         }
 
         @Override
-        public void write(List<Record> records) throws Exception {
+        public void write(List<Record> records) {
             for (Record record : records) {
                 log.info("Processing record value {}, failOnContent {}", record.value(), failOnContent);
                 if (Objects.equals(record.value(), failOnContent)) {

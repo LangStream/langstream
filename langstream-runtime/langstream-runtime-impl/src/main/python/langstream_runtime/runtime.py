@@ -70,7 +70,8 @@ def run(configuration, agent=None, max_loops=-1):
 
     if 'input' in configuration and len(configuration['input']) > 0:
         consumer = topic_connections_runtime.create_topic_consumer(agent_id, streaming_cluster, configuration['input'])
-        dlq_producer = topic_connections_runtime.create_dlq_producer(agent_id, streaming_cluster, configuration['input'])
+        dlq_producer = topic_connections_runtime.create_dlq_producer(agent_id, streaming_cluster,
+                                                                     configuration['input'])
     else:
         consumer = NoopTopicConsumer()
         dlq_producer = None
@@ -145,7 +146,9 @@ def run_main_loop(source: Source, sink: Sink, processor: Processor, errors_handl
                                 # commit skipped records
                                 call_method_if_exists(source, 'commit', [source_record_and_result[0]])
                             else:
-                                sink.write(source_record_and_result[1])
+                                if len(source_record_and_result[1]) > 0:
+                                    write_records_to_the_sink(sink, source_record_and_result, errors_handler,
+                                                              source_record_tracker, source)
                     except Exception as e:
                         logging.exception("Error while processing records")
                         # raise the error
@@ -192,6 +195,8 @@ def run_processor_agent(
                         raise processor_result
                     # in case the source does not throw an exception we mark the record as "skipped"
                     results_by_record[source_record] = (source_record, processor_result)
+                else:
+                    raise ValueError(f'Unexpected value: {action}')
 
     return [results_by_record[source_record] for source_record in source_records]
 
@@ -203,6 +208,42 @@ def safe_process_records(
         return processor.process(records_to_process)
     except Exception as e:
         return [(record, e) for record in records_to_process]
+
+
+def write_records_to_the_sink(
+        sink: Sink,
+        source_record_and_result: Tuple[Record, List[Record]],
+        errors_handler: ErrorsHandler,
+        source_record_tracker: SourceRecordTracker,
+        source: Source):
+    source_record = source_record_and_result[0]
+    for_the_sink = source_record_and_result[1].copy()
+
+    while True:
+        try:
+            sink.write(for_the_sink)
+            return
+        except Exception as error:
+            action = errors_handler.handle_errors(source_record, error)
+            if action == ErrorsProcessingOutcome.SKIP:
+                # skip (the whole batch)
+                logging.error(f"Unrecoverable error {error} while processing the records, skipping")
+                source_record_tracker.commit(for_the_sink)
+                return
+            elif action == ErrorsProcessingOutcome.RETRY:
+                # retry (the whole batch)
+                logging.error(f'Retryable error {error} while processing the records, retrying')
+            elif action == ErrorsProcessingOutcome.FAIL:
+                logging.error(f'Unrecoverable error {error} while processing some the records, failing')
+                # TODO: replace with custom exception ?
+                source.permanent_failure(source_record, error)
+                if errors_handler.fail_processing_on_permanent_errors():
+                    logging.error('Failing processing on permanent error')
+                    raise error
+                # in case the source does not throw an exception we mark the record as "skipped"
+                source_record_tracker.commit(for_the_sink)
+            else:
+                raise ValueError(f'Unexpected value: {action}')
 
 
 class NoopTopicConsumer(TopicConsumer):

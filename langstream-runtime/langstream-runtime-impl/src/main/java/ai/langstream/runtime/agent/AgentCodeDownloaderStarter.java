@@ -15,6 +15,7 @@
  */
 package ai.langstream.runtime.agent;
 
+import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
 import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
@@ -29,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
  * This is the main entry point for the pods that run the LangStream runtime code downloader.
  */
 @Slf4j
-public class AgentCodeDownloaderStarter {
+public class AgentCodeDownloaderStarter extends RuntimeStarter {
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -45,14 +46,21 @@ public class AgentCodeDownloaderStarter {
     @SneakyThrows
     public static void main(String... args) {
         try {
-            new AgentCodeDownloaderStarter().run(new AgentCodeDownloader(), args);
+            new AgentCodeDownloaderStarter(new AgentCodeDownloader()).start(args);
         } catch (Throwable error) {
             mainErrorHandler.handleError(error);
         }
     }
 
-    @SneakyThrows
-    public void run(AgentCodeDownloader agentCodeDownloader, String... args) {
+
+    private final AgentCodeDownloader agentCodeDownloader;
+
+    public AgentCodeDownloaderStarter(AgentCodeDownloader agentCodeDownloader) {
+        this.agentCodeDownloader = agentCodeDownloader;
+    }
+
+    @Override
+    public void start(String... args) throws Exception {
 
         if (args.length > 0) {
             log.warn("args not supported, ignoring");
@@ -61,7 +69,7 @@ public class AgentCodeDownloaderStarter {
                 AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV_DEFAULT);
         final Path clusterConfigPath = getPathFromEnv(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV,
                 AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV_DEFAULT);
-        final Path tokenPath = getPathFromEnv(AgentCodeDownloaderConstants.TOKEN_ENV,
+        final Path tokenPath = getOptionalPathFromEnv(AgentCodeDownloaderConstants.TOKEN_ENV,
                 AgentCodeDownloaderConstants.TOKEN_ENV_DEFAULT);
 
         DownloadAgentCodeConfiguration configuration = MAPPER.readValue(downloadCodeConfigPath.toFile(),
@@ -70,7 +78,7 @@ public class AgentCodeDownloaderStarter {
         ClusterConfiguration clusterConfiguration = MAPPER.readValue(clusterConfigPath.toFile(),
                 ClusterConfiguration.class);
         final String token;
-        if (tokenPath.toFile().exists()) {
+        if (tokenPath != null) {
             token = Files.readString(tokenPath);
         } else {
             token = null;
@@ -79,19 +87,4 @@ public class AgentCodeDownloaderStarter {
 
     }
 
-    private Path getPathFromEnv(String envVar, String defaultValue) {
-        String value = getEnv(envVar);
-        if (value == null) {
-            value = defaultValue;
-        }
-        final Path path = Path.of(value);
-        if (!path.toFile().exists()) {
-            throw new IllegalArgumentException("File " + path + " does not exist");
-        }
-        return path;
-    }
-
-    String getEnv(String key) {
-        return System.getenv(key);
-    }
 }

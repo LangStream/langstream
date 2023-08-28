@@ -165,7 +165,6 @@ public abstract class AbstractApplicationRunner {
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
-<<<<<<< HEAD
                     ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(2));
                     for (ConsumerRecord record : poll) {
                         log.info("Received message {}", record);
@@ -174,31 +173,18 @@ public abstract class AbstractApplicationRunner {
                     }
                     log.info("Result: {}", received);
                     received.forEach(r -> log.info("Received |{}|", r));
-=======
-                            ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(2));
-                            for (ConsumerRecord record : poll) {
-                                log.info("Received message {}", record);
-                                received.add(record.value());
-                                result.add(record);
-                            }
-                            log.info("Result: {}", received);
-                            received.forEach(r -> {
-                                log.info("Received |{}|", r);
-                            });
->>>>>>> 4540ec84 (Move runtime pod to download code using the control plane)
 
-                            assertEquals(expected.size(), received.size());
-                            for (int i = 0; i < expected.size(); i++) {
-                                Object expectedValue = expected.get(i);
-                                Object actualValue = received.get(i);
-                                if (expectedValue instanceof byte[]) {
-                                    assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
-                                } else {
-                                    assertEquals(expectedValue, actualValue);
-                                }
-                            }
+                    assertEquals(expected.size(), received.size());
+                    for (int i = 0; i < expected.size(); i++) {
+                        Object expectedValue = expected.get(i);
+                        Object actualValue = received.get(i);
+                        if (expectedValue instanceof byte[]) {
+                            assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
+                        } else {
+                            assertEquals(expectedValue, actualValue);
                         }
-                );
+                    }
+                });
 
         return result;
     }

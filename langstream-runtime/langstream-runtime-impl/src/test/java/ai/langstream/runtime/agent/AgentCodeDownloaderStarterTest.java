@@ -26,6 +26,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.Map;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -41,44 +42,58 @@ class AgentCodeDownloaderStarterTest {
         mapper.writeValue(new File(clusterConfigFile), new ClusterConfiguration("http://localhost:8080"));
         String downloaderConfigFile = Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
         mapper.writeValue(new File(downloaderConfigFile), new DownloadAgentCodeConfiguration(null, null, null, null));
+        String tokenConfigFile = Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
+        mapper.writeValue(new File(tokenConfigFile), "mytoken");
 
 
-        runTest(false, Map.of());
-        runTest(false, Map.of(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV, clusterConfigFile));
-        runTest(false, Map.of(AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV, downloaderConfigFile));
+        runTest(false, Map.of(), false);
+        runTest(false, Map.of(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV, clusterConfigFile), false);
+        runTest(false, Map.of(AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV, downloaderConfigFile), false);
         runTest(true, Map.of(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV, clusterConfigFile,
-                AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV, downloaderConfigFile));
+                AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV, downloaderConfigFile), false);
+        runTest(true, Map.of(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV, clusterConfigFile,
+                AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV, downloaderConfigFile,
+                AgentCodeDownloaderConstants.TOKEN_ENV, tokenConfigFile), true);
     }
 
     @SneakyThrows
-    private void runTest(boolean expectOk, Map<String, String> env, String... args) {
+    private void runTest(boolean expectOk, Map<String, String> env, boolean expectToken, String... args) {
         final AgentCodeDownloader codeDownloader = Mockito.mock(AgentCodeDownloader.class);
 
         try {
-            new TestDeployer(env).run(codeDownloader, args);
+            new TestDeployer(codeDownloader, env).start(args);
         } catch (Exception e) {
             if (expectOk) {
                 throw new RuntimeException(e);
             } else {
-                return;
+                if (e.getMessage().contains("File") && e.getMessage().contains("does not exist")) {
+                    return;
+                }
+                e.printStackTrace();
+                Assertions.fail("expected file not found exception but got " + e.getMessage());
             }
         }
         if (!expectOk) {
             throw new RuntimeException("Expected exception");
         }
-        Mockito.verify(codeDownloader).downloadCustomCode(Mockito.any(), Mockito.anyString(), Mockito.any());
+        if (expectToken) {
+            Mockito.verify(codeDownloader).downloadCustomCode(Mockito.any(), Mockito.anyString(), Mockito.any());
+        } else {
+            Mockito.verify(codeDownloader).downloadCustomCode(Mockito.any(), Mockito.isNull(), Mockito.any());
+        }
 
     }
 
     static class TestDeployer extends AgentCodeDownloaderStarter {
         private final Map<String, String> map;
 
-        public TestDeployer(Map<String, String> map) {
+        public TestDeployer(AgentCodeDownloader agentCodeDownloader, Map<String, String> map) {
+            super(agentCodeDownloader);
             this.map = map;
         }
 
         @Override
-        String getEnv(String key) {
+        protected String getEnv(String key) {
             return map.get(key);
         }
     }

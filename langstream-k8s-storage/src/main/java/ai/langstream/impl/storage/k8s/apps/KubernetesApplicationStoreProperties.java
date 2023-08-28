@@ -15,6 +15,7 @@
  */
 package ai.langstream.impl.storage.k8s.apps;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

@@ -48,7 +48,7 @@ class KubernetesTenantResourcesTest {
     void testResources() {
 
         final KubernetesApplicationStore store = new KubernetesApplicationStore();
-        store.initialize(Map.of("controlPlaneUrl", "http://control-plane.localhost:8080", "namespaceprefix", "s", "deployer-runtime", Map.of("image", "busybox", "image-pull-policy", "IfNotPresent")));
+        store.initialize(Map.of("controlPlaneUrl", "http://control-plane.localhost:8090", "namespaceprefix", "s"));
 
         final String tenant = "tenant-resources";
         store.onTenantCreated(tenant);
@@ -111,7 +111,7 @@ class KubernetesTenantResourcesTest {
                 .withName(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET)
                 .get();
         Assertions.assertEquals(Map.of("cluster-config",
-                "eyJjb250cm9sUGxhbmVVcmwiOiJodHRwOi8vY29udHJvbC1wbGFuZS5sb2NhbGhvc3Q6ODA4MCIsInRva2VuIjpudWxsfQ=="), secret.getData());
+                "eyJjb250cm9sUGxhbmVVcmwiOiJodHRwOi8vY29udHJvbC1wbGFuZS5sb2NhbGhvc3Q6ODA5MCJ9"), secret.getData());
     }
 
 }

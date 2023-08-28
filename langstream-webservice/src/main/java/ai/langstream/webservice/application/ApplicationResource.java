@@ -93,7 +93,7 @@ public class ApplicationResource {
         if (tenant.equals(principal)) {
             return;
         }
-        throw new AuthenticationServiceException("Authorization failed");
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
 
     @GetMapping("/{tenant}")

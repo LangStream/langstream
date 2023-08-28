@@ -20,13 +20,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.api.storage.ApplicationStore;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpMethod;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 @SpringBootTest(properties = {
         "application.security.enabled=true",
@@ -38,6 +44,10 @@ import org.springframework.test.web.servlet.MockMvc;
 class SecurityConfigurationTest {
 
 
+    protected static final String ROLE_NOTADMIN =
+            "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJub3RhZG1pbiJ9.SMRG0RwT4O9XzOOIPhOV2K7TdwDJI4EDNNFruN_3qtc";
+    protected static final String ROLE_TESTROLE =
+            "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0cm9sZSJ9.Y6VOsE3vw4zOuRnG_WtVGWn25lgwNGkY5VrRpXR9SVI";
     @Autowired
     MockMvc mockMvc;
 
@@ -49,7 +59,7 @@ class SecurityConfigurationTest {
     @Test
     void shouldBeAuthorized() throws Exception {
         // Token with "iss": "testrole"
-        String token = "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0cm9sZSJ9.Y6VOsE3vw4zOuRnG_WtVGWn25lgwNGkY5VrRpXR9SVI";
+        String token = ROLE_TESTROLE;
         mockMvc.perform(put("/api/tenants/security-configuration-resource").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
@@ -65,9 +75,37 @@ class SecurityConfigurationTest {
     @Test
     void shouldBeForbiddenIfNotInAdminRole() throws Exception {
         // Token with "iss": "notadmin"
-        String token = "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJub3RhZG1pbiJ9.SMRG0RwT4O9XzOOIPhOV2K7TdwDJI4EDNNFruN_3qtc";
+        String token = ROLE_NOTADMIN;
         mockMvc
                 .perform(put("/api/tenants/security-configuration-resource").header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldBeForbiddenIfNotSameTenant() throws Exception {
+        // Token with "iss": "notadmin"
+        String token = ROLE_NOTADMIN;
+        List<Map.Entry<HttpMethod, String>> requests = new ArrayList<>();
+        requests.add(Map.entry(HttpMethod.GET, "/api/applications/{tenant}"));
+        requests.add(Map.entry(HttpMethod.GET,"/api/applications/{tenant}/app"));
+        requests.add(Map.entry(HttpMethod.GET,"/api/applications/{tenant}/app/logs"));
+        requests.add(Map.entry(HttpMethod.GET,"/api/applications/{tenant}/app/code"));
+        requests.add(Map.entry(HttpMethod.GET,"/api/applications/{tenant}/app/code/code-id-1"));
+        requests.add(Map.entry(HttpMethod.DELETE,"/api/applications/{tenant}/app"));
+
+        for (Map.Entry<HttpMethod, String> entry : requests) {
+            System.out.println("testing " + entry.getKey() + " " + entry.getValue());
+            mockMvc.perform(MockMvcRequestBuilders.request(entry.getKey(), entry.getValue().replace("{tenant}", "notadmin"))
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isNotFound());
+
+            mockMvc.perform(MockMvcRequestBuilders.request(entry.getKey(), entry.getValue().replace("{tenant}", "another-tenant"))
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isForbidden());
+        }
+        
+
+        mockMvc.perform(get("/api/applications/another-tenant").header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
 

@@ -125,7 +125,8 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
                 if (!algorithm.equals(key.alg())) {
                     continue;
                 }
-                if (!jwksKey.keyId().equals(key.kid())) {
+                // no kid requested, use the first one
+                if (jwksKey.keyId() != null && !jwksKey.keyId().equals(key.kid())) {
                     continue;
                 }
                 BigInteger modulus = base64ToBigInteger(key.n());

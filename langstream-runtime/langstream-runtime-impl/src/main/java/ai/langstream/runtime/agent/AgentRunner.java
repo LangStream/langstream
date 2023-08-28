@@ -380,15 +380,18 @@ public class AgentRunner
                     // the function maps the record coming from the Source to records to be sent to the Sink
                     sourceRecordTracker.track(sinkRecords);
                     for (AgentProcessor.SourceRecordAndResult sourceRecordAndResult : sinkRecords) {
-                        List<Record> forTheSink = new ArrayList<>(sourceRecordAndResult.resultRecords());
-                        sink.write(forTheSink);
+                        processRecordsOnTheSink(sink, sourceRecordAndResult, errorsHandler, sourceRecordTracker, source);
                     }
                 } catch (Throwable e) {
                     log.error("Error while processing records", e);
 
-                    // throw the error
-                    // this way the consumer will not commit the records
-                    throw new RuntimeException("Error while processing records", e);
+                    if (e instanceof PermanentFailureException) {
+                        throw e;
+                    } else {
+                        // throw the error
+                        // this way the consumer will not commit the records
+                        throw new RuntimeException("Error while processing records", e);
+                    }
                 }
 
             }
@@ -401,6 +404,47 @@ public class AgentRunner
                 sink.commit();
             }
             records = source.read();
+        }
+    }
+
+    private static void processRecordsOnTheSink(AgentSink sink, AgentProcessor.SourceRecordAndResult sourceRecordAndResult,
+                                                ErrorsHandler errorsHandler, SourceRecordTracker sourceRecordTracker,
+                                                AgentSource source) throws Exception {
+        Record sourceRecord = sourceRecordAndResult.sourceRecord();
+        List<Record> forTheSink = new ArrayList<>(sourceRecordAndResult.resultRecords());
+        while (true) {
+            try {
+                sink.write(forTheSink);
+                return;
+            } catch (Throwable error) {
+                // handle error
+                ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(sourceRecord, error);
+                switch (action) {
+                    case SKIP -> {
+                        // skip (the whole batch)
+                        log.error("Unrecoverable error while processing the records, skipping", error);
+                        sourceRecordTracker.commit(forTheSink);
+                        return;
+                    }
+                    case RETRY -> {
+                        log.error("Retryable error while processing the records, retrying", error);
+                        // retry (the whole batch)
+                    }
+                    case FAIL -> {
+                        log.error("Unrecoverable error while processing some the records, failing", error);
+                        PermanentFailureException permanentFailureException = new PermanentFailureException(error);
+                        source.permanentFailure(sourceRecord, permanentFailureException);
+                        if (errorsHandler.failProcessingOnPermanentErrors()) {
+                            log.error("Failing processing on permanent error");
+                            throw permanentFailureException;
+                        }
+                        // in case the source does not throw an exception we mark the record as "skipped"
+                        sourceRecordTracker.commit(forTheSink);
+                        return;
+                    }
+                    default -> throw new IllegalStateException("Unexpected value: " + action);
+                }
+            }
         }
     }
 

@@ -28,7 +28,7 @@ import java.util.Set;
 @Slf4j
 public class MockFailingAgentProcessorProvider extends AbstractAgentProvider{
     public MockFailingAgentProcessorProvider() {
-        super(Set.of("mock-failing-processor"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
+        super(Set.of("mock-failing-processor", "mock-failing-sink"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override

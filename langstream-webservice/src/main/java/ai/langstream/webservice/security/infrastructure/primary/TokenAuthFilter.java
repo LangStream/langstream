@@ -38,6 +38,7 @@ public class TokenAuthFilter extends GenericFilterBean {
 
     private static final Logger log = LoggerFactory.getLogger(TokenAuthFilter.class);
     private static final String HTTP_HEADER_VALUE_PREFIX = "Bearer ";
+    public static final String ROLE_ADMIN = "ROLE_ADMIN";
     private final AuthenticationProviderToken authenticationProvider;
     private final AuthTokenProperties tokenProperties;
 
@@ -69,7 +70,7 @@ public class TokenAuthFilter extends GenericFilterBean {
 
             List<GrantedAuthority> authorities = null;
             if (tokenProperties.adminRoles() != null && tokenProperties.adminRoles().contains(role)) {
-                authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
+                authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_ADMIN));
             }
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(role, token, authorities);

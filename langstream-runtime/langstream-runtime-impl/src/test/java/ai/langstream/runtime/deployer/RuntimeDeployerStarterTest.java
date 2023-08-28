@@ -67,7 +67,7 @@ class RuntimeDeployerStarterTest {
         final RuntimeDeployer runtimeDeployer = Mockito.mock(RuntimeDeployer.class);
 
         try {
-            new TestDeployer(env).run(runtimeDeployer, args);
+            new TestDeployer(env, runtimeDeployer).start(args);
         } catch (Exception e) {
             if (expectOk) {
                 throw new RuntimeException(e);
@@ -85,12 +85,14 @@ class RuntimeDeployerStarterTest {
     static class TestDeployer extends RuntimeDeployerStarter {
         private final Map<String, String> map;
 
-        public TestDeployer(Map<String, String> map) {
+        public TestDeployer(Map<String, String> map, RuntimeDeployer runtimeDeployer) {
+            super(runtimeDeployer);
             this.map = map;
         }
 
+
         @Override
-        String getEnv(String key) {
+        protected String getEnv(String key) {
             return map.get(key);
         }
     }

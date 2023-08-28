@@ -28,6 +28,7 @@ public interface DeployerConfiguration {
     String clusterRuntime();
 
     @WithDefault("{}")
+    @Deprecated(forRemoval = true)
     String codeStorage();
 
     @WithDefault("{}")

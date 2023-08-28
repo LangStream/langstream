@@ -184,8 +184,7 @@ public abstract class AbstractApplicationRunner {
                             assertEquals(expectedValue, actualValue);
                         }
                     }
-                }
-        );
+                });
 
         return result;
     }

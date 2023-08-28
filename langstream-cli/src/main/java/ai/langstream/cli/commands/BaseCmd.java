@@ -89,7 +89,6 @@ public abstract class BaseCmd implements Runnable {
 
     private static AdminClientConfiguration toAdminConfiguration(LangStreamCLIConfig config) {
         return AdminClientConfiguration.builder()
-                .apiGatewayUrl(config.getApiGatewayUrl())
                 .webServiceUrl(config.getWebServiceUrl())
                 .token(config.getToken())
                 .tenant(config.getTenant())

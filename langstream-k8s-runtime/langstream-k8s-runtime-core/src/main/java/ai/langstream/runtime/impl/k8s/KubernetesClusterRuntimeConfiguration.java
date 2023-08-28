@@ -31,4 +31,5 @@ public class KubernetesClusterRuntimeConfiguration {
     @JsonAlias({"image-pull-policy", "imagepullpolicy"})
     private String imagePullPolicy;
 
+
 }

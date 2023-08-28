@@ -15,6 +15,7 @@
  */
 package ai.langstream.apigateway.websocket.handlers;
 
+import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.model.Application;
@@ -125,10 +126,11 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     }
 
     private Application getResolvedApplication(String tenant, String applicationId) {
-        final Application application = applicationStore.getSpecs(tenant, applicationId);
-        if (application == null) {
+        final ApplicationSpecs applicationSpecs = applicationStore.getSpecs(tenant, applicationId);
+        if (applicationSpecs == null) {
             throw new IllegalArgumentException("application " + applicationId + " not found");
         }
+        final Application application = applicationSpecs.getApplication();
         application.setSecrets(applicationStore.getSecrets(tenant, applicationId));
         return ApplicationPlaceholderResolver
                 .resolvePlaceholders(application);

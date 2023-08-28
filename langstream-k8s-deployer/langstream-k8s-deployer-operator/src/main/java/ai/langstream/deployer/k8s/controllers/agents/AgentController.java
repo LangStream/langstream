@@ -99,8 +99,7 @@ public class AgentController extends BaseController<AgentCustomResource>
         @Override
         protected StatefulSet desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
             try {
-                return AgentResourcesFactory.generateStatefulSet(primary, configuration.getCodeStorage(),
-                        configuration.getAgentResources(), configuration.getPodTemplate());
+                return AgentResourcesFactory.generateStatefulSet(primary, configuration.getAgentResources(), configuration.getPodTemplate());
             } catch (Throwable t) {
                 log.errorf(t, "Error while generating StatefulSet for agent %s", primary.getMetadata().getName());
                 throw new RuntimeException(t);

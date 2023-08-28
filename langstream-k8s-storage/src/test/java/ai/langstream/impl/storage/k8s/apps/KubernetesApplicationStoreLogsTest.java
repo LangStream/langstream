@@ -40,14 +40,13 @@ class KubernetesApplicationStoreLogsTest {
     @Test
     void testLogs() {
         final KubernetesApplicationStore store = new KubernetesApplicationStore();
-        store.initialize(Map.of("namespaceprefix", "langstream-"));
+        store.initialize(Map.of("namespaceprefix", "langstream-", "controlPlaneUrl", "http://localhost:8090"));
         store.onTenantCreated("mytenant");
         AgentCustomResource cr = agentCustomResource("mytenant", "myapp");
         k3s.getClient().resource(cr).inNamespace("langstream-mytenant").serverSideApply();
         cr = k3s.getClient().resource(cr).inNamespace("langstream-mytenant").get();
         final StatefulSet sts = AgentResourcesFactory.generateStatefulSet(
                 cr,
-                Map.of(),
                 new AgentResourceUnitConfiguration()
         );
         sts.getSpec().getTemplate().getSpec().getInitContainers().clear();

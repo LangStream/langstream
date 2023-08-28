@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Gateways;
 import ai.langstream.api.model.StoredApplication;
@@ -61,6 +62,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -93,7 +96,7 @@ class ProduceConsumeHandlerTest {
                 storedApplication.setInstance(application);
                 return storedApplication;
             }).when(mock).get(anyString(), anyString(), anyBoolean());
-            doAnswer(invocationOnMock -> buildApp()).when(mock).getSpecs(anyString(), anyString());
+            doAnswer(invocationOnMock -> ApplicationSpecs.builder().application(buildApp()).build()).when(mock).getSpecs(anyString(), anyString());
 
             return mock;
 

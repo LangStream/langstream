@@ -48,7 +48,7 @@ class AgentResourcesFactoryTest {
                     agentId: my-agent
                 """);
         final StatefulSet statefulSet =
-                AgentResourcesFactory.generateStatefulSet(resource, Map.of(), new AgentResourceUnitConfiguration());
+                AgentResourcesFactory.generateStatefulSet(resource, new AgentResourceUnitConfiguration());
         assertEquals("""
                         ---
                         apiVersion: apps/v1
@@ -92,7 +92,7 @@ class AgentResourcesFactoryTest {
                                 env:
                                 - name: LANGSTREAM_AGENT_RUNNER_POD_CONFIGURATION
                                   value: /app-config/config
-                                - name: LANGSTREAM_AGENT_RUNNER_CODE_CONFIGURATION
+                                - name: LANGSTREAM_AGENT_RUNNER_CODE_PATH
                                   value: /app-code-download
                                 image: busybox
                                 imagePullPolicy: Never
@@ -113,7 +113,7 @@ class AgentResourcesFactoryTest {
                                   name: code-download
                               initContainers:
                               - args:
-                                - "echo '{\\"tenant\\":\\"my-tenant\\",\\"type\\":\\"none\\",\\"codeStorageArchiveId\\":null,\\"configuration\\":{}}' > /code-config/config"
+                                - "echo '{\\"codeDownloadPath\\":\\"/app-code-download\\",\\"tenant\\":\\"my-tenant\\",\\"applicationId\\":\\"the-'\\"'\\"'app\\",\\"codeArchiveId\\":null}' > /download-config/config"
                                 command:
                                 - bash
                                 - -c
@@ -126,19 +126,26 @@ class AgentResourcesFactoryTest {
                                     memory: 100Mi
                                 terminationMessagePolicy: FallbackToLogsOnError
                                 volumeMounts:
-                                - mountPath: /code-config
-                                  name: code-config
+                                - mountPath: /download-config
+                                  name: download-config
                               - args:
                                 - agent-code-download
-                                - /code-config/config
-                                - /app-code-download
+                                env:
+                                - name: LANGSTREAM_AGENT_CODE_DOWNLOADER_CLUSTER_CONFIGURATION
+                                  value: /cluster-config/config
+                                - name: LANGSTREAM_AGENT_CODE_DOWNLOADER_DOWNLOAD_CONFIGURATION
+                                  value: /download-config/config
+                                - name: LANGSTREAM_AGENT_CODE_DOWNLOADER_TOKEN
+                                  value: /var/run/secrets/kubernetes.io/serviceaccount/token
                                 image: busybox
                                 imagePullPolicy: Never
                                 name: code-download
                                 terminationMessagePolicy: FallbackToLogsOnError
                                 volumeMounts:
-                                - mountPath: /code-config
-                                  name: code-config
+                                - mountPath: /cluster-config
+                                  name: cluster-config
+                                - mountPath: /download-config
+                                  name: download-config
                                 - mountPath: /app-code-download
                                   name: code-download
                               terminationGracePeriodSeconds: 60
@@ -149,10 +156,16 @@ class AgentResourcesFactoryTest {
                                   - key: app-config
                                     path: config
                                   secretName: agent-config
-                              - emptyDir: {}
-                                name: code-config
+                              - name: cluster-config
+                                secret:
+                                  items:
+                                  - key: cluster-config
+                                    path: config
+                                  secretName: langstream-cluster-config
                               - emptyDir: {}
                                 name: code-download
+                              - emptyDir: {}
+                                name: download-config
                         """,
                 SerializationUtil.writeAsYaml(statefulSet));
     }
@@ -179,7 +192,7 @@ class AgentResourcesFactoryTest {
                         size: 4
                 """);
         final StatefulSet statefulSet =
-                AgentResourcesFactory.generateStatefulSet(resource, Map.of(), new AgentResourceUnitConfiguration());
+                AgentResourcesFactory.generateStatefulSet(resource, new AgentResourceUnitConfiguration());
         assertEquals(2, statefulSet.getSpec().getReplicas());
         final Container container = statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0);
         assertEquals(Quantity.parse("2"), container.getResources().getRequests().get("cpu"));
@@ -211,7 +224,7 @@ class AgentResourcesFactoryTest {
                 .withKey("workload")
                 .build()), Map.of("workload", "langstream"));
         final StatefulSet statefulSet =
-                AgentResourcesFactory.generateStatefulSet(resource, Map.of(), new AgentResourceUnitConfiguration(),
+                AgentResourcesFactory.generateStatefulSet(resource, new AgentResourceUnitConfiguration(),
                         podTemplate);
         final List<Toleration> tolerations = statefulSet.getSpec().getTemplate().getSpec().getTolerations();
         assertEquals(1, tolerations.size());

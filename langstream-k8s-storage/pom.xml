@@ -45,6 +45,12 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-runtime-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>langstream-k8s-deployer-core</artifactId>
       <version>${project.version}</version>
     </dependency>

@@ -24,7 +24,6 @@ import lombok.Setter;
 @Builder
 public class AdminClientConfiguration {
     private String webServiceUrl;
-    private String apiGatewayUrl;
     private String tenant;
     private String token;
 }

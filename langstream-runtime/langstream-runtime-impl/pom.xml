@@ -48,6 +48,11 @@
       <artifactId>langstream-runtime-api</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-admin-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <!-- implementation for the Kafka Consumers/Producers -->
     <dependency>

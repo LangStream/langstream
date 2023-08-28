@@ -66,110 +66,52 @@ class ApplicationResourceTest {
         this.tempDir = tempDir;
     }
 
-    protected File createTempFile(String content) {
-        try {
-            Path tempFile = Files.createTempFile(tempDir, "langstream-cli-test", ".yaml");
-            Files.writeString(tempFile, content);
-            return tempFile.toFile();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    private MockMultipartFile getMultipartFile(String application) throws Exception {
-        final Path zip = AbstractDeployApplicationCmd.buildZip(
-                application == null ? null : createTempFile(application), log::info);
-        return new MockMultipartFile(
-                "app", "content.zip", MediaType.APPLICATION_OCTET_STREAM_VALUE,
-                Files.newInputStream(zip));
-    }
-
 
     @Test
     void testAppCrud() throws Exception {
         mockMvc.perform(put("/api/tenants/my-tenant"))
                 .andExpect(status().isOk());
-        mockMvc
-                .perform(
-                        multipart(HttpMethod.POST, "/api/applications/my-tenant/test")
-                                .file(getMultipartFile("""
-                                        id: app1
-                                        name: test
-                                        topics: []
-                                        pipeline: []
-                                        """))
-                                .part(new MockPart("instance",
-                                        """
-                                                instance:
-                                                  streamingCluster:
-                                                    type: pulsar
-                                                  computeCluster:
-                                                    type: none
-                                                """.getBytes(StandardCharsets.UTF_8)
-                                ))
-                                .part(new MockPart("secrets",
-                                        """
-                                                secrets:
-                                                - name: secret1
-                                                  id: secret1
-                                                  data:
-                                                    key1: value1
-                                                    key2: value2
-                                                """.getBytes(StandardCharsets.UTF_8)))
-                )
-                .andExpect(status().isOk());
 
-        mockMvc
-                .perform(
-                        multipart(HttpMethod.PATCH, "/api/applications/my-tenant/test")
-                                .file(getMultipartFile("""
-                                        id: app1
-                                        name: test
-                                        topics: []
-                                        pipeline: []
-                                        """))
-                                .part(new MockPart("instance",
-                                        """
-                                                instance:
-                                                  streamingCluster:
-                                                    type: pulsar
-                                                  computeCluster:
-                                                    type: none
-                                                """.getBytes(StandardCharsets.UTF_8)
-                                ))
-                )
-                .andExpect(status().isOk());
+        final String appContent = """
+                id: app1
+                name: test
+                topics: []
+                pipeline: []
+                """;
+        final String instanceContent = """
+                instance:
+                  streamingCluster:
+                    type: pulsar
+                  computeCluster:
+                    type: none
+                """;
+        final String secretsContent = """
+                secrets:
+                - name: secret1
+                  id: secret1
+                  data:
+                    key1: value1
+                    key2: value2
+                """;
+        AppTestHelper.deployApp(mockMvc, "my-tenant", "test", appContent,
+                instanceContent,
+                secretsContent
+        );
 
-        mockMvc
-                .perform(
-                        multipart(HttpMethod.PATCH, "/api/applications/my-tenant/test")
-                                .file(getMultipartFile("""
-                                        id: app1
-                                        name: test
-                                        topics: []
-                                        pipeline: []
-                                        """))
+        AppTestHelper.updateApp(mockMvc, "my-tenant", "test", appContent,
+                instanceContent,
+                null
+        );
 
-                )
-                .andExpect(status().isOk());
+        AppTestHelper.updateApp(mockMvc, "my-tenant", "test", appContent,
+                null,
+                null
+        );
 
-        mockMvc
-                .perform(
-                        multipart(HttpMethod.PATCH, "/api/applications/my-tenant/test")
-                                .part(new MockPart("instance",
-                                        """
-                                                instance:
-                                                  streamingCluster:
-                                                    type: pulsar
-                                                  computeCluster:
-                                                    type: none
-                                                """.getBytes(StandardCharsets.UTF_8))
-                                )
-                )
-                .andExpect(status().isOk());
-
-
+        AppTestHelper.updateApp(mockMvc, "my-tenant", "test", null,
+                instanceContent,
+                null
+        );
         mockMvc
                 .perform(
                         get("/api/applications/my-tenant/test")
@@ -245,26 +187,22 @@ class ApplicationResourceTest {
     void testDownloadCode() throws Exception {
         mockMvc.perform(put("/api/tenants/my-tenant2"))
                 .andExpect(status().isOk());
-        mockMvc
-                .perform(
-                        multipart(HttpMethod.POST, "/api/applications/my-tenant2/test")
-                                .file(getMultipartFile("""
-                                        id: app1
-                                        name: test
-                                        topics: []
-                                        pipeline: []
-                                        """))
-                                .part(new MockPart("instance",
-                                        """
-                                                instance:
-                                                  streamingCluster:
-                                                    type: pulsar
-                                                  computeCluster:
-                                                    type: none
-                                                """.getBytes(StandardCharsets.UTF_8)
-                                ))
-                )
-                .andExpect(status().isOk());
+        AppTestHelper.deployApp(mockMvc, "my-tenant2", "test",
+                """
+                        id: app1
+                        name: test
+                        topics: []
+                        pipeline: []
+                        """,
+                """
+                        instance:
+                          streamingCluster:
+                            type: pulsar
+                          computeCluster:
+                            type: none
+                        """,
+                null
+        );
 
         mockMvc
                 .perform(
@@ -272,9 +210,11 @@ class ApplicationResourceTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(result -> {
-                    assertEquals("attachment; filename=\"my-tenant2-test.zip\"", result.getResponse().getHeader("Content-Disposition"));
+                    assertEquals("attachment; filename=\"my-tenant2-test.zip\"",
+                            result.getResponse().getHeader("Content-Disposition"));
                     assertEquals("application/zip", result.getResponse().getHeader("Content-Type"));
-                    assertEquals("content-of-the-code-archive-my-tenant2-my-tenant2-test", result.getResponse().getContentAsString());
+                    assertEquals("content-of-the-code-archive-my-tenant2-my-tenant2-test",
+                            result.getResponse().getContentAsString());
                 });
 
     }

@@ -13,15 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.runtime.api.agent;
+package ai.langstream.api.model;
 
-public class AgentRunnerConstants {
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    public static final String POD_CONFIG_ENV = "LANGSTREAM_AGENT_RUNNER_POD_CONFIGURATION";
-    public static final String POD_CONFIG_ENV_DEFAULT = "/app-config/config";
-    public static final String DOWNLOADED_CODE_PATH_ENV = "LANGSTREAM_AGENT_RUNNER_CODE_PATH";
-    public static final String DOWNLOADED_CODE_PATH_ENV_DEFAULT = "/app-code-download";
-    public static final String AGENTS_ENV = "LANGSTREAM_AGENT_RUNNER_AGENTS";
-    public static final String AGENTS_ENV_DEFAULT = "/app/agents";
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class ApplicationSpecs {
+
+    private String applicationId;
+    private Application application;
+    private String codeArchiveReference;
 
 }

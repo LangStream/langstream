@@ -16,12 +16,20 @@
 package ai.langstream.runtime.agent;
 
 
+import ai.langstream.admin.client.AdminClient;
+import ai.langstream.admin.client.AdminClientLogger;
 import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageRegistry;
-import ai.langstream.runtime.api.agent.CodeStorageConfig;
+import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
+import ai.langstream.runtime.api.ClusterConfiguration;
+import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
 import ai.langstream.runtime.deployer.RuntimeDeployerStarter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.InputStream;
+import java.net.http.HttpResponse;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -30,41 +38,50 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AgentCodeDownloader {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final RuntimeDeployerStarter.ErrorHandler errorHandler = error -> {
-        log.error("Unexpected error", error);
-        System.exit(-1);
-    };
+    public void downloadCustomCode(ClusterConfiguration clusterConfiguration, String token, DownloadAgentCodeConfiguration configuration) throws Exception {
+        log.info("Downloading custom code {}, cluster configuration {}", configuration, clusterConfiguration);
+        final String tenant = Objects.requireNonNull(configuration.tenant());
+        final String codeDownloadPath = Objects.requireNonNull(configuration.codeDownloadPath());
+        final String applicationId = Objects.requireNonNull(configuration.applicationId());
+        final String codeArchiveId = Objects.requireNonNull(configuration.codeArchiveId());
+        final Path destinationPath = Paths.get(codeDownloadPath);
+        if (destinationPath.toFile().exists()) {
+            destinationPath.toFile().mkdirs();
+        }
 
-    public static void main(String... args) {
-        try {
-            if (args.length < 1) {
-                throw new IllegalArgumentException("Missing code configuration");
-            }
-
-            Path codeConfigPath = Path.of(args[0]);
-            log.info("Loading code config config from {}", codeConfigPath);
-            final CodeStorageConfig codeStorageConfig =
-                    MAPPER.readValue(codeConfigPath.toFile(), CodeStorageConfig.class);
-            Path codeDownloadPath = Path.of(args[1]);
-            downloadCustomCode(codeStorageConfig, codeDownloadPath);
-            log.info("Code downloaded to {}", codeDownloadPath);
-        } catch (Throwable error) {
-            errorHandler.handleError(error);
+        try (AdminClient adminClient = createAdminClient(clusterConfiguration, token, tenant)) {
+            final HttpResponse<InputStream> download = adminClient.applications()
+                    .download(applicationId, codeArchiveId, HttpResponse.BodyHandlers.ofInputStream());
+            LocalZipFileArchiveFile.extractTo(download.body(), destinationPath);
+            log.info("Downloaded code to {}", codeDownloadPath);
         }
     }
 
-    private static void downloadCustomCode(CodeStorageConfig codeStorageConfig, Path codeDownloadPath) throws Exception {
-        if (codeStorageConfig != null) {
-            log.info("Downloading custom code from {}", codeStorageConfig);
-            log.info("Custom code is stored in {}", codeDownloadPath);
-            try (CodeStorage codeStorage =
-                    CodeStorageRegistry.getCodeStorage(codeStorageConfig.type(), codeStorageConfig.configuration())) {
-                codeStorage.downloadApplicationCode(
-                        codeStorageConfig.tenant(),
-                        codeStorageConfig.codeStorageArchiveId(),
-                        (downloadedCodeArchive -> downloadedCodeArchive.extractTo(codeDownloadPath)));
+    private static AdminClient createAdminClient(ClusterConfiguration clusterConfiguration, String token, String tenant) throws Exception {
+        final ai.langstream.admin.client.AdminClientConfiguration config =
+                ai.langstream.admin.client.AdminClientConfiguration.builder()
+                        .webServiceUrl(clusterConfiguration.controlPlaneUrl())
+                        .token(token)
+                        .tenant(tenant)
+                        .build();
+
+        final AdminClientLogger logger = new AdminClientLogger() {
+            @Override
+            public void log(Object message) {
+                log.info(message.toString());
             }
-        }
+
+            @Override
+            public void error(Object message) {
+                log.error(message.toString());
+
+            }
+
+            @Override
+            public void debug(Object message) {
+                log.debug(message.toString());
+            }
+        };
+        return new AdminClient(config, logger);
     }
 }

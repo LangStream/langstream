@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,4 +14,14 @@
 # limitations under the License.
 #
 
-exec java ${JAVA_OPTS} -noverify -XX:+AlwaysPreTouch -Djava.security.egd=file:/dev/./urandom -cp /app/resources/:/app/classes/:/app/libs/* "ai.langstream.webservice.LangStreamControlPlaneWebApplication" "$@"
+set -e
+local_k8s_cert=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+if [ -f $local_k8s_cert ]; then
+  echo "Importing local Kubernetes certificate"
+  truststorepath=$(realpath /tmp/truststore.jks)
+  keytool -import -trustcacerts -noprompt -alias kubernetes -file $local_k8s_cert -keystore $truststorepath -storepass langstream
+  echo "Certificate imported"
+  JAVA_OPTS="$JAVA_OPTS -Djavax.net.ssl.trustStore=$truststorepath -Djavax.net.ssl.trustStorePassword=langstream"
+fi
+
+exec java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -cp /app/resources/:/app/classes/:/app/libs/* "ai.langstream.webservice.LangStreamControlPlaneWebApplication" "$@"

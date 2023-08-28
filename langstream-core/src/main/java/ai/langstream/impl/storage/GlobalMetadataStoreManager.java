@@ -32,6 +32,18 @@ public class GlobalMetadataStoreManager {
     private final GlobalMetadataStore globalMetadataStore;
     private final ApplicationStore applicationStore;
 
+
+    public void syncTenantsConfiguration() {
+        listTenants()
+                .keySet()
+                .forEach(this::syncTenantConfiguration);
+    }
+
+    public void syncTenantConfiguration(String tenant) {
+        applicationStore.onTenantCreated(tenant);
+    }
+
+
     @SneakyThrows
     public void putTenant(String tenant, TenantConfiguration tenantConfiguration) {
         final String key = keyedTenantName(tenant);

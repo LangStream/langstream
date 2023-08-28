@@ -107,10 +107,6 @@ public class AgentControllerIT {
         int args = 0;
         assertEquals("agent-runtime", container.getArgs().get(args++));
         assertEquals("/app-config/config", container.getArgs().get(args++));
-        assertEquals("/app-config/config",
-                container.getEnv().stream().filter(e -> "LANGSTREAM_AGENT_RUNNER_POD_CONFIGURATION".equals(e.getName())).findFirst().orElseThrow().getValue());
-        assertEquals("/app-code-download",
-                container.getEnv().stream().filter(e -> "LANGSTREAM_AGENT_RUNNER_CODE_CONFIGURATION".equals(e.getName())).findFirst().orElseThrow().getValue());
 
     }
     private AgentCustomResource getCr(String yaml) {

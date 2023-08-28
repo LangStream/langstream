@@ -44,9 +44,9 @@ class AgentRunnerStarterTest {
         runTest(false, Map.of(), podRuntimeFile, codeDir);
         runTest(true, Map.of(), podRuntimeFile, codeDir, agentsDir);
         runTest(false, Map.of(AgentRunnerConstants.POD_CONFIG_ENV, podRuntimeFile,
-                        AgentRunnerConstants.CODE_CONFIG_ENV, codeDir));
+                        AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV, codeDir));
         runTest(true, Map.of(AgentRunnerConstants.POD_CONFIG_ENV, podRuntimeFile,
-                AgentRunnerConstants.CODE_CONFIG_ENV, codeDir, AgentRunnerConstants.AGENTS_ENV, agentsDir));
+                AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV, codeDir, AgentRunnerConstants.AGENTS_ENV, agentsDir));
     }
 
     @SneakyThrows
@@ -54,7 +54,7 @@ class AgentRunnerStarterTest {
         final AgentRunner agentRunner = Mockito.mock(AgentRunner.class);
 
         try {
-            new TestDeployer(env).run(agentRunner, args);
+            new TestDeployer(agentRunner, env).start(args);
         } catch (Exception e) {
             if (expectOk) {
                 throw new RuntimeException(e);
@@ -72,12 +72,13 @@ class AgentRunnerStarterTest {
     static class TestDeployer extends AgentRunnerStarter {
         private final Map<String, String> map;
 
-        public TestDeployer(Map<String, String> map) {
+        public TestDeployer(AgentRunner agentRunner, Map<String, String> map) {
+            super(agentRunner);
             this.map = map;
         }
 
         @Override
-        String getEnv(String key) {
+        protected String getEnv(String key) {
             return map.get(key);
         }
     }

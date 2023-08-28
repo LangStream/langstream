@@ -23,12 +23,17 @@ import io.jsonwebtoken.SigningKeyResolver;
 import io.jsonwebtoken.io.Decoders;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,13 +44,19 @@ import org.slf4j.LoggerFactory;
 
 public class JwksUriSigningKeyResolver implements SigningKeyResolver {
 
+    public record JwksUri(String uri, boolean checkHost, String token) {
+    }
+
+
     private static final Logger log = LoggerFactory.getLogger(JwksUriSigningKeyResolver.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final String algorithm;
     private final Pattern hostsAllowlist;
     private final Key fallbackKey;
-    private final Map<String, Key> keyMap = new ConcurrentHashMap<>();
+    private final HttpClient httpClient;
+    private final LocalKubernetesJwksUriSigningKeyResolver localKubernetesJwksUriSigningKeyResolver;
+    private Map<JwksUri, Key> keyMap = new ConcurrentHashMap<>();
 
     public JwksUriSigningKeyResolver(String algorithm, String hostsAllowlist, Key fallbackKey) {
         this.algorithm = algorithm;
@@ -55,33 +66,54 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
             this.hostsAllowlist = Pattern.compile(hostsAllowlist);
         }
         this.fallbackKey = fallbackKey;
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(30))
+                .followRedirects(HttpClient.Redirect.ALWAYS)
+                .build();
+        this.localKubernetesJwksUriSigningKeyResolver = new LocalKubernetesJwksUriSigningKeyResolver(httpClient);
     }
 
     @Override
     public Key resolveSigningKey(JwsHeader header, Claims claims) {
-        final String jwksUri = (String) claims.get("jwks_uri");
+        JwksUri jwksUri = null;
+        String tokenUri = (String) claims.get("jwks_uri");
+        if (tokenUri != null) {
+            jwksUri = new JwksUri(tokenUri, true, null);
+        } else {
+            final String issuer = claims.getIssuer();
+            if (issuer != null) {
+                log.debug("No jwks_uri claim in JWT, checking issuer");
+                jwksUri = localKubernetesJwksUriSigningKeyResolver.getJwksUriFromIssuer(issuer);
+                log.debug("Got jwks_uri from issuer {}: {}", issuer, jwksUri);
+            }
+        }
         if (jwksUri == null) {
+            log.debug("No jwks_uri claim in JWT, using fallback key");
             return fallbackKey;
         }
         return getKey(jwksUri);
     }
+
 
     @Override
     public Key resolveSigningKey(JwsHeader header, String plaintext) {
         throw new UnsupportedOperationException();
     }
 
-    private Key getKey(String uri) {
+    private Key getKey(JwksUri uri) {
         return keyMap.computeIfAbsent(uri, this::fetchKey);
     }
 
-    private Key fetchKey(String uri) {
+    private Key fetchKey(JwksUri jwksUri) {
+        final String uri = jwksUri.uri();
         try {
             final URL src = new URL(uri);
-            if (hostsAllowlist == null || !hostsAllowlist.matcher(src.getHost()).matches()) {
-                throw new JwtException("Untrusted hostname: '" + src.getHost() + "'");
+            if (jwksUri.checkHost()) {
+                if (hostsAllowlist == null || !hostsAllowlist.matcher(src.getHost()).matches()) {
+                    throw new JwtException("Untrusted hostname: '" + src.getHost() + "'");
+                }
             }
-            final JwkKeys keys = MAPPER.readValue(src, JwkKeys.class);
+            final JwkKeys keys = getKeys(jwksUri);
             for (JwkKey key : keys.keys()) {
                 if (!algorithm.equals(key.alg())) {
                     continue;
@@ -104,9 +136,29 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
         }
     }
 
+    private JwkKeys getKeys(JwksUri jwksUri) throws IOException {
+        final HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(jwksUri.uri()))
+                .version(HttpClient.Version.HTTP_1_1)
+                .GET();
+        if (jwksUri.token() != null) {
+            builder.header("Authorization", "Bearer " + jwksUri.token());
+        }
+        try {
+            final HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new IOException("Failed to fetch keys from URL: " + jwksUri.uri() + ", status code: " + response.statusCode());
+            }
+            return MAPPER.readValue(response.body(), JwkKeys.class);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+    }
+
     record JwkKeys(List<JwkKey> keys) {}
 
-    record JwkKey(String alg, String e, String kid, String kty, String n) {}
+    record JwkKey(String alg, String e, String kid, String kty, String n, String use) {}
 
     private BigInteger base64ToBigInteger(String value) {
         return new BigInteger(1, Decoders.BASE64URL.decode(value));

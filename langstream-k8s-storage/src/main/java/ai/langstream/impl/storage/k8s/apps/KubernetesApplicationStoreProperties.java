@@ -15,6 +15,7 @@
  */
 package ai.langstream.impl.storage.k8s.apps;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -23,4 +24,6 @@ import lombok.NoArgsConstructor;
 public class KubernetesApplicationStoreProperties {
     private String namespaceprefix;
 
+    @JsonAlias({"control-plane-url", "controlplaneurl"})
+    private String controlPlaneUrl;
 }

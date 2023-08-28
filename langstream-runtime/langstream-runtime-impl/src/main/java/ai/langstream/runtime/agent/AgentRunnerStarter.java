@@ -17,10 +17,11 @@ package ai.langstream.runtime.agent;
 
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV_DEFAULT;
-import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV;
-import static ai.langstream.runtime.api.agent.AgentRunnerConstants.CODE_CONFIG_ENV_DEFAULT;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV_DEFAULT;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
+import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
  * This is the main entry point for the pods that run the LangStream runtime and Java code.
  */
 @Slf4j
-public class AgentRunnerStarter {
+public class AgentRunnerStarter extends RuntimeStarter {
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
     private static final MainErrorHandler mainErrorHandler = error -> {
@@ -48,7 +49,7 @@ public class AgentRunnerStarter {
     @SneakyThrows
     public static void main(String... args) {
         try {
-            new AgentRunnerStarter().run(new AgentRunner(), args);
+            new AgentRunnerStarter(new AgentRunner()).start(args);
         } catch (Throwable error) {
             log.info("Error, NOW SLEEPING", error);
             Thread.sleep(60000);
@@ -56,8 +57,13 @@ public class AgentRunnerStarter {
         }
     }
 
-    @SneakyThrows
-    public void run(AgentRunner agentRunner, String... args) {
+    private final AgentRunner agentRunner;
+
+    public AgentRunnerStarter(AgentRunner agentRunner) {
+        this.agentRunner = agentRunner;
+    }
+
+    public void start(String... args) throws Exception {
 
         // backward compatibility: <pod configuration file> <code directory> <agents directory>
         Path podRuntimeConfiguration;
@@ -66,11 +72,11 @@ public class AgentRunnerStarter {
         if (args.length == 0) {
             podRuntimeConfiguration =
                     getPathFromEnv(POD_CONFIG_ENV, POD_CONFIG_ENV_DEFAULT);
-            codeDirectory = getPathFromEnv(CODE_CONFIG_ENV, CODE_CONFIG_ENV_DEFAULT);
+            codeDirectory = getPathFromEnv(DOWNLOADED_CODE_PATH_ENV, DOWNLOADED_CODE_PATH_ENV_DEFAULT);
             agentsDirectory = getPathFromEnv(AGENTS_ENV, AGENTS_ENV_DEFAULT);
         } else if (args.length == 1) {
             podRuntimeConfiguration = Path.of(args[0]);
-            codeDirectory = getPathFromEnv(CODE_CONFIG_ENV, CODE_CONFIG_ENV_DEFAULT);
+            codeDirectory = getPathFromEnv(DOWNLOADED_CODE_PATH_ENV, DOWNLOADED_CODE_PATH_ENV_DEFAULT);
             agentsDirectory = getPathFromEnv(AGENTS_ENV, AGENTS_ENV_DEFAULT);
         } else if (args.length == 2) {
             podRuntimeConfiguration = Path.of(args[0]);
@@ -94,21 +100,5 @@ public class AgentRunnerStarter {
         agentRunner.run(configuration, podRuntimeConfiguration, codeDirectory, agentsDirectory,
                 new AgentInfo(), -1);
 
-    }
-
-    private Path getPathFromEnv(String envVar, String defaultValue) {
-        String value = getEnv(envVar);
-        if (value == null) {
-            value = defaultValue;
-        }
-        final Path path = Path.of(value);
-        if (!path.toFile().exists()) {
-            throw new IllegalArgumentException("File " + path + " does not exist");
-        }
-        return path;
-    }
-
-    String getEnv(String key) {
-        return System.getenv(key);
     }
 }

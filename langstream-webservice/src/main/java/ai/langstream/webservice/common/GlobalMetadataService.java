@@ -57,4 +57,8 @@ public class GlobalMetadataService {
         return store.listTenants();
     }
 
+    public void syncTenantsConfiguration() {
+        store.syncTenantsConfiguration();
+    }
+
 }

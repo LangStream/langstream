@@ -17,6 +17,7 @@ package ai.langstream.runtime.deployer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 import ai.langstream.api.model.Secrets;
+import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConstants;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
  * This is the main entry point for the deployer runtime.
  */
 @Slf4j
-public class RuntimeDeployerStarter {
+public class RuntimeDeployerStarter extends RuntimeStarter {
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(FAIL_ON_UNKNOWN_PROPERTIES, false); // this helps with forward compatibility
@@ -43,15 +44,20 @@ public class RuntimeDeployerStarter {
 
     public static void main(String... args) {
         try {
-
-            new RuntimeDeployerStarter()
-                    .run(new RuntimeDeployer(), args);
+            new RuntimeDeployerStarter(new RuntimeDeployer()).start(args);
         } catch (Throwable error) {
             errorHandler.handleError(error);
         }
     }
 
-    public void run(RuntimeDeployer runtimeDeployer, String... args) throws Exception {
+    private final RuntimeDeployer runtimeDeployer;
+
+    public RuntimeDeployerStarter(RuntimeDeployer runtimeDeployer) {
+        this.runtimeDeployer = runtimeDeployer;
+    }
+
+    @Override
+    public void start(String... args) throws Exception {
         // backward compatibility: <cmd> <clusterRuntimeConfigPath> <appConfigPath> <secretsPath>
         Path clusterRuntimeConfigPath;
         Path appConfigPath;
@@ -110,31 +116,5 @@ public class RuntimeDeployerStarter {
 
     }
 
-    private Path getPathFromEnv(String envVar, String defaultValue) {
-        return getPathFromEnv(envVar, defaultValue, true);
-    }
-
-    private Path getOptionalPathFromEnv(String envVar) {
-        return getPathFromEnv(envVar, null, false);
-    }
-
-    private Path getPathFromEnv(String envVar, String defaultValue, boolean required) {
-        String value = getEnv(envVar);
-        if (value == null) {
-            value = defaultValue;
-        }
-        if (!required && value == null) {
-            return null;
-        }
-        final Path path = Path.of(value);
-        if (!path.toFile().exists()) {
-            throw new IllegalArgumentException("File " + path + " does not exist");
-        }
-        return path;
-    }
-
-    String getEnv(String key) {
-        return System.getenv(key);
-    }
 }
 

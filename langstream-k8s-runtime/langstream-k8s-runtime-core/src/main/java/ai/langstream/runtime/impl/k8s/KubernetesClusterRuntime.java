@@ -16,6 +16,7 @@
 package ai.langstream.runtime.impl.k8s;
 
 import ai.langstream.api.model.ErrorsSpec;
+import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.ExecutionPlanOptimiser;
@@ -149,6 +150,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         errorsConfiguration.put("retries", errorsSpec.getRetries());
         errorsConfiguration.put("onFailure", errorsSpec.getOnFailure());
 
+        final StreamingCluster streamingCluster = applicationInstance.getApplication().getInstance().streamingCluster();
         RuntimePodConfiguration podConfig = new RuntimePodConfiguration(
                 inputConfiguration,
                 outputConfiguration,
@@ -163,7 +165,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                         defaultAgentImplementation.getConfiguration(),
                         errorsConfiguration
                 ),
-                applicationInstance.getApplication().getInstance().streamingCluster()
+                streamingCluster
         );
 
 

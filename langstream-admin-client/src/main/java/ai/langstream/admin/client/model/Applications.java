@@ -16,6 +16,8 @@
 package ai.langstream.admin.client.model;
 
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
+import java.io.InputStream;
+import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public interface Applications {
@@ -30,4 +32,10 @@ public interface Applications {
     String list();
 
     HttpResponse<byte[]> download(String application);
+
+    HttpResponse<byte[]> download(String application, String codeStorageId);
+
+    <T> HttpResponse<T> download(String application, HttpResponse.BodyHandler<T> responseBodyHandler);
+
+    <T> HttpResponse<T> download(String application, String codeStorageId, HttpResponse.BodyHandler<T> responseBodyHandler);
 }

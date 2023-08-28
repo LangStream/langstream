@@ -100,22 +100,22 @@ public class AgentRunner
     }
 
     public static void runAgent(RuntimePodConfiguration configuration,
-                    Path podRuntimeConfiguration,
-                    Path codeDirectory,
-                    Path agentsDirectory,
-                    AgentInfo agentInfo,
-                    int maxLoops) throws Exception {
+                                Path podRuntimeConfiguration,
+                                Path codeDirectory,
+                                Path agentsDirectory,
+                                AgentInfo agentInfo,
+                                int maxLoops) throws Exception {
         new AgentRunner().run(configuration, podRuntimeConfiguration, codeDirectory, agentsDirectory, agentInfo, maxLoops);
 
     }
 
 
     public void run(RuntimePodConfiguration configuration,
-                           Path podRuntimeConfiguration,
-                           Path codeDirectory,
-                           Path agentsDirectory,
-                           AgentInfo agentInfo,
-                           int maxLoops) throws Exception {
+                    Path podRuntimeConfiguration,
+                    Path codeDirectory,
+                    Path agentsDirectory,
+                    AgentInfo agentInfo,
+                    int maxLoops) throws Exception {
 
         Server server = bootstrapHttpServer(agentInfo);
         try {
@@ -190,9 +190,9 @@ public class AgentRunner
 
         final String pythonPath = System.getenv("PYTHONPATH");
         final String newPythonPath = "%s:%s:%s".formatted(
-            pythonPath,
-            pythonCodeDirectory.toAbsolutePath(),
-            pythonCodeDirectory.resolve("lib").toAbsolutePath());
+                pythonPath,
+                pythonCodeDirectory.toAbsolutePath(),
+                pythonCodeDirectory.resolve("lib").toAbsolutePath());
 
         // copy input/output to standard input/output of the java process
         // this allows to use "kubectl logs" easily
@@ -347,11 +347,11 @@ public class AgentRunner
     }
 
     static void runMainLoop(AgentSource source,
-                                    AgentProcessor function,
-                                    AgentSink sink,
-                                    AgentContext agentContext,
-                                    ErrorsHandler errorsHandler,
-                                    int maxLoops) throws Exception {
+                            AgentProcessor function,
+                            AgentSink sink,
+                            AgentContext agentContext,
+                            ErrorsHandler errorsHandler,
+                            int maxLoops) throws Exception {
         source.setContext(agentContext);
         sink.setContext(agentContext);
         function.setContext(agentContext);
@@ -494,13 +494,13 @@ public class AgentRunner
                                                AgentCodeRegistry agentCodeRegistry) throws Exception {
         AgentCodeAndLoader agentCodeAndLoader = agentCodeRegistry.getAgentCode(agentType);
         agentCodeAndLoader.executeWithContextClassloader((AgentCode agentCode) ->  {
-                 if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
-                     compositeAgentProcessor.configureAgentCodeRegistry(agentCodeRegistry);
-                 }
+            if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
+                compositeAgentProcessor.configureAgentCodeRegistry(agentCodeRegistry);
+            }
 
-                 agentCode.setMetadata(agentId, agentType, startedAt);
-                 agentCode.init(configuration);
-         });
+            agentCode.setMetadata(agentId, agentType, startedAt);
+            agentCode.init(configuration);
+        });
         return agentCodeAndLoader;
     }
 

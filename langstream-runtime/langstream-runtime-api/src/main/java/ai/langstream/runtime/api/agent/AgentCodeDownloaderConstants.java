@@ -15,13 +15,11 @@
  */
 package ai.langstream.runtime.api.agent;
 
-public class AgentRunnerConstants {
-
-    public static final String POD_CONFIG_ENV = "LANGSTREAM_AGENT_RUNNER_POD_CONFIGURATION";
-    public static final String POD_CONFIG_ENV_DEFAULT = "/app-config/config";
-    public static final String DOWNLOADED_CODE_PATH_ENV = "LANGSTREAM_AGENT_RUNNER_CODE_PATH";
-    public static final String DOWNLOADED_CODE_PATH_ENV_DEFAULT = "/app-code-download";
-    public static final String AGENTS_ENV = "LANGSTREAM_AGENT_RUNNER_AGENTS";
-    public static final String AGENTS_ENV_DEFAULT = "/app/agents";
-
+public class AgentCodeDownloaderConstants {
+    public static final String CLUSTER_CONFIG_ENV = "LANGSTREAM_AGENT_CODE_DOWNLOADER_CLUSTER_CONFIGURATION";
+    public static final String CLUSTER_CONFIG_ENV_DEFAULT = "/cluster-config/config";
+    public static final String TOKEN_ENV = "LANGSTREAM_AGENT_CODE_DOWNLOADER_TOKEN";
+    public static final String TOKEN_ENV_DEFAULT = "/var/run/secrets/kubernetes.io/serviceaccount/token";
+    public static final String DOWNLOAD_CONFIG_ENV = "LANGSTREAM_AGENT_CODE_DOWNLOADER_DOWNLOAD_CONFIGURATION";
+    public static final String DOWNLOAD_CONFIG_ENV_DEFAULT = "/download-config/config";
 }

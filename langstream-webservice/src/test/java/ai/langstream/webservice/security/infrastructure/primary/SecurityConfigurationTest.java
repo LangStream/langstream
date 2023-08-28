@@ -102,11 +102,11 @@ class SecurityConfigurationTest {
             mockMvc.perform(MockMvcRequestBuilders.request(entry.getKey(), entry.getValue().replace("{tenant}", "another-tenant"))
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isForbidden());
-        }
-        
 
-        mockMvc.perform(get("/api/applications/another-tenant").header("Authorization", "Bearer " + token))
-                .andExpect(status().isForbidden());
+            mockMvc.perform(MockMvcRequestBuilders.request(entry.getKey(), entry.getValue().replace("{tenant}", "notadmin"))
+                            .header("Authorization", "Bearer " + ROLE_TESTROLE))
+                    .andExpect(status().isNotFound());
+        }
     }
 
 }

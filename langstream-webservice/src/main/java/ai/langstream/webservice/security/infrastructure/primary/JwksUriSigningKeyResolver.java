@@ -46,6 +46,8 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
 
     public record JwksUri(String uri, boolean checkHost, String token) {
     }
+    public record JwksUriCacheKey(JwksUri uri, String keyId) {
+    }
 
 
     private static final Logger log = LoggerFactory.getLogger(JwksUriSigningKeyResolver.class);
@@ -56,7 +58,7 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
     private final Key fallbackKey;
     private final HttpClient httpClient;
     private final LocalKubernetesJwksUriSigningKeyResolver localKubernetesJwksUriSigningKeyResolver;
-    private Map<JwksUri, Key> keyMap = new ConcurrentHashMap<>();
+    private Map<JwksUriCacheKey, Key> keyMap = new ConcurrentHashMap<>();
 
     public JwksUriSigningKeyResolver(String algorithm, String hostsAllowlist, Key fallbackKey) {
         this.algorithm = algorithm;
@@ -84,14 +86,18 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
             if (issuer != null) {
                 log.debug("No jwks_uri claim in JWT, checking issuer");
                 jwksUri = localKubernetesJwksUriSigningKeyResolver.getJwksUriFromIssuer(issuer);
-                log.debug("Got jwks_uri from issuer {}: {}", issuer, jwksUri);
+                if (jwksUri == null) {
+                    log.debug("Not able to get jwks_uri from issuer {}", issuer);
+                } else {
+                    log.debug("Got jwks_uri from issuer {}: {}", issuer, jwksUri.uri());
+                }
             }
         }
         if (jwksUri == null) {
             log.debug("No jwks_uri claim in JWT, using fallback key");
             return fallbackKey;
         }
-        return getKey(jwksUri);
+        return getKey(new JwksUriCacheKey(jwksUri, header.getKeyId()));
     }
 
 
@@ -100,11 +106,12 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
         throw new UnsupportedOperationException();
     }
 
-    private Key getKey(JwksUri uri) {
+    private Key getKey(JwksUriCacheKey uri) {
         return keyMap.computeIfAbsent(uri, this::fetchKey);
     }
 
-    private Key fetchKey(JwksUri jwksUri) {
+    private Key fetchKey(JwksUriCacheKey jwksKey) {
+        final JwksUri jwksUri = jwksKey.uri();
         final String uri = jwksUri.uri();
         try {
             final URL src = new URL(uri);
@@ -118,6 +125,10 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
                 if (!algorithm.equals(key.alg())) {
                     continue;
                 }
+                // no kid requested, use the first one
+                if (jwksKey.keyId() != null && !jwksKey.keyId().equals(key.kid())) {
+                    continue;
+                }
                 BigInteger modulus = base64ToBigInteger(key.n());
                 BigInteger exponent = base64ToBigInteger(key.e());
                 RSAPublicKeySpec rsaPublicKeySpec = new RSAPublicKeySpec(modulus, exponent);
@@ -128,9 +139,8 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
                     throw new IllegalStateException("Failed to parse public key");
                 }
             }
-            throw new JwtException("No valid keys found from URL: " + uri);
+            throw new JwtException("No valid keys found from URL: " + uri + ", keyId: " + jwksKey.keyId());
         } catch (IOException e) {
-            System.out.println(e);
             log.error("Failed to fetch keys from URL: {}", uri, e);
             throw new JwtException("Failed to fetch keys from URL: " + uri, e);
         }

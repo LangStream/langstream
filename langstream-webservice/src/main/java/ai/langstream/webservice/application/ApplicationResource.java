@@ -48,6 +48,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -83,8 +84,13 @@ public class ApplicationResource {
         if (!authentication.isAuthenticated()) {
             throw new IllegalStateException();
         }
-        if (authentication.getAuthorities().contains(TokenAuthFilter.ROLE_ADMIN)) {
-            return;
+        if (authentication.getAuthorities() != null) {
+            final GrantedAuthority grantedAuthority = authentication.getAuthorities().stream()
+                    .filter(authority -> authority.getAuthority().equals(TokenAuthFilter.ROLE_ADMIN))
+                    .findFirst().orElse(null);
+            if (grantedAuthority != null) {
+                return;
+            }
         }
         if (authentication.getPrincipal() == null) {
             throw new IllegalStateException();

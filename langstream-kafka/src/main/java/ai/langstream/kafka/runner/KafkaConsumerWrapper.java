@@ -17,6 +17,7 @@ package ai.langstream.kafka.runner;
 
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConsumer;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -27,17 +28,15 @@ import org.apache.kafka.common.TopicPartition;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
-class KafkaConsumerWrapper implements TopicConsumer {
+public class KafkaConsumerWrapper implements TopicConsumer {
     private final Map<String, Object> configuration;
     private final String topicName;
     private final AtomicInteger totalOut = new AtomicInteger();
@@ -111,15 +110,16 @@ class KafkaConsumerWrapper implements TopicConsumer {
     }
 
 
-    private Map<TopicPartition, TreeSet<Long>> committedOffsets = new HashMap<>();
+    @Getter
+    private Map<TopicPartition, TreeSet<Long>> uncommittedOffsets = new HashMap<>();
 
     @Override
-    public void commit(List<Record> records) {
+    public synchronized void commit(List<Record> records) {
         for (Record record :records) {
             KafkaRecord.KafkaConsumerOffsetProvider kafkaRecord = (KafkaRecord.KafkaConsumerOffsetProvider) record;
             TopicPartition topicPartition = kafkaRecord.getTopicPartition();
             long offset = kafkaRecord.offset();
-            TreeSet<Long> offsetsForPartition = committedOffsets.computeIfAbsent(topicPartition, (key) -> {
+            TreeSet<Long> offsetsForPartition = uncommittedOffsets.computeIfAbsent(topicPartition, (key) -> {
                 return new TreeSet<>();
             });
             offsetsForPartition.add(offset);
@@ -146,6 +146,9 @@ class KafkaConsumerWrapper implements TopicConsumer {
             if (offsetAndMetadata != null) {
                 committed.put(topicPartition, offsetAndMetadata);
                 log.info("Committing offset {} on partition {} (record: {})", offset, topicPartition, kafkaRecord);
+            }
+            if (!offsetsForPartition.isEmpty()) {
+                log.info("On partition {} there are {} uncommitted offsets", topicPartition, offsetsForPartition);
             }
         }
 

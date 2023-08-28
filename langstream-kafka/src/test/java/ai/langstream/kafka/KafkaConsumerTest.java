@@ -16,6 +16,7 @@
 package ai.langstream.kafka;
 
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
+import ai.langstream.kafka.runner.KafkaConsumerWrapper;
 import ai.langstream.kafka.runner.KafkaTopicConnectionsRuntime;
 import ai.langstream.kafka.runtime.KafkaTopic;
 import ai.langstream.api.model.Application;
@@ -67,7 +68,7 @@ class KafkaConsumerTest {
                                 id: "pipeline-1"                                
                                 topics:
                                   - name: "input-topic"
-                                    creation-mode: create-if-not-exists                                     
+                                    creation-mode: create-if-not-exists                            
                                   - name: "input-topic-2-partitions"
                                     creation-mode: create-if-not-exists
                                     partitions: 2                                     
@@ -108,7 +109,7 @@ class KafkaConsumerTest {
         runtime.init(streamingCluster);
         String agentId = "agent-1";
         try (TopicProducer producer = runtime.createProducer(agentId, streamingCluster, Map.of("topic", "input-topic"));
-             TopicConsumer consumer = runtime.createConsumer(agentId, streamingCluster, Map.of("topic", "input-topic"))) {
+             KafkaConsumerWrapper consumer = (KafkaConsumerWrapper) runtime.createConsumer(agentId, streamingCluster, Map.of("topic", "input-topic"))) {
             producer.start();
             consumer.start();
 
@@ -124,7 +125,12 @@ class KafkaConsumerTest {
                 consumer.commit(readFromConsumer);
             }
 
-            // partial acks, this is an error
+            consumer.getUncommittedOffsets().forEach((tp, set) -> {
+                log.info("Uncommitted offsets for partition {}: {}", tp, set);
+                assertEquals(0, set.size());
+            });
+
+            // partial acks, this is not an error
             for (int j = 0; j < 4; j++) {
                 Record record1 = generateRecord("record_" + j);
                 producer.write(List.of(record1));
@@ -134,8 +140,13 @@ class KafkaConsumerTest {
             List<Record> readFromConsumer = consumeRecords(consumer, 4);
             List<Record> onlySome = readFromConsumer.subList(readFromConsumer.size() / 2 - 1, readFromConsumer.size() - 1);
 
-            // partial ack is not allowed
+            // partial ack is allowed
             consumer.commit(onlySome);
+
+            consumer.getUncommittedOffsets().forEach((tp, set) -> {
+                log.info("Uncommitted offsets for partition {}: {}", tp, set);
+                assertEquals(2, set.size());
+            });
 
         }
 

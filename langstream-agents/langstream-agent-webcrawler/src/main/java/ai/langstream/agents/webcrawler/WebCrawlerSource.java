@@ -88,10 +88,15 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 .toString().split(","));
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 1).toString());
         maxUnflushedPages = Integer.parseInt(configuration.getOrDefault("max-unflushed-pages", 100).toString());
+
         flushNext.set(maxUnflushedPages);
         int minTimeBetweenRequests =
             Integer.parseInt(configuration.getOrDefault("min-time-between-requests", 100).toString());
         String userAgent = configuration.getOrDefault("user-agent", "langstream.ai-webcrawler/1.0").toString();
+        int maxErrorCount = Integer.parseInt(configuration.getOrDefault("max-error-count", "5").toString());
+        int httpTimeout = Integer.parseInt(configuration.getOrDefault("http-timeout", "10000").toString());
+
+        boolean handleCookies = Boolean.parseBoolean(configuration.getOrDefault("handle-cookies", true).toString());
 
         log.info("Connecting to S3 Bucket at {} in region {} with user {}", endpoint, region, username);
         log.info("allowed-domains: {}", allowedDomains);
@@ -115,6 +120,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 .allowedDomains(allowedDomains)
                 .minTimeBetweenRequests(minTimeBetweenRequests)
                 .userAgent(userAgent)
+                .handleCookies(handleCookies)
+                .httpTimeout(httpTimeout)
+                .maxErrorCount(maxErrorCount)
                 .build();
 
         WebCrawlerStatus status = new WebCrawlerStatus();
@@ -177,6 +185,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 finished = true;
                 log.info("No more documents found.");
                 flushStatus();
+            } else {
+                // we did something but no new documents were found (for instance a redirection has been processed)
+                // no need to sleep
+                if (foundDocuments.isEmpty()) {
+                    log.info("The last cycle didn't produce any new documents");
+                    return List.of();
+                }
             }
         }
         if (foundDocuments.isEmpty()) {

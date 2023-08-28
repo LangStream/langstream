@@ -34,7 +34,7 @@ public interface AgentProcessor extends AgentCode {
      * @return the list of output records
      * @throws Exception if the agent fails to process the records
      */
-    List<SourceRecordAndResult> process(List<Record> records) throws Exception;
+    void process(List<Record> records, RecordSink recordSink);
 
     @Override
     default ComponentType componentType() {

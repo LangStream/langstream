@@ -24,6 +24,7 @@ import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.BadRecordHandler;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
@@ -507,10 +508,11 @@ public class AgentRunner
         return finalResult;
     }
 
-    private static List<AgentProcessor.SourceRecordAndResult> safeProcessRecords(AgentProcessor processor, List<Record> recordToProcess) {
-        List<AgentProcessor.SourceRecordAndResult> results;
+    private static List<AgentProcessor.SourceRecordAndResult> safeProcessRecords(AgentProcessor processor,
+                                                                                 List<Record> recordToProcess) {
+        List<AgentProcessor.SourceRecordAndResult> results = new ArrayList<>();
         try {
-            results =  processor.process(recordToProcess);
+            processor.process(recordToProcess, results::add);
         } catch (Throwable error) {
             results = recordToProcess
                     .stream()

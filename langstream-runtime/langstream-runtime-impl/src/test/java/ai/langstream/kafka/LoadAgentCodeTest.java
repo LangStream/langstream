@@ -22,6 +22,8 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -35,7 +37,9 @@ class LoadAgentCodeTest {
         AgentCodeRegistry registry = new AgentCodeRegistry();
         AgentProcessor noop = (AgentProcessor) registry.getAgentCode("noop").agentCode();
         MyRecord myRecord = new MyRecord();
-        assertTrue(noop.process(List.of(myRecord)).isEmpty());
+        List<AgentProcessor.SourceRecordAndResult> res = new ArrayList<>();
+        noop.process(List.of(myRecord), res::add);
+        assertTrue(res.isEmpty());
     }
 
     @Test
@@ -43,9 +47,15 @@ class LoadAgentCodeTest {
         AgentCodeRegistry registry = new AgentCodeRegistry();
         AgentProcessor noop = (AgentProcessor) registry.getAgentCode("identity").agentCode();
         MyRecord myRecord = new MyRecord();
-        assertEquals(1, noop.process(List.of(myRecord)).get(0).resultRecords().size());
-        assertSame(myRecord, noop.process(List.of(myRecord)).get(0).resultRecords().get(0));
-        assertSame(myRecord, noop.process(List.of(myRecord)).get(0).sourceRecord());
+        List<AgentProcessor.SourceRecordAndResult> res = new ArrayList<>();
+        noop.process(List.of(myRecord), res::add);
+        assertEquals(1, res.size());
+        res.clear();
+        noop.process(List.of(myRecord), res::add);
+        assertSame(myRecord, res.get(0).resultRecords().get(0));
+        res.clear();
+        noop.process(List.of(myRecord), res::add);
+        assertSame(myRecord, res.get(0).sourceRecord());
     }
 
     private static class MyRecord implements Record {

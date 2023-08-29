@@ -15,15 +15,14 @@
  */
 package ai.langstream.api.runner.topics;
 
-/**
- * Factory
- */
+/** Factory */
 public interface TopicConnectionsRuntimeProvider {
 
     boolean supports(String streamingClusterType);
 
     /**
      * Create a new TopicConnectionsRuntime for the given streaming cluster type
+     *
      * @return the physical application instance
      */
     TopicConnectionsRuntime getImplementation();

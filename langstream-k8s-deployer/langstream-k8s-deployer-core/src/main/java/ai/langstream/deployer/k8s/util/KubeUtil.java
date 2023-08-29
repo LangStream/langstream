@@ -37,28 +37,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class KubeUtil {
 
-    private KubeUtil() {
-    }
+    private KubeUtil() {}
 
     public static void patchJob(KubernetesClient client, Job resource) {
         final String namespace = resource.getMetadata().getNamespace();
-        final Job current = client.resources(resource.getClass())
-                .inNamespace(namespace)
-                .withName(resource.getMetadata().getName())
-                .get();
+        final Job current =
+                client.resources(resource.getClass())
+                        .inNamespace(namespace)
+                        .withName(resource.getMetadata().getName())
+                        .get();
         if (current != null) {
-            client
-                    .resource(current)
+            client.resource(current)
                     .inNamespace(namespace)
                     .withPropagationPolicy(DeletionPropagation.BACKGROUND)
                     .delete();
         }
-        client.resource(resource)
-                .inNamespace(namespace)
-                .create();
+        client.resource(resource).inNamespace(namespace).create();
     }
-
-
 
     public static boolean isJobCompleted(Job job) {
         if (job == null) {
@@ -68,23 +63,30 @@ public class KubeUtil {
         return succeeded != null && succeeded > 0;
     }
 
-
     public static boolean isStatefulSetReady(StatefulSet sts) {
         if (sts == null || sts.getStatus() == null) {
             return false;
         }
         final StatefulSetStatus status = sts.getStatus();
         if (!Objects.equals(status.getCurrentRevision(), status.getUpdateRevision())) {
-            log.debug("statefulset {} is not ready, revision mismatch {} - {}", sts.getMetadata().getName(),
-                    status.getCurrentRevision(), status.getUpdateRevision());
+            log.debug(
+                    "statefulset {} is not ready, revision mismatch {} - {}",
+                    sts.getMetadata().getName(),
+                    status.getCurrentRevision(),
+                    status.getUpdateRevision());
             return false;
         }
         if (log.isDebugEnabled()) {
-            log.debug("check if statefulset {} is ready, replicas {}, ready replicas {}, updated replicas {}",
+            log.debug(
+                    "check if statefulset {} is ready, replicas {}, ready replicas {}, updated replicas {}",
                     sts.getMetadata().getName(),
-                    status.getReplicas(), status.getReadyReplicas(), status.getUpdatedReplicas());
+                    status.getReplicas(),
+                    status.getReadyReplicas(),
+                    status.getUpdatedReplicas());
         }
-        if (status.getReplicas() == null || status.getReadyReplicas() == null || status.getUpdatedReplicas() == null) {
+        if (status.getReplicas() == null
+                || status.getReadyReplicas() == null
+                || status.getUpdatedReplicas() == null) {
             return false;
         }
 
@@ -94,15 +96,18 @@ public class KubeUtil {
         return replicas == ready && updated == ready;
     }
 
-
     @AllArgsConstructor
     @Getter
     public static class PodStatus {
         public static final PodStatus RUNNING = new PodStatus(State.RUNNING, null, null);
         public static final PodStatus WAITING = new PodStatus(State.WAITING, null, null);
+
         public enum State {
-            RUNNING, WAITING, ERROR
+            RUNNING,
+            WAITING,
+            ERROR
         }
+
         private final State state;
         private final String message;
         private final String url;
@@ -112,18 +117,18 @@ public class KubeUtil {
         }
     }
 
-
     public static Map<String, PodStatus> getPodsStatuses(List<Pod> pods) {
         Map<String, PodStatus> podStatuses = new HashMap<>();
         for (Pod pod : pods) {
-            log.info("pod name={} namespace={} status {}",
+            log.info(
+                    "pod name={} namespace={} status {}",
                     pod.getMetadata().getName(),
                     pod.getMetadata().getNamespace(),
                     pod.getStatus());
             PodStatus status = null;
 
-            final List<ContainerStatus> initContainerStatuses = pod.getStatus()
-                    .getInitContainerStatuses();
+            final List<ContainerStatus> initContainerStatuses =
+                    pod.getStatus().getInitContainerStatuses();
             if (initContainerStatuses != null && !initContainerStatuses.isEmpty()) {
                 for (ContainerStatus containerStatus : initContainerStatuses) {
                     status = getStatusFromContainerState(containerStatus.getLastState(), true);
@@ -133,8 +138,8 @@ public class KubeUtil {
                 }
             }
             if (status == null) {
-                final List<ContainerStatus> containerStatuses = pod.getStatus()
-                        .getContainerStatuses();
+                final List<ContainerStatus> containerStatuses =
+                        pod.getStatus().getContainerStatuses();
 
                 if (containerStatuses.isEmpty()) {
                     status = PodStatus.WAITING;
@@ -152,9 +157,14 @@ public class KubeUtil {
             }
             final String podName = pod.getMetadata().getName();
             // this is podname + servicename + namespace
-            String podUrl = "http://" + pod.getMetadata().getName() + "." +
-                    pod.getSpec().getSubdomain() + "." +
-                    pod.getMetadata().getNamespace() + ".svc.cluster.local:8080";
+            String podUrl =
+                    "http://"
+                            + pod.getMetadata().getName()
+                            + "."
+                            + pod.getSpec().getSubdomain()
+                            + "."
+                            + pod.getMetadata().getNamespace()
+                            + ".svc.cluster.local:8080";
             log.info("Pod url: {}", podUrl);
             status = status.withUrl(podUrl);
 
@@ -162,7 +172,6 @@ public class KubeUtil {
         }
         return podStatuses;
     }
-
 
     private static PodStatus getStatusFromContainerState(ContainerState state, boolean isInit) {
         if (state == null) {
@@ -173,7 +182,8 @@ public class KubeUtil {
                 return null;
             }
             if (state.getTerminated().getMessage() != null) {
-                return new PodStatus(PodStatus.State.ERROR, state.getTerminated().getMessage(),  null);
+                return new PodStatus(
+                        PodStatus.State.ERROR, state.getTerminated().getMessage(), null);
             } else {
                 return new PodStatus(PodStatus.State.ERROR, "Unknown error", null);
             }
@@ -182,6 +192,7 @@ public class KubeUtil {
         }
         return null;
     }
+
     public static OwnerReference getOwnerReferenceForResource(HasMetadata resource) {
         return new OwnerReferenceBuilder()
                 .withApiVersion(resource.getApiVersion())

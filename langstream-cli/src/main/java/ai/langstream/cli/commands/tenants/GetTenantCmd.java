@@ -18,7 +18,8 @@ package ai.langstream.cli.commands.tenants;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "get",
+@CommandLine.Command(
+        name = "get",
         mixinStandardHelpOptions = true,
         description = "Get tenant configuration")
 public class GetTenantCmd extends BaseTenantCmd {

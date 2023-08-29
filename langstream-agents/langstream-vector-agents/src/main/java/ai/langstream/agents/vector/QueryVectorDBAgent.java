@@ -19,10 +19,6 @@ import ai.langstream.ai.agents.GenAIToolKitAgent;
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import com.datastax.oss.streaming.ai.QueryStep;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -32,13 +28,17 @@ import com.datastax.oss.streaming.ai.model.config.QueryConfig;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper MAPPER =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private QueryStepDataSource dataSource;
     private QueryStep queryExecutor;
@@ -48,9 +48,11 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
     @Override
     public void init(Map<String, Object> configuration) {
 
-        Map<String, Object> datasourceConfiguration = (Map<String, Object>) configuration.get("datasource");
+        Map<String, Object> datasourceConfiguration =
+                (Map<String, Object>) configuration.get("datasource");
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
-        DataSourceConfig dataSourceConfig = MAPPER.convertValue(datasourceConfiguration, DataSourceConfig.class);
+        DataSourceConfig dataSourceConfig =
+                MAPPER.convertValue(datasourceConfiguration, DataSourceConfig.class);
         dataSource.initialize(dataSourceConfig);
 
         configuration.put("type", "query");
@@ -65,14 +67,14 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
         TransformContext context = GenAIToolKitAgent.recordToTransformContext(record, true);
         TransformFunctionUtil.processTransformSteps(context, steps);
         context.convertMapToStringOrBytes();
-        Optional<Record> recordResult = GenAIToolKitAgent.transformContextToRecord(context, record.headers());
+        Optional<Record> recordResult =
+                GenAIToolKitAgent.transformContextToRecord(context, record.headers());
         log.info("recordResult {}", recordResult);
         return recordResult.map(List::of).orElseGet(List::of);
     }
 
     @Override
-    public void start() {
-    }
+    public void start() {}
 
     @Override
     public void close() throws Exception {

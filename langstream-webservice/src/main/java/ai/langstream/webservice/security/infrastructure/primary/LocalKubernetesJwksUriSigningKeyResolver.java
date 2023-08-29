@@ -16,42 +16,18 @@
 package ai.langstream.webservice.security.infrastructure.primary;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SigningKeyResolver;
-import io.jsonwebtoken.io.Decoders;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.net.ConnectException;
 import java.net.URI;
-import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.Key;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.RSAPublicKeySpec;
-import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class LocalKubernetesJwksUriSigningKeyResolver {
@@ -76,20 +52,26 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
             log.info("Loading token from {}", defaultPath);
             return Files.readString(defaultPath);
         } else {
-            log.info("No token found at {}. Kubernetes Service account authentication might not work.", defaultPath);
+            log.info(
+                    "No token found at {}. Kubernetes Service account authentication might not work.",
+                    defaultPath);
         }
         return null;
     }
 
     @SneakyThrows
     private String loadLocalIssuer() {
-        final String endpoint = composeWellKnownEndpoint("https://kubernetes.default.svc.cluster.local");
+        final String endpoint =
+                composeWellKnownEndpoint("https://kubernetes.default.svc.cluster.local");
         final Map<String, ?> response;
         try {
             response = getResponseFromWellKnownOpenIdConfiguration(endpoint);
         } catch (IOException connectException) {
-            log.debug("Failed to connect to local Kubernetes API. It's ok if not running in a kubernetes pod.", connectException);
-            log.info("Failed to connect to local Kubernetes API. It's ok if not running in a kubernetes pod.");
+            log.debug(
+                    "Failed to connect to local Kubernetes API. It's ok if not running in a kubernetes pod.",
+                    connectException);
+            log.info(
+                    "Failed to connect to local Kubernetes API. It's ok if not running in a kubernetes pod.");
             return null;
         }
 
@@ -101,7 +83,6 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
         }
         return null;
     }
-
 
     public JwksUriSigningKeyResolver.JwksUri getJwksUriFromIssuer(String issuer) {
         if (issuer == null) {
@@ -145,7 +126,8 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
         return null;
     }
 
-    private Map<String, ?> getResponseFromWellKnownOpenIdConfiguration(String kubeOpenIDUrl) throws IOException {
+    private Map<String, ?> getResponseFromWellKnownOpenIdConfiguration(String kubeOpenIDUrl)
+            throws IOException {
 
         final String value;
         final HttpResponse<String> httpResponse = sendGetRequest(kubeOpenIDUrl, false);
@@ -153,8 +135,18 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
             // some kubernetes clusters require a token to access the well-known endpoint
             final HttpResponse<String> responseWithToken = sendGetRequest(kubeOpenIDUrl, true);
             if (responseWithToken.statusCode() != 200) {
-                log.warn("Failed to fetch keys from URL: {}, got {} {}", kubeOpenIDUrl, httpResponse.statusCode(), httpResponse.body());
-                throw new IllegalStateException("Failed to fetch keys from URL: " + kubeOpenIDUrl + ", got " + httpResponse.statusCode() + " " + httpResponse.body());
+                log.warn(
+                        "Failed to fetch keys from URL: {}, got {} {}",
+                        kubeOpenIDUrl,
+                        httpResponse.statusCode(),
+                        httpResponse.body());
+                throw new IllegalStateException(
+                        "Failed to fetch keys from URL: "
+                                + kubeOpenIDUrl
+                                + ", got "
+                                + httpResponse.statusCode()
+                                + " "
+                                + httpResponse.body());
             }
             value = responseWithToken.body();
         } else {
@@ -163,11 +155,13 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
         return (Map<String, Object>) MAPPER.readValue(value, Map.class);
     }
 
-    private HttpResponse<String> sendGetRequest(String kubeOpenIDUrl, boolean useToken) throws IOException {
-        final HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(URI.create(kubeOpenIDUrl))
-                .version(HttpClient.Version.HTTP_1_1)
-                .GET();
+    private HttpResponse<String> sendGetRequest(String kubeOpenIDUrl, boolean useToken)
+            throws IOException {
+        final HttpRequest.Builder builder =
+                HttpRequest.newBuilder()
+                        .uri(URI.create(kubeOpenIDUrl))
+                        .version(HttpClient.Version.HTTP_1_1)
+                        .GET();
         if (useToken) {
             builder.header("Authorization", "Bearer " + token);
         }

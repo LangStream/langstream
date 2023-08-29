@@ -39,28 +39,30 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = {
-        "application.security.enabled=true",
-        "application.security.token.jwks-hosts-allowlist=localhost",
-        "application.security.token.auth-claim=iss",
-        "application.security.token.admin-roles=testrole"
-})
+@SpringBootTest(
+        properties = {
+            "application.security.enabled=true",
+            "application.security.token.jwks-hosts-allowlist=localhost",
+            "application.security.token.auth-claim=iss",
+            "application.security.token.admin-roles=testrole"
+        })
 @AutoConfigureMockMvc
 @DirtiesContext
 public class SecurityConfigurationJwksIT {
 
     @RegisterExtension
-    WireMockExtension
-            wm1 = WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).failOnUnmatchedRequests(true).build();
+    WireMockExtension wm1 =
+            WireMockExtension.newInstance()
+                    .options(wireMockConfig().dynamicPort())
+                    .failOnUnmatchedRequests(true)
+                    .build();
 
     KeyPair kp;
     private static final String JWKS_PATH = "/auth/.well-known/jwks.json";
 
-    @Autowired
-    MockMvc mockMvc;
+    @Autowired MockMvc mockMvc;
 
-    @MockBean
-    ApplicationStore applicationStore;
+    @MockBean ApplicationStore applicationStore;
 
     @BeforeEach
     public void beforeEach() throws Exception {
@@ -69,68 +71,78 @@ public class SecurityConfigurationJwksIT {
 
     @Test
     void shouldBeAuthorized() throws Exception {
-        final String token = Jwts.builder().claim("iss", "testrole").claim("jwks_uri", wm1.url(JWKS_PATH)).signWith(kp.getPrivate()).compact();
-        mockMvc.perform(put("/api/tenants/test").header("Authorization", "Bearer " + token)).andExpect(status().isOk());
+        final String token =
+                Jwts.builder()
+                        .claim("iss", "testrole")
+                        .claim("jwks_uri", wm1.url(JWKS_PATH))
+                        .signWith(kp.getPrivate())
+                        .compact();
+        mockMvc.perform(put("/api/tenants/test").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
     }
 
     @Test
     void shouldNotBeAuthorized_invalidIss() throws Exception {
-        final String token = Jwts
-                .builder()
-                .claim("iss", "testrole_wrong")
-                .claim("jwks_uri", wm1.url(JWKS_PATH))
-                .signWith(kp.getPrivate())
-                .compact();
-        mockMvc.perform(put("/api/tenants/test").header("Authorization", "Bearer " + token)).andExpect(status().isForbidden());
+        final String token =
+                Jwts.builder()
+                        .claim("iss", "testrole_wrong")
+                        .claim("jwks_uri", wm1.url(JWKS_PATH))
+                        .signWith(kp.getPrivate())
+                        .compact();
+        mockMvc.perform(put("/api/tenants/test").header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
     }
 
     @Test
     void shouldNotBeAuthorized_invalidKp() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
         kpg.initialize(2048);
-        final String token = Jwts
-                .builder()
-                .claim("iss", "testrole_wrong")
-                .claim("jwks_uri", wm1.url(JWKS_PATH))
-                .signWith(kpg.generateKeyPair().getPrivate())
-                .compact();
-        mockMvc.perform(put("/api/tenants/test").header("Authorization", "Bearer " + token)).andExpect(status().isForbidden());
+        final String token =
+                Jwts.builder()
+                        .claim("iss", "testrole_wrong")
+                        .claim("jwks_uri", wm1.url(JWKS_PATH))
+                        .signWith(kpg.generateKeyPair().getPrivate())
+                        .compact();
+        mockMvc.perform(put("/api/tenants/test").header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
     }
 
     @Test
     void shouldNotBeAuthorized_invalidJwksHost() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
         kpg.initialize(2048);
-        final String token = Jwts
-                .builder()
-                .claim("iss", "testrole_wrong")
-                .claim("jwks_uri", wm1.url(JWKS_PATH).replace("localhost", "127.0.0.1"))
-                .signWith(kpg.generateKeyPair().getPrivate())
-                .compact();
-        mockMvc.perform(put("/api/tenants/test").header("Authorization", "Bearer " + token)).andExpect(status().isForbidden());
+        final String token =
+                Jwts.builder()
+                        .claim("iss", "testrole_wrong")
+                        .claim("jwks_uri", wm1.url(JWKS_PATH).replace("localhost", "127.0.0.1"))
+                        .signWith(kpg.generateKeyPair().getPrivate())
+                        .compact();
+        mockMvc.perform(put("/api/tenants/test").header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
     }
 
     private void genAndExposeKeyPair() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
         kpg.initialize(2048);
         kp = kpg.generateKeyPair();
-        final RSAPublicKeySpec spec = KeyFactory.getInstance("RSA").getKeySpec(kp.getPublic(), RSAPublicKeySpec.class);
+        final RSAPublicKeySpec spec =
+                KeyFactory.getInstance("RSA").getKeySpec(kp.getPublic(), RSAPublicKeySpec.class);
 
-        final byte[] e = Base64.getUrlEncoder().withoutPadding().encode(spec.getPublicExponent().toByteArray());
-        final byte[] mod = Base64.getUrlEncoder().withoutPadding().encode(spec.getModulus().toByteArray());
+        final byte[] e =
+                Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encode(spec.getPublicExponent().toByteArray());
+        final byte[] mod =
+                Base64.getUrlEncoder().withoutPadding().encode(spec.getModulus().toByteArray());
         wm1.stubFor(
-                WireMock
-                        .get(JWKS_PATH)
+                WireMock.get(JWKS_PATH)
                         .willReturn(
                                 WireMock.okJson(
                                         """
                                   {"keys":[{"alg":"RS256","e":"%s","kid":"1","kty":"RSA","n":"%s"}]}
-                                  """.formatted(
-                                                new String(e, StandardCharsets.UTF_8),
-                                                new String(mod, StandardCharsets.UTF_8)
-                                        )
-                                )
-                        )
-        );
+                                  """
+                                                .formatted(
+                                                        new String(e, StandardCharsets.UTF_8),
+                                                        new String(mod, StandardCharsets.UTF_8)))));
     }
 }

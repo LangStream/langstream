@@ -30,28 +30,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class WebCrawlerStatus {
     /**
-     * List of all URLs discovered and to be processed.
-     * An URL is removed from here on Source.commit()
+     * List of all URLs discovered and to be processed. An URL is removed from here on
+     * Source.commit()
      */
     private final Deque<String> remainingUrls = new ArrayDeque<>();
 
     /**
-     * List of the URLs that are to be processed,
-     * this Deque is used to keep track of the urls that have not been
-     * returned by the Source yet.
-     * An Url is removed from here on Source.read()
+     * List of the URLs that are to be processed, this Deque is used to keep track of the urls that
+     * have not been returned by the Source yet. An Url is removed from here on Source.read()
      */
     private final Deque<String> pendingUrls = new ArrayDeque<>();
 
     /**
-     * Memory of all the URLs that have been seen by the Crawler in order
-     * to prevent cycles.
-     * This structure only grows and is never cleared.
+     * Memory of all the URLs that have been seen by the Crawler in order to prevent cycles. This
+     * structure only grows and is never cleared.
      */
     private final Set<String> visitedUrls = new HashSet<>();
+
     /**
-     * Map of the URLs that have been seen by the Crawler and that have
-     * returned a temporary error.
+     * Map of the URLs that have been seen by the Crawler and that have returned a temporary error.
      * This status is not persisted.
      */
     private final Map<String, Integer> errorCount = new HashMap<>();
@@ -87,10 +84,10 @@ public class WebCrawlerStatus {
     }
 
     public void persist(StatusStorage statusStorage) throws Exception {
-        statusStorage.storeStatus(Map.of(
-                "remainingUrls", new ArrayList<>(remainingUrls),
-                "visitedUrls", new ArrayList<>(visitedUrls)
-        ));
+        statusStorage.storeStatus(
+                Map.of(
+                        "remainingUrls", new ArrayList<>(remainingUrls),
+                        "visitedUrls", new ArrayList<>(visitedUrls)));
     }
 
     public void addUrl(String url, boolean toScan) {
@@ -136,12 +133,14 @@ public class WebCrawlerStatus {
     public int temporaryErrorOnUrl(String url) {
         url = removeFragment(url);
         visitedUrls.remove(url);
-        return errorCount.compute(url, (u, current) -> {
-            if (current == null) {
-                return 1;
-            } else {
-                return current + 1;
-            }
-        });
+        return errorCount.compute(
+                url,
+                (u, current) -> {
+                    if (current == null) {
+                        return 1;
+                    } else {
+                        return current + 1;
+                    }
+                });
     }
 }

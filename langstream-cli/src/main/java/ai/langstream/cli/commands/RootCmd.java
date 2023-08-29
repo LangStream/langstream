@@ -20,16 +20,29 @@ import lombok.Getter;
 import picocli.AutoComplete;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "langstream", mixinStandardHelpOptions = true, description = "Manage LangStream",
-        subcommands = { RootAppCmd.class, ConfigureCmd.class, RootTenantCmd.class, RootGatewayCmd.class, AutoComplete.GenerateCompletion.class})
+@CommandLine.Command(
+        name = "langstream",
+        mixinStandardHelpOptions = true,
+        description = "Manage LangStream",
+        subcommands = {
+            RootAppCmd.class,
+            ConfigureCmd.class,
+            RootTenantCmd.class,
+            RootGatewayCmd.class,
+            AutoComplete.GenerateCompletion.class
+        })
 public class RootCmd {
 
-
-    @CommandLine.Option(names = { "--conf" }, description = "LangStream CLI configuration file.")
+    @CommandLine.Option(
+            names = {"--conf"},
+            description = "LangStream CLI configuration file.")
     @Getter
     private String configPath;
 
-    @CommandLine.Option(names = { "-v", "--verbose" }, defaultValue = "false", description = "Verbose mode. Helpful for troubleshooting.")
+    @CommandLine.Option(
+            names = {"-v", "--verbose"},
+            defaultValue = "false",
+            description = "Verbose mode. Helpful for troubleshooting.")
     @Getter
     private boolean verbose = false;
 }

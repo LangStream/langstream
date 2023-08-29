@@ -24,17 +24,16 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.core.env.Environment;
 
 @SpringBootApplication
-@EnableConfigurationProperties({ StorageProperties.class })
+@EnableConfigurationProperties({StorageProperties.class})
 public class LangStreamApiGateway {
 
-	static {
-		java.security.Security.setProperty("networkaddress.cache.ttl", "1");
-	}
+    static {
+        java.security.Security.setProperty("networkaddress.cache.ttl", "1");
+    }
 
-	private static final Logger log = LoggerFactory.getLogger(LangStreamApiGateway.class);
+    private static final Logger log = LoggerFactory.getLogger(LangStreamApiGateway.class);
 
-	public static void main(String[] args) {
-		Environment env = SpringApplication.run(LangStreamApiGateway.class, args).getEnvironment();
-	}
-
+    public static void main(String[] args) {
+        Environment env = SpringApplication.run(LangStreamApiGateway.class, args).getEnvironment();
+    }
 }

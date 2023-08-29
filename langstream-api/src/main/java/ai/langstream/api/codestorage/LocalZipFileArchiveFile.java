@@ -20,9 +20,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * This is local zip file archive file.
- */
+/** This is local zip file archive file. */
 public class LocalZipFileArchiveFile extends GenericZipFileArchiveFile {
 
     private final Path path;

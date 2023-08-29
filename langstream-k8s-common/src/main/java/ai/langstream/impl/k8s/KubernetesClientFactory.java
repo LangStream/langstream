@@ -35,9 +35,8 @@ public class KubernetesClientFactory {
         final Config config = Config.autoConfigure(context);
         try {
             log.info("Creating kubernetes client for server {}", config.getMasterUrl());
-            final KubernetesClient newClient = new KubernetesClientBuilder()
-                    .withConfig(config)
-                    .build();
+            final KubernetesClient newClient =
+                    new KubernetesClientBuilder().withConfig(config).build();
             // https://kubernetes.io/docs/reference/using-api/health-checks/
             final String livez = newClient.raw("/livez");
             if (livez == null) {
@@ -49,13 +48,19 @@ public class KubernetesClientFactory {
             log.info("Created kubernetes client for server {}", config.getMasterUrl());
             return newClient;
         } catch (KubernetesClientException ex) {
-            log.error("Cannot create kubernetes client for server {}, is kubernetes up and running?",
-                    config.getMasterUrl(), ex);
-            throw new RuntimeException("Cannot create kubernetes client for server "
-                    + config.getMasterUrl() + ", is kubernetes up and running?");
+            log.error(
+                    "Cannot create kubernetes client for server {}, is kubernetes up and running?",
+                    config.getMasterUrl(),
+                    ex);
+            throw new RuntimeException(
+                    "Cannot create kubernetes client for server "
+                            + config.getMasterUrl()
+                            + ", is kubernetes up and running?");
         } catch (Throwable ex) {
-            log.error("Cannot create kubernetes client for server {}, is kubernetes up and running?",
-                    config.getMasterUrl(), ex);
+            log.error(
+                    "Cannot create kubernetes client for server {}, is kubernetes up and running?",
+                    config.getMasterUrl(),
+                    ex);
             throw new RuntimeException(ex);
         }
     }
@@ -72,6 +77,5 @@ public class KubernetesClientFactory {
         return context;
     }
 
-    private KubernetesClientFactory() {
-    }
+    private KubernetesClientFactory() {}
 }

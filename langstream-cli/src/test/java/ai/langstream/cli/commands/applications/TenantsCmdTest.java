@@ -19,41 +19,39 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-
 class TenantsCmdTest extends CommandTestBase {
-
 
     @Test
     public void testPut() {
-        wireMock.register(WireMock.put("/api/tenants/%s".formatted("newt")).willReturn(WireMock.ok("{ \"name\": \"newt\" }")));
+        wireMock.register(
+                WireMock.put("/api/tenants/%s".formatted("newt"))
+                        .willReturn(WireMock.ok("{ \"name\": \"newt\" }")));
         CommandResult result = executeCommand("tenants", "put", "newt");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("tenant newt created/updated", result.out());
-
     }
-
 
     @Test
     public void testGet() {
-        wireMock.register(WireMock.get("/api/tenants/%s".formatted("newt")).willReturn(WireMock.ok("{ \"name\": \"newt\" }")));
+        wireMock.register(
+                WireMock.get("/api/tenants/%s".formatted("newt"))
+                        .willReturn(WireMock.ok("{ \"name\": \"newt\" }")));
         CommandResult result = executeCommand("tenants", "get", "newt");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("{ \"name\": \"newt\" }", result.out());
-
     }
 
     @Test
     public void testDelete() {
-        wireMock.register(WireMock.delete("/api/tenants/%s"
-                .formatted("newt")).willReturn(WireMock.ok()));
+        wireMock.register(
+                WireMock.delete("/api/tenants/%s".formatted("newt")).willReturn(WireMock.ok()));
 
         CommandResult result = executeCommand("tenants", "delete", "newt");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("Tenant newt deleted", result.out());
-
     }
 
     @Test
@@ -64,6 +62,5 @@ class TenantsCmdTest extends CommandTestBase {
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("{}", result.out());
-
     }
 }

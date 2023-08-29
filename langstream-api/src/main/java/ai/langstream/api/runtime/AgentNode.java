@@ -21,6 +21,7 @@ public interface AgentNode extends ConnectionImplementation {
 
     /**
      * The id of the agent. This can be used to compute subscriptions or consumer groups.
+     *
      * @return the id
      */
     String getId();
@@ -34,5 +35,4 @@ public interface AgentNode extends ConnectionImplementation {
     ConnectionImplementation getInputConnectionImplementation();
 
     ConnectionImplementation getOutputConnectionImplementation();
-
 }

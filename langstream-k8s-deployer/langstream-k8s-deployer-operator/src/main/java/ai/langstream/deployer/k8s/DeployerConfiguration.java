@@ -19,7 +19,6 @@ import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import java.util.Optional;
 
-
 @ConfigMapping(prefix = "deployer")
 public interface DeployerConfiguration {
 
@@ -40,5 +39,4 @@ public interface DeployerConfiguration {
     Optional<String> runtimeImage();
 
     Optional<String> runtimeImagePullPolicy();
-
 }

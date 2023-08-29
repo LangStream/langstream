@@ -15,14 +15,6 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.okForContentType;
@@ -31,36 +23,44 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.temporaryRedirect;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import org.junit.jupiter.api.Test;
+
 @WireMockTest
 class WebCrawlerTest {
 
     @Test
     void testWebSiteErrors(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
 
-        stubFor(get("/index.html")
-                .willReturn(okForContentType("text/html",
-                        """
+        stubFor(
+                get("/index.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
                                   <a href="internalErrorPage.html">link</a>
                                   <a href="notFoundPage.html">link</a>
                               """)));
-        stubFor(get("/internalErrorPage.html")
-                .willReturn(serviceUnavailable()));
-        stubFor(get("/notFoundPage.html")
-                .willReturn(notFound()));
+        stubFor(get("/internalErrorPage.html").willReturn(serviceUnavailable()));
+        stubFor(get("/notFoundPage.html").willReturn(notFound()));
 
-        WebCrawlerConfiguration configuration = WebCrawlerConfiguration
-                .builder()
-                .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
-                .maxErrorCount(5)
-                .build();
+        WebCrawlerConfiguration configuration =
+                WebCrawlerConfiguration.builder()
+                        .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
+                        .maxErrorCount(5)
+                        .build();
         WebCrawlerStatus status = new WebCrawlerStatus();
         List<Document> documents = new ArrayList<>();
         WebCrawler crawler = new WebCrawler(configuration, status, documents::add);
         crawler.crawl(vmRuntimeInfo.getHttpBaseUrl() + "/index.html");
         crawler.runCycle();
 
-        assertEquals(1 , documents.size());
-        assertEquals(vmRuntimeInfo.getHttpBaseUrl()+"/index.html", documents.get(0).url());
+        assertEquals(1, documents.size());
+        assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
         assertEquals(2, status.getPendingUrls().size());
         assertEquals(3, status.getVisitedUrls().size());
 
@@ -82,14 +82,15 @@ class WebCrawlerTest {
         assertEquals(1, status.getPendingUrls().size());
         assertEquals(3, status.getVisitedUrls().size());
 
-
         // now the error page starts to work again
-        stubFor(get("/internalErrorPage.html")
-                .willReturn(okForContentType("text/html",
-                        """
+        stubFor(
+                get("/internalErrorPage.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
                                   ok !
                               """)));
-
 
         // process the internalErrorPage
         crawler.runCycle();
@@ -101,29 +102,30 @@ class WebCrawlerTest {
     @Test
     void testWebSitePermanentErrors(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
 
-        stubFor(get("/index.html")
-                .willReturn(okForContentType("text/html",
-                        """
+        stubFor(
+                get("/index.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
                                   <a href="internalErrorPage.html">link</a>
                               """)));
-        stubFor(get("/internalErrorPage.html")
-                .willReturn(serviceUnavailable()));
-
+        stubFor(get("/internalErrorPage.html").willReturn(serviceUnavailable()));
 
         // after 3 errors we give up
-        WebCrawlerConfiguration configuration = WebCrawlerConfiguration
-                .builder()
-                .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
-                .maxErrorCount(3)
-                .build();
+        WebCrawlerConfiguration configuration =
+                WebCrawlerConfiguration.builder()
+                        .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
+                        .maxErrorCount(3)
+                        .build();
         WebCrawlerStatus status = new WebCrawlerStatus();
         List<Document> documents = new ArrayList<>();
         WebCrawler crawler = new WebCrawler(configuration, status, documents::add);
         crawler.crawl(vmRuntimeInfo.getHttpBaseUrl() + "/index.html");
         crawler.runCycle();
 
-        assertEquals(1 , documents.size());
-        assertEquals(vmRuntimeInfo.getHttpBaseUrl()+"/index.html", documents.get(0).url());
+        assertEquals(1, documents.size());
+        assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
         assertEquals(1, status.getPendingUrls().size());
         assertEquals(2, status.getVisitedUrls().size());
 
@@ -149,38 +151,42 @@ class WebCrawlerTest {
         assertFalse(crawler.runCycle());
     }
 
-
     @Test
     void testRedirects(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
 
-        stubFor(get("/index.html")
-                .willReturn(okForContentType("text/html",
-                        """
+        stubFor(
+                get("/index.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
                                   <a href="redirectToGoodWebsite.html">link</a>
                                   <a href="redirectToBadWebsite.html">link</a>
                               """)));
-        stubFor(get("/redirectToGoodWebsite.html")
-                .willReturn(temporaryRedirect(vmRuntimeInfo.getHttpBaseUrl()+"/goodWebsite.html")));
+        stubFor(
+                get("/redirectToGoodWebsite.html")
+                        .willReturn(
+                                temporaryRedirect(
+                                        vmRuntimeInfo.getHttpBaseUrl() + "/goodWebsite.html")));
 
-        stubFor(get("/redirectToBadWebsite.html")
-                .willReturn(temporaryRedirect("http://go-away-from-here/somewhere.html")));
+        stubFor(
+                get("/redirectToBadWebsite.html")
+                        .willReturn(temporaryRedirect("http://go-away-from-here/somewhere.html")));
 
-        stubFor(get("/goodWebsite.html")
-                .willReturn(okForContentType("text/html", "ok")));
+        stubFor(get("/goodWebsite.html").willReturn(okForContentType("text/html", "ok")));
 
-
-        WebCrawlerConfiguration configuration = WebCrawlerConfiguration
-                .builder()
-                .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
-                .build();
+        WebCrawlerConfiguration configuration =
+                WebCrawlerConfiguration.builder()
+                        .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
+                        .build();
         WebCrawlerStatus status = new WebCrawlerStatus();
         List<Document> documents = new ArrayList<>();
         WebCrawler crawler = new WebCrawler(configuration, status, documents::add);
         crawler.crawl(vmRuntimeInfo.getHttpBaseUrl() + "/index.html");
         crawler.runCycle();
 
-        assertEquals(1 , documents.size());
-        assertEquals(vmRuntimeInfo.getHttpBaseUrl()+"/index.html", documents.get(0).url());
+        assertEquals(1, documents.size());
+        assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
         assertEquals(2, status.getPendingUrls().size());
         assertEquals(3, status.getVisitedUrls().size());
 
@@ -189,7 +195,7 @@ class WebCrawlerTest {
         assertEquals(2, status.getPendingUrls().size());
         assertEquals(4, status.getVisitedUrls().size());
 
-        assertEquals(vmRuntimeInfo.getHttpBaseUrl()+"/index.html", documents.get(0).url());
+        assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
         // the document that did the redirection is not reported to the DocumentVisitor
         assertEquals(1, documents.size());
 
@@ -204,8 +210,8 @@ class WebCrawlerTest {
         assertEquals(0, status.getPendingUrls().size());
         assertEquals(4, status.getVisitedUrls().size());
 
-        assertEquals(vmRuntimeInfo.getHttpBaseUrl()+"/index.html", documents.get(0).url());
-        assertEquals(vmRuntimeInfo.getHttpBaseUrl()+"/goodWebsite.html", documents.get(1).url());
+        assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
+        assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/goodWebsite.html", documents.get(1).url());
 
         // nothing to do
         assertFalse(crawler.runCycle());

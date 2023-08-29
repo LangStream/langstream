@@ -17,6 +17,7 @@ package ai.langstream.deployer.k8s.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import ai.langstream.api.model.ApplicationLifecycleStatus;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
@@ -35,8 +36,7 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 @Testcontainers
 public class AppControllerIT {
 
-    @RegisterExtension
-    static final OperatorExtension deployment = new OperatorExtension();
+    @RegisterExtension static final OperatorExtension deployment = new OperatorExtension();
 
     @Test
     void testAppController() {
@@ -44,7 +44,9 @@ public class AppControllerIT {
         final String tenant = "my-tenant";
         final String namespace = "langstream-" + tenant;
         final String applicationId = "my-app";
-        final ApplicationCustomResource resource = getCr("""
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
                 apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
@@ -55,28 +57,62 @@ public class AppControllerIT {
                     imagePullPolicy: IfNotPresent
                     application: "{app: true}"
                     tenant: %s
-                """.formatted(applicationId, namespace, tenant));
+                """
+                                .formatted(applicationId, namespace, tenant));
         final KubernetesClient client = deployment.getClient();
-        client.resource(new NamespaceBuilder()
-                .withNewMetadata()
-                .withName(namespace)
-                .endMetadata().build()).serverSideApply();
+        client.resource(
+                        new NamespaceBuilder()
+                                .withNewMetadata()
+                                .withName(namespace)
+                                .endMetadata()
+                                .build())
+                .serverSideApply();
         client.resource(resource).inNamespace(namespace).create();
 
-        Awaitility.await().untilAsserted(() -> {
-            assertEquals(1, client.batch().v1().jobs().inNamespace(namespace).list().getItems().size());
-            assertEquals(ApplicationLifecycleStatus.Status.DEPLOYING,
-                    client.resource(resource).inNamespace(namespace).get().getStatus().getStatus().getStatus());
-        });
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            assertEquals(
+                                    1,
+                                    client.batch()
+                                            .v1()
+                                            .jobs()
+                                            .inNamespace(namespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
+                            assertEquals(
+                                    ApplicationLifecycleStatus.Status.DEPLOYING,
+                                    client.resource(resource)
+                                            .inNamespace(namespace)
+                                            .get()
+                                            .getStatus()
+                                            .getStatus()
+                                            .getStatus());
+                        });
         final Job job = client.batch().v1().jobs().inNamespace(namespace).list().getItems().get(0);
         checkJob(job, false);
 
-
         client.resource(resource).inNamespace(namespace).delete();
 
-        Awaitility.await().untilAsserted(() -> assertEquals(2, client.batch().v1().jobs().inNamespace(namespace).list().getItems().size()));
+        Awaitility.await()
+                .untilAsserted(
+                        () ->
+                                assertEquals(
+                                        2,
+                                        client.batch()
+                                                .v1()
+                                                .jobs()
+                                                .inNamespace(namespace)
+                                                .list()
+                                                .getItems()
+                                                .size()));
         final Job cleanupJob =
-                client.batch().v1().jobs().inNamespace(namespace).withName("langstream-runtime-deployer-cleanup-" + applicationId)
+                client.batch()
+                        .v1()
+                        .jobs()
+                        .inNamespace(namespace)
+                        .withName("langstream-runtime-deployer-cleanup-" + applicationId)
                         .get();
 
         assertNotNull(cleanupJob);
@@ -115,12 +151,33 @@ public class AppControllerIT {
             assertEquals("/app-config/config", container.getArgs().get(args++));
             assertEquals("/app-secrets/secrets", container.getArgs().get(args++));
         }
-        assertEquals("/app-config/config",
-                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_APP_CONFIGURATION".equals(e.getName())).findFirst().orElseThrow().getValue());
-        assertEquals("/cluster-runtime-config/config",
-                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION".equals(e.getName())).findFirst().orElseThrow().getValue());
-        assertEquals("/app-secrets/secrets",
-                container.getEnv().stream().filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS".equals(e.getName())).findFirst().orElseThrow().getValue());
+        assertEquals(
+                "/app-config/config",
+                container.getEnv().stream()
+                        .filter(
+                                e ->
+                                        "LANGSTREAM_RUNTIME_DEPLOYER_APP_CONFIGURATION"
+                                                .equals(e.getName()))
+                        .findFirst()
+                        .orElseThrow()
+                        .getValue());
+        assertEquals(
+                "/cluster-runtime-config/config",
+                container.getEnv().stream()
+                        .filter(
+                                e ->
+                                        "LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION"
+                                                .equals(e.getName()))
+                        .findFirst()
+                        .orElseThrow()
+                        .getValue());
+        assertEquals(
+                "/app-secrets/secrets",
+                container.getEnv().stream()
+                        .filter(e -> "LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS".equals(e.getName()))
+                        .findFirst()
+                        .orElseThrow()
+                        .getValue());
 
         final Container initContainer = templateSpec.getInitContainers().get(0);
         assertEquals("busybox", initContainer.getImage());
@@ -128,16 +185,18 @@ public class AppControllerIT {
         assertEquals("deployer-init-config", initContainer.getName());
         assertEquals("/app-config", initContainer.getVolumeMounts().get(0).getMountPath());
         assertEquals("app-config", initContainer.getVolumeMounts().get(0).getName());
-        assertEquals("/cluster-runtime-config", initContainer.getVolumeMounts().get(1).getMountPath());
+        assertEquals(
+                "/cluster-runtime-config", initContainer.getVolumeMounts().get(1).getMountPath());
         assertEquals("cluster-runtime-config", initContainer.getVolumeMounts().get(1).getName());
         assertEquals("bash", initContainer.getCommand().get(0));
         assertEquals("-c", initContainer.getCommand().get(1));
-        assertEquals("echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{app: true}\","
-                + "\"codeStorageArchiveId\":null}' > /app-config/config && echo '{}' > /cluster-runtime-config/config", initContainer.getArgs().get(0));
+        assertEquals(
+                "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{app: true}\","
+                        + "\"codeStorageArchiveId\":null}' > /app-config/config && echo '{}' > /cluster-runtime-config/config",
+                initContainer.getArgs().get(0));
     }
 
     private ApplicationCustomResource getCr(String yaml) {
         return SerializationUtil.readYaml(yaml, ApplicationCustomResource.class);
     }
-
 }

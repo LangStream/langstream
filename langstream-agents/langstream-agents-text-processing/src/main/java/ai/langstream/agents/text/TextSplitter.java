@@ -37,12 +37,14 @@ public abstract class TextSplitter {
             int chunkOverlap,
             java.util.function.Function<String, Integer> lengthFunction,
             boolean keepSeparator,
-            boolean addStartIndex
-    ) {
+            boolean addStartIndex) {
         if (chunkOverlap > chunkSize) {
             throw new IllegalArgumentException(
-                    "Got a larger chunk overlap (" + chunkOverlap + ") than chunk size (" + chunkSize + "), should be smaller."
-            );
+                    "Got a larger chunk overlap ("
+                            + chunkOverlap
+                            + ") than chunk size ("
+                            + chunkSize
+                            + "), should be smaller.");
         }
         this.chunkSize = chunkSize;
         this.chunkOverlap = chunkOverlap;
@@ -99,7 +101,8 @@ public abstract class TextSplitter {
             if (total + len + (currentDoc.size() > 0 ? separatorLen : 0) > chunkSize) {
                 if (total > chunkSize) {
                     log.warn(
-                        "Created a chunk of size %d, which is longer than the specified %d".formatted(total, chunkSize));
+                            "Created a chunk of size %d, which is longer than the specified %d"
+                                    .formatted(total, chunkSize));
                 }
                 if (!currentDoc.isEmpty()) {
                     String doc = joinDocs(currentDoc, separator);
@@ -109,9 +112,12 @@ public abstract class TextSplitter {
                     // Keep on popping if:
                     // - we have a larger chunk than in the chunk overlap
                     // - or if we still have any chunks and the length is long
-                    while (total > chunkOverlap ||
-                            (total + len + (currentDoc.size() > 0 ? separatorLen : 0) > chunkSize && total > 0)) {
-                        total -= lengthFunction.apply(currentDoc.get(0)) + (currentDoc.size() > 1 ? separatorLen : 0);
+                    while (total > chunkOverlap
+                            || (total + len + (currentDoc.size() > 0 ? separatorLen : 0) > chunkSize
+                                    && total > 0)) {
+                        total -=
+                                lengthFunction.apply(currentDoc.get(0))
+                                        + (currentDoc.size() > 1 ? separatorLen : 0);
                         currentDoc.remove(0);
                     }
                 }
@@ -128,7 +134,8 @@ public abstract class TextSplitter {
         return docs;
     }
 
-    public static List<String> splitTextWithRegex(String text, String separator, boolean keepSeparator) {
+    public static List<String> splitTextWithRegex(
+            String text, String separator, boolean keepSeparator) {
         List<String> splits = new ArrayList<>();
         if (separator != null && !separator.isEmpty()) {
             if (keepSeparator) {
@@ -164,8 +171,5 @@ public abstract class TextSplitter {
         return splits;
     }
 
-    record Document(String pageContent, Map<String, Object> metadata) {
-    }
-
-
+    record Document(String pageContent, Map<String, Object> metadata) {}
 }

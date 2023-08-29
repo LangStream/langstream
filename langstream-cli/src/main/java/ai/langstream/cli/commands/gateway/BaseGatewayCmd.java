@@ -35,31 +35,29 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
     protected static final ObjectMapper messageMapper = new ObjectMapper();
 
-    @CommandLine.ParentCommand
-    private RootGatewayCmd cmd;
+    @CommandLine.ParentCommand private RootGatewayCmd cmd;
 
     @Override
     protected RootCmd getRootCmd() {
         return cmd.getRootCmd();
     }
 
-
-    private static String computeQueryString(String credentials, Map<String, String> userParams, Map<String, String> options) {
+    private static String computeQueryString(
+            String credentials, Map<String, String> userParams, Map<String, String> options) {
         String paramsPart = "";
         String optionsPart = "";
         if (userParams != null) {
-            paramsPart = userParams.entrySet()
-                    .stream()
-                    .map(e -> encodeParam(e, "param:"))
-                    .collect(Collectors.joining("&"));
-
+            paramsPart =
+                    userParams.entrySet().stream()
+                            .map(e -> encodeParam(e, "param:"))
+                            .collect(Collectors.joining("&"));
         }
 
         if (options != null) {
-            optionsPart = options.entrySet()
-                    .stream()
-                    .map(e -> encodeParam(e, "option:"))
-                    .collect(Collectors.joining("&"));
+            optionsPart =
+                    options.entrySet().stream()
+                            .map(e -> encodeParam(e, "option:"))
+                            .collect(Collectors.joining("&"));
         }
 
         String credentialsPart = "";
@@ -79,29 +77,43 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         return "%s=%s".formatted(prefix + key, URLEncoder.encode(value, StandardCharsets.UTF_8));
     }
 
-    protected String validateGatewayAndGetUrl(String applicationId, String gatewayId, Gateway.GatewayType type,
-                                              Map<String, String> params, Map<String, String> options, String credentials) {
+    protected String validateGatewayAndGetUrl(
+            String applicationId,
+            String gatewayId,
+            Gateway.GatewayType type,
+            Map<String, String> params,
+            Map<String, String> options,
+            String credentials) {
         validateGateway(applicationId, gatewayId, type, params, options, credentials);
         return "%s/v1/%s/%s/%s/%s?%s"
-                .formatted(getConfig().getApiGatewayUrl(), type.toString(), getConfig().getTenant(), applicationId, gatewayId,
+                .formatted(
+                        getConfig().getApiGatewayUrl(),
+                        type.toString(),
+                        getConfig().getTenant(),
+                        applicationId,
+                        gatewayId,
                         computeQueryString(credentials, params, options));
-
     }
 
     @SneakyThrows
-    protected void validateGateway(String application, String gatewayId, Gateway.GatewayType type,
-                                   Map<String, String> params, Map<String, String> options, String credentials) {
+    protected void validateGateway(
+            String application,
+            String gatewayId,
+            Gateway.GatewayType type,
+            Map<String, String> params,
+            Map<String, String> options,
+            String credentials) {
 
         final AdminClient client = getClient();
 
-        final String applicationContent = client.applications()
-                .get(application);
+        final String applicationContent = client.applications().get(application);
 
         final ApplicationDescription applicationDescription =
                 messageMapper.readValue(applicationContent, ApplicationDescription.class);
-        final Gateways gatewaysWrapper = applicationDescription.getApplication()
-                .getGateways();
-        if (gatewaysWrapper == null || gatewaysWrapper.gateways() == null || gatewaysWrapper.gateways().isEmpty()) {
+        final Gateways gatewaysWrapper = applicationDescription.getApplication().getGateways();
+        if (gatewaysWrapper == null
+                || gatewaysWrapper.gateways() == null
+                || gatewaysWrapper.gateways().isEmpty()) {
             throw new IllegalArgumentException("No gateway defined for application " + application);
         }
 
@@ -114,14 +126,23 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         }
         if (selectedGateway == null) {
             throw new IllegalArgumentException(
-                    "gateway " + gatewayId + " of type " + type + " is not defined in the application");
+                    "gateway "
+                            + gatewayId
+                            + " of type "
+                            + type
+                            + " is not defined in the application");
         }
         final List<String> requiredParameters = selectedGateway.parameters();
         if (requiredParameters != null) {
             for (String requiredParameter : requiredParameters) {
                 if (params == null || !params.containsKey(requiredParameter)) {
                     throw new IllegalArgumentException(
-                            "gateway " + gatewayId + " of type " + type + " requires parameter " + requiredParameter);
+                            "gateway "
+                                    + gatewayId
+                                    + " of type "
+                                    + type
+                                    + " requires parameter "
+                                    + requiredParameter);
                 }
             }
         }
@@ -132,6 +153,4 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             }
         }
     }
-
-
 }

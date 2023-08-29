@@ -19,7 +19,6 @@ import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-
 import java.util.List;
 
 public class IdentityAgentProvider implements AgentCodeProvider {
@@ -39,6 +38,5 @@ public class IdentityAgentProvider implements AgentCodeProvider {
         public List<Record> processRecord(Record record) {
             return List.of(record);
         }
-
     }
 }

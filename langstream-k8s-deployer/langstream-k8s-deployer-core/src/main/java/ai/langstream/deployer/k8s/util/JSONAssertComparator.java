@@ -45,9 +45,11 @@ public class JSONAssertComparator implements JSONComparator {
         Object actual = JSONParser.parseJSON(actualStr);
         final JSONCompareResult jsonCompareResult = new NoGenericFailuresCompareResult();
         if ((expected instanceof JSONObject) && (actual instanceof JSONObject)) {
-            comparator.compareJSON("", (JSONObject) expected, (JSONObject) actual, jsonCompareResult);
+            comparator.compareJSON(
+                    "", (JSONObject) expected, (JSONObject) actual, jsonCompareResult);
         } else if ((expected instanceof JSONArray) && (actual instanceof JSONArray)) {
-            comparator.compareJSONArray("", (JSONArray) expected, (JSONArray) actual, jsonCompareResult);
+            comparator.compareJSONArray(
+                    "", (JSONArray) expected, (JSONArray) actual, jsonCompareResult);
         } else {
             throw new IllegalArgumentException();
         }
@@ -61,17 +63,17 @@ public class JSONAssertComparator implements JSONComparator {
         @Override
         public void fail(String message) {
             int currentFieldFailures =
-                    getFieldFailures().size() + getFieldUnexpected().size() + getFieldMissing().size();
+                    getFieldFailures().size()
+                            + getFieldUnexpected().size()
+                            + getFieldMissing().size();
             if (currentFieldFailures == lastFailCallNumOfFailures) {
                 throw new IllegalArgumentException(
                         "JSONCompareResult.fail() should not be called without the field details");
             }
             lastFailCallNumOfFailures++;
             super.fail(message);
-
         }
     }
-
 
     private static class DefaultComparatorNoGenericFailures extends DefaultComparator {
         public DefaultComparatorNoGenericFailures() {
@@ -79,8 +81,9 @@ public class JSONAssertComparator implements JSONComparator {
         }
 
         @Override
-        public void compareJSONArray(String prefix, JSONArray expected, JSONArray actual,
-                                     JSONCompareResult result) throws JSONException {
+        public void compareJSONArray(
+                String prefix, JSONArray expected, JSONArray actual, JSONCompareResult result)
+                throws JSONException {
             if (expected.length() != actual.length()) {
                 result.fail(prefix, expected, actual);
                 return;
@@ -106,10 +109,13 @@ public class JSONAssertComparator implements JSONComparator {
                 return Collections.emptyList();
             }
 
-            final Map<String, Object> expectedAsMap = SerializationUtil.readJson(expected, Map.class);
+            final Map<String, Object> expectedAsMap =
+                    SerializationUtil.readJson(expected, Map.class);
             final Map<String, Object> actualAsMap = SerializationUtil.readJson(actual, Map.class);
 
-            return Stream.of(jsonCompareResult.getFieldFailures(), jsonCompareResult.getFieldMissing(),
+            return Stream.of(
+                            jsonCompareResult.getFieldFailures(),
+                            jsonCompareResult.getFieldMissing(),
                             jsonCompareResult.getFieldUnexpected())
                     .flatMap(Collection::stream)
                     .map(f -> toFieldComparisonFailure(f, expectedAsMap, actualAsMap))
@@ -143,8 +149,6 @@ public class JSONAssertComparator implements JSONComparator {
             return new FieldComparisonDiff(field, expected.toString(), actual.toString());
         }
     }
-
-
 
     private static String getValueByDotNotation(final Map<String, Object> map, String key) {
         if (key.startsWith("data.")) {
@@ -180,8 +184,10 @@ public class JSONAssertComparator implements JSONComparator {
         for (int i = 0; i < words.size() - 1; i++) {
             final String word = words.get(i);
             if (word.endsWith("]")) {
-                int index = Integer.parseInt(word.substring(word.indexOf("[") + 1, word.indexOf("]")));
-                final List<Object> list = (List<Object>) currentMap.get(word.replace("[" + index + "]", ""));
+                int index =
+                        Integer.parseInt(word.substring(word.indexOf("[") + 1, word.indexOf("]")));
+                final List<Object> list =
+                        (List<Object>) currentMap.get(word.replace("[" + index + "]", ""));
                 currentMap = (Map<String, Object>) list.get(index);
             } else {
                 currentMap = (Map<String, Object>) currentMap.get(word);

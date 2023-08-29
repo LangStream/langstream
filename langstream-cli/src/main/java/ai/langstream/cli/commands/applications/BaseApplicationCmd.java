@@ -22,15 +22,10 @@ import picocli.CommandLine;
 
 public abstract class BaseApplicationCmd extends BaseCmd {
 
-    @CommandLine.ParentCommand
-    private RootAppCmd rootAppCmd;
-
+    @CommandLine.ParentCommand private RootAppCmd rootAppCmd;
 
     @Override
     protected RootCmd getRootCmd() {
         return rootAppCmd.getRootCmd();
     }
-
-
-
 }

@@ -26,5 +26,4 @@ public interface GlobalMetadataStore extends GenericStore {
     String get(String key);
 
     LinkedHashMap<String, String> list();
-
 }

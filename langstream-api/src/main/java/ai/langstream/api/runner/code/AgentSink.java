@@ -16,16 +16,14 @@
 package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runtime.ComponentType;
-
 import java.util.List;
 
-/**
- * Body of the agent
- */
+/** Body of the agent */
 public interface AgentSink extends AgentCode {
 
     /**
      * The agent processes records and typically writes then to an external service.
+     *
      * @param records the list of input records
      * @throws Exception if the agent fails to process the records
      */
@@ -39,7 +37,7 @@ public interface AgentSink extends AgentCode {
     interface CommitCallback {
         void commit(List<Record> records);
     }
-    
+
     void setCommitCallback(CommitCallback callback);
 
     /**
@@ -49,9 +47,6 @@ public interface AgentSink extends AgentCode {
         return false;
     }
 
-    /** Let's sink handle offset commit if handlesCommit() == true.
-     */
-    default void commit() throws Exception {
-    }
-
+    /** Let's sink handle offset commit if handlesCommit() == true. */
+    default void commit() throws Exception {}
 }

@@ -44,11 +44,9 @@ import org.slf4j.LoggerFactory;
 
 public class JwksUriSigningKeyResolver implements SigningKeyResolver {
 
-    public record JwksUri(String uri, boolean checkHost, String token) {
-    }
-    public record JwksUriCacheKey(JwksUri uri, String keyId) {
-    }
+    public record JwksUri(String uri, boolean checkHost, String token) {}
 
+    public record JwksUriCacheKey(JwksUri uri, String keyId) {}
 
     private static final Logger log = LoggerFactory.getLogger(JwksUriSigningKeyResolver.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -68,11 +66,13 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
             this.hostsAllowlist = Pattern.compile(hostsAllowlist);
         }
         this.fallbackKey = fallbackKey;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
-                .followRedirects(HttpClient.Redirect.ALWAYS)
-                .build();
-        this.localKubernetesJwksUriSigningKeyResolver = new LocalKubernetesJwksUriSigningKeyResolver(httpClient);
+        this.httpClient =
+                HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(30))
+                        .followRedirects(HttpClient.Redirect.ALWAYS)
+                        .build();
+        this.localKubernetesJwksUriSigningKeyResolver =
+                new LocalKubernetesJwksUriSigningKeyResolver(httpClient);
     }
 
     @Override
@@ -99,7 +99,6 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
         }
         return getKey(new JwksUriCacheKey(jwksUri, header.getKeyId()));
     }
-
 
     @Override
     public Key resolveSigningKey(JwsHeader header, String plaintext) {
@@ -139,7 +138,8 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
                     throw new IllegalStateException("Failed to parse public key");
                 }
             }
-            throw new JwtException("No valid keys found from URL: " + uri + ", keyId: " + jwksKey.keyId());
+            throw new JwtException(
+                    "No valid keys found from URL: " + uri + ", keyId: " + jwksKey.keyId());
         } catch (IOException e) {
             log.error("Failed to fetch keys from URL: {}", uri, e);
             throw new JwtException("Failed to fetch keys from URL: " + uri, e);
@@ -153,14 +153,34 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
             if (jwksUri.token() != null) {
                 final HttpResponse<String> responseWithToken = sendGetKeysRequest(jwksUri, true);
                 if (responseWithToken.statusCode() != 200) {
-                    log.warn("Failed to fetch keys from URL: {}, got {} {}", jwksUri.uri(), responseWithToken.statusCode(), responseWithToken.body());
-                    throw new IllegalStateException("Failed to fetch keys from URL: " + jwksUri.uri() + ", got " + responseWithToken.statusCode() + " " + responseWithToken.body());
+                    log.warn(
+                            "Failed to fetch keys from URL: {}, got {} {}",
+                            jwksUri.uri(),
+                            responseWithToken.statusCode(),
+                            responseWithToken.body());
+                    throw new IllegalStateException(
+                            "Failed to fetch keys from URL: "
+                                    + jwksUri.uri()
+                                    + ", got "
+                                    + responseWithToken.statusCode()
+                                    + " "
+                                    + responseWithToken.body());
                 } else {
                     body = httpResponse.body();
                 }
             } else {
-                log.warn("Failed to fetch keys from URL: {}, got {} {}", jwksUri.uri(), httpResponse.statusCode(), httpResponse.body());
-                throw new IllegalStateException("Failed to fetch keys from URL: " + jwksUri.uri() + ", got " + httpResponse.statusCode() + " " + httpResponse.body());
+                log.warn(
+                        "Failed to fetch keys from URL: {}, got {} {}",
+                        jwksUri.uri(),
+                        httpResponse.statusCode(),
+                        httpResponse.body());
+                throw new IllegalStateException(
+                        "Failed to fetch keys from URL: "
+                                + jwksUri.uri()
+                                + ", got "
+                                + httpResponse.statusCode()
+                                + " "
+                                + httpResponse.body());
             }
         } else {
             body = httpResponse.body();
@@ -168,11 +188,13 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
         return MAPPER.readValue(body, JwkKeys.class);
     }
 
-    private HttpResponse<String> sendGetKeysRequest(JwksUri jwksUri, boolean useToken) throws IOException {
-        final HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(URI.create(jwksUri.uri()))
-                .version(HttpClient.Version.HTTP_1_1)
-                .GET();
+    private HttpResponse<String> sendGetKeysRequest(JwksUri jwksUri, boolean useToken)
+            throws IOException {
+        final HttpRequest.Builder builder =
+                HttpRequest.newBuilder()
+                        .uri(URI.create(jwksUri.uri()))
+                        .version(HttpClient.Version.HTTP_1_1)
+                        .GET();
         if (jwksUri.token() != null && useToken) {
             builder.header("Authorization", "Bearer " + jwksUri.token());
         }

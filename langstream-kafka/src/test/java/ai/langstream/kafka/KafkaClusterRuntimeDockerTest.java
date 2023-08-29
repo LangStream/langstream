@@ -15,7 +15,10 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.kafka.runtime.KafkaTopic;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -26,6 +29,9 @@ import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
+import ai.langstream.kafka.runtime.KafkaTopic;
+import java.util.Map;
+import java.util.Set;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -33,16 +39,8 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import java.util.Map;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 @Slf4j
 class KafkaClusterRuntimeDockerTest {
-
 
     @RegisterExtension
     static final KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
@@ -50,30 +48,39 @@ class KafkaClusterRuntimeDockerTest {
     @Test
     public void testMapKafkaTopics() throws Exception {
         final AdminClient admin = kafkaContainer.getAdmin();
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic"
-                                    creation-mode: create-if-not-exists                                     
+                                    creation-mode: create-if-not-exists
                                   - name: "input-topic-2-partitions"
                                     creation-mode: create-if-not-exists
-                                    partitions: 2                                     
-                                """), buildInstanceYaml(), null).getApplication();
+                                    partitions: 2
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof KafkaTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                        instanceof KafkaTopic);
 
         deployer.deploy("tenant", implementation, null);
 
@@ -92,7 +99,6 @@ class KafkaClusterRuntimeDockerTest {
         log.info("Topics {}", topics);
         assertFalse(topics.contains("input-topic"));
         assertFalse(topics.contains("input-topic-2-partitions"));
-
     }
 
     private static String buildInstanceYaml() {
@@ -101,10 +107,11 @@ class KafkaClusterRuntimeDockerTest {
                   streamingCluster:
                     type: "kafka"
                     configuration:
-                      admin:                                      
+                      admin:
                         bootstrap.servers: "%s"
                   computeCluster:
                      type: "none"
-                """.formatted(kafkaContainer.getBootstrapServers());
+                """
+                .formatted(kafkaContainer.getBootstrapServers());
     }
 }

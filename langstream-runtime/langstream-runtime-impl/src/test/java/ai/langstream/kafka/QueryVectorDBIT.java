@@ -15,24 +15,23 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.AbstractApplicationRunner;
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.junit.jupiter.api.Test;
-import java.util.List;
-import java.util.Map;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 
+import ai.langstream.AbstractApplicationRunner;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.junit.jupiter.api.Test;
+
 @Slf4j
 @WireMockTest
 class QueryVectorDBIT extends AbstractApplicationRunner {
-
 
     @Test
     public void testQueryPinecone(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
@@ -43,7 +42,11 @@ class QueryVectorDBIT extends AbstractApplicationRunner {
         // and in the Pinecone client we are using a dummy HTTP client
 
         String endpoint = vmRuntimeInfo.getHttpBaseUrl() + "/query";
-        stubFor(post("/query").willReturn(okJson("""
+        stubFor(
+                post("/query")
+                        .willReturn(
+                                okJson(
+                                        """
              [
                    {
                     "id": "C"
@@ -57,8 +60,10 @@ class QueryVectorDBIT extends AbstractApplicationRunner {
                ]
         """)));
 
-        Map<String, String> application = Map.of(
-                "configuration.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "configuration.yaml",
+                        """
                         configuration:
                           resources:
                             - type: "vector-database"
@@ -71,8 +76,10 @@ class QueryVectorDBIT extends AbstractApplicationRunner {
                                 project-name: "the-project"
                                 server-side-timeout-sec: 10
                                 endpoint: "%s"
-                        """.formatted(endpoint),
-                        "pipeline.yaml", """
+                        """
+                                .formatted(endpoint),
+                        "pipeline.yaml",
+                        """
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
@@ -98,17 +105,20 @@ class QueryVectorDBIT extends AbstractApplicationRunner {
                                       output-field: "value.query-result"
                                 """);
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
+                    KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
-                sendMessage("input-topic","{\"embeddings\":[0.1,0.2,0.3]}", producer);
+                sendMessage("input-topic", "{\"embeddings\":[0.1,0.2,0.3]}", producer);
 
                 executeAgentRunners(applicationRuntime);
-                waitForMessages(consumer, List.of("{\"embeddings\":[0.1,0.2,0.3],\"query-result\":[{\"id\":\"C\"},{\"id\":\"B\"},{\"id\":\"D\"}]}"));
+                waitForMessages(
+                        consumer,
+                        List.of(
+                                "{\"embeddings\":[0.1,0.2,0.3],\"query-result\":[{\"id\":\"C\"},{\"id\":\"B\"},{\"id\":\"D\"}]}"));
             }
         }
-
     }
-
 }

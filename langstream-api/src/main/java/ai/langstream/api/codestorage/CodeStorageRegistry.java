@@ -15,31 +15,34 @@
  */
 package ai.langstream.api.codestorage;
 
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * This is the API to load a CodeStorage implementation.
- */
+/** This is the API to load a CodeStorage implementation. */
 @Slf4j
 public class CodeStorageRegistry {
 
-    public static CodeStorage getCodeStorage(String codeStorageType, Map<String, Object> configuration) {
-        log.info("Loading CodeStorage implementation for type {} with configuration {}", codeStorageType, configuration);
+    public static CodeStorage getCodeStorage(
+            String codeStorageType, Map<String, Object> configuration) {
+        log.info(
+                "Loading CodeStorage implementation for type {} with configuration {}",
+                codeStorageType,
+                configuration);
         Objects.requireNonNull(codeStorageType, "codeStorageType cannot be null");
 
         ServiceLoader<CodeStorageProvider> loader = ServiceLoader.load(CodeStorageProvider.class);
-        ServiceLoader.Provider<CodeStorageProvider> codeStorageProvider = loader
-                .stream()
-                .filter(p -> p.get().supports(codeStorageType))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No CodeStorage found for type " + codeStorageType));
+        ServiceLoader.Provider<CodeStorageProvider> codeStorageProvider =
+                loader.stream()
+                        .filter(p -> p.get().supports(codeStorageType))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new RuntimeException(
+                                                "No CodeStorage found for type "
+                                                        + codeStorageType));
 
         return codeStorageProvider.get().createImplementation(codeStorageType, configuration);
     }
-
-
 }

@@ -15,7 +15,6 @@
  */
 package ai.langstream.apigateway.websocket.api;
 
-
 public record ProduceResponse(Status status, String reason) {
     public static ProduceResponse OK = new ProduceResponse(Status.OK, null);
 

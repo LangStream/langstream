@@ -22,9 +22,6 @@ import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.api.codestorage.UploadableCodeArchive;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,19 +30,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class LocalDiskCodeStorage implements CodeStorage {
 
-
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Path rootPath;
 
     private final Path metadataFilePath;
 
     private final CopyOnWriteArrayList<CodeArchiveMetadata> archives = new CopyOnWriteArrayList<>();
-
 
     public LocalDiskCodeStorage(Path rootPath) {
         this.rootPath = rootPath;
@@ -54,20 +51,18 @@ public class LocalDiskCodeStorage implements CodeStorage {
         initMetadata();
     }
 
-
     @SneakyThrows
     private void initMetadata() {
         File file = metadataFilePath.toFile();
         log.info("Loading archives metadata from {}", file);
         if (file.exists()) {
             // load the metadata
-            List<CodeArchiveMetadata> codeArchives = MAPPER.readValue(file, new TypeReference<>() {
-            });
+            List<CodeArchiveMetadata> codeArchives =
+                    MAPPER.readValue(file, new TypeReference<>() {});
             archives.addAll(codeArchives);
         } else {
             log.info("No metadata file found at {}, creating an empty file", file);
             persistMetadata();
-
         }
     }
 
@@ -81,16 +76,24 @@ public class LocalDiskCodeStorage implements CodeStorage {
         MAPPER.writeValue(file, new ArrayList<>(archives));
     }
 
-
     @Override
-    public CodeArchiveMetadata storeApplicationCode(String tenant, String applicationId, String version, UploadableCodeArchive codeArchive) throws CodeStorageException {
+    public CodeArchiveMetadata storeApplicationCode(
+            String tenant, String applicationId, String version, UploadableCodeArchive codeArchive)
+            throws CodeStorageException {
 
         try {
-            String uniqueId = tenant + "_" + applicationId + "_" + version + "_" + UUID.randomUUID();
-            log.info("Storing code archive {} for tenant {} and application {} with version {}", uniqueId, tenant, applicationId, version);
+            String uniqueId =
+                    tenant + "_" + applicationId + "_" + version + "_" + UUID.randomUUID();
+            log.info(
+                    "Storing code archive {} for tenant {} and application {} with version {}",
+                    uniqueId,
+                    tenant,
+                    applicationId,
+                    version);
             Path resolve = rootPath.resolve(uniqueId);
             Files.copy(codeArchive.getData(), resolve);
-            CodeArchiveMetadata archiveMetadata = new CodeArchiveMetadata(tenant, uniqueId, applicationId);
+            CodeArchiveMetadata archiveMetadata =
+                    new CodeArchiveMetadata(tenant, uniqueId, applicationId);
             archives.add(archiveMetadata);
             persistMetadata();
             return archiveMetadata;
@@ -100,43 +103,55 @@ public class LocalDiskCodeStorage implements CodeStorage {
     }
 
     @Override
-    public void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive) throws CodeStorageException {
+    public void downloadApplicationCode(
+            String tenant, String codeStoreId, DownloadedCodeHandled codeArchive)
+            throws CodeStorageException {
         CodeArchiveMetadata metadata = describeApplicationCode(tenant, codeStoreId);
         Path resolve = rootPath.resolve(metadata.codeStoreId());
         codeArchive.accept(new LocalZipFileArchiveFile(resolve));
     }
 
     @Override
-    public CodeArchiveMetadata describeApplicationCode(String tenant, String codeStoreId) throws CodeStorageException {
-        return archives.stream().filter(c -> c.tenant().equals(tenant) && c.codeStoreId().equals(codeStoreId))
-                .findFirst().orElseThrow((() -> new CodeStorageException("No code archive found for tenant " + tenant + " and codeStoreId " + codeStoreId)));
+    public CodeArchiveMetadata describeApplicationCode(String tenant, String codeStoreId)
+            throws CodeStorageException {
+        return archives.stream()
+                .filter(c -> c.tenant().equals(tenant) && c.codeStoreId().equals(codeStoreId))
+                .findFirst()
+                .orElseThrow(
+                        (() ->
+                                new CodeStorageException(
+                                        "No code archive found for tenant "
+                                                + tenant
+                                                + " and codeStoreId "
+                                                + codeStoreId)));
     }
 
     @Override
     public void deleteApplicationCode(String tenant, String codeStoreId) {
-        archives.stream().filter(c -> c.tenant().equals(tenant) && c.codeStoreId().equals(codeStoreId))
+        archives.stream()
+                .filter(c -> c.tenant().equals(tenant) && c.codeStoreId().equals(codeStoreId))
                 .findFirst()
-                .ifPresent(c -> {
-                    log.info("Deleting archive {}", c);
-                    archives.remove(c);
-                    persistMetadata();
-                });
+                .ifPresent(
+                        c -> {
+                            log.info("Deleting archive {}", c);
+                            archives.remove(c);
+                            persistMetadata();
+                        });
     }
 
     @Override
     public void deleteApplication(String tenant, String application) {
-        archives.stream().filter(c -> c.tenant().equals(tenant)
-                        && c.applicationId().equals(application))
+        archives.stream()
+                .filter(c -> c.tenant().equals(tenant) && c.applicationId().equals(application))
                 .findFirst()
-                .ifPresent(c -> {
-                    log.info("Deleting archive {}", c);
-                    archives.remove(c);
-                    persistMetadata();
-                });
+                .ifPresent(
+                        c -> {
+                            log.info("Deleting archive {}", c);
+                            archives.remove(c);
+                            persistMetadata();
+                        });
     }
 
     @Override
-    public void close() {
-    }
-
+    public void close() {}
 }

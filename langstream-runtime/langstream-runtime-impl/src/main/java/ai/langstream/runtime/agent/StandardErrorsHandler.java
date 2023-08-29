@@ -15,15 +15,14 @@
  */
 package ai.langstream.runtime.agent;
 
-import ai.langstream.api.runner.code.Record;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
 import static ai.langstream.api.model.ErrorsSpec.FAIL;
 import static ai.langstream.api.model.ErrorsSpec.SKIP;
+
+import ai.langstream.api.runner.code.Record;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class StandardErrorsHandler implements ErrorsHandler {
@@ -32,7 +31,6 @@ class StandardErrorsHandler implements ErrorsHandler {
     private final String onFailureAction;
 
     private final AtomicInteger failures = new AtomicInteger(0);
-
 
     public StandardErrorsHandler(Map<String, Object> configuration) {
         if (configuration == null) {
@@ -46,8 +44,12 @@ class StandardErrorsHandler implements ErrorsHandler {
     public ErrorsProcessingOutcome handleErrors(Record sourceRecord, Throwable error) {
         // no stacktrace here, it's too verbose
         int currentFailures = failures.incrementAndGet();
-        log.info("Handling error {} for source record {}, errors count {} (max retries {})", error + "",
-                sourceRecord, currentFailures, retries);
+        log.info(
+                "Handling error {} for source record {}, errors count {} (max retries {})",
+                error + "",
+                sourceRecord,
+                currentFailures,
+                retries);
         if (currentFailures >= retries) {
             return switch (onFailureAction) {
                 case SKIP -> ErrorsProcessingOutcome.SKIP;

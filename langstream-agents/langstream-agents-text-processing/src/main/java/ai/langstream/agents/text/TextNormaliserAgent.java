@@ -18,11 +18,10 @@ package ai.langstream.agents.text;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TextNormaliserAgent extends SingleRecordAgentProcessor {
@@ -32,8 +31,11 @@ public class TextNormaliserAgent extends SingleRecordAgentProcessor {
 
     @Override
     public void init(Map<String, Object> configuration) {
-        makeLowercase = Boolean.parseBoolean(configuration.getOrDefault("make-lowercase", "true").toString());
-        trimSpaces = Boolean.parseBoolean(configuration.getOrDefault("trim-spaces", "true").toString());
+        makeLowercase =
+                Boolean.parseBoolean(
+                        configuration.getOrDefault("make-lowercase", "true").toString());
+        trimSpaces =
+                Boolean.parseBoolean(configuration.getOrDefault("trim-spaces", "true").toString());
     }
 
     @Override
@@ -50,15 +52,11 @@ public class TextNormaliserAgent extends SingleRecordAgentProcessor {
         if (makeLowercase) {
             stream = stream.toLowerCase(Locale.ENGLISH);
         }
-        return List.of(SimpleRecord
-                .copyFrom(record)
-                .value(stream)
-                .build());
+        return List.of(SimpleRecord.copyFrom(record).value(stream).build());
     }
 
     static String trimSpaces(String stream) {
-        return stream
-                .replaceAll("\t+", " ")  // convert tabs to spaces
+        return stream.replaceAll("\t+", " ") // convert tabs to spaces
                 .replaceAll(" +", " ") // remove multiple spaces
                 .replaceAll("\n\n\n", "\n\n") // remove repeated newlines (3 or more)
                 .trim();

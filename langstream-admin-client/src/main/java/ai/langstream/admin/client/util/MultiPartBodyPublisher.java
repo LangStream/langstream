@@ -35,7 +35,8 @@ public class MultiPartBodyPublisher {
 
     public HttpRequest.BodyPublisher build() {
         if (partsSpecificationList.size() == 0) {
-            throw new IllegalStateException("Must have at least one part to build multipart message.");
+            throw new IllegalStateException(
+                    "Must have at least one part to build multipart message.");
         }
         addFinalBoundaryPart();
         return HttpRequest.BodyPublishers.ofByteArrays(PartsIterator::new);
@@ -63,7 +64,8 @@ public class MultiPartBodyPublisher {
         return this;
     }
 
-    public MultiPartBodyPublisher addPart(String name, Supplier<InputStream> value, String filename, String contentType) {
+    public MultiPartBodyPublisher addPart(
+            String name, Supplier<InputStream> value, String filename, String contentType) {
         PartsSpecification newPart = new PartsSpecification();
         newPart.type = PartsSpecification.TYPE.STREAM;
         newPart.name = name;
@@ -84,7 +86,10 @@ public class MultiPartBodyPublisher {
     static class PartsSpecification {
 
         public enum TYPE {
-            STRING, FILE, STREAM, FINAL_BOUNDARY
+            STRING,
+            FILE,
+            STREAM,
+            FINAL_BOUNDARY
         }
 
         TYPE type;
@@ -94,7 +99,6 @@ public class MultiPartBodyPublisher {
         Supplier<InputStream> stream;
         String filename;
         String contentType;
-
     }
 
     class PartsIterator implements Iterator<byte[]> {
@@ -139,10 +143,15 @@ public class MultiPartBodyPublisher {
                 PartsSpecification nextPart = iter.next();
                 if (PartsSpecification.TYPE.STRING.equals(nextPart.type)) {
                     String part =
-                            "--" + boundary + "\r\n" +
-                                    "Content-Disposition: form-data; name=\"" + nextPart.name + "\"\r\n" +
-                                    "Content-Type: text/plain; charset=UTF-8\r\n\r\n" +
-                                    nextPart.value + "\r\n";
+                            "--"
+                                    + boundary
+                                    + "\r\n"
+                                    + "Content-Disposition: form-data; name=\""
+                                    + nextPart.name
+                                    + "\"\r\n"
+                                    + "Content-Type: text/plain; charset=UTF-8\r\n\r\n"
+                                    + nextPart.value
+                                    + "\r\n";
                     return part.getBytes(StandardCharsets.UTF_8);
                 }
                 if (PartsSpecification.TYPE.FINAL_BOUNDARY.equals(nextPart.type)) {
@@ -163,9 +172,17 @@ public class MultiPartBodyPublisher {
                     currentFileInput = nextPart.stream.get();
                 }
                 String partHeader =
-                        "--" + boundary + "\r\n" +
-                                "Content-Disposition: form-data; name=\"" + nextPart.name + "\"; filename=" + filename + "\r\n" +
-                                "Content-Type: " + contentType + "\r\n\r\n";
+                        "--"
+                                + boundary
+                                + "\r\n"
+                                + "Content-Disposition: form-data; name=\""
+                                + nextPart.name
+                                + "\"; filename="
+                                + filename
+                                + "\r\n"
+                                + "Content-Type: "
+                                + contentType
+                                + "\r\n\r\n";
                 return partHeader.getBytes(StandardCharsets.UTF_8);
             } else {
                 byte[] buf = new byte[8192];

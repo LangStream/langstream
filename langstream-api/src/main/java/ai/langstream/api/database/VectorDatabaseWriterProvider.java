@@ -22,5 +22,4 @@ public interface VectorDatabaseWriterProvider {
     boolean supports(Map<String, Object> datasource);
 
     VectorDatabaseWriter createImplementation(Map<String, Object> datasource);
-
 }

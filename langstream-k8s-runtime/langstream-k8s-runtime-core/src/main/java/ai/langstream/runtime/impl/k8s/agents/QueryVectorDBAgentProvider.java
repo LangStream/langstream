@@ -25,18 +25,19 @@ import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider {
 
     public QueryVectorDBAgentProvider() {
-        super(Set.of("query-vector-db", "vector-db-sink"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
+        super(
+                Set.of("query-vector-db", "vector-db-sink"),
+                List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override
@@ -49,31 +50,45 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
     }
 
     @Override
-    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module,
-                                                            Pipeline pipeline, ExecutionPlan executionPlan, ComputeClusterRuntime clusterRuntime) {
-        Map<String, Object> originalConfiguration = super.computeAgentConfiguration(agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
+    protected Map<String, Object> computeAgentConfiguration(
+            AgentConfiguration agentConfiguration,
+            Module module,
+            Pipeline pipeline,
+            ExecutionPlan executionPlan,
+            ComputeClusterRuntime clusterRuntime) {
+        Map<String, Object> originalConfiguration =
+                super.computeAgentConfiguration(
+                        agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
 
         // get the datasource configuration and inject it into the agent configuration
         String resourceId = (String) originalConfiguration.remove("datasource");
         if (resourceId == null || resourceId.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Missing required field 'datasource' in agent definition, type=" + agentConfiguration.getType()
-                            + ", name=" + agentConfiguration.getName() + ", id=" + agentConfiguration.getId());
+                    "Missing required field 'datasource' in agent definition, type="
+                            + agentConfiguration.getType()
+                            + ", name="
+                            + agentConfiguration.getName()
+                            + ", id="
+                            + agentConfiguration.getId());
         }
-        generateDataSourceConfiguration(resourceId, executionPlan.getApplication(), originalConfiguration);
+        generateDataSourceConfiguration(
+                resourceId, executionPlan.getApplication(), originalConfiguration);
 
         return originalConfiguration;
     }
 
-    private void generateDataSourceConfiguration(String resourceId, Application applicationInstance, Map<String, Object> configuration) {
+    private void generateDataSourceConfiguration(
+            String resourceId, Application applicationInstance, Map<String, Object> configuration) {
 
         Resource resource = applicationInstance.getResources().get(resourceId);
         log.info("Generating datasource configuration for {}", resourceId);
         if (resource != null) {
             if (!resource.type().equals("datasource")
-                    && !resource.type().equals("vector-database")
-                ) {
-                throw new IllegalArgumentException("Resource " + resourceId + " is not type=datasource or type=vector-database");
+                    && !resource.type().equals("vector-database")) {
+                throw new IllegalArgumentException(
+                        "Resource "
+                                + resourceId
+                                + " is not type=datasource or type=vector-database");
             }
             if (configuration.containsKey("datasource")) {
                 throw new IllegalArgumentException("Only one datasource is supported");

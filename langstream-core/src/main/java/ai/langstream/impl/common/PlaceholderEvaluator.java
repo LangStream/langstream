@@ -23,5 +23,4 @@ public class PlaceholderEvaluator {
         new Application();
         return applicationInstance;
     }
-
 }

@@ -51,8 +51,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PineconeDataSource implements DataSourceProvider {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper MAPPER =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
@@ -63,20 +63,26 @@ public class PineconeDataSource implements DataSourceProvider {
     public static final class PineconeConfig {
         @JsonProperty(value = "api-key", required = true)
         private String apiKey;
+
         @JsonProperty(value = "environment", required = true)
         private String environment = "default";
+
         @JsonProperty(value = "project-name", required = true)
         private String projectName;
+
         @JsonProperty(value = "index-name", required = true)
         private String indexName;
+
         @JsonProperty(value = "endpoint")
         private String endpoint;
+
         @JsonProperty("server-side-timeout-sec")
         private int serverSideTimeoutSec = 10;
     }
 
     @Override
-    public QueryStepDataSource createDataSourceImplementation(Map<String, Object> dataSourceConfig) {
+    public QueryStepDataSource createDataSourceImplementation(
+            Map<String, Object> dataSourceConfig) {
 
         PineconeConfig clientConfig = MAPPER.convertValue(dataSourceConfig, PineconeConfig.class);
 
@@ -84,7 +90,6 @@ public class PineconeDataSource implements DataSourceProvider {
     }
 
     private static class PinecodeQueryStepDataSource implements QueryStepDataSource {
-
 
         private final PineconeConfig clientConfig;
         private PineconeConnection connection;
@@ -95,14 +100,15 @@ public class PineconeDataSource implements DataSourceProvider {
 
         @Override
         public void initialize(DataSourceConfig config) {
-            PineconeClientConfig pineconeClientConfig = new PineconeClientConfig()
-                    .withApiKey(clientConfig.getApiKey())
-                    .withEnvironment(clientConfig.getEnvironment())
-                    .withProjectName(clientConfig.getProjectName())
-                    .withServerSideTimeoutSec(clientConfig.getServerSideTimeoutSec());
+            PineconeClientConfig pineconeClientConfig =
+                    new PineconeClientConfig()
+                            .withApiKey(clientConfig.getApiKey())
+                            .withEnvironment(clientConfig.getEnvironment())
+                            .withProjectName(clientConfig.getProjectName())
+                            .withServerSideTimeoutSec(clientConfig.getServerSideTimeoutSec());
             PineconeClient pineconeClient = new PineconeClient(pineconeClientConfig);
-            PineconeConnectionConfig connectionConfig = new PineconeConnectionConfig()
-                    .withIndexName(clientConfig.getIndexName());
+            PineconeConnectionConfig connectionConfig =
+                    new PineconeConnectionConfig().withIndexName(clientConfig.getIndexName());
             if (clientConfig.getEndpoint() == null) {
                 connection = pineconeClient.connect(connectionConfig);
             }
@@ -114,7 +120,12 @@ public class PineconeDataSource implements DataSourceProvider {
                 Query parsedQuery;
                 try {
                     log.info("Query {}", query);
-                    params.forEach(param -> log.info("Param {} {}", param, param != null ?param.getClass() : null));
+                    params.forEach(
+                            param ->
+                                    log.info(
+                                            "Param {} {}",
+                                            param,
+                                            param != null ? param.getClass() : null));
                     // interpolate the query
                     query = interpolate(query, params);
                     log.info("Interpolated query {}", query);
@@ -132,10 +143,11 @@ public class PineconeDataSource implements DataSourceProvider {
                 }
 
                 if (parsedQuery.sparseVector != null) {
-                    builder.setSparseValues(SparseValues.newBuilder()
-                            .addAllValues(parsedQuery.sparseVector.getValues())
-                            .addAllIndices(parsedQuery.sparseVector.getIndices())
-                            .build());
+                    builder.setSparseValues(
+                            SparseValues.newBuilder()
+                                    .addAllValues(parsedQuery.sparseVector.getValues())
+                                    .addAllIndices(parsedQuery.sparseVector.getIndices())
+                                    .build());
                 }
 
                 if (parsedQuery.filter != null && !parsedQuery.filter.isEmpty()) {
@@ -153,20 +165,20 @@ public class PineconeDataSource implements DataSourceProvider {
                     requestBuilder.setNamespace(parsedQuery.namespace);
                 }
 
-                QueryRequest batchQueryRequest = requestBuilder
-                        .addQueries(queryVector)
-                        .setTopK(parsedQuery.topK)
-                        .setIncludeMetadata(parsedQuery.includeMetadata)
-                        .setIncludeValues(parsedQuery.includeValues)
-                        .build();
+                QueryRequest batchQueryRequest =
+                        requestBuilder
+                                .addQueries(queryVector)
+                                .setTopK(parsedQuery.topK)
+                                .setIncludeMetadata(parsedQuery.includeMetadata)
+                                .setIncludeValues(parsedQuery.includeValues)
+                                .build();
 
                 List<Map<String, String>> results;
 
                 if (clientConfig.getEndpoint() == null) {
 
-                    QueryResponse queryResponse = connection
-                            .getBlockingStub()
-                            .query(batchQueryRequest);
+                    QueryResponse queryResponse =
+                            connection.getBlockingStub().query(batchQueryRequest);
 
                     if (log.isDebugEnabled()) {
                         log.debug("Query response: {}", queryResponse);
@@ -174,38 +186,67 @@ public class PineconeDataSource implements DataSourceProvider {
                     log.info("Query response: {}", queryResponse);
 
                     results = new ArrayList<>();
-                    queryResponse.getResultsList()
-                            .forEach(res -> res.getMatchesList().forEach(match -> {
-                                String id = match.getId();
-                                Map<String, String> row = new HashMap<>();
+                    queryResponse
+                            .getResultsList()
+                            .forEach(
+                                    res ->
+                                            res.getMatchesList()
+                                                    .forEach(
+                                                            match -> {
+                                                                String id = match.getId();
+                                                                Map<String, String> row =
+                                                                        new HashMap<>();
 
-                                if (parsedQuery.includeMetadata) {
-                                    // put all the metadata
-                                    if (match.getMetadata() != null) {
-                                        match.getMetadata().getFieldsMap().forEach((key, value) -> {
-                                            if (log.isDebugEnabled()) {
-                                                log.debug("Key: {}, value: {} {}", key, value, value != null ? value.getClass() : null);
-                                            }
-                                            Object converted = valueToObject(value);
-                                            row.put(key, converted != null ? converted.toString() : null);
-                                        });
-                                    }
-                                }
-                                row.put("id", id);
-                                results.add(row);
-                            }));
+                                                                if (parsedQuery.includeMetadata) {
+                                                                    // put all the metadata
+                                                                    if (match.getMetadata()
+                                                                            != null) {
+                                                                        match.getMetadata()
+                                                                                .getFieldsMap()
+                                                                                .forEach(
+                                                                                        (key,
+                                                                                                value) -> {
+                                                                                            if (log
+                                                                                                    .isDebugEnabled()) {
+                                                                                                log
+                                                                                                        .debug(
+                                                                                                                "Key: {}, value: {} {}",
+                                                                                                                key,
+                                                                                                                value,
+                                                                                                                value
+                                                                                                                                != null
+                                                                                                                        ? value
+                                                                                                                                .getClass()
+                                                                                                                        : null);
+                                                                                            }
+                                                                                            Object
+                                                                                                    converted =
+                                                                                                            valueToObject(
+                                                                                                                    value);
+                                                                                            row.put(
+                                                                                                    key,
+                                                                                                    converted
+                                                                                                                    != null
+                                                                                                            ? converted
+                                                                                                                    .toString()
+                                                                                                            : null);
+                                                                                        });
+                                                                    }
+                                                                }
+                                                                row.put("id", id);
+                                                                results.add(row);
+                                                            }));
                 } else {
                     HttpClient client = HttpClient.newHttpClient();
-                    HttpRequest request = HttpRequest
-                            .newBuilder(URI.create(clientConfig.getEndpoint()))
-                            .POST(HttpRequest.BodyPublishers
-                                    .ofString(batchQueryRequest.toString()))
-                            .build();
-                    String body = client.send(request, HttpResponse.BodyHandlers.ofString())
-                            .body();
+                    HttpRequest request =
+                            HttpRequest.newBuilder(URI.create(clientConfig.getEndpoint()))
+                                    .POST(
+                                            HttpRequest.BodyPublishers.ofString(
+                                                    batchQueryRequest.toString()))
+                                    .build();
+                    String body = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
                     log.info("Mock result {}", body);
-                    results = MAPPER.readValue(body, new TypeReference<>() {
-                    });
+                    results = MAPPER.readValue(body, new TypeReference<>() {});
                 }
                 return results;
             } catch (IOException | StatusRuntimeException | InterruptedException e) {
@@ -217,15 +258,16 @@ public class PineconeDataSource implements DataSourceProvider {
             if (query == null || !query.contains("?")) {
                 return query;
             }
-            for (Object value :array) {
+            for (Object value : array) {
                 int questionMark = query.indexOf("?");
                 if (questionMark < 0) {
                     return query;
                 }
                 Object valueAsString = convertValueToJson(value);
-                query = query.substring(0, questionMark)
-                        + valueAsString
-                        + query.substring(questionMark + 1);
+                query =
+                        query.substring(0, questionMark)
+                                + valueAsString
+                                + query.substring(questionMark + 1);
             }
 
             return query;
@@ -243,15 +285,15 @@ public class PineconeDataSource implements DataSourceProvider {
                 case STRING_VALUE -> value.getStringValue();
                 case BOOL_VALUE -> value.getBoolValue();
                 case LIST_VALUE -> value.getListValue().getValuesList().stream()
-                    .map(PinecodeQueryStepDataSource::valueToObject)
-                    .toList();
+                        .map(PinecodeQueryStepDataSource::valueToObject)
+                        .toList();
                 case STRUCT_VALUE -> value.getStructValue().getFieldsMap().entrySet().stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey, e -> valueToObject(e.getValue())));
+                        .collect(
+                                Collectors.toMap(
+                                        Map.Entry::getKey, e -> valueToObject(e.getValue())));
                 default -> null;
             };
         }
-
-
 
         private Struct buildFilter(Map<String, Object> filter) {
             Struct.Builder builder = Struct.newBuilder();
@@ -269,20 +311,21 @@ public class PineconeDataSource implements DataSourceProvider {
 
     /**
      * JSON model for Pinecone querys.
-     * <p>
-     * "vector": [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-     *     "filter": {"genre": {"$in": ["comedy", "documentary", "drama"]}},
-     *     "topK": 1,
-     *     "includeMetadata": true
+     *
+     * <p>"vector": [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], "filter": {"genre": {"$in": ["comedy",
+     * "documentary", "drama"]}}, "topK": 1, "includeMetadata": true
      */
     @Data
     public static final class Query {
         @JsonProperty("vector")
         private List<Float> vector;
+
         @JsonProperty("filter")
         private Map<String, Object> filter;
+
         @JsonProperty("topK")
         private int topK = 1;
+
         @JsonProperty("includeMetadata")
         private boolean includeMetadata = true;
 
@@ -294,13 +337,13 @@ public class PineconeDataSource implements DataSourceProvider {
 
         @JsonProperty("sparseVector")
         private SparseVector sparseVector;
-
     }
 
     @Data
     public static final class SparseVector {
         @JsonProperty("indices")
         private List<Integer> indices;
+
         @JsonProperty("values")
         private List<Float> values;
     }
@@ -308,29 +351,26 @@ public class PineconeDataSource implements DataSourceProvider {
     static Value convertToValue(Object value) {
         if (value instanceof Map) {
             Struct.Builder builder = Struct.newBuilder();
-            ((Map<String, Object>) value).forEach((key, val) -> builder.putFields(key, convertToValue(val)));
+            ((Map<String, Object>) value)
+                    .forEach((key, val) -> builder.putFields(key, convertToValue(val)));
             return Value.newBuilder().setStructValue(builder.build()).build();
-        } else if (value instanceof String){
-            return Value.newBuilder()
-                    .setStringValue(value.toString())
-                    .build();
-        } else if (value instanceof Number n){
-            return Value.newBuilder()
-                    .setNumberValue(n.doubleValue())
-                    .build();
+        } else if (value instanceof String) {
+            return Value.newBuilder().setStringValue(value.toString()).build();
+        } else if (value instanceof Number n) {
+            return Value.newBuilder().setNumberValue(n.doubleValue()).build();
         } else if (value instanceof Boolean b) {
-            return Value.newBuilder()
-                    .setBoolValue(b)
-                    .build();
+            return Value.newBuilder().setBoolValue(b).build();
         } else if (value instanceof List list) {
             ListValue.Builder listValue = ListValue.newBuilder();
             for (Object item : list) {
                 listValue.addValues(convertToValue(item));
             }
-            return Value.newBuilder()
-                    .setListValue(listValue).build();
+            return Value.newBuilder().setListValue(listValue).build();
         } else {
-            throw new IllegalArgumentException("Unsupported value of type: " + value.getClass().getName() + " in Pinecone filter");
+            throw new IllegalArgumentException(
+                    "Unsupported value of type: "
+                            + value.getClass().getName()
+                            + " in Pinecone filter");
         }
     }
 }

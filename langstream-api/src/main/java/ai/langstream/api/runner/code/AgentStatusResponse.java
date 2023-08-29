@@ -16,11 +16,10 @@
 package ai.langstream.api.runner.code;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.Map;
 
 @Data
 @AllArgsConstructor
@@ -29,15 +28,18 @@ public final class AgentStatusResponse {
 
     @JsonProperty("agent-id")
     private String agentId;
+
     @JsonProperty("agent-type")
     private String agentType;
+
     @JsonProperty("component-type")
     private String componentType;
+
     @JsonProperty("info")
     private Map<String, Object> info;
+
     @JsonProperty("metrics")
     private Metrics metrics;
-
 
     @Data
     @AllArgsConstructor
@@ -45,13 +47,14 @@ public final class AgentStatusResponse {
     public static final class Metrics {
         @JsonProperty("total-in")
         private Long totalIn;
+
         @JsonProperty("total-out")
         private Long totalOut;
+
         @JsonProperty("started-at")
         private Long startedAt;
+
         @JsonProperty("last-processed-at")
         private Long lastProcessedAt;
     }
-
-
 }

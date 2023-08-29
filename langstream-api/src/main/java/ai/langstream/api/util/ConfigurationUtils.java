@@ -24,15 +24,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Utility class for configuration related operations.
- * This class is widely used and changing the behaviour may cause breaking changes.
+ * Utility class for configuration related operations. This class is widely used and changing the
+ * behaviour may cause breaking changes.
  */
 public class ConfigurationUtils {
 
-
     /**
-     * Decode a configuration map into a list of strings.
-     * Nulls are removed
+     * Decode a configuration map into a list of strings. Nulls are removed
+     *
      * @param key the entry
      * @param configuration the agent configuration
      * @return a list of strings
@@ -47,16 +46,19 @@ public class ConfigurationUtils {
         } else if (value instanceof Collection) {
             return ((Collection<String>) value)
                     .stream()
-                    .filter(v -> v != null)
-                    .map(v -> v.toString())
-                    .map(String::trim).collect(Collectors.toList());
+                            .filter(v -> v != null)
+                            .map(v -> v.toString())
+                            .map(String::trim)
+                            .collect(Collectors.toList());
         } else {
-            throw new IllegalArgumentException("Unsupported type for " + key + ": " + value.getClass());
+            throw new IllegalArgumentException(
+                    "Unsupported type for " + key + ": " + value.getClass());
         }
     }
 
     /**
      * Decode a configuration map into a set of unique and unordered strings.
+     *
      * @param key the entry
      * @param configuration the agent configuration
      * @return a set of unique strings
@@ -74,7 +76,8 @@ public class ConfigurationUtils {
         }
     }
 
-    public static boolean getBoolean(String key, boolean defaultValue, Map<String, Object> configuration) {
+    public static boolean getBoolean(
+            String key, boolean defaultValue, Map<String, Object> configuration) {
         Object value = configuration.getOrDefault(key, defaultValue);
         if (value instanceof Boolean n) {
             return n.booleanValue();
@@ -83,7 +86,8 @@ public class ConfigurationUtils {
         }
     }
 
-    public static String getString(String key, String defaultValue, Map<String, Object> configuration) {
+    public static String getString(
+            String key, String defaultValue, Map<String, Object> configuration) {
         Object value = configuration.get(key);
         if (value == null) {
             return defaultValue;

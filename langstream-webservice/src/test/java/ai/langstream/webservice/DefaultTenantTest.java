@@ -17,8 +17,8 @@ package ai.langstream.webservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.webservice.common.GlobalMetadataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,11 +31,9 @@ import org.springframework.test.annotation.DirtiesContext;
 @DirtiesContext
 class DefaultTenantTest {
 
-    @Autowired
-    GlobalMetadataService service;
+    @Autowired GlobalMetadataService service;
 
-    @MockBean
-    ApplicationStore applicationStore;
+    @MockBean ApplicationStore applicationStore;
 
     @Test
     public void testDefaultTenant() {
@@ -43,5 +41,4 @@ class DefaultTenantTest {
         assertEquals(1, service.listTenants().size());
         assertEquals("default", service.getTenant("default").getName());
     }
-
 }

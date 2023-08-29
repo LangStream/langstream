@@ -16,44 +16,44 @@
 package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runtime.ComponentType;
-
 import java.util.List;
 import java.util.Map;
 
-/**
- * Body of the agent
- */
+/** Body of the agent */
 public interface AgentCode {
 
     String agentId();
 
     /**
      * Get the type of the agent.
+     *
      * @return the type of the agent
      */
     String agentType();
 
     ComponentType componentType();
 
-    default void setMetadata(String id, String agentType, long startedAt) throws Exception {
-    }
-    default void init(Map<String, Object> configuration) throws Exception {
-    }
+    default void setMetadata(String id, String agentType, long startedAt) throws Exception {}
+
+    default void init(Map<String, Object> configuration) throws Exception {}
 
     /**
-     * Set the context of the agent. This is invoked after {@link #init(Map)} and before {@link #start()}
+     * Set the context of the agent. This is invoked after {@link #init(Map)} and before {@link
+     * #start()}
+     *
      * @param context the context of the agent
      * @throws Exception if an error occurs
      */
-    default void setContext(AgentContext context) throws Exception {
-    }
+    default void setContext(AgentContext context) throws Exception {}
 
     default void start() throws Exception {}
+
     default void close() throws Exception {}
 
     /**
-     * Return information about the agent.
-     * This is a List because an Agent can be the composition of multiple agents.
+     * Return information about the agent. This is a List because an Agent can be the composition of
+     * multiple agents.
+     *
      * @return information about the agent
      */
     List<AgentStatusResponse> getAgentStatus();

@@ -17,15 +17,15 @@ package ai.langstream.apigateway.websocket.handlers;
 
 import static ai.langstream.apigateway.websocket.WebSocketConfig.PRODUCE_PATH;
 
-import ai.langstream.api.runner.code.Record;
-import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import ai.langstream.apigateway.websocket.api.ProduceRequest;
 import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -77,18 +77,24 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
-    public void onOpen(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) {
+    public void onOpen(
+            WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) {
         Gateway selectedGateway = context.gateway();
 
-        final List<Header> headers = getCommonHeaders(selectedGateway, context.userParameters(), context.principalValues());
-        final StreamingCluster streamingCluster = context.application().getInstance().streamingCluster();
+        final List<Header> headers =
+                getCommonHeaders(
+                        selectedGateway, context.userParameters(), context.principalValues());
+        final StreamingCluster streamingCluster =
+                context.application().getInstance().streamingCluster();
 
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
 
         final String topicName = selectedGateway.topic();
         final TopicProducer producer =
-                topicConnectionsRuntime.createProducer("ag-" + webSocketSession.getId(), streamingCluster,
+                topicConnectionsRuntime.createProducer(
+                        "ag-" + webSocketSession.getId(),
+                        streamingCluster,
                         Map.of("topic", topicName));
         recordCloseableResource(webSocketSession, producer);
         producer.start();
@@ -96,12 +102,20 @@ public class ProduceHandler extends AbstractHandler {
         webSocketSession.getAttributes().put("producer", producer);
         webSocketSession.getAttributes().put("headers", Collections.unmodifiableList(headers));
 
-        log.info("Started produced for gateway {}/{}/{} on topic {}", context.tenant(), context.applicationId(),
-                context.gateway().id(), topicName);
+        log.info(
+                "Started produced for gateway {}/{}/{} on topic {}",
+                context.tenant(),
+                context.applicationId(),
+                context.gateway().id(),
+                topicName);
     }
 
     @Override
-    public void onMessage(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, TextMessage message) throws Exception {
+    public void onMessage(
+            WebSocketSession webSocketSession,
+            AuthenticatedGatewayRequestContext context,
+            TextMessage message)
+            throws Exception {
         final TopicProducer topicProducer = getTopicProducer(webSocketSession, true);
         final ProduceRequest produceRequest;
         try {
@@ -111,23 +125,33 @@ public class ProduceHandler extends AbstractHandler {
             return;
         }
         if (produceRequest.value() == null && produceRequest.key() == null) {
-            sendResponse(webSocketSession, ProduceResponse.Status.BAD_REQUEST, "Either key or value must be set.");
+            sendResponse(
+                    webSocketSession,
+                    ProduceResponse.Status.BAD_REQUEST,
+                    "Either key or value must be set.");
             return;
         }
 
         final Collection<Header> headers =
                 new ArrayList<>((List<Header>) webSocketSession.getAttributes().get("headers"));
         if (produceRequest.headers() != null) {
-            final Set<String> configuredHeaders = headers.stream().map(Header::key).collect(Collectors.toSet());
-            log.info("configuredHeaders: {} passed {}", configuredHeaders, produceRequest.headers());
+            final Set<String> configuredHeaders =
+                    headers.stream().map(Header::key).collect(Collectors.toSet());
+            log.info(
+                    "configuredHeaders: {} passed {}", configuredHeaders, produceRequest.headers());
             for (Map.Entry<String, String> messageHeader : produceRequest.headers().entrySet()) {
                 if (configuredHeaders.contains(messageHeader.getKey())) {
-                    sendResponse(webSocketSession, ProduceResponse.Status.BAD_REQUEST,
-                            "Header " + messageHeader.getKey() +
-                                    " is configured as parameter-level header.");
+                    sendResponse(
+                            webSocketSession,
+                            ProduceResponse.Status.BAD_REQUEST,
+                            "Header "
+                                    + messageHeader.getKey()
+                                    + " is configured as parameter-level header.");
                     return;
                 }
-                headers.add(SimpleRecord.SimpleHeader.of(messageHeader.getKey(), messageHeader.getValue()));
+                headers.add(
+                        SimpleRecord.SimpleHeader.of(
+                                messageHeader.getKey(), messageHeader.getValue()));
             }
         }
         try {
@@ -136,33 +160,40 @@ public class ProduceHandler extends AbstractHandler {
             topicProducer.write(List.of(record));
             log.info("[{}] Produced record {}", webSocketSession.getId(), record);
         } catch (Throwable tt) {
-            sendResponse(webSocketSession, ProduceResponse.Status.PRODUCER_ERROR,
-                    tt.getMessage());
+            sendResponse(webSocketSession, ProduceResponse.Status.PRODUCER_ERROR, tt.getMessage());
             return;
         }
 
-        webSocketSession.sendMessage(new TextMessage(mapper.writeValueAsString(ProduceResponse.OK)));
+        webSocketSession.sendMessage(
+                new TextMessage(mapper.writeValueAsString(ProduceResponse.OK)));
     }
 
-    private void sendResponse(WebSocketSession webSocketSession, ProduceResponse.Status status, String reason)
+    private void sendResponse(
+            WebSocketSession webSocketSession, ProduceResponse.Status status, String reason)
             throws IOException {
-        webSocketSession.sendMessage(new TextMessage(mapper.writeValueAsString(new ProduceResponse(status, reason))));
+        webSocketSession.sendMessage(
+                new TextMessage(mapper.writeValueAsString(new ProduceResponse(status, reason))));
     }
 
-    private TopicProducer getTopicProducer(WebSocketSession webSocketSession, boolean throwIfNotFound) {
-        final TopicProducer topicProducer = (TopicProducer) webSocketSession.getAttributes().get("producer");
+    private TopicProducer getTopicProducer(
+            WebSocketSession webSocketSession, boolean throwIfNotFound) {
+        final TopicProducer topicProducer =
+                (TopicProducer) webSocketSession.getAttributes().get("producer");
         if (topicProducer == null) {
             if (throwIfNotFound) {
                 log.error("No producer found for session {}", webSocketSession.getId());
-                throw new IllegalStateException("No producer found for session " + webSocketSession.getId());
+                throw new IllegalStateException(
+                        "No producer found for session " + webSocketSession.getId());
             }
         }
         return topicProducer;
     }
 
     @Override
-    public void onClose(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, CloseStatus status) {
-    }
+    public void onClose(
+            WebSocketSession webSocketSession,
+            AuthenticatedGatewayRequestContext context,
+            CloseStatus status) {}
 
     @Override
     void validateOptions(Map<String, String> options) {
@@ -173,12 +204,15 @@ public class ProduceHandler extends AbstractHandler {
         }
     }
 
-    private List<Header> getCommonHeaders(Gateway selectedGateway,
-                                          Map<String, String> passedParameters,
-                                          Map<String, String> principalValues) {
+    private List<Header> getCommonHeaders(
+            Gateway selectedGateway,
+            Map<String, String> passedParameters,
+            Map<String, String> principalValues) {
         final List<Header> headers = new ArrayList<>();
-        if (selectedGateway.produceOptions() != null && selectedGateway.produceOptions().headers() != null) {
-            final List<Gateway.KeyValueComparison> headersConfig = selectedGateway.produceOptions().headers();
+        if (selectedGateway.produceOptions() != null
+                && selectedGateway.produceOptions().headers() != null) {
+            final List<Gateway.KeyValueComparison> headersConfig =
+                    selectedGateway.produceOptions().headers();
             for (Gateway.KeyValueComparison mapping : headersConfig) {
                 if (mapping.key() == null || mapping.key().isEmpty()) {
                     throw new IllegalArgumentException("Header key cannot be empty");
@@ -191,19 +225,14 @@ public class ProduceHandler extends AbstractHandler {
                     value = principalValues.get(mapping.valueFromAuthentication());
                 }
                 if (value == null) {
-                    throw new IllegalArgumentException(
-                            mapping.key() + "header cannot be empty");
+                    throw new IllegalArgumentException(mapping.key() + "header cannot be empty");
                 }
 
-                headers.add(SimpleRecord.SimpleHeader.of(
-                        mapping.key(),
-                        value)
-                );
+                headers.add(SimpleRecord.SimpleHeader.of(mapping.key(), value));
             }
         }
         return headers;
     }
-
 
     @AllArgsConstructor
     @ToString
@@ -236,6 +265,5 @@ public class ProduceHandler extends AbstractHandler {
         public Collection<Header> headers() {
             return headers;
         }
-
     }
 }

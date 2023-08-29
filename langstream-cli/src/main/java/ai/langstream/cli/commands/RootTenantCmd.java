@@ -22,10 +22,17 @@ import ai.langstream.cli.commands.tenants.PutTenantCmd;
 import lombok.Getter;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "tenants", mixinStandardHelpOptions = true, description = "Manage LangStream tenants",
-        subcommands = {PutTenantCmd.class, DeleteTenantCmd.class, ListTenantCmd.class, GetTenantCmd.class})
+@CommandLine.Command(
+        name = "tenants",
+        mixinStandardHelpOptions = true,
+        description = "Manage LangStream tenants",
+        subcommands = {
+            PutTenantCmd.class,
+            DeleteTenantCmd.class,
+            ListTenantCmd.class,
+            GetTenantCmd.class
+        })
 @Getter
 public class RootTenantCmd {
-    @CommandLine.ParentCommand
-    private RootCmd rootCmd;
+    @CommandLine.ParentCommand private RootCmd rootCmd;
 }

@@ -16,6 +16,7 @@
 package ai.langstream.agents.vector.datasource.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.agents.vector.VectorDBSinkAgent;
 import ai.langstream.agents.vector.pinecone.PineconeDataSource;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
@@ -39,12 +40,21 @@ class PineconeWriterTest {
     @Disabled
     void testPineconeWrite() throws Exception {
 
-        Map<String, Object> datasourceConfig = Map.of("service", "pinecone",
-                "api-key", "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-                "environment", "asia-southeast1-gcp-free",
-                "project-name", "032e3d0",
-                "index-name", "example-index");
-        VectorDBSinkAgent agent = (VectorDBSinkAgent) new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode();
+        Map<String, Object> datasourceConfig =
+                Map.of(
+                        "service",
+                        "pinecone",
+                        "api-key",
+                        "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+                        "environment",
+                        "asia-southeast1-gcp-free",
+                        "project-name",
+                        "032e3d0",
+                        "index-name",
+                        "example-index");
+        VectorDBSinkAgent agent =
+                (VectorDBSinkAgent)
+                        new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode();
         Map<String, Object> configuration = new HashMap<>();
         configuration.put("datasource", datasourceConfig);
 
@@ -62,8 +72,7 @@ class PineconeWriterTest {
         for (int i = 0; i < 1536; i++) {
             vector.add(1f / i);
         }
-        Map<String, Object> value = Map.of("id", "1",
-                "vector", vector, "genre", genre);
+        Map<String, Object> value = Map.of("id", "1", "vector", vector, "genre", genre);
         SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
         agent.write(List.of(record));
 
@@ -71,10 +80,12 @@ class PineconeWriterTest {
         agent.close();
 
         PineconeDataSource dataSource = new PineconeDataSource();
-        QueryStepDataSource implementation = dataSource.createDataSourceImplementation(datasourceConfig);
+        QueryStepDataSource implementation =
+                dataSource.createDataSourceImplementation(datasourceConfig);
         implementation.initialize(null);
 
-        String query = """
+        String query =
+                """
                 {
                       "vector": ?,
                       "topK": 5,
@@ -82,14 +93,10 @@ class PineconeWriterTest {
                         {"genre": ?}
                     }
                 """;
-        List<Object> params = List.of(
-                vector,
-                genre
-        );
+        List<Object> params = List.of(vector, genre);
         List<Map<String, String>> results = implementation.fetchData(query, params);
         log.info("Results: {}", results);
 
         assertEquals(results.size(), 1);
     }
-
 }

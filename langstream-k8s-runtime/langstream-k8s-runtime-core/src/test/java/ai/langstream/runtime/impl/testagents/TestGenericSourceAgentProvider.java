@@ -24,7 +24,6 @@ import ai.langstream.api.runtime.ConnectionImplementation;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.impl.common.AbstractAgentProvider;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,15 +40,22 @@ public class TestGenericSourceAgentProvider extends AbstractAgentProvider {
     }
 
     @Override
-    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, Pipeline pipeline, ExecutionPlan executionPlan, ComputeClusterRuntime clusterRuntime) {
-        Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
+    protected Map<String, Object> computeAgentConfiguration(
+            AgentConfiguration agentConfiguration,
+            Module module,
+            Pipeline pipeline,
+            ExecutionPlan executionPlan,
+            ComputeClusterRuntime clusterRuntime) {
+        Map<String, Object> copy =
+                super.computeAgentConfiguration(
+                        agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
 
         // we can auto-wire the "topic" configuration property
-        ConnectionImplementation connectionImplementation = executionPlan.getConnectionImplementation(module, agentConfiguration.getOutput());
+        ConnectionImplementation connectionImplementation =
+                executionPlan.getConnectionImplementation(module, agentConfiguration.getOutput());
         if (connectionImplementation instanceof Topic topic) {
             copy.put("topic", topic.topicName());
         }
         return copy;
     }
 }
-

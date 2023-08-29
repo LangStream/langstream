@@ -26,18 +26,17 @@ import java.nio.file.Path;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * This is the main entry point for the pods that run the LangStream runtime code downloader.
- */
+/** This is the main entry point for the pods that run the LangStream runtime code downloader. */
 @Slf4j
 public class AgentCodeDownloaderStarter extends RuntimeStarter {
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper MAPPER =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    private static MainErrorHandler mainErrorHandler = error -> {
-        log.error("Unexpected error", error);
-        System.exit(-1);
-    };
+    private static MainErrorHandler mainErrorHandler =
+            error -> {
+                log.error("Unexpected error", error);
+                System.exit(-1);
+            };
 
     public interface MainErrorHandler {
         void handleError(Throwable error);
@@ -52,7 +51,6 @@ public class AgentCodeDownloaderStarter extends RuntimeStarter {
         }
     }
 
-
     private final AgentCodeDownloader agentCodeDownloader;
 
     public AgentCodeDownloaderStarter(AgentCodeDownloader agentCodeDownloader) {
@@ -65,18 +63,25 @@ public class AgentCodeDownloaderStarter extends RuntimeStarter {
         if (args.length > 0) {
             log.warn("args not supported, ignoring");
         }
-        final Path downloadCodeConfigPath = getPathFromEnv(AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV,
-                AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV_DEFAULT);
-        final Path clusterConfigPath = getPathFromEnv(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV,
-                AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV_DEFAULT);
-        final Path tokenPath = getOptionalPathFromEnv(AgentCodeDownloaderConstants.TOKEN_ENV,
-                AgentCodeDownloaderConstants.TOKEN_ENV_DEFAULT);
+        final Path downloadCodeConfigPath =
+                getPathFromEnv(
+                        AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV,
+                        AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV_DEFAULT);
+        final Path clusterConfigPath =
+                getPathFromEnv(
+                        AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV,
+                        AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV_DEFAULT);
+        final Path tokenPath =
+                getOptionalPathFromEnv(
+                        AgentCodeDownloaderConstants.TOKEN_ENV,
+                        AgentCodeDownloaderConstants.TOKEN_ENV_DEFAULT);
 
-        DownloadAgentCodeConfiguration configuration = MAPPER.readValue(downloadCodeConfigPath.toFile(),
-                DownloadAgentCodeConfiguration.class);
+        DownloadAgentCodeConfiguration configuration =
+                MAPPER.readValue(
+                        downloadCodeConfigPath.toFile(), DownloadAgentCodeConfiguration.class);
 
-        ClusterConfiguration clusterConfiguration = MAPPER.readValue(clusterConfigPath.toFile(),
-                ClusterConfiguration.class);
+        ClusterConfiguration clusterConfiguration =
+                MAPPER.readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
         final String token;
         if (tokenPath != null) {
             token = Files.readString(tokenPath);
@@ -84,7 +89,5 @@ public class AgentCodeDownloaderStarter extends RuntimeStarter {
             token = null;
         }
         agentCodeDownloader.downloadCustomCode(clusterConfiguration, token, configuration);
-
     }
-
 }

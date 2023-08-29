@@ -20,11 +20,10 @@ import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ConnectionImplementation;
-import lombok.Getter;
-import lombok.ToString;
-
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Getter;
+import lombok.ToString;
 
 @Getter
 @ToString
@@ -42,14 +41,17 @@ public class DefaultAgentNode implements AgentNode {
     private ConnectionImplementation outputConnectionImplementation;
     private final boolean composable;
 
-    DefaultAgentNode(String id, String agentType,
-                     ComponentType componentType,
-                     Map<String, Object> configuration,
-                     boolean composable, Object runtimeMetadata,
-                            ConnectionImplementation inputConnectionImplementation,
-                            ConnectionImplementation outputConnectionImplementation,
-                            ResourcesSpec resourcesSpec,
-                            ErrorsSpec errorsSpec) {
+    DefaultAgentNode(
+            String id,
+            String agentType,
+            ComponentType componentType,
+            Map<String, Object> configuration,
+            boolean composable,
+            Object runtimeMetadata,
+            ConnectionImplementation inputConnectionImplementation,
+            ConnectionImplementation outputConnectionImplementation,
+            ResourcesSpec resourcesSpec,
+            ErrorsSpec errorsSpec) {
         this.agentType = agentType;
         this.composable = composable;
         this.id = id;
@@ -66,7 +68,10 @@ public class DefaultAgentNode implements AgentNode {
         return (T) customMetadata;
     }
 
-    public void overrideConfigurationAfterMerge(String agentType, Map<String, Object> newConfiguration, ConnectionImplementation newOutput) {
+    public void overrideConfigurationAfterMerge(
+            String agentType,
+            Map<String, Object> newConfiguration,
+            ConnectionImplementation newOutput) {
         this.agentType = agentType;
         this.configuration = new HashMap<>(newConfiguration);
         this.outputConnectionImplementation = newOutput;

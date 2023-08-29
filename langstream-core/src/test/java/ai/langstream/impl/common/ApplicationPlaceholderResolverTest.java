@@ -28,8 +28,10 @@ class ApplicationPlaceholderResolverTest {
     @Test
     void testAvailablePlaceholders() throws Exception {
 
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(), """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(),
+                                """
                                 instance:
                                     streamingCluster:
                                         type: pulsar
@@ -40,31 +42,38 @@ class ApplicationPlaceholderResolverTest {
                                         another-url: another-value
                                         open-api-url: http://myurl.localhost:8080/endpoint
                                 """,
-                        """
-                                                                
+                                """
+
                                 secrets:
                                     - name: "OpenAI Azure credentials"
                                       id: "openai-credentials"
                                       data:
                                         accessKey: "my-access-key"
-                                """).getApplication();
+                                """)
+                        .getApplication();
 
-        final Map<String, Object> context = ApplicationPlaceholderResolver.createContext(applicationInstance);
-        Assertions.assertEquals("my-access-key",
-                ApplicationPlaceholderResolver.resolveValue(context,
-                        "{{secrets.openai-credentials.accessKey}}"));
-        Assertions.assertEquals("http://mypulsar.localhost:8080",
-                ApplicationPlaceholderResolver.resolveValue(context,
-                        "{{cluster.configuration.admin.serviceUrl}}"));
-        Assertions.assertEquals("http://myurl.localhost:8080/endpoint",
+        final Map<String, Object> context =
+                ApplicationPlaceholderResolver.createContext(applicationInstance);
+        Assertions.assertEquals(
+                "my-access-key",
+                ApplicationPlaceholderResolver.resolveValue(
+                        context, "{{secrets.openai-credentials.accessKey}}"));
+        Assertions.assertEquals(
+                "http://mypulsar.localhost:8080",
+                ApplicationPlaceholderResolver.resolveValue(
+                        context, "{{cluster.configuration.admin.serviceUrl}}"));
+        Assertions.assertEquals(
+                "http://myurl.localhost:8080/endpoint",
                 ApplicationPlaceholderResolver.resolveValue(context, "{{globals.open-api-url}}"));
     }
 
     @Test
     void testResolveSecretsInConfiguration() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("configuration.yaml",
-                                """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
                                         configuration:
                                             resources:
                                                 - type: "openai-azure-config"
@@ -73,34 +82,38 @@ class ApplicationPlaceholderResolverTest {
                                                   configuration:
                                                     credentials: "{{secrets.openai-credentials.accessKey}}"
                                                     url: "{{globals.open-api-url}}"
-                                            
+
                                         """),
-                        """
+                                """
                                 instance:
                                     globals:
                                         another-url: another-value
                                         open-api-url: http://myurl.localhost:8080/endpoint
                                 """,
-                        """
+                                """
                                 secrets:
                                     - name: "OpenAI Azure credentials"
                                       id: "openai-credentials"
                                       data:
                                         accessKey: "my-access-key"
-                                        """).getApplication();
+                                        """)
+                        .getApplication();
 
         final Application resolved =
                 ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
         final Resource resource = resolved.getResources().get("openai-azure");
         Assertions.assertEquals("my-access-key", resource.configuration().get("credentials"));
-        Assertions.assertEquals("http://myurl.localhost:8080/endpoint", resource.configuration().get("url"));
+        Assertions.assertEquals(
+                "http://myurl.localhost:8080/endpoint", resource.configuration().get("url"));
     }
 
     @Test
     void testResolveInAgentConfiguration() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("module1.yaml",
-                                """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module1.yaml",
+                                        """
                                         module: "module-1"
                                         id: "pipeline-1"
                                         topics:
@@ -113,19 +126,27 @@ class ApplicationPlaceholderResolverTest {
                                             configuration:
                                               sinkType: "some-sink-type-on-your-cluster"
                                               access-key: "{{ secrets.ak.value }}"
-                                        """), null,
-                        """
+                                        """),
+                                null,
+                                """
                                 secrets:
                                     - name: "OpenAI Azure credentials"
                                       id: "ak"
                                       data:
                                         value: "my-access-key"
-                                """).getApplication();
+                                """)
+                        .getApplication();
 
         final Application resolved =
                 ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
-        Assertions.assertEquals("my-access-key",
-                resolved.getModule("module-1").getPipelines().values().iterator().next()
+        Assertions.assertEquals(
+                "my-access-key",
+                resolved
+                        .getModule("module-1")
+                        .getPipelines()
+                        .values()
+                        .iterator()
+                        .next()
                         .getAgents()
                         .stream()
                         .filter(agent -> agent.getId().equals("sink1"))
@@ -137,9 +158,11 @@ class ApplicationPlaceholderResolverTest {
 
     @Test
     void testErrorOnNotFound() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("configuration.yaml",
-                        """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
                                 configuration:
                                     resources:
                                         - type: "openai-azure-config"
@@ -147,17 +170,22 @@ class ApplicationPlaceholderResolverTest {
                                           id: "openai-azure"
                                           configuration:
                                             credentials: "{{secrets.openai-credentials.invalid}}"
-                                    
-                                """), null, null).getApplication();
-        Assertions.assertThrows(MustacheException.Context.class,
-            () -> ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance));
+
+                                """),
+                                null,
+                                null)
+                        .getApplication();
+        Assertions.assertThrows(
+                MustacheException.Context.class,
+                () -> ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance));
     }
 
     @Test
     void testKeepStruct() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(),
-                        """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(),
+                                """
                                 instance:
                                     streamingCluster:
                                         type: pulsar
@@ -168,27 +196,30 @@ class ApplicationPlaceholderResolverTest {
                                                 - nestedObject: "value"
                                                 - nestedObject: "value"
                                             myvalue: "thevalue"
-                                """, null).getApplication();
+                                """,
+                                null)
+                        .getApplication();
 
         final Application resolved =
                 ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
-        final Map<String, Object> configuration = resolved.getInstance().streamingCluster()
-                .configuration();
+        final Map<String, Object> configuration =
+                resolved.getInstance().streamingCluster().configuration();
         Assertions.assertTrue(configuration.get("rootObject") instanceof Map);
         Assertions.assertTrue(configuration.get("rootArray") instanceof java.util.List);
         Assertions.assertTrue(configuration.get("myvalue") instanceof String);
     }
 
-
     @Test
     void testEscapeMustache() {
-        Assertions.assertEquals("""
+        Assertions.assertEquals(
+                """
                 {{ do not resolve }} resolved
                 {{# value.related_documents}}
                 {{ text}}
                 {{/ value.related_documents}}""",
-                ApplicationPlaceholderResolver.resolveValue(Map.of("test", "resolved"),
-                    """
+                ApplicationPlaceholderResolver.resolveValue(
+                        Map.of("test", "resolved"),
+                        """
                         {{% do not resolve }} {{ test }}
                         {{%# value.related_documents}}
                         {{% text}}

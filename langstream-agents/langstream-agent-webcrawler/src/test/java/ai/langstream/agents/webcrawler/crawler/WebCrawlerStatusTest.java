@@ -15,12 +15,11 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class WebCrawlerStatusTest {
 
@@ -62,8 +61,6 @@ class WebCrawlerStatusTest {
         verify(status, 1, 0, 0);
     }
 
-
-
     @Test
     public void testReload() throws Exception {
 
@@ -81,7 +78,6 @@ class WebCrawlerStatusTest {
         String url = status.nextUrl();
         verify(status, 2, 1, 2);
         status.persist(storage);
-
 
         // restart after a crash, 1 page was not "committed"
         status = new WebCrawlerStatus();
@@ -110,7 +106,6 @@ class WebCrawlerStatusTest {
         status = new WebCrawlerStatus();
         status.reloadFrom(storage);
         verify(status, 2, 0, 0);
-
     }
 
     private static void verify(WebCrawlerStatus status, int visited, int pending, int remaining) {
@@ -118,7 +113,6 @@ class WebCrawlerStatusTest {
         assertEquals(visited, status.getVisitedUrls().size());
         assertEquals(remaining, status.getRemainingUrls().size());
     }
-
 
     private static class DummyStorage implements StatusStorage {
 

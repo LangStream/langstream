@@ -17,5 +17,4 @@ package ai.langstream.api.model;
 
 import java.util.Map;
 
-public record Resource(String id, String name, String type, Map<String, Object> configuration) {
-}
+public record Resource(String id, String name, String type, Map<String, Object> configuration) {}

@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s.agents;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
@@ -32,7 +33,9 @@ class AgentResourcesFactoryTest {
 
     @Test
     void testStatefulset() {
-        final AgentCustomResource resource = getCr("""
+        final AgentCustomResource resource =
+                getCr(
+                        """
                 apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
@@ -48,8 +51,10 @@ class AgentResourcesFactoryTest {
                     agentId: my-agent
                 """);
         final StatefulSet statefulSet =
-                AgentResourcesFactory.generateStatefulSet(resource, new AgentResourceUnitConfiguration());
-        assertEquals("""
+                AgentResourcesFactory.generateStatefulSet(
+                        resource, new AgentResourceUnitConfiguration());
+        assertEquals(
+                """
                         ---
                         apiVersion: apps/v1
                         kind: StatefulSet
@@ -171,10 +176,11 @@ class AgentResourcesFactoryTest {
                 SerializationUtil.writeAsYaml(statefulSet));
     }
 
-
     @Test
     void testResources() {
-        final AgentCustomResource resource = getCr("""
+        final AgentCustomResource resource =
+                getCr(
+                        """
                 apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
@@ -193,18 +199,20 @@ class AgentResourcesFactoryTest {
                         size: 4
                 """);
         final StatefulSet statefulSet =
-                AgentResourcesFactory.generateStatefulSet(resource, new AgentResourceUnitConfiguration());
+                AgentResourcesFactory.generateStatefulSet(
+                        resource, new AgentResourceUnitConfiguration());
         assertEquals(2, statefulSet.getSpec().getReplicas());
-        final Container container = statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0);
+        final Container container =
+                statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0);
         assertEquals(Quantity.parse("2"), container.getResources().getRequests().get("cpu"));
         assertEquals(Quantity.parse("1024M"), container.getResources().getRequests().get("memory"));
-
-
     }
 
     @Test
     void testPodTemplate() {
-        final AgentCustomResource resource = getCr("""
+        final AgentCustomResource resource =
+                getCr(
+                        """
                 apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
@@ -219,23 +227,30 @@ class AgentResourcesFactoryTest {
                     applicationId: the-'app
                     agentId: my-agent
                 """);
-        final PodTemplate podTemplate = new PodTemplate(List.of(new TolerationBuilder()
-                .withEffect("NoSchedule")
-                .withValue("langstream")
-                .withKey("workload")
-                .build()), Map.of("workload", "langstream"));
+        final PodTemplate podTemplate =
+                new PodTemplate(
+                        List.of(
+                                new TolerationBuilder()
+                                        .withEffect("NoSchedule")
+                                        .withValue("langstream")
+                                        .withKey("workload")
+                                        .build()),
+                        Map.of("workload", "langstream"));
         final StatefulSet statefulSet =
-                AgentResourcesFactory.generateStatefulSet(resource, new AgentResourceUnitConfiguration(),
-                        podTemplate);
-        final List<Toleration> tolerations = statefulSet.getSpec().getTemplate().getSpec().getTolerations();
+                AgentResourcesFactory.generateStatefulSet(
+                        resource, new AgentResourceUnitConfiguration(), podTemplate);
+        final List<Toleration> tolerations =
+                statefulSet.getSpec().getTemplate().getSpec().getTolerations();
         assertEquals(1, tolerations.size());
         final Toleration tol = tolerations.get(0);
         assertEquals("workload", tol.getKey());
         assertEquals("langstream", tol.getValue());
         assertEquals("NoSchedule", tol.getEffect());
-        assertEquals(Map.of("workload", "langstream"), statefulSet.getSpec().getTemplate().getSpec().getNodeSelector());
-
+        assertEquals(
+                Map.of("workload", "langstream"),
+                statefulSet.getSpec().getTemplate().getSpec().getNodeSelector());
     }
+
     private AgentCustomResource getCr(String yaml) {
         return SerializationUtil.readYaml(yaml, AgentCustomResource.class);
     }

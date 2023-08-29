@@ -18,21 +18,18 @@ package ai.langstream.runtime.agent;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentContext;
-import ai.langstream.api.runner.code.AgentStatusResponse;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.AgentStatusResponse;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * This is a special processor that executes a pipeline of Agents in memory.
- */
+/** This is a special processor that executes a pipeline of Agents in memory. */
 public class CompositeAgentProcessor extends AbstractAgentCode implements AgentProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -68,16 +65,30 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         if (!sourceDefinition.isEmpty()) {
             String agentId1 = (String) sourceDefinition.get("agentId");
             String agentType1 = (String) sourceDefinition.get("agentType");
-            Map<String, Object> agentConfiguration = (Map<String, Object>) sourceDefinition.get("configuration");
-            source = AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration, agentCodeRegistry)
-                    .asSource();
+            Map<String, Object> agentConfiguration =
+                    (Map<String, Object>) sourceDefinition.get("configuration");
+            source =
+                    AgentRunner.initAgent(
+                                    agentId1,
+                                    agentType1,
+                                    startedAt(),
+                                    agentConfiguration,
+                                    agentCodeRegistry)
+                            .asSource();
         }
 
         for (Map<String, Object> agentDefinition : processorsDefinition) {
             String agentId1 = (String) agentDefinition.get("agentId");
             String agentType1 = (String) agentDefinition.get("agentType");
-            Map<String, Object> agentConfiguration = (Map<String, Object>) agentDefinition.get("configuration");
-            AgentProcessor agent = AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration, agentCodeRegistry)
+            Map<String, Object> agentConfiguration =
+                    (Map<String, Object>) agentDefinition.get("configuration");
+            AgentProcessor agent =
+                    AgentRunner.initAgent(
+                                    agentId1,
+                                    agentType1,
+                                    startedAt(),
+                                    agentConfiguration,
+                                    agentCodeRegistry)
                             .asProcessor();
             processors.add(agent);
         }
@@ -85,9 +96,16 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         if (!sinkDefinition.isEmpty()) {
             String agentId1 = (String) sinkDefinition.get("agentId");
             String agentType1 = (String) sinkDefinition.get("agentType");
-            Map<String, Object> agentConfiguration = (Map<String, Object>) sinkDefinition.get("configuration");
-            sink = AgentRunner.initAgent(agentId1, agentType1, startedAt(), agentConfiguration, agentCodeRegistry)
-                    .asSink();
+            Map<String, Object> agentConfiguration =
+                    (Map<String, Object>) sinkDefinition.get("configuration");
+            sink =
+                    AgentRunner.initAgent(
+                                    agentId1,
+                                    agentType1,
+                                    startedAt(),
+                                    agentConfiguration,
+                                    agentCodeRegistry)
+                            .asSink();
         }
     }
 
@@ -124,25 +142,32 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         }
     }
 
-    private void invokeProcessor(int index, Record currentRecord, Record initialSourceRecord, RecordSink finalSink) {
+    private void invokeProcessor(
+            int index, Record currentRecord, Record initialSourceRecord, RecordSink finalSink) {
         AgentProcessor processor = processors.get(index);
         try {
-            processor.process(List.of(currentRecord), (SourceRecordAndResult recordAndResult) -> {
-                    if (recordAndResult.resultRecords().isEmpty()
-                           || index == processors.size() - 1) {
-                        finalSink.emit(new SourceRecordAndResult(initialSourceRecord, recordAndResult.resultRecords(), null));
-                        processed(0, recordAndResult.resultRecords().size());
-                        return;
-                    }
-                    // we know that all the records have been generated starting from the "initialSourceRecord"
-                    for (Record record : recordAndResult.resultRecords()) {
-                        invokeProcessor(index + 1, record, initialSourceRecord, finalSink);
-                    }
-                });
+            processor.process(
+                    List.of(currentRecord),
+                    (SourceRecordAndResult recordAndResult) -> {
+                        if (recordAndResult.resultRecords().isEmpty()
+                                || index == processors.size() - 1) {
+                            finalSink.emit(
+                                    new SourceRecordAndResult(
+                                            initialSourceRecord,
+                                            recordAndResult.resultRecords(),
+                                            null));
+                            processed(0, recordAndResult.resultRecords().size());
+                            return;
+                        }
+                        // we know that all the records have been generated starting from the
+                        // "initialSourceRecord"
+                        for (Record record : recordAndResult.resultRecords()) {
+                            invokeProcessor(index + 1, record, initialSourceRecord, finalSink);
+                        }
+                    });
         } catch (Throwable error) {
             finalSink.emit(new SourceRecordAndResult(initialSourceRecord, null, error));
         }
-
     }
 
     @Override

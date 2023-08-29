@@ -23,9 +23,9 @@ import org.springframework.web.cors.CorsConfiguration;
 @Configuration
 public class CorsProperties {
 
-  @Bean
-  @ConfigurationProperties(prefix = "application.security.cors", ignoreUnknownFields = false)
-  public CorsConfiguration corsConfiguration() {
-    return new CorsConfiguration();
-  }
+    @Bean
+    @ConfigurationProperties(prefix = "application.security.cors", ignoreUnknownFields = false)
+    public CorsConfiguration corsConfiguration() {
+        return new CorsConfiguration();
+    }
 }

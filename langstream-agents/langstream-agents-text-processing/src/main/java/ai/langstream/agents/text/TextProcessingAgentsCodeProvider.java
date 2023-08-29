@@ -17,19 +17,18 @@ package ai.langstream.agents.text;
 
 import ai.langstream.api.runner.code.AgentCodeProvider;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-
 import java.util.Map;
 import java.util.function.Supplier;
 
 public class TextProcessingAgentsCodeProvider implements AgentCodeProvider {
 
-    private static final Map<String, Supplier<SingleRecordAgentProcessor>> FACTORIES = Map.of(
-            "text-extractor", TikaTextExtractorAgent::new,
-            "language-detector", LanguageDetectorAgent::new,
-            "text-splitter", TextSplitterAgent::new,
-            "text-normaliser", TextNormaliserAgent::new,
-            "document-to-json", DocumentToJsonAgent::new
-    );
+    private static final Map<String, Supplier<SingleRecordAgentProcessor>> FACTORIES =
+            Map.of(
+                    "text-extractor", TikaTextExtractorAgent::new,
+                    "language-detector", LanguageDetectorAgent::new,
+                    "text-splitter", TextSplitterAgent::new,
+                    "text-normaliser", TextNormaliserAgent::new,
+                    "document-to-json", DocumentToJsonAgent::new);
 
     @Override
     public boolean supports(String agentType) {

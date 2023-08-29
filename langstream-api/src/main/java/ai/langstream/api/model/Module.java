@@ -15,10 +15,9 @@
  */
 package ai.langstream.api.model;
 
-import lombok.Data;
-
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
@@ -37,7 +36,8 @@ public class Module {
 
     public Pipeline addPipeline(String pipelineId) {
         if (pipelines.containsKey(pipelineId)) {
-            throw new IllegalArgumentException("Pipeline " + pipelineId + " already exists in module " + id);
+            throw new IllegalArgumentException(
+                    "Pipeline " + pipelineId + " already exists in module " + id);
         }
         Pipeline p = new Pipeline(pipelineId, id);
         pipelines.put(pipelineId, p);
@@ -51,7 +51,8 @@ public class Module {
             // allow to declare the same topic in multiple pipelines of the same module
             // but only if the definition is the same
             if (!existing.equals(topicDefinition)) {
-                throw new IllegalArgumentException("Pipeline " + topicName + " already exists in module " + id);
+                throw new IllegalArgumentException(
+                        "Pipeline " + topicName + " already exists in module " + id);
             }
             return existing;
         }
@@ -62,7 +63,13 @@ public class Module {
     public TopicDefinition resolveTopic(String input) {
         TopicDefinition topicDefinition = topics.get(input);
         if (topicDefinition == null) {
-            throw new IllegalArgumentException("Topic " + input + " is not defined in module " + id + ", only " + topics.keySet());
+            throw new IllegalArgumentException(
+                    "Topic "
+                            + input
+                            + " is not defined in module "
+                            + id
+                            + ", only "
+                            + topics.keySet());
         }
         return topicDefinition;
     }

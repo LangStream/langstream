@@ -16,10 +16,11 @@
 package ai.langstream.impl.storage.k8s.apps;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Secrets;
-import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
+import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.util.List;
@@ -32,8 +33,7 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 class KubernetesApplicationStoreTest {
 
-    @RegisterExtension
-    static final KubeK3sServer k3s = new KubeK3sServer(true);
+    @RegisterExtension static final KubeK3sServer k3s = new KubeK3sServer(true);
 
     @Test
     void testApp() {
@@ -46,54 +46,67 @@ class KubernetesApplicationStoreTest {
         assertNotNull(k3s.getClient().namespaces().withName("s" + tenant).get());
 
         final Application app = new Application();
-        app.setSecrets(new Secrets(Map.of("mysecret", new ai.langstream.api.model.Secret("mysecret", "My secret", Map.of("token", "xxx")))));
+        app.setSecrets(
+                new Secrets(
+                        Map.of(
+                                "mysecret",
+                                new ai.langstream.api.model.Secret(
+                                        "mysecret", "My secret", Map.of("token", "xxx")))));
         store.put(tenant, "myapp", app, "code-1", null);
         final ApplicationCustomResource createdCr =
-                k3s.getClient().resources(ApplicationCustomResource.class)
+                k3s.getClient()
+                        .resources(ApplicationCustomResource.class)
                         .inNamespace("s" + tenant)
                         .withName("myapp")
                         .get();
 
         assertNull(createdCr.getSpec().getImage());
         assertNull(createdCr.getSpec().getImagePullPolicy());
-        assertEquals("{\"resources\":{},\"modules\":{},\"instance\":null,\"gateways\":null,\"agentRunners\":{}}", createdCr.getSpec().getApplication());
+        assertEquals(
+                "{\"resources\":{},\"modules\":{},\"instance\":null,\"gateways\":null,\"agentRunners\":{}}",
+                createdCr.getSpec().getApplication());
         assertEquals(tenant, createdCr.getSpec().getTenant());
 
+        final Secret createdSecret =
+                k3s.getClient().secrets().inNamespace("s" + tenant).withName("myapp").get();
 
-        final Secret createdSecret = k3s.getClient().secrets()
-                .inNamespace("s" + tenant)
-                .withName("myapp")
-                .get();
-
-        final OwnerReference ownerReference = createdSecret.getMetadata().getOwnerReferences().get(0);
+        final OwnerReference ownerReference =
+                createdSecret.getMetadata().getOwnerReferences().get(0);
         assertEquals("myapp", ownerReference.getName());
         assertEquals(createdCr.getKind(), ownerReference.getKind());
         assertEquals(createdCr.getApiVersion(), ownerReference.getApiVersion());
         assertEquals(createdCr.getMetadata().getUid(), ownerReference.getUid());
         assertTrue(ownerReference.getBlockOwnerDeletion());
         assertTrue(ownerReference.getController());
-        assertEquals("eyJzZWNyZXRzIjp7Im15c2VjcmV0Ijp7ImlkIjoibXlzZWNyZXQiLCJuYW1lIjoiTXkgc2VjcmV0IiwiZGF0YSI6eyJ0b2tlbiI6Inh4eCJ9fX19", createdSecret.getData().get("secrets"));
+        assertEquals(
+                "eyJzZWNyZXRzIjp7Im15c2VjcmV0Ijp7ImlkIjoibXlzZWNyZXQiLCJuYW1lIjoiTXkgc2VjcmV0IiwiZGF0YSI6eyJ0b2tlbiI6Inh4eCJ9fX19",
+                createdSecret.getData().get("secrets"));
 
         assertEquals(1, store.list(tenant).size());
 
         assertNotNull(store.get(tenant, "myapp", false));
         store.delete(tenant, "myapp");
 
-        assertNull(k3s.getClient().resources(ApplicationCustomResource.class)
-                .inNamespace("s" + tenant)
-                .withName("myapp")
-                .get());
+        assertNull(
+                k3s.getClient()
+                        .resources(ApplicationCustomResource.class)
+                        .inNamespace("s" + tenant)
+                        .withName("myapp")
+                        .get());
 
-        // actually in the real deployment, the operator will intercept the app custom resource deletion until the cleanup job is finished
-        assertNotNull(k3s.getClient().secrets()
-                .inNamespace("s" + tenant)
-                .withName("myapp")
-                .get());
+        // actually in the real deployment, the operator will intercept the app custom resource
+        // deletion until the cleanup job is finished
+        assertNotNull(k3s.getClient().secrets().inNamespace("s" + tenant).withName("myapp").get());
 
-        Awaitility.await().untilAsserted(() -> assertNull(k3s.getClient().secrets()
-                .inNamespace("s" + tenant)
-                .withName("myapp")
-                .get()));
+        Awaitility.await()
+                .untilAsserted(
+                        () ->
+                                assertNull(
+                                        k3s.getClient()
+                                                .secrets()
+                                                .inNamespace("s" + tenant)
+                                                .withName("myapp")
+                                                .get()));
         store.onTenantDeleted(tenant);
         assertTrue(k3s.getClient().namespaces().withName("s" + tenant).get().isMarkedForDeletion());
     }
@@ -104,6 +117,7 @@ class KubernetesApplicationStoreTest {
     }
 
     static final AtomicInteger t = new AtomicInteger();
+
     String getTenant() {
         return "t" + t.incrementAndGet();
     }
@@ -119,7 +133,8 @@ class KubernetesApplicationStoreTest {
         final Application app = new Application();
         store.put(tenant, "myapp", app, "code-1", null);
         ApplicationCustomResource createdCr =
-                k3s.getClient().resources(ApplicationCustomResource.class)
+                k3s.getClient()
+                        .resources(ApplicationCustomResource.class)
                         .inNamespace("s" + tenant)
                         .withName("myapp")
                         .get();
@@ -132,19 +147,23 @@ class KubernetesApplicationStoreTest {
             store.put(tenant, "myapp", app, "code-1", null);
             fail();
         } catch (IllegalArgumentException aie) {
-            assertEquals("Application myapp is marked for deletion. Please retry once the application is deleted.", aie.getMessage());
+            assertEquals(
+                    "Application myapp is marked for deletion. Please retry once the application is deleted.",
+                    aie.getMessage());
         }
         createdCr = k3s.getClient().resource(createdCr).get();
         createdCr.getMetadata().setFinalizers(List.of());
         k3s.getClient().resource(createdCr).update();
 
-        Awaitility.await().until(() -> {
-            try {
-                store.put(tenant, "myapp", app, "code-1", null);
-                return true;
-            } catch (IllegalArgumentException e) {
-                return false;
-            }
-        });
+        Awaitility.await()
+                .until(
+                        () -> {
+                            try {
+                                store.put(tenant, "myapp", app, "code-1", null);
+                                return true;
+                            } catch (IllegalArgumentException e) {
+                                return false;
+                            }
+                        });
     }
 }

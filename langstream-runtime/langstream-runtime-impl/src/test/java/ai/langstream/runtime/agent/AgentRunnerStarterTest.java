@@ -27,26 +27,40 @@ import org.mockito.Mockito;
 
 class AgentRunnerStarterTest {
 
-
     static ObjectMapper mapper = new ObjectMapper();
 
     @Test
     public void test() throws Exception {
 
-        String podRuntimeFile = Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
-        mapper.writeValue(new File(podRuntimeFile), new RuntimePodConfiguration(null, null, null, null));
-        String codeDir = Files.createTempDirectory("langstream-cli-test").toFile().getAbsolutePath();
-        String agentsDir = Files.createTempDirectory("langstream-cli-test").toFile().getAbsolutePath();
-
+        String podRuntimeFile =
+                Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
+        mapper.writeValue(
+                new File(podRuntimeFile), new RuntimePodConfiguration(null, null, null, null));
+        String codeDir =
+                Files.createTempDirectory("langstream-cli-test").toFile().getAbsolutePath();
+        String agentsDir =
+                Files.createTempDirectory("langstream-cli-test").toFile().getAbsolutePath();
 
         runTest(false, Map.of());
         runTest(false, Map.of(), podRuntimeFile);
         runTest(false, Map.of(), podRuntimeFile, codeDir);
         runTest(true, Map.of(), podRuntimeFile, codeDir, agentsDir);
-        runTest(false, Map.of(AgentRunnerConstants.POD_CONFIG_ENV, podRuntimeFile,
-                        AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV, codeDir));
-        runTest(true, Map.of(AgentRunnerConstants.POD_CONFIG_ENV, podRuntimeFile,
-                AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV, codeDir, AgentRunnerConstants.AGENTS_ENV, agentsDir));
+        runTest(
+                false,
+                Map.of(
+                        AgentRunnerConstants.POD_CONFIG_ENV,
+                        podRuntimeFile,
+                        AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV,
+                        codeDir));
+        runTest(
+                true,
+                Map.of(
+                        AgentRunnerConstants.POD_CONFIG_ENV,
+                        podRuntimeFile,
+                        AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV,
+                        codeDir,
+                        AgentRunnerConstants.AGENTS_ENV,
+                        agentsDir));
     }
 
     @SneakyThrows
@@ -65,8 +79,14 @@ class AgentRunnerStarterTest {
         if (!expectOk) {
             throw new RuntimeException("Expected exception");
         }
-        Mockito.verify(agentRunner).run(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.anyInt());
-
+        Mockito.verify(agentRunner)
+                .run(
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.anyInt());
     }
 
     static class TestDeployer extends AgentRunnerStarter {
@@ -82,6 +102,4 @@ class AgentRunnerStarterTest {
             return map.get(key);
         }
     }
-
-
 }

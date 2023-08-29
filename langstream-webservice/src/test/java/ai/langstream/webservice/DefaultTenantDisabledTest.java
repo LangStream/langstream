@@ -17,8 +17,8 @@ package ai.langstream.webservice;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.webservice.common.GlobalMetadataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,16 +30,13 @@ import org.springframework.test.annotation.DirtiesContext;
 @Import(WebAppTestConfig.class)
 @DirtiesContext
 class DefaultTenantDisabledTest {
-    @Autowired
-    GlobalMetadataService service;
+    @Autowired GlobalMetadataService service;
 
-    @MockBean
-    ApplicationStore applicationStore;
+    @MockBean ApplicationStore applicationStore;
 
     @Test
     public void testDefaultTenant() {
         System.out.println(service.listTenants());
         assertEquals(0, service.listTenants().size());
     }
-
 }

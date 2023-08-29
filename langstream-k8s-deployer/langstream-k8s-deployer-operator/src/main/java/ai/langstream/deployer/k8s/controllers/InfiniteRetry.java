@@ -22,6 +22,7 @@ import io.javaoperatorsdk.operator.processing.retry.RetryExecution;
 
 public class InfiniteRetry implements Retry {
     private static final GenericRetry RETRY = new GenericRetry().withoutMaxAttempts();
+
     @Override
     public RetryExecution initExecution() {
         return new GenericRetryExecution(RETRY);

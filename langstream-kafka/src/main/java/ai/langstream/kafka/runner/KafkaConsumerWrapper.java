@@ -17,15 +17,6 @@ package ai.langstream.kafka.runner;
 
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConsumer;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.TopicPartition;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +27,14 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 
 @Slf4j
 public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceListener {
@@ -79,12 +78,17 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         for (TopicPartition topicPartition : partitions) {
             OffsetAndMetadata offsetAndMetadata = committed.remove(topicPartition);
             if (offsetAndMetadata != null) {
-                log.info("Current offset {} on partition {} (revoked)", offsetAndMetadata.offset(), topicPartition);
+                log.info(
+                        "Current offset {} on partition {} (revoked)",
+                        offsetAndMetadata.offset(),
+                        topicPartition);
             }
             TreeSet<Long> remove = uncommittedOffsets.remove(topicPartition);
             if (remove != null && !remove.isEmpty()) {
-                log.warn("There are uncommitted offsets {} on partition {} (revoked), this messages will be re-delivered",
-                        remove, topicPartition);
+                log.warn(
+                        "There are uncommitted offsets {} on partition {} (revoked), this messages will be re-delivered",
+                        remove,
+                        topicPartition);
             }
         }
     }
@@ -92,10 +96,13 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
     @Override
     public synchronized void onPartitionsAssigned(Collection<TopicPartition> partitions) {
         log.info("Partitions assigned: {}", partitions);
-        for (TopicPartition topicPartition :partitions) {
+        for (TopicPartition topicPartition : partitions) {
             OffsetAndMetadata offsetAndMetadata = consumer.committed(topicPartition);
             if (offsetAndMetadata != null) {
-                log.info("Last committed offset for {} is {}", topicPartition, offsetAndMetadata.offset());
+                log.info(
+                        "Last committed offset for {} is {}",
+                        topicPartition,
+                        offsetAndMetadata.offset());
                 committed.put(topicPartition, offsetAndMetadata);
             } else {
                 log.info("Last committed offset for {} is null", topicPartition);
@@ -117,7 +124,8 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         Map<String, Object> result = new HashMap<>();
         KafkaConsumer consumer = getConsumer();
         if (consumer != null) {
-            result.put("kafkaConsumerMetrics",
+            result.put(
+                    "kafkaConsumerMetrics",
                     KafkaMetricsUtils.metricsToMap(this.consumer.metrics()));
         }
         return result;
@@ -144,35 +152,43 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
             result.add(KafkaRecord.fromKafkaConsumerRecord(record));
         }
         if (!result.isEmpty()) {
-            log.info("Received {} records from Kafka topics {}: {}", result.size(), consumer.assignment(), result);
+            log.info(
+                    "Received {} records from Kafka topics {}: {}",
+                    result.size(),
+                    consumer.assignment(),
+                    result);
         }
         totalOut.addAndGet(result.size());
         return result;
     }
 
-
     /**
-     * Commit the offsets of the records.
-     * This method may be called from different threads.
-     * Per each partition we must keep track of the offsets that have been committed.
-     * But we can commit only offsets sequentially, without gaps.
-     * It is possible that in case of out-of-order processing we have to commit only a subset of the records.
-     * In case of rebalance or failure messages will be re-delivered.
-     * @param records the records to commit, it is not strictly required from them to be in some order.
+     * Commit the offsets of the records. This method may be called from different threads. Per each
+     * partition we must keep track of the offsets that have been committed. But we can commit only
+     * offsets sequentially, without gaps. It is possible that in case of out-of-order processing we
+     * have to commit only a subset of the records. In case of rebalance or failure messages will be
+     * re-delivered.
+     *
+     * @param records the records to commit, it is not strictly required from them to be in some
+     *     order.
      */
     @Override
     public synchronized void commit(List<Record> records) {
-        for (Record record :records) {
-            KafkaRecord.KafkaConsumerOffsetProvider kafkaRecord = (KafkaRecord.KafkaConsumerOffsetProvider) record;
+        for (Record record : records) {
+            KafkaRecord.KafkaConsumerOffsetProvider kafkaRecord =
+                    (KafkaRecord.KafkaConsumerOffsetProvider) record;
             TopicPartition topicPartition = kafkaRecord.getTopicPartition();
             long offset = kafkaRecord.offset();
-            TreeSet<Long> offsetsForPartition = 
-                uncommittedOffsets.computeIfAbsent(topicPartition, (key) -> new TreeSet<>());
+            TreeSet<Long> offsetsForPartition =
+                    uncommittedOffsets.computeIfAbsent(topicPartition, (key) -> new TreeSet<>());
             offsetsForPartition.add(offset);
             OffsetAndMetadata offsetAndMetadata = committed.get(topicPartition);
             if (offsetAndMetadata == null) {
                 offsetAndMetadata = consumer.committed(topicPartition);
-                log.info("Current position on partition {} is {}", topicPartition, offsetAndMetadata);
+                log.info(
+                        "Current position on partition {} is {}",
+                        topicPartition,
+                        offsetAndMetadata);
                 if (offsetAndMetadata != null) {
                     committed.put(topicPartition, offsetAndMetadata);
                 }
@@ -192,22 +208,31 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
             }
             if (offsetAndMetadata != null) {
                 committed.put(topicPartition, offsetAndMetadata);
-                log.info("Committing offset {} on partition {} (record: {})", offset, topicPartition, kafkaRecord);
+                log.info(
+                        "Committing offset {} on partition {} (record: {})",
+                        offset,
+                        topicPartition,
+                        kafkaRecord);
             }
             if (!offsetsForPartition.isEmpty()) {
-                log.info("On partition {} there are {} uncommitted offsets", topicPartition, offsetsForPartition);
+                log.info(
+                        "On partition {} there are {} uncommitted offsets",
+                        topicPartition,
+                        offsetsForPartition);
             }
         }
 
         pendingCommits.incrementAndGet();
-        consumer.commitAsync(committed, (map, e) -> {
-            pendingCommits.decrementAndGet();
-            if (e != null) {
-                log.error("Error committing offsets", e);
-                commitFailure.compareAndSet(null, e);
-            } else {
-                log.info("Offsets committed: {}", map);
-            }
-        });
+        consumer.commitAsync(
+                committed,
+                (map, e) -> {
+                    pendingCommits.decrementAndGet();
+                    if (e != null) {
+                        log.error("Error committing offsets", e);
+                        commitFailure.compareAndSet(null, e);
+                    } else {
+                        log.info("Offsets committed: {}", map);
+                    }
+                });
     }
 }

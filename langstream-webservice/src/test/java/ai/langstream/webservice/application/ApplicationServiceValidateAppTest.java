@@ -15,15 +15,13 @@
  */
 package ai.langstream.webservice.application;
 
-import ai.langstream.api.runtime.AgentNode;
-import ai.langstream.webservice.config.ApplicationDeployProperties;
 import ai.langstream.api.model.Application;
+import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.parser.ModelBuilder;
-
+import ai.langstream.webservice.config.ApplicationDeployProperties;
 import java.util.Map;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -33,8 +31,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 @Slf4j
 class ApplicationServiceValidateAppTest {
 
-    @RegisterExtension
-    static final KubeTestServer k3s = new KubeTestServer();
+    @RegisterExtension static final KubeTestServer k3s = new KubeTestServer();
 
     @Test
     void testApplicationId() {
@@ -79,7 +76,9 @@ class ApplicationServiceValidateAppTest {
         if (pipeline == null) {
             pipeline = "pipeline";
         }
-        return Map.of("%s.yaml".formatted(pipeline), """
+        return Map.of(
+                "%s.yaml".formatted(pipeline),
+                """
                         module: %s
                         id: %s
                         topics:
@@ -92,28 +91,33 @@ class ApplicationServiceValidateAppTest {
                             type: "drop"
                             input: "input-topic"
                             output: "output-topic"
-                        """.formatted(module, pipeline, agentId));
+                        """
+                        .formatted(module, pipeline, agentId));
     }
 
     @SneakyThrows
-    private static void validate(String applicationId, Map<String, String> files, boolean expectValid) {
+    private static void validate(
+            String applicationId, Map<String, String> files, boolean expectValid) {
         final ApplicationService service = getApplicationService();
-        final Application application = ModelBuilder.buildApplicationInstance(files,
-                """
+        final Application application =
+                ModelBuilder.buildApplicationInstance(
+                                files,
+                                """
                         instance:
                           streamingCluster:
                             type: "noop"
                           computeCluster:
                             type: "kubernetes"
-                        """, null).getApplication();
+                        """,
+                                null)
+                        .getApplication();
         boolean ok = false;
         Throwable exception = null;
         try {
-            final ExecutionPlan plan = service.validateExecutionPlan(
-                    applicationId,
-                    application
-            );
-            log.info("Got agents: {}", plan.getAgents().values().stream().map(AgentNode::getId).toList());
+            final ExecutionPlan plan = service.validateExecutionPlan(applicationId, application);
+            log.info(
+                    "Got agents: {}",
+                    plan.getAgents().values().stream().map(AgentNode::getId).toList());
             if (expectValid) {
                 ok = true;
             }
@@ -129,16 +133,18 @@ class ApplicationServiceValidateAppTest {
             if (!expectValid) {
                 throw new RuntimeException("Expected exception");
             } else {
-                throw new RuntimeException("Expected app to be valid. Instead got: " +  exception.getMessage());
+                throw new RuntimeException(
+                        "Expected app to be valid. Instead got: " + exception.getMessage());
             }
         }
-
     }
 
     @NotNull
     private static ApplicationService getApplicationService() {
-        return new ApplicationService(null, null, new ApplicationDeployProperties(
-                new ApplicationDeployProperties.GatewayProperties(false)));
+        return new ApplicationService(
+                null,
+                null,
+                new ApplicationDeployProperties(
+                        new ApplicationDeployProperties.GatewayProperties(false)));
     }
-
 }

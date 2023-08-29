@@ -18,9 +18,7 @@ package ai.langstream.kafka.runner;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeProvider;
 
-/**
- * Factory
- */
+/** Factory */
 public class KafkaTopicConnectionsRuntimeProvider implements TopicConnectionsRuntimeProvider {
 
     public boolean supports(String streamingClusterType) {

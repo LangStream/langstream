@@ -15,8 +15,5 @@
  */
 package ai.langstream.api.runtime;
 
-/**
- * Additional metadata for agent nodes, specific to the ComputeClusterRuntime.
- */
-public interface AgentNodeMetadata {
-}
+/** Additional metadata for agent nodes, specific to the ComputeClusterRuntime. */
+public interface AgentNodeMetadata {}

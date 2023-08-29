@@ -18,7 +18,6 @@ package ai.langstream.runtime.impl.k8s.agents;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-
 import java.util.Objects;
 
 public class KubernetesGenAIToolKitFunctionAgentProvider extends GenAIToolKitFunctionAgentProvider {
@@ -35,7 +34,8 @@ public class KubernetesGenAIToolKitFunctionAgentProvider extends GenAIToolKitFun
 
     @Override
     protected boolean isComposable(AgentConfiguration agentConfiguration) {
-        return Objects.equals("true", agentConfiguration.getConfiguration().getOrDefault("composable", true) + "");
+        return Objects.equals(
+                "true",
+                agentConfiguration.getConfiguration().getOrDefault("composable", true) + "");
     }
-
 }

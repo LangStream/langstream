@@ -24,7 +24,6 @@ import ai.langstream.api.runtime.ConnectionImplementation;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.impl.common.AbstractAgentProvider;
-
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import java.util.List;
 import java.util.Map;
@@ -42,15 +41,22 @@ public class TestGenericSinkAgentProvider extends AbstractAgentProvider {
     }
 
     @Override
-    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration, Module module, Pipeline pipeline, ExecutionPlan executionPlan, ComputeClusterRuntime clusterRuntime) {
-        Map<String, Object> copy = super.computeAgentConfiguration(agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
+    protected Map<String, Object> computeAgentConfiguration(
+            AgentConfiguration agentConfiguration,
+            Module module,
+            Pipeline pipeline,
+            ExecutionPlan executionPlan,
+            ComputeClusterRuntime clusterRuntime) {
+        Map<String, Object> copy =
+                super.computeAgentConfiguration(
+                        agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
 
         // we can auto-wire the "topics" configuration property
-        ConnectionImplementation connectionImplementation = executionPlan.getConnectionImplementation(module, agentConfiguration.getInput());
+        ConnectionImplementation connectionImplementation =
+                executionPlan.getConnectionImplementation(module, agentConfiguration.getInput());
         if (connectionImplementation instanceof Topic topic) {
             copy.put("topics", topic.topicName());
         }
         return copy;
     }
 }
-

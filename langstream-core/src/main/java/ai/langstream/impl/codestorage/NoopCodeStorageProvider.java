@@ -32,37 +32,50 @@ import lombok.extern.slf4j.Slf4j;
 public class NoopCodeStorageProvider implements CodeStorageProvider {
 
     @Override
-    public CodeStorage createImplementation(String codeStorageType, Map<String, Object> configuration) {
+    public CodeStorage createImplementation(
+            String codeStorageType, Map<String, Object> configuration) {
         return new CodeStorage() {
             private final Map<String, CodeArchiveMetadata> archives = new ConcurrentHashMap<>();
+
             @Override
-            public CodeArchiveMetadata storeApplicationCode(String tenant, String applicationId, String version, UploadableCodeArchive codeArchive) {
+            public CodeArchiveMetadata storeApplicationCode(
+                    String tenant,
+                    String applicationId,
+                    String version,
+                    UploadableCodeArchive codeArchive) {
                 final String code = "%s-%s".formatted(tenant, applicationId);
-                CodeArchiveMetadata archiveMetadata = new CodeArchiveMetadata(tenant, code, applicationId);
+                CodeArchiveMetadata archiveMetadata =
+                        new CodeArchiveMetadata(tenant, code, applicationId);
                 archives.put(archiveMetadata.codeStoreId(), archiveMetadata);
                 return archiveMetadata;
             }
 
             @Override
-            public void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive) throws CodeStorageException {
-                codeArchive.accept(new DownloadedCodeArchive() {
+            public void downloadApplicationCode(
+                    String tenant, String codeStoreId, DownloadedCodeHandled codeArchive)
+                    throws CodeStorageException {
+                codeArchive.accept(
+                        new DownloadedCodeArchive() {
 
-                    @Override
-                    public byte[] getData() {
-                        return "content-of-the-code-archive-%s-%s".formatted(tenant, codeStoreId).getBytes(
-                                StandardCharsets.UTF_8);
-                    }
+                            @Override
+                            public byte[] getData() {
+                                return "content-of-the-code-archive-%s-%s"
+                                        .formatted(tenant, codeStoreId)
+                                        .getBytes(StandardCharsets.UTF_8);
+                            }
 
-                    @Override
-                    public InputStream getInputStream() {
-                        throw new UnsupportedOperationException();
-                    }
+                            @Override
+                            public InputStream getInputStream() {
+                                throw new UnsupportedOperationException();
+                            }
 
-                    @Override
-                    public void extractTo(Path directory) {
-                        log.info("CodeArchive should have been extracted to {}, but this is a no-op implementation", directory);
-                    }
-                });
+                            @Override
+                            public void extractTo(Path directory) {
+                                log.info(
+                                        "CodeArchive should have been extracted to {}, but this is a no-op implementation",
+                                        directory);
+                            }
+                        });
             }
 
             @Override
@@ -76,13 +89,10 @@ public class NoopCodeStorageProvider implements CodeStorageProvider {
             }
 
             @Override
-            public void deleteApplication(String tenant, String application) {
-
-            }
+            public void deleteApplication(String tenant, String application) {}
 
             @Override
-            public void close() {
-            }
+            public void close() {}
         };
     }
 

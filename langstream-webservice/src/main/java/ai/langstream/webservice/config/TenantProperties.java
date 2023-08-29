@@ -32,10 +32,8 @@ public class TenantProperties {
     @NoArgsConstructor
     public static class DefaultTenantProperties {
         private boolean create;
-        @NotBlank
-        private String name;
+        @NotBlank private String name;
     }
 
     private DefaultTenantProperties defaultTenant;
-
 }

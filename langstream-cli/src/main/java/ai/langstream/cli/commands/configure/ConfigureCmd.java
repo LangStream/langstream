@@ -22,7 +22,10 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "configure", mixinStandardHelpOptions = true, description = "Configure LangStream tenant and authentication")
+@CommandLine.Command(
+        name = "configure",
+        mixinStandardHelpOptions = true,
+        description = "Configure LangStream tenant and authentication")
 @Getter
 public class ConfigureCmd extends BaseCmd {
 
@@ -33,8 +36,7 @@ public class ConfigureCmd extends BaseCmd {
         token
     }
 
-    @CommandLine.ParentCommand
-    private RootCmd rootCmd;
+    @CommandLine.ParentCommand private RootCmd rootCmd;
 
     @CommandLine.Parameters(description = "Config key to configure")
     private ConfigKey configKey;
@@ -42,20 +44,21 @@ public class ConfigureCmd extends BaseCmd {
     @CommandLine.Parameters(description = "Value to set")
     private String newValue;
 
-
     @Override
     @SneakyThrows
     public void run() {
-        updateConfig(clientConfig -> {
-            switch (configKey) {
-                case tenant -> clientConfig.setTenant(newValue);
-                case webServiceUrl -> clientConfig.setWebServiceUrl(newValue);
-                case apiGatewayUrl -> clientConfig.setApiGatewayUrl(newValue);
-                case token -> clientConfig.setToken(newValue);
-                default -> throw new IllegalArgumentException(
-                    "Unknown config key: %s. Only: %s".formatted(configKey, Arrays.toString(ConfigKey.values())));
-            }
-        });
+        updateConfig(
+                clientConfig -> {
+                    switch (configKey) {
+                        case tenant -> clientConfig.setTenant(newValue);
+                        case webServiceUrl -> clientConfig.setWebServiceUrl(newValue);
+                        case apiGatewayUrl -> clientConfig.setApiGatewayUrl(newValue);
+                        case token -> clientConfig.setToken(newValue);
+                        default -> throw new IllegalArgumentException(
+                                "Unknown config key: %s. Only: %s"
+                                        .formatted(configKey, Arrays.toString(ConfigKey.values())));
+                    }
+                });
         log("Config updated: %s=%s".formatted(configKey, newValue));
     }
 }

@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s.apps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
@@ -33,7 +34,9 @@ class AppResourcesFactoryTest {
 
     @Test
     void testJob() {
-        final ApplicationCustomResource resource = getCr("""
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
                 apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
@@ -47,8 +50,8 @@ class AppResourcesFactoryTest {
                     codeArchiveId: "iiii"
                 """);
 
-
-        assertEquals("""
+        assertEquals(
+                """
                         ---
                         apiVersion: batch/v1
                         kind: Job
@@ -128,13 +131,14 @@ class AppResourcesFactoryTest {
                               - emptyDir: {}
                                 name: cluster-runtime-config
                         """,
-                SerializationUtil.writeAsYaml(AppResourcesFactory.generateJob(
-                        AppResourcesFactory.GenerateJobParams.builder()
-                                .applicationCustomResource(resource)
-                                .build())
-                ));
+                SerializationUtil.writeAsYaml(
+                        AppResourcesFactory.generateJob(
+                                AppResourcesFactory.GenerateJobParams.builder()
+                                        .applicationCustomResource(resource)
+                                        .build())));
 
-        assertEquals("""
+        assertEquals(
+                """
                         ---
                         apiVersion: batch/v1
                         kind: Job
@@ -214,21 +218,20 @@ class AppResourcesFactoryTest {
                               - emptyDir: {}
                                 name: cluster-runtime-config
                         """,
-                SerializationUtil.writeAsYaml(AppResourcesFactory.generateJob(
-                        AppResourcesFactory.GenerateJobParams.builder()
-                                .applicationCustomResource(resource)
-                                .deleteJob(true)
-                                .build()
-                )));
-
-
+                SerializationUtil.writeAsYaml(
+                        AppResourcesFactory.generateJob(
+                                AppResourcesFactory.GenerateJobParams.builder()
+                                        .applicationCustomResource(resource)
+                                        .deleteJob(true)
+                                        .build())));
     }
-
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void testPodTemplate(boolean deleteJob) {
-        final ApplicationCustomResource resource = getCr("""
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
                 apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
@@ -241,32 +244,40 @@ class AppResourcesFactoryTest {
                     tenant: my-tenant
                     codeArchiveId: "iiii"
                 """);
-        final PodTemplate podTemplate = new PodTemplate(List.of(new TolerationBuilder()
-                .withEffect("NoSchedule")
-                .withValue("langstream")
-                .withKey("workload")
-                .build()), Map.of("workload", "langstream"));
+        final PodTemplate podTemplate =
+                new PodTemplate(
+                        List.of(
+                                new TolerationBuilder()
+                                        .withEffect("NoSchedule")
+                                        .withValue("langstream")
+                                        .withKey("workload")
+                                        .build()),
+                        Map.of("workload", "langstream"));
 
-        Job job = AppResourcesFactory.generateJob(AppResourcesFactory.GenerateJobParams.builder()
-                .applicationCustomResource(resource)
-                .deleteJob(deleteJob)
-                .podTemplate(podTemplate)
-                .build());
+        Job job =
+                AppResourcesFactory.generateJob(
+                        AppResourcesFactory.GenerateJobParams.builder()
+                                .applicationCustomResource(resource)
+                                .deleteJob(deleteJob)
+                                .podTemplate(podTemplate)
+                                .build());
         final List<Toleration> tolerations = job.getSpec().getTemplate().getSpec().getTolerations();
         assertEquals(1, tolerations.size());
         final Toleration tol = tolerations.get(0);
         assertEquals("workload", tol.getKey());
         assertEquals("langstream", tol.getValue());
         assertEquals("NoSchedule", tol.getEffect());
-        assertEquals(Map.of("workload", "langstream"), job.getSpec().getTemplate().getSpec().getNodeSelector());
-
-
+        assertEquals(
+                Map.of("workload", "langstream"),
+                job.getSpec().getTemplate().getSpec().getNodeSelector());
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void testSetImage(boolean deleteJob) {
-        final ApplicationCustomResource resource = getCr("""
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
                 apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
@@ -278,17 +289,17 @@ class AppResourcesFactoryTest {
                     codeArchiveId: "iiii"
                 """);
 
-        Job job = AppResourcesFactory.generateJob(AppResourcesFactory.GenerateJobParams.builder()
-                .applicationCustomResource(resource)
-                .deleteJob(deleteJob)
-                .image("busybox:v1")
-                .imagePullPolicy("Never")
-                .build());
+        Job job =
+                AppResourcesFactory.generateJob(
+                        AppResourcesFactory.GenerateJobParams.builder()
+                                .applicationCustomResource(resource)
+                                .deleteJob(deleteJob)
+                                .image("busybox:v1")
+                                .imagePullPolicy("Never")
+                                .build());
         final Container container = job.getSpec().getTemplate().getSpec().getContainers().get(0);
         assertEquals("busybox:v1", container.getImage());
         assertEquals("Never", container.getImagePullPolicy());
-
-
     }
 
     private ApplicationCustomResource getCr(String yaml) {

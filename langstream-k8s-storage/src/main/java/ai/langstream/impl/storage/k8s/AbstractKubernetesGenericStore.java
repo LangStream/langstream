@@ -31,7 +31,8 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public abstract class AbstractKubernetesGenericStore<T extends HasMetadata> implements GenericStore {
+public abstract class AbstractKubernetesGenericStore<T extends HasMetadata>
+        implements GenericStore {
 
     protected static final ObjectMapper mapper = new ObjectMapper();
     protected static final String PREFIX = "langstream-";
@@ -49,23 +50,22 @@ public abstract class AbstractKubernetesGenericStore<T extends HasMetadata> impl
 
     protected abstract T createResource(String key, String value);
 
-    protected abstract MixedOperation<T, ? extends KubernetesResourceList<T>, Resource<T>> operation();
+    protected abstract MixedOperation<T, ? extends KubernetesResourceList<T>, Resource<T>>
+            operation();
 
     protected abstract String get(String key, T resource);
-
 
     @SneakyThrows
     protected void putInNamespace(String namespace, String key, String value) {
         final T resource = createResource(key, value);
-        final ObjectMeta metadata = new ObjectMetaBuilder()
-                .withName(resourceName(key))
-                .withLabels(Map.of("app", "langstream", "langstream-key", key))
-                .build();
+        final ObjectMeta metadata =
+                new ObjectMetaBuilder()
+                        .withName(resourceName(key))
+                        .withLabels(Map.of("app", "langstream", "langstream-key", key))
+                        .build();
         resource.setMetadata(metadata);
         getClient().resource(resource).inNamespace(namespace).serverSideApply();
     }
-
-
 
     @SneakyThrows
     protected void deleteInNamespace(String namespace, String key) {
@@ -83,9 +83,17 @@ public abstract class AbstractKubernetesGenericStore<T extends HasMetadata> impl
 
     @SneakyThrows
     protected LinkedHashMap<String, String> listInNamespace(String namespace) {
-        return operation().inNamespace(namespace).withLabel("app", "langstream").list().getItems().stream()
-                .collect(Collectors.toMap(cf -> cf.getMetadata().getLabels().get("langstream-key"),
-                        cf -> get(cf.getMetadata().getLabels().get("langstream-key"), cf), (a, b) -> b, LinkedHashMap::new));
+        return operation()
+                .inNamespace(namespace)
+                .withLabel("app", "langstream")
+                .list()
+                .getItems()
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                cf -> cf.getMetadata().getLabels().get("langstream-key"),
+                                cf -> get(cf.getMetadata().getLabels().get("langstream-key"), cf),
+                                (a, b) -> b,
+                                LinkedHashMap::new));
     }
-
 }

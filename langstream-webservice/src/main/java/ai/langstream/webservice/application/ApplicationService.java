@@ -15,10 +15,8 @@
  */
 package ai.langstream.webservice.application;
 
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.webservice.common.GlobalMetadataService;
-import ai.langstream.webservice.config.ApplicationDeployProperties;
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
@@ -32,14 +30,13 @@ import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
-
+import ai.langstream.webservice.common.GlobalMetadataService;
+import ai.langstream.webservice.config.ApplicationDeployProperties;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -49,17 +46,15 @@ import org.springframework.web.server.ResponseStatusException;
 @Slf4j
 @AllArgsConstructor
 public class ApplicationService {
-    private final ApplicationDeployer deployer = ApplicationDeployer
-            .builder()
-            .registry(new ClusterRuntimeRegistry())// TODO: add config
-            .pluginsRegistry(new PluginsRegistry())
-            .build();
+    private final ApplicationDeployer deployer =
+            ApplicationDeployer.builder()
+                    .registry(new ClusterRuntimeRegistry()) // TODO: add config
+                    .pluginsRegistry(new PluginsRegistry())
+                    .build();
 
     private final GlobalMetadataService globalMetadataService;
     private final ApplicationStore applicationStore;
     private final ApplicationDeployProperties applicationDeployProperties;
-
-
 
     @SneakyThrows
     public Map<String, StoredApplication> getAllApplications(String tenant) {
@@ -68,17 +63,25 @@ public class ApplicationService {
     }
 
     @SneakyThrows
-    public void deployApplication(String tenant, String applicationId,
-                                  ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-                                  String codeArchiveReference) {
+    public void deployApplication(
+            String tenant,
+            String applicationId,
+            ModelBuilder.ApplicationWithPackageInfo applicationInstance,
+            String codeArchiveReference) {
         checkTenant(tenant);
         if (applicationStore.get(tenant, applicationId, false) != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Application already exists");
         }
 
         validateApplicationModel(applicationInstance.getApplication());
-        ExecutionPlan executionPlan = validateExecutionPlan(applicationId, applicationInstance.getApplication());
-        applicationStore.put(tenant, applicationId, applicationInstance.getApplication(), codeArchiveReference, executionPlan);
+        ExecutionPlan executionPlan =
+                validateExecutionPlan(applicationId, applicationInstance.getApplication());
+        applicationStore.put(
+                tenant,
+                applicationId,
+                applicationInstance.getApplication(),
+                codeArchiveReference,
+                executionPlan);
     }
 
     private void validateApplicationModel(Application application) {
@@ -87,11 +90,11 @@ public class ApplicationService {
 
     private void validateGateways(Application application) {
         if (applicationDeployProperties.gateway().requireAuthentication()) {
-            if (application.getGateways() != null
-            && application.getGateways().gateways() != null) {
+            if (application.getGateways() != null && application.getGateways().gateways() != null) {
                 for (Gateway gateway : application.getGateways().gateways()) {
                     if (gateway.authentication() == null) {
-                        throw new IllegalArgumentException("Gateway " + gateway.id() + " is missing authentication");
+                        throw new IllegalArgumentException(
+                                "Gateway " + gateway.id() + " is missing authentication");
                     }
                 }
             }
@@ -99,24 +102,29 @@ public class ApplicationService {
     }
 
     @SneakyThrows
-    public void updateApplication(String tenant, String applicationId,
-                                  ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-                                  String codeArchiveReference) {
+    public void updateApplication(
+            String tenant,
+            String applicationId,
+            ModelBuilder.ApplicationWithPackageInfo applicationInstance,
+            String codeArchiveReference) {
         checkTenant(tenant);
-        validateDeployMergeAndUpdate(tenant, applicationId, applicationInstance, codeArchiveReference);
+        validateDeployMergeAndUpdate(
+                tenant, applicationId, applicationInstance, codeArchiveReference);
     }
 
-
-    private void validateDeployMergeAndUpdate(String tenant, String applicationId,
-                                                    ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-                                        String codeArchiveReference) {
+    private void validateDeployMergeAndUpdate(
+            String tenant,
+            String applicationId,
+            ModelBuilder.ApplicationWithPackageInfo applicationInstance,
+            String codeArchiveReference) {
 
         final StoredApplication existing = applicationStore.get(tenant, applicationId, false);
         if (existing == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found");
         }
         final Application newApplication = applicationInstance.getApplication();
-        if (!applicationInstance.isHasInstanceDefinition() && !applicationInstance.isHasSecretDefinition()
+        if (!applicationInstance.isHasInstanceDefinition()
+                && !applicationInstance.isHasSecretDefinition()
                 && !applicationInstance.isHasAppDefinition()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No changes detected");
         }
@@ -149,8 +157,11 @@ public class ApplicationService {
         return deployer.createImplementation(applicationId, applicationInstance);
     }
 
-    private void validateUpdate(String tenant, StoredApplication existing, Secrets existingSecrets,
-                                ExecutionPlan newPlan) {
+    private void validateUpdate(
+            String tenant,
+            StoredApplication existing,
+            Secrets existingSecrets,
+            ExecutionPlan newPlan) {
         existing.getInstance().setSecrets(existingSecrets);
         final ExecutionPlan existingPlan =
                 deployer.createImplementation(existing.getApplicationId(), existing.getInstance());
@@ -169,63 +180,92 @@ public class ApplicationService {
             final AgentNode existingAgent = existingAgents.get(newAgent.getKey());
             final DefaultAgentNode newDefaultAgent = (DefaultAgentNode) newAgent.getValue();
             if (existingAgent == null) {
-                throw new IllegalArgumentException("Detected a change in the agents which is not supported. "
-                        + "Agent " + newAgent.getKey()
-                        + " is not present in the existing application. Rename or adding new agents is not supported.");
+                throw new IllegalArgumentException(
+                        "Detected a change in the agents which is not supported. "
+                                + "Agent "
+                                + newAgent.getKey()
+                                + " is not present in the existing application. Rename or adding new agents is not supported.");
             }
 
             final DefaultAgentNode existingDefaultAgent = (DefaultAgentNode) existingAgent;
-            if (!Objects.equals(newDefaultAgent.getAgentType(), existingDefaultAgent.getAgentType())) {
+            if (!Objects.equals(
+                    newDefaultAgent.getAgentType(), existingDefaultAgent.getAgentType())) {
                 throw new IllegalArgumentException(
-                        getAgentFieldUpdateInvalidErrorString(newDefaultAgent.getId(), "type",
-                                existingDefaultAgent.getAgentType(), newDefaultAgent.getAgentType()));
+                        getAgentFieldUpdateInvalidErrorString(
+                                newDefaultAgent.getId(),
+                                "type",
+                                existingDefaultAgent.getAgentType(),
+                                newDefaultAgent.getAgentType()));
             }
 
-            if (!Objects.equals(newDefaultAgent.getComponentType(), existingDefaultAgent.getComponentType())) {
+            if (!Objects.equals(
+                    newDefaultAgent.getComponentType(), existingDefaultAgent.getComponentType())) {
                 throw new IllegalArgumentException(
-                        getAgentFieldUpdateInvalidErrorString(newDefaultAgent.getId(), "type",
-                                existingDefaultAgent.getComponentType(), newDefaultAgent.getComponentType()));
+                        getAgentFieldUpdateInvalidErrorString(
+                                newDefaultAgent.getId(),
+                                "type",
+                                existingDefaultAgent.getComponentType(),
+                                newDefaultAgent.getComponentType()));
             }
-            if (!Objects.equals(newDefaultAgent.getCustomMetadata(), existingDefaultAgent.getCustomMetadata())) {
+            if (!Objects.equals(
+                    newDefaultAgent.getCustomMetadata(),
+                    existingDefaultAgent.getCustomMetadata())) {
                 throw new IllegalArgumentException(
-                        getAgentFieldUpdateInvalidErrorString(newDefaultAgent.getId(), "metadata",
-                                existingDefaultAgent.getCustomMetadata(), newDefaultAgent.getCustomMetadata()));
+                        getAgentFieldUpdateInvalidErrorString(
+                                newDefaultAgent.getId(),
+                                "metadata",
+                                existingDefaultAgent.getCustomMetadata(),
+                                newDefaultAgent.getCustomMetadata()));
             }
-            if (!Objects.equals(newDefaultAgent.getInputConnectionImplementation(), existingDefaultAgent.getInputConnectionImplementation())) {
+            if (!Objects.equals(
+                    newDefaultAgent.getInputConnectionImplementation(),
+                    existingDefaultAgent.getInputConnectionImplementation())) {
                 throw new IllegalArgumentException(
-                        getAgentFieldUpdateInvalidErrorString(newDefaultAgent.getId(), "input",
-                                existingDefaultAgent.getInputConnectionImplementation(), newDefaultAgent.getInputConnectionImplementation()));
+                        getAgentFieldUpdateInvalidErrorString(
+                                newDefaultAgent.getId(),
+                                "input",
+                                existingDefaultAgent.getInputConnectionImplementation(),
+                                newDefaultAgent.getInputConnectionImplementation()));
             }
-            if (!Objects.equals(newDefaultAgent.getOutputConnectionImplementation(), existingDefaultAgent.getOutputConnectionImplementation())) {
+            if (!Objects.equals(
+                    newDefaultAgent.getOutputConnectionImplementation(),
+                    existingDefaultAgent.getOutputConnectionImplementation())) {
                 throw new IllegalArgumentException(
-                        getAgentFieldUpdateInvalidErrorString(newDefaultAgent.getId(), "output",
-                                existingDefaultAgent.getOutputConnectionImplementation(), newDefaultAgent.getOutputConnectionImplementation()));
+                        getAgentFieldUpdateInvalidErrorString(
+                                newDefaultAgent.getId(),
+                                "output",
+                                existingDefaultAgent.getOutputConnectionImplementation(),
+                                newDefaultAgent.getOutputConnectionImplementation()));
             }
         }
     }
-
 
     void validateTopicsUpdate(ExecutionPlan existingPlan, ExecutionPlan newPlan) {
         final Map<TopicDefinition, Topic> existingTopics = existingPlan.getTopics();
         final Map<TopicDefinition, Topic> newTopics = newPlan.getTopics();
         if (existingTopics.size() != newTopics.size()) {
-            throw new IllegalArgumentException("Detected a change in the topics which is not supported. "
-                    + "New topics: " + newTopics.size() + ". Existing topics: " + existingTopics.size());
+            throw new IllegalArgumentException(
+                    "Detected a change in the topics which is not supported. "
+                            + "New topics: "
+                            + newTopics.size()
+                            + ". Existing topics: "
+                            + existingTopics.size());
         }
 
         for (Map.Entry<TopicDefinition, Topic> newTopic : newTopics.entrySet()) {
             final String name = newTopic.getKey().getName();
-            final TopicDefinition existingByName = existingTopics
-                    .keySet()
-                    .stream()
-                    .filter(topicDefinition -> topicDefinition.getName().equals(name))
-                    .findAny()
-                    .orElse(null);
+            final TopicDefinition existingByName =
+                    existingTopics.keySet().stream()
+                            .filter(topicDefinition -> topicDefinition.getName().equals(name))
+                            .findAny()
+                            .orElse(null);
 
             if (existingByName == null) {
-                throw new IllegalArgumentException("Detected a change in the topics which is not supported. "
-                        + "Topic " + newTopic.getKey()
-                        + " is not present in the existing application. Rename or adding new topics is not supported.");
+                throw new IllegalArgumentException(
+                        "Detected a change in the topics which is not supported. "
+                                + "Topic "
+                                + newTopic.getKey()
+                                + " is not present in the existing application. Rename or adding new topics is not supported.");
             }
             if (!Objects.equals(newTopic.getKey(), existingByName)) {
                 throw new IllegalArgumentException(
@@ -237,16 +277,21 @@ public class ApplicationService {
 
     private String getAgentUpdateInvalidErrorString(Object existing, Object newOne) {
         return "Detected a change in the agents which is not supported. "
-                + "New agents: " + newOne + ". Existing agents: " + existing;
+                + "New agents: "
+                + newOne
+                + ". Existing agents: "
+                + existing;
     }
 
-    private String getAgentFieldUpdateInvalidErrorString(String agentId, String field, Object existing, Object newOne) {
+    private String getAgentFieldUpdateInvalidErrorString(
+            String agentId, String field, Object existing, Object newOne) {
         return "Detected a change in the agents which is not supported. For agent %s field %s changed from %s to %s"
                 .formatted(agentId, field, existing, newOne);
     }
 
     @SneakyThrows
-    public StoredApplication getApplication(String tenant, String applicationId, boolean queryPods) {
+    public StoredApplication getApplication(
+            String tenant, String applicationId, boolean queryPods) {
         checkTenant(tenant);
         return applicationStore.get(tenant, applicationId, queryPods);
     }
@@ -265,17 +310,14 @@ public class ApplicationService {
 
     private void checkTenant(String tenant) {
         if (globalMetadataService.getTenant(tenant) == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "tenant not found"
-            );
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "tenant not found");
         }
     }
 
     @SneakyThrows
-    public List<ApplicationStore.PodLogHandler> getPodLogs(String tenant, String applicationId,
-                                                           ApplicationStore.LogOptions logOptions) {
+    public List<ApplicationStore.PodLogHandler> getPodLogs(
+            String tenant, String applicationId, ApplicationStore.LogOptions logOptions) {
         checkTenant(tenant);
         return applicationStore.logs(tenant, applicationId, logOptions);
     }
-
 }

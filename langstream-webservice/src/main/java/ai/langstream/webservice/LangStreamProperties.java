@@ -22,5 +22,4 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "application")
 @Validated
 @Data
-public class LangStreamProperties {
-}
+public class LangStreamProperties {}

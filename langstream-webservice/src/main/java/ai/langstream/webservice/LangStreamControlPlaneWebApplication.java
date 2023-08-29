@@ -15,10 +15,10 @@
  */
 package ai.langstream.webservice;
 
+import ai.langstream.webservice.config.ApplicationDeployProperties;
 import ai.langstream.webservice.config.AuthTokenProperties;
 import ai.langstream.webservice.config.StorageProperties;
 import ai.langstream.webservice.config.TenantProperties;
-import ai.langstream.webservice.config.ApplicationDeployProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -28,26 +28,28 @@ import org.springframework.core.env.Environment;
 
 @SpringBootApplication
 @EnableConfigurationProperties({
-		LangStreamProperties.class,
-		StorageProperties.class,
-		TenantProperties.class,
-		AuthTokenProperties.class,
-		ApplicationDeployProperties.class
+    LangStreamProperties.class,
+    StorageProperties.class,
+    TenantProperties.class,
+    AuthTokenProperties.class,
+    ApplicationDeployProperties.class
 })
 public class LangStreamControlPlaneWebApplication {
 
-	static {
-		java.security.Security.setProperty("networkaddress.cache.ttl", "1");
-	}
+    static {
+        java.security.Security.setProperty("networkaddress.cache.ttl", "1");
+    }
 
-	private static final Logger log = LoggerFactory.getLogger(LangStreamControlPlaneWebApplication.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(LangStreamControlPlaneWebApplication.class);
 
-	public static void main(String[] args) {
-		Environment env = SpringApplication.run(LangStreamControlPlaneWebApplication.class, args).getEnvironment();
+    public static void main(String[] args) {
+        Environment env =
+                SpringApplication.run(LangStreamControlPlaneWebApplication.class, args)
+                        .getEnvironment();
 
-		if (log.isInfoEnabled()) {
-			log.info(ApplicationStartupTraces.of(env));
-		}
-	}
-
+        if (log.isInfoEnabled()) {
+            log.info(ApplicationStartupTraces.of(env));
+        }
+    }
 }

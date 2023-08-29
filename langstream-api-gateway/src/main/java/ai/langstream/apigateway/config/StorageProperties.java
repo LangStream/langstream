@@ -35,6 +35,6 @@ public class StorageProperties {
         private String type;
         private Map<String, Object> configuration = new HashMap<>();
     }
-    private AppsStoreProperties apps;
 
+    private AppsStoreProperties apps;
 }

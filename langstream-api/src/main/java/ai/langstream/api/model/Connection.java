@@ -15,7 +15,8 @@
  */
 package ai.langstream.api.model;
 
-public record Connection(ConnectionType connectionType, String definition, boolean enableDeadletterQueue) {
+public record Connection(
+        ConnectionType connectionType, String definition, boolean enableDeadletterQueue) {
 
     public static Connection fromTopic(TopicDefinition topic) {
         return new Connection(ConnectionType.TOPIC, topic.getName(), false);
@@ -33,5 +34,4 @@ public record Connection(ConnectionType connectionType, String definition, boole
         AGENT,
         TOPIC
     }
-
 }

@@ -18,16 +18,12 @@ package ai.langstream.runtime.impl.k8s.agents;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
-
+import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import java.util.List;
 import java.util.Set;
-
-import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Implements support for S3 Source Agents.
- */
+/** Implements support for S3 Source Agents. */
 @Slf4j
 public class S3SourceAgentProvider extends AbstractComposableAgentProvider {
 

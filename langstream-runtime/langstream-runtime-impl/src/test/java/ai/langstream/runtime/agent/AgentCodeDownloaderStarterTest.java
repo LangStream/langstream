@@ -16,11 +16,10 @@
 package ai.langstream.runtime.agent;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import ai.langstream.runtime.api.ClusterConfiguration;
 import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
-import ai.langstream.runtime.api.agent.AgentRunnerConstants;
 import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
-import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.nio.file.Files;
@@ -32,32 +31,56 @@ import org.mockito.Mockito;
 
 class AgentCodeDownloaderStarterTest {
 
-
     static ObjectMapper mapper = new ObjectMapper();
 
     @Test
     public void test() throws Exception {
 
-        String clusterConfigFile = Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
-        mapper.writeValue(new File(clusterConfigFile), new ClusterConfiguration("http://localhost:8080"));
-        String downloaderConfigFile = Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
-        mapper.writeValue(new File(downloaderConfigFile), new DownloadAgentCodeConfiguration(null, null, null, null));
-        String tokenConfigFile = Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
+        String clusterConfigFile =
+                Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
+        mapper.writeValue(
+                new File(clusterConfigFile), new ClusterConfiguration("http://localhost:8080"));
+        String downloaderConfigFile =
+                Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
+        mapper.writeValue(
+                new File(downloaderConfigFile),
+                new DownloadAgentCodeConfiguration(null, null, null, null));
+        String tokenConfigFile =
+                Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
         mapper.writeValue(new File(tokenConfigFile), "mytoken");
 
-
         runTest(false, Map.of(), false);
-        runTest(false, Map.of(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV, clusterConfigFile), false);
-        runTest(false, Map.of(AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV, downloaderConfigFile), false);
-        runTest(true, Map.of(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV, clusterConfigFile,
-                AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV, downloaderConfigFile), false);
-        runTest(true, Map.of(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV, clusterConfigFile,
-                AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV, downloaderConfigFile,
-                AgentCodeDownloaderConstants.TOKEN_ENV, tokenConfigFile), true);
+        runTest(
+                false,
+                Map.of(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV, clusterConfigFile),
+                false);
+        runTest(
+                false,
+                Map.of(AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV, downloaderConfigFile),
+                false);
+        runTest(
+                true,
+                Map.of(
+                        AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV,
+                        clusterConfigFile,
+                        AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV,
+                        downloaderConfigFile),
+                false);
+        runTest(
+                true,
+                Map.of(
+                        AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV,
+                        clusterConfigFile,
+                        AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV,
+                        downloaderConfigFile,
+                        AgentCodeDownloaderConstants.TOKEN_ENV,
+                        tokenConfigFile),
+                true);
     }
 
     @SneakyThrows
-    private void runTest(boolean expectOk, Map<String, String> env, boolean expectToken, String... args) {
+    private void runTest(
+            boolean expectOk, Map<String, String> env, boolean expectToken, String... args) {
         final AgentCodeDownloader codeDownloader = Mockito.mock(AgentCodeDownloader.class);
 
         try {
@@ -77,11 +100,12 @@ class AgentCodeDownloaderStarterTest {
             throw new RuntimeException("Expected exception");
         }
         if (expectToken) {
-            Mockito.verify(codeDownloader).downloadCustomCode(Mockito.any(), Mockito.anyString(), Mockito.any());
+            Mockito.verify(codeDownloader)
+                    .downloadCustomCode(Mockito.any(), Mockito.anyString(), Mockito.any());
         } else {
-            Mockito.verify(codeDownloader).downloadCustomCode(Mockito.any(), Mockito.isNull(), Mockito.any());
+            Mockito.verify(codeDownloader)
+                    .downloadCustomCode(Mockito.any(), Mockito.isNull(), Mockito.any());
         }
-
     }
 
     static class TestDeployer extends AgentCodeDownloaderStarter {
@@ -97,6 +121,4 @@ class AgentCodeDownloaderStarterTest {
             return map.get(key);
         }
     }
-
-
 }

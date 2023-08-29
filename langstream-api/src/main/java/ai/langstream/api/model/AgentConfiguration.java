@@ -15,10 +15,9 @@
  */
 package ai.langstream.api.model;
 
-import lombok.Data;
-
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Data;
 
 @Data
 public class AgentConfiguration {

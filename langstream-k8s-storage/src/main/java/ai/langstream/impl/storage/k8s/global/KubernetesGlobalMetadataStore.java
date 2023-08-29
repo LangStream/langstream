@@ -43,8 +43,9 @@ public class KubernetesGlobalMetadataStore extends AbstractKubernetesGenericStor
         if (properties.getNamespace() == null) {
             final String fromEnv = System.getenv("KUBERNETES_NAMESPACE");
             if (fromEnv == null) {
-                throw new IllegalArgumentException("Kubernetes namespace is required. Either set " +
-                        "KUBERNETES_NAMESPACE environment variable or set namespace in configuration.");
+                throw new IllegalArgumentException(
+                        "Kubernetes namespace is required. Either set "
+                                + "KUBERNETES_NAMESPACE environment variable or set namespace in configuration.");
             } else {
                 namespace = fromEnv;
                 log.info("Using namespace from env {}", namespace);
@@ -81,16 +82,15 @@ public class KubernetesGlobalMetadataStore extends AbstractKubernetesGenericStor
         return listInNamespace(namespace);
     }
 
-
     @Override
     protected ConfigMap createResource(String key, String value) {
-        return new ConfigMapBuilder()
-                .withData(Map.of("value", value))
-                .build();
+        return new ConfigMapBuilder().withData(Map.of("value", value)).build();
     }
 
     @Override
-    protected MixedOperation<ConfigMap, ? extends KubernetesResourceList<ConfigMap>, Resource<ConfigMap>> operation() {
+    protected MixedOperation<
+                    ConfigMap, ? extends KubernetesResourceList<ConfigMap>, Resource<ConfigMap>>
+            operation() {
         return client.configMaps();
     }
 
@@ -98,6 +98,4 @@ public class KubernetesGlobalMetadataStore extends AbstractKubernetesGenericStor
     protected String get(String key, ConfigMap resource) {
         return resource.getData().get("value");
     }
-
-
 }

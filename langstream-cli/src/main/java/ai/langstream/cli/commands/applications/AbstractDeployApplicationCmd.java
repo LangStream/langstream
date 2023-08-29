@@ -38,10 +38,10 @@ import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import picocli.CommandLine;
 
-
 public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
-    @CommandLine.Command(name = "deploy",
+    @CommandLine.Command(
+            name = "deploy",
             mixinStandardHelpOptions = true,
             description = "Deploy a LangStream application")
     public static class DeployApplicationCmd extends AbstractDeployApplicationCmd {
@@ -49,17 +49,22 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         @CommandLine.Parameters(description = "Name of the application")
         private String name;
 
-        @CommandLine.Option(names = {"-app",
-                "--application"}, description = "Application directory path", required = true)
+        @CommandLine.Option(
+                names = {"-app", "--application"},
+                description = "Application directory path",
+                required = true)
         private String appPath;
 
-        @CommandLine.Option(names = {"-i",
-                "--instance"}, description = "Instance file path", required = true)
+        @CommandLine.Option(
+                names = {"-i", "--instance"},
+                description = "Instance file path",
+                required = true)
         private String instanceFilePath;
 
-        @CommandLine.Option(names = {"-s", "--secrets"}, description = "Secrets file path")
+        @CommandLine.Option(
+                names = {"-s", "--secrets"},
+                description = "Secrets file path")
         private String secretFilePath;
-
 
         @Override
         String applicationId() {
@@ -87,8 +92,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
     }
 
-
-    @CommandLine.Command(name = "update",
+    @CommandLine.Command(
+            name = "update",
             mixinStandardHelpOptions = true,
             description = "Update an existing LangStream application")
     public static class UpdateApplicationCmd extends AbstractDeployApplicationCmd {
@@ -96,17 +101,20 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         @CommandLine.Parameters(description = "Name of the application")
         private String name;
 
-        @CommandLine.Option(names = {"-app",
-                "--application"}, description = "Application directory path")
+        @CommandLine.Option(
+                names = {"-app", "--application"},
+                description = "Application directory path")
         private String appPath;
 
-        @CommandLine.Option(names = {"-i",
-                "--instance"}, description = "Instance file path.")
+        @CommandLine.Option(
+                names = {"-i", "--instance"},
+                description = "Instance file path.")
         private String instanceFilePath;
 
-        @CommandLine.Option(names = {"-s", "--secrets"}, description = "Secrets file path")
+        @CommandLine.Option(
+                names = {"-s", "--secrets"},
+                description = "Secrets file path")
         private String secretFilePath;
-
 
         @Override
         String applicationId() {
@@ -144,7 +152,6 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
     abstract boolean isUpdate();
 
-
     @Override
     @SneakyThrows
     public void run() {
@@ -161,7 +168,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             // parse locally the application in order to validate it
             // and to get the dependencies
             final Application applicationInstance =
-                    ModelBuilder.buildApplicationInstance(List.of(appDirectory.toPath()), null, null)
+                    ModelBuilder.buildApplicationInstance(
+                                    List.of(appDirectory.toPath()), null, null)
                             .getApplication();
             downloadDependencies(applicationInstance, appDirectory.toPath());
         }
@@ -186,18 +194,20 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             getClient().applications().deploy(applicationId, bodyPublisher);
             log("application %s deployed".formatted(applicationId));
         }
-
     }
 
-    private void downloadDependencies(Application applicationInstance, Path directory) throws Exception {
+    private void downloadDependencies(Application applicationInstance, Path directory)
+            throws Exception {
         if (applicationInstance.getDependencies() != null) {
             for (Dependency dependency : applicationInstance.getDependencies()) {
                 URL url = new URL(dependency.url());
 
-                String outputPath = switch (dependency.type()) {
-                    case "java-library" -> "java/lib";
-                    default -> throw new RuntimeException("unsupported dependency type: " + dependency.type());
-                };
+                String outputPath =
+                        switch (dependency.type()) {
+                            case "java-library" -> "java/lib";
+                            default -> throw new RuntimeException(
+                                    "unsupported dependency type: " + dependency.type());
+                        };
                 Path output = directory.resolve(outputPath);
                 if (!Files.exists(output)) {
                     Files.createDirectories(output);
@@ -216,12 +226,15 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                     }
                 }
 
-                log("downloading dependency: %s to %s".formatted(fileName, fileName.toAbsolutePath()));
+                log(
+                        "downloading dependency: %s to %s"
+                                .formatted(fileName, fileName.toAbsolutePath()));
                 final HttpRequest request = getClient().newDependencyGet(url);
                 getClient().http(request, HttpResponse.BodyHandlers.ofFile(fileName));
 
                 if (!checkChecksum(fileName, dependency.sha512sum())) {
-                    log("File still seems corrupted. Please double check the checksum and try again.");
+                    log(
+                            "File still seems corrupted. Please double check the checksum and try again.");
                     Files.delete(fileName);
                     throw new IOException("File at " + url + ", seems corrupted");
                 }
@@ -233,10 +246,10 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
     private boolean checkChecksum(Path fileName, String sha512sum) throws Exception {
         MessageDigest instance = MessageDigest.getInstance("SHA-512");
-        try (DigestInputStream inputStream = new DigestInputStream(
-                new BufferedInputStream(Files.newInputStream(fileName)), instance)) {
-            while (inputStream.read() != -1) {
-            }
+        try (DigestInputStream inputStream =
+                new DigestInputStream(
+                        new BufferedInputStream(Files.newInputStream(fileName)), instance)) {
+            while (inputStream.read() != -1) {}
         }
         byte[] digest = instance.digest();
         String base16encoded = bytesToHex(digest);
@@ -267,7 +280,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         return tempZip;
     }
 
-    private static void addApp(File appDirectory, ZipFile zip, Consumer<String> logger) throws ZipException {
+    private static void addApp(File appDirectory, ZipFile zip, Consumer<String> logger)
+            throws ZipException {
         if (appDirectory == null) {
             return;
         }
@@ -297,16 +311,18 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         return file;
     }
 
-    public static MultiPartBodyPublisher buildMultipartContentForAppZip(Map<String, Object> formData) {
+    public static MultiPartBodyPublisher buildMultipartContentForAppZip(
+            Map<String, Object> formData) {
         final MultiPartBodyPublisher multiPartBodyPublisher = new MultiPartBodyPublisher();
         for (Map.Entry<String, Object> formDataEntry : formData.entrySet()) {
             if (formDataEntry.getValue() instanceof Path) {
-                multiPartBodyPublisher.addPart(formDataEntry.getKey(), (Path) formDataEntry.getValue());
+                multiPartBodyPublisher.addPart(
+                        formDataEntry.getKey(), (Path) formDataEntry.getValue());
             } else {
-                multiPartBodyPublisher.addPart(formDataEntry.getKey(), formDataEntry.getValue().toString());
+                multiPartBodyPublisher.addPart(
+                        formDataEntry.getKey(), formDataEntry.getValue().toString());
             }
         }
         return multiPartBodyPublisher;
     }
-
 }

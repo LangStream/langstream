@@ -17,6 +17,7 @@ package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.code.AgentStatusResponse;
 import java.nio.charset.StandardCharsets;
@@ -30,15 +31,17 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class GenIAgentsRunnerIT extends AbstractApplicationRunner  {
+class GenIAgentsRunnerIT extends AbstractApplicationRunner {
 
     @Test
     public void testRunAITools() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of(
-                        "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -57,37 +60,47 @@ class GenIAgentsRunnerIT extends AbstractApplicationRunner  {
                                         - "description"
                                 """);
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
 
+            try (KafkaProducer<String, String> producer = createProducer();
+                    KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
-        try (KafkaProducer<String, String> producer = createProducer();
-                     KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
+                sendMessage(
+                        "input-topic",
+                        "{\"name\": \"some name\", \"description\": \"some description\"}",
+                        List.of(
+                                new RecordHeader(
+                                        "header-key",
+                                        "header-value".getBytes(StandardCharsets.UTF_8))),
+                        producer);
 
+                executeAgentRunners(applicationRuntime);
 
-            sendMessage("input-topic","{\"name\": \"some name\", \"description\": \"some description\"}",
-                    List.of(new RecordHeader("header-key", "header-value".getBytes(StandardCharsets.UTF_8))),
-                    producer);
+                List<ConsumerRecord> records =
+                        waitForMessages(consumer, List.of("{\"name\":\"some name\"}"));
 
-            executeAgentRunners(applicationRuntime);
-
-            List<ConsumerRecord> records = waitForMessages(consumer, List.of("{\"name\":\"some name\"}"));
-
-            ConsumerRecord<String, String> record = records.get(0);
-            assertEquals("{\"name\":\"some name\"}", record.value());
-            assertEquals("header-value", new String(record.headers().lastHeader("header-key").value(), StandardCharsets.UTF_8));
+                ConsumerRecord<String, String> record = records.get(0);
+                assertEquals("{\"name\":\"some name\"}", record.value());
+                assertEquals(
+                        "header-value",
+                        new String(
+                                record.headers().lastHeader("header-key").value(),
+                                StandardCharsets.UTF_8));
+            }
         }
-        }
-
     }
-
 
     @Test
     public void testRunAIToolsComposite() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of(
-                "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -109,11 +122,14 @@ class GenIAgentsRunnerIT extends AbstractApplicationRunner  {
                                     output: "output-topic2"
                                 """);
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
 
             final AgentRunResult result = executeAgentRunners(applicationRuntime);
 
-            final List<AgentStatusResponse> processors = result.info().get("step1").serveWorkerStatus();
+            final List<AgentStatusResponse> processors =
+                    result.info().get("step1").serveWorkerStatus();
             assertEquals(4, processors.size());
             for (AgentStatusResponse p : processors) {
                 boolean mayHaveProcessed = false;
@@ -142,10 +158,6 @@ class GenIAgentsRunnerIT extends AbstractApplicationRunner  {
                 }
                 assertNotEquals(0L, p.getMetrics().getStartedAt());
             }
-
         }
-
     }
-
-
 }

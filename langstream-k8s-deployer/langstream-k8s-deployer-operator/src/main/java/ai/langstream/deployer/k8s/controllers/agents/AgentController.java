@@ -18,10 +18,10 @@ package ai.langstream.deployer.k8s.controllers.agents;
 import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.deployer.k8s.ResolvedDeployerConfiguration;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
-import ai.langstream.deployer.k8s.controllers.InfiniteRetry;
-import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.controllers.BaseController;
+import ai.langstream.deployer.k8s.controllers.InfiniteRetry;
+import ai.langstream.deployer.k8s.util.KubeUtil;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
@@ -34,7 +34,6 @@ import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
 import jakarta.inject.Inject;
-
 import java.util.concurrent.TimeUnit;
 import lombok.extern.jbosslog.JBossLog;
 
@@ -42,8 +41,8 @@ import lombok.extern.jbosslog.JBossLog;
         namespaces = Constants.WATCH_ALL_NAMESPACES,
         name = "agent-controller",
         dependents = {
-                @Dependent(type = AgentController.StsDependantResource.class),
-                @Dependent(type = AgentController.ServiceDependantResource.class)
+            @Dependent(type = AgentController.StsDependantResource.class),
+            @Dependent(type = AgentController.ServiceDependantResource.class)
         },
         retry = InfiniteRetry.class)
 @JBossLog
@@ -51,82 +50,88 @@ public class AgentController extends BaseController<AgentCustomResource>
         implements ErrorStatusHandler<AgentCustomResource> {
 
     @Override
-    public ErrorStatusUpdateControl<AgentCustomResource> updateErrorStatus(AgentCustomResource agentCustomResource,
-                                                                           Context<AgentCustomResource> context,
-                                                                           Exception e) {
+    public ErrorStatusUpdateControl<AgentCustomResource> updateErrorStatus(
+            AgentCustomResource agentCustomResource,
+            Context<AgentCustomResource> context,
+            Exception e) {
         agentCustomResource.getStatus().setStatus(AgentLifecycleStatus.error(e.getMessage()));
         return ErrorStatusUpdateControl.updateStatus(agentCustomResource);
     }
 
     @Override
-    protected UpdateControl<AgentCustomResource> patchResources(AgentCustomResource agent,
-                                                                Context<AgentCustomResource> context) {
+    protected UpdateControl<AgentCustomResource> patchResources(
+            AgentCustomResource agent, Context<AgentCustomResource> context) {
         final String targetNamespace = agent.getMetadata().getNamespace();
-        final String name = context.getSecondaryResource(StatefulSet.class).orElseThrow()
-                .getMetadata().getName();
-        final StatefulSet current = client.apps().statefulSets()
-                .inNamespace(targetNamespace)
-                .withName(name)
-                .get();
+        final String name =
+                context.getSecondaryResource(StatefulSet.class)
+                        .orElseThrow()
+                        .getMetadata()
+                        .getName();
+        final StatefulSet current =
+                client.apps().statefulSets().inNamespace(targetNamespace).withName(name).get();
         if (KubeUtil.isStatefulSetReady(current)) {
             agent.getStatus().setStatus(AgentLifecycleStatus.DEPLOYED);
             return UpdateControl.updateStatus(agent);
         } else {
             agent.getStatus().setStatus(AgentLifecycleStatus.DEPLOYING);
-            return UpdateControl.updateStatus(agent)
-                    .rescheduleAfter(5, TimeUnit.SECONDS);
+            return UpdateControl.updateStatus(agent).rescheduleAfter(5, TimeUnit.SECONDS);
         }
     }
 
     @Override
-    protected DeleteControl cleanupResources(AgentCustomResource resource,
-                                             Context<AgentCustomResource> context) {
+    protected DeleteControl cleanupResources(
+            AgentCustomResource resource, Context<AgentCustomResource> context) {
         return DeleteControl.defaultDelete();
     }
 
-
     @JBossLog
-    public static class StsDependantResource extends
-            CRUDKubernetesDependentResource<StatefulSet, AgentCustomResource> {
+    public static class StsDependantResource
+            extends CRUDKubernetesDependentResource<StatefulSet, AgentCustomResource> {
 
-        @Inject
-        ResolvedDeployerConfiguration configuration;
+        @Inject ResolvedDeployerConfiguration configuration;
 
         public StsDependantResource() {
             super(StatefulSet.class);
         }
 
         @Override
-        protected StatefulSet desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
+        protected StatefulSet desired(
+                AgentCustomResource primary, Context<AgentCustomResource> context) {
             try {
-                return AgentResourcesFactory.generateStatefulSet(primary, configuration.getAgentResources(), configuration.getPodTemplate());
+                return AgentResourcesFactory.generateStatefulSet(
+                        primary, configuration.getAgentResources(), configuration.getPodTemplate());
             } catch (Throwable t) {
-                log.errorf(t, "Error while generating StatefulSet for agent %s", primary.getMetadata().getName());
+                log.errorf(
+                        t,
+                        "Error while generating StatefulSet for agent %s",
+                        primary.getMetadata().getName());
                 throw new RuntimeException(t);
             }
         }
     }
 
     @JBossLog
-    public static class ServiceDependantResource extends
-            CRUDKubernetesDependentResource<Service, AgentCustomResource> {
+    public static class ServiceDependantResource
+            extends CRUDKubernetesDependentResource<Service, AgentCustomResource> {
 
-        @Inject
-        ResolvedDeployerConfiguration configuration;
+        @Inject ResolvedDeployerConfiguration configuration;
 
         public ServiceDependantResource() {
             super(Service.class);
         }
 
         @Override
-        protected Service desired(AgentCustomResource primary, Context<AgentCustomResource> context) {
+        protected Service desired(
+                AgentCustomResource primary, Context<AgentCustomResource> context) {
             try {
                 return AgentResourcesFactory.generateHeadlessService(primary);
             } catch (Throwable t) {
-                log.errorf(t, "Error while generating Service for agent %s", primary.getMetadata().getName());
+                log.errorf(
+                        t,
+                        "Error while generating Service for agent %s",
+                        primary.getMetadata().getName());
                 throw new RuntimeException(t);
             }
         }
     }
-
 }

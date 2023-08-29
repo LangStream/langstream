@@ -15,25 +15,33 @@
  */
 package ai.langstream.api.runtime;
 
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ServiceLoader;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PluginsRegistry {
-    public AgentNodeProvider lookupAgentImplementation(String type, ComputeClusterRuntime clusterRuntime) {
-        log.info("Looking for an implementation of agent type {} on {}", type, clusterRuntime.getClusterType());
+    public AgentNodeProvider lookupAgentImplementation(
+            String type, ComputeClusterRuntime clusterRuntime) {
+        log.info(
+                "Looking for an implementation of agent type {} on {}",
+                type,
+                clusterRuntime.getClusterType());
         ServiceLoader<AgentNodeProvider> loader = ServiceLoader.load(AgentNodeProvider.class);
-        ServiceLoader.Provider<AgentNodeProvider> agentRuntimeProviderProvider = loader
-                .stream()
-                .filter(p -> {
-                    AgentNodeProvider agentNodeProvider = p.get();
-                    return agentNodeProvider.supports(type, clusterRuntime);
-                })
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No AgentNodeProvider found for type " + type
-                        + " for cluster type "+ clusterRuntime.getClusterType()));
+        ServiceLoader.Provider<AgentNodeProvider> agentRuntimeProviderProvider =
+                loader.stream()
+                        .filter(
+                                p -> {
+                                    AgentNodeProvider agentNodeProvider = p.get();
+                                    return agentNodeProvider.supports(type, clusterRuntime);
+                                })
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new RuntimeException(
+                                                "No AgentNodeProvider found for type "
+                                                        + type
+                                                        + " for cluster type "
+                                                        + clusterRuntime.getClusterType()));
         return agentRuntimeProviderProvider.get();
     }
-
 }

@@ -15,6 +15,10 @@
  */
 package ai.langstream.runtime.agent;
 
+import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
+import static ai.langstream.api.model.ErrorsSpec.FAIL;
+import static ai.langstream.api.model.ErrorsSpec.SKIP;
+
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeAndLoader;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
@@ -26,10 +30,10 @@ import ai.langstream.api.runner.code.BadRecordHandler;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicAdmin;
+import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
-import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.agent.api.AgentInfoServlet;
@@ -41,13 +45,6 @@ import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.prometheus.client.hotspot.DefaultExports;
-import java.util.Objects;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -59,27 +56,28 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 
-import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
-import static ai.langstream.api.model.ErrorsSpec.FAIL;
-import static ai.langstream.api.model.ErrorsSpec.SKIP;
-
-/**
- * This is the main entry point for the pods that run the LangStream runtime and Java code.
- */
+/** This is the main entry point for the pods that run the LangStream runtime and Java code. */
 @Slf4j
-public class AgentRunner
-{
-    private static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY = new TopicConnectionsRuntimeRegistry();
+public class AgentRunner {
+    private static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY =
+            new TopicConnectionsRuntimeRegistry();
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
-    private static MainErrorHandler mainErrorHandler = error -> {
-        log.error("Unexpected error", error);
-        System.exit(-1);
-    };
+    private static MainErrorHandler mainErrorHandler =
+            error -> {
+                log.error("Unexpected error", error);
+                System.exit(-1);
+            };
 
     public interface MainErrorHandler {
         void handleError(Throwable error);
@@ -100,23 +98,32 @@ public class AgentRunner
         return server;
     }
 
-    public static void runAgent(RuntimePodConfiguration configuration,
-                                Path podRuntimeConfiguration,
-                                Path codeDirectory,
-                                Path agentsDirectory,
-                                AgentInfo agentInfo,
-                                int maxLoops) throws Exception {
-        new AgentRunner().run(configuration, podRuntimeConfiguration, codeDirectory, agentsDirectory, agentInfo, maxLoops);
-
+    public static void runAgent(
+            RuntimePodConfiguration configuration,
+            Path podRuntimeConfiguration,
+            Path codeDirectory,
+            Path agentsDirectory,
+            AgentInfo agentInfo,
+            int maxLoops)
+            throws Exception {
+        new AgentRunner()
+                .run(
+                        configuration,
+                        podRuntimeConfiguration,
+                        codeDirectory,
+                        agentsDirectory,
+                        agentInfo,
+                        maxLoops);
     }
 
-
-    public void run(RuntimePodConfiguration configuration,
-                    Path podRuntimeConfiguration,
-                    Path codeDirectory,
-                    Path agentsDirectory,
-                    AgentInfo agentInfo,
-                    int maxLoops) throws Exception {
+    public void run(
+            RuntimePodConfiguration configuration,
+            Path podRuntimeConfiguration,
+            Path codeDirectory,
+            Path agentsDirectory,
+            AgentInfo agentInfo,
+            int maxLoops)
+            throws Exception {
 
         Server server = bootstrapHttpServer(agentInfo);
         try {
@@ -124,27 +131,37 @@ public class AgentRunner
 
             // agentId is the identity of the agent in the cluster
             // it is shared by all the instances of the agent
-            String agentId = configuration.agent().applicationId() + "-" + configuration.agent().agentId();
+            String agentId =
+                    configuration.agent().applicationId() + "-" + configuration.agent().agentId();
 
             log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
 
-            ClassLoader customLibClassloader = buildCustomLibClassloader(codeDirectory, Thread.currentThread().getContextClassLoader());
-            try (NarFileHandler narFileHandler = new NarFileHandler(agentsDirectory, customLibClassloader)) {
+            ClassLoader customLibClassloader =
+                    buildCustomLibClassloader(
+                            codeDirectory, Thread.currentThread().getContextClassLoader());
+            try (NarFileHandler narFileHandler =
+                    new NarFileHandler(agentsDirectory, customLibClassloader)) {
                 narFileHandler.scan();
                 AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
                 agentCodeRegistry.setAgentPackageLoader(narFileHandler);
 
                 TopicConnectionsRuntime topicConnectionsRuntime =
-                        TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(configuration.streamingCluster());
+                        TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(
+                                configuration.streamingCluster());
 
                 log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
                 try {
                     AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
                     if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
-                        runPythonAgent(
-                                podRuntimeConfiguration, codeDirectory);
+                        runPythonAgent(podRuntimeConfiguration, codeDirectory);
                     } else {
-                        runJavaAgent(configuration, maxLoops, agentId, topicConnectionsRuntime, agentCode, agentInfo);
+                        runJavaAgent(
+                                configuration,
+                                maxLoops,
+                                agentId,
+                                topicConnectionsRuntime,
+                                agentCode,
+                                agentInfo);
                     }
                 } finally {
                     topicConnectionsRuntime.close();
@@ -155,59 +172,65 @@ public class AgentRunner
         }
     }
 
-    private static ClassLoader buildCustomLibClassloader(Path codeDirectory, ClassLoader contextClassLoader) throws IOException {
+    private static ClassLoader buildCustomLibClassloader(
+            Path codeDirectory, ClassLoader contextClassLoader) throws IOException {
         ClassLoader customLibClassloader = contextClassLoader;
         if (codeDirectory == null) {
             return customLibClassloader;
         }
         Path javaLib = codeDirectory.resolve("java").resolve("lib");
         log.info("Looking for java lib in {}", javaLib);
-        if (Files.exists(javaLib)&& Files.isDirectory(javaLib)) {
+        if (Files.exists(javaLib) && Files.isDirectory(javaLib)) {
             List<URL> jars;
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(javaLib, "*.jar")) {
-                jars = StreamSupport.stream(stream.spliterator(), false)
-                        .map(p -> {
-                            log.info("Adding jar {}", p);
-                            try {
-                                return p.toUri().toURL();
-                            } catch (MalformedURLException e) {
-                                log.error("Error adding jar {}", p, e);
-                                // ignore
-                                return null;
-                            }
-                        })
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
+                jars =
+                        StreamSupport.stream(stream.spliterator(), false)
+                                .map(
+                                        p -> {
+                                            log.info("Adding jar {}", p);
+                                            try {
+                                                return p.toUri().toURL();
+                                            } catch (MalformedURLException e) {
+                                                log.error("Error adding jar {}", p, e);
+                                                // ignore
+                                                return null;
+                                            }
+                                        })
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
             }
             customLibClassloader = new URLClassLoader(jars.toArray(URL[]::new), contextClassLoader);
         }
         return customLibClassloader;
     }
 
-    private static void runPythonAgent(Path podRuntimeConfiguration, Path codeDirectory) throws Exception {
+    private static void runPythonAgent(Path podRuntimeConfiguration, Path codeDirectory)
+            throws Exception {
 
         Path pythonCodeDirectory = codeDirectory.resolve("python");
         log.info("Python code directory {}", pythonCodeDirectory);
 
         final String pythonPath = System.getenv("PYTHONPATH");
-        final String newPythonPath = "%s:%s:%s".formatted(
-                pythonPath,
-                pythonCodeDirectory.toAbsolutePath(),
-                pythonCodeDirectory.resolve("lib").toAbsolutePath());
+        final String newPythonPath =
+                "%s:%s:%s"
+                        .formatted(
+                                pythonPath,
+                                pythonCodeDirectory.toAbsolutePath(),
+                                pythonCodeDirectory.resolve("lib").toAbsolutePath());
 
         // copy input/output to standard input/output of the java process
         // this allows to use "kubectl logs" easily
-        ProcessBuilder processBuilder = new ProcessBuilder(
-                "python3", "-m", "langstream_runtime", podRuntimeConfiguration.toAbsolutePath().toString())
-                .inheritIO()
-                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-                .redirectError(ProcessBuilder.Redirect.INHERIT);
-        processBuilder
-                .environment()
-                .put("PYTHONPATH", newPythonPath);
-        processBuilder
-                .environment()
-                .put("NLTK_DATA", "/app/nltk_data");
+        ProcessBuilder processBuilder =
+                new ProcessBuilder(
+                                "python3",
+                                "-m",
+                                "langstream_runtime",
+                                podRuntimeConfiguration.toAbsolutePath().toString())
+                        .inheritIO()
+                        .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                        .redirectError(ProcessBuilder.Redirect.INHERIT);
+        processBuilder.environment().put("PYTHONPATH", newPythonPath);
+        processBuilder.environment().put("NLTK_DATA", "/app/nltk_data");
         Process process = processBuilder.start();
 
         int exitCode = process.waitFor();
@@ -218,12 +241,14 @@ public class AgentRunner
         }
     }
 
-    private static void runJavaAgent(RuntimePodConfiguration configuration,
-                                     int maxLoops,
-                                     String agentId,
-                                     TopicConnectionsRuntime topicConnectionsRuntime,
-                                     AgentCodeAndLoader agentCodeWithLoader,
-                                     AgentInfo agentInfo) throws Exception {
+    private static void runJavaAgent(
+            RuntimePodConfiguration configuration,
+            int maxLoops,
+            String agentId,
+            TopicConnectionsRuntime topicConnectionsRuntime,
+            AgentCodeAndLoader agentCodeWithLoader,
+            AgentInfo agentInfo)
+            throws Exception {
 
         topicConnectionsRuntime.init(configuration.streamingCluster());
 
@@ -231,10 +256,12 @@ public class AgentRunner
         final TopicConsumer consumer;
         TopicProducer deadLetterProducer = null;
         if (configuration.input() != null && !configuration.input().isEmpty()) {
-            consumer = topicConnectionsRuntime.createConsumer(agentId,
-                    configuration.streamingCluster(), configuration.input());
-            deadLetterProducer = topicConnectionsRuntime.createDeadletterTopicProducer(agentId,
-                    configuration.streamingCluster(), configuration.input());
+            consumer =
+                    topicConnectionsRuntime.createConsumer(
+                            agentId, configuration.streamingCluster(), configuration.input());
+            deadLetterProducer =
+                    topicConnectionsRuntime.createDeadletterTopicProducer(
+                            agentId, configuration.streamingCluster(), configuration.input());
         } else {
             consumer = new NoopTopicConsumer();
         }
@@ -246,16 +273,19 @@ public class AgentRunner
         // this is closed by the TopicSink
         final TopicProducer producer;
         if (configuration.output() != null && !configuration.output().isEmpty()) {
-            producer = topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(), configuration.output());
+            producer =
+                    topicConnectionsRuntime.createProducer(
+                            agentId, configuration.streamingCluster(), configuration.output());
         } else {
             producer = new NoopTopicProducer();
         }
 
-        ErrorsHandler errorsHandler = new StandardErrorsHandler(configuration.agent().errorHandlerConfiguration());
+        ErrorsHandler errorsHandler =
+                new StandardErrorsHandler(configuration.agent().errorHandlerConfiguration());
 
-        try (TopicAdmin topicAdmin = topicConnectionsRuntime.createTopicAdmin(agentId,
-            configuration.streamingCluster(),
-            configuration.output())) {
+        try (TopicAdmin topicAdmin =
+                topicConnectionsRuntime.createTopicAdmin(
+                        agentId, configuration.streamingCluster(), configuration.output())) {
             AgentProcessor mainProcessor;
             if (agentCodeWithLoader.isProcessor()) {
                 mainProcessor = agentCodeWithLoader.asProcessor();
@@ -292,26 +322,38 @@ public class AgentRunner
             }
             agentInfo.watchSink(sink);
 
-            String onBadRecord = configuration.agent().errorHandlerConfiguration()
-                .getOrDefault("onFailure", FAIL).toString();
+            String onBadRecord =
+                    configuration
+                            .agent()
+                            .errorHandlerConfiguration()
+                            .getOrDefault("onFailure", FAIL)
+                            .toString();
             final BadRecordHandler brh = getBadRecordHandler(onBadRecord, deadLetterProducer);
 
             try {
                 topicAdmin.start();
-                AgentContext agentContext = new SimpleAgentContext(agentId, consumer, producer, topicAdmin, brh,
-                    new TopicConnectionProvider() {
-                        @Override
-                        public TopicConsumer createConsumer(String agentId, Map<String, Object> config) {
-                            return topicConnectionsRuntime.createConsumer(agentId, configuration.streamingCluster(),
-                                config);
-                        }
+                AgentContext agentContext =
+                        new SimpleAgentContext(
+                                agentId,
+                                consumer,
+                                producer,
+                                topicAdmin,
+                                brh,
+                                new TopicConnectionProvider() {
+                                    @Override
+                                    public TopicConsumer createConsumer(
+                                            String agentId, Map<String, Object> config) {
+                                        return topicConnectionsRuntime.createConsumer(
+                                                agentId, configuration.streamingCluster(), config);
+                                    }
 
-                        @Override
-                        public TopicProducer createProducer(String agentId, Map<String, Object> config) {
-                            return topicConnectionsRuntime.createProducer(agentId, configuration.streamingCluster(),
-                                config);
-                        }
-                    });
+                                    @Override
+                                    public TopicProducer createProducer(
+                                            String agentId, Map<String, Object> config) {
+                                        return topicConnectionsRuntime.createProducer(
+                                                agentId, configuration.streamingCluster(), config);
+                                    }
+                                });
                 log.info("Source: {}", source);
                 log.info("Processor: {}", mainProcessor);
                 log.info("Sink: {}", sink);
@@ -326,33 +368,38 @@ public class AgentRunner
         }
     }
 
-    private static BadRecordHandler getBadRecordHandler(String onBadRecord, final TopicProducer deadLetterProducer) {
+    private static BadRecordHandler getBadRecordHandler(
+            String onBadRecord, final TopicProducer deadLetterProducer) {
         final BadRecordHandler brh;
         if (onBadRecord.equalsIgnoreCase(SKIP)) {
             brh = (record, t, cleanup) -> log.warn("Skipping record {}", record, t);
-        } else if(onBadRecord.equalsIgnoreCase(DEAD_LETTER)) {
-            brh = (record, t, cleanup) -> {
-                log.info("Sending record to dead letter queue {}", record, t);
-                deadLetterProducer.write(List.of(record));
-            };
+        } else if (onBadRecord.equalsIgnoreCase(DEAD_LETTER)) {
+            brh =
+                    (record, t, cleanup) -> {
+                        log.info("Sending record to dead letter queue {}", record, t);
+                        deadLetterProducer.write(List.of(record));
+                    };
         } else {
-            brh = (record, t, cleanup) -> {
-                cleanup.run();
-                if (t instanceof RuntimeException) {
-                    throw (RuntimeException) t;
-                }
-                throw new RuntimeException(t);
-            };
+            brh =
+                    (record, t, cleanup) -> {
+                        cleanup.run();
+                        if (t instanceof RuntimeException) {
+                            throw (RuntimeException) t;
+                        }
+                        throw new RuntimeException(t);
+                    };
         }
         return brh;
     }
 
-    static void runMainLoop(AgentSource source,
-                            AgentProcessor function,
-                            AgentSink sink,
-                            AgentContext agentContext,
-                            ErrorsHandler errorsHandler,
-                            int maxLoops) throws Exception {
+    static void runMainLoop(
+            AgentSource source,
+            AgentProcessor function,
+            AgentSink sink,
+            AgentContext agentContext,
+            ErrorsHandler errorsHandler,
+            int maxLoops)
+            throws Exception {
         source.setContext(agentContext);
         sink.setContext(agentContext);
         function.setContext(agentContext);
@@ -369,37 +416,46 @@ public class AgentRunner
         while ((maxLoops < 0) || (maxLoops-- > 0)) {
             if (records != null && !records.isEmpty()) {
                 // in case of permanent FAIL this method will throw an exception
-                runProcessorAgent(function, records, errorsHandler, source, (AgentProcessor.SourceRecordAndResult sourceRecordAndResult) -> {
-
-                        if (sourceRecordAndResult.error() != null) {
-                            // handle error
-                            setFatalError(sourceRecordAndResult.error(), fatalError);
-                            return;
-                        }
-
-                        if (sourceRecordAndResult.resultRecords().isEmpty()) {
-                            // no records, we have to commit the source record to the source
-                            // no need to call the Sink with an empty list
-                            try {
-                                source.commit(List.of(sourceRecordAndResult.sourceRecord()));
-                            } catch (Throwable error) {
-                                log.error("Source could not commit the record", error);
-                                setFatalError(error, fatalError);
+                runProcessorAgent(
+                        function,
+                        records,
+                        errorsHandler,
+                        source,
+                        (AgentProcessor.SourceRecordAndResult sourceRecordAndResult) -> {
+                            if (sourceRecordAndResult.error() != null) {
+                                // handle error
+                                setFatalError(sourceRecordAndResult.error(), fatalError);
+                                return;
                             }
-                            return;
-                        }
 
-                        sourceRecordTracker.track(List.of(sourceRecordAndResult));
-                        try {
-                            // the function maps the record coming from the Source to records to be sent to the Sink
-                            processRecordsOnTheSink(sink, sourceRecordAndResult, errorsHandler, sourceRecordTracker,
-                                    source, fatalError);
-                        } catch (Throwable e) {
-                            log.error("Error while processing records", e);
-                            setFatalError(e, fatalError);
-                        }
-                    }
-                );
+                            if (sourceRecordAndResult.resultRecords().isEmpty()) {
+                                // no records, we have to commit the source record to the source
+                                // no need to call the Sink with an empty list
+                                try {
+                                    source.commit(List.of(sourceRecordAndResult.sourceRecord()));
+                                } catch (Throwable error) {
+                                    log.error("Source could not commit the record", error);
+                                    setFatalError(error, fatalError);
+                                }
+                                return;
+                            }
+
+                            sourceRecordTracker.track(List.of(sourceRecordAndResult));
+                            try {
+                                // the function maps the record coming from the Source to records to
+                                // be sent to the Sink
+                                processRecordsOnTheSink(
+                                        sink,
+                                        sourceRecordAndResult,
+                                        errorsHandler,
+                                        sourceRecordTracker,
+                                        source,
+                                        fatalError);
+                            } catch (Throwable e) {
+                                log.error("Error while processing records", e);
+                                setFatalError(e, fatalError);
+                            }
+                        });
             }
             checkFatalError(fatalError);
 
@@ -432,9 +488,14 @@ public class AgentRunner
         fatalError.compareAndSet(null, value);
     }
 
-    private static void processRecordsOnTheSink(AgentSink sink, AgentProcessor.SourceRecordAndResult sourceRecordAndResult,
-                                                ErrorsHandler errorsHandler, SourceRecordTracker sourceRecordTracker,
-                                                AgentSource source, AtomicReference<Exception> fatalError) throws Exception {
+    private static void processRecordsOnTheSink(
+            AgentSink sink,
+            AgentProcessor.SourceRecordAndResult sourceRecordAndResult,
+            ErrorsHandler errorsHandler,
+            SourceRecordTracker sourceRecordTracker,
+            AgentSource source,
+            AtomicReference<Exception> fatalError)
+            throws Exception {
         Record sourceRecord = sourceRecordAndResult.sourceRecord();
         List<Record> forTheSink = new ArrayList<>(sourceRecordAndResult.resultRecords());
         while (true) {
@@ -443,11 +504,14 @@ public class AgentRunner
                 return;
             } catch (Throwable error) {
                 // handle error
-                ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(sourceRecord, error);
+                ErrorsHandler.ErrorsProcessingOutcome action =
+                        errorsHandler.handleErrors(sourceRecord, error);
                 switch (action) {
                     case SKIP -> {
                         // skip (the whole batch)
-                        log.error("Unrecoverable error while processing the records, skipping", error);
+                        log.error(
+                                "Unrecoverable error while processing the records, skipping",
+                                error);
                         sourceRecordTracker.commit(forTheSink);
                         return;
                     }
@@ -456,14 +520,18 @@ public class AgentRunner
                         // retry (the whole batch)
                     }
                     case FAIL -> {
-                        log.error("Unrecoverable error while processing some the records, failing", error);
-                        PermanentFailureException permanentFailureException = new PermanentFailureException(error);
+                        log.error(
+                                "Unrecoverable error while processing some the records, failing",
+                                error);
+                        PermanentFailureException permanentFailureException =
+                                new PermanentFailureException(error);
                         source.permanentFailure(sourceRecord, permanentFailureException);
                         if (errorsHandler.failProcessingOnPermanentErrors()) {
                             log.error("Failing processing on permanent error");
                             setFatalError(permanentFailureException, fatalError);
                         } else {
-                            // in case the source does not throw an exception we mark the record as "skipped"
+                            // in case the source does not throw an exception we mark the record as
+                            // "skipped"
                             sourceRecordTracker.commit(forTheSink);
                         }
                         return;
@@ -474,47 +542,77 @@ public class AgentRunner
         }
     }
 
-
-    private static void runProcessorAgent(AgentProcessor processor,
-                                            List<Record> sourceRecords,
-                                            ErrorsHandler errorsHandler,
-                                            AgentSource source,
-                                            RecordSink finalSink) {
+    private static void runProcessorAgent(
+            AgentProcessor processor,
+            List<Record> sourceRecords,
+            ErrorsHandler errorsHandler,
+            AgentSource source,
+            RecordSink finalSink) {
         log.info("runProcessor on {} records", sourceRecords.size());
-        processor.process(sourceRecords, (AgentProcessor.SourceRecordAndResult result) -> {
+        processor.process(
+                sourceRecords,
+                (AgentProcessor.SourceRecordAndResult result) -> {
                     Record sourceRecord = result.sourceRecord();
                     try {
                         log.info("Result for record {}: {}", sourceRecord, result);
                         if (result.error() != null) {
                             Throwable error = result.error();
                             // handle error
-                            ErrorsHandler.ErrorsProcessingOutcome action = errorsHandler.handleErrors(sourceRecord, result.error());
+                            ErrorsHandler.ErrorsProcessingOutcome action =
+                                    errorsHandler.handleErrors(sourceRecord, result.error());
                             switch (action) {
                                 case SKIP -> {
-                                    log.error("Unrecoverable error while processing the records, skipping", error);
-                                    finalSink.emit(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), null));
+                                    log.error(
+                                            "Unrecoverable error while processing the records, skipping",
+                                            error);
+                                    finalSink.emit(
+                                            new AgentProcessor.SourceRecordAndResult(
+                                                    sourceRecord, List.of(), null));
                                 }
                                 case RETRY -> {
-                                    log.error("Retryable error while processing the records, retrying", error);
-                                    // retry the single record (this leads to out-of-order processing)
-                                    runProcessorAgent(processor, List.of(sourceRecord), errorsHandler, source, finalSink);
+                                    log.error(
+                                            "Retryable error while processing the records, retrying",
+                                            error);
+                                    // retry the single record (this leads to out-of-order
+                                    // processing)
+                                    runProcessorAgent(
+                                            processor,
+                                            List.of(sourceRecord),
+                                            errorsHandler,
+                                            source,
+                                            finalSink);
                                 }
                                 case FAIL -> {
-                                    log.error("Unrecoverable error while processing some the records, failing", error);
-                                    PermanentFailureException permanentFailureException = new PermanentFailureException(error);
+                                    log.error(
+                                            "Unrecoverable error while processing some the records, failing",
+                                            error);
+                                    PermanentFailureException permanentFailureException =
+                                            new PermanentFailureException(error);
                                     permanentFailureException.fillInStackTrace();
-                                    source.permanentFailure(sourceRecord, permanentFailureException);
+                                    source.permanentFailure(
+                                            sourceRecord, permanentFailureException);
                                     if (errorsHandler.failProcessingOnPermanentErrors()) {
                                         log.error("Failing processing on permanent error");
-                                        finalSink.emit(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), permanentFailureException));
+                                        finalSink.emit(
+                                                new AgentProcessor.SourceRecordAndResult(
+                                                        sourceRecord,
+                                                        List.of(),
+                                                        permanentFailureException));
                                     } else {
-                                        // in case the source does not throw an exception we mark the record as "skipped"
-                                        finalSink.emit(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), null));
+                                        // in case the source does not throw an exception we mark
+                                        // the record as "skipped"
+                                        finalSink.emit(
+                                                new AgentProcessor.SourceRecordAndResult(
+                                                        sourceRecord, List.of(), null));
                                     }
                                 }
                                 default -> {
                                     finalSink.emit(
-                                            new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), new PermanentFailureException(new IllegalStateException())));
+                                            new AgentProcessor.SourceRecordAndResult(
+                                                    sourceRecord,
+                                                    List.of(),
+                                                    new PermanentFailureException(
+                                                            new IllegalStateException())));
                                 }
                             }
                         } else {
@@ -522,7 +620,9 @@ public class AgentRunner
                         }
                     } catch (Throwable error) {
                         log.error("Error while processing record {}", sourceRecord, error);
-                        finalSink.emit(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
+                        finalSink.emit(
+                                new AgentProcessor.SourceRecordAndResult(
+                                        sourceRecord, List.of(), error));
                     }
                 });
     }
@@ -533,25 +633,35 @@ public class AgentRunner
         }
     }
 
-    private static AgentCodeAndLoader initAgent(RuntimePodConfiguration configuration, AgentCodeRegistry agentCodeRegistry) throws Exception {
+    private static AgentCodeAndLoader initAgent(
+            RuntimePodConfiguration configuration, AgentCodeRegistry agentCodeRegistry)
+            throws Exception {
         log.info("Bootstrapping agent with configuration {}", configuration.agent());
-        return initAgent(configuration.agent().agentId(), configuration.agent().agentType(),
+        return initAgent(
+                configuration.agent().agentId(),
+                configuration.agent().agentType(),
                 System.currentTimeMillis(),
                 configuration.agent().configuration(),
                 agentCodeRegistry);
     }
 
-    public static AgentCodeAndLoader initAgent(String agentId, String agentType, long startedAt, Map<String, Object> configuration,
-                                               AgentCodeRegistry agentCodeRegistry) throws Exception {
+    public static AgentCodeAndLoader initAgent(
+            String agentId,
+            String agentType,
+            long startedAt,
+            Map<String, Object> configuration,
+            AgentCodeRegistry agentCodeRegistry)
+            throws Exception {
         AgentCodeAndLoader agentCodeAndLoader = agentCodeRegistry.getAgentCode(agentType);
-        agentCodeAndLoader.executeWithContextClassloader((AgentCode agentCode) ->  {
-            if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
-                compositeAgentProcessor.configureAgentCodeRegistry(agentCodeRegistry);
-            }
+        agentCodeAndLoader.executeWithContextClassloader(
+                (AgentCode agentCode) -> {
+                    if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
+                        compositeAgentProcessor.configureAgentCodeRegistry(agentCodeRegistry);
+                    }
 
-            agentCode.setMetadata(agentId, agentType, startedAt);
-            agentCode.init(configuration);
-        });
+                    agentCode.setMetadata(agentId, agentType, startedAt);
+                    agentCode.init(configuration);
+                });
         return agentCodeAndLoader;
     }
 
@@ -565,7 +675,6 @@ public class AgentRunner
 
     private static class NoopTopicConsumer implements TopicConsumer {
         @SneakyThrows
-
         @Override
         public List<Record> read() {
             log.info("Sleeping for 1 second, no records...");
@@ -595,9 +704,13 @@ public class AgentRunner
         private final TopicConnectionProvider topicConnectionProvider;
         private final BadRecordHandler brh;
 
-        public SimpleAgentContext(String agentId, TopicConsumer consumer, TopicProducer producer, TopicAdmin topicAdmin,
-                                  BadRecordHandler brh,
-                                  TopicConnectionProvider topicConnectionProvider) {
+        public SimpleAgentContext(
+                String agentId,
+                TopicConsumer consumer,
+                TopicProducer producer,
+                TopicAdmin topicAdmin,
+                BadRecordHandler brh,
+                TopicConnectionProvider topicConnectionProvider) {
             this.consumer = consumer;
             this.producer = producer;
             this.topicAdmin = topicAdmin;
@@ -636,5 +749,4 @@ public class AgentRunner
             return topicConnectionProvider;
         }
     }
-
 }

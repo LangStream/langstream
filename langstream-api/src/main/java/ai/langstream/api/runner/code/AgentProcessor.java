@@ -16,19 +16,17 @@
 package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runtime.ComponentType;
+import java.util.List;
 import java.util.Objects;
 
-import java.util.List;
-
-/**
- * Body of the agent
- */
+/** Body of the agent */
 public interface AgentProcessor extends AgentCode {
 
     /**
-     * The agent processes records and returns a list of records.
-     * The transactionality of the function is guaranteed by the runtime.
-     * This method should not throw any exceptions, but report errors to the RecordSink.
+     * The agent processes records and returns a list of records. The transactionality of the
+     * function is guaranteed by the runtime. This method should not throw any exceptions, but
+     * report errors to the RecordSink.
+     *
      * @param records the list of input records
      * @return the list of output records
      */

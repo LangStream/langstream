@@ -27,29 +27,27 @@ import org.springframework.web.filter.CorsFilter;
 @Configuration
 public class CorsFilterConfiguration {
 
-  private final Logger log = LoggerFactory.getLogger(CorsFilterConfiguration.class);
+    private final Logger log = LoggerFactory.getLogger(CorsFilterConfiguration.class);
 
-  private final CorsConfiguration corsConfiguration;
+    private final CorsConfiguration corsConfiguration;
 
-  public CorsFilterConfiguration(CorsConfiguration corsConfiguration) {
-    this.corsConfiguration = corsConfiguration;
-  }
-
-  @Bean
-  public CorsFilter corsFilter() {
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    if (
-      !CollectionUtils.isEmpty(corsConfiguration.getAllowedOrigins()) ||
-      !CollectionUtils.isEmpty(corsConfiguration.getAllowedOriginPatterns())
-    ) {
-      log.debug("Registering CORS filter");
-      source.registerCorsConfiguration("/api/**", corsConfiguration);
-      source.registerCorsConfiguration("/management/**", corsConfiguration);
-      source.registerCorsConfiguration("/v2/api-docs", corsConfiguration);
-      source.registerCorsConfiguration("/v3/api-docs", corsConfiguration);
-      source.registerCorsConfiguration("/swagger-resources", corsConfiguration);
-      source.registerCorsConfiguration("/swagger-ui/**", corsConfiguration);
+    public CorsFilterConfiguration(CorsConfiguration corsConfiguration) {
+        this.corsConfiguration = corsConfiguration;
     }
-    return new CorsFilter(source);
-  }
+
+    @Bean
+    public CorsFilter corsFilter() {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        if (!CollectionUtils.isEmpty(corsConfiguration.getAllowedOrigins())
+                || !CollectionUtils.isEmpty(corsConfiguration.getAllowedOriginPatterns())) {
+            log.debug("Registering CORS filter");
+            source.registerCorsConfiguration("/api/**", corsConfiguration);
+            source.registerCorsConfiguration("/management/**", corsConfiguration);
+            source.registerCorsConfiguration("/v2/api-docs", corsConfiguration);
+            source.registerCorsConfiguration("/v3/api-docs", corsConfiguration);
+            source.registerCorsConfiguration("/swagger-resources", corsConfiguration);
+            source.registerCorsConfiguration("/swagger-ui/**", corsConfiguration);
+        }
+        return new CorsFilter(source);
+    }
 }

@@ -25,16 +25,16 @@ public class GlobalMetadataStoreRegistry {
         Objects.requireNonNull(type, "type cannot be null");
         Objects.requireNonNull(configuration, "configuration cannot be null");
         ServiceLoader<GlobalMetadataStore> loader = ServiceLoader.load(GlobalMetadataStore.class);
-        final GlobalMetadataStore store = loader
-                .stream()
-                .filter(p -> type.equals(p.get().storeType()))
-                .findFirst()
-                .orElseThrow(
-                        () -> new RuntimeException("No GlobalMetadataStore found for type " + type)
-                )
-                .get();
+        final GlobalMetadataStore store =
+                loader.stream()
+                        .filter(p -> type.equals(p.get().storeType()))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new RuntimeException(
+                                                "No GlobalMetadataStore found for type " + type))
+                        .get();
         store.initialize(configuration);
         return store;
     }
-
 }

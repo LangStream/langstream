@@ -31,5 +31,4 @@ public class LangStreamCLIConfig {
     private String tenant;
 
     private String token;
-
 }

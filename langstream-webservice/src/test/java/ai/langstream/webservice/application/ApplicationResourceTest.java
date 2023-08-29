@@ -22,14 +22,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import ai.langstream.cli.commands.applications.AbstractDeployApplicationCmd;
+
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.webservice.WebAppTestConfig;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,9 +36,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.mock.web.MockPart;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -53,11 +46,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @DirtiesContext
 class ApplicationResourceTest {
 
-    @Autowired
-    MockMvc mockMvc;
+    @Autowired MockMvc mockMvc;
 
-    @RegisterExtension
-    static final KubeK3sServer k3s = new KubeK3sServer(true);
+    @RegisterExtension static final KubeK3sServer k3s = new KubeK3sServer(true);
 
     protected Path tempDir;
 
@@ -66,26 +57,27 @@ class ApplicationResourceTest {
         this.tempDir = tempDir;
     }
 
-
     @Test
     void testAppCrud() throws Exception {
-        mockMvc.perform(put("/api/tenants/my-tenant"))
-                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/tenants/my-tenant")).andExpect(status().isOk());
 
-        final String appContent = """
+        final String appContent =
+                """
                 id: app1
                 name: test
                 topics: []
                 pipeline: []
                 """;
-        final String instanceContent = """
+        final String instanceContent =
+                """
                 instance:
                   streamingCluster:
                     type: pulsar
                   computeCluster:
                     type: none
                 """;
-        final String secretsContent = """
+        final String secretsContent =
+                """
                 secrets:
                 - name: secret1
                   id: secret1
@@ -93,31 +85,20 @@ class ApplicationResourceTest {
                     key1: value1
                     key2: value2
                 """;
-        AppTestHelper.deployApp(mockMvc, "my-tenant", "test", appContent,
-                instanceContent,
-                secretsContent
-        );
+        AppTestHelper.deployApp(
+                mockMvc, "my-tenant", "test", appContent, instanceContent, secretsContent);
 
-        AppTestHelper.updateApp(mockMvc, "my-tenant", "test", appContent,
-                instanceContent,
-                null
-        );
+        AppTestHelper.updateApp(mockMvc, "my-tenant", "test", appContent, instanceContent, null);
 
-        AppTestHelper.updateApp(mockMvc, "my-tenant", "test", appContent,
-                null,
-                null
-        );
+        AppTestHelper.updateApp(mockMvc, "my-tenant", "test", appContent, null, null);
 
-        AppTestHelper.updateApp(mockMvc, "my-tenant", "test", null,
-                instanceContent,
-                null
-        );
-        mockMvc
-                .perform(
-                        get("/api/applications/my-tenant/test")
-                )
+        AppTestHelper.updateApp(mockMvc, "my-tenant", "test", null, instanceContent, null);
+        mockMvc.perform(get("/api/applications/my-tenant/test"))
                 .andExpect(status().isOk())
-                .andExpect(result -> assertEquals("""
+                .andExpect(
+                        result ->
+                                assertEquals(
+                                        """
                         {
                           "application-id" : "test",
                           "application" : {
@@ -160,34 +141,25 @@ class ApplicationResourceTest {
                             },
                             "executors" : [ ]
                           }
-                        }""", result.getResponse().getContentAsString()));
+                        }""",
+                                        result.getResponse().getContentAsString()));
 
-        mockMvc
-                .perform(
-                        get("/api/applications/my-tenant")
-                )
+        mockMvc.perform(get("/api/applications/my-tenant"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.[0].application-id").value("test"));
 
-        mockMvc
-                .perform(
-                        delete("/api/applications/my-tenant/test")
-                )
-                .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/applications/my-tenant/test")).andExpect(status().isOk());
 
-        mockMvc
-                .perform(
-                        get("/api/applications/my-tenant/test")
-                )
-                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/applications/my-tenant/test")).andExpect(status().isNotFound());
     }
-
 
     @Test
     void testDownloadCode() throws Exception {
-        mockMvc.perform(put("/api/tenants/my-tenant2"))
-                .andExpect(status().isOk());
-        AppTestHelper.deployApp(mockMvc, "my-tenant2", "test",
+        mockMvc.perform(put("/api/tenants/my-tenant2")).andExpect(status().isOk());
+        AppTestHelper.deployApp(
+                mockMvc,
+                "my-tenant2",
+                "test",
                 """
                         id: app1
                         name: test
@@ -201,23 +173,21 @@ class ApplicationResourceTest {
                           computeCluster:
                             type: none
                         """,
-                null
-        );
+                null);
 
-        mockMvc
-                .perform(
-                        multipart(HttpMethod.GET, "/api/applications/my-tenant2/test/code")
-                )
+        mockMvc.perform(multipart(HttpMethod.GET, "/api/applications/my-tenant2/test/code"))
                 .andExpect(status().isOk())
-                .andExpect(result -> {
-                    assertEquals("attachment; filename=\"my-tenant2-test.zip\"",
-                            result.getResponse().getHeader("Content-Disposition"));
-                    assertEquals("application/zip", result.getResponse().getHeader("Content-Type"));
-                    assertEquals("content-of-the-code-archive-my-tenant2-my-tenant2-test",
-                            result.getResponse().getContentAsString());
-                });
-
+                .andExpect(
+                        result -> {
+                            assertEquals(
+                                    "attachment; filename=\"my-tenant2-test.zip\"",
+                                    result.getResponse().getHeader("Content-Disposition"));
+                            assertEquals(
+                                    "application/zip",
+                                    result.getResponse().getHeader("Content-Type"));
+                            assertEquals(
+                                    "content-of-the-code-archive-my-tenant2-my-tenant2-test",
+                                    result.getResponse().getContentAsString());
+                        });
     }
-
-
 }

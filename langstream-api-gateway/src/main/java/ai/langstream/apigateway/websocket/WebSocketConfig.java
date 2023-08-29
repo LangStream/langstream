@@ -15,9 +15,9 @@
  */
 package ai.langstream.apigateway.websocket;
 
+import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.websocket.handlers.ConsumeHandler;
 import ai.langstream.apigateway.websocket.handlers.ProduceHandler;
-import ai.langstream.api.storage.ApplicationStore;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,15 +43,13 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final ApplicationStore applicationStore;
     private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool();
 
-
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(new ConsumeHandler(applicationStore, consumeThreadPool), CONSUME_PATH)
                 .addHandler(new ProduceHandler(applicationStore), PRODUCE_PATH)
                 .setAllowedOrigins("*")
                 .addInterceptors(
-                        new HttpSessionHandshakeInterceptor(),
-                        new AuthenticationInterceptor());
+                        new HttpSessionHandshakeInterceptor(), new AuthenticationInterceptor());
     }
 
     @Bean
@@ -63,5 +61,4 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void onDestroy() {
         consumeThreadPool.shutdown();
     }
-
 }

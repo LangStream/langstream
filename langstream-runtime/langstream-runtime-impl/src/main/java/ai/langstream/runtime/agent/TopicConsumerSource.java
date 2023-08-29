@@ -20,10 +20,9 @@ import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TopicConsumerSource extends AbstractAgentCode implements AgentSource {
@@ -31,15 +30,14 @@ public class TopicConsumerSource extends AbstractAgentCode implements AgentSourc
     private final TopicConsumer consumer;
     private final TopicProducer deadLetterQueueProducer;
 
-    public TopicConsumerSource(TopicConsumer consumer,
-                               TopicProducer deadLetterQueueProducer) {
+    public TopicConsumerSource(TopicConsumer consumer, TopicProducer deadLetterQueueProducer) {
         this.consumer = consumer;
         this.deadLetterQueueProducer = deadLetterQueueProducer;
     }
 
     @Override
     public List<Record> read() throws Exception {
-        List<Record> result =  consumer.read();
+        List<Record> result = consumer.read();
         processed(0, result.size());
         return result;
     }
@@ -71,9 +69,7 @@ public class TopicConsumerSource extends AbstractAgentCode implements AgentSourc
 
     @Override
     public String toString() {
-        return "TopicConsumerSource{" +
-                "consumer=" + consumer +
-                '}';
+        return "TopicConsumerSource{" + "consumer=" + consumer + '}';
     }
 
     @Override

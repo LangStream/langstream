@@ -21,7 +21,6 @@ import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.impl.storage.k8s.global.KubernetesGlobalMetadataStore;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.client.KubernetesClient;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +30,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 @Slf4j
 class KubernetesGlobalMetadataStoreTest {
 
-
-    @RegisterExtension
-    static final KubeK3sServer k3s = new KubeK3sServer();
+    @RegisterExtension static final KubeK3sServer k3s = new KubeK3sServer();
 
     @Test
     public void testGlobalMetadataStore() {
@@ -42,7 +39,8 @@ class KubernetesGlobalMetadataStoreTest {
         final String namespace = "default";
         store.initialize(Map.of("namespace", namespace));
         store.put("mykey", "myvalue");
-        final ConfigMap configMap = client.configMaps().inNamespace(namespace).withName("langstream-mykey").get();
+        final ConfigMap configMap =
+                client.configMaps().inNamespace(namespace).withName("langstream-mykey").get();
         assertEquals("langstream", configMap.getMetadata().getLabels().get("app"));
         assertEquals("mykey", configMap.getMetadata().getLabels().get("langstream-key"));
         assertEquals("myvalue", configMap.getData().get("value"));

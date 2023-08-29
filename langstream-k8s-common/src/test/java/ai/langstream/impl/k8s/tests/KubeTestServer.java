@@ -16,14 +16,14 @@
 package ai.langstream.impl.k8s.tests;
 
 import static org.mockito.ArgumentMatchers.isNull;
-import ai.langstream.api.model.Application;
+
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -42,7 +42,8 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 @Slf4j
-public class KubeTestServer implements AutoCloseable, BeforeEachCallback, BeforeAllCallback, AfterAllCallback {
+public class KubeTestServer
+        implements AutoCloseable, BeforeEachCallback, BeforeAllCallback, AfterAllCallback {
 
     public static class Server extends KubernetesMockServer {
 
@@ -74,8 +75,7 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
         }
     }
 
-    @Getter
-    private Server server;
+    @Getter private Server server;
 
     @SneakyThrows
     public void start() {
@@ -109,17 +109,16 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
         close();
     }
 
-
     private final Map<String, AgentCustomResource> currentAgents = new HashMap<>();
     private final Map<String, ApplicationCustomResource> currentApplications = new HashMap<>();
     private final Map<String, Secret> currentAgentsSecrets = new HashMap<>();
 
-    public Map<String, AgentCustomResource> spyAgentCustomResources(final String namespace,
-                                                                    String... expectedAgents) {
+    public Map<String, AgentCustomResource> spyAgentCustomResources(
+            final String namespace, String... expectedAgents) {
         for (String agentId : expectedAgents) {
             final String fullPath =
-                    "/apis/langstream.ai/v1alpha1/namespaces/%s/agents/%s".formatted(
-                            namespace, agentId);
+                    "/apis/langstream.ai/v1alpha1/namespaces/%s/agents/%s"
+                            .formatted(namespace, agentId);
             server.expect()
                     .patch()
                     .withPath(fullPath + "?fieldManager=fabric8")
@@ -127,12 +126,17 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                             HttpURLConnection.HTTP_OK,
                             recordedRequest -> {
                                 try {
-                                    final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                                    final ByteArrayOutputStream byteArrayOutputStream =
+                                            new ByteArrayOutputStream();
                                     recordedRequest.getBody().copyTo(byteArrayOutputStream);
-                                    final ObjectMapper mapper = new ObjectMapper()
-                                            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+                                    final ObjectMapper mapper =
+                                            new ObjectMapper()
+                                                    .enable(
+                                                            SerializationFeature
+                                                                    .ORDER_MAP_ENTRIES_BY_KEYS);
                                     final AgentCustomResource agent =
-                                            mapper.readValue(byteArrayOutputStream.toByteArray(),
+                                            mapper.readValue(
+                                                    byteArrayOutputStream.toByteArray(),
                                                     AgentCustomResource.class);
                                     log.info("received patch request for agent {}", agentId);
                                     currentAgents.put(agentId, agent);
@@ -140,8 +144,8 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
                                 }
-                            }
-                    ).always();
+                            })
+                    .always();
 
             server.expect()
                     .delete()
@@ -152,18 +156,17 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                                 log.info("received delete request for agent {}", agentId);
                                 currentAgents.remove(agentId);
                                 return List.of();
-                            }
-                    ).always();
+                            })
+                    .always();
         }
         return currentAgents;
     }
 
-    public Map<String, Secret> spyAgentCustomResourcesSecrets(final String namespace,
-                                                              String... expectedAgents) {
+    public Map<String, Secret> spyAgentCustomResourcesSecrets(
+            final String namespace, String... expectedAgents) {
         for (String agentId : expectedAgents) {
             final String fullPath =
-                    "/api/v1/namespaces/%s/secrets/%s".formatted(
-                            namespace, agentId);
+                    "/api/v1/namespaces/%s/secrets/%s".formatted(namespace, agentId);
             server.expect()
                     .patch()
                     .withPath(fullPath + "?fieldManager=fabric8")
@@ -171,20 +174,25 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                             HttpURLConnection.HTTP_OK,
                             recordedRequest -> {
                                 try {
-                                    final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                                    final ByteArrayOutputStream byteArrayOutputStream =
+                                            new ByteArrayOutputStream();
                                     recordedRequest.getBody().copyTo(byteArrayOutputStream);
                                     final ObjectMapper mapper = new ObjectMapper();
                                     final Secret secret =
-                                            mapper.readValue(byteArrayOutputStream.toByteArray(),
+                                            mapper.readValue(
+                                                    byteArrayOutputStream.toByteArray(),
                                                     Secret.class);
-                                    log.info("received patch request secret for agent {}: {}", agentId, secret);
+                                    log.info(
+                                            "received patch request secret for agent {}: {}",
+                                            agentId,
+                                            secret);
                                     currentAgentsSecrets.put(agentId, secret);
                                     return secret;
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
                                 }
-                            }
-                    ).always();
+                            })
+                    .always();
 
             server.expect()
                     .delete()
@@ -195,8 +203,8 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                                 log.info("received delete request for secret agent {}", agentId);
                                 currentAgentsSecrets.remove(agentId);
                                 return List.of();
-                            }
-                    ).always();
+                            })
+                    .always();
         }
         return currentAgentsSecrets;
     }
@@ -207,54 +215,46 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
         server.expect()
                 .patch()
                 .withPath("/api/v1/namespaces/%s?fieldManager=fabric8".formatted(namespace))
-                .andReply(
-                        HttpURLConnection.HTTP_OK,
-                        recordedRequest -> null
-                ).always();
+                .andReply(HttpURLConnection.HTTP_OK, recordedRequest -> null)
+                .always();
         server.expect()
                 .patch()
-                .withPath("/api/v1/namespaces/%s/serviceaccounts/%s?fieldManager=fabric8".formatted(namespace, tenant))
-                .andReply(
-                        HttpURLConnection.HTTP_OK,
-                        recordedRequest -> null
-                ).always();
+                .withPath(
+                        "/api/v1/namespaces/%s/serviceaccounts/%s?fieldManager=fabric8"
+                                .formatted(namespace, tenant))
+                .andReply(HttpURLConnection.HTTP_OK, recordedRequest -> null)
+                .always();
         server.expect()
                 .patch()
-                .withPath("/apis/rbac.authorization.k8s.io/v1/namespaces/%s/roles/%s?fieldManager=fabric8".formatted(
-                        namespace, tenant))
-                .andReply(
-                        HttpURLConnection.HTTP_OK,
-                        recordedRequest -> null
-                ).always();
+                .withPath(
+                        "/apis/rbac.authorization.k8s.io/v1/namespaces/%s/roles/%s?fieldManager=fabric8"
+                                .formatted(namespace, tenant))
+                .andReply(HttpURLConnection.HTTP_OK, recordedRequest -> null)
+                .always();
 
         server.expect()
                 .patch()
                 .withPath(
-                        "/apis/rbac.authorization.k8s.io/v1/namespaces/%s/rolebindings/%s?fieldManager=fabric8".formatted(
-                                namespace, tenant))
-                .andReply(
-                        HttpURLConnection.HTTP_OK,
-                        recordedRequest -> null
-                ).always();
-
+                        "/apis/rbac.authorization.k8s.io/v1/namespaces/%s/rolebindings/%s?fieldManager=fabric8"
+                                .formatted(namespace, tenant))
+                .andReply(HttpURLConnection.HTTP_OK, recordedRequest -> null)
+                .always();
 
         server.expect()
                 .patch()
                 .withPath(
-                        "/api/v1/namespaces/%s/secrets/langstream-cluster-config?fieldManager=fabric8".formatted(
-                                namespace))
-                .andReply(
-                        HttpURLConnection.HTTP_OK,
-                        recordedRequest -> null
-                ).always();
+                        "/api/v1/namespaces/%s/secrets/langstream-cluster-config?fieldManager=fabric8"
+                                .formatted(namespace))
+                .andReply(HttpURLConnection.HTTP_OK, recordedRequest -> null)
+                .always();
     }
 
-
-    public Map<String, ApplicationCustomResource> spyApplicationCustomResources(String namespace, String... applicationIds) {
+    public Map<String, ApplicationCustomResource> spyApplicationCustomResources(
+            String namespace, String... applicationIds) {
         for (String appId : applicationIds) {
             final String fullPath =
-                    "/apis/langstream.ai/v1alpha1/namespaces/%s/applications/%s".formatted(
-                            namespace, appId);
+                    "/apis/langstream.ai/v1alpha1/namespaces/%s/applications/%s"
+                            .formatted(namespace, appId);
             server.expect()
                     .patch()
                     .withPath(fullPath + "?fieldManager=fabric8")
@@ -262,12 +262,17 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                             HttpURLConnection.HTTP_OK,
                             recordedRequest -> {
                                 try {
-                                    final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                                    final ByteArrayOutputStream byteArrayOutputStream =
+                                            new ByteArrayOutputStream();
                                     recordedRequest.getBody().copyTo(byteArrayOutputStream);
-                                    final ObjectMapper mapper = new ObjectMapper()
-                                            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+                                    final ObjectMapper mapper =
+                                            new ObjectMapper()
+                                                    .enable(
+                                                            SerializationFeature
+                                                                    .ORDER_MAP_ENTRIES_BY_KEYS);
                                     final ApplicationCustomResource app =
-                                            mapper.readValue(byteArrayOutputStream.toByteArray(),
+                                            mapper.readValue(
+                                                    byteArrayOutputStream.toByteArray(),
                                                     ApplicationCustomResource.class);
                                     log.info("received patch request for app {}", appId);
                                     currentApplications.put(appId, app);
@@ -275,18 +280,16 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
                                 }
-                            }
-                    ).always();
+                            })
+                    .always();
 
             server.expect()
                     .patch()
                     .withPath(
-                            "/api/v1/namespaces/%s/secrets/%s?fieldManager=fabric8".formatted(
-                                    namespace, appId))
-                    .andReply(
-                            HttpURLConnection.HTTP_OK,
-                            recordedRequest -> null
-                    ).always();
+                            "/api/v1/namespaces/%s/secrets/%s?fieldManager=fabric8"
+                                    .formatted(namespace, appId))
+                    .andReply(HttpURLConnection.HTTP_OK, recordedRequest -> null)
+                    .always();
 
             server.expect()
                     .get()
@@ -295,8 +298,8 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                             HttpURLConnection.HTTP_OK,
                             recordedRequest -> {
                                 return currentApplications.get(appId);
-                            }
-                    ).always();
+                            })
+                    .always();
 
             server.expect()
                     .delete()
@@ -307,10 +310,9 @@ public class KubeTestServer implements AutoCloseable, BeforeEachCallback, Before
                                 log.info("received delete request for app {}", appId);
                                 currentApplications.remove(appId);
                                 return List.of();
-                            }
-                    ).always();
+                            })
+                    .always();
         }
         return currentApplications;
     }
-
 }

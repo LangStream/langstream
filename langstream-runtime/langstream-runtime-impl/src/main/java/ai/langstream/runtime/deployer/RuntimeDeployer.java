@@ -16,6 +16,7 @@
 package ai.langstream.runtime.deployer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
@@ -28,63 +29,74 @@ import java.io.IOException;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * This is the main entry point for the deployer runtime.
- */
+/** This is the main entry point for the deployer runtime. */
 @Slf4j
 public class RuntimeDeployer {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .configure(FAIL_ON_UNKNOWN_PROPERTIES, false); // this helps with forward compatibility
+    private static final ObjectMapper MAPPER =
+            new ObjectMapper()
+                    .configure(
+                            FAIL_ON_UNKNOWN_PROPERTIES,
+                            false); // this helps with forward compatibility
 
-    public void deploy(Map<String, Map<String, Object>> clusterRuntimeConfiguration,
-                               RuntimeDeployerConfiguration configuration, Secrets secrets) throws IOException {
-
+    public void deploy(
+            Map<String, Map<String, Object>> clusterRuntimeConfiguration,
+            RuntimeDeployerConfiguration configuration,
+            Secrets secrets)
+            throws IOException {
 
         final String applicationId = configuration.getApplicationId();
-        log.info("Deploying application {} codeStorageArchiveId {}",
-                applicationId, configuration.getCodeStorageArchiveId());
+        log.info(
+                "Deploying application {} codeStorageArchiveId {}",
+                applicationId,
+                configuration.getCodeStorageArchiveId());
         final String applicationConfig = configuration.getApplication();
 
-        final Application appInstance =
-                MAPPER.readValue(applicationConfig, Application.class);
+        final Application appInstance = MAPPER.readValue(applicationConfig, Application.class);
         appInstance.setSecrets(secrets);
 
-        try (ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
-                .pluginsRegistry(new PluginsRegistry())
-                .build()) {
+        try (ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build()) {
 
-            final ExecutionPlan implementation = deployer.createImplementation(applicationId, appInstance);
-            deployer.deploy(configuration.getTenant(), implementation, configuration.getCodeStorageArchiveId());
+            final ExecutionPlan implementation =
+                    deployer.createImplementation(applicationId, appInstance);
+            deployer.deploy(
+                    configuration.getTenant(),
+                    implementation,
+                    configuration.getCodeStorageArchiveId());
             log.info("Application {} deployed", applicationId);
         }
     }
 
-    public void delete(Map<String, Map<String, Object>> clusterRuntimeConfiguration,
-                               RuntimeDeployerConfiguration configuration,
-                               Secrets secrets) throws IOException {
-
+    public void delete(
+            Map<String, Map<String, Object>> clusterRuntimeConfiguration,
+            RuntimeDeployerConfiguration configuration,
+            Secrets secrets)
+            throws IOException {
 
         final String applicationId = configuration.getApplicationId();
         final String applicationConfig = configuration.getApplication();
 
-        final Application appInstance =
-                MAPPER.readValue(applicationConfig, Application.class);
+        final Application appInstance = MAPPER.readValue(applicationConfig, Application.class);
         appInstance.setSecrets(secrets);
 
-        try (ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
-                .pluginsRegistry(new PluginsRegistry())
-                .build()) {
+        try (ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build()) {
 
             log.info("Deleting application {}", applicationId);
-            final ExecutionPlan implementation = deployer.createImplementation(applicationId, appInstance);
-            deployer.delete(configuration.getTenant(), implementation, configuration.getCodeStorageArchiveId());
+            final ExecutionPlan implementation =
+                    deployer.createImplementation(applicationId, appInstance);
+            deployer.delete(
+                    configuration.getTenant(),
+                    implementation,
+                    configuration.getCodeStorageArchiveId());
             log.info("Application {} deleted", applicationId);
         }
     }
 }
-

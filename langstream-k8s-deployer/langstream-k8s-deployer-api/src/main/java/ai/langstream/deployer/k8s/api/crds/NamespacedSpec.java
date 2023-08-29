@@ -24,6 +24,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public abstract class NamespacedSpec {
-    @Required
-    String tenant;
+    @Required String tenant;
 }

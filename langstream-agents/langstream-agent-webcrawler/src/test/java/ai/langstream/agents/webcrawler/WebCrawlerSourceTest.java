@@ -21,6 +21,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSource;
@@ -53,19 +54,21 @@ import org.testcontainers.utility.DockerImageName;
 public class WebCrawlerSourceTest {
 
     private static final AgentCodeRegistry AGENT_CODE_REGISTRY = new AgentCodeRegistry();
-    private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:2.2.0");
+    private static final DockerImageName localstackImage =
+            DockerImageName.parse("localstack/localstack:2.2.0");
 
     @Container
-    private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage)
-        .withServices(S3);
+    private static final LocalStackContainer localstack =
+            new LocalStackContainer(localstackImage).withServices(S3);
 
     private static MinioClient minioClient;
 
     @BeforeAll
     static void setup() {
-        minioClient = MinioClient.builder()
-            .endpoint(localstack.getEndpointOverride(S3).toString())
-            .build();
+        minioClient =
+                MinioClient.builder()
+                        .endpoint(localstack.getEndpointOverride(S3).toString())
+                        .build();
     }
 
     @Test
@@ -96,7 +99,6 @@ public class WebCrawlerSourceTest {
         }
     }
 
-
     @Test
     @Disabled("This test is disabled because it connects to a real live website")
     void testReadLangStreamGithubRepo() throws Exception {
@@ -111,7 +113,7 @@ public class WebCrawlerSourceTest {
             WebCrawlerSource agentSource = buildAgentSource(bucket, allowed, url);
             List<Record> read = agentSource.read();
             Set<String> urls = new HashSet<>();
-            while (count -- > 0) {
+            while (count-- > 0) {
                 log.info("read: {}", read);
                 for (Record r : read) {
                     String docUrl = r.key().toString();
@@ -128,32 +130,38 @@ public class WebCrawlerSourceTest {
         }
     }
 
-
     @Test
     void testBasic(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
 
-
-        stubFor(get("/index.html")
-                .willReturn(okForContentType("text/html",
-                      """
+        stubFor(
+                get("/index.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
                                 <a href="secondPage.html">link</a>
                             """)));
-        stubFor(get("/secondPage.html")
-                .willReturn(okForContentType("text/html",
-                        """
+        stubFor(
+                get("/secondPage.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
                                   <a href="thirdPage.html">link</a>
                                   <a href="index.html">link to home</a>
                               """)));
-        stubFor(get("/thirdPage.html")
-                .willReturn(okForContentType("text/html",
-                        """
+        stubFor(
+                get("/thirdPage.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
                                   Hello!
                               """)));
 
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = wmRuntimeInfo.getHttpBaseUrl() + "/index.html";
         String allowed = wmRuntimeInfo.getHttpBaseUrl();
-
 
         WebCrawlerSource agentSource = buildAgentSource(bucket, allowed, url);
         List<Record> read = agentSource.read();
@@ -173,13 +181,15 @@ public class WebCrawlerSourceTest {
         agentSource.close();
         assertEquals(3, pages.size());
         // please note that JSoup normalised the HTML
-        assertEquals("""
+        assertEquals(
+                """
                         <html>
                          <head></head>
                          <body>
                           <a href="secondPage.html">link</a>
                          </body>
-                        </html>""", pages.get("index.html"));
+                        </html>""",
+                pages.get("index.html"));
         assertEquals(
                 """
                         <html>
@@ -187,19 +197,23 @@ public class WebCrawlerSourceTest {
                          <body>
                           <a href="thirdPage.html">link</a> <a href="index.html">link to home</a>
                          </body>
-                        </html>""", pages.get("secondPage.html"));
-        assertEquals("""
+                        </html>""",
+                pages.get("secondPage.html"));
+        assertEquals(
+                """
                 <html>
                  <head></head>
                  <body>
                   Hello!
                  </body>
-                </html>""", pages.get("thirdPage.html"));
-
+                </html>""",
+                pages.get("thirdPage.html"));
     }
 
-    private WebCrawlerSource buildAgentSource(String bucket, String domain, String seedUrl) throws Exception {
-        AgentSource agentSource = (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("webcrawler-source").agentCode();
+    private WebCrawlerSource buildAgentSource(String bucket, String domain, String seedUrl)
+            throws Exception {
+        AgentSource agentSource =
+                (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("webcrawler-source").agentCode();
         Map<String, Object> configs = new HashMap<>();
         String endpoint = localstack.getEndpointOverride(S3).toString();
         configs.put("endpoint", endpoint);
@@ -209,32 +223,33 @@ public class WebCrawlerSourceTest {
         configs.put("max-unflushed-pages", 5);
         configs.put("min-time-between-requests", 500);
         agentSource.init(configs);
-        agentSource.setContext(new AgentContext() {
-            @Override
-            public TopicConsumer getTopicConsumer() {
-                return null;
-            }
+        agentSource.setContext(
+                new AgentContext() {
+                    @Override
+                    public TopicConsumer getTopicConsumer() {
+                        return null;
+                    }
 
-            @Override
-            public TopicProducer getTopicProducer() {
-                return null;
-            }
+                    @Override
+                    public TopicProducer getTopicProducer() {
+                        return null;
+                    }
 
-            @Override
-            public String getGlobalAgentId() {
-                return "test-global-agent-id";
-            }
+                    @Override
+                    public String getGlobalAgentId() {
+                        return "test-global-agent-id";
+                    }
 
-            @Override
-            public TopicAdmin getTopicAdmin() {
-                return null;
-            }
+                    @Override
+                    public TopicAdmin getTopicAdmin() {
+                        return null;
+                    }
 
-            @Override
-            public TopicConnectionProvider getTopicConnectionProvider() {
-                return null;
-            }
-        });
+                    @Override
+                    public TopicConnectionProvider getTopicConnectionProvider() {
+                        return null;
+                    }
+                });
         agentSource.start();
         return (WebCrawlerSource) agentSource;
     }

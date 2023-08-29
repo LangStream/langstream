@@ -17,18 +17,16 @@ package ai.langstream.impl.agents;
 
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.impl.common.AbstractAgentProvider;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * Implements support for agents that can be composed into a single Composable Agent.
- */
+/** Implements support for agents that can be composed into a single Composable Agent. */
 @Slf4j
 public abstract class AbstractComposableAgentProvider extends AbstractAgentProvider {
 
-    public AbstractComposableAgentProvider(Set<String> supportedTypes, List<String> supportedRuntimes) {
+    public AbstractComposableAgentProvider(
+            Set<String> supportedTypes, List<String> supportedRuntimes) {
         super(supportedTypes, supportedRuntimes);
     }
 
@@ -36,5 +34,4 @@ public abstract class AbstractComposableAgentProvider extends AbstractAgentProvi
     protected boolean isComposable(AgentConfiguration agentConfiguration) {
         return true;
     }
-
 }

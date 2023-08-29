@@ -15,6 +15,9 @@
  */
 package ai.langstream.pulsar;
 
+import static ai.langstream.pulsar.PulsarClientUtils.buildPulsarAdmin;
+import static ai.langstream.pulsar.PulsarClientUtils.getPulsarClusterRuntimeConfiguration;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.SchemaDefinition;
 import ai.langstream.api.model.TopicDefinition;
@@ -23,6 +26,10 @@ import ai.langstream.api.runtime.ConnectionImplementation;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -33,14 +40,6 @@ import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static ai.langstream.pulsar.PulsarClientUtils.buildPulsarAdmin;
-import static ai.langstream.pulsar.PulsarClientUtils.getPulsarClusterRuntimeConfiguration;
-
 @Slf4j
 public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
 
@@ -48,18 +47,20 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
     @SneakyThrows
     public void deploy(ExecutionPlan applicationInstance) {
         Application logicalInstance = applicationInstance.getApplication();
-        try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
+        try (PulsarAdmin admin =
+                buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
             for (Topic topic : applicationInstance.getLogicalTopics()) {
                 deployTopic(admin, (PulsarTopic) topic);
             }
-
         }
     }
 
-    private static void deployTopic(PulsarAdmin admin, PulsarTopic topic) throws PulsarAdminException {
+    private static void deployTopic(PulsarAdmin admin, PulsarTopic topic)
+            throws PulsarAdminException {
         String createMode = topic.createMode();
         String namespace = topic.name().tenant() + "/" + topic.name().namespace();
-        String topicName = topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
+        String topicName =
+                topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
         log.info("Listing topics in namespace {}", namespace);
         List<String> existing;
         if (topic.partitions() <= 0) {
@@ -81,11 +82,9 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
                 if (!exists) {
                     log.info("Topic {} does not exist, creating", topicName);
                     if (topic.partitions() <= 0) {
-                        admin
-                            .topics().createNonPartitionedTopic(topicName);
+                        admin.topics().createNonPartitionedTopic(topicName);
                     } else {
-                        admin
-                            .topics().createPartitionedTopic(topicName, topic.partitions());
+                        admin.topics().createPartitionedTopic(topicName, topic.partitions());
                     }
                 }
             }
@@ -109,58 +108,58 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
                     SchemaInfo keySchemaInfo = getSchemaInfo(topic.keySchema());
                     log.info("Key schema {}", keySchemaInfo);
 
-                    schemaInfo = KeyValueSchemaInfo
-                            .encodeKeyValueSchemaInfo(topic.valueSchema().name(),
+                    schemaInfo =
+                            KeyValueSchemaInfo.encodeKeyValueSchemaInfo(
+                                    topic.valueSchema().name(),
                                     keySchemaInfo,
                                     schemaInfo,
                                     KeyValueEncodingType.SEPARATED);
 
                     log.info("KeyValue schema {}", schemaInfo);
-
                 }
 
                 admin.schemas().createSchema(topicName, schemaInfo);
             } else {
-                log.info("Topic {} already has some schemas, skipping. ({})", topicName, allSchemas);
+                log.info(
+                        "Topic {} already has some schemas, skipping. ({})", topicName, allSchemas);
             }
         }
     }
 
     private static SchemaInfo getSchemaInfo(SchemaDefinition logicalSchemaDefinition) {
-        SchemaType pulsarSchemaType = SchemaType.valueOf(logicalSchemaDefinition.type().toUpperCase());
-        return SchemaInfo
-                .builder()
+        SchemaType pulsarSchemaType =
+                SchemaType.valueOf(logicalSchemaDefinition.type().toUpperCase());
+        return SchemaInfo.builder()
                 .type(pulsarSchemaType)
                 .name(logicalSchemaDefinition.name())
                 .properties(Map.of())
-                .schema(logicalSchemaDefinition.schema() != null ? logicalSchemaDefinition.schema().getBytes(StandardCharsets.UTF_8) : new byte[0])
+                .schema(
+                        logicalSchemaDefinition.schema() != null
+                                ? logicalSchemaDefinition.schema().getBytes(StandardCharsets.UTF_8)
+                                : new byte[0])
                 .build();
     }
 
-    private static void deleteTopic(PulsarAdmin admin, PulsarTopic topic) throws PulsarAdminException {
+    private static void deleteTopic(PulsarAdmin admin, PulsarTopic topic)
+            throws PulsarAdminException {
 
         switch (topic.createMode()) {
-            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
-            }
+            case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {}
             default -> {
                 log.info("Keeping Pulsar topic {}", topic.name());
                 return;
             }
         }
 
-        String topicName = topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
+        String topicName =
+                topic.name().tenant() + "/" + topic.name().namespace() + "/" + topic.name().name();
         String fullyQualifiedName = TopicName.get(topicName).toString();
         log.info("Deleting topic {}", fullyQualifiedName);
         try {
             if (topic.partitions() <= 0) {
-                admin
-                        .topics()
-                        .delete(fullyQualifiedName, true);
+                admin.topics().delete(fullyQualifiedName, true);
             } else {
-                admin
-                        .topics()
-                        .deletePartitionedTopic(fullyQualifiedName, true);
-
+                admin.topics().deletePartitionedTopic(fullyQualifiedName, true);
             }
         } catch (PulsarAdminException.NotFoundException notFoundException) {
             log.info("Topic {} didn't exit. Not a problem", fullyQualifiedName);
@@ -171,7 +170,8 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
     @SneakyThrows
     public void delete(ExecutionPlan applicationInstance) {
         Application logicalInstance = applicationInstance.getApplication();
-        try (PulsarAdmin admin = buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
+        try (PulsarAdmin admin =
+                buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
             for (Topic topic : applicationInstance.getLogicalTopics()) {
                 deleteTopic(admin, (PulsarTopic) topic);
             }
@@ -179,9 +179,11 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
     }
 
     @Override
-    public Topic createTopicImplementation(TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
+    public Topic createTopicImplementation(
+            TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
         final PulsarClusterRuntimeConfiguration config =
-                getPulsarClusterRuntimeConfiguration(applicationInstance.getApplication().getInstance().streamingCluster());
+                getPulsarClusterRuntimeConfiguration(
+                        applicationInstance.getApplication().getInstance().streamingCluster());
 
         SchemaDefinition keySchema = topicDefinition.getKeySchema();
         SchemaDefinition valueSchema = topicDefinition.getValueSchema();
@@ -189,9 +191,9 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         String tenant = config.getDefaultTenant();
         String creationMode = topicDefinition.getCreationMode();
         String namespace = config.getDefaultNamespace();
-        PulsarName topicName
-                = new PulsarName(tenant, namespace, name);
-        return new PulsarTopic(topicName,
+        PulsarName topicName = new PulsarName(tenant, namespace, name);
+        return new PulsarTopic(
+                topicName,
                 topicDefinition.getPartitions(),
                 keySchema,
                 valueSchema,
@@ -199,20 +201,22 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
                 topicDefinition.isImplicit());
     }
 
-
     @Override
-    public Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
+    public Map<String, Object> createConsumerConfiguration(
+            AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
         PulsarTopic pulsarTopic = (PulsarTopic) inputConnectionImplementation;
         Map<String, Object> configuration = new HashMap<>();
-        configuration.computeIfAbsent("subscriptionName", key -> "langstream-agent-" + agentImplementation.getId());
-
+        configuration.computeIfAbsent(
+                "subscriptionName", key -> "langstream-agent-" + agentImplementation.getId());
 
         configuration.put("topic", pulsarTopic.name().toPulsarName());
         return configuration;
     }
 
     @Override
-    public Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, ConnectionImplementation outputConnectionImplementation) {
+    public Map<String, Object> createProducerConfiguration(
+            AgentNode agentImplementation,
+            ConnectionImplementation outputConnectionImplementation) {
         PulsarTopic pulsarTopic = (PulsarTopic) outputConnectionImplementation;
 
         Map<String, Object> configuration = new HashMap<>();

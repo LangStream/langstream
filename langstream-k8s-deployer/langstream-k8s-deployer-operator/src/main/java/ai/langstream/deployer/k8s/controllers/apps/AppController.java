@@ -18,11 +18,11 @@ package ai.langstream.deployer.k8s.controllers.apps;
 import ai.langstream.api.model.ApplicationLifecycleStatus;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
+import ai.langstream.deployer.k8s.controllers.BaseController;
 import ai.langstream.deployer.k8s.controllers.InfiniteRetry;
 import ai.langstream.deployer.k8s.util.JSONComparator;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.deployer.k8s.util.SpecDiffer;
-import ai.langstream.deployer.k8s.controllers.BaseController;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -31,7 +31,6 @@ import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
-
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.jbosslog.JBossLog;
@@ -41,44 +40,57 @@ import lombok.extern.jbosslog.JBossLog;
         name = "app-controller",
         retry = InfiniteRetry.class)
 @JBossLog
-public class AppController extends BaseController<ApplicationCustomResource> implements
-        ErrorStatusHandler<ApplicationCustomResource> {
+public class AppController extends BaseController<ApplicationCustomResource>
+        implements ErrorStatusHandler<ApplicationCustomResource> {
 
     @Override
     public ErrorStatusUpdateControl<ApplicationCustomResource> updateErrorStatus(
-            ApplicationCustomResource customResource, Context<ApplicationCustomResource> context, Exception e) {
+            ApplicationCustomResource customResource,
+            Context<ApplicationCustomResource> context,
+            Exception e) {
         if (customResource.getStatus() != null
                 && customResource.getStatus().getStatus() != null
-                && customResource.getStatus().getStatus().getStatus() == ApplicationLifecycleStatus.Status.DELETING) {
-            customResource.getStatus().setStatus(ApplicationLifecycleStatus.errorDeleting(e.getMessage()));
+                && customResource.getStatus().getStatus().getStatus()
+                        == ApplicationLifecycleStatus.Status.DELETING) {
+            customResource
+                    .getStatus()
+                    .setStatus(ApplicationLifecycleStatus.errorDeleting(e.getMessage()));
         } else {
-            customResource.getStatus().setStatus(ApplicationLifecycleStatus.errorDeploying(e.getMessage()));
+            customResource
+                    .getStatus()
+                    .setStatus(ApplicationLifecycleStatus.errorDeploying(e.getMessage()));
         }
         return ErrorStatusUpdateControl.updateStatus(customResource);
     }
 
     @Override
-    protected UpdateControl<ApplicationCustomResource> patchResources(ApplicationCustomResource resource,
-                                                                      Context<ApplicationCustomResource> context) {
+    protected UpdateControl<ApplicationCustomResource> patchResources(
+            ApplicationCustomResource resource, Context<ApplicationCustomResource> context) {
         final boolean reschedule = handleJob(resource, false);
-        return reschedule ? UpdateControl.updateStatus(resource)
-                .rescheduleAfter(5, TimeUnit.SECONDS) : UpdateControl.updateStatus(resource);
+        return reschedule
+                ? UpdateControl.updateStatus(resource).rescheduleAfter(5, TimeUnit.SECONDS)
+                : UpdateControl.updateStatus(resource);
     }
 
     @Override
-    protected DeleteControl cleanupResources(ApplicationCustomResource resource,
-                                             Context<ApplicationCustomResource> context) {
+    protected DeleteControl cleanupResources(
+            ApplicationCustomResource resource, Context<ApplicationCustomResource> context) {
         final boolean reschedule = handleJob(resource, true);
-        return reschedule ? DeleteControl.noFinalizerRemoval()
-                .rescheduleAfter(5, TimeUnit.SECONDS) : DeleteControl.defaultDelete();
+        return reschedule
+                ? DeleteControl.noFinalizerRemoval().rescheduleAfter(5, TimeUnit.SECONDS)
+                : DeleteControl.defaultDelete();
     }
 
     private boolean handleJob(ApplicationCustomResource application, boolean delete) {
-        final String jobName = AppResourcesFactory.getJobName(application.getMetadata().getName(), delete);
-        final Job currentJob = client.batch().v1().jobs()
-                .inNamespace(application.getMetadata().getNamespace())
-                .withName(jobName)
-                .get();
+        final String jobName =
+                AppResourcesFactory.getJobName(application.getMetadata().getName(), delete);
+        final Job currentJob =
+                client.batch()
+                        .v1()
+                        .jobs()
+                        .inNamespace(application.getMetadata().getNamespace())
+                        .withName(jobName)
+                        .get();
         if (currentJob == null || areSpecChanged(application)) {
             createJob(application, delete);
             if (!delete) {
@@ -99,14 +111,15 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
 
     @SneakyThrows
     private void createJob(ApplicationCustomResource applicationCustomResource, boolean delete) {
-        final AppResourcesFactory.GenerateJobParams params = AppResourcesFactory.GenerateJobParams.builder()
-                .applicationCustomResource(applicationCustomResource)
-                .deleteJob(delete)
-                .clusterRuntimeConfiguration(configuration.getClusterRuntime())
-                .podTemplate(configuration.getPodTemplate())
-                .image(configuration.getRuntimeImage())
-                .imagePullPolicy(configuration.getRuntimeImagePullPolicy())
-                .build();
+        final AppResourcesFactory.GenerateJobParams params =
+                AppResourcesFactory.GenerateJobParams.builder()
+                        .applicationCustomResource(applicationCustomResource)
+                        .deleteJob(delete)
+                        .clusterRuntimeConfiguration(configuration.getClusterRuntime())
+                        .podTemplate(configuration.getPodTemplate())
+                        .image(configuration.getRuntimeImage())
+                        .imagePullPolicy(configuration.getRuntimeImagePullPolicy())
+                        .build();
         final Job job = AppResourcesFactory.generateJob(params);
         KubeUtil.patchJob(client, job);
     }
@@ -124,5 +137,4 @@ public class AppController extends BaseController<ApplicationCustomResource> imp
         }
         return false;
     }
-
 }

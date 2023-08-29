@@ -33,15 +33,17 @@ class RuntimeDeployerStarterTest {
     @Test
     public void test() throws Exception {
 
-        String clusterRuntimeFile = Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
+        String clusterRuntimeFile =
+                Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
         mapper.writeValue(new File(clusterRuntimeFile), Map.of("config", "config"));
 
-        String appConfigFile = Files.createTempFile("langstream-cli-test", ".json").toFile().getAbsolutePath();
+        String appConfigFile =
+                Files.createTempFile("langstream-cli-test", ".json").toFile().getAbsolutePath();
         mapper.writeValue(new File(appConfigFile), new RuntimeDeployerConfiguration());
 
-        String secretsConfigFile = Files.createTempFile("langstream-cli-test", ".json").toFile().getAbsolutePath();
+        String secretsConfigFile =
+                Files.createTempFile("langstream-cli-test", ".json").toFile().getAbsolutePath();
         mapper.writeValue(new File(secretsConfigFile), new Secrets(null));
-
 
         runTest(false, Map.of());
         runTest(false, Map.of(), "");
@@ -51,15 +53,24 @@ class RuntimeDeployerStarterTest {
         runTest(false, Map.of(), "deploy", clusterRuntimeFile);
         runTest(true, Map.of(), "deploy", clusterRuntimeFile, appConfigFile);
         runTest(true, Map.of(), "deploy", clusterRuntimeFile, appConfigFile, secretsConfigFile);
-        runTest(true, Map.of(RuntimeDeployerConstants.APP_CONFIG_ENV, appConfigFile,
-                        RuntimeDeployerConstants.CLUSTER_RUNTIME_CONFIG_ENV, clusterRuntimeFile),
+        runTest(
+                true,
+                Map.of(
+                        RuntimeDeployerConstants.APP_CONFIG_ENV,
+                        appConfigFile,
+                        RuntimeDeployerConstants.CLUSTER_RUNTIME_CONFIG_ENV,
+                        clusterRuntimeFile),
                 "deploy");
-        runTest(true, Map.of(RuntimeDeployerConstants.APP_CONFIG_ENV, appConfigFile,
-                        RuntimeDeployerConstants.CLUSTER_RUNTIME_CONFIG_ENV, clusterRuntimeFile,
-                        RuntimeDeployerConstants.APP_SECRETS_ENV, secretsConfigFile),
+        runTest(
+                true,
+                Map.of(
+                        RuntimeDeployerConstants.APP_CONFIG_ENV,
+                        appConfigFile,
+                        RuntimeDeployerConstants.CLUSTER_RUNTIME_CONFIG_ENV,
+                        clusterRuntimeFile,
+                        RuntimeDeployerConstants.APP_SECRETS_ENV,
+                        secretsConfigFile),
                 "deploy");
-
-
     }
 
     @SneakyThrows
@@ -79,7 +90,6 @@ class RuntimeDeployerStarterTest {
             throw new RuntimeException("Expected exception");
         }
         Mockito.verify(runtimeDeployer).deploy(Mockito.any(), Mockito.any(), Mockito.any());
-
     }
 
     static class TestDeployer extends RuntimeDeployerStarter {
@@ -90,11 +100,9 @@ class RuntimeDeployerStarterTest {
             this.map = map;
         }
 
-
         @Override
         protected String getEnv(String key) {
             return map.get(key);
         }
     }
-
 }

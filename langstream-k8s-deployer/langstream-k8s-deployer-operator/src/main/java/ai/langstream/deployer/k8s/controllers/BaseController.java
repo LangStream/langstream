@@ -16,8 +16,8 @@
 package ai.langstream.deployer.k8s.controllers;
 
 import ai.langstream.deployer.k8s.ResolvedDeployerConfiguration;
-import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.deployer.k8s.api.crds.BaseStatus;
+import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
@@ -30,14 +30,12 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.jbosslog.JBossLog;
 
 @JBossLog
-public abstract class BaseController<T extends CustomResource<?, ? extends BaseStatus>> implements Reconciler<T>,
-        Cleaner<T> {
+public abstract class BaseController<T extends CustomResource<?, ? extends BaseStatus>>
+        implements Reconciler<T>, Cleaner<T> {
 
-    @Inject
-    protected KubernetesClient client;
+    @Inject protected KubernetesClient client;
 
-    @Inject
-    protected ResolvedDeployerConfiguration configuration;
+    @Inject protected ResolvedDeployerConfiguration configuration;
 
     protected abstract UpdateControl<T> patchResources(T resource, Context<T> context);
 
@@ -48,17 +46,19 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
         DeleteControl result;
         try {
             result = cleanupResources(resource, context);
-            log.infof("Reconcilied cleanup for application %s, reschedule: %s, status: %s",
+            log.infof(
+                    "Reconcilied cleanup for application %s, reschedule: %s, status: %s",
                     resource.getMetadata().getName(),
                     String.valueOf(result.getScheduleDelay().isPresent()),
                     resource.getStatus());
         } catch (Throwable throwable) {
-            log.errorf(throwable, "Error during cleanup for resource %s with name %s: %s",
+            log.errorf(
+                    throwable,
+                    "Error during cleanup for resource %s with name %s: %s",
                     resource.getFullResourceName(),
                     resource.getMetadata().getName(),
                     throwable.getMessage());
-            result = DeleteControl.noFinalizerRemoval()
-                    .rescheduleAfter(5, TimeUnit.SECONDS);
+            result = DeleteControl.noFinalizerRemoval().rescheduleAfter(5, TimeUnit.SECONDS);
         }
         return result;
     }
@@ -72,17 +72,19 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
             result = patchResources(resource, context);
             lastApplied = SerializationUtil.writeAsJson(resource.getSpec());
             baseStatus.setLastApplied(lastApplied);
-            log.infof("Reconcilied application %s, reschedule: %s, status: %s",
+            log.infof(
+                    "Reconcilied application %s, reschedule: %s, status: %s",
                     resource.getMetadata().getName(),
                     String.valueOf(result.getScheduleDelay().isPresent()),
                     resource.getStatus());
         } catch (Throwable throwable) {
-            log.errorf(throwable, "Error during reconciliation for resource %s with name %s: %s",
+            log.errorf(
+                    throwable,
+                    "Error during reconciliation for resource %s with name %s: %s",
                     resource.getFullResourceName(),
                     resource.getMetadata().getName(),
                     throwable.getMessage());
-            result = UpdateControl.updateStatus(resource)
-                    .rescheduleAfter(5, TimeUnit.SECONDS);
+            result = UpdateControl.updateStatus(resource).rescheduleAfter(5, TimeUnit.SECONDS);
         }
         return result;
     }

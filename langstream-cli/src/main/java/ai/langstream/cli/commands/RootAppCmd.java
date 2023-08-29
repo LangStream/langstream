@@ -24,18 +24,20 @@ import ai.langstream.cli.commands.applications.ListApplicationCmd;
 import lombok.Getter;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "apps", mixinStandardHelpOptions = true, description = "Manage LangStream applications",
+@CommandLine.Command(
+        name = "apps",
+        mixinStandardHelpOptions = true,
+        description = "Manage LangStream applications",
         subcommands = {
-                AbstractDeployApplicationCmd.DeployApplicationCmd.class,
-                AbstractDeployApplicationCmd.UpdateApplicationCmd.class,
-                ListApplicationCmd.class,
-                DeleteApplicationCmd.class,
-                GetApplicationCmd.class,
-                GetApplicationLogsCmd.class,
-                DownloadApplicationCodeCmd.class
+            AbstractDeployApplicationCmd.DeployApplicationCmd.class,
+            AbstractDeployApplicationCmd.UpdateApplicationCmd.class,
+            ListApplicationCmd.class,
+            DeleteApplicationCmd.class,
+            GetApplicationCmd.class,
+            GetApplicationLogsCmd.class,
+            DownloadApplicationCodeCmd.class
         })
 @Getter
 public class RootAppCmd {
-    @CommandLine.ParentCommand
-    private RootCmd rootCmd;
+    @CommandLine.ParentCommand private RootCmd rootCmd;
 }

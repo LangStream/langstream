@@ -26,33 +26,31 @@ import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentSpec;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
+import ai.langstream.impl.agents.ComposableAgentExecutionPlanOptimiser;
 import ai.langstream.impl.common.BasicClusterRuntime;
 import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import ai.langstream.impl.agents.ComposableAgentExecutionPlanOptimiser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.KubernetesClient;
-
 import java.security.MessageDigest;
-
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class KubernetesClusterRuntime extends BasicClusterRuntime {
-    static final ObjectMapper mapper = new ObjectMapper()
-            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    static final ObjectMapper mapper =
+            new ObjectMapper().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
     public static final String CLUSTER_TYPE = "kubernetes";
 
-    static final List<ExecutionPlanOptimiser> OPTIMISERS = List.of(
-            new ComposableAgentExecutionPlanOptimiser());
+    static final List<ExecutionPlanOptimiser> OPTIMISERS =
+            List.of(new ComposableAgentExecutionPlanOptimiser());
 
     private KubernetesClusterRuntimeConfiguration configuration;
     private KubernetesClient client;
@@ -65,32 +63,39 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     @Override
     @SneakyThrows
     public void initialize(Map<String, Object> configuration) {
-        this.configuration = mapper.convertValue(configuration, KubernetesClusterRuntimeConfiguration.class);
+        this.configuration =
+                mapper.convertValue(configuration, KubernetesClusterRuntimeConfiguration.class);
         this.client = KubernetesClientFactory.create(null);
     }
 
     @Override
     @SneakyThrows
-    public Object deploy(String tenant,
-                         ExecutionPlan applicationInstance,
-                         StreamingClusterRuntime streamingClusterRuntime,
-                         String codeStorageArchiveId) {
+    public Object deploy(
+            String tenant,
+            ExecutionPlan applicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime,
+            String codeStorageArchiveId) {
         streamingClusterRuntime.deploy(applicationInstance);
         List<AgentCustomResource> agentCustomResources = new ArrayList<>();
         List<Secret> secrets = new ArrayList<>();
-        collectAgentCustomResourcesAndSecrets(tenant, agentCustomResources, secrets, applicationInstance, streamingClusterRuntime,
-                        codeStorageArchiveId);
+        collectAgentCustomResourcesAndSecrets(
+                tenant,
+                agentCustomResources,
+                secrets,
+                applicationInstance,
+                streamingClusterRuntime,
+                codeStorageArchiveId);
         final String namespace = computeNamespace(tenant);
 
         for (Secret secret : secrets) {
             client.resource(secret).inNamespace(namespace).serverSideApply();
-            log.info("Created secret for agent {}",
-                    secret.getMetadata().getName());
+            log.info("Created secret for agent {}", secret.getMetadata().getName());
         }
 
         for (AgentCustomResource agentCustomResource : agentCustomResources) {
             client.resource(agentCustomResource).inNamespace(namespace).serverSideApply();
-            log.info("Created custom resource for agent {}",
+            log.info(
+                    "Created custom resource for agent {}",
                     agentCustomResource.getMetadata().getName());
         }
         return null;
@@ -104,9 +109,14 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             StreamingClusterRuntime streamingClusterRuntime,
             String codeStorageArchiveId) {
         for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
-            collectAgentCustomResourceAndSecret(tenant, agentsCustomResourceDefinitions,
-                    secrets, agentImplementation, streamingClusterRuntime,
-                    applicationInstance, codeStorageArchiveId);
+            collectAgentCustomResourceAndSecret(
+                    tenant,
+                    agentsCustomResourceDefinitions,
+                    secrets,
+                    agentImplementation,
+                    streamingClusterRuntime,
+                    applicationInstance,
+                    codeStorageArchiveId);
         }
     }
 
@@ -119,25 +129,33 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             StreamingClusterRuntime streamingClusterRuntime,
             ExecutionPlan applicationInstance,
             String codeStorageArchiveId) {
-        log.info("Building configuration for Agent {}, codeStorageArchiveId {}", agent, codeStorageArchiveId);
+        log.info(
+                "Building configuration for Agent {}, codeStorageArchiveId {}",
+                agent,
+                codeStorageArchiveId);
         if (!(agent instanceof DefaultAgentNode defaultAgentImplementation)) {
-            throw new UnsupportedOperationException("Only default agent implementations are supported");
+            throw new UnsupportedOperationException(
+                    "Only default agent implementations are supported");
         }
 
         Map<String, Object> inputConfiguration = new HashMap<>();
         if (defaultAgentImplementation.getInputConnectionImplementation() != null) {
-            inputConfiguration = streamingClusterRuntime.createConsumerConfiguration(defaultAgentImplementation,
-                    defaultAgentImplementation.getInputConnectionImplementation());
+            inputConfiguration =
+                    streamingClusterRuntime.createConsumerConfiguration(
+                            defaultAgentImplementation,
+                            defaultAgentImplementation.getInputConnectionImplementation());
         }
         Map<String, Object> outputConfiguration = new HashMap<>();
         if (defaultAgentImplementation.getOutputConnectionImplementation() != null) {
-            outputConfiguration = streamingClusterRuntime.createProducerConfiguration(defaultAgentImplementation,
-                    defaultAgentImplementation.getOutputConnectionImplementation());
+            outputConfiguration =
+                    streamingClusterRuntime.createProducerConfiguration(
+                            defaultAgentImplementation,
+                            defaultAgentImplementation.getOutputConnectionImplementation());
         }
 
         final String secretName =
-                AgentResourcesFactory.getAgentCustomResourceName(applicationInstance.getApplicationId(), agent.getId());
-
+                AgentResourcesFactory.getAgentCustomResourceName(
+                        applicationInstance.getApplicationId(), agent.getId());
 
         Map<String, Object> errorsConfiguration = new HashMap<>();
         ErrorsSpec errorsSpec = defaultAgentImplementation.getErrorsSpec();
@@ -150,50 +168,47 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         errorsConfiguration.put("retries", errorsSpec.getRetries());
         errorsConfiguration.put("onFailure", errorsSpec.getOnFailure());
 
-        final StreamingCluster streamingCluster = applicationInstance.getApplication().getInstance().streamingCluster();
-        RuntimePodConfiguration podConfig = new RuntimePodConfiguration(
-                inputConfiguration,
-                outputConfiguration,
-                new ai.langstream.runtime.api.agent.AgentSpec(
-                        ai.langstream.runtime.api.agent.AgentSpec.ComponentType.valueOf(
-                                defaultAgentImplementation.getComponentType().name()
-                        ),
-                        tenant,
-                        defaultAgentImplementation.getId(),
-                        applicationInstance.getApplicationId(),
-                        defaultAgentImplementation.getAgentType(),
-                        defaultAgentImplementation.getConfiguration(),
-                        errorsConfiguration
-                ),
-                streamingCluster
-        );
+        final StreamingCluster streamingCluster =
+                applicationInstance.getApplication().getInstance().streamingCluster();
+        RuntimePodConfiguration podConfig =
+                new RuntimePodConfiguration(
+                        inputConfiguration,
+                        outputConfiguration,
+                        new ai.langstream.runtime.api.agent.AgentSpec(
+                                ai.langstream.runtime.api.agent.AgentSpec.ComponentType.valueOf(
+                                        defaultAgentImplementation.getComponentType().name()),
+                                tenant,
+                                defaultAgentImplementation.getId(),
+                                applicationInstance.getApplicationId(),
+                                defaultAgentImplementation.getAgentType(),
+                                defaultAgentImplementation.getConfiguration(),
+                                errorsConfiguration),
+                        streamingCluster);
 
-
-        final Secret secret = AgentResourcesFactory.generateAgentSecret(
-                AgentResourcesFactory.getAgentCustomResourceName(applicationInstance.getApplicationId(), agent.getId()),
-                podConfig);
+        final Secret secret =
+                AgentResourcesFactory.generateAgentSecret(
+                        AgentResourcesFactory.getAgentCustomResourceName(
+                                applicationInstance.getApplicationId(), agent.getId()),
+                        podConfig);
 
         final AgentSpec agentSpec = new AgentSpec();
         agentSpec.setTenant(tenant);
         agentSpec.setApplicationId(applicationInstance.getApplicationId());
         agentSpec.setImage(configuration.getImage());
         agentSpec.setImagePullPolicy(configuration.getImagePullPolicy());
-        agentSpec.setResources(new AgentSpec.Resources(
-                ((DefaultAgentNode) agent).getResourcesSpec().parallelism(),
-                ((DefaultAgentNode) agent).getResourcesSpec().size()
-        ));
+        agentSpec.setResources(
+                new AgentSpec.Resources(
+                        ((DefaultAgentNode) agent).getResourcesSpec().parallelism(),
+                        ((DefaultAgentNode) agent).getResourcesSpec().size()));
         agentSpec.setAgentConfigSecretRef(secretName);
         agentSpec.setCodeArchiveId(codeStorageArchiveId);
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(SerializationUtil.writeAsJsonBytes(secret.getData()));
         agentSpec.setAgentConfigSecretRefChecksum(bytesToHex(hash));
 
-
-        final AgentCustomResource agentCustomResource = AgentResourcesFactory.generateAgentCustomResource(
-                applicationInstance.getApplicationId(),
-                agent.getId(),
-                agentSpec
-        );
+        final AgentCustomResource agentCustomResource =
+                AgentResourcesFactory.generateAgentCustomResource(
+                        applicationInstance.getApplicationId(), agent.getId(), agentSpec);
 
         agentsCustomResourceDefinitions.add(agentCustomResource);
         secrets.add(secret);
@@ -212,7 +227,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     }
 
     @Override
-    protected void validateExecutionPlan(ExecutionPlan plan, StreamingClusterRuntime streamingClusterRuntime)
+    protected void validateExecutionPlan(
+            ExecutionPlan plan, StreamingClusterRuntime streamingClusterRuntime)
             throws IllegalArgumentException {
         super.validateExecutionPlan(plan, streamingClusterRuntime);
         AppResourcesFactory.validateApplicationId(plan.getApplicationId());
@@ -223,23 +239,31 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     }
 
     @Override
-    public void delete(String tenant, ExecutionPlan applicationInstance,
-                       StreamingClusterRuntime streamingClusterRuntime, String codeStorageArchiveId) {
+    public void delete(
+            String tenant,
+            ExecutionPlan applicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime,
+            String codeStorageArchiveId) {
         List<AgentCustomResource> agentCustomResources = new ArrayList<>();
         List<Secret> secrets = new ArrayList<>();
-        collectAgentCustomResourcesAndSecrets(tenant, agentCustomResources, secrets, applicationInstance, streamingClusterRuntime,
+        collectAgentCustomResourcesAndSecrets(
+                tenant,
+                agentCustomResources,
+                secrets,
+                applicationInstance,
+                streamingClusterRuntime,
                 codeStorageArchiveId);
         final String namespace = computeNamespace(tenant);
 
         for (Secret secret : secrets) {
             client.resource(secret).inNamespace(namespace).delete();
-            log.info("Deleted secret for agent {}",
-                    secret.getMetadata().getName());
+            log.info("Deleted secret for agent {}", secret.getMetadata().getName());
         }
 
         for (AgentCustomResource agentCustomResource : agentCustomResources) {
             client.resource(agentCustomResource).inNamespace(namespace).delete();
-            log.info("Delete custom resource for agent {}",
+            log.info(
+                    "Delete custom resource for agent {}",
                     agentCustomResource.getMetadata().getName());
         }
     }

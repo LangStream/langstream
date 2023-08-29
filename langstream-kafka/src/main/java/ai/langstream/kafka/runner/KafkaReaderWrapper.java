@@ -17,9 +17,9 @@ package ai.langstream.kafka.runner;
 
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.OffsetPerPartition;
+import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
-import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -45,7 +45,10 @@ class KafkaReaderWrapper implements TopicReader {
     private final TopicOffsetPosition initialPosition;
     KafkaConsumer consumer;
 
-    public KafkaReaderWrapper(Map<String, Object> configuration, String topicName, TopicOffsetPosition initialPosition) {
+    public KafkaReaderWrapper(
+            Map<String, Object> configuration,
+            String topicName,
+            TopicOffsetPosition initialPosition) {
         this.configuration = configuration;
         this.topicName = topicName;
         this.initialPosition = initialPosition;
@@ -54,10 +57,15 @@ class KafkaReaderWrapper implements TopicReader {
     @Override
     public void start() {
         consumer = new KafkaConsumer(configuration);
-        final List<TopicPartition> partitions = ((List<PartitionInfo>) consumer.partitionsFor(topicName))
-                .stream()
-                .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
-                .collect(Collectors.toList());
+        final List<TopicPartition> partitions =
+                ((List<PartitionInfo>) consumer.partitionsFor(topicName))
+                        .stream()
+                                .map(
+                                        partitionInfo ->
+                                                new TopicPartition(
+                                                        partitionInfo.topic(),
+                                                        partitionInfo.partition()))
+                                .collect(Collectors.toList());
         consumer.assign(partitions);
         if (initialPosition.position() == TopicOffsetPosition.Position.Latest) {
             consumer.seekToEnd(partitions);
@@ -66,9 +74,13 @@ class KafkaReaderWrapper implements TopicReader {
         } else {
             final OffsetPerPartition offsetPerPartition = parseOffset();
             for (TopicPartition partition : partitions) {
-                final String offsetStr = offsetPerPartition.offsets().get(partition.partition() + "");
+                final String offsetStr =
+                        offsetPerPartition.offsets().get(partition.partition() + "");
                 if (offsetStr == null) {
-                    log.info("No offset found for partition {}-{}, seeking to end", topicName, partition);
+                    log.info(
+                            "No offset found for partition {}-{}, seeking to end",
+                            topicName,
+                            partition);
                     consumer.seekToEnd(List.of(partition));
                 } else {
                     consumer.seek(partition, Long.parseLong(offsetStr));
@@ -84,7 +96,6 @@ class KafkaReaderWrapper implements TopicReader {
             long position = consumer.position(topicPartition);
             log.info("Current position for partition {} is {}", topicPartition, position);
         }
-
     }
 
     @SneakyThrows
@@ -99,7 +110,6 @@ class KafkaReaderWrapper implements TopicReader {
         }
     }
 
-
     @Override
     public TopicReadResult read() {
         ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(5));
@@ -109,7 +119,11 @@ class KafkaReaderWrapper implements TopicReader {
         }
         final Set assignment = consumer.assignment();
         if (!records.isEmpty()) {
-            log.info("Received {} records from Kafka topics {}: {}", records.size(), assignment, records);
+            log.info(
+                    "Received {} records from Kafka topics {}: {}",
+                    records.size(),
+                    assignment,
+                    records);
         }
         Map<TopicPartition, Long> offsets = consumer.endOffsets(assignment);
 

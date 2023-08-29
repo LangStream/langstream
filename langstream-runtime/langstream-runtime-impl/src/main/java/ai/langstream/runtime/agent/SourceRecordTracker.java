@@ -19,9 +19,6 @@ import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Record;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +26,14 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class SourceRecordTracker implements AgentSink.CommitCallback {
     final Map<Record, Record> sinkToSourceMapping = new ConcurrentHashMap<>();
-    final Map<Record, AtomicInteger> remainingSinkRecordsForSourceRecord = new ConcurrentHashMap<>();
+    final Map<Record, AtomicInteger> remainingSinkRecordsForSourceRecord =
+            new ConcurrentHashMap<>();
 
     final Queue<Record> orderedSourceRecordsToCommit = new ConcurrentLinkedQueue<>();
     private final AgentSource source;
@@ -60,7 +60,8 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
             AtomicInteger remaining = remainingSinkRecordsForSourceRecord.get(record);
             log.info("remaining {} for record {}", remaining, record);
             if (remaining == null) {
-                throw new IllegalStateException("No sink records for source record " + record +". Something went wrong");
+                throw new IllegalStateException(
+                        "No sink records for source record " + record + ". Something went wrong");
             }
             if (remaining.get() == 0) {
                 sourceRecordsToCommit.add(record);
@@ -70,10 +71,11 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
             }
         }
 
-        sourceRecordsToCommit.forEach(r-> {
-            log.info("Record {} is done", r);
-            remainingSinkRecordsForSourceRecord.remove(r);
-        });
+        sourceRecordsToCommit.forEach(
+                r -> {
+                    log.info("Record {} is done", r);
+                    remainingSinkRecordsForSourceRecord.remove(r);
+                });
 
         source.commit(sourceRecordsToCommit);
 
@@ -90,16 +92,19 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
     public synchronized void track(List<AgentProcessor.SourceRecordAndResult> sinkRecords) {
 
         // map each sink record to the original source record
-        sinkRecords.forEach((sourceRecordAndResult) -> {
+        sinkRecords.forEach(
+                (sourceRecordAndResult) -> {
+                    Record sourceRecord = sourceRecordAndResult.sourceRecord();
+                    orderedSourceRecordsToCommit.add(sourceRecord);
 
-            Record sourceRecord = sourceRecordAndResult.sourceRecord();
-            orderedSourceRecordsToCommit.add(sourceRecord);
-
-            List<Record> resultRecords = sourceRecordAndResult.resultRecords();
-            remainingSinkRecordsForSourceRecord.put(sourceRecord, new AtomicInteger(resultRecords.size()));
-            sourceRecordAndResult.resultRecords()
-                .forEach(sinkRecord -> sinkToSourceMapping.put(sinkRecord, sourceRecord));
-        });
+                    List<Record> resultRecords = sourceRecordAndResult.resultRecords();
+                    remainingSinkRecordsForSourceRecord.put(
+                            sourceRecord, new AtomicInteger(resultRecords.size()));
+                    sourceRecordAndResult
+                            .resultRecords()
+                            .forEach(
+                                    sinkRecord ->
+                                            sinkToSourceMapping.put(sinkRecord, sourceRecord));
+                });
     }
-
 }

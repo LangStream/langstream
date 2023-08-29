@@ -28,14 +28,12 @@ import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.storage.ApplicationStore;
-import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
-import ai.langstream.runtime.api.ClusterConfiguration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -64,14 +62,14 @@ import org.jetbrains.annotations.Nullable;
 @Slf4j
 public class KubernetesApplicationStore implements ApplicationStore {
 
-    private static final String[] LOG_COLORS = new String[]{"32", "33", "34", "35", "36", "37", "38"};
+    private static final String[] LOG_COLORS =
+            new String[] {"32", "33", "34", "35", "36", "37", "38"};
     protected static final String SECRET_KEY = "secrets";
 
-    private static final ObjectMapper mapper = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper mapper =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private KubernetesClient client;
     private KubernetesApplicationStoreProperties properties;
-
 
     @Override
     public String storeType() {
@@ -80,7 +78,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     @Override
     public void initialize(Map<String, Object> configuration) {
-        this.properties = mapper.convertValue(configuration, KubernetesApplicationStoreProperties.class);
+        this.properties =
+                mapper.convertValue(configuration, KubernetesApplicationStoreProperties.class);
         this.client = KubernetesClientFactory.get(null);
     }
 
@@ -88,14 +87,11 @@ public class KubernetesApplicationStore implements ApplicationStore {
         return properties.getNamespaceprefix() + tenant;
     }
 
-
     @Override
     @SneakyThrows
     public void onTenantCreated(String tenant) {
         final String namespace = tenantToNamespace(tenant);
-        new TenantResources(properties, client, tenant, namespace)
-                .ensureTenantResources();
-
+        new TenantResources(properties, client, tenant, namespace).ensureTenantResources();
     }
 
     @Override
@@ -108,50 +104,60 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     @Override
     @SneakyThrows
-    public void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveId, ExecutionPlan executionPlan) {
-        final ApplicationCustomResource existing = getApplicationCustomResource(tenant, applicationId);
+    public void put(
+            String tenant,
+            String applicationId,
+            Application applicationInstance,
+            String codeArchiveId,
+            ExecutionPlan executionPlan) {
+        final ApplicationCustomResource existing =
+                getApplicationCustomResource(tenant, applicationId);
         if (existing != null) {
             if (existing.isMarkedForDeletion()) {
-                throw new IllegalArgumentException("Application " + applicationId + " is marked for deletion. Please retry once the application is deleted.");
+                throw new IllegalArgumentException(
+                        "Application "
+                                + applicationId
+                                + " is marked for deletion. Please retry once the application is deleted.");
             }
         }
 
         final String namespace = tenantToNamespace(tenant);
-        final String appJson = mapper.writeValueAsString(new SerializedApplicationInstance(applicationInstance, executionPlan));
+        final String appJson =
+                mapper.writeValueAsString(
+                        new SerializedApplicationInstance(applicationInstance, executionPlan));
         ApplicationCustomResource crd = new ApplicationCustomResource();
-        crd.setMetadata(new ObjectMetaBuilder()
-                .withName(applicationId)
-                .withNamespace(namespace)
-                .build());
-        final ApplicationSpec spec = ApplicationSpec.builder()
-                .tenant(tenant)
-                .application(appJson)
-                .codeArchiveId(codeArchiveId)
-                .build();
-        log.info("Creating application {} in namespace {}, spec {}", applicationId, namespace, spec);
+        crd.setMetadata(
+                new ObjectMetaBuilder().withName(applicationId).withNamespace(namespace).build());
+        final ApplicationSpec spec =
+                ApplicationSpec.builder()
+                        .tenant(tenant)
+                        .application(appJson)
+                        .codeArchiveId(codeArchiveId)
+                        .build();
+        log.info(
+                "Creating application {} in namespace {}, spec {}", applicationId, namespace, spec);
         crd.setSpec(spec);
 
-        client.resource(crd)
-                .inNamespace(namespace)
-                .serverSideApply();
+        client.resource(crd).inNamespace(namespace).serverSideApply();
 
         // need to refresh to get the uid
-        crd = client.resource(crd)
-                .inNamespace(namespace)
-                .get();
+        crd = client.resource(crd).inNamespace(namespace).get();
 
-        final Secret secret = new SecretBuilder()
-                .withNewMetadata()
-                .withName(applicationId)
-                .withNamespace(namespace)
-                .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(crd))
-                .endMetadata()
-                .withData(Map.of(SECRET_KEY,
-                        encodeSecret(mapper.writeValueAsString(applicationInstance.getSecrets()))))
-                .build();
-        client.resource(secret)
-                .inNamespace(namespace)
-                .serverSideApply();
+        final Secret secret =
+                new SecretBuilder()
+                        .withNewMetadata()
+                        .withName(applicationId)
+                        .withNamespace(namespace)
+                        .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(crd))
+                        .endMetadata()
+                        .withData(
+                                Map.of(
+                                        SECRET_KEY,
+                                        encodeSecret(
+                                                mapper.writeValueAsString(
+                                                        applicationInstance.getSecrets()))))
+                        .build();
+        client.resource(secret).inNamespace(namespace).serverSideApply();
     }
 
     @Override
@@ -171,37 +177,40 @@ public class KubernetesApplicationStore implements ApplicationStore {
         if (application == null) {
             return null;
         }
-        SerializedApplicationInstance serializedApplicationInstanceFromCr = getSerializedApplicationInstanceFromCr(application);
+        SerializedApplicationInstance serializedApplicationInstanceFromCr =
+                getSerializedApplicationInstanceFromCr(application);
         final Application app = serializedApplicationInstanceFromCr.toApplicationInstance();
         return ApplicationSpecs.builder()
                 .application(app)
                 .codeArchiveReference(application.getSpec().getCodeArchiveId())
                 .applicationId(applicationId)
                 .build();
-
     }
 
     @Override
     @SneakyThrows
     public Secrets getSecrets(String tenant, String applicationId) {
-        final Secret secret = client.secrets().inNamespace(tenantToNamespace(tenant))
-                .withName(applicationId)
-                .get();
+        final Secret secret =
+                client.secrets()
+                        .inNamespace(tenantToNamespace(tenant))
+                        .withName(applicationId)
+                        .get();
         if (secret == null) {
             return null;
         }
 
         if (secret.getData() != null && secret.getData().get(SECRET_KEY) != null) {
             final String s = secret.getData().get(SECRET_KEY);
-            final String decoded = new String(Base64.getDecoder()
-                    .decode(s), StandardCharsets.UTF_8);
+            final String decoded =
+                    new String(Base64.getDecoder().decode(s), StandardCharsets.UTF_8);
             return mapper.readValue(decoded, Secrets.class);
         }
         return null;
     }
 
     @Nullable
-    private ApplicationCustomResource getApplicationCustomResource(String tenant, String applicationId) {
+    private ApplicationCustomResource getApplicationCustomResource(
+            String tenant, String applicationId) {
         final String namespace = tenantToNamespace(tenant);
         return client.resources(ApplicationCustomResource.class)
                 .inNamespace(namespace)
@@ -217,70 +226,87 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .inNamespace(namespace)
                 .withName(applicationId)
                 .delete();
-        // the secret deletion will happen automatically once the app custom resource has been deleted completely
+        // the secret deletion will happen automatically once the app custom resource has been
+        // deleted completely
     }
 
     @Override
     public Map<String, StoredApplication> list(String tenant) {
         final String namespace = tenantToNamespace(tenant);
-        return client.resources(ApplicationCustomResource.class)
+        return client
+                .resources(ApplicationCustomResource.class)
                 .inNamespace(namespace)
                 .list()
-                .getItems().stream()
+                .getItems()
+                .stream()
                 .map(a -> getApplicationStatus(a.getMetadata().getName(), a, false))
-                .collect(Collectors.toMap(StoredApplication::getApplicationId, Function.identity()));
+                .collect(
+                        Collectors.toMap(StoredApplication::getApplicationId, Function.identity()));
     }
 
     @SneakyThrows
-    private StoredApplication getApplicationStatus(String applicationId,
-                                                   ApplicationCustomResource application,
-                                                   boolean queryPods) {
-        SerializedApplicationInstance serializedApplicationInstanceFromCr = getSerializedApplicationInstanceFromCr(application);
+    private StoredApplication getApplicationStatus(
+            String applicationId, ApplicationCustomResource application, boolean queryPods) {
+        SerializedApplicationInstance serializedApplicationInstanceFromCr =
+                getSerializedApplicationInstanceFromCr(application);
         final Application instance = serializedApplicationInstanceFromCr.toApplicationInstance();
-        final Map<String, AgentRunnerDefinition> agentNodes = serializedApplicationInstanceFromCr.getAgentRunners();
+        final Map<String, AgentRunnerDefinition> agentNodes =
+                serializedApplicationInstanceFromCr.getAgentRunners();
 
         return StoredApplication.builder()
                 .applicationId(applicationId)
                 .instance(instance)
                 .codeArchiveReference(application.getSpec().getCodeArchiveId())
-                .status(computeApplicationStatus(applicationId,
-                        agentNodes, application, queryPods))
+                .status(computeApplicationStatus(applicationId, agentNodes, application, queryPods))
                 .build();
     }
 
     @SneakyThrows
-    private SerializedApplicationInstance getSerializedApplicationInstanceFromCr(ApplicationCustomResource application) {
-        return  mapper.readValue(application.getSpec().getApplication(), SerializedApplicationInstance.class);
+    private SerializedApplicationInstance getSerializedApplicationInstanceFromCr(
+            ApplicationCustomResource application) {
+        return mapper.readValue(
+                application.getSpec().getApplication(), SerializedApplicationInstance.class);
     }
 
-
-    private ApplicationStatus computeApplicationStatus(final String applicationId,
-                                                       Map<String, AgentRunnerDefinition> agentRunners,
-                                                       ApplicationCustomResource customResource,
-                                                       boolean queryPods) {
-        log.info("Computing status for application {}, agentRunners {}", applicationId, agentRunners);
+    private ApplicationStatus computeApplicationStatus(
+            final String applicationId,
+            Map<String, AgentRunnerDefinition> agentRunners,
+            ApplicationCustomResource customResource,
+            boolean queryPods) {
+        log.info(
+                "Computing status for application {}, agentRunners {}",
+                applicationId,
+                agentRunners);
         final ApplicationStatus result = new ApplicationStatus();
         result.setStatus(AppResourcesFactory.computeApplicationStatus(client, customResource));
         List<String> declaredAgents = new ArrayList<>();
 
-        Map<String, AgentResourcesFactory.AgentRunnerSpec> agentRunnerSpecMap  = new HashMap<>();
-        agentRunners.forEach((agentId, agentRunnerDefinition) -> {
-            log.info("Adding agent id {} (def {})", agentId, agentRunnerDefinition);
-            // this agentId doesn't contain the "module" prefix
-            declaredAgents.add(agentRunnerDefinition.getAgentId());
-            agentRunnerSpecMap.put(agentId, AgentResourcesFactory.AgentRunnerSpec.builder()
-                    .agentId(agentRunnerDefinition.getAgentId())
-                    .agentType(agentRunnerDefinition.getAgentType())
-                    .componentType(agentRunnerDefinition.getComponentType())
-                    .configuration(agentRunnerDefinition.getConfiguration())
-                    .inputTopic(agentRunnerDefinition.getInputTopic())
-                    .outputTopic(agentRunnerDefinition.getOutputTopic())
-                    .build());
-        });
+        Map<String, AgentResourcesFactory.AgentRunnerSpec> agentRunnerSpecMap = new HashMap<>();
+        agentRunners.forEach(
+                (agentId, agentRunnerDefinition) -> {
+                    log.info("Adding agent id {} (def {})", agentId, agentRunnerDefinition);
+                    // this agentId doesn't contain the "module" prefix
+                    declaredAgents.add(agentRunnerDefinition.getAgentId());
+                    agentRunnerSpecMap.put(
+                            agentId,
+                            AgentResourcesFactory.AgentRunnerSpec.builder()
+                                    .agentId(agentRunnerDefinition.getAgentId())
+                                    .agentType(agentRunnerDefinition.getAgentType())
+                                    .componentType(agentRunnerDefinition.getComponentType())
+                                    .configuration(agentRunnerDefinition.getConfiguration())
+                                    .inputTopic(agentRunnerDefinition.getInputTopic())
+                                    .outputTopic(agentRunnerDefinition.getOutputTopic())
+                                    .build());
+                });
 
-        result.setAgents(AgentResourcesFactory.aggregateAgentsStatus(client, customResource
-                .getMetadata().getNamespace(), applicationId, declaredAgents,
-                agentRunnerSpecMap, queryPods));
+        result.setAgents(
+                AgentResourcesFactory.aggregateAgentsStatus(
+                        client,
+                        customResource.getMetadata().getNamespace(),
+                        applicationId,
+                        declaredAgents,
+                        agentRunnerSpecMap,
+                        queryPods));
         return result;
     }
 
@@ -298,13 +324,17 @@ public class KubernetesApplicationStore implements ApplicationStore {
     @NoArgsConstructor
     public static class SerializedApplicationInstance {
 
-        public SerializedApplicationInstance(Application applicationInstance, ExecutionPlan executionPlan) {
+        public SerializedApplicationInstance(
+                Application applicationInstance, ExecutionPlan executionPlan) {
             this.resources = applicationInstance.getResources();
             this.modules = applicationInstance.getModules();
             this.instance = applicationInstance.getInstance();
             this.gateways = applicationInstance.getGateways();
             this.agentRunners = new HashMap<>();
-            log.info("Serializing application instance {} executionPlan {}", applicationInstance, executionPlan);
+            log.info(
+                    "Serializing application instance {} executionPlan {}",
+                    applicationInstance,
+                    executionPlan);
             if (executionPlan != null && executionPlan.getAgents() != null) {
                 for (Map.Entry<String, AgentNode> entry : executionPlan.getAgents().entrySet()) {
                     AgentNode agentNode = entry.getValue();
@@ -312,7 +342,10 @@ public class KubernetesApplicationStore implements ApplicationStore {
                     agentRunnerDefinition.setAgentId(agentNode.getId());
                     agentRunnerDefinition.setAgentType(agentNode.getAgentType());
                     agentRunnerDefinition.setComponentType(agentNode.getComponentType() + "");
-                    agentRunnerDefinition.setConfiguration(agentNode.getConfiguration() != null ? agentNode.getConfiguration() : Map.of());
+                    agentRunnerDefinition.setConfiguration(
+                            agentNode.getConfiguration() != null
+                                    ? agentNode.getConfiguration()
+                                    : Map.of());
                     agentRunners.put(entry.getKey(), agentRunnerDefinition);
 
                     if (agentNode.getInputConnectionImplementation() instanceof Topic topic) {
@@ -322,7 +355,6 @@ public class KubernetesApplicationStore implements ApplicationStore {
                     if (agentNode.getOutputConnectionImplementation() instanceof Topic topic) {
                         agentRunnerDefinition.setOutputTopic(topic.topicName());
                     }
-
                 }
             }
         }
@@ -351,48 +383,64 @@ public class KubernetesApplicationStore implements ApplicationStore {
         return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
-
-
     @Override
     @SneakyThrows
     public List<PodLogHandler> logs(String tenant, String applicationId, LogOptions logOptions) {
         final List<String> pods =
-                AgentResourcesFactory.getAgentPods(client, tenantToNamespace(tenant), applicationId);
+                AgentResourcesFactory.getAgentPods(
+                        client, tenantToNamespace(tenant), applicationId);
 
-        return pods
-                .stream()
-                .filter(pod -> {
-                    if (logOptions.getFilterReplicas() != null && !logOptions.getFilterReplicas().isEmpty()) {
-                        return logOptions.getFilterReplicas().contains(pod);
-                    }
-                    return true;
-                })
-                .map(pod -> {
-                    return new PodLogHandler() {
-                        @Override
-                        @SneakyThrows
-                        public void start(LogLineConsumer onLogLine) {
-                            final PodResource podResource =
-                                    client.pods().inNamespace(tenantToNamespace(tenant)).withName(pod);
-                            final int replicas = extractReplicas(pod);
-                            final String color = LOG_COLORS[replicas % LOG_COLORS.length];
-                            try (final LogWatch watchLog = podResource.inContainer("runtime")
-                                    .withPrettyOutput().withReadyWaitTimeout(Integer.MAX_VALUE).watchLog();) {
-                                final InputStream in = watchLog.getOutput();
-                                try (BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
-                                    String line;
-                                    while ((line = br.readLine()) != null) {
-                                        String coloredLog = "\u001B[" + color + "m" + pod + " " + line + "\u001B[0m\n";
-                                        final boolean shallContinue = onLogLine.onLogLine(coloredLog);
-                                        if (!shallContinue) {
-                                            break;
+        return pods.stream()
+                .filter(
+                        pod -> {
+                            if (logOptions.getFilterReplicas() != null
+                                    && !logOptions.getFilterReplicas().isEmpty()) {
+                                return logOptions.getFilterReplicas().contains(pod);
+                            }
+                            return true;
+                        })
+                .map(
+                        pod -> {
+                            return new PodLogHandler() {
+                                @Override
+                                @SneakyThrows
+                                public void start(LogLineConsumer onLogLine) {
+                                    final PodResource podResource =
+                                            client.pods()
+                                                    .inNamespace(tenantToNamespace(tenant))
+                                                    .withName(pod);
+                                    final int replicas = extractReplicas(pod);
+                                    final String color = LOG_COLORS[replicas % LOG_COLORS.length];
+                                    try (final LogWatch watchLog =
+                                            podResource
+                                                    .inContainer("runtime")
+                                                    .withPrettyOutput()
+                                                    .withReadyWaitTimeout(Integer.MAX_VALUE)
+                                                    .watchLog(); ) {
+                                        final InputStream in = watchLog.getOutput();
+                                        try (BufferedReader br =
+                                                new BufferedReader(new InputStreamReader(in))) {
+                                            String line;
+                                            while ((line = br.readLine()) != null) {
+                                                String coloredLog =
+                                                        "\u001B["
+                                                                + color
+                                                                + "m"
+                                                                + pod
+                                                                + " "
+                                                                + line
+                                                                + "\u001B[0m\n";
+                                                final boolean shallContinue =
+                                                        onLogLine.onLogLine(coloredLog);
+                                                if (!shallContinue) {
+                                                    break;
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        }
-                    };
-                })
+                            };
+                        })
                 .collect(Collectors.toList());
     }
 

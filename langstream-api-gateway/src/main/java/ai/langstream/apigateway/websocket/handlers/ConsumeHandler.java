@@ -17,8 +17,6 @@ package ai.langstream.apigateway.websocket.handlers;
 
 import static ai.langstream.apigateway.websocket.WebSocketConfig.CONSUME_PATH;
 
-import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
@@ -26,10 +24,12 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.OffsetPerPartition;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
-import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
+import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -84,7 +84,8 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext context) throws Exception {
+    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext context)
+            throws Exception {
         final Gateway gateway = context.gateway();
         final Application application = context.application();
         List<Function<Record, Boolean>> filters =
@@ -100,15 +101,18 @@ public class ConsumeHandler extends AbstractHandler {
         final String topicName = gateway.topic();
 
         final String positionParameter = context.options().getOrDefault("position", "latest");
-        TopicOffsetPosition position = switch (positionParameter) {
-            case "latest" -> TopicOffsetPosition.LATEST;
-            case "earliest" -> TopicOffsetPosition.EARLIEST;
-            default -> TopicOffsetPosition.absolute(new String(
-                    Base64.getDecoder().decode(positionParameter), StandardCharsets.UTF_8));
-        };
+        TopicOffsetPosition position =
+                switch (positionParameter) {
+                    case "latest" -> TopicOffsetPosition.LATEST;
+                    case "earliest" -> TopicOffsetPosition.EARLIEST;
+                    default -> TopicOffsetPosition.absolute(
+                            new String(
+                                    Base64.getDecoder().decode(positionParameter),
+                                    StandardCharsets.UTF_8));
+                };
         TopicReader reader =
-                topicConnectionsRuntime.createReader(streamingCluster,
-                        Map.of("topic", topicName), position);
+                topicConnectionsRuntime.createReader(
+                        streamingCluster, Map.of("topic", topicName), position);
         reader.start();
         context.attributes().put("topicReader", reader);
     }
@@ -116,33 +120,51 @@ public class ConsumeHandler extends AbstractHandler {
     @Override
     public void onOpen(WebSocketSession session, AuthenticatedGatewayRequestContext context) {
         // we must return the caller thread to the thread pool
-        final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            final Map<String, Object> attributes = session.getAttributes();
-            TopicReader reader = (TopicReader) attributes.get("topicReader");
-            final String tenant = context.tenant();
-            final String gatewayId = context.gateway().id();
-            final String applicationId = context.applicationId();
-            try {
-                log.info("[{}] Started reader for gateway {}/{}/{}", session.getId(), tenant, applicationId, gatewayId);
-                readMessages(session, (List<Function<Record, Boolean>>) attributes.get("consumeFilters"), reader);
-            } catch (InterruptedException | CancellationException ex) {
-                // ignore
-            } catch (Throwable ex) {
-                log.error(ex.getMessage(), ex);
-            } finally {
-                closeReader(reader);
-            }
-        }, executor);
+        final CompletableFuture<Void> future =
+                CompletableFuture.runAsync(
+                        () -> {
+                            final Map<String, Object> attributes = session.getAttributes();
+                            TopicReader reader = (TopicReader) attributes.get("topicReader");
+                            final String tenant = context.tenant();
+                            final String gatewayId = context.gateway().id();
+                            final String applicationId = context.applicationId();
+                            try {
+                                log.info(
+                                        "[{}] Started reader for gateway {}/{}/{}",
+                                        session.getId(),
+                                        tenant,
+                                        applicationId,
+                                        gatewayId);
+                                readMessages(
+                                        session,
+                                        (List<Function<Record, Boolean>>)
+                                                attributes.get("consumeFilters"),
+                                        reader);
+                            } catch (InterruptedException | CancellationException ex) {
+                                // ignore
+                            } catch (Throwable ex) {
+                                log.error(ex.getMessage(), ex);
+                            } finally {
+                                closeReader(reader);
+                            }
+                        },
+                        executor);
         session.getAttributes().put("future", future);
     }
 
     @Override
-    public void onMessage(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, TextMessage message) {
-    }
+    public void onMessage(
+            WebSocketSession webSocketSession,
+            AuthenticatedGatewayRequestContext context,
+            TextMessage message) {}
 
     @Override
-    public void onClose(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context, CloseStatus closeStatus) {
-        final CompletableFuture<Void> future = (CompletableFuture<Void>) webSocketSession.getAttributes().get("future");
+    public void onClose(
+            WebSocketSession webSocketSession,
+            AuthenticatedGatewayRequestContext context,
+            CloseStatus closeStatus) {
+        final CompletableFuture<Void> future =
+                (CompletableFuture<Void>) webSocketSession.getAttributes().get("future");
         if (future != null && !future.isDone()) {
             future.cancel(true);
         }
@@ -174,8 +196,8 @@ public class ConsumeHandler extends AbstractHandler {
         }
     }
 
-
-    private void readMessages(WebSocketSession session, List<Function<Record, Boolean>> filters, TopicReader reader)
+    private void readMessages(
+            WebSocketSession session, List<Function<Record, Boolean>> filters, TopicReader reader)
             throws Exception {
         while (true) {
             if (Thread.currentThread().isInterrupted()) {
@@ -200,10 +222,11 @@ public class ConsumeHandler extends AbstractHandler {
                     final Map<String, String> messageHeaders = computeMessageHeaders(record);
                     final String offset = computeOffset(readResult);
 
-                    final ConsumePushMessage message = new ConsumePushMessage(
-                            new ConsumePushMessage.Record(record.key(), record.value(), messageHeaders),
-                            offset
-                    );
+                    final ConsumePushMessage message =
+                            new ConsumePushMessage(
+                                    new ConsumePushMessage.Record(
+                                            record.key(), record.value(), messageHeaders),
+                                    offset);
                     final String jsonMessage = mapper.writeValueAsString(message);
                     session.sendMessage(new TextMessage(jsonMessage));
                 }
@@ -231,46 +254,51 @@ public class ConsumeHandler extends AbstractHandler {
         return Base64.getEncoder().encodeToString(mapper.writeValueAsBytes(offsetPerPartition));
     }
 
-    private List<Function<Record, Boolean>> createMessageFilters(Gateway selectedGateway,
-                                                                 Map<String, String> passedParameters,
-                                                                 Map<String, String> principalValues) {
+    private List<Function<Record, Boolean>> createMessageFilters(
+            Gateway selectedGateway,
+            Map<String, String> passedParameters,
+            Map<String, String> principalValues) {
         List<Function<Record, Boolean>> filters = new ArrayList<>();
 
         if (selectedGateway.consumeOptions() != null) {
             final Gateway.ConsumeOptions consumeOptions = selectedGateway.consumeOptions();
             if (consumeOptions.filters() != null) {
                 if (consumeOptions.filters().headers() != null) {
-                    for (Gateway.KeyValueComparison comparison : consumeOptions.filters().headers()) {
+                    for (Gateway.KeyValueComparison comparison :
+                            consumeOptions.filters().headers()) {
                         if (comparison.key() == null) {
                             throw new IllegalArgumentException("Key cannot be null");
                         }
-                        filters.add(record -> {
-                            final Header header = record.getHeader(comparison.key());
-                            if (header == null) {
-                                return false;
-                            }
-                            final String expectedValue = header.valueAsString();
-                            if (expectedValue == null) {
-                                return false;
-                            }
-                            String value = comparison.value();
-                            if (value == null && comparison.valueFromParameters() != null) {
-                                value = passedParameters.get(comparison.valueFromParameters());
-                            }
-                            if (value == null && comparison.valueFromAuthentication() != null) {
-                                value = principalValues.get(comparison.valueFromAuthentication());
-                            }
-                            if (value == null) {
-                                return false;
-                            }
-                            return expectedValue.equals(value);
-                        });
+                        filters.add(
+                                record -> {
+                                    final Header header = record.getHeader(comparison.key());
+                                    if (header == null) {
+                                        return false;
+                                    }
+                                    final String expectedValue = header.valueAsString();
+                                    if (expectedValue == null) {
+                                        return false;
+                                    }
+                                    String value = comparison.value();
+                                    if (value == null && comparison.valueFromParameters() != null) {
+                                        value =
+                                                passedParameters.get(
+                                                        comparison.valueFromParameters());
+                                    }
+                                    if (value == null
+                                            && comparison.valueFromAuthentication() != null) {
+                                        value =
+                                                principalValues.get(
+                                                        comparison.valueFromAuthentication());
+                                    }
+                                    if (value == null) {
+                                        return false;
+                                    }
+                                    return expectedValue.equals(value);
+                                });
                     }
-
                 }
             }
-
-
         }
         return filters;
     }

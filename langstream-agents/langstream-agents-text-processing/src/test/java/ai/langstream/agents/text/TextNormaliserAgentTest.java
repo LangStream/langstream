@@ -15,9 +15,9 @@
  */
 package ai.langstream.agents.text;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 class TextNormaliserAgentTest {
 
@@ -25,9 +25,11 @@ class TextNormaliserAgentTest {
     void testTrimSpaces() {
         String text = "  some text with \t \tspaces \n\n\n this is a new line";
         String result = TextNormaliserAgent.trimSpaces(text);
-        assertEquals("""
+        assertEquals(
+                """
             some text with spaces\s
 
-             this is a new line""", result);
+             this is a new line""",
+                result);
     }
 }

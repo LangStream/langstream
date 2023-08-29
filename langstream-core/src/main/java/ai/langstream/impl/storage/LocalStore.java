@@ -16,7 +16,6 @@
 package ai.langstream.impl.storage;
 
 import ai.langstream.api.storage.GlobalMetadataStore;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -77,13 +76,18 @@ public class LocalStore implements GlobalMetadataStore {
     @SneakyThrows
     private LinkedHashMap<String, String> listFromPath(Path path) {
         return Files.list(path)
-                .collect(Collectors.toMap(p -> p.toFile().getName(), p -> {
-                    try {
-                        return Files.readString(p);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }, (a, b) -> b, LinkedHashMap::new));
+                .collect(
+                        Collectors.toMap(
+                                p -> p.toFile().getName(),
+                                p -> {
+                                    try {
+                                        return Files.readString(p);
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                },
+                                (a, b) -> b,
+                                LinkedHashMap::new));
     }
 
     @Override

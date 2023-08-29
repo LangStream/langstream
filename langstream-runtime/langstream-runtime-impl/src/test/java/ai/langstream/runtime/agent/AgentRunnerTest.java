@@ -18,6 +18,7 @@ package ai.langstream.runtime.agent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSink;
@@ -56,7 +57,8 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 3, "onFailure", "fail"));
         AgentContext context = mock(AgentContext.class);
-        assertThrows(AgentRunner.PermanentFailureException.class,
+        assertThrows(
+                AgentRunner.PermanentFailureException.class,
                 () -> AgentRunner.runMainLoop(source, processor, sink, context, errorHandler, 5));
         processor.expectExecutions(3);
         source.expectUncommitted(1);
@@ -70,7 +72,8 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "fail"));
         AgentContext context = mock(AgentContext.class);
-        assertThrows(AgentRunner.PermanentFailureException.class,
+        assertThrows(
+                AgentRunner.PermanentFailureException.class,
                 () -> AgentRunner.runMainLoop(source, processor, sink, context, errorHandler, 5));
         processor.expectExecutions(1);
         source.expectUncommitted(1);
@@ -78,9 +81,11 @@ class AgentRunnerTest {
 
     @Test
     void someFailedSomeGoodWithSkip() throws Exception {
-        SimpleSource source = new SimpleSource(List.of(
-                SimpleRecord.of("key", "fail-me"),
-                SimpleRecord.of("key", "process-me")));
+        SimpleSource source =
+                new SimpleSource(
+                        List.of(
+                                SimpleRecord.of("key", "fail-me"),
+                                SimpleRecord.of("key", "process-me")));
         AgentSink sink = new SimpleSink();
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
@@ -93,9 +98,11 @@ class AgentRunnerTest {
 
     @Test
     void someGoodSomeFailedWithSkip() throws Exception {
-        SimpleSource source = new SimpleSource(List.of(
-                SimpleRecord.of("key", "process-me"),
-                SimpleRecord.of("key", "fail-me")));
+        SimpleSource source =
+                new SimpleSource(
+                        List.of(
+                                SimpleRecord.of("key", "process-me"),
+                                SimpleRecord.of("key", "fail-me")));
         AgentSink sink = new SimpleSink();
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
@@ -108,9 +115,12 @@ class AgentRunnerTest {
 
     @Test
     void someGoodSomeFailedWithSkipAndBatching() throws Exception {
-        SimpleSource source = new SimpleSource(2, List.of(
-                SimpleRecord.of("key", "process-me"),
-                SimpleRecord.of("key", "fail-me")));
+        SimpleSource source =
+                new SimpleSource(
+                        2,
+                        List.of(
+                                SimpleRecord.of("key", "process-me"),
+                                SimpleRecord.of("key", "fail-me")));
         AgentSink sink = new SimpleSink();
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
@@ -123,9 +133,12 @@ class AgentRunnerTest {
 
     @Test
     void someFailedSomeGoodWithSkipAndBatching() throws Exception {
-        SimpleSource source = new SimpleSource(2, List.of(
-                SimpleRecord.of("key", "fail-me"),
-                SimpleRecord.of("key", "process-me")));
+        SimpleSource source =
+                new SimpleSource(
+                        2,
+                        List.of(
+                                SimpleRecord.of("key", "fail-me"),
+                                SimpleRecord.of("key", "process-me")));
         AgentSink sink = new SimpleSink();
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
@@ -153,7 +166,6 @@ class AgentRunnerTest {
     }
 
     private static class SimpleSource extends AbstractAgentCode implements AgentSource {
-
 
         final List<Record> records;
         final List<Record> uncommitted = new ArrayList<>();

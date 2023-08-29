@@ -17,6 +17,7 @@ package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+
 import ai.langstream.AbstractApplicationRunner;
 import com.google.common.base.Strings;
 import java.util.Collection;
@@ -34,7 +35,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
+class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner {
 
     @Test
     @Disabled
@@ -42,7 +43,8 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        String sfUrl = System.getProperty("sf.url", "dmb76871.us-east-1.snowflakecomputing.com:443");
+        String sfUrl =
+                System.getProperty("sf.url", "dmb76871.us-east-1.snowflakecomputing.com:443");
         String sfUser = System.getProperty("sf.user", "test_connector_user_1");
         String sfKey = System.getProperty("sf.key");
         String sfDatabase = System.getProperty("sf.database", "test_db");
@@ -53,8 +55,10 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
             return;
         }
 
-        Map<String, String> application = Map.of(
-                        "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -84,20 +88,27 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
                                       adapterConfig:
                                         batchSize: 2
                                         lingerTimeMs: 1000
-                                """.formatted(sfUrl, sfUser, sfKey, sfDatabase, sfSchema)
-                );
+                                """
+                                .formatted(sfUrl, sfUser, sfKey, sfDatabase, sfSchema));
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
                 for (int i = 0; i < 20; i++) {
-                    sendMessage("input-topic", "{\"name\": \"some json name " + i + "\", \"description\": \"some description\"}", producer);
+                    sendMessage(
+                            "input-topic",
+                            "{\"name\": \"some json name "
+                                    + i
+                                    + "\", \"description\": \"some description\"}",
+                            producer);
                 }
                 producer.flush();
 
                 executeAgentRunners(applicationRuntime);
             }
         }
-        //TODO: validate snowflake automatically
+        // TODO: validate snowflake automatically
     }
 
     @Test
@@ -108,7 +119,10 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
         DummySink.receivedRecords.clear();
 
         String onFailure = "fail";
-        Map<String, String> application = Map.of("module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-2"
                                 id: "pipeline-2"
                                 errors:
@@ -126,12 +140,18 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
                                         __test_inject_conversion_error: "1"
                                       connector.class: %s
                                       file: /tmp/test.sink.txt
-                                """.formatted(onFailure, DummySinkConnector.class.getName()));
+                                """
+                                .formatted(onFailure, DummySinkConnector.class.getName()));
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
                 sendMessage("input-topic2", "err", producer);
-                sendMessage("input-topic2", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
+                sendMessage(
+                        "input-topic2",
+                        "{\"name\": \"some name\", \"description\": \"some description\"}",
+                        producer);
                 try {
                     executeAgentRunners(applicationRuntime);
                     fail();
@@ -155,7 +175,10 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
         DummySink.receivedRecords.clear();
 
         String onFailure = "skip";
-        Map<String, String> application = Map.of("module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-3"
                                 id: "pipeline-3"
                                 errors:
@@ -173,18 +196,28 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
                                         __test_inject_conversion_error: "1"
                                       connector.class: %s
                                       file: /tmp/test.sink.txt
-                                """.formatted(onFailure, DummySinkConnector.class.getName()));
+                                """
+                                .formatted(onFailure, DummySinkConnector.class.getName()));
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
                 sendMessage("input-topic3", "err", producer);
-                sendMessage("input-topic3", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
+                sendMessage(
+                        "input-topic3",
+                        "{\"name\": \"some name\", \"description\": \"some description\"}",
+                        producer);
                 executeAgentRunners(applicationRuntime);
-                Awaitility.await().untilAsserted(() -> {
-                    DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
-                    // todo: assert on processed counter (incremented before error handling)
-                    assertEquals(1, DummySink.receivedRecords.size());
-                });
+                Awaitility.await()
+                        .untilAsserted(
+                                () -> {
+                                    DummySink.receivedRecords.forEach(
+                                            r -> log.info("Received record: {}", r));
+                                    // todo: assert on processed counter (incremented before error
+                                    // handling)
+                                    assertEquals(1, DummySink.receivedRecords.size());
+                                });
             }
         }
     }
@@ -197,8 +230,10 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
         DummySink.receivedRecords.clear();
 
         String onFailure = "dead-letter";
-        Map<String, String> application = Map.of(
-                "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-4"
                                 id: "pipeline-4"
                                 errors:
@@ -216,27 +251,36 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
                                         __test_inject_conversion_error: "1"
                                       connector.class: %s
                                       file: /tmp/test.sink.txt
-                                """.formatted(onFailure, DummySinkConnector.class.getName()));
+                                """
+                                .formatted(onFailure, DummySinkConnector.class.getName()));
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
                 sendMessage("input-topic4", "err", producer);
-                sendMessage("input-topic4", "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
+                sendMessage(
+                        "input-topic4",
+                        "{\"name\": \"some name\", \"description\": \"some description\"}",
+                        producer);
                 executeAgentRunners(applicationRuntime);
-                Awaitility.await().untilAsserted(() -> {
-                    DummySink.receivedRecords.forEach(r -> log.info("Received record: {}", r));
-                    // todo: assert on processed counter (incremented before error handling)
-                    // todo: check DLQ's content
-                    assertEquals(1, DummySink.receivedRecords.size());
-                });
+                Awaitility.await()
+                        .untilAsserted(
+                                () -> {
+                                    DummySink.receivedRecords.forEach(
+                                            r -> log.info("Received record: {}", r));
+                                    // todo: assert on processed counter (incremented before error
+                                    // handling)
+                                    // todo: check DLQ's content
+                                    assertEquals(1, DummySink.receivedRecords.size());
+                                });
             }
         }
     }
 
     public static final class DummySinkConnector extends SinkConnector {
         @Override
-        public void start(Map<String, String> map) {
-        }
+        public void start(Map<String, String> map) {}
 
         @Override
         public Class<? extends Task> taskClass() {
@@ -249,8 +293,7 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
         }
 
         @Override
-        public void stop() {
-        }
+        public void stop() {}
 
         @Override
         public ConfigDef config() {
@@ -266,9 +309,9 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
     public static final class DummySink extends org.apache.kafka.connect.sink.SinkTask {
 
         static final List<SinkRecord> receivedRecords = new CopyOnWriteArrayList<>();
+
         @Override
-        public void start(Map<String, String> map) {
-        }
+        public void start(Map<String, String> map) {}
 
         @Override
         public void put(Collection<SinkRecord> collection) {
@@ -277,13 +320,11 @@ class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner  {
         }
 
         @Override
-        public void stop() {
-        }
+        public void stop() {}
 
         @Override
         public String version() {
             return "1.0";
         }
     }
-
 }

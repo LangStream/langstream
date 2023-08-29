@@ -15,29 +15,22 @@
  */
 package ai.langstream.agents.text;
 
-
-import java.util.ArrayList;
-import java.util.List;
-
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
-
-
-/**
- * Perform text splitting tasks.
- */
+/** Perform text splitting tasks. */
 @Slf4j
 public class TextSplitterAgent extends SingleRecordAgentProcessor {
 
-    /**
-     * Number of characters per chunk.
-     */
+    /** Number of characters per chunk. */
     private TextSplitter textSplitter;
+
     private LengthFunction lengthFunction;
 
     @Override
@@ -46,18 +39,29 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
     }
 
     private void initTextSplitter(Map<String, Object> configuration) {
-        String splitterType = configuration.getOrDefault("splitter_type",
-                "RecursiveCharacterTextSplitter").toString();
+        String splitterType =
+                configuration
+                        .getOrDefault("splitter_type", "RecursiveCharacterTextSplitter")
+                        .toString();
         TextSplitter newTextSplitter;
         LengthFunction newLengthFunction;
         switch (splitterType) {
             case "RecursiveCharacterTextSplitter":
-                List<String> separators = (List<String>) configuration.getOrDefault("separators",
-                        List.of("\n\n", "\n", " ", ""));
-                boolean keepSeparator = Boolean.parseBoolean(configuration.getOrDefault("keep_separator", "false").toString());
-                int chunkSize = Integer.parseInt(configuration.getOrDefault("chunk_size", "200").toString());
-                int chunkOverlap = Integer.parseInt(configuration.getOrDefault("chunk_overlap", "100").toString());
-                String lengthFunctionName = configuration.getOrDefault("length_function", "cl100k_base").toString();
+                List<String> separators =
+                        (List<String>)
+                                configuration.getOrDefault(
+                                        "separators", List.of("\n\n", "\n", " ", ""));
+                boolean keepSeparator =
+                        Boolean.parseBoolean(
+                                configuration.getOrDefault("keep_separator", "false").toString());
+                int chunkSize =
+                        Integer.parseInt(
+                                configuration.getOrDefault("chunk_size", "200").toString());
+                int chunkOverlap =
+                        Integer.parseInt(
+                                configuration.getOrDefault("chunk_overlap", "100").toString());
+                String lengthFunctionName =
+                        configuration.getOrDefault("length_function", "cl100k_base").toString();
                 switch (lengthFunctionName) {
                     case "length":
                         newLengthFunction = String::length;
@@ -65,10 +69,19 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
                     default:
                         newLengthFunction = new TikTokLengthFunction(lengthFunctionName);
                 }
-                newTextSplitter = new RecursiveCharacterTextSplitter(separators, keepSeparator, chunkSize, chunkOverlap,  newLengthFunction::length);
+                newTextSplitter =
+                        new RecursiveCharacterTextSplitter(
+                                separators,
+                                keepSeparator,
+                                chunkSize,
+                                chunkOverlap,
+                                newLengthFunction::length);
                 break;
             default:
-                throw new IllegalArgumentException("Unknown splitter type: " + splitterType +", only RecursiveCharacterTextSplitter is supported");
+                throw new IllegalArgumentException(
+                        "Unknown splitter type: "
+                                + splitterType
+                                + ", only RecursiveCharacterTextSplitter is supported");
         }
         this.textSplitter = newTextSplitter;
         this.lengthFunction = newLengthFunction;
@@ -87,24 +100,24 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
         for (String chunk : chunks) {
             List<Header> chunkHeaders = new ArrayList<>(record.headers());
             chunkHeaders.add(new SimpleRecord.SimpleHeader("chunk_id", String.valueOf(chunkId++)));
-            chunkHeaders.add(new SimpleRecord.SimpleHeader("chunk_text_length", String.valueOf(chunk.length())));
+            chunkHeaders.add(
+                    new SimpleRecord.SimpleHeader(
+                            "chunk_text_length", String.valueOf(chunk.length())));
             int numTokens = lengthFunction.length(chunk);
-            chunkHeaders.add(new SimpleRecord.SimpleHeader("chunk_num_tokens", String.valueOf(numTokens)));
+            chunkHeaders.add(
+                    new SimpleRecord.SimpleHeader("chunk_num_tokens", String.valueOf(numTokens)));
 
             // here we are setting as key the original key
             // this is to ensure that all the chunks will be processed in order downstream
             // it is important to not enable compaction on this topic
-            SimpleRecord chunkRecord = SimpleRecord
-                    .copyFrom(record)
-                    .key(record.key())
-                    .value(chunk)
-                    .headers(chunkHeaders)
-                    .build();
+            SimpleRecord chunkRecord =
+                    SimpleRecord.copyFrom(record)
+                            .key(record.key())
+                            .value(chunk)
+                            .headers(chunkHeaders)
+                            .build();
             result.add(chunkRecord);
         }
         return result;
     }
-
-
-
 }

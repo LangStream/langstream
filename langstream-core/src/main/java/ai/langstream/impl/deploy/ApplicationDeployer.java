@@ -16,10 +16,10 @@
 package ai.langstream.impl.deploy;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import lombok.Builder;
@@ -29,23 +29,32 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class ApplicationDeployer implements AutoCloseable {
 
-      private ClusterRuntimeRegistry registry;
-      private PluginsRegistry pluginsRegistry;
+    private ClusterRuntimeRegistry registry;
+    private PluginsRegistry pluginsRegistry;
 
     /**
      * Create a new implementation of the application instance.
+     *
      * @param applicationInstance the application instance
      * @return the new application
      */
-      public ExecutionPlan createImplementation(String applicationId, Application applicationInstance) {
-          ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
-          StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
-          log.info("Building execution plan for application {}", applicationInstance);
-          final Application resolvedApplicationInstance = ApplicationPlaceholderResolver
-                  .resolvePlaceholders(applicationInstance);
-          log.info("After resolving the placeholders {}", resolvedApplicationInstance);
-          return clusterRuntime.buildExecutionPlan(applicationId, resolvedApplicationInstance, pluginsRegistry, streamingClusterRuntime);
-      }
+    public ExecutionPlan createImplementation(
+            String applicationId, Application applicationInstance) {
+        ComputeClusterRuntime clusterRuntime =
+                registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
+        StreamingClusterRuntime streamingClusterRuntime =
+                registry.getStreamingClusterRuntime(
+                        applicationInstance.getInstance().streamingCluster());
+        log.info("Building execution plan for application {}", applicationInstance);
+        final Application resolvedApplicationInstance =
+                ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
+        log.info("After resolving the placeholders {}", resolvedApplicationInstance);
+        return clusterRuntime.buildExecutionPlan(
+                applicationId,
+                resolvedApplicationInstance,
+                pluginsRegistry,
+                streamingClusterRuntime);
+    }
 
     /**
      * Deploy the application instance.
@@ -53,12 +62,17 @@ public final class ApplicationDeployer implements AutoCloseable {
      * @param physicalApplicationInstance the application instance
      * @param codeStorageArchiveId the code storage archive id
      */
-    public Object deploy(String tenant, ExecutionPlan physicalApplicationInstance, String codeStorageArchiveId) {
-      Application applicationInstance = physicalApplicationInstance.getApplication();
-      ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
-      StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
-      return clusterRuntime.deploy(tenant, physicalApplicationInstance, streamingClusterRuntime, codeStorageArchiveId);
-  }
+    public Object deploy(
+            String tenant, ExecutionPlan physicalApplicationInstance, String codeStorageArchiveId) {
+        Application applicationInstance = physicalApplicationInstance.getApplication();
+        ComputeClusterRuntime clusterRuntime =
+                registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
+        StreamingClusterRuntime streamingClusterRuntime =
+                registry.getStreamingClusterRuntime(
+                        applicationInstance.getInstance().streamingCluster());
+        return clusterRuntime.deploy(
+                tenant, physicalApplicationInstance, streamingClusterRuntime, codeStorageArchiveId);
+    }
 
     /**
      * Delete the application instance and all the resources associated with it.
@@ -66,21 +80,30 @@ public final class ApplicationDeployer implements AutoCloseable {
      * @param physicalApplicationInstance the application instance
      * @param codeStorageArchiveId the code storage archive id
      */
-    public void delete(String tenant, ExecutionPlan physicalApplicationInstance, String codeStorageArchiveId) {
-      Application applicationInstance = physicalApplicationInstance.getApplication();
-      ComputeClusterRuntime clusterRuntime = registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
-      StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
-      clusterRuntime.delete(tenant, physicalApplicationInstance, streamingClusterRuntime, codeStorageArchiveId);
+    public void delete(
+            String tenant, ExecutionPlan physicalApplicationInstance, String codeStorageArchiveId) {
+        Application applicationInstance = physicalApplicationInstance.getApplication();
+        ComputeClusterRuntime clusterRuntime =
+                registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
+        StreamingClusterRuntime streamingClusterRuntime =
+                registry.getStreamingClusterRuntime(
+                        applicationInstance.getInstance().streamingCluster());
+        clusterRuntime.delete(
+                tenant, physicalApplicationInstance, streamingClusterRuntime, codeStorageArchiveId);
     }
 
     /**
      * In the tests we don't have the operator, but we want to clean up the resources.
+     *
      * @param tenant the tenant
      * @param physicalApplicationInstance the application instance
      */
-    public void deleteStreamingClusterResourcesForTests(String tenant, ExecutionPlan physicalApplicationInstance) {
+    public void deleteStreamingClusterResourcesForTests(
+            String tenant, ExecutionPlan physicalApplicationInstance) {
         Application applicationInstance = physicalApplicationInstance.getApplication();
-        StreamingClusterRuntime streamingClusterRuntime = registry.getStreamingClusterRuntime(applicationInstance.getInstance().streamingCluster());
+        StreamingClusterRuntime streamingClusterRuntime =
+                registry.getStreamingClusterRuntime(
+                        applicationInstance.getInstance().streamingCluster());
         streamingClusterRuntime.delete(physicalApplicationInstance);
     }
 

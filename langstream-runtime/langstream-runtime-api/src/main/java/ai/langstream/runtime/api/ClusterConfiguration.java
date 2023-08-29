@@ -15,5 +15,4 @@
  */
 package ai.langstream.runtime.api;
 
-public record ClusterConfiguration(String controlPlaneUrl) {
-}
+public record ClusterConfiguration(String controlPlaneUrl) {}

@@ -29,7 +29,6 @@ import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -37,19 +36,16 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Optional;
-
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
-
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.generic.GenericRecord;
 
 @Slf4j
@@ -67,7 +63,8 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         if (log.isDebugEnabled()) {
             log.debug("Processing {}", record);
         }
-        TransformContext context = recordToTransformContext(record, config.isAttemptJsonConversion());
+        TransformContext context =
+                recordToTransformContext(record, config.isAttemptJsonConversion());
 
         TransformFunctionUtil.processTransformSteps(context, steps);
         context.convertMapToStringOrBytes();
@@ -80,7 +77,6 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
     @SneakyThrows
     public void init(Map<String, Object> configuration) {
         configuration = new HashMap<>(configuration);
-
 
         // remove this from the config in order to avoid passing it TransformStepConfig
         Map<String, Object> datasourceConfiguration =
@@ -106,10 +102,12 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         }
     }
 
-    public static TransformContext recordToTransformContext(Record record, boolean attemptJsonConversion) {
+    public static TransformContext recordToTransformContext(
+            Record record, boolean attemptJsonConversion) {
         TransformContext context = new TransformContext();
         context.setKeyObject(record.key());
-        context.setKeySchemaType(record.key() == null ? null : getSchemaType(record.key().getClass()));
+        context.setKeySchemaType(
+                record.key() == null ? null : getSchemaType(record.key().getClass()));
         // TODO: temporary hack. We should be able to get the schema from the record
         if (record.key() instanceof GenericRecord) {
             context.setKeyNativeSchema(((GenericRecord) record.key()).getSchema());
@@ -123,36 +121,43 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         context.setInputTopic(record.origin());
         context.setEventTime(record.timestamp());
         if (attemptJsonConversion) {
-            context.setKeyObject(TransformFunctionUtil.attemptJsonConversion(context.getKeyObject()));
-            context.setValueObject(TransformFunctionUtil.attemptJsonConversion(context.getValueObject()));
+            context.setKeyObject(
+                    TransformFunctionUtil.attemptJsonConversion(context.getKeyObject()));
+            context.setValueObject(
+                    TransformFunctionUtil.attemptJsonConversion(context.getValueObject()));
         }
         // the headers must be Strings, this is a tentative conversion
         // in the future we need a better way to handle headers
-        context.setProperties(record
-                .headers()
-                .stream()
-                .filter(h -> h.key() != null && h.value() != null)
-                .collect(Collectors.toMap(Header::key, (h -> {
-                    if (h.value() == null) {
-                        return null;
-                    }
-                    if (h.value() instanceof byte[]) {
-                        return new String((byte[]) h.value(), StandardCharsets.UTF_8);
-                    } else {
-                        return h.value().toString();
-                    }
-                }))));
+        context.setProperties(
+                record.headers().stream()
+                        .filter(h -> h.key() != null && h.value() != null)
+                        .collect(
+                                Collectors.toMap(
+                                        Header::key,
+                                        (h -> {
+                                            if (h.value() == null) {
+                                                return null;
+                                            }
+                                            if (h.value() instanceof byte[]) {
+                                                return new String(
+                                                        (byte[]) h.value(), StandardCharsets.UTF_8);
+                                            } else {
+                                                return h.value().toString();
+                                            }
+                                        }))));
         return context;
     }
 
-    public static Optional<Record> transformContextToRecord(TransformContext context, Collection<Header> headers) {
+    public static Optional<Record> transformContextToRecord(
+            TransformContext context, Collection<Header> headers) {
         if (context.isDropCurrentRecord()) {
             return Optional.empty();
         }
         return Optional.of(new TransformRecord(context, headers));
     }
 
-    private record TransformRecord(TransformContext context, Collection<Header> headers) implements Record {
+    private record TransformRecord(TransformContext context, Collection<Header> headers)
+            implements Record {
         private TransformRecord(TransformContext context, Collection<Header> headers) {
             this.context = context;
             this.headers = new ArrayList<>(headers);

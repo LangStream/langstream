@@ -44,39 +44,40 @@ public abstract class BaseCmd implements Runnable {
     }
 
     private static final ObjectMapper yamlConfigReader = new ObjectMapper(new YAMLFactory());
-    protected static final ObjectMapper jsonPrinter = new ObjectMapper()
-            .enable(SerializationFeature.INDENT_OUTPUT)
-            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
-    protected static final ObjectMapper yamlPrinter = new ObjectMapper(new YAMLFactory())
-            .enable(SerializationFeature.INDENT_OUTPUT)
-            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    protected static final ObjectMapper jsonPrinter =
+            new ObjectMapper()
+                    .enable(SerializationFeature.INDENT_OUTPUT)
+                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    protected static final ObjectMapper yamlPrinter =
+            new ObjectMapper(new YAMLFactory())
+                    .enable(SerializationFeature.INDENT_OUTPUT)
+                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
 
-    @CommandLine.Spec
-    protected CommandLine.Model.CommandSpec command;
+    @CommandLine.Spec protected CommandLine.Model.CommandSpec command;
     private AdminClient client;
     private LangStreamCLIConfig config;
-
 
     protected abstract RootCmd getRootCmd();
 
     protected AdminClient getClient() {
         if (client == null) {
-            final AdminClientLogger logger = new AdminClientLogger() {
-                @Override
-                public void log(Object message) {
-                    BaseCmd.this.log(message);
-                }
+            final AdminClientLogger logger =
+                    new AdminClientLogger() {
+                        @Override
+                        public void log(Object message) {
+                            BaseCmd.this.log(message);
+                        }
 
-                @Override
-                public void error(Object message) {
-                    BaseCmd.this.err(message);
-                }
+                        @Override
+                        public void error(Object message) {
+                            BaseCmd.this.err(message);
+                        }
 
-                @Override
-                public void debug(Object message) {
-                    BaseCmd.this.debug(message);
-                }
-            };
+                        @Override
+                        public void debug(Object message) {
+                            BaseCmd.this.debug(message);
+                        }
+                    };
             client = new AdminClient(toAdminConfiguration(getConfig()), logger);
         }
         return client;
@@ -95,7 +96,6 @@ public abstract class BaseCmd implements Runnable {
                 .build();
     }
 
-
     @SneakyThrows
     private void loadConfig() {
         if (config == null) {
@@ -104,7 +104,6 @@ public abstract class BaseCmd implements Runnable {
             overrideFromEnv(config);
         }
     }
-
 
     @SneakyThrows
     public void updateConfig(Consumer<LangStreamCLIConfig> consumer) {
@@ -128,7 +127,6 @@ public abstract class BaseCmd implements Runnable {
         return configFile;
     }
 
-
     @SneakyThrows
     private void overrideFromEnv(LangStreamCLIConfig config) {
         for (Field field : AdminClientConfiguration.class.getDeclaredFields()) {
@@ -141,7 +139,6 @@ public abstract class BaseCmd implements Runnable {
             }
         }
     }
-
 
     protected void log(Object log) {
         command.commandLine().getOut().println(log);
@@ -162,13 +159,15 @@ public abstract class BaseCmd implements Runnable {
     }
 
     @SneakyThrows
-    protected void print(Formats format, Object body, String[] columnsForRaw,
-                         BiFunction<JsonNode, String, Object> valueSupplier) {
+    protected void print(
+            Formats format,
+            Object body,
+            String[] columnsForRaw,
+            BiFunction<JsonNode, String, Object> valueSupplier) {
         if (body == null) {
             return;
         }
         final String stringBody = body.toString();
-
 
         final JsonNode readValue = jsonPrinter.readValue(stringBody, JsonNode.class);
         switch (format) {
@@ -179,29 +178,34 @@ public abstract class BaseCmd implements Runnable {
                 log(yamlPrinter.writeValueAsString(readValue));
                 break;
             case raw:
-            default: {
-                printRawHeader(columnsForRaw);
-                if (readValue.isArray()) {
-                    readValue.elements()
-                            .forEachRemaining(element -> printRawRow(element, columnsForRaw, valueSupplier));
-                } else {
-                    printRawRow(readValue, columnsForRaw, valueSupplier);
+            default:
+                {
+                    printRawHeader(columnsForRaw);
+                    if (readValue.isArray()) {
+                        readValue
+                                .elements()
+                                .forEachRemaining(
+                                        element ->
+                                                printRawRow(element, columnsForRaw, valueSupplier));
+                    } else {
+                        printRawRow(readValue, columnsForRaw, valueSupplier);
+                    }
+                    break;
                 }
-                break;
-            }
         }
     }
 
     private void printRawHeader(String[] columnsForRaw) {
         final String template = computeFormatTemplate(columnsForRaw.length);
-        final Object[] columns = Arrays.stream(columnsForRaw)
-            .map(String::toUpperCase).toArray();
+        final Object[] columns = Arrays.stream(columnsForRaw).map(String::toUpperCase).toArray();
         final String header = String.format(template, columns);
         log(header);
     }
 
-    private void printRawRow(JsonNode readValue, String[] columnsForRaw,
-                             BiFunction<JsonNode, String, Object> valueSupplier) {
+    private void printRawRow(
+            JsonNode readValue,
+            String[] columnsForRaw,
+            BiFunction<JsonNode, String, Object> valueSupplier) {
         final int numColumns = columnsForRaw.length;
         String formatTemplate = computeFormatTemplate(numColumns);
 
@@ -241,15 +245,14 @@ public abstract class BaseCmd implements Runnable {
         return formatTemplate.toString();
     }
 
-
     @SneakyThrows
     protected static Object searchValueInJson(Object jsonNode, String path) {
-        return searchValueInJson((Map<String, Object>) jsonPrinter.convertValue(jsonNode, Map.class), path);
+        return searchValueInJson(
+                (Map<String, Object>) jsonPrinter.convertValue(jsonNode, Map.class), path);
     }
 
     @SneakyThrows
     protected static Object searchValueInJson(Map<String, Object> jsonNode, String path) {
         return PropertyUtils.getProperty(jsonNode, path);
     }
-
 }

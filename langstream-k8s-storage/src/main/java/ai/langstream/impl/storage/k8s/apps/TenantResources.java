@@ -16,6 +16,7 @@
 package ai.langstream.impl.storage.k8s.apps;
 
 import static ai.langstream.impl.storage.k8s.apps.KubernetesApplicationStore.encodeSecret;
+
 import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,12 +38,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TenantResources {
 
-    private final static ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
     private final KubernetesApplicationStoreProperties properties;
     private final KubernetesClient client;
     private final String tenant;
     private final String namespace;
-
 
     void ensureTenantResources() {
         if (properties.getControlPlaneUrl() == null || properties.getControlPlaneUrl().isBlank()) {
@@ -60,84 +60,88 @@ public class TenantResources {
         final ClusterConfiguration clusterConfiguration =
                 new ClusterConfiguration(properties.getControlPlaneUrl());
         final String encoded = encodeSecret(mapper.writeValueAsString(clusterConfiguration));
-        final Secret secret = new SecretBuilder()
-                .withNewMetadata()
-                .withName(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET)
-                .withNamespace(namespace)
-                .endMetadata()
-                .withData(Map.of(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET_KEY,encoded))
-                .build();
-        client.resource(secret)
-                .inNamespace(namespace)
-                .serverSideApply();
+        final Secret secret =
+                new SecretBuilder()
+                        .withNewMetadata()
+                        .withName(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET)
+                        .withNamespace(namespace)
+                        .endMetadata()
+                        .withData(Map.of(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET_KEY, encoded))
+                        .build();
+        client.resource(secret).inNamespace(namespace).serverSideApply();
 
         log.info("Cluster configuration secret {} up to date", tenant);
     }
 
     private void ensureRoleBinding() {
-        client.resource(new RoleBindingBuilder()
-                            .withNewMetadata()
-                            .withName(tenant)
-                            .endMetadata()
-                            .withNewRoleRef()
-                            .withKind("Role")
-                            .withApiGroup("rbac.authorization.k8s.io")
-                            .withName(tenant)
-                            .endRoleRef()
-                            .withSubjects(new SubjectBuilder()
-                                    .withName(tenant)
-                                    .withNamespace(namespace)
-                                    .withKind("ServiceAccount")
-                                    .build()
-                            )
-                            .build())
-                    .inNamespace(namespace)
-                    .serverSideApply();
+        client.resource(
+                        new RoleBindingBuilder()
+                                .withNewMetadata()
+                                .withName(tenant)
+                                .endMetadata()
+                                .withNewRoleRef()
+                                .withKind("Role")
+                                .withApiGroup("rbac.authorization.k8s.io")
+                                .withName(tenant)
+                                .endRoleRef()
+                                .withSubjects(
+                                        new SubjectBuilder()
+                                                .withName(tenant)
+                                                .withNamespace(namespace)
+                                                .withKind("ServiceAccount")
+                                                .build())
+                                .build())
+                .inNamespace(namespace)
+                .serverSideApply();
         log.info("Role binding {} up to date", tenant);
     }
 
     private void ensureRole() {
-        client.resource(new RoleBuilder()
-                            .withNewMetadata()
-                            .withName(tenant)
-                            .endMetadata()
-                            .withRules(new PolicyRuleBuilder()
-                                            .withApiGroups("langstream.ai")
-                                            .withResources("agents")
-                                            .withVerbs("*")
-                                            .build(),
-                                    new PolicyRuleBuilder()
-                                            .withApiGroups("")
-                                            .withResources("secrets")
-                                            .withVerbs("*")
-                                            .build()
-                            ).build())
-                    .inNamespace(namespace)
-                    .serverSideApply();
+        client.resource(
+                        new RoleBuilder()
+                                .withNewMetadata()
+                                .withName(tenant)
+                                .endMetadata()
+                                .withRules(
+                                        new PolicyRuleBuilder()
+                                                .withApiGroups("langstream.ai")
+                                                .withResources("agents")
+                                                .withVerbs("*")
+                                                .build(),
+                                        new PolicyRuleBuilder()
+                                                .withApiGroups("")
+                                                .withResources("secrets")
+                                                .withVerbs("*")
+                                                .build())
+                                .build())
+                .inNamespace(namespace)
+                .serverSideApply();
 
         log.info("Role {} up to date", tenant);
     }
 
     private void ensureServiceAccount() {
-        client.resource(new ServiceAccountBuilder()
-                            .withNewMetadata()
-                            .withName(tenant)
-                            .endMetadata()
-                            .build())
-                    .inNamespace(namespace)
-                    .serverSideApply();
+        client.resource(
+                        new ServiceAccountBuilder()
+                                .withNewMetadata()
+                                .withName(tenant)
+                                .endMetadata()
+                                .build())
+                .inNamespace(namespace)
+                .serverSideApply();
         log.info("Service account {} up to date", tenant);
     }
 
     private void ensureNamespace() {
         if (client.namespaces().withName(namespace).get() == null) {
-            client.resource(new NamespaceBuilder()
-                            .withNewMetadata()
-                            .withName(namespace)
-                            .endMetadata().build())
+            client.resource(
+                            new NamespaceBuilder()
+                                    .withNewMetadata()
+                                    .withName(namespace)
+                                    .endMetadata()
+                                    .build())
                     .serverSideApply();
             log.info("Namespace {} up to date", namespace, tenant);
         }
     }
-
 }

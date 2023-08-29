@@ -49,12 +49,15 @@ public class TokenAuthFilter extends GenericFilterBean {
     }
 
     @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain)
+    public void doFilter(
+            ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain)
             throws IOException, ServletException {
         try {
-            String httpHeaderValue = ((HttpServletRequest) servletRequest).getHeader(HttpHeaders.AUTHORIZATION);
+            String httpHeaderValue =
+                    ((HttpServletRequest) servletRequest).getHeader(HttpHeaders.AUTHORIZATION);
             final String token;
-            if (httpHeaderValue == null || httpHeaderValue.length() <= HTTP_HEADER_VALUE_PREFIX.length()) {
+            if (httpHeaderValue == null
+                    || httpHeaderValue.length() <= HTTP_HEADER_VALUE_PREFIX.length()) {
                 throw new AuthenticationProviderToken.AuthenticationException("Missing token");
             } else {
                 token = httpHeaderValue.substring(HTTP_HEADER_VALUE_PREFIX.length());
@@ -69,15 +72,19 @@ public class TokenAuthFilter extends GenericFilterBean {
             }
 
             List<GrantedAuthority> authorities = null;
-            if (tokenProperties.adminRoles() != null && tokenProperties.adminRoles().contains(role)) {
+            if (tokenProperties.adminRoles() != null
+                    && tokenProperties.adminRoles().contains(role)) {
                 authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_ADMIN));
             }
 
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(role, token, authorities);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(role, token, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (AuthenticationProviderToken.AuthenticationException e) {
             log.debug(e.getMessage());
-            SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.unauthenticated(null, null));
+            SecurityContextHolder.getContext()
+                    .setAuthentication(
+                            UsernamePasswordAuthenticationToken.unauthenticated(null, null));
         }
         chain.doFilter(servletRequest, servletResponse);
     }

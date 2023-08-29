@@ -17,12 +17,11 @@ package ai.langstream.agents.vector.datasource.impl;
 
 import ai.langstream.agents.vector.pinecone.PineconeDataSource;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Map;
 
 @Slf4j
 class PineconeDataSourceTest {
@@ -31,23 +30,23 @@ class PineconeDataSourceTest {
     @Disabled
     void testPineconeQuery() {
         PineconeDataSource dataSource = new PineconeDataSource();
-        Map<String, Object> config = Map.of(
-                "api-key", "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-                "environment","asia-southeast1-gcp-free",
-                "project-name", "032e3d0",
-                "index-name", "example-index");
+        Map<String, Object> config =
+                Map.of(
+                        "api-key", "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+                        "environment", "asia-southeast1-gcp-free",
+                        "project-name", "032e3d0",
+                        "index-name", "example-index");
         QueryStepDataSource implementation = dataSource.createDataSourceImplementation(config);
         implementation.initialize(null);
 
-        String query = """
+        String query =
+                """
                 {
                       "vector": ?,
                       "topK": 5
                     }
                 """;
-        List<Object> params = List.of(
-                List.of(0.1f, 0.1f, 0.1f, 0.1f, 0.1f)
-        );
+        List<Object> params = List.of(List.of(0.1f, 0.1f, 0.1f, 0.1f, 0.1f));
         List<Map<String, String>> results = implementation.fetchData(query, params);
         log.info("Results: {}", results);
     }
@@ -56,15 +55,17 @@ class PineconeDataSourceTest {
     @Disabled
     void testPineconeQueryWithFilter() {
         PineconeDataSource dataSource = new PineconeDataSource();
-        Map<String, Object> config = Map.of(
-                "api-key", "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-                "environment","asia-southeast1-gcp-free",
-                "project-name", "032e3d0",
-                "index-name", "example-index");
+        Map<String, Object> config =
+                Map.of(
+                        "api-key", "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+                        "environment", "asia-southeast1-gcp-free",
+                        "project-name", "032e3d0",
+                        "index-name", "example-index");
         QueryStepDataSource implementation = dataSource.createDataSourceImplementation(config);
         implementation.initialize(null);
 
-        String query = """
+        String query =
+                """
                 {
                       "vector": ?,
                       "topK": 5,
@@ -72,11 +73,7 @@ class PineconeDataSourceTest {
                         {"$and": [{"genre": ?}, {"year":?}]}
                     }
                 """;
-        List<Object> params = List.of(
-                List.of(0.1f, 0.1f, 0.1f, 0.1f, 0.1f),
-                "comedy",
-                2019
-        );
+        List<Object> params = List.of(List.of(0.1f, 0.1f, 0.1f, 0.1f, 0.1f), "comedy", 2019);
         List<Map<String, String>> results = implementation.fetchData(query, params);
         log.info("Results: {}", results);
     }

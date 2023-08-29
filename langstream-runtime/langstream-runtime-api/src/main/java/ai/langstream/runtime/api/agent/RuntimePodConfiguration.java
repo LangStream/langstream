@@ -18,8 +18,8 @@ package ai.langstream.runtime.api.agent;
 import ai.langstream.api.model.StreamingCluster;
 import java.util.Map;
 
-public record RuntimePodConfiguration(Map<String, Object> input,
-                                      Map<String, Object> output,
-                                      AgentSpec agent,
-                                      StreamingCluster streamingCluster) {
-}
+public record RuntimePodConfiguration(
+        Map<String, Object> input,
+        Map<String, Object> output,
+        AgentSpec agent,
+        StreamingCluster streamingCluster) {}

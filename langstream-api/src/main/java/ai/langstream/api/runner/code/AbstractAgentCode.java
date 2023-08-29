@@ -20,8 +20,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Base class for AgentCode implementations.
- * It provides default implementations for the Agent identity and AgentInfo methods.
+ * Base class for AgentCode implementations. It provides default implementations for the Agent
+ * identity and AgentInfo methods.
  */
 public abstract class AbstractAgentCode implements AgentCode {
     private final AtomicLong totalIn = new AtomicLong();
@@ -60,6 +60,7 @@ public abstract class AbstractAgentCode implements AgentCode {
 
     /**
      * Override this method to provide additional information about the agent.
+     *
      * @return a map of additional information
      */
     protected Map<String, Object> buildAdditionalInfo() {
@@ -68,8 +69,13 @@ public abstract class AbstractAgentCode implements AgentCode {
 
     @Override
     public List<AgentStatusResponse> getAgentStatus() {
-        return List.of(new AgentStatusResponse(agentId(), agentType(), componentType().name(), buildAdditionalInfo(),
-                new AgentStatusResponse.Metrics(totalIn.get(), totalOut.get(), startedAt(), lastProcessedAt)));
+        return List.of(
+                new AgentStatusResponse(
+                        agentId(),
+                        agentType(),
+                        componentType().name(),
+                        buildAdditionalInfo(),
+                        new AgentStatusResponse.Metrics(
+                                totalIn.get(), totalOut.get(), startedAt(), lastProcessedAt)));
     }
-
 }

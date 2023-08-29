@@ -15,25 +15,18 @@
  */
 package ai.langstream.tests;
 
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.awaitility.Awaitility;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.awaitility.Awaitility;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
@@ -43,10 +36,13 @@ public class CassandraSinkIT extends BaseEndToEndTest {
     public static void setupCassandra() {
         installCassandra();
 
-        executeCQL("CREATE KEYSPACE IF NOT EXISTS vsearch WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : '1' };");
-        executeCQL("CREATE TABLE IF NOT EXISTS vsearch.products (id int PRIMARY KEY,name TEXT,description TEXT);");
+        executeCQL(
+                "CREATE KEYSPACE IF NOT EXISTS vsearch WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : '1' };");
+        executeCQL(
+                "CREATE TABLE IF NOT EXISTS vsearch.products (id int PRIMARY KEY,name TEXT,description TEXT);");
         executeCQL("SELECT * FROM vsearch.products;");
-        executeCQL("INSERT INTO vsearch.products(id, name, description) VALUES (1, 'test-init', 'test-init');");
+        executeCQL(
+                "INSERT INTO vsearch.products(id, name, description) VALUES (1, 'test-init', 'test-init');");
         executeCQL("SELECT * FROM vsearch.products;");
     }
 
@@ -59,38 +55,53 @@ public class CassandraSinkIT extends BaseEndToEndTest {
     public void test() throws Exception {
 
         final String tenant = "ten-" + System.currentTimeMillis();
-        executeCommandOnClient("""
-                bin/langstream tenants put %s && 
-                bin/langstream configure tenant %s""".formatted(
-                tenant,
-                tenant).replace(System.lineSeparator(), " ").split(" "));
+        executeCommandOnClient(
+                """
+                bin/langstream tenants put %s &&
+                bin/langstream configure tenant %s"""
+                        .formatted(tenant, tenant)
+                        .replace(System.lineSeparator(), " ")
+                        .split(" "));
         String testAppsBaseDir = "src/test/resources/apps";
         String testInstanceBaseDir = "src/test/resources/instances";
         String testSecretBaseDir = "src/test/resources/secrets";
         final String applicationId = "my-test-app";
         String cassandraHost = "cassandra-0.cassandra." + namespace;
-        copyFileToClientContainer(Paths.get(testAppsBaseDir, "cassandra-sink").toFile(), "/tmp/cassandra-sink");
-        copyFileToClientContainer(Paths.get(testInstanceBaseDir, "kafka-kubernetes.yaml").toFile(), "/tmp/instance.yaml");
-        copyFileToClientContainer(Paths.get(testSecretBaseDir, "secret1.yaml").toFile(), "/tmp/secrets.yaml", file -> file.replace("CASSANDRA-HOST-INJECTED", cassandraHost));
+        copyFileToClientContainer(
+                Paths.get(testAppsBaseDir, "cassandra-sink").toFile(), "/tmp/cassandra-sink");
+        copyFileToClientContainer(
+                Paths.get(testInstanceBaseDir, "kafka-kubernetes.yaml").toFile(),
+                "/tmp/instance.yaml");
+        copyFileToClientContainer(
+                Paths.get(testSecretBaseDir, "secret1.yaml").toFile(),
+                "/tmp/secrets.yaml",
+                file -> file.replace("CASSANDRA-HOST-INJECTED", cassandraHost));
 
-        executeCommandOnClient("bin/langstream apps deploy %s -app /tmp/cassandra-sink -i /tmp/instance.yaml -s /tmp/secrets.yaml".formatted(applicationId).split(" "));
+        executeCommandOnClient(
+                "bin/langstream apps deploy %s -app /tmp/cassandra-sink -i /tmp/instance.yaml -s /tmp/secrets.yaml"
+                        .formatted(applicationId)
+                        .split(" "));
         client.apps()
                 .statefulSets()
                 .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)
                 .withName(applicationId + "-module-1-pipeline-1-sink-1")
                 .waitUntilReady(4, TimeUnit.MINUTES);
 
-        executeCommandOnClient("bin/langstream gateway produce %s produce-input -v '{\"id\": 10, \"name\": \"test-from-sink\", \"description\": \"test-from-sink\"}'".formatted(applicationId).split(" "));
+        executeCommandOnClient(
+                "bin/langstream gateway produce %s produce-input -v '{\"id\": 10, \"name\": \"test-from-sink\", \"description\": \"test-from-sink\"}'"
+                        .formatted(applicationId)
+                        .split(" "));
 
-        Awaitility.await().untilAsserted(() -> {
-            String contents = executeCQL("SELECT * FROM vsearch.products;");
-            assertTrue(contents.contains("test-from-sink"));
-        });
-
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            String contents = executeCQL("SELECT * FROM vsearch.products;");
+                            assertTrue(contents.contains("test-from-sink"));
+                        });
     }
 
-
-    private static final String CASSANDRA_MANIFEST = """
+    private static final String CASSANDRA_MANIFEST =
+            """
             apiVersion: v1
             kind: Service
             metadata:
@@ -153,43 +164,53 @@ public class CassandraSinkIT extends BaseEndToEndTest {
         final Path tempFile = Files.createTempFile("cassandra-test", ".yaml");
         Files.writeString(tempFile, CASSANDRA_MANIFEST);
 
-        String cmd = "kubectl apply -n %s -f %s".formatted(namespace, tempFile.toFile().getAbsolutePath());
+        String cmd =
+                "kubectl apply -n %s -f %s"
+                        .formatted(namespace, tempFile.toFile().getAbsolutePath());
         log.info("Running {}", cmd);
         runProcess(cmd.split(" "));
 
         applyManifest(CASSANDRA_MANIFEST, namespace);
 
-        cmd = "kubectl rollout status --watch --timeout=600s sts/cassandra -n %s"
-                .formatted(namespace);
+        cmd =
+                "kubectl rollout status --watch --timeout=600s sts/cassandra -n %s"
+                        .formatted(namespace);
         log.info("Running {}", cmd);
         runProcess(cmd.split(" "));
-
 
         log.info("Cassandra install completed");
 
         // Cassandra takes much time to boostrap
         Awaitility.await()
                 .pollInterval(5, TimeUnit.SECONDS)
-                .atMost(5, TimeUnit.MINUTES).untilAsserted(() -> {
-                    try {
-                        execInPod("cassandra-0", "cassandra","cqlsh -e \"DESCRIBE keyspaces;\"").get();
-                    } catch (Throwable t) {
-                        log.error("Failed to execute cqlsh command: {}", t.getMessage());
-                        fail("Failed to execute cqlsh command: "+ t.getMessage());
-                    }
-                });
+                .atMost(5, TimeUnit.MINUTES)
+                .untilAsserted(
+                        () -> {
+                            try {
+                                execInPod(
+                                                "cassandra-0",
+                                                "cassandra",
+                                                "cqlsh -e \"DESCRIBE keyspaces;\"")
+                                        .get();
+                            } catch (Throwable t) {
+                                log.error("Failed to execute cqlsh command: {}", t.getMessage());
+                                fail("Failed to execute cqlsh command: " + t.getMessage());
+                            }
+                        });
 
         log.info("Cassandra is up and running");
-
     }
 
     @SneakyThrows
-    protected static String  executeCQL(String command) {
+    protected static String executeCQL(String command) {
         log.info("Executing CQL: {}", command);
         String somename = UUID.randomUUID() + ".txt";
         String podName = "cassandra-0";
-        execInPod("cassandra-0", "cassandra", "echo  \"%s\" > /tmp/%s".formatted(command, somename)).get();
-        String result  = execInPod("cassandra-0", "cassandra", "cat /tmp/%s | cqlsh ".formatted(somename)).get();
+        execInPod("cassandra-0", "cassandra", "echo  \"%s\" > /tmp/%s".formatted(command, somename))
+                .get();
+        String result =
+                execInPod("cassandra-0", "cassandra", "cat /tmp/%s | cqlsh ".formatted(somename))
+                        .get();
         log.info("CQL result: {}", result);
         return result;
     }
@@ -200,12 +221,11 @@ public class CassandraSinkIT extends BaseEndToEndTest {
         final Path tempFile = Files.createTempFile("cassandra-test", ".yaml");
         Files.writeString(tempFile, CASSANDRA_MANIFEST);
 
-        final String cmd = "kubectl delete -n %s -f %s".formatted(namespace, tempFile.toFile().getAbsolutePath());
+        final String cmd =
+                "kubectl delete -n %s -f %s"
+                        .formatted(namespace, tempFile.toFile().getAbsolutePath());
         log.info("Running {}", cmd);
         runProcess(cmd.split(" "));
         log.info("Cassandra uninstall completed");
-
     }
-
 }
-

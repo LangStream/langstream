@@ -19,11 +19,9 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
-
+import ai.langstream.api.runtime.ExecutionPlan;
 import java.util.List;
 import java.util.Map;
-
-import ai.langstream.api.runtime.ExecutionPlan;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,7 +32,12 @@ public interface ApplicationStore extends GenericStore {
 
     void onTenantDeleted(String tenant);
 
-    void put(String tenant, String applicationId, Application applicationInstance, String codeArchiveReference, ExecutionPlan executionPlan);
+    void put(
+            String tenant,
+            String applicationId,
+            Application applicationInstance,
+            String codeArchiveReference,
+            ExecutionPlan executionPlan);
 
     StoredApplication get(String tenant, String applicationId, boolean queryPods);
 
@@ -46,14 +49,12 @@ public interface ApplicationStore extends GenericStore {
 
     Map<String, StoredApplication> list(String tenant);
 
-
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     class LogOptions {
         private List<String> filterReplicas;
     }
-
 
     @FunctionalInterface
     interface PodLogHandler {
@@ -65,8 +66,5 @@ public interface ApplicationStore extends GenericStore {
         boolean onLogLine(String line);
     }
 
-
     List<PodLogHandler> logs(String tenant, String applicationId, LogOptions logOptions);
-
-
 }

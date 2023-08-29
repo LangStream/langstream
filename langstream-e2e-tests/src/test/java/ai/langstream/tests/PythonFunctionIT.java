@@ -30,35 +30,49 @@ public class PythonFunctionIT extends BaseEndToEndTest {
     public void test() {
         installLangStreamCluster(false);
         final String tenant = "ten-" + System.currentTimeMillis();
-        executeCommandOnClient("""
+        executeCommandOnClient(
+                """
                 bin/langstream tenants put %s &&
-                bin/langstream configure tenant %s""".formatted(
-                tenant,
-                tenant).replace(System.lineSeparator(), " ").split(" "));
+                bin/langstream configure tenant %s"""
+                        .formatted(tenant, tenant)
+                        .replace(System.lineSeparator(), " ")
+                        .split(" "));
         String testAppsBaseDir = "src/test/resources/apps";
         String testInstanceBaseDir = "src/test/resources/instances";
         String testSecretBaseDir = "src/test/resources/secrets";
         final String applicationId = "my-test-app";
-        copyFileToClientContainer(Paths.get(testAppsBaseDir, "python-function").toFile(), "/tmp/python-function");
-        copyFileToClientContainer(Paths.get(testInstanceBaseDir, "kafka-kubernetes.yaml").toFile(), "/tmp/instance.yaml");
-        copyFileToClientContainer(Paths.get(testSecretBaseDir, "secret1.yaml").toFile(), "/tmp/secrets.yaml");
+        copyFileToClientContainer(
+                Paths.get(testAppsBaseDir, "python-function").toFile(), "/tmp/python-function");
+        copyFileToClientContainer(
+                Paths.get(testInstanceBaseDir, "kafka-kubernetes.yaml").toFile(),
+                "/tmp/instance.yaml");
+        copyFileToClientContainer(
+                Paths.get(testSecretBaseDir, "secret1.yaml").toFile(), "/tmp/secrets.yaml");
 
-
-        executeCommandOnClient("bin/langstream apps deploy %s -app /tmp/python-function -i /tmp/instance.yaml -s /tmp/secrets.yaml".formatted(applicationId).split(" "));
+        executeCommandOnClient(
+                "bin/langstream apps deploy %s -app /tmp/python-function -i /tmp/instance.yaml -s /tmp/secrets.yaml"
+                        .formatted(applicationId)
+                        .split(" "));
         client.apps()
                 .statefulSets()
                 .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)
                 .withName(applicationId + "-module-1-pipeline-1-python-function-1")
                 .waitUntilReady(4, TimeUnit.MINUTES);
 
-        executeCommandOnClient("bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30".formatted(applicationId).split(" "));
-
-        final String output = executeCommandOnClient(
-                "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30".formatted(applicationId)
+        executeCommandOnClient(
+                "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30"
+                        .formatted(applicationId)
                         .split(" "));
+
+        final String output =
+                executeCommandOnClient(
+                        "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30"
+                                .formatted(applicationId)
+                                .split(" "));
         log.info("Output: {}", output);
-        Assertions.assertTrue(output.contains("{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value\","
-                + "\"headers\":{}}"));
+        Assertions.assertTrue(
+                output.contains(
+                        "{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value\","
+                                + "\"headers\":{}}"));
     }
 }
-

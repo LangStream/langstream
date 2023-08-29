@@ -16,32 +16,33 @@
 package ai.langstream.api.runner.topics;
 
 import ai.langstream.api.model.StreamingCluster;
-
 import java.util.Map;
 
-/**
- * This is the interface that the LangStream runtime to connect to Topics.
- */
+/** This is the interface that the LangStream runtime to connect to Topics. */
 public interface TopicConnectionsRuntime {
 
+    default void init(StreamingCluster streamingCluster) {}
 
-    default void init(StreamingCluster streamingCluster){
-    }
+    TopicConsumer createConsumer(
+            String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration);
 
-    TopicConsumer createConsumer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration);
+    TopicReader createReader(
+            StreamingCluster streamingCluster,
+            Map<String, Object> configuration,
+            TopicOffsetPosition initialPosition);
 
-    TopicReader createReader(StreamingCluster streamingCluster, Map<String, Object> configuration, TopicOffsetPosition initialPosition);
+    TopicProducer createProducer(
+            String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration);
 
-    TopicProducer createProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration);
-
-    default TopicProducer createDeadletterTopicProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+    default TopicProducer createDeadletterTopicProducer(
+            String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
         return null;
     }
 
-    default TopicAdmin createTopicAdmin(String agentId,StreamingCluster streamingCluster, Map<String, Object> configuration) {
+    default TopicAdmin createTopicAdmin(
+            String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
         return new TopicAdmin() {};
     }
 
-    default void close(){
-    }
+    default void close() {}
 }

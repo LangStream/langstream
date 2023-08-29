@@ -31,7 +31,6 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.websocket.Constants;
@@ -62,27 +61,32 @@ public class WebSocketClient implements AutoCloseable {
         container.setDefaultMaxTextMessageBufferSize(32768);
     }
 
-
     public WebSocketClient connect(URI uri) {
         return connect(uri, null);
-
     }
+
     @SneakyThrows
     public WebSocketClient connect(URI uri, Duration timeout) {
         try {
             final Endpoint endpoint = new PojoEndpointClient(this, List.of(), null);
 
-            final ClientEndpointConfig clientEndpointConfig = ClientEndpointConfig.Builder.create().build();
+            final ClientEndpointConfig clientEndpointConfig =
+                    ClientEndpointConfig.Builder.create().build();
             if (timeout != null) {
-                clientEndpointConfig.getUserProperties()
+                clientEndpointConfig
+                        .getUserProperties()
                         .put(Constants.IO_TIMEOUT_MS_PROPERTY, timeout.toMillis() + "");
             }
             userSession = container.connectToServer(endpoint, clientEndpointConfig, uri);
         } catch (DeploymentException e) {
             String message = e.getMessage();
-            if (Objects.equals("The HTTP response from the server [403] did not permit the HTTP upgrade to WebSocket", message)) {
-                throw new DeploymentException("The server answered 403 (forbidden), it is very likely that you are passing a wrong token (credentials parameter) " +
-                        "or that the server requires authentication ", e);
+            if (Objects.equals(
+                    "The HTTP response from the server [403] did not permit the HTTP upgrade to WebSocket",
+                    message)) {
+                throw new DeploymentException(
+                        "The server answered 403 (forbidden), it is very likely that you are passing a wrong token (credentials parameter) "
+                                + "or that the server requires authentication ",
+                        e);
             }
             throw e;
         }

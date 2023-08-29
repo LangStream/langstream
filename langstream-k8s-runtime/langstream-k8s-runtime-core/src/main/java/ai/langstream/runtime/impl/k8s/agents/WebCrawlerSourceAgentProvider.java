@@ -19,14 +19,11 @@ import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * Implements support for WebCrawler Source Agents.
- */
+/** Implements support for WebCrawler Source Agents. */
 @Slf4j
 public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvider {
 

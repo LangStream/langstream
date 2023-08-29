@@ -20,6 +20,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
@@ -47,7 +48,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 @WireMockTest
 class ComputeEmbeddingsIT extends AbstractApplicationRunner {
 
-
     @AllArgsConstructor
     private static class EmbeddingsConfig {
         String model;
@@ -56,25 +56,23 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
 
         @Override
         public String toString() {
-            return "EmbeddingsConfig{" +
-                    "model='" + model + '\'' +
-                    '}';
+            return "EmbeddingsConfig{" + "model='" + model + '\'' + '}';
         }
     }
-
 
     static WireMockRuntimeInfo wireMockRuntimeInfo;
 
     @BeforeAll
-    static void onBeforeAll(WireMockRuntimeInfo info){
+    static void onBeforeAll(WireMockRuntimeInfo info) {
         wireMockRuntimeInfo = info;
     }
-
 
     private static Stream<Arguments> providers() {
         return Stream.of(
                 Arguments.of(
-                        new EmbeddingsConfig("textembedding-gecko", """
+                        new EmbeddingsConfig(
+                                "textembedding-gecko",
+                                """
                              configuration:
                                  resources:
                                     - type: "vertex-configuration"
@@ -84,9 +82,14 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                         region: "us-east1"
                                         project: "the-project"
                                         token: "some-token"
-                        """.formatted(wireMockRuntimeInfo.getHttpBaseUrl()),
-                                () -> stubFor(post("/v1/projects/the-project/locations/us-east1/publishers/google/models/textembedding-gecko:predict")
-                                        .willReturn(okJson(""" 
+                        """
+                                        .formatted(wireMockRuntimeInfo.getHttpBaseUrl()),
+                                () ->
+                                        stubFor(
+                                                post("/v1/projects/the-project/locations/us-east1/publishers/google/models/textembedding-gecko:predict")
+                                                        .willReturn(
+                                                                okJson(
+                                                                        """
                                            {
                                               "predictions": [
                                                 {
@@ -101,7 +104,10 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                               ]
                                             }
             """))))),
-                Arguments.of(new EmbeddingsConfig("some-model", """
+                Arguments.of(
+                        new EmbeddingsConfig(
+                                "some-model",
+                                """
                              configuration:
                                  resources:
                                     - type: "hugging-face-configuration"
@@ -111,25 +117,36 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                         model-check-url: "%s"
                                         access-key: "some-token"
                                         provider: "api"
-                        """.formatted(wireMockRuntimeInfo.getHttpBaseUrl()+"/embeddings/",
-                        wireMockRuntimeInfo.getHttpBaseUrl()+"/modelcheck/"),
+                        """
+                                        .formatted(
+                                                wireMockRuntimeInfo.getHttpBaseUrl()
+                                                        + "/embeddings/",
+                                                wireMockRuntimeInfo.getHttpBaseUrl()
+                                                        + "/modelcheck/"),
                                 () -> {
-                                    stubFor(get("/modelcheck/some-model")
-                                            .willReturn(okJson("{\"modelId\": \"some-model\",\"tags\": [\"sentence-transformers\"]}")));
-                                    stubFor(post("/embeddings/some-model")
-                                            .willReturn(okJson("[[1.0, 5.4, 8.7]]")));
-                                    }
-                )));
+                                    stubFor(
+                                            get("/modelcheck/some-model")
+                                                    .willReturn(
+                                                            okJson(
+                                                                    "{\"modelId\": \"some-model\",\"tags\": [\"sentence-transformers\"]}")));
+                                    stubFor(
+                                            post("/embeddings/some-model")
+                                                    .willReturn(okJson("[[1.0, 5.4, 8.7]]")));
+                                })));
     }
-
 
     @ParameterizedTest
     @MethodSource("providers")
     public void testComputeEmbeddings(EmbeddingsConfig config) throws Exception {
-        wireMockRuntimeInfo.getWireMock().allStubMappings().getMappings().forEach(stubMapping -> {
-            log.info("Removing stub {}", stubMapping);
-            wireMockRuntimeInfo.getWireMock().removeStubMapping(stubMapping);
-        });
+        wireMockRuntimeInfo
+                .getWireMock()
+                .allStubMappings()
+                .getMappings()
+                .forEach(
+                        stubMapping -> {
+                            log.info("Removing stub {}", stubMapping);
+                            wireMockRuntimeInfo.getWireMock().removeStubMapping(stubMapping);
+                        });
         config.stubMakers.run();
         // wait for WireMock to be ready
         Thread.sleep(1000);
@@ -141,10 +158,12 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
 
         String[] expectedAgents = new String[] {appId + "-step1"};
 
-        Map<String, String> application = Map.of(
-                "configuration.yaml",
-                config.providerConfiguration,
-                "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "configuration.yaml",
+                        config.providerConfiguration,
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -162,34 +181,46 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                       model: "%s"
                                       embeddings-field: "value.embeddings"
                                       text: "something to embed"
-                                """.formatted(inputTopic, outputTopic, inputTopic, outputTopic, config.model));
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                                """
+                                .formatted(
+                                        inputTopic,
+                                        outputTopic,
+                                        inputTopic,
+                                        outputTopic,
+                                        config.model));
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
             ExecutionPlan implementation = applicationRuntime.implementation();
             Application applicationInstance = applicationRuntime.applicationInstance();
 
             Module module = applicationInstance.getModule("module-1");
-            assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName(inputTopic))) instanceof KafkaTopic);
+            assertTrue(
+                    implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName(inputTopic)))
+                            instanceof KafkaTopic);
 
             Set<String> topics = getKafkaAdmin().listTopics().names().get();
             log.info("Topics {}", topics);
             assertTrue(topics.contains(inputTopic));
 
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumer = createConsumer(outputTopic)) {
+                    KafkaConsumer<String, String> consumer = createConsumer(outputTopic)) {
 
                 // produce one message to the input-topic
-                sendMessage(inputTopic, "{\"name\": \"some name\", \"description\": \"some description\"}", producer);
+                sendMessage(
+                        inputTopic,
+                        "{\"name\": \"some name\", \"description\": \"some description\"}",
+                        producer);
 
                 executeAgentRunners(applicationRuntime);
 
-                waitForMessages(consumer, List.of("{\"name\":\"some name\",\"description\":\"some description\",\"embeddings\":[1.0,5.4,8.7]}"));
+                waitForMessages(
+                        consumer,
+                        List.of(
+                                "{\"name\":\"some name\",\"description\":\"some description\",\"embeddings\":[1.0,5.4,8.7]}"));
             }
-
         }
-
     }
-
-
-
 }

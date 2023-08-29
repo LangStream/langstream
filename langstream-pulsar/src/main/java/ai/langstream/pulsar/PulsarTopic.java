@@ -21,7 +21,13 @@ import ai.langstream.api.runtime.Topic;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public record PulsarTopic(PulsarName name, int partitions,  SchemaDefinition keySchema, SchemaDefinition valueSchema, String createMode, boolean implicit)
+public record PulsarTopic(
+        PulsarName name,
+        int partitions,
+        SchemaDefinition keySchema,
+        SchemaDefinition valueSchema,
+        String createMode,
+        boolean implicit)
         implements ConnectionImplementation, Topic {
 
     @Override

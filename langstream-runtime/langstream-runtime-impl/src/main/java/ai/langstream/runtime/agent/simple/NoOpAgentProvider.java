@@ -19,7 +19,6 @@ import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-
 import java.util.List;
 
 public class NoOpAgentProvider implements AgentCodeProvider {

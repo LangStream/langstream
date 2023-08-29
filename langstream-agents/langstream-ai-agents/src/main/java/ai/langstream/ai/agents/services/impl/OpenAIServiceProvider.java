@@ -15,12 +15,11 @@
  */
 package ai.langstream.ai.agents.services.impl;
 
-import com.azure.ai.openai.OpenAIClient;
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
+import com.azure.ai.openai.OpenAIClient;
 import com.datastax.oss.streaming.ai.model.config.OpenAIConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
-
 import java.util.Map;
 
 public class OpenAIServiceProvider implements ServiceProviderProvider {
@@ -31,8 +30,9 @@ public class OpenAIServiceProvider implements ServiceProviderProvider {
 
     @Override
     public ServiceProvider createImplementation(Map<String, Object> agentConfiguration) {
-        OpenAIConfig config = TransformFunctionUtil
-                .convertFromMap((Map<String, Object>) agentConfiguration.get("openai"), OpenAIConfig.class);
+        OpenAIConfig config =
+                TransformFunctionUtil.convertFromMap(
+                        (Map<String, Object>) agentConfiguration.get("openai"), OpenAIConfig.class);
         OpenAIClient client = TransformFunctionUtil.buildOpenAIClient(config);
         return new com.datastax.oss.streaming.ai.services.OpenAIServiceProvider(client);
     }

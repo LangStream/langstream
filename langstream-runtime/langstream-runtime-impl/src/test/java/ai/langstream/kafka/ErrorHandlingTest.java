@@ -15,34 +15,33 @@
  */
 package ai.langstream.kafka;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.mockagents.MockProcessorAgentsCodeProvider;
 import ai.langstream.runtime.agent.AgentRunner;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
-
 @Slf4j
 class ErrorHandlingTest extends AbstractApplicationRunner {
-
 
     @Test
     public void testDiscardErrors() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step"};
 
-        Map<String, String> application = Map.of(
-                        "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -68,9 +67,11 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """);
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
+                    KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
                 sendMessage("input-topic", "fail-me", producer);
                 sendMessage("input-topic", "keep-me", producer);
@@ -87,8 +88,10 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of(
-                "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -107,10 +110,13 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """);
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumer = createConsumer("output-topic");
-                 KafkaConsumer<String, String> consumerDeadletter = createConsumer("input-topic-deadletter")) {
+                    KafkaConsumer<String, String> consumer = createConsumer("output-topic");
+                    KafkaConsumer<String, String> consumerDeadletter =
+                            createConsumer("input-topic-deadletter")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
                 List<Object> expectedMessagesDeadletter = new ArrayList<>();
@@ -134,8 +140,10 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step"};
 
-        Map<String, String> application = Map.of(
-                "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -158,7 +166,9 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """);
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
 
                 sendMessage("input-topic", "fail-me", producer);
@@ -190,8 +200,10 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step"};
 
-        Map<String, String> application = Map.of(
-                "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -216,18 +228,25 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """);
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (KafkaProducer<String, String> producer = createProducer();) {
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer(); ) {
 
                 sendMessage("input-topic", "fail-me", producer);
                 sendMessage("input-topic", "keep-me", producer);
 
                 executeAgentRunners(applicationRuntime);
 
-                Awaitility.await().untilAsserted(() -> {
-                    assertEquals(1,
-                            MockProcessorAgentsCodeProvider.FailingSink.acceptedRecords.size());
-                });
+                Awaitility.await()
+                        .untilAsserted(
+                                () -> {
+                                    assertEquals(
+                                            1,
+                                            MockProcessorAgentsCodeProvider.FailingSink
+                                                    .acceptedRecords
+                                                    .size());
+                                });
             }
         }
     }
@@ -237,8 +256,10 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step"};
 
-        Map<String, String> application = Map.of(
-                "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -261,7 +282,9 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """);
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
 
                 sendMessage("input-topic", "fail-me", producer);
@@ -288,15 +311,15 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
         }
     }
 
-
-
     @Test
     public void testDeadLetterOnSink() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of(
-                "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -313,9 +336,12 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """);
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumerDeadletter = createConsumer("input-topic-deadletter")) {
+                    KafkaConsumer<String, String> consumerDeadletter =
+                            createConsumer("input-topic-deadletter")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
                 List<Object> expectedMessagesDeadletter = new ArrayList<>();
@@ -330,10 +356,15 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
 
                 waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
 
-                Awaitility.await().untilAsserted(() -> {
-                    assertEquals(10,
-                            MockProcessorAgentsCodeProvider.FailingSink.acceptedRecords.size());
-                });
+                Awaitility.await()
+                        .untilAsserted(
+                                () -> {
+                                    assertEquals(
+                                            10,
+                                            MockProcessorAgentsCodeProvider.FailingSink
+                                                    .acceptedRecords
+                                                    .size());
+                                });
             }
         }
     }

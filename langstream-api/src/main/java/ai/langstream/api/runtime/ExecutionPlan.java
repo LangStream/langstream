@@ -19,17 +19,14 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * This is the implementation of an application that can be deployed on a RuntimeCluster
- */
+/** This is the implementation of an application that can be deployed on a RuntimeCluster */
 @Slf4j
 @Data
 public final class ExecutionPlan {
@@ -46,6 +43,7 @@ public final class ExecutionPlan {
 
     /**
      * Get reference to the source application instance
+     *
      * @return the source application definition
      */
     public Application getApplication() {
@@ -54,11 +52,13 @@ public final class ExecutionPlan {
 
     /**
      * Get a connection implementation.
+     *
      * @param module the module
      * @param connection the connection
      * @return the connection implementation
      */
-    public ConnectionImplementation getConnectionImplementation(Module module, Connection connection) {
+    public ConnectionImplementation getConnectionImplementation(
+            Module module, Connection connection) {
         return switch (connection.connectionType()) {
             case AGENT -> getAgentImplementation(module, connection.definition());
             case TOPIC -> getTopicByName(connection.definition());
@@ -67,6 +67,7 @@ public final class ExecutionPlan {
 
     /**
      * Get all the Logical Topics to be deployed on the StreamingCluster
+     *
      * @return the topics to be deployed on the StreamingCluster
      */
     public List<Topic> getLogicalTopics() {
@@ -75,6 +76,7 @@ public final class ExecutionPlan {
 
     /**
      * Register the implementation of a topic
+     *
      * @param topicDefinition the topic definition
      * @param topicImplementation the topic implementation
      */
@@ -84,21 +86,28 @@ public final class ExecutionPlan {
 
     /**
      * Discard a topic implementation
+     *
      * @param topicImplementation the topic implementation
      */
     public void discardTopic(ConnectionImplementation topicImplementation) {
-        topics.entrySet()
-                .stream()
-                .filter(e -> {
-                    boolean res = e.getValue().equals(topicImplementation);
-                    log.info("Compare {} with {}: {}", topicImplementation, e.getValue(), res);
-                    return res;
-                }).findFirst()
+        topics.entrySet().stream()
+                .filter(
+                        e -> {
+                            boolean res = e.getValue().equals(topicImplementation);
+                            log.info(
+                                    "Compare {} with {}: {}",
+                                    topicImplementation,
+                                    e.getValue(),
+                                    res);
+                            return res;
+                        })
+                .findFirst()
                 .ifPresent(e -> topics.remove(e.getKey()));
     }
 
     /**
      * Get an existing agent implementation
+     *
      * @param module the module
      * @param id the id of the agent
      * @return the agent
@@ -109,7 +118,11 @@ public final class ExecutionPlan {
 
     public void registerAgent(Module module, String id, AgentNode agentImplementation) {
         String internalId = module.getId() + "#" + id;
-        log.info("registering agent {} for module {} with id {}", agentImplementation, module.getId(), id);
+        log.info(
+                "registering agent {} for module {} with id {}",
+                agentImplementation,
+                module.getId(),
+                id);
         agents.put(internalId, agentImplementation);
     }
 
@@ -118,9 +131,7 @@ public final class ExecutionPlan {
     }
 
     public Topic getTopicByName(String name) {
-        return topics
-                .entrySet()
-                .stream()
+        return topics.entrySet().stream()
                 .filter(e -> e.getKey().getName().equals(name))
                 .findFirst()
                 .map(Map.Entry::getValue)
@@ -128,9 +139,7 @@ public final class ExecutionPlan {
     }
 
     public TopicDefinition getTopicDefinitionByName(String name) {
-        return topics
-                .entrySet()
-                .stream()
+        return topics.entrySet().stream()
                 .filter(e -> e.getKey().getName().equals(name))
                 .findFirst()
                 .map(Map.Entry::getKey)

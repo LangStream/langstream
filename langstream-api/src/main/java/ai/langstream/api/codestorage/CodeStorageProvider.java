@@ -21,6 +21,7 @@ public interface CodeStorageProvider {
 
     /**
      * Create an Implementation of a CodeStorage implementation.
+     *
      * @param codeStorageType the type of CodeStorage implementation
      * @return the implementation
      */
@@ -28,9 +29,9 @@ public interface CodeStorageProvider {
 
     /**
      * Returns the ability of an Agent to be deployed on the give runtimes.
+     *
      * @param codeStorageType the type of CodeStorage implementation
      * @return true if this provider that can create the implementation
      */
     boolean supports(String codeStorageType);
-
 }

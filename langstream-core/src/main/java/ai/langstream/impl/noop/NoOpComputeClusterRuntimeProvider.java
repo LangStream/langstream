@@ -20,13 +20,10 @@ import ai.langstream.api.runtime.ComputeClusterRuntimeProvider;
 import ai.langstream.api.runtime.ExecutionPlanOptimiser;
 import ai.langstream.impl.agents.ComposableAgentExecutionPlanOptimiser;
 import ai.langstream.impl.common.BasicClusterRuntime;
-
 import java.util.List;
 import java.util.Map;
 
-/**
- * This is a dummy implementation of a ClusterRuntimeProvider useful mostly for unit tests.
- */
+/** This is a dummy implementation of a ClusterRuntimeProvider useful mostly for unit tests. */
 public class NoOpComputeClusterRuntimeProvider implements ComputeClusterRuntimeProvider {
 
     public static final String CLUSTER_TYPE = "none";
@@ -43,8 +40,8 @@ public class NoOpComputeClusterRuntimeProvider implements ComputeClusterRuntimeP
 
     public static class NoOpClusterRuntime extends BasicClusterRuntime {
 
-        static final List<ExecutionPlanOptimiser> OPTIMISERS = List.of(
-                new ComposableAgentExecutionPlanOptimiser());
+        static final List<ExecutionPlanOptimiser> OPTIMISERS =
+                List.of(new ComposableAgentExecutionPlanOptimiser());
 
         @Override
         public String getClusterType() {
@@ -59,5 +56,4 @@ public class NoOpComputeClusterRuntimeProvider implements ComputeClusterRuntimeP
             return OPTIMISERS;
         }
     }
-
 }

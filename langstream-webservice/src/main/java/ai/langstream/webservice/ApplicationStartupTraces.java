@@ -26,139 +26,144 @@ import org.springframework.core.env.Environment;
 
 final class ApplicationStartupTraces {
 
-  private static final String SEPARATOR = "-".repeat(58);
-  private static final String BREAK = "\n";
+    private static final String SEPARATOR = "-".repeat(58);
+    private static final String BREAK = "\n";
 
-  private static final Logger log = LoggerFactory.getLogger(ApplicationStartupTraces.class);
+    private static final Logger log = LoggerFactory.getLogger(ApplicationStartupTraces.class);
 
-  private ApplicationStartupTraces() {}
+    private ApplicationStartupTraces() {}
 
-  static String of(Environment environment) {
-    Objects.requireNonNull(environment, "Environment must not be null");
+    static String of(Environment environment) {
+        Objects.requireNonNull(environment, "Environment must not be null");
 
-    return new ApplicationStartupTracesBuilder()
-      .append(BREAK)
-      .appendSeparator()
-      .append(applicationRunningTrace(environment))
-      .append(localUrl(environment))
-      .append(externalUrl(environment))
-      .append(profilesTrace(environment))
-      .appendSeparator()
-      .append(configServer(environment))
-      .build();
-  }
-
-  private static String applicationRunningTrace(Environment environment) {
-    String applicationId = environment.getProperty("spring.application.name");
-
-    if (StringUtils.isBlank(applicationId)) {
-      return "Application is running!";
+        return new ApplicationStartupTracesBuilder()
+                .append(BREAK)
+                .appendSeparator()
+                .append(applicationRunningTrace(environment))
+                .append(localUrl(environment))
+                .append(externalUrl(environment))
+                .append(profilesTrace(environment))
+                .appendSeparator()
+                .append(configServer(environment))
+                .build();
     }
 
-    return "Application '%s' is running!".formatted(applicationId);
-  }
+    private static String applicationRunningTrace(Environment environment) {
+        String applicationId = environment.getProperty("spring.application.name");
 
-  private static String localUrl(Environment environment) {
-    return url("Local", "localhost", environment);
-  }
+        if (StringUtils.isBlank(applicationId)) {
+            return "Application is running!";
+        }
 
-  private static String externalUrl(Environment environment) {
-    return url("External", hostAddress(), environment);
-  }
-
-  private static String url(String type, String host, Environment environment) {
-    if (notWebEnvironment(environment)) {
-      return null;
+        return "Application '%s' is running!".formatted(applicationId);
     }
 
-    return "%s: \t%s://%s:%s%s".formatted(type, protocol(environment), host, port(environment),
-        contextPath(environment));
-  }
-
-  private static boolean notWebEnvironment(Environment environment) {
-    return StringUtils.isBlank(environment.getProperty("server.port"));
-  }
-
-  private static String protocol(Environment environment) {
-    if (noKeyStore(environment)) {
-      return "http";
+    private static String localUrl(Environment environment) {
+        return url("Local", "localhost", environment);
     }
 
-    return "https";
-  }
-
-  private static boolean noKeyStore(Environment environment) {
-    return StringUtils.isBlank(environment.getProperty("server.ssl.key-store"));
-  }
-
-  private static String port(Environment environment) {
-    return environment.getProperty("server.port");
-  }
-
-  private static String profilesTrace(Environment environment) {
-    String[] profiles = environment.getActiveProfiles();
-
-    if (ArrayUtils.isEmpty(profiles)) {
-      return null;
+    private static String externalUrl(Environment environment) {
+        return url("External", hostAddress(), environment);
     }
 
-    return "Profile(s): \t%s".formatted(String.join(", ", profiles));
-  }
+    private static String url(String type, String host, Environment environment) {
+        if (notWebEnvironment(environment)) {
+            return null;
+        }
 
-  private static String hostAddress() {
-    try {
-      return InetAddress.getLocalHost().getHostAddress();
-    } catch (UnknownHostException e) {
-      log.warn("The host name could not be determined, using `localhost` as fallback");
+        return "%s: \t%s://%s:%s%s"
+                .formatted(
+                        type,
+                        protocol(environment),
+                        host,
+                        port(environment),
+                        contextPath(environment));
     }
 
-    return "localhost";
-  }
-
-  private static String contextPath(Environment environment) {
-    String contextPath = environment.getProperty("server.servlet.context-path");
-
-    if (StringUtils.isBlank(contextPath)) {
-      return "/";
+    private static boolean notWebEnvironment(Environment environment) {
+        return StringUtils.isBlank(environment.getProperty("server.port"));
     }
 
-    return contextPath;
-  }
+    private static String protocol(Environment environment) {
+        if (noKeyStore(environment)) {
+            return "http";
+        }
 
-  private static String configServer(Environment environment) {
-    String configServer = environment.getProperty("configserver.status");
-
-    if (StringUtils.isBlank(configServer)) {
-      return null;
+        return "https";
     }
 
-    return "Config Server: %s%s%s%s".formatted(configServer, BREAK, SEPARATOR, BREAK);
-  }
-
-  private static class ApplicationStartupTracesBuilder {
-
-    private static final String SPACER = "  ";
-
-    private final StringBuilder trace = new StringBuilder();
-
-    public ApplicationStartupTracesBuilder appendSeparator() {
-      trace.append(SEPARATOR).append(BREAK);
-
-      return this;
+    private static boolean noKeyStore(Environment environment) {
+        return StringUtils.isBlank(environment.getProperty("server.ssl.key-store"));
     }
 
-    public ApplicationStartupTracesBuilder append(String line) {
-      if (line == null) {
-        return this;
-      }
-
-      trace.append(SPACER).append(line).append(BREAK);
-
-      return this;
+    private static String port(Environment environment) {
+        return environment.getProperty("server.port");
     }
 
-    public String build() {
-      return trace.toString();
+    private static String profilesTrace(Environment environment) {
+        String[] profiles = environment.getActiveProfiles();
+
+        if (ArrayUtils.isEmpty(profiles)) {
+            return null;
+        }
+
+        return "Profile(s): \t%s".formatted(String.join(", ", profiles));
     }
-  }
+
+    private static String hostAddress() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            log.warn("The host name could not be determined, using `localhost` as fallback");
+        }
+
+        return "localhost";
+    }
+
+    private static String contextPath(Environment environment) {
+        String contextPath = environment.getProperty("server.servlet.context-path");
+
+        if (StringUtils.isBlank(contextPath)) {
+            return "/";
+        }
+
+        return contextPath;
+    }
+
+    private static String configServer(Environment environment) {
+        String configServer = environment.getProperty("configserver.status");
+
+        if (StringUtils.isBlank(configServer)) {
+            return null;
+        }
+
+        return "Config Server: %s%s%s%s".formatted(configServer, BREAK, SEPARATOR, BREAK);
+    }
+
+    private static class ApplicationStartupTracesBuilder {
+
+        private static final String SPACER = "  ";
+
+        private final StringBuilder trace = new StringBuilder();
+
+        public ApplicationStartupTracesBuilder appendSeparator() {
+            trace.append(SEPARATOR).append(BREAK);
+
+            return this;
+        }
+
+        public ApplicationStartupTracesBuilder append(String line) {
+            if (line == null) {
+                return this;
+            }
+
+            trace.append(SPACER).append(line).append(BREAK);
+
+            return this;
+        }
+
+        public String build() {
+            return trace.toString();
+        }
+    }
 }

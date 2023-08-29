@@ -17,11 +17,10 @@ package ai.langstream.pulsar;
 
 import ai.langstream.api.model.StreamingCluster;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.api.PulsarClient;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.api.PulsarClient;
 
 public class PulsarClientUtils {
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -39,13 +38,11 @@ public class PulsarClientUtils {
             adminConfig.putAll(pulsarClusterRuntimeConfiguration.getAuthentication());
         }
         adminConfig.putIfAbsent("serviceUrl", "http://localhost:8080");
-        return PulsarAdmin
-                .builder()
-                .loadConf(adminConfig)
-                .build();
+        return PulsarAdmin.builder().loadConf(adminConfig).build();
     }
 
-    public static PulsarClient buildPulsarClient(StreamingCluster streamingCluster) throws Exception {
+    public static PulsarClient buildPulsarClient(StreamingCluster streamingCluster)
+            throws Exception {
         final PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration =
                 getPulsarClusterRuntimeConfiguration(streamingCluster);
         Map<String, Object> clientConfig = pulsarClusterRuntimeConfiguration.getService();
@@ -58,13 +55,11 @@ public class PulsarClientUtils {
             clientConfig.putAll(pulsarClusterRuntimeConfiguration.getAuthentication());
         }
         clientConfig.putIfAbsent("serviceUrl", "pulsar://localhost:6650");
-        return PulsarClient
-                .builder()
-                .loadConf(clientConfig)
-                .build();
+        return PulsarClient.builder().loadConf(clientConfig).build();
     }
 
-    public static PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(StreamingCluster streamingCluster) {
+    public static PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(
+            StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
         return MAPPER.convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
     }

@@ -16,14 +16,11 @@
 package ai.langstream.ai.agents.datasource;
 
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Map;
 import java.util.ServiceLoader;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * This is the API to load a CodeStorage implementation.
- */
+/** This is the API to load a CodeStorage implementation. */
 @Slf4j
 public class DataSourceProviderRegistry {
 
@@ -34,14 +31,16 @@ public class DataSourceProviderRegistry {
         log.info("Loading DataSource implementation for {}", dataSourceConfig);
 
         ServiceLoader<DataSourceProvider> loader = ServiceLoader.load(DataSourceProvider.class);
-        ServiceLoader.Provider<DataSourceProvider> provider = loader
-                .stream()
-                .filter(p -> p.get().supports(dataSourceConfig))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No DataSource found for resource " + dataSourceConfig));
+        ServiceLoader.Provider<DataSourceProvider> provider =
+                loader.stream()
+                        .filter(p -> p.get().supports(dataSourceConfig))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new RuntimeException(
+                                                "No DataSource found for resource "
+                                                        + dataSourceConfig));
 
         return provider.get().createDataSourceImplementation(dataSourceConfig);
     }
-
-
 }

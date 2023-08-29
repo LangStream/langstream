@@ -15,24 +15,26 @@
  */
 package ai.langstream.model.parser;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.impl.parser.ModelBuilder;
-import org.junit.jupiter.api.Test;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Test;
 
 public class ResourcesSpecsTest {
 
     @Test
     public void testConfigureResourceSpecs() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                                """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 resources:
@@ -59,7 +61,8 @@ public class ResourcesSpecsTest {
                                        size: 3
                                        parallelism: 5
                                 """,
-                        "module2.yaml", """
+                                        "module2.yaml",
+                                                """
                                 module: "module-2"
                                 id: "pipeline-2"
                                 topics:
@@ -82,7 +85,10 @@ public class ResourcesSpecsTest {
                                     resources:
                                        size: 3
                                        parallelism: 5
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
         {
             Module module = applicationInstance.getModule("module-1");
@@ -123,7 +129,6 @@ public class ResourcesSpecsTest {
             assertEquals(1, agent3.getResources().parallelism());
             assertEquals(3, agent3.getResources().size());
         }
-
     }
 
     private static String buildInstanceYaml() {

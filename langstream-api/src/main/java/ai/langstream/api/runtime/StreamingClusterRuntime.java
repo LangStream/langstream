@@ -16,58 +16,61 @@
 package ai.langstream.api.runtime;
 
 import ai.langstream.api.model.TopicDefinition;
-
 import java.util.Map;
 
 /**
- * This is the interface that the LangStream framework uses to interact with the StreamingCluster. It is used to
- * model a physical cluster runtime with Brokers (Pulsar, Kafka....)
+ * This is the interface that the LangStream framework uses to interact with the StreamingCluster.
+ * It is used to model a physical cluster runtime with Brokers (Pulsar, Kafka....)
  */
 public interface StreamingClusterRuntime extends AutoCloseable {
 
     /**
      * Deploy the topics on the StreamingCluster
+     *
      * @param applicationInstance the physical application instance
      */
-    default void deploy(ExecutionPlan applicationInstance) {
-    }
+    default void deploy(ExecutionPlan applicationInstance) {}
 
     /**
      * Undeploy all the resources created on the StreamingCluster
+     *
      * @param applicationInstance the physical application instance
      */
-    default void delete(ExecutionPlan applicationInstance){
-    }
+    default void delete(ExecutionPlan applicationInstance) {}
 
     /**
      * Map a Logical TopicDefinition to a Physical TopicImplementation
+     *
      * @param topicDefinition the logical topic definition
      * @return the physical topic implementation
      */
-    Topic createTopicImplementation(TopicDefinition topicDefinition, ExecutionPlan applicationInstance);
+    Topic createTopicImplementation(
+            TopicDefinition topicDefinition, ExecutionPlan applicationInstance);
 
     /**
-     * Create the configuration to consume from a topic.
-     * The contents of the map are specific to the StreamingCluster implementation.
+     * Create the configuration to consume from a topic. The contents of the map are specific to the
+     * StreamingCluster implementation.
+     *
      * @param inputConnectionImplementation the input connection implementation
      * @return the configuration
      */
-    default Map<String, Object> createConsumerConfiguration(AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
+    default Map<String, Object> createConsumerConfiguration(
+            AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
         return Map.of();
     }
 
     /**
-     * Create the configuration to produce to a topic.
-     * The contents of the map are specific to the StreamingCluster implementation.
+     * Create the configuration to produce to a topic. The contents of the map are specific to the
+     * StreamingCluster implementation.
+     *
      * @param outputConnectionImplementation the output connection implementation
      * @return the configuration
      */
-    default Map<String, Object> createProducerConfiguration(AgentNode agentImplementation, ConnectionImplementation outputConnectionImplementation) {
+    default Map<String, Object> createProducerConfiguration(
+            AgentNode agentImplementation,
+            ConnectionImplementation outputConnectionImplementation) {
         return Map.of();
     }
 
-    default void close() {
-
-    }
-
+    default void close() {}
 }

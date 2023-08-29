@@ -15,6 +15,10 @@
  */
 package ai.langstream.runtime.impl.k8s;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -28,16 +32,11 @@ import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.noop.NoOpStreamingClusterRuntimeProvider;
 import ai.langstream.impl.parser.ModelBuilder;
+import java.util.Map;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
-
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class KafkaConnectAgentsTest {
@@ -55,8 +54,11 @@ class KafkaConnectAgentsTest {
 
     @Test
     public void testConfigureKafkaConnectSink() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -70,25 +72,31 @@ class KafkaConnectAgentsTest {
                                     configuration:
                                       connector.class: FileStreamSink
                                       file: /tmp/test.sink.txt
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertEquals(1, implementation.getAgents().size());
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        DefaultAgentNode step =
-                (DefaultAgentNode) agentImplementation;
+        DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         assertEquals("FileStreamSink", configuration.get("connector.class"));
@@ -99,9 +107,11 @@ class KafkaConnectAgentsTest {
 
     @Test
     public void testConfigureKafkaConnectSources() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -115,25 +125,31 @@ class KafkaConnectAgentsTest {
                                     configuration:
                                       connector.class: FileStreamSource
                                       file: /tmp/test.txt
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertEquals(1, implementation.getAgents().size());
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("output-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        DefaultAgentNode step =
-                (DefaultAgentNode) agentImplementation;
+        DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         assertEquals("FileStreamSource", configuration.get("connector.class"));
@@ -141,5 +157,4 @@ class KafkaConnectAgentsTest {
         assertEquals("/tmp/test.txt", configuration.get("file"));
         assertEquals(ComponentType.SOURCE, step.getComponentType());
     }
-
 }

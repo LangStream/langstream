@@ -25,7 +25,6 @@ import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
 import java.net.URI;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,30 +32,24 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TestWebSocketClient implements AutoCloseable {
 
+    public static final Handler NOOP =
+            new Handler() {
+                @Override
+                public void onMessage(String msg) {}
 
-    public static final Handler NOOP = new Handler() {
-        @Override
-        public void onMessage(String msg) {
+                @Override
+                public void onClose(CloseReason closeReason) {}
 
-        }
-
-        @Override
-        public void onClose(CloseReason closeReason) {
-
-        }
-
-        @Override
-        public void onError(Throwable throwable) {
-
-        }
-    };
-
+                @Override
+                public void onError(Throwable throwable) {}
+            };
 
     public interface Handler {
 
         default void onOpen(Session session) {
             log.info("onOpen client: {}", session.getId());
         }
+
         void onMessage(String msg);
 
         void onClose(CloseReason closeReason);
@@ -69,7 +62,6 @@ public class TestWebSocketClient implements AutoCloseable {
     protected WebSocketContainer container;
     protected Session userSession = null;
     private final Handler eventHandler;
-
 
     public TestWebSocketClient(Handler eventHandler) {
         this.eventHandler = eventHandler;

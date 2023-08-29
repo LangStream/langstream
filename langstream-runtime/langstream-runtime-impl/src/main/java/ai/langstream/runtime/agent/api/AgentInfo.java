@@ -26,7 +26,6 @@ public class AgentInfo {
     private AgentCode source;
     private AgentCode sink;
 
-
     public void watchProcessor(AgentProcessor processor) {
         this.processor = processor;
     }
@@ -40,8 +39,9 @@ public class AgentInfo {
     }
 
     /**
-     * This is serving the data to the Control Plane,
-     * changing the format is a breaking change, please take care to backward compatibility.
+     * This is serving the data to the Control Plane, changing the format is a breaking change,
+     * please take care to backward compatibility.
+     *
      * @return the status of the worker
      */
     public List<AgentStatusResponse> serveWorkerStatus() {
@@ -57,5 +57,4 @@ public class AgentInfo {
         }
         return result;
     }
-
 }

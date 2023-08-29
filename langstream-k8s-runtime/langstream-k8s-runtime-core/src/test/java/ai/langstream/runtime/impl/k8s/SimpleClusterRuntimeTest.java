@@ -15,6 +15,11 @@
  */
 package ai.langstream.runtime.impl.k8s;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -26,17 +31,11 @@ import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.noop.NoOpStreamingClusterRuntimeProvider;
 import ai.langstream.impl.parser.ModelBuilder;
+import java.util.Map;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
-
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class SimpleClusterRuntimeTest {
@@ -54,9 +53,11 @@ class SimpleClusterRuntimeTest {
 
     @Test
     public void testMapGenericPulsarFunctionsChain() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -81,59 +82,80 @@ class SimpleClusterRuntimeTest {
                                     configuration:
                                       config1: "value"
                                       config2: "value2"
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         {
-            assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("input-topic")));
+            assertTrue(
+                    implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                            instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(
+                    implementation.getTopics().values().stream()
+                            .anyMatch(t -> t.topicName().equals("input-topic")));
         }
         {
-            assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("output-topic")));
+            assertTrue(
+                    implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName("output-topic")))
+                            instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(
+                    implementation.getTopics().values().stream()
+                            .anyMatch(t -> t.topicName().equals("output-topic")));
         }
 
         {
-            assertTrue(implementation.getConnectionImplementation(module, Connection.fromTopic(
-                    TopicDefinition.fromName("agent-function-2-id-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("agent-function-2-id-input")));
+            assertTrue(
+                    implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(
+                                            TopicDefinition.fromName("agent-function-2-id-input")))
+                            instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(
+                    implementation.getTopics().values().stream()
+                            .anyMatch(t -> t.topicName().equals("agent-function-2-id-input")));
         }
-
 
         assertEquals(3, implementation.getTopics().size());
 
         {
-            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
+            AgentNode agentImplementation =
+                    implementation.getAgentImplementation(module, "function-1-id");
             assertNotNull(agentImplementation);
             assertEquals("generic-agent", agentImplementation.getAgentType());
             assertEquals("function-1-id", agentImplementation.getId());
         }
 
         {
-            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
+            AgentNode agentImplementation =
+                    implementation.getAgentImplementation(module, "function-2-id");
             assertNotNull(agentImplementation);
             assertEquals("generic-agent", agentImplementation.getAgentType());
             assertEquals("function-2-id", agentImplementation.getId());
         }
-
     }
-
 
     @Test
     public void testCreateDeadletterTopicsWithIntermediateTopics1() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 errors:
@@ -161,62 +183,86 @@ class SimpleClusterRuntimeTest {
                                     configuration:
                                       config1: "value"
                                       config2: "value2"
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         {
-            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic = (NoOpStreamingClusterRuntimeProvider.SimpleTopic) implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName("input-topic")));
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("input-topic")));
+            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic =
+                    (NoOpStreamingClusterRuntimeProvider.SimpleTopic)
+                            implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName("input-topic")));
+            assertTrue(
+                    implementation.getTopics().values().stream()
+                            .anyMatch(t -> t.topicName().equals("input-topic")));
             assertNotNull(simpleTopic.getDeadletterTopic());
             assertEquals("input-topic-deadletter", simpleTopic.getDeadletterTopic().topicName());
         }
         {
-            assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("output-topic")));
+            assertTrue(
+                    implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName("output-topic")))
+                            instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(
+                    implementation.getTopics().values().stream()
+                            .anyMatch(t -> t.topicName().equals("output-topic")));
         }
 
         {
-            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic =  (NoOpStreamingClusterRuntimeProvider.SimpleTopic) implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName("agent-function-2-id-input")));
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("agent-function-2-id-input")));
+            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic =
+                    (NoOpStreamingClusterRuntimeProvider.SimpleTopic)
+                            implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(
+                                            TopicDefinition.fromName("agent-function-2-id-input")));
+            assertTrue(
+                    implementation.getTopics().values().stream()
+                            .anyMatch(t -> t.topicName().equals("agent-function-2-id-input")));
             assertNotNull(simpleTopic.getDeadletterTopic());
-            assertEquals("agent-function-2-id-input-deadletter", simpleTopic.getDeadletterTopic().topicName());
+            assertEquals(
+                    "agent-function-2-id-input-deadletter",
+                    simpleTopic.getDeadletterTopic().topicName());
         }
-
 
         assertEquals(5, implementation.getTopics().size());
 
         {
-            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
+            AgentNode agentImplementation =
+                    implementation.getAgentImplementation(module, "function-1-id");
             assertNotNull(agentImplementation);
             assertEquals("generic-agent", agentImplementation.getAgentType());
             assertEquals("function-1-id", agentImplementation.getId());
         }
 
         {
-            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
+            AgentNode agentImplementation =
+                    implementation.getAgentImplementation(module, "function-2-id");
             assertNotNull(agentImplementation);
             assertEquals("generic-agent", agentImplementation.getAgentType());
             assertEquals("function-2-id", agentImplementation.getId());
         }
-
     }
 
     @Test
     public void testCreateDeadletterTopicsWithIntermediateTopics2() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 errors:
@@ -247,56 +293,73 @@ class SimpleClusterRuntimeTest {
                                     configuration:
                                       config1: "value"
                                       config2: "value2"
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
-
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         {
-            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic = (NoOpStreamingClusterRuntimeProvider.SimpleTopic) implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName("input-topic")));
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("input-topic")));
+            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic =
+                    (NoOpStreamingClusterRuntimeProvider.SimpleTopic)
+                            implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName("input-topic")));
+            assertTrue(
+                    implementation.getTopics().values().stream()
+                            .anyMatch(t -> t.topicName().equals("input-topic")));
             assertNotNull(simpleTopic.getDeadletterTopic());
             assertEquals("input-topic-deadletter", simpleTopic.getDeadletterTopic().topicName());
         }
         {
-            assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("output-topic")));
+            assertTrue(
+                    implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName("output-topic")))
+                            instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(
+                    implementation.getTopics().values().stream()
+                            .anyMatch(t -> t.topicName().equals("output-topic")));
         }
 
         {
-            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic =  (NoOpStreamingClusterRuntimeProvider.SimpleTopic) implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName("agent-function-2-id-input")));
-            assertTrue(implementation.getTopics().values().stream().anyMatch( t-> t.topicName().equals("agent-function-2-id-input")));
+            NoOpStreamingClusterRuntimeProvider.SimpleTopic simpleTopic =
+                    (NoOpStreamingClusterRuntimeProvider.SimpleTopic)
+                            implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(
+                                            TopicDefinition.fromName("agent-function-2-id-input")));
+            assertTrue(
+                    implementation.getTopics().values().stream()
+                            .anyMatch(t -> t.topicName().equals("agent-function-2-id-input")));
             assertNull(simpleTopic.getDeadletterTopic());
         }
-
 
         assertEquals(4, implementation.getTopics().size());
 
         {
-            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-1-id");
+            AgentNode agentImplementation =
+                    implementation.getAgentImplementation(module, "function-1-id");
             assertNotNull(agentImplementation);
             assertEquals("generic-agent", agentImplementation.getAgentType());
             assertEquals("function-1-id", agentImplementation.getId());
         }
 
         {
-            AgentNode agentImplementation = implementation.getAgentImplementation(module, "function-2-id");
+            AgentNode agentImplementation =
+                    implementation.getAgentImplementation(module, "function-2-id");
             assertNotNull(agentImplementation);
             assertEquals("generic-agent", agentImplementation.getAgentType());
             assertEquals("function-2-id", agentImplementation.getId());
         }
-
-
     }
-
 }

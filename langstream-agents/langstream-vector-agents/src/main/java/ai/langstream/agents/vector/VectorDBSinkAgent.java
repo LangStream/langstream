@@ -30,14 +30,14 @@ public class VectorDBSinkAgent extends AbstractAgentCode implements AgentSink {
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
-        Map<String, Object> datasourceConfiguration = (Map<String, Object>) configuration.get("datasource");
+        Map<String, Object> datasourceConfiguration =
+                (Map<String, Object>) configuration.get("datasource");
         writer = VectorDatabaseWriterProviderRegistry.createWriter(datasourceConfiguration);
         writer.initialise(configuration);
     }
 
     @Override
-    public void start() {
-    }
+    public void start() {}
 
     @Override
     public void close() throws Exception {

@@ -18,10 +18,10 @@ package ai.langstream.agents.text;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.tika.langdetect.tika.LanguageIdentifier;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.tika.langdetect.tika.LanguageIdentifier;
 
 @Slf4j
 public class LanguageDetectorAgent extends SingleRecordAgentProcessor {
@@ -39,7 +39,10 @@ public class LanguageDetectorAgent extends SingleRecordAgentProcessor {
         } else {
             allowedLanguages = List.of();
         }
-        log.info("Configuring Language Detectors with field {} and allowed languages {}", property, allowedLanguages);
+        log.info(
+                "Configuring Language Detectors with field {} and allowed languages {}",
+                property,
+                allowedLanguages);
     }
 
     @Override
@@ -53,14 +56,20 @@ public class LanguageDetectorAgent extends SingleRecordAgentProcessor {
         String language = identifier.getLanguage();
 
         if (!allowedLanguages.isEmpty() && !allowedLanguages.contains(language)) {
-            log.info("Skipping record with language {} not in allowed languages {}", language, allowedLanguages);
+            log.info(
+                    "Skipping record with language {} not in allowed languages {}",
+                    language,
+                    allowedLanguages);
             return List.of();
         }
 
-        Record result = SimpleRecord
-                .copyFrom(record)
-                .headers(Utils.addHeader(record.headers(), SimpleRecord.SimpleHeader.of(property, language)))
-                .build();
+        Record result =
+                SimpleRecord.copyFrom(record)
+                        .headers(
+                                Utils.addHeader(
+                                        record.headers(),
+                                        SimpleRecord.SimpleHeader.of(property, language)))
+                        .build();
 
         return List.of(result);
     }

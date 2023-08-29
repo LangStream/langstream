@@ -50,8 +50,11 @@ class KubernetesApplicationStoreLogsTest {
         AgentCustomResource cr = agentCustomResource("mytenant", "myapp");
         k3s.getClient().resource(cr).inNamespace("langstream-mytenant").serverSideApply();
         cr = k3s.getClient().resource(cr).inNamespace("langstream-mytenant").get();
-        final StatefulSet sts =
-                AgentResourcesFactory.generateStatefulSet(cr, new AgentResourceUnitConfiguration());
+        final StatefulSet sts = AgentResourcesFactory.generateStatefulSet(
+                AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                .agentCustomResource(cr)
+                .build()
+        );
         sts.getSpec().getTemplate().getSpec().getInitContainers().clear();
         sts.getSpec()
                 .getTemplate()

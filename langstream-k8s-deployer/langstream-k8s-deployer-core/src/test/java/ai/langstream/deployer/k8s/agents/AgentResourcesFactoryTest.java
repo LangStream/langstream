@@ -42,8 +42,8 @@ class AgentResourcesFactoryTest {
                   name: test-agent1
                   namespace: default
                 spec:
-                    image: busybox
-                    imagePullPolicy: Never
+                    image: busybox-nope
+                    imagePullPolicy: Always
                     agentConfigSecretRef: agent-config
                     agentConfigSecretRefChecksum: xx
                     tenant: my-tenant
@@ -51,10 +51,12 @@ class AgentResourcesFactoryTest {
                     agentId: my-agent
                 """);
         final StatefulSet statefulSet =
-                AgentResourcesFactory.generateStatefulSet(
-                        resource, new AgentResourceUnitConfiguration());
-        assertEquals(
-                """
+                AgentResourcesFactory.generateStatefulSet(AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                        .agentCustomResource(resource)
+                        .image("busybox")
+                        .imagePullPolicy("Never")
+                        .build());
+        assertEquals("""
                         ---
                         apiVersion: apps/v1
                         kind: StatefulSet
@@ -199,8 +201,9 @@ class AgentResourcesFactoryTest {
                         size: 4
                 """);
         final StatefulSet statefulSet =
-                AgentResourcesFactory.generateStatefulSet(
-                        resource, new AgentResourceUnitConfiguration());
+                AgentResourcesFactory.generateStatefulSet(AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                        .agentCustomResource(resource)
+                        .build());
         assertEquals(2, statefulSet.getSpec().getReplicas());
         final Container container =
                 statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0);
@@ -237,10 +240,11 @@ class AgentResourcesFactoryTest {
                                         .build()),
                         Map.of("workload", "langstream"));
         final StatefulSet statefulSet =
-                AgentResourcesFactory.generateStatefulSet(
-                        resource, new AgentResourceUnitConfiguration(), podTemplate);
-        final List<Toleration> tolerations =
-                statefulSet.getSpec().getTemplate().getSpec().getTolerations();
+                AgentResourcesFactory.generateStatefulSet(AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                        .agentCustomResource(resource)
+                        .podTemplate(podTemplate)
+                        .build());
+        final List<Toleration> tolerations = statefulSet.getSpec().getTemplate().getSpec().getTolerations();
         assertEquals(1, tolerations.size());
         final Toleration tol = tolerations.get(0);
         assertEquals("workload", tol.getKey());

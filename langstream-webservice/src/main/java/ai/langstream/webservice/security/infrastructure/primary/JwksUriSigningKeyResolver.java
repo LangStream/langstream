@@ -147,19 +147,37 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
     }
 
     private JwkKeys getKeys(JwksUri jwksUri) throws IOException {
+        final HttpResponse<String> httpResponse = sendGetKeysRequest(jwksUri, false);
+        final String body;
+        if (httpResponse.statusCode() != 200) {
+            if (jwksUri.token() != null) {
+                final HttpResponse<String> responseWithToken = sendGetKeysRequest(jwksUri, true);
+                if (responseWithToken.statusCode() != 200) {
+                    log.warn("Failed to fetch keys from URL: {}, got {} {}", jwksUri.uri(), responseWithToken.statusCode(), responseWithToken.body());
+                    throw new IllegalStateException("Failed to fetch keys from URL: " + jwksUri.uri() + ", got " + responseWithToken.statusCode() + " " + responseWithToken.body());
+                } else {
+                    body = httpResponse.body();
+                }
+            } else {
+                log.warn("Failed to fetch keys from URL: {}, got {} {}", jwksUri.uri(), httpResponse.statusCode(), httpResponse.body());
+                throw new IllegalStateException("Failed to fetch keys from URL: " + jwksUri.uri() + ", got " + httpResponse.statusCode() + " " + httpResponse.body());
+            }
+        } else {
+            body = httpResponse.body();
+        }
+        return MAPPER.readValue(body, JwkKeys.class);
+    }
+
+    private HttpResponse<String> sendGetKeysRequest(JwksUri jwksUri, boolean useToken) throws IOException {
         final HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(jwksUri.uri()))
                 .version(HttpClient.Version.HTTP_1_1)
                 .GET();
-        if (jwksUri.token() != null) {
+        if (jwksUri.token() != null && useToken) {
             builder.header("Authorization", "Bearer " + jwksUri.token());
         }
         try {
-            final HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new IOException("Failed to fetch keys from URL: " + jwksUri.uri() + ", status code: " + response.statusCode());
-            }
-            return MAPPER.readValue(response.body(), JwkKeys.class);
+            return httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);

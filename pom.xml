@@ -497,7 +497,6 @@
           </execution>
         </executions>
         <configuration>
-          <ratchetFrom>origin/main</ratchetFrom>
           <java>
             <googleJavaFormat>
               <version>1.17.0</version>

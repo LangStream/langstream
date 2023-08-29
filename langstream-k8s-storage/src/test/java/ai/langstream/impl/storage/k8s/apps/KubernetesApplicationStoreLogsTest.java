@@ -84,7 +84,7 @@ class KubernetesApplicationStoreLogsTest {
                 .start(new ApplicationStore.LogLineConsumer() {
                            @Override
                            public boolean onLogLine(String line) {
-                               assertEquals("\u001B[32mmyapp-agent111-0 hello\u001B[0m\n", line);
+                               assertEquals("\u001B[32m[myapp-agent111-0] hello\u001B[0m\n", line);
                                return false;
                            }
 
@@ -97,7 +97,7 @@ class KubernetesApplicationStoreLogsTest {
                 .start(new ApplicationStore.LogLineConsumer() {
                            @Override
                            public boolean onLogLine(String line) {
-                               assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
+                               assertEquals("\u001B[33m[myapp-agent111-1] hello\u001B[0m\n", line);
                                return false;
                            }
 
@@ -117,7 +117,7 @@ class KubernetesApplicationStoreLogsTest {
                 .start(new ApplicationStore.LogLineConsumer() {
                            @Override
                            public boolean onLogLine(String line) {
-                               assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
+                               assertEquals("\u001B[33m[myapp-agent111-1] hello\u001B[0m\n", line);
                                return false;
                            }
 

@@ -69,8 +69,10 @@ class HuggingAIProviderTest {
         String message = "The cop arrested the bad [MASK].";
         ChatCompletions chatCompletions =
                 service.getChatCompletions(
-                        List.of(new ChatMessage("user").setContent(message)),
-                        Map.of("model", "bert-base-uncased"));
+                                List.of(new ChatMessage("user").setContent(message)),
+                                null,
+                                Map.of("model", "bert-base-uncased"))
+                        .get();
         log.info("result: {}", chatCompletions);
         assertEquals(2, chatCompletions.getChoices().size());
         assertEquals("answer 1", chatCompletions.getChoices().get(0).getMessage().getContent());

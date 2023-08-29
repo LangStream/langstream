@@ -115,55 +115,60 @@ public class TransformFunctionUtil {
             ServiceProvider serviceProvider,
             QueryStepDataSource dataSource)
             throws Exception {
-        TransformStep transformStep;
         List<StepPredicatePair> steps = new ArrayList<>();
         for (StepConfig step : transformConfig.getSteps()) {
-            switch (step.getType()) {
-                case "drop-fields":
-                    transformStep = newRemoveFieldFunction((DropFieldsConfig) step);
-                    break;
-                case "cast":
-                    transformStep =
-                            newCastFunction(
-                                    (CastConfig) step, transformConfig.isAttemptJsonConversion());
-                    break;
-                case "merge-key-value":
-                    transformStep = new MergeKeyValueStep();
-                    break;
-                case "unwrap-key-value":
-                    transformStep = newUnwrapKeyValueFunction((UnwrapKeyValueConfig) step);
-                    break;
-                case "flatten":
-                    transformStep = newFlattenFunction((FlattenConfig) step);
-                    break;
-                case "drop":
-                    transformStep = new DropStep();
-                    break;
-                case "compute":
-                    transformStep = newComputeFieldFunction((ComputeConfig) step);
-                    break;
-                case "compute-ai-embeddings":
-                    transformStep =
-                            newComputeAIEmbeddings(
-                                    (ComputeAIEmbeddingsConfig) step, serviceProvider);
-                    break;
-                case "ai-chat-completions":
-                    transformStep =
-                            newChatCompletionsFunction(
-                                    (ChatCompletionsConfig) step, serviceProvider);
-                    break;
-                case "query":
-                    transformStep = newQuery((QueryConfig) step, dataSource);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Invalid step type: " + step.getType());
-            }
-            steps.add(
-                    new StepPredicatePair(
-                            transformStep,
-                            step.getWhen() == null ? null : new JstlPredicate(step.getWhen())));
+            steps.add(buildStep(transformConfig, serviceProvider, dataSource, step));
         }
         return steps;
+    }
+
+    public static StepPredicatePair buildStep(
+            TransformStepConfig transformConfig,
+            ServiceProvider serviceProvider,
+            QueryStepDataSource dataSource,
+            StepConfig step)
+            throws Exception {
+        TransformStep transformStep;
+        switch (step.getType()) {
+            case "drop-fields":
+                transformStep = newRemoveFieldFunction((DropFieldsConfig) step);
+                break;
+            case "cast":
+                transformStep =
+                        newCastFunction(
+                                (CastConfig) step, transformConfig.isAttemptJsonConversion());
+                break;
+            case "merge-key-value":
+                transformStep = new MergeKeyValueStep();
+                break;
+            case "unwrap-key-value":
+                transformStep = newUnwrapKeyValueFunction((UnwrapKeyValueConfig) step);
+                break;
+            case "flatten":
+                transformStep = newFlattenFunction((FlattenConfig) step);
+                break;
+            case "drop":
+                transformStep = new DropStep();
+                break;
+            case "compute":
+                transformStep = newComputeFieldFunction((ComputeConfig) step);
+                break;
+            case "compute-ai-embeddings":
+                transformStep =
+                        newComputeAIEmbeddings((ComputeAIEmbeddingsConfig) step, serviceProvider);
+                break;
+            case "ai-chat-completions":
+                transformStep =
+                        newChatCompletionsFunction((ChatCompletionsConfig) step, serviceProvider);
+                break;
+            case "query":
+                transformStep = newQuery((QueryConfig) step, dataSource);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid step type: " + step.getType());
+        }
+        return new StepPredicatePair(
+                transformStep, step.getWhen() == null ? null : new JstlPredicate(step.getWhen()));
     }
 
     public static DropFieldStep newRemoveFieldFunction(DropFieldsConfig config) {
@@ -265,7 +270,7 @@ public class TransformFunctionUtil {
         return new ObjectMapper().convertValue(map, type);
     }
 
-    public static TransformStep newChatCompletionsFunction(
+    public static ChatCompletionsStep newChatCompletionsFunction(
             ChatCompletionsConfig config, ServiceProvider serviceProvider) throws Exception {
         CompletionsService completionsService =
                 serviceProvider.getCompletionsService(convertToMap(config));
@@ -298,11 +303,16 @@ public class TransformFunctionUtil {
             TransformContext transformContext, Collection<StepPredicatePair> steps)
             throws Exception {
         for (StepPredicatePair pair : steps) {
-            TransformStep step = pair.getTransformStep();
-            Predicate<TransformContext> predicate = pair.getPredicate();
-            if (predicate == null || predicate.test(transformContext)) {
-                step.process(transformContext);
-            }
+            processStep(transformContext, pair);
+        }
+    }
+
+    public static void processStep(TransformContext transformContext, StepPredicatePair pair)
+            throws Exception {
+        TransformStep step = pair.getTransformStep();
+        Predicate<TransformContext> predicate = pair.getPredicate();
+        if (predicate == null || predicate.test(transformContext)) {
+            step.process(transformContext);
         }
     }
 

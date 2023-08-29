@@ -23,11 +23,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ai.langstream.ai.agents.services.impl.OpenAICompletionService;
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
-import com.datastax.oss.streaming.ai.completions.OpenAICompletionService;
 import com.datastax.oss.streaming.ai.model.config.ChatCompletionsConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -17,10 +17,14 @@ package ai.langstream.ai.agents;
 
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.ai.agents.services.ServiceProviderRegistry;
+import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
+import ai.langstream.api.runner.code.RecordSink;
+import ai.langstream.api.runtime.ComponentType;
 import com.datastax.oss.streaming.ai.TransformContext;
+import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
 import com.datastax.oss.streaming.ai.model.TransformSchemaType;
@@ -43,22 +47,48 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.generic.GenericRecord;
 
 @Slf4j
-public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
+public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private List<StepPredicatePair> steps;
+    private StepPredicatePair step;
     private TransformStepConfig config;
     private QueryStepDataSource dataSource;
     private ServiceProvider serviceProvider;
 
     @Override
-    public List<Record> processRecord(Record record) throws Exception {
+    public ComponentType componentType() {
+        return ComponentType.PROCESSOR;
+    }
+
+    @Override
+    public void process(List<Record> records, RecordSink recordSink) {
+        for (Record record : records) {
+            processed(1, 0);
+            CompletableFuture<List<Record>> process = processRecord(record);
+            process.whenComplete(
+                    (resultRecords, e) -> {
+                        if (e != null) {
+                            log.error("Error processing record: {}", record, e);
+                            recordSink.emit(new SourceRecordAndResult(record, null, e));
+                        } else {
+                            processed(1, records.size());
+                            recordSink.emit(new SourceRecordAndResult(record, resultRecords, null));
+                        }
+                    });
+        }
+    }
+
+    public CompletableFuture<List<Record>> processRecord(Record record) {
+
         log.info("Processing {}", record);
         if (log.isDebugEnabled()) {
             log.debug("Processing {}", record);
@@ -66,11 +96,31 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         TransformContext context =
                 recordToTransformContext(record, config.isAttemptJsonConversion());
 
-        TransformFunctionUtil.processTransformSteps(context, steps);
-        context.convertMapToStringOrBytes();
-        Optional<Record> recordResult = transformContextToRecord(context, record.headers());
-        log.info("Result {}", recordResult);
-        return recordResult.map(List::of).orElseGet(List::of);
+        CompletableFuture<?> handle = processStep(context, step);
+        return handle.thenApply(
+                ___ -> {
+                    try {
+                        context.convertMapToStringOrBytes();
+                        Optional<Record> recordResult =
+                                transformContextToRecord(context, record.headers());
+                        log.info("Result {}", recordResult);
+                        return recordResult.map(List::of).orElseGet(List::of);
+                    } catch (Exception e) {
+                        log.error("Error processing record: {}", record, e);
+                        throw new CompletionException(e);
+                    }
+                });
+    }
+
+    private static CompletableFuture<?> processStep(
+            TransformContext transformContext, StepPredicatePair pair) {
+        TransformStep step = pair.getTransformStep();
+        Predicate<TransformContext> predicate = pair.getPredicate();
+        if (predicate == null || predicate.test(transformContext)) {
+            return step.processAsync(transformContext);
+        } else {
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     @Override
@@ -86,7 +136,12 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         configuration.remove("vertex");
         config = MAPPER.convertValue(configuration, TransformStepConfig.class);
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
-        steps = TransformFunctionUtil.getTransformSteps(config, serviceProvider, dataSource);
+        List<StepPredicatePair> steps =
+                TransformFunctionUtil.getTransformSteps(config, serviceProvider, dataSource);
+        if (steps.size() != 1) {
+            throw new IllegalArgumentException("Only one step is supported");
+        }
+        step = steps.get(0);
     }
 
     @Override
@@ -94,8 +149,8 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         if (dataSource != null) {
             dataSource.close();
         }
-        for (StepPredicatePair pair : steps) {
-            pair.getTransformStep().close();
+        if (step != null) {
+            step.getTransformStep().close();
         }
         if (serviceProvider != null) {
             serviceProvider.close();

@@ -84,7 +84,8 @@ public class ChatCompletionsStep implements TransformStep {
         options.put("model", config.getModel());
         options.remove("messages");
 
-        ChatCompletions chatCompletions = completionsService.getChatCompletions(messages, options);
+        ChatCompletions chatCompletions =
+                completionsService.getChatCompletions(messages, null, options).get();
 
         String content = chatCompletions.getChoices().get(0).getMessage().getContent();
         String fieldName = config.getFieldName();

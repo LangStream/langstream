@@ -74,7 +74,7 @@ class GenAIToolKitAgentTest {
                                                         expression))))));
         agent.start();
         SimpleRecord record = SimpleRecord.builder().value(value).build();
-        Record result = agent.processRecord(record).get(0);
+        Record result = agent.processRecord(record).get().get(0);
         Map<String, Object> resultValueParsed =
                 MAPPER.readValue(result.value().toString(), Map.class);
         agent.close();

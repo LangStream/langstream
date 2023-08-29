@@ -48,21 +48,71 @@
     <dependency>
       <!-- Transform Function -->
       <groupId>org.apache.pulsar</groupId>
-      <artifactId>pulsar-client</artifactId>
+      <artifactId>pulsar-client-original</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>streaming-ai</artifactId>
+      <groupId>ai.djl</groupId>
+      <artifactId>api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.djl.pytorch</groupId>
+      <artifactId>pytorch-engine</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.djl.pytorch</groupId>
+      <artifactId>pytorch-jni</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.djl.pytorch</groupId>
+      <artifactId>pytorch-native-cpu</artifactId>
+      <!--classifier>osx-aarch64</classifier-->
+      <classifier>osx-x86_64</classifier>
+    </dependency>
+    <dependency>
+      <groupId>ai.djl.pytorch</groupId>
+      <artifactId>pytorch-model-zoo</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.djl.huggingface</groupId>
+      <artifactId>tokenizers</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-ai-openai</artifactId>
       <exclusions>
         <exclusion>
-          <groupId>ai.langstream</groupId>
-          <artifactId>java-driver-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>com.datastax.oss</groupId>
-          <artifactId>pulsar-functions-api</artifactId>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-codec</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.samskivert</groupId>
+      <artifactId>jmustache</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tomcat.embed</groupId>
+      <artifactId>tomcat-embed-el</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-collections4</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -93,11 +143,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>kafka</artifactId>
       <scope>test</scope>
@@ -111,6 +156,21 @@
     <dependency>
       <groupId>com.github.tomakehurst</groupId>
       <artifactId>wiremock</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-inline</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-functions-api</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

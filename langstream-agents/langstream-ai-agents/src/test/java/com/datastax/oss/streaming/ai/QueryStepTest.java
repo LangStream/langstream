@@ -1,0 +1,358 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.datastax.oss.streaming.ai;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.schema.GenericObject;
+import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.client.api.schema.GenericSchema;
+import org.apache.pulsar.client.api.schema.RecordSchemaBuilder;
+import org.apache.pulsar.client.api.schema.SchemaBuilder;
+import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
+import org.apache.pulsar.common.schema.KeyValue;
+import org.apache.pulsar.common.schema.KeyValueEncodingType;
+import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.common.schema.SchemaType;
+import org.apache.pulsar.functions.api.Record;
+import org.junit.jupiter.api.Test;
+
+public class QueryStepTest {
+
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @Test
+    void testPrimitive() throws Exception {
+        Record<GenericObject> record =
+                Utils.TestRecord.<GenericObject>builder()
+                        .key("test-key")
+                        .value(
+                                AutoConsumeSchema.wrapPrimitiveObject(
+                                        "test-message", SchemaType.STRING, new byte[] {}))
+                        .schema(Schema.STRING)
+                        .eventTime(42L)
+                        .topicName("test-input-topic")
+                        .destinationTopic("test-output-topic")
+                        .properties(Map.of("test-key", "test-value"))
+                        .build();
+
+        List<String> fields =
+                Arrays.asList("value", "destinationTopic", "messageKey", "topicName", "eventTime");
+        QueryStepDataSource dataSource =
+                new QueryStepDataSource() {
+                    @Override
+                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                        assertEquals(query, "select 1");
+                        List<Object> expectedParams =
+                                List.of(
+                                        "test-message",
+                                        "test-output-topic",
+                                        "test-key",
+                                        "test-input-topic",
+                                        42L);
+                        assertEquals(params, expectedParams);
+                        return List.of(Map.of());
+                    }
+                };
+        QueryStep queryStep =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .outputFieldName("value.result")
+                        .query("select 1")
+                        .fields(fields)
+                        .build();
+
+        Utils.process(record, queryStep);
+    }
+
+    @Test
+    void testAvro() throws Exception {
+        TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
+        RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
+        recordSchemaBuilder.field("firstName").type(SchemaType.STRING);
+        recordSchemaBuilder.field("lastName").type(SchemaType.STRING);
+        recordSchemaBuilder.field("age").type(SchemaType.INT32);
+        recordSchemaBuilder.field("date").type(SchemaType.DATE);
+        recordSchemaBuilder.field("timestamp").type(SchemaType.TIMESTAMP);
+        recordSchemaBuilder.field("time").type(SchemaType.TIME);
+
+        SchemaInfo schemaInfo = recordSchemaBuilder.build(SchemaType.AVRO);
+        GenericSchema<GenericRecord> genericSchema = Schema.generic(schemaInfo);
+
+        GenericRecord genericRecord =
+                genericSchema
+                        .newRecordBuilder()
+                        .set("firstName", "Jane")
+                        .set("lastName", "Doe")
+                        .set("age", 42)
+                        .set("date", (int) LocalDate.of(2023, 1, 2).toEpochDay())
+                        .set("timestamp", Instant.parse("2023-01-02T23:04:05.006Z").toEpochMilli())
+                        .set(
+                                "time",
+                                (int) (LocalTime.parse("23:04:05.006").toNanoOfDay() / 1_000_000))
+                        .build();
+
+        Record<GenericObject> record =
+                new Utils.TestRecord<>(genericSchema, genericRecord, "test-key");
+        QueryStepDataSource dataSource =
+                new QueryStepDataSource() {
+                    @Override
+                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                        assertEquals(query, "select 1");
+                        List<Object> expectedParams =
+                                List.of("Jane", "Doe", 42, 19359, 1672700645006L, 83045006);
+                        assertEquals(params, expectedParams);
+                        return List.of(Map.of());
+                    }
+                };
+        List<String> fields =
+                Arrays.asList(
+                        "value.firstName",
+                        "value.lastName",
+                        "value.age",
+                        "value.date",
+                        "value.timestamp",
+                        "value.time");
+        QueryStep queryStep =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .outputFieldName("value.result")
+                        .query("select 1")
+                        .fields(fields)
+                        .build();
+
+        Utils.process(record, queryStep);
+    }
+
+    @Test
+    void testJson() throws Exception {
+        Schema<PoJo> schema = Schema.JSON(PoJo.class);
+        GenericSchema<GenericRecord> genericSchema = Schema.generic(schema.getSchemaInfo());
+        GenericObject genericObject =
+                new GenericObject() {
+                    @Override
+                    public SchemaType getSchemaType() {
+                        return SchemaType.JSON;
+                    }
+
+                    @Override
+                    public Object getNativeObject() {
+                        return OBJECT_MAPPER.valueToTree(
+                                new PoJo("a", 42, true, List.of("b", "c"), List.of(43, 44)));
+                    }
+                };
+        Record<GenericObject> record =
+                new Utils.TestRecord<>(genericSchema, genericObject, "my-key");
+
+        QueryStepDataSource dataSource =
+                new QueryStepDataSource() {
+                    @Override
+                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                        assertEquals(query, "select 1");
+                        List<Object> expectedParams =
+                                List.of("a", 42.0, true, List.of("b", "c"), List.of(43.0, 44.0));
+                        assertEquals(params, expectedParams);
+                        return List.of(Map.of());
+                    }
+                };
+
+        List<String> fields =
+                Arrays.asList(
+                        "value.a", "value.b", "value.c", "value.stringList", "value.numberList");
+
+        QueryStep queryStep =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .outputFieldName("value.result")
+                        .query("select 1")
+                        .fields(fields)
+                        .build();
+
+        Utils.process(record, queryStep);
+    }
+
+    @Data
+    @AllArgsConstructor
+    static class PoJo {
+        String a;
+        Integer b;
+        Boolean c;
+        List<String> stringList;
+        List<Integer> numberList;
+    }
+
+    @Test
+    void testKVStringJson() throws Exception {
+        Schema<KeyValue<String, String>> keyValueSchema =
+                Schema.KeyValue(Schema.STRING, Schema.STRING, KeyValueEncodingType.SEPARATED);
+
+        String key = "{\"keyField1\": \"key1\", \"keyField2\": \"key2\", \"keyField3\": \"key3\"}";
+        String value =
+                "{\"valueField1\": \"value1\", \"valueField2\": \"value2\", \"valueField3\": \"value3\"}";
+
+        KeyValue<String, String> keyValue = new KeyValue<>(key, value);
+
+        Record<GenericObject> record =
+                new Utils.TestRecord<>(
+                        keyValueSchema,
+                        AutoConsumeSchema.wrapPrimitiveObject(
+                                keyValue, SchemaType.KEY_VALUE, new byte[] {}),
+                        null);
+
+        QueryStepDataSource dataSource =
+                new QueryStepDataSource() {
+                    @Override
+                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                        assertEquals(query, "select 1");
+                        List<Object> expectedParams = List.of("value1", "key2");
+                        assertEquals(params, expectedParams);
+                        return List.of(Map.of());
+                    }
+                };
+        List<String> fields = Arrays.asList("value.valueField1", "key.keyField2");
+        QueryStep queryStep =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .outputFieldName("value.result")
+                        .query("select 1")
+                        .fields(fields)
+                        .build();
+
+        Utils.process(record, queryStep);
+    }
+
+    @Test
+    void testKVAvro() throws Exception {
+        Record<GenericObject> record = Utils.createTestAvroKeyValueRecord();
+        QueryStepDataSource dataSource =
+                new QueryStepDataSource() {
+                    @Override
+                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                        assertEquals(query, "select 1");
+                        List<Object> expectedParams = List.of("value1", "key2");
+                        assertEquals(params, expectedParams);
+                        return List.of(Map.of());
+                    }
+                };
+        List<String> fields = Arrays.asList("value.valueField1", "key.keyField2");
+        QueryStep queryStep =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .outputFieldName("value.result")
+                        .query("select 1")
+                        .fields(fields)
+                        .build();
+
+        Utils.process(record, queryStep);
+    }
+
+    @Test
+    void testOnlyFirst() throws Exception {
+        Schema<KeyValue<String, String>> keyValueSchema =
+                Schema.KeyValue(Schema.STRING, Schema.STRING, KeyValueEncodingType.SEPARATED);
+
+        String key = "{\"keyField1\": \"key1\", \"keyField2\": \"key2\", \"keyField3\": \"key3\"}";
+        String value =
+                "{\"valueField1\": \"value1\", \"valueField2\": \"value2\", \"valueField3\": \"value3\"}";
+
+        KeyValue<String, String> keyValue = new KeyValue<>(key, value);
+
+        Record<GenericObject> record =
+                new Utils.TestRecord<>(
+                        keyValueSchema,
+                        AutoConsumeSchema.wrapPrimitiveObject(
+                                keyValue, SchemaType.KEY_VALUE, new byte[] {}),
+                        null);
+
+        List<String> fields = List.of();
+        QueryStepDataSource dataSource =
+                new QueryStepDataSource() {
+                    @Override
+                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                        List<Object> expectedParams = List.of();
+                        assertEquals(params, expectedParams);
+                        switch (query) {
+                            case "select a,b from test":
+                                return List.of(
+                                        Map.of("a", "10", "b", "foo"),
+                                        Map.of("a", "20", "b", "bar"));
+                            case "select a,b from test where 1=0":
+                                return List.of(Map.of());
+                            default:
+                                throw new RuntimeException("Unexpected query: " + query);
+                        }
+                    }
+                };
+
+        QueryStep queryStepFindSomeResults =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .outputFieldName("value.result")
+                        .query("select a,b from test")
+                        .onlyFirst(true)
+                        .fields(fields)
+                        .build();
+        Record<?> result = Utils.process(record, queryStepFindSomeResults);
+        KeyValue<String, String> keyValueResult = (KeyValue<String, String>) result.getValue();
+        Map<String, Object> parsed =
+                new ObjectMapper().readValue(keyValueResult.getValue(), Map.class);
+        assertEquals(
+                parsed,
+                Map.of(
+                        "valueField1", "value1",
+                        "valueField2", "value2",
+                        "valueField3", "value3",
+                        "result", Map.of("b", "foo", "a", "10")));
+
+        QueryStep queryStepFindNoResults =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .outputFieldName("value.result")
+                        .query("select a,b from test where 1=0")
+                        .onlyFirst(true)
+                        .fields(fields)
+                        .build();
+        Record<KeyValue<String, String>> resultNoResults =
+                Utils.process(record, queryStepFindNoResults);
+        KeyValue<String, String> keyValueResultNoResults = resultNoResults.getValue();
+        Map<String, Object> parsedNoResults =
+                new ObjectMapper().readValue(keyValueResultNoResults.getValue(), Map.class);
+        assertEquals(
+                parsedNoResults,
+                Map.of(
+                        "valueField1",
+                        "value1",
+                        "valueField2",
+                        "value2",
+                        "valueField3",
+                        "value3",
+                        "result",
+                        Map.of()));
+    }
+}

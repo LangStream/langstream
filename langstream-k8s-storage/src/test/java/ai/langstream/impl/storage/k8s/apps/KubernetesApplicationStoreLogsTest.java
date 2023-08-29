@@ -81,30 +81,30 @@ class KubernetesApplicationStoreLogsTest {
                 store.logs("mytenant", "myapp", new ApplicationStore.LogOptions());
         podHandlers
                 .get(0)
-                .start(new ApplicationStore.LogLineConsumer() {
-                           @Override
-                           public boolean onLogLine(String line) {
-                               assertEquals("\u001B[32m[myapp-agent111-0] hello\u001B[0m\n", line);
-                               return false;
-                           }
+                .start(
+                        new ApplicationStore.LogLineConsumer() {
+                            @Override
+                            public boolean onLogLine(String line) {
+                                assertEquals("\u001B[32m[myapp-agent111-0] hello\u001B[0m\n", line);
+                                return false;
+                            }
 
-                           @Override
-                           public void onEnd() {
-                           }
-                       });
+                            @Override
+                            public void onEnd() {}
+                        });
         podHandlers
                 .get(1)
-                .start(new ApplicationStore.LogLineConsumer() {
-                           @Override
-                           public boolean onLogLine(String line) {
-                               assertEquals("\u001B[33m[myapp-agent111-1] hello\u001B[0m\n", line);
-                               return false;
-                           }
+                .start(
+                        new ApplicationStore.LogLineConsumer() {
+                            @Override
+                            public boolean onLogLine(String line) {
+                                assertEquals("\u001B[33m[myapp-agent111-1] hello\u001B[0m\n", line);
+                                return false;
+                            }
 
-                           @Override
-                           public void onEnd() {
-                           }
-                       });
+                            @Override
+                            public void onEnd() {}
+                        });
 
         podHandlers =
                 store.logs(
@@ -114,17 +114,17 @@ class KubernetesApplicationStoreLogsTest {
         assertEquals(1, podHandlers.size());
         podHandlers
                 .get(0)
-                .start(new ApplicationStore.LogLineConsumer() {
-                           @Override
-                           public boolean onLogLine(String line) {
-                               assertEquals("\u001B[33m[myapp-agent111-1] hello\u001B[0m\n", line);
-                               return false;
-                           }
+                .start(
+                        new ApplicationStore.LogLineConsumer() {
+                            @Override
+                            public boolean onLogLine(String line) {
+                                assertEquals("\u001B[33m[myapp-agent111-1] hello\u001B[0m\n", line);
+                                return false;
+                            }
 
-                           @Override
-                           public void onEnd() {
-                           }
-                       });
+                            @Override
+                            public void onEnd() {}
+                        });
     }
 
     private static AgentCustomResource agentCustomResource(

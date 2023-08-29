@@ -65,7 +65,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
-import reactor.core.scheduler.Schedulers;
 
 @RestController
 @Tag(name = "applications")
@@ -77,15 +76,12 @@ public class ApplicationResource {
     ApplicationService applicationService;
     CodeStorageService codeStorageService;
 
-    private final ScheduledExecutorService logsHeartbeatThreadPool = Executors.newSingleThreadScheduledExecutor(
-            new BasicThreadFactory.Builder()
-                    .namingPattern("app-logs-hb-%d")
-                    .build()
-    );
-    private final ExecutorService logsThreadPool = Executors.newCachedThreadPool(new BasicThreadFactory.Builder()
-            .namingPattern("app-logs-%d")
-            .build()
-    );
+    private final ScheduledExecutorService logsHeartbeatThreadPool =
+            Executors.newSingleThreadScheduledExecutor(
+                    new BasicThreadFactory.Builder().namingPattern("app-logs-hb-%d").build());
+    private final ExecutorService logsThreadPool =
+            Executors.newCachedThreadPool(
+                    new BasicThreadFactory.Builder().namingPattern("app-logs-%d").build());
 
     private void performAuthorization(Authentication authentication, final String tenant) {
         if (authentication == null) {
@@ -299,49 +295,57 @@ public class ApplicationResource {
                         applicationId,
                         new ApplicationStore.LogOptions(filterReplicas.orElse(null)));
         AtomicLong lastSent = new AtomicLong(Long.MAX_VALUE);
-        final Consumer<FluxSink<String>> fluxSinkConsumer = fluxSink -> {
-            if (podLogs.isEmpty()) {
-                fluxSink.next("No pods found\n");
-                fluxSink.complete();
-                return;
-            }
-            fluxSink.onDispose(() -> podLogs.forEach(ApplicationStore.PodLogHandler::close));
-            logsHeartbeatThreadPool.scheduleWithFixedDelay(() -> {
-                try {
-                    if (lastSent.get() + TimeUnit.SECONDS.toMillis(30)
-                            < System.currentTimeMillis()) {
-                        fluxSink.next("Heartbeat\n");
-                        lastSent.set(System.currentTimeMillis());
+        final Consumer<FluxSink<String>> fluxSinkConsumer =
+                fluxSink -> {
+                    if (podLogs.isEmpty()) {
+                        fluxSink.next("No pods found\n");
+                        fluxSink.complete();
+                        return;
                     }
-                } catch (Throwable e) {
-                }
-            }, 30, 30, TimeUnit.SECONDS);
-            for (ApplicationStore.PodLogHandler podLog : podLogs) {
-                fluxSink.next("Start receiving log for pod %s\n".formatted(podLog.getPodName()));
-                logsThreadPool.submit(
-                        () -> {
-                            try {
-                                final ApplicationStore.LogLineConsumer logLineConsumer = new ApplicationStore.LogLineConsumer() {
-                                    @Override
-                                    public boolean onLogLine(String line) {
-                                        fluxSink.next(line);
+                    fluxSink.onDispose(
+                            () -> podLogs.forEach(ApplicationStore.PodLogHandler::close));
+                    logsHeartbeatThreadPool.scheduleWithFixedDelay(
+                            () -> {
+                                try {
+                                    if (lastSent.get() + TimeUnit.SECONDS.toMillis(30)
+                                            < System.currentTimeMillis()) {
+                                        fluxSink.next("Heartbeat\n");
                                         lastSent.set(System.currentTimeMillis());
-                                        return true;
                                     }
+                                } catch (Throwable e) {
+                                }
+                            },
+                            30,
+                            30,
+                            TimeUnit.SECONDS);
+                    for (ApplicationStore.PodLogHandler podLog : podLogs) {
+                        fluxSink.next(
+                                "Start receiving log for pod %s\n".formatted(podLog.getPodName()));
+                        logsThreadPool.submit(
+                                () -> {
+                                    try {
+                                        final ApplicationStore.LogLineConsumer logLineConsumer =
+                                                new ApplicationStore.LogLineConsumer() {
+                                                    @Override
+                                                    public boolean onLogLine(String line) {
+                                                        fluxSink.next(line);
+                                                        lastSent.set(System.currentTimeMillis());
+                                                        return true;
+                                                    }
 
-                                    @Override
-                                    public void onEnd() {
-                                        lastSent.set(System.currentTimeMillis());
-                                        fluxSink.complete();
+                                                    @Override
+                                                    public void onEnd() {
+                                                        lastSent.set(System.currentTimeMillis());
+                                                        fluxSink.complete();
+                                                    }
+                                                };
+                                        podLog.start(logLineConsumer);
+                                    } catch (Exception e) {
+                                        fluxSink.error(e);
                                     }
-                                };
-                                podLog.start(logLineConsumer);
-                            } catch (Exception e) {
-                                fluxSink.error(e);
-                            }
-                        });
-            }
-        };
+                                });
+                    }
+                };
         return Flux.create(fluxSinkConsumer);
     }
 

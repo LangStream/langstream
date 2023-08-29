@@ -443,7 +443,6 @@ public class KubernetesApplicationStore implements ApplicationStore {
                     }
                     onLogLine.onEnd();
                 }
-
             }
         }
 
@@ -454,14 +453,11 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 in.close();
             } catch (Throwable ignored) {
             }
-
         }
 
         private boolean streamUntilEOF(LogLineConsumer onLogLine) throws IOException {
             final PodResource podResource =
-                    client.pods()
-                            .inNamespace(tenantToNamespace(tenant))
-                            .withName(pod);
+                    client.pods().inNamespace(tenantToNamespace(tenant)).withName(pod);
             final int replicas = extractReplicas(pod);
             final String color = LOG_COLORS[replicas % LOG_COLORS.length];
             try (final LogWatch watchLog =
@@ -471,11 +467,11 @@ public class KubernetesApplicationStore implements ApplicationStore {
                             .withReadyWaitTimeout(Integer.MAX_VALUE)
                             .watchLog(); ) {
                 in = watchLog.getOutput();
-                try (BufferedReader br =
-                        new BufferedReader(new InputStreamReader(in))) {
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
                     String line;
                     while ((line = br.readLine()) != null) {
-                        String coloredLog = "\u001B[%sm[%s] %s\u001B[0m\n".formatted(color, pod, line);
+                        String coloredLog =
+                                "\u001B[%sm[%s] %s\u001B[0m\n".formatted(color, pod, line);
                         final boolean shallContinue = onLogLine.onLogLine(coloredLog);
                         if (!shallContinue) {
                             return false;

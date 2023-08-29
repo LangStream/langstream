@@ -72,6 +72,10 @@ class Agent(ABC):
         """Close the agent."""
         pass
 
+    def agent_info(self) -> Dict[str, Any]:
+        """Return the agent information"""
+        pass
+
 
 class Source(Agent):
     """The Source agent interface
@@ -100,6 +104,7 @@ class Processor(Agent):
 
     A Processor agent is used by the runtime to process Records.
     """
+
     @abstractmethod
     def process(self, records: List[Record]) -> List[Tuple[Record, Union[List[Record], Exception]]]:
         """The agent processes records and returns a list containing the association of these records and the result

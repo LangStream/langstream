@@ -44,9 +44,7 @@ class SourceRecordTracker(CommitCallback):
     def track(self, sink_records: List[Tuple[Record, List[Record]]]):
         source_records_to_commit = []
         # map each sink record to the original source record
-        for source_record_and_result in sink_records:
-            source_record = source_record_and_result[0]
-            result_records = source_record_and_result[1]
+        for source_record, result_records in sink_records:
             if not isinstance(result_records, Exception):
                 if len(result_records) == 0:
                     # commit immediately if the result is empty

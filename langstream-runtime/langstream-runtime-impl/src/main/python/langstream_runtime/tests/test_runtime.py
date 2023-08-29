@@ -13,9 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import json
 import logging
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict, Any
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -24,25 +25,97 @@ from langstream import Source, Sink, CommitCallback, Record, SimpleRecord, Singl
 from langstream_runtime import runtime
 
 
-def test_simple_agent():
+@patch('time.time_ns', return_value=12345000000)
+def test_simple_agent(_):
     config_yaml = f"""
         streamingCluster:
             type: kafka
         agent:
             applicationId: testApplicationId
             agentId: testAgentId
+            agentType: testAgentType
             configuration:
                 className: langstream_runtime.tests.test_runtime.TestAgent
     """
     config = yaml.safe_load(config_yaml)
     agent = runtime.init_agent(config)
-    runtime.run(config, agent=agent, max_loops=2)
-    assert agent.context['config'] == [{'className': 'langstream_runtime.tests.test_runtime.TestAgent'}]
-    assert agent.context['start'] == 1
-    assert agent.context['close'] == 1
-    assert agent.context['set_commit_callback'] == 1
-    assert agent.context['records'][0].value() == 'some record 0 processed'
-    assert agent.context['records'][1].value() == 'some record 1 processed'
+    agent_info = runtime.AgentInfo()
+    runtime.run(config, agent=agent, agent_info=agent_info, max_loops=2)
+    print(json.dumps(agent_info.worker_status(), indent=2))
+    assert json.dumps(agent_info.worker_status(), indent=2) == """[
+  {
+    "agent-id": "testApplicationId-testAgentId",
+    "agent-type": "testAgentType",
+    "component-type": "SOURCE",
+    "info": {
+      "config": [
+        {
+          "className": "langstream_runtime.tests.test_runtime.TestAgent"
+        }
+      ],
+      "start": 1,
+      "close": 1,
+      "set_commit_callback": 1,
+      "records": [
+        "some record 0 processed",
+        "some record 1 processed"
+      ]
+    },
+    "metrics": {
+      "total-in": 0,
+      "total-out": 2,
+      "last-processed_at": 12345
+    }
+  },
+  {
+    "agent-id": "testApplicationId-testAgentId",
+    "agent-type": "testAgentType",
+    "component-type": "PROCESSOR",
+    "info": {
+      "config": [
+        {
+          "className": "langstream_runtime.tests.test_runtime.TestAgent"
+        }
+      ],
+      "start": 1,
+      "close": 1,
+      "set_commit_callback": 1,
+      "records": [
+        "some record 0 processed",
+        "some record 1 processed"
+      ]
+    },
+    "metrics": {
+      "total-in": 2,
+      "total-out": 2,
+      "last-processed_at": 12345
+    }
+  },
+  {
+    "agent-id": "testApplicationId-testAgentId",
+    "agent-type": "testAgentType",
+    "component-type": "SINK",
+    "info": {
+      "config": [
+        {
+          "className": "langstream_runtime.tests.test_runtime.TestAgent"
+        }
+      ],
+      "start": 1,
+      "close": 1,
+      "set_commit_callback": 1,
+      "records": [
+        "some record 0 processed",
+        "some record 1 processed"
+      ]
+    },
+    "metrics": {
+      "total-in": 2,
+      "total-out": 0,
+      "last-processed_at": 12345
+    }
+  }
+]"""
 
 
 class TestAgent(Source, Sink, SingleRecordProcessor):
@@ -72,10 +145,14 @@ class TestAgent(Source, Sink, SingleRecordProcessor):
         self.context['set_commit_callback'] += 1
 
     def write(self, records):
-        self.context['records'].extend(records)
+        for record in records:
+            self.context['records'].append(record.value())
 
     def process_record(self, record: Record) -> List[Record]:
         return [SimpleRecord(record.value() + ' processed')]
+
+    def agent_info(self) -> Dict[str, Any]:
+        return self.context
 
 
 class AbstractFailingAgent(object):

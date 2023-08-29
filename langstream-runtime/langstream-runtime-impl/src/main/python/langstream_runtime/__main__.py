@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import sys
 
 import yaml
@@ -29,4 +28,4 @@ if __name__ == '__main__':
 
     with open(sys.argv[1], 'r') as file:
         config = yaml.safe_load(file)
-        runtime.run(config)
+        runtime.run_with_server(config)

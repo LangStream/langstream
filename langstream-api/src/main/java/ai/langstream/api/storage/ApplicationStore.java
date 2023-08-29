@@ -56,14 +56,18 @@ public interface ApplicationStore extends GenericStore {
         private List<String> filterReplicas;
     }
 
-    @FunctionalInterface
     interface PodLogHandler {
         void start(LogLineConsumer onLogLine);
+
+        String getPodName();
+
+        void close();
     }
 
-    @FunctionalInterface
     interface LogLineConsumer {
         boolean onLogLine(String line);
+
+        void onEnd();
     }
 
     List<PodLogHandler> logs(String tenant, String applicationId, LogOptions logOptions);

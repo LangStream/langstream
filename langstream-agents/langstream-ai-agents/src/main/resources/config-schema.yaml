@@ -1,0 +1,472 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+"$schema": http://json-schema.org/draft-04/schema#
+components:
+  schemas:
+    Part:
+      type: object
+      properties:
+        part:
+          type:
+            - string
+            - 'null'
+          description: |
+            When used with KeyValue data, defines if the transformation is done on the `key` or on the `value`.
+            If `null` or absent the transformation applies to both the key and the value.
+          enum:
+            - key
+            - value
+            - null
+    Step:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: The type of transformation step.
+        when:
+          type:
+            - string
+            - 'null'
+          description: The transformation only applies if the 'when' clause evaluates to true.
+          minLength: 1
+      message:
+        minLength: "'when' field must not be empty"
+      discriminator:
+        propertyName: type
+        mapping:
+          drop-fields: "#/components/schemas/DropFields"
+          cast: "#/components/schemas/Cast"
+          merge-key-value: "#/components/schemas/MergeKeyValue"
+          unwrap-key-value: "#/components/schemas/UnwrapKeyValue"
+          flatten: "#/components/schemas/Flatten"
+          drop: "#/components/schemas/Drop"
+          compute: "#/components/schemas/Compute"
+          compute-ai-embeddings: "#/components/schemas/ComputeAiEmbeddings"
+          ai-chat-completions: "#/components/schemas/AiChatCompletions"
+          query: "#/components/schemas/Query"
+    DropFields:
+      allOf:
+        - "$ref": "#/components/schemas/Step"
+        - type: object
+          description: Drops fields of structured data (Currently only AVRO is supported).
+          properties:
+            type:
+              type: string
+              enum:
+                - drop-fields
+            fields:
+              type: [array, 'null']
+              items:
+                type:
+                  - string
+                minLength: 1
+              description: The list of fields to drop separated by commas `,`
+              message:
+                minLength: "field name in 'fields' must not be empty"
+          required:
+            - type
+            - fields
+        - "$ref": "#/components/schemas/Part"
+    Cast:
+      allOf:
+        - "$ref": "#/components/schemas/Step"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - cast
+            schema-type:
+              type:
+                - string
+                - 'null'
+              description: The target schema type.
+              enum:
+                - BYTES
+                - STRING
+                - INT8
+                - INT16
+                - INT32
+                - INT64
+                - FLOAT
+                - DOUBLE
+                - BOOLEAN
+                - DATE
+                - TIMESTAMP
+                - TIME
+                - LOCAL_DATE_TIME
+                - LOCAL_DATE
+                - LOCAL_TIME
+                - INSTANT
+                - null
+          required:
+            - schema-type
+        - "$ref": "#/components/schemas/Part"
+    UnwrapKeyValue:
+      allOf:
+        - "$ref": "#/components/schemas/Step"
+        - type: object
+          description: |
+            If the record value is a KeyValue, extracts the KeyValue's key or value and make it the record value.
+          properties:
+            type:
+              type: string
+              enum:
+                - unwrap-key-value
+            unwrap-key:
+              type:
+                - boolean
+                - 'null'
+              description: By default, the value is unwrapped. Set this parameter to `true` to unwrap the key instead.
+    MergeKeyValue:
+      allOf:
+        - "$ref": "#/components/schemas/Step"
+        - type: object
+          description: |
+            Merges the fields of KeyValue records where both the key and value are structured types of the same
+            schema type. (Currently only AVRO is supported).
+          properties:
+            type:
+              type: string
+              enum:
+                - merge-key-value
+    Drop:
+      allOf:
+        - "$ref": "#/components/schemas/Step"
+        - type: object
+          description: Drops the record.
+          properties:
+            type:
+              type: string
+              enum:
+                - drop
+    Flatten:
+      allOf:
+        - "$ref": "#/components/schemas/Step"
+        - type: object
+          description: |
+            Converts structured nested data into a new single-hierarchy-level structured data.
+            The names of the new fields are built by concatenating the intermediate level field names.
+          properties:
+            type:
+              type: string
+              enum:
+                - flatten
+            delimiter:
+              type:
+                - string
+                - 'null'
+              description: The delimiter to use when concatenating the field names.
+              default: _
+        - "$ref": "#/components/schemas/Part"
+    Compute:
+      allOf:
+        - "$ref": "#/components/schemas/Step"
+        - type: object
+          description: Adds or updates fields dynamically based on an expression (Currently only AVRO is supported).
+          properties:
+            type:
+              type: string
+              enum:
+                - compute
+            fields:
+              type: array
+              minItems: 1
+              items:
+                type:
+                  - object
+                properties:
+                  name:
+                    type: string
+                    description: | 
+                      The name of the field to compute. If the field name already exist, it will be overwritten. 
+                      Field names can be either prefixed by 'value.' or 'key.' or can be one of the following 
+                      header values [destinationTopic].
+                    minLength: 1
+                  expression:
+                    type: string
+                    description: An EL-like expression to compute the field value. It can refer to other attributes in the record.
+                    minLength: 1
+                  type:
+                    type:
+                      - string
+                      - 'null'
+                    description: The data type of the computed fields. It should match with the output of the expression.
+                    enum:
+                      - STRING
+                      - INT8
+                      - INT16
+                      - INT32
+                      - INT64
+                      - FLOAT
+                      - DOUBLE
+                      - BOOLEAN
+                      - DATE
+                      - LOCAL_DATE
+                      - TIME
+                      - LOCAL_TIME
+                      - INSTANT
+                      - TIMESTAMP
+                      - LOCAL_DATE_TIME
+                      - DATETIME
+                      - BYTES
+                      - DECIMAL
+                      - null
+                  optional:
+                    type: boolean
+                    description: If true, the generated schema for the computed field will allow for null values.
+                    default: true
+                description: The list of fields to compute
+                required:
+                  - name
+                  - expression
+          required:
+            - type
+            - fields
+        - "$ref": "#/components/schemas/Part"
+    ComputeAiEmbeddings:
+      allOf:
+        - "$ref": "#/components/schemas/Step"
+        - type: object
+          description: |
+            Compute AI Embeddings for one or more records fields and put the value into a new or existing field.
+          properties:
+            type:
+              type: string
+              enum:
+                - compute-ai-embeddings
+            model:
+              type:
+                - string
+              description: The OpenAI embeddings model to use.
+            embeddings-field:
+              type:
+                - string
+              description: The record field where to inject the computed embeddings value. If the field already exists, it will be used. Note that the field must be a representation of a double's array.
+            compute-service:
+              type:
+                - string
+              description: Service type to use to compute the embeddings. Currently only OpenAI and HuggingFace are supported.
+            model-url:
+              type:
+                - string
+              description: URL of the Hugging Face Model to use. Only used if `compute-service` is set to `huggingface`.
+            text:
+              type:
+                - string
+              description: The text to use to compute the embeddings. Fields and metadata from the message can be used using mustache placeholders.
+          required:
+            - type
+            - model
+            - embeddings-field
+            - text
+        - "$ref": "#/components/schemas/Part"
+    AiChatCompletions:
+      allOf:
+        - "$ref": "#/components/schemas/Step"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - ai-chat-completions
+            model:
+              description: ID of the model to use. See the [model endpoint compatibility](https://platform.openai.com/docs/models/model-endpoint-compatibility) table for details on which models work with the Chat API.
+              example: "gpt-3.5-turbo"
+              type: string
+            messages:
+              description: A list of messages comprising the conversation so far. [Example Python code](https://github.com/openai/openai-cookbook/blob/main/examples/How_to_format_inputs_to_ChatGPT_models.ipynb).
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/ChatMessage'
+            temperature:
+              type: number
+              minimum: 0
+              maximum: 2
+              default: 1
+              example: 1
+              nullable: true
+              description: |
+                What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.
+
+                We generally recommend altering this or `top_p` but not both.
+            top-p:
+              type: number
+              minimum: 0
+              maximum: 1
+              default: 1
+              example: 1
+              nullable: true
+              description: |
+                An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.
+
+                We generally recommend altering this or `temperature` but not both.
+            stop:
+              description: |
+                Up to 4 sequences where the API will stop generating further tokens.
+              default: null
+              type: array
+              minItems: 1
+              maxItems: 4
+              items:
+                type: string
+            max-tokens:
+              description: |
+                The maximum number of [tokens](https://platform.openai.com/tokenizer) to generate in the chat completion.
+                
+                The total length of input tokens and generated tokens is limited by the model's context length. [Example Python code](https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb) for counting tokens.
+              default: inf
+              type: integer
+            presence-penalty:
+              type: number
+              default: 0
+              minimum: -2
+              maximum: 2
+              nullable: true
+              description: |
+                Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.
+
+                [See more information about frequency and presence penalties.](https://platform.openai.com/docs/api-reference/parameter-details)
+            frequency-penalty:
+              type: number
+              default: 0
+              minimum: -2
+              maximum: 2
+              nullable: true
+              description: |
+                Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.
+
+                [See more information about frequency and presence penalties.](https://platform.openai.com/docs/api-reference/parameter-details)
+            logit-bias:
+              type: object
+              default: null
+              nullable: true
+              description: |
+                Modify the likelihood of specified tokens appearing in the completion.
+                
+                Accepts a json object that maps tokens (specified by their token ID in the tokenizer) to an associated bias value from -100 to 100. Mathematically, the bias is added to the logits generated by the model prior to sampling. The exact effect will vary per model, but values between -1 and 1 should decrease or increase likelihood of selection; values like -100 or 100 should result in a ban or exclusive selection of the relevant token.
+            user:
+              type: string
+              example: user-1234
+              description: |
+                A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
+          required:
+            - model
+            - messages
+
+    ChatMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [ "system", "user", "assistant" ]
+          description: The role of the messages author. One of `system`, `user` or `assistant`.
+        content:
+          type: string
+          description: The contents of the message.
+      required:
+        - role
+        - content
+
+    Query:
+      allOf:
+        - "$ref": "#/components/schemas/Step"
+        - type: object
+          description: |
+            Execute a Query and put the result into a new or existing field.
+                - query
+        - properties:
+            type:
+              type: string
+              enum:
+                - query
+            query:
+              type:
+                - string
+              description: The query.
+            only-first:
+              type:
+                - boolean
+              description: Instead of returning a list of results, keep only the first record or null in case of empty resultset.
+            output-field:
+              type:
+                - string
+              description: The record field where to inject the computed value. If the field already exists, it will be used. Note that the field must be a representation of an array.
+            fields:
+              type: array
+              items:
+                type:
+                  - string
+              description: The record fields to pass as query parameters.
+        - "$ref": "#/components/schemas/Part"
+
+type: object
+properties:
+  steps:
+    type: array
+    description: The transformation steps executed in order.
+    items:
+      oneOf:
+        - "$ref": "#/components/schemas/DropFields"
+        - "$ref": "#/components/schemas/Cast"
+        - "$ref": "#/components/schemas/UnwrapKeyValue"
+        - "$ref": "#/components/schemas/MergeKeyValue"
+        - "$ref": "#/components/schemas/Drop"
+        - "$ref": "#/components/schemas/Flatten"
+        - "$ref": "#/components/schemas/Compute"
+        - "$ref": "#/components/schemas/ComputeAiEmbeddings"
+        - "$ref": "#/components/schemas/AiChatCompletions"
+        - "$ref": "#/components/schemas/Query"
+  attemptJsonConversion:
+    type: boolean
+    description: |
+      If true, the transformation will attempt to convert internally the record to JSON when the schema is 
+      STRING or BYTES before applying the steps. 
+      The schema will still be STRING or BYTES after the transformation. 
+      This allows to use references to fields in the steps with STRING and BYTES schema payloads.
+      Defaults is true. Use this parameter to disable the JSON conversion for performance reason if you don't need it.
+    default: true
+  openai:
+    type: object
+    description: The OpenAI configuration.
+    properties:
+      url:
+        type:
+          - string
+          - 'null'
+        description: The URL of the OpenAI API. Required if the provider is `azure`.
+      access-key:
+        type: string
+        description: The access key for authentication.
+      provider:
+        type:
+          - string
+          - 'null'
+        description: The provider of the API.
+        enum:
+          - openai
+          - azure
+          - null
+        default: openai
+    required:
+      - access-key
+required:
+  - steps

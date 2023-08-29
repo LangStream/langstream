@@ -252,7 +252,8 @@ class AppResourcesFactoryTest {
                                         .withValue("langstream")
                                         .withKey("workload")
                                         .build()),
-                        Map.of("workload", "langstream"));
+                        Map.of("workload", "langstream"),
+                        Map.of("ann1", "value1"));
 
         Job job =
                 AppResourcesFactory.generateJob(
@@ -270,6 +271,8 @@ class AppResourcesFactoryTest {
         assertEquals(
                 Map.of("workload", "langstream"),
                 job.getSpec().getTemplate().getSpec().getNodeSelector());
+        assertEquals(
+                "value1", job.getSpec().getTemplate().getMetadata().getAnnotations().get("ann1"));
     }
 
     @ParameterizedTest

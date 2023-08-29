@@ -116,7 +116,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
                         .applicationCustomResource(applicationCustomResource)
                         .deleteJob(delete)
                         .clusterRuntimeConfiguration(configuration.getClusterRuntime())
-                        .podTemplate(configuration.getPodTemplate())
+                        .podTemplate(configuration.getAppDeployerPodTemplate())
                         .image(configuration.getRuntimeImage())
                         .imagePullPolicy(configuration.getRuntimeImagePullPolicy())
                         .build();

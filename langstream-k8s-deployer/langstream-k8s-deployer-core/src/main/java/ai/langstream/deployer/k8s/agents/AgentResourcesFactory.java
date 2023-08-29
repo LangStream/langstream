@@ -264,10 +264,7 @@ public class AgentResourcesFactory {
                 .withPodManagementPolicy("Parallel")
                 .withNewTemplate()
                 .withNewMetadata()
-                .withAnnotations(
-                        Map.of(
-                                "ai.langstream/config-checksum",
-                                spec.getAgentConfigSecretRefChecksum()))
+                .withAnnotations(getPodAnnotations(spec, podTemplate))
                 .withLabels(labels)
                 .endMetadata()
                 .withNewSpec()
@@ -319,6 +316,15 @@ public class AgentResourcesFactory {
                 .endTemplate()
                 .endSpec()
                 .build();
+    }
+
+    private static Map<String, String> getPodAnnotations(AgentSpec spec, PodTemplate podTemplate) {
+        final Map<String, String> annotations = new HashMap<>();
+        annotations.put("ai.langstream/config-checksum", spec.getAgentConfigSecretRefChecksum());
+        if (podTemplate != null && podTemplate.annotations() != null) {
+            annotations.putAll(podTemplate.annotations());
+        }
+        return annotations;
     }
 
     private static String getStsImagePullPolicy(GenerateStatefulsetParams params, AgentSpec spec) {

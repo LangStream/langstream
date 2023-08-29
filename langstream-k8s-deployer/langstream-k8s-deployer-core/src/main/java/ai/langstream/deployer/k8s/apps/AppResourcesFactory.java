@@ -39,6 +39,7 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -181,6 +182,7 @@ public class AppResourcesFactory {
                 .withBackoffLimit(1)
                 .withNewTemplate()
                 .withNewMetadata()
+                .withAnnotations(getPodAnnotations(podTemplate))
                 .withLabels(labels)
                 .endMetadata()
                 .withNewSpec()
@@ -209,6 +211,14 @@ public class AppResourcesFactory {
                 .endTemplate()
                 .endSpec()
                 .build();
+    }
+
+    private static Map<String, String> getPodAnnotations(PodTemplate podTemplate) {
+        final Map<String, String> annotations = new HashMap<>();
+        if (podTemplate != null && podTemplate.annotations() != null) {
+            annotations.putAll(podTemplate.annotations());
+        }
+        return annotations;
     }
 
     public static Map<String, String> getLabels(boolean delete, String applicationId) {

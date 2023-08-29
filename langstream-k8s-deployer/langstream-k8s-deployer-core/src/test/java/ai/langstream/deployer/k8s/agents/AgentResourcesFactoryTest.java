@@ -241,7 +241,8 @@ class AgentResourcesFactoryTest {
                                         .withValue("langstream")
                                         .withKey("workload")
                                         .build()),
-                        Map.of("workload", "langstream"));
+                        Map.of("workload", "langstream"),
+                        Map.of("ann1", "value1"));
         final StatefulSet statefulSet =
                 AgentResourcesFactory.generateStatefulSet(
                         AgentResourcesFactory.GenerateStatefulsetParams.builder()
@@ -258,6 +259,9 @@ class AgentResourcesFactoryTest {
         assertEquals(
                 Map.of("workload", "langstream"),
                 statefulSet.getSpec().getTemplate().getSpec().getNodeSelector());
+        assertEquals(
+                "value1",
+                statefulSet.getSpec().getTemplate().getMetadata().getAnnotations().get("ann1"));
     }
 
     private AgentCustomResource getCr(String yaml) {

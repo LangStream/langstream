@@ -36,6 +36,7 @@ public class ApplicationLifecycleStatus {
     public static final ApplicationLifecycleStatus errorDeploying(String reason) {
         return new ApplicationLifecycleStatus(Status.ERROR_DEPLOYING, reason);
     }
+
     public static final ApplicationLifecycleStatus errorDeleting(String reason) {
         return new ApplicationLifecycleStatus(Status.ERROR_DELETING, reason);
     }

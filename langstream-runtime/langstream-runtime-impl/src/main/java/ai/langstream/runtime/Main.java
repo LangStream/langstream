@@ -23,7 +23,8 @@ public class Main {
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.err.println("Unknown command. Only ['agent-runtime', 'deployer-runtime', 'agent-code-download']");
+            System.err.println(
+                    "Unknown command. Only ['agent-runtime', 'deployer-runtime', 'agent-code-download']");
             System.exit(1);
         }
         String command = args[0];
@@ -39,6 +40,5 @@ public class Main {
                 System.exit(1);
             }
         }
-
     }
 }

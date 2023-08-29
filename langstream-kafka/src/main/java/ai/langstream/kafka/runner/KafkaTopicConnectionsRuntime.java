@@ -15,32 +15,35 @@
  */
 package ai.langstream.kafka.runner;
 
-import ai.langstream.kafka.runtime.KafkaStreamingClusterRuntime;
-import ai.langstream.kafka.runtime.KafkaClusterRuntimeConfiguration;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runner.topics.TopicReader;
-import ai.langstream.api.runner.topics.TopicOffsetPosition;
-import lombok.extern.slf4j.Slf4j;
-
+import ai.langstream.kafka.runtime.KafkaClusterRuntimeConfiguration;
+import ai.langstream.kafka.runtime.KafkaStreamingClusterRuntime;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
 
     @Override
-    public TopicReader createReader(StreamingCluster streamingCluster,
-                                    Map<String, Object> configuration,
-                                    TopicOffsetPosition initialPosition) {
+    public TopicReader createReader(
+            StreamingCluster streamingCluster,
+            Map<String, Object> configuration,
+            TopicOffsetPosition initialPosition) {
         Map<String, Object> copy = new HashMap<>(configuration);
-        copy.putAll(KafkaStreamingClusterRuntime.getKafkaClusterRuntimeConfiguration(streamingCluster).getAdmin());
+        copy.putAll(
+                KafkaStreamingClusterRuntime.getKafkaClusterRuntimeConfiguration(streamingCluster)
+                        .getAdmin());
         copy.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         copy.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        // do not use group id for reader. "group.id" default value is null, which is not accepted by KafkaConsumer.
+        // do not use group id for reader. "group.id" default value is null, which is not accepted
+        // by KafkaConsumer.
         copy.put("group.id", "");
         // only read one record at the time to have consistent offsets.
         copy.put("max.poll.records", 1);
@@ -49,7 +52,8 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
     }
 
     @Override
-    public TopicConsumer createConsumer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+    public TopicConsumer createConsumer(
+            String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
 
         Map<String, Object> copy = new HashMap<>(configuration);
         applyDefaultConfiguration(agentId, streamingCluster, copy);
@@ -58,25 +62,32 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         return new KafkaConsumerWrapper(copy, topicName);
     }
 
-    private static void applyDefaultConfiguration(String agentId, StreamingCluster streamingCluster, Map<String, Object> copy) {
-        KafkaClusterRuntimeConfiguration configuration = KafkaStreamingClusterRuntime.getKafkaClusterRuntimeConfiguration(streamingCluster);
+    private static void applyDefaultConfiguration(
+            String agentId, StreamingCluster streamingCluster, Map<String, Object> copy) {
+        KafkaClusterRuntimeConfiguration configuration =
+                KafkaStreamingClusterRuntime.getKafkaClusterRuntimeConfiguration(streamingCluster);
         copy.putAll(configuration.getAdmin());
 
         // consumer
-        copy.putIfAbsent("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        copy.putIfAbsent("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        copy.putIfAbsent(
+                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        copy.putIfAbsent(
+                "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 
         copy.putIfAbsent("enable.auto.commit", "false");
         copy.putIfAbsent("group.id", "langstream-" + agentId);
         copy.putIfAbsent("auto.offset.reset", "earliest");
 
         // producer
-        copy.putIfAbsent("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
-        copy.putIfAbsent("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        copy.putIfAbsent(
+                "key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        copy.putIfAbsent(
+                "value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
     }
 
     @Override
-    public TopicProducer createProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+    public TopicProducer createProducer(
+            String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
         Map<String, Object> copy = new HashMap<>(configuration);
         applyDefaultConfiguration(agentId, streamingCluster, copy);
         String topicName = (String) copy.remove("topic");
@@ -85,22 +96,29 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
     }
 
     @Override
-    public TopicProducer createDeadletterTopicProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
-        Map<String, Object> deadletterConfiguration = (Map<String, Object>) configuration.get("deadLetterTopicProducer");
+    public TopicProducer createDeadletterTopicProducer(
+            String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        Map<String, Object> deadletterConfiguration =
+                (Map<String, Object>) configuration.get("deadLetterTopicProducer");
         if (deadletterConfiguration == null || deadletterConfiguration.isEmpty()) {
             return null;
         }
-        log.info("Creating deadletter topic producer for agent {} using configuration {}", agentId, configuration);
+        log.info(
+                "Creating deadletter topic producer for agent {} using configuration {}",
+                agentId,
+                configuration);
         return createProducer(agentId, streamingCluster, deadletterConfiguration);
     }
 
     @Override
-    public TopicAdmin createTopicAdmin(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+    public TopicAdmin createTopicAdmin(
+            String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
         Map<String, Object> copy = new HashMap<>(configuration);
         applyDefaultConfiguration(agentId, streamingCluster, copy);
         return new TopicAdmin() {
 
             org.apache.kafka.connect.util.TopicAdmin topicAdmin;
+
             @Override
             public void start() {
                 topicAdmin = new org.apache.kafka.connect.util.TopicAdmin(copy);
@@ -120,5 +138,4 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
             }
         };
     }
-
 }

@@ -18,18 +18,22 @@ package ai.langstream.api.runtime;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 
-/**
- * Optimises the execution plan of a Pipeline.
- */
+/** Optimises the execution plan of a Pipeline. */
 public interface ExecutionPlanOptimiser {
 
     boolean supports(String clusterType);
 
     /**
      * Returns the ability of an Agent to be merged with the previous version.
+     *
      * @return true if the agents can be merged
      */
     boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation);
 
-    AgentNode mergeAgents(Module module, Pipeline pipeline, AgentNode previousAgent, AgentNode agentImplementation, ExecutionPlan instance);
+    AgentNode mergeAgents(
+            Module module,
+            Pipeline pipeline,
+            AgentNode previousAgent,
+            AgentNode agentImplementation,
+            ExecutionPlan instance);
 }

@@ -15,6 +15,11 @@
  */
 package ai.langstream.ai.agents.services.impl;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
@@ -22,17 +27,11 @@ import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Map;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 @WireMockTest
@@ -40,8 +39,11 @@ class VertexAIProviderTest {
 
     @Test
     void testCallEmbeddings(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-        stubFor(post("/v1/projects/the-project/locations/us-central1/publishers/google/models/textembedding-gecko:predict")
-                .willReturn(okJson(""" 
+        stubFor(
+                post("/v1/projects/the-project/locations/us-central1/publishers/google/models/textembedding-gecko:predict")
+                        .willReturn(
+                                okJson(
+                                        """
                    {
                       "predictions": [
                         {
@@ -58,14 +60,22 @@ class VertexAIProviderTest {
                 """)));
 
         VertexAIProvider provider = new VertexAIProvider();
-        ServiceProvider implementation = provider.createImplementation(
-                Map.of("vertex",
-                Map.of("url", wmRuntimeInfo.getHttpBaseUrl(),
-                "project", "the-project",
-                "region", "us-central1",
-                "token", "xxxx")));
+        ServiceProvider implementation =
+                provider.createImplementation(
+                        Map.of(
+                                "vertex",
+                                Map.of(
+                                        "url",
+                                        wmRuntimeInfo.getHttpBaseUrl(),
+                                        "project",
+                                        "the-project",
+                                        "region",
+                                        "us-central1",
+                                        "token",
+                                        "xxxx")));
 
-        EmbeddingsService embeddingsService = implementation.getEmbeddingsService(Map.of("model", "textembedding-gecko"));
+        EmbeddingsService embeddingsService =
+                implementation.getEmbeddingsService(Map.of("model", "textembedding-gecko"));
         List<List<Double>> result = embeddingsService.computeEmbeddings(List.of("hello world"));
         log.info("result: {}", result);
         assertEquals(1, result.size());
@@ -74,8 +84,11 @@ class VertexAIProviderTest {
 
     @Test
     void testCallCompletion(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-        stubFor(post("/v1/projects/the-project/locations/us-central1/publishers/google/models/chat-bison:predict")
-                .willReturn(okJson(""" 
+        stubFor(
+                post("/v1/projects/the-project/locations/us-central1/publishers/google/models/chat-bison:predict")
+                        .willReturn(
+                                okJson(
+                                        """
                    {
                      "predictions": [
                        {
@@ -114,39 +127,65 @@ class VertexAIProviderTest {
                    }
                 """)));
 
-
         VertexAIProvider provider = new VertexAIProvider();
-        ServiceProvider implementation = provider.createImplementation(
-                Map.of("vertex",
-                        Map.of("url", wmRuntimeInfo.getHttpBaseUrl(),
-                                "project", "the-project",
-                                "region", "us-central1",
-                                "token", "xxxx")));
-        CompletionsService service = implementation.getCompletionsService(Map.of("model", "chat-bison",
-                "max-tokens", 3, "temperature", 0.5, "top-p", 1.0, "top-k", 3.0));
-        ChatCompletions chatCompletions = service.getChatCompletions(
-                List.of(new ChatMessage("user")
-                        .setContent("What is a car?")), Map.of("max_tokens", 3));
+        ServiceProvider implementation =
+                provider.createImplementation(
+                        Map.of(
+                                "vertex",
+                                Map.of(
+                                        "url",
+                                        wmRuntimeInfo.getHttpBaseUrl(),
+                                        "project",
+                                        "the-project",
+                                        "region",
+                                        "us-central1",
+                                        "token",
+                                        "xxxx")));
+        CompletionsService service =
+                implementation.getCompletionsService(
+                        Map.of(
+                                "model",
+                                "chat-bison",
+                                "max-tokens",
+                                3,
+                                "temperature",
+                                0.5,
+                                "top-p",
+                                1.0,
+                                "top-k",
+                                3.0));
+        ChatCompletions chatCompletions =
+                service.getChatCompletions(
+                        List.of(new ChatMessage("user").setContent("What is a car?")),
+                        Map.of("max_tokens", 3));
         log.info("result: {}", chatCompletions);
-        assertEquals("A car is a wheeled, self-propelled motor vehicle used for transportation.", chatCompletions.getChoices().get(0).getMessage().getContent());
+        assertEquals(
+                "A car is a wheeled, self-propelled motor vehicle used for transportation.",
+                chatCompletions.getChoices().get(0).getMessage().getContent());
     }
-
 
     @Test
     @Disabled
     void testCallEmbeddingsUsingServiceAccount() throws Exception {
         VertexAIProvider provider = new VertexAIProvider();
-        ServiceProvider implementation = provider.createImplementation(
-                Map.of("vertex",
-                        Map.of("url", "https://us-central1-aiplatform.googleapis.com",
-                                "project", "datastax-astrastreaming-dev",
-                                "region", "us-central1",
-                                "serviceAccountJson", "PUT-HERE-YOUR-JSON-KEY")));
+        ServiceProvider implementation =
+                provider.createImplementation(
+                        Map.of(
+                                "vertex",
+                                Map.of(
+                                        "url",
+                                        "https://us-central1-aiplatform.googleapis.com",
+                                        "project",
+                                        "datastax-astrastreaming-dev",
+                                        "region",
+                                        "us-central1",
+                                        "serviceAccountJson",
+                                        "PUT-HERE-YOUR-JSON-KEY")));
 
-        EmbeddingsService embeddingsService = implementation.getEmbeddingsService(Map.of("model", "textembedding-gecko"));
+        EmbeddingsService embeddingsService =
+                implementation.getEmbeddingsService(Map.of("model", "textembedding-gecko"));
         List<List<Double>> result = embeddingsService.computeEmbeddings(List.of("hello world"));
         log.info("result: {}", result);
         assertEquals(1, result.size());
     }
-
 }

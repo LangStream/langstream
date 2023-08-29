@@ -17,5 +17,4 @@ package ai.langstream.api.model;
 
 import java.util.List;
 
-public record Gateways(List<Gateway> gateways) {
-}
+public record Gateways(List<Gateway> gateways) {}

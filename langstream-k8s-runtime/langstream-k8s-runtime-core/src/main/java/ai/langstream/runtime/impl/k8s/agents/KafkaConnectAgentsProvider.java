@@ -19,7 +19,6 @@ import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.common.AbstractAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-
 import java.util.List;
 import java.util.Set;
 
@@ -37,5 +36,4 @@ public class KafkaConnectAgentsProvider extends AbstractAgentProvider {
             default -> throw new IllegalStateException();
         };
     }
-
 }

@@ -15,16 +15,11 @@
  */
 package ai.langstream.runtime.agent;
 
-
 import ai.langstream.admin.client.AdminClient;
 import ai.langstream.admin.client.AdminClientLogger;
-import ai.langstream.api.codestorage.CodeStorage;
-import ai.langstream.api.codestorage.CodeStorageRegistry;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
-import ai.langstream.runtime.deployer.RuntimeDeployerStarter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
@@ -32,14 +27,19 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * This is the main entry point for downloading the application code.
- */
+/** This is the main entry point for downloading the application code. */
 @Slf4j
 public class AgentCodeDownloader {
 
-    public void downloadCustomCode(ClusterConfiguration clusterConfiguration, String token, DownloadAgentCodeConfiguration configuration) throws Exception {
-        log.info("Downloading custom code {}, cluster configuration {}", configuration, clusterConfiguration);
+    public void downloadCustomCode(
+            ClusterConfiguration clusterConfiguration,
+            String token,
+            DownloadAgentCodeConfiguration configuration)
+            throws Exception {
+        log.info(
+                "Downloading custom code {}, cluster configuration {}",
+                configuration,
+                clusterConfiguration);
         final String tenant = Objects.requireNonNull(configuration.tenant());
         final String codeDownloadPath = Objects.requireNonNull(configuration.codeDownloadPath());
         final String applicationId = Objects.requireNonNull(configuration.applicationId());
@@ -50,14 +50,21 @@ public class AgentCodeDownloader {
         }
 
         try (AdminClient adminClient = createAdminClient(clusterConfiguration, token, tenant)) {
-            final HttpResponse<InputStream> download = adminClient.applications()
-                    .download(applicationId, codeArchiveId, HttpResponse.BodyHandlers.ofInputStream());
+            final HttpResponse<InputStream> download =
+                    adminClient
+                            .applications()
+                            .download(
+                                    applicationId,
+                                    codeArchiveId,
+                                    HttpResponse.BodyHandlers.ofInputStream());
             LocalZipFileArchiveFile.extractTo(download.body(), destinationPath);
             log.info("Downloaded code to {}", codeDownloadPath);
         }
     }
 
-    private static AdminClient createAdminClient(ClusterConfiguration clusterConfiguration, String token, String tenant) throws Exception {
+    private static AdminClient createAdminClient(
+            ClusterConfiguration clusterConfiguration, String token, String tenant)
+            throws Exception {
         final ai.langstream.admin.client.AdminClientConfiguration config =
                 ai.langstream.admin.client.AdminClientConfiguration.builder()
                         .webServiceUrl(clusterConfiguration.controlPlaneUrl())
@@ -65,23 +72,23 @@ public class AgentCodeDownloader {
                         .tenant(tenant)
                         .build();
 
-        final AdminClientLogger logger = new AdminClientLogger() {
-            @Override
-            public void log(Object message) {
-                log.info(message.toString());
-            }
+        final AdminClientLogger logger =
+                new AdminClientLogger() {
+                    @Override
+                    public void log(Object message) {
+                        log.info(message.toString());
+                    }
 
-            @Override
-            public void error(Object message) {
-                log.error(message.toString());
+                    @Override
+                    public void error(Object message) {
+                        log.error(message.toString());
+                    }
 
-            }
-
-            @Override
-            public void debug(Object message) {
-                log.debug(message.toString());
-            }
-        };
+                    @Override
+                    public void debug(Object message) {
+                        log.debug(message.toString());
+                    }
+                };
         return new AdminClient(config, logger);
     }
 }

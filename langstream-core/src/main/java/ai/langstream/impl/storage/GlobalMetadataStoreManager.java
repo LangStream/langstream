@@ -32,17 +32,13 @@ public class GlobalMetadataStoreManager {
     private final GlobalMetadataStore globalMetadataStore;
     private final ApplicationStore applicationStore;
 
-
     public void syncTenantsConfiguration() {
-        listTenants()
-                .keySet()
-                .forEach(this::syncTenantConfiguration);
+        listTenants().keySet().forEach(this::syncTenantConfiguration);
     }
 
     public void syncTenantConfiguration(String tenant) {
         applicationStore.onTenantCreated(tenant);
     }
-
 
     @SneakyThrows
     public void putTenant(String tenant, TenantConfiguration tenantConfiguration) {
@@ -74,18 +70,15 @@ public class GlobalMetadataStoreManager {
 
     @SneakyThrows
     public Map<String, TenantConfiguration> listTenants() {
-        return globalMetadataStore.list()
-                .entrySet()
-                .stream()
+        return globalMetadataStore.list().entrySet().stream()
                 .filter(e -> e.getKey().startsWith(TENANT_KEY_PREFIX))
-                .collect(Collectors.toMap(
-                        e -> e.getKey().substring(TENANT_KEY_PREFIX.length()),
-                        e -> parseTenantConfiguration(e.getValue()))
-                );
+                .collect(
+                        Collectors.toMap(
+                                e -> e.getKey().substring(TENANT_KEY_PREFIX.length()),
+                                e -> parseTenantConfiguration(e.getValue())));
     }
 
     private static String keyedTenantName(String tenant) {
         return TENANT_KEY_PREFIX + tenant;
     }
-
 }

@@ -16,25 +16,24 @@
 package ai.langstream.api.database;
 
 import ai.langstream.api.runner.code.Record;
-
 import java.util.Map;
 
 /**
- * This is the interface for writing to a vector database.
- * this interface is really simple by intention.
- * For advanced usages users should use Kafka Connect connectors.
+ * This is the interface for writing to a vector database. this interface is really simple by
+ * intention. For advanced usages users should use Kafka Connect connectors.
  */
 public interface VectorDatabaseWriter {
 
-    default void initialise(Map<String, Object> agentConfiguration) throws Exception  {}
+    default void initialise(Map<String, Object> agentConfiguration) throws Exception {}
 
     /**
-     * Update a record, insert if it does not exist.
-     * If value is NULL then the record is deleted.
+     * Update a record, insert if it does not exist. If value is NULL then the record is deleted.
+     *
      * @param record the record
      * @param context additional context
      * @throws Exception if an error occurs
      */
-    void upsert(Record record, Map<String, Object> context) throws Exception ;
+    void upsert(Record record, Map<String, Object> context) throws Exception;
+
     default void close() throws Exception {}
 }

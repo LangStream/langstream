@@ -19,6 +19,8 @@ import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.kafka.extensions.KafkaRegistryContainerExtension;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,27 +33,25 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import java.util.List;
-import java.util.Map;
-
 @Slf4j
 class KafkaSchemaTest extends AbstractApplicationRunner {
 
-
     @RegisterExtension
-    static KafkaRegistryContainerExtension registry = new KafkaRegistryContainerExtension(kafkaContainer);
+    static KafkaRegistryContainerExtension registry =
+            new KafkaRegistryContainerExtension(kafkaContainer);
 
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public static final class Pojo  {
+    public static final class Pojo {
 
         private String name;
     }
 
     @Test
     public void testUseSchemaWithKafka() throws Exception {
-        String schemaDefinition = """
+        String schemaDefinition =
+                """
                         {
                           "type" : "record",
                           "name" : "Pojo",
@@ -69,8 +69,10 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of(
-                        "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                         module: "module-1"
                         id: "pipeline-1"
                         topics:
@@ -89,10 +91,13 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
                             type: "identity"
                             input: "input-topic"
                             output: "output-topic"
-                        """.formatted(schemaDefinition));
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+                        """
+                                .formatted(schemaDefinition));
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createAvroProducer();
-                 KafkaConsumer<String, String> consumer = createAvroConsumer("output-topic")) {
+                    KafkaConsumer<String, String> consumer = createAvroConsumer("output-topic")) {
 
                 sendMessage("input-topic", record, producer);
 
@@ -115,32 +120,40 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
                         schema.registry.url: "%s"
                   computeCluster:
                      type: "kubernetes"
-                """.formatted(kafkaContainer.getBootstrapServers(),
-                registry.getSchemaRegistryUrl());
+                """
+                .formatted(kafkaContainer.getBootstrapServers(), registry.getSchemaRegistryUrl());
     }
-
 
     protected KafkaProducer<String, String> createAvroProducer() {
         return new KafkaProducer<>(
-            Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
-                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
-                "value.serializer", KafkaAvroSerializer.class.getName(),
-                "schema.registry.url", registry.getSchemaRegistryUrl())
-        );
+                Map.of(
+                        "bootstrap.servers",
+                        kafkaContainer.getBootstrapServers(),
+                        "key.serializer",
+                        "org.apache.kafka.common.serialization.StringSerializer",
+                        "value.serializer",
+                        KafkaAvroSerializer.class.getName(),
+                        "schema.registry.url",
+                        registry.getSchemaRegistryUrl()));
     }
 
-
     protected KafkaConsumer<String, String> createAvroConsumer(String topic) {
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(
-            Map.of("bootstrap.servers", kafkaContainer.getBootstrapServers(),
-                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
-                "value.deserializer", KafkaAvroDeserializer.class.getName(),
-                "group.id", "testgroup",
-                "auto.offset.reset", "earliest",
-                "schema.registry.url", registry.getSchemaRegistryUrl())
-        );
+        KafkaConsumer<String, String> consumer =
+                new KafkaConsumer<>(
+                        Map.of(
+                                "bootstrap.servers",
+                                kafkaContainer.getBootstrapServers(),
+                                "key.deserializer",
+                                "org.apache.kafka.common.serialization.StringDeserializer",
+                                "value.deserializer",
+                                KafkaAvroDeserializer.class.getName(),
+                                "group.id",
+                                "testgroup",
+                                "auto.offset.reset",
+                                "earliest",
+                                "schema.registry.url",
+                                registry.getSchemaRegistryUrl()));
         consumer.subscribe(List.of(topic));
         return consumer;
     }
-
 }

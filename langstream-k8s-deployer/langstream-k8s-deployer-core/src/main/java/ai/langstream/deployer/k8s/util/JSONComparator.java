@@ -19,20 +19,20 @@ import java.util.List;
 
 public interface JSONComparator {
 
-    Result RESULT_EQUALS = new Result() {
-        @Override
-        public boolean areEquals() {
-            return true;
-        }
+    Result RESULT_EQUALS =
+            new Result() {
+                @Override
+                public boolean areEquals() {
+                    return true;
+                }
 
-        @Override
-        public List<FieldComparisonDiff> diffs() {
-            return null;
-        }
-    };
+                @Override
+                public List<FieldComparisonDiff> diffs() {
+                    return null;
+                }
+            };
 
-    record FieldComparisonDiff(String field, String expected, String actual) {
-    }
+    record FieldComparisonDiff(String field, String expected, String actual) {}
 
     interface Result {
         boolean areEquals();

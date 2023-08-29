@@ -19,6 +19,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
 import static com.github.tomakehurst.wiremock.client.WireMock.binaryEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -30,7 +31,6 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-
 class AppsCmdTest extends CommandTestBase {
 
     @Test
@@ -40,21 +40,34 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+        final Path zipFile =
+                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
 
-        wireMock.register(WireMock.post("/api/applications/%s/my-app"
-                        .formatted(TENANT))
-                .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
-                .withMultipartRequestBody(aMultipart("instance").withBody(equalTo("instance: {}")))
-                .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
-                .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+        wireMock.register(
+                WireMock.post("/api/applications/%s/my-app".formatted(TENANT))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .withMultipartRequestBody(
+                                aMultipart("instance").withBody(equalTo("instance: {}")))
+                        .withMultipartRequestBody(
+                                aMultipart("secrets").withBody(equalTo("secrets: []")))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app",
-                langstream.toAbsolutePath().toString(), "-i", instance);
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "deploy",
+                        "my-app",
+                        "-s",
+                        secrets,
+                        "-app",
+                        langstream.toAbsolutePath().toString(),
+                        "-i",
+                        instance);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }
-
 
     @Test
     public void testDeployWithDependencies() throws Exception {
@@ -62,40 +75,57 @@ class AppsCmdTest extends CommandTestBase {
         final String fileContent = "dep-content";
         final String fileContentSha =
                 "e1ebfd0f4e4a624eeeffc52c82b048739ea615dca9387630ae7767cb9957aa4ce2cf7afbd032ac8d5fcb73f42316655ea390e37399f14155ed794a6f53c066ec";
-        wireMock.register(WireMock.get("/local/get-dependency.jar")
-                .willReturn(WireMock.ok(fileContent)));
+        wireMock.register(
+                WireMock.get("/local/get-dependency.jar").willReturn(WireMock.ok(fileContent)));
 
         Path langstream = Files.createTempDirectory("langstream");
         Files.createDirectories(Path.of(langstream.toFile().getAbsolutePath(), "java", "lib"));
-        final String configurationYamlContent = """
+        final String configurationYamlContent =
+                """
                 configuration:
                   dependencies:
                     - name: "PostGRES JDBC Driver"
                       url: "%s"
                       sha512sum: "%s"
                       type: "java-library"
-                """.formatted(wireMockBaseUrl + "/local/get-dependency.jar", fileContentSha);
-        Files.writeString(Path.of(langstream.toFile().getAbsolutePath(), "configuration.yaml"),
-            configurationYamlContent);
-        Files.writeString(Path.of(langstream.toFile().getAbsolutePath(), "java", "lib", "get-dependency.jar"),
-            fileContent);
+                """
+                        .formatted(wireMockBaseUrl + "/local/get-dependency.jar", fileContentSha);
+        Files.writeString(
+                Path.of(langstream.toFile().getAbsolutePath(), "configuration.yaml"),
+                configurationYamlContent);
+        Files.writeString(
+                Path.of(langstream.toFile().getAbsolutePath(), "java", "lib", "get-dependency.jar"),
+                fileContent);
         final String app = createTempFile("module: module-1", langstream);
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
-        wireMock.register(WireMock.post("/api/applications/%s/my-app"
-                        .formatted(TENANT))
-                .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
-                .withMultipartRequestBody(aMultipart("instance").withBody(equalTo("instance: {}")))
-                .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
-                .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+        final Path zipFile =
+                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+        wireMock.register(
+                WireMock.post("/api/applications/%s/my-app".formatted(TENANT))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .withMultipartRequestBody(
+                                aMultipart("instance").withBody(equalTo("instance: {}")))
+                        .withMultipartRequestBody(
+                                aMultipart("secrets").withBody(equalTo("secrets: []")))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result = executeCommand("apps", "deploy", "my-app", "-s", secrets, "-app",
-                langstream.toAbsolutePath().toString(), "-i", instance);
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "deploy",
+                        "my-app",
+                        "-s",
+                        secrets,
+                        "-app",
+                        langstream.toAbsolutePath().toString(),
+                        "-i",
+                        instance);
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals(0, result.exitCode());
-
     }
 
     @Test
@@ -105,23 +135,38 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile = AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
-        wireMock.register(WireMock.patch(urlEqualTo("/api/applications/%s/my-app"
-                        .formatted(TENANT)))
-                .withMultipartRequestBody(aMultipart("app").withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
-                .withMultipartRequestBody(aMultipart("instance").withBody(equalTo("instance: {}")))
-                .withMultipartRequestBody(aMultipart("secrets").withBody(equalTo("secrets: []")))
-                .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+        final Path zipFile =
+                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+        wireMock.register(
+                WireMock.patch(urlEqualTo("/api/applications/%s/my-app".formatted(TENANT)))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .withMultipartRequestBody(
+                                aMultipart("instance").withBody(equalTo("instance: {}")))
+                        .withMultipartRequestBody(
+                                aMultipart("secrets").withBody(equalTo("secrets: []")))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result = executeCommand("apps", "update", "my-app", "-s", secrets, "-app",
-                langstream.toAbsolutePath().toString(), "-i", instance);
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "update",
+                        "my-app",
+                        "-s",
+                        secrets,
+                        "-app",
+                        langstream.toAbsolutePath().toString(),
+                        "-i",
+                        instance);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }
 
     @Test
     public void testGet() throws Exception {
-        final String jsonValue = """
+        final String jsonValue =
+                """
                 {
                   "application-id" : "test",
                   "application" : {
@@ -918,55 +963,60 @@ class AppsCmdTest extends CommandTestBase {
                   }
                 }
                 """;
-        wireMock.register(WireMock.get("/api/applications/%s/my-app"
-                .formatted(TENANT)).willReturn(WireMock.ok(jsonValue)));
+        wireMock.register(
+                WireMock.get("/api/applications/%s/my-app".formatted(TENANT))
+                        .willReturn(WireMock.ok(jsonValue)));
 
         CommandResult result = executeCommand("apps", "get", "my-app");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
-        Assertions.assertEquals("""
+        Assertions.assertEquals(
+                """
                         ID               STREAMING        COMPUTE          STATUS           EXECUTORS        REPLICAS      \s
                         test             kafka            kubernetes       DEPLOYED         2/2              2/2""",
                 result.out());
-        ObjectMapper jsonPrinter = new ObjectMapper()
-                .enable(SerializationFeature.INDENT_OUTPUT)
-                .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+        ObjectMapper jsonPrinter =
+                new ObjectMapper()
+                        .enable(SerializationFeature.INDENT_OUTPUT)
+                        .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
         result = executeCommand("apps", "get", "my-app", "-o", "json");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
 
-        final String expectedJson = jsonPrinter.writeValueAsString(jsonPrinter.readValue(jsonValue, JsonNode.class));
+        final String expectedJson =
+                jsonPrinter.writeValueAsString(jsonPrinter.readValue(jsonValue, JsonNode.class));
         Assertions.assertEquals(expectedJson, result.out());
 
-
-        final ObjectMapper yamlPrinter = new ObjectMapper(new YAMLFactory())
-                .enable(SerializationFeature.INDENT_OUTPUT)
-                .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
-        final String expectedYaml = yamlPrinter.writeValueAsString(jsonPrinter.readValue(jsonValue, JsonNode.class));
+        final ObjectMapper yamlPrinter =
+                new ObjectMapper(new YAMLFactory())
+                        .enable(SerializationFeature.INDENT_OUTPUT)
+                        .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+        final String expectedYaml =
+                yamlPrinter.writeValueAsString(jsonPrinter.readValue(jsonValue, JsonNode.class));
 
         result = executeCommand("apps", "get", "my-app", "-o", "yaml");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals(expectedYaml.strip(), result.out());
-
     }
 
     @Test
     public void testDelete() {
-        wireMock.register(WireMock.delete("/api/applications/%s/my-app"
-                .formatted(TENANT)).willReturn(WireMock.ok()));
+        wireMock.register(
+                WireMock.delete("/api/applications/%s/my-app".formatted(TENANT))
+                        .willReturn(WireMock.ok()));
 
         CommandResult result = executeCommand("apps", "delete", "my-app");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("Application my-app deleted", result.out());
-
     }
 
     @Test
     public void testList() {
-        wireMock.register(WireMock.get("/api/applications/%s"
-                .formatted(TENANT)).willReturn(WireMock.ok("[]")));
+        wireMock.register(
+                WireMock.get("/api/applications/%s".formatted(TENANT))
+                        .willReturn(WireMock.ok("[]")));
 
         CommandResult result = executeCommand("apps", "list");
         Assertions.assertEquals(0, result.exitCode());
@@ -982,44 +1032,45 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("--- []", result.out());
-
     }
 
     @Test
     public void testLogs() {
-        wireMock.register(WireMock.get("/api/applications/%s/my-app/logs"
-                .formatted(TENANT)).willReturn(WireMock.ok()));
+        wireMock.register(
+                WireMock.get("/api/applications/%s/my-app/logs".formatted(TENANT))
+                        .willReturn(WireMock.ok()));
 
         CommandResult result = executeCommand("apps", "logs", "my-app");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("", result.out());
-
     }
 
     @Test
     public void testDownload() {
-        wireMock.register(WireMock.get("/api/applications/%s/my-app/code"
-                .formatted(TENANT)).willReturn(WireMock.ok()));
+        wireMock.register(
+                WireMock.get("/api/applications/%s/my-app/code".formatted(TENANT))
+                        .willReturn(WireMock.ok()));
 
         CommandResult result = executeCommand("apps", "download", "my-app");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals(
-                "Downloaded application code to " + new File("%s-my-app.zip".formatted(TENANT)).getAbsolutePath(),
+                "Downloaded application code to "
+                        + new File("%s-my-app.zip".formatted(TENANT)).getAbsolutePath(),
                 result.out());
-
     }
 
     @Test
     public void testDownloadToFile() {
-        wireMock.register(WireMock.get("/api/applications/%s/my-app/code"
-                .formatted(TENANT)).willReturn(WireMock.ok()));
+        wireMock.register(
+                WireMock.get("/api/applications/%s/my-app/code".formatted(TENANT))
+                        .willReturn(WireMock.ok()));
 
-        CommandResult result = executeCommand("apps", "download", "my-app", "-o", "/tmp/download.zip");
+        CommandResult result =
+                executeCommand("apps", "download", "my-app", "-o", "/tmp/download.zip");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("Downloaded application code to /tmp/download.zip", result.out());
-
     }
 }

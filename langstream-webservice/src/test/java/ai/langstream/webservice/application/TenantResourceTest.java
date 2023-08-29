@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.webservice.WebAppTestConfig;
 import lombok.extern.slf4j.Slf4j;
@@ -39,48 +40,25 @@ import org.springframework.test.web.servlet.MockMvc;
 @DirtiesContext
 class TenantResourceTest {
 
-    @Autowired
-    MockMvc mockMvc;
+    @Autowired MockMvc mockMvc;
 
-    @RegisterExtension
-    static final KubeK3sServer k3s = new KubeK3sServer(true);
-
+    @RegisterExtension static final KubeK3sServer k3s = new KubeK3sServer(true);
 
     @Test
     void testTenantCrud() throws Exception {
-        mockMvc.perform(put("/api/tenants/my-tenant"))
-                        .andExpect(status().isOk());
-        mockMvc
-                .perform(
-                        put("/api/tenants/test")
-                )
-                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/tenants/my-tenant")).andExpect(status().isOk());
+        mockMvc.perform(put("/api/tenants/test")).andExpect(status().isOk());
 
-        mockMvc
-                .perform(
-                        get("/api/tenants/test")
-                )
+        mockMvc.perform(get("/api/tenants/test"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("test"));
 
-        mockMvc
-                .perform(
-                        get("/api/tenants")
-                )
+        mockMvc.perform(get("/api/tenants"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.test.name").value("test"));
 
-        mockMvc
-                .perform(
-                        delete("/api/tenants/test")
-                )
-                .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/tenants/test")).andExpect(status().isOk());
 
-        mockMvc
-                .perform(
-                        get("/api/tenants/test")
-                )
-                .andExpect(status().isNotFound());
-
+        mockMvc.perform(get("/api/tenants/test")).andExpect(status().isNotFound());
     }
 }

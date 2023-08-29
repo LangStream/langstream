@@ -24,16 +24,21 @@ import java.util.regex.Pattern;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "download",
+@CommandLine.Command(
+        name = "download",
         mixinStandardHelpOptions = true,
         description = "Get LangStream application code")
 public class DownloadApplicationCodeCmd extends BaseApplicationCmd {
 
-    protected static final Pattern REGEX_PATTERN = Pattern.compile("filename=[\"']?([^\"'\r\n]+)[\"']?");
+    protected static final Pattern REGEX_PATTERN =
+            Pattern.compile("filename=[\"']?([^\"'\r\n]+)[\"']?");
+
     @CommandLine.Parameters(description = "ID of the application")
     private String applicationId;
 
-    @CommandLine.Option(names = {"-o", "--output-file"}, description = "Output file")
+    @CommandLine.Option(
+            names = {"-o", "--output-file"},
+            description = "Output file")
     private String outputFile;
 
     @Override
@@ -45,8 +50,8 @@ public class DownloadApplicationCodeCmd extends BaseApplicationCmd {
             path = Paths.get(outputFile);
         } else {
             String filename = null;
-            final String contentDispositionValue = response.headers().firstValue("Content-Disposition")
-                    .orElse(null);
+            final String contentDispositionValue =
+                    response.headers().firstValue("Content-Disposition").orElse(null);
             if (contentDispositionValue != null) {
 
                 Matcher matcher = REGEX_PATTERN.matcher(contentDispositionValue);

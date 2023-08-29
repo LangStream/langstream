@@ -40,7 +40,8 @@ public class TenantResource {
     GlobalMetadataService globalMetadataService;
     ApplicationService applicationService;
 
-    public TenantResource(GlobalMetadataService globalMetadataService, ApplicationService applicationService) {
+    public TenantResource(
+            GlobalMetadataService globalMetadataService, ApplicationService applicationService) {
         this.globalMetadataService = globalMetadataService;
         this.applicationService = applicationService;
     }
@@ -56,35 +57,37 @@ public class TenantResource {
     TenantConfiguration getTenant(@NotBlank @PathVariable("tenant") String tenant) {
         final TenantConfiguration configuration = globalMetadataService.getTenant(tenant);
         if (configuration == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "tenant not found"
-            );
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "tenant not found");
         }
         return configuration;
     }
 
     @PutMapping(value = "/{tenant}")
     @Operation(summary = "Create or update a tenant")
-    void putTenant(
-            @NotBlank @PathVariable("tenant") String tenant) {
-        globalMetadataService.putTenant(tenant, TenantConfiguration.builder()
-                .name(tenant)
-                .build());
+    void putTenant(@NotBlank @PathVariable("tenant") String tenant) {
+        globalMetadataService.putTenant(tenant, TenantConfiguration.builder().name(tenant).build());
     }
 
     @DeleteMapping("/{tenant}")
     @Operation(summary = "Delete tenant")
     void deleteTenant(@NotBlank @PathVariable("tenant") String tenant) {
-        applicationService.getAllApplications(tenant).keySet().forEach(app -> {
-            try {
-                applicationService.deleteApplication(tenant, app);
-            } catch (Exception e) {
-                log.error("Error deleting application {} for tenant {}", app, tenant, e);
-                throw new RuntimeException(e);
-            }
-        });
+        applicationService
+                .getAllApplications(tenant)
+                .keySet()
+                .forEach(
+                        app -> {
+                            try {
+                                applicationService.deleteApplication(tenant, app);
+                            } catch (Exception e) {
+                                log.error(
+                                        "Error deleting application {} for tenant {}",
+                                        app,
+                                        tenant,
+                                        e);
+                                throw new RuntimeException(e);
+                            }
+                        });
         globalMetadataService.deleteTenant(tenant);
         log.info("Deleted tenant {}", tenant);
     }
-
 }

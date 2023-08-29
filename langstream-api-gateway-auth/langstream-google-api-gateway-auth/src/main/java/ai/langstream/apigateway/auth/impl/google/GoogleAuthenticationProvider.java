@@ -23,7 +23,6 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,9 +50,10 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
         if (clientId == null || clientId.isBlank()) {
             throw new IllegalArgumentException("clientId is required for Google Authentication.");
         }
-        verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                .setAudience(List.of(clientId))
-                .build();
+        verifier =
+                new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                        .setAudience(List.of(clientId))
+                        .build();
     }
 
     @Override

@@ -43,6 +43,7 @@ import org.apache.kafka.common.TopicPartition;
 public class CassandraWriter implements VectorDatabaseWriterProvider {
 
     private static final String DUMMY_TOPIC = "langstreaminputtopic";
+
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
         return "cassandra".equals(dataSourceConfig.get("service"))
@@ -54,59 +55,78 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
         return new CassandraVectorDatabaseWriter(datasourceConfig);
     }
 
-
     private static class CassandraVectorDatabaseWriter implements VectorDatabaseWriter {
 
         private final Map<String, Object> datasourceConfig;
         private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
         private final AbstractSinkTask processor = new SinkTaskProcessorImpl();
 
-
         public CassandraVectorDatabaseWriter(Map<String, Object> datasourceConfig) {
-            log.debug("CassandraSinkTask starting with DataSource configuration: {}", datasourceConfig);
+            log.debug(
+                    "CassandraSinkTask starting with DataSource configuration: {}",
+                    datasourceConfig);
             this.datasourceConfig = datasourceConfig;
             failureOffsets = new ConcurrentHashMap<>();
         }
 
-
         @Override
         public void initialise(Map<String, Object> agentConfiguration) {
             Map<String, String> configuration = new HashMap<>();
-            agentConfiguration.forEach((k, v) -> {
-                if (v instanceof String || v instanceof Number || v instanceof Boolean) {
-                    configuration.put(k, v.toString());
-                } else if (v == null) {
-                    configuration.put(k, null);
-                } else {
-                    switch (k) {
-                        case "datasource":
-                            Map<String, Object> datasource = (Map<String, Object>) v;
+            agentConfiguration.forEach(
+                    (k, v) -> {
+                        if (v instanceof String || v instanceof Number || v instanceof Boolean) {
+                            configuration.put(k, v.toString());
+                        } else if (v == null) {
+                            configuration.put(k, null);
+                        } else {
+                            switch (k) {
+                                case "datasource":
+                                    Map<String, Object> datasource = (Map<String, Object>) v;
 
-                            // this is the same format supported by the QueryStepDataSource for Cassandra
+                                    // this is the same format supported by the QueryStepDataSource
+                                    // for Cassandra
 
-                            // Cassandra
-                            configuration.put("contactPoints", datasource.getOrDefault("contact-points", "").toString());
-                            configuration.put("loadBalancing.localDc", datasource.getOrDefault("loadBalancing-localDc", "").toString());
-                            configuration.put("port", datasource.getOrDefault("port", "9042").toString());
+                                    // Cassandra
+                                    configuration.put(
+                                            "contactPoints",
+                                            datasource
+                                                    .getOrDefault("contact-points", "")
+                                                    .toString());
+                                    configuration.put(
+                                            "loadBalancing.localDc",
+                                            datasource
+                                                    .getOrDefault("loadBalancing-localDc", "")
+                                                    .toString());
+                                    configuration.put(
+                                            "port",
+                                            datasource.getOrDefault("port", "9042").toString());
 
-                            // AstraDB
-                            if (datasource.containsKey("secureBundle")) {
-                                configuration.put("cloud.secureConnectBundle", datasource
-                                        .getOrDefault("secureBundle", "").toString());
+                                    // AstraDB
+                                    if (datasource.containsKey("secureBundle")) {
+                                        configuration.put(
+                                                "cloud.secureConnectBundle",
+                                                datasource
+                                                        .getOrDefault("secureBundle", "")
+                                                        .toString());
+                                    }
+
+                                    configuration.put(
+                                            "auth.username",
+                                            datasource.getOrDefault("username", "").toString());
+                                    configuration.put(
+                                            "auth.password",
+                                            datasource.getOrDefault("password", "").toString());
+
+                                    break;
+                                default:
+                                    throw new IllegalArgumentException(
+                                            "Only string values can be passed to the Cassandra sink, found "
+                                                    + v.getClass()
+                                                    + " for "
+                                                    + k);
                             }
-
-                            configuration.put("auth.username", datasource
-                                    .getOrDefault("username", "").toString());
-                            configuration.put("auth.password", datasource
-                                    .getOrDefault("password", "").toString());
-
-                            break;
-                        default:
-                            throw new IllegalArgumentException("Only string values can be passed to the Cassandra sink, found " + v.getClass() + " for " + k);
-                    }
-
-                }
-            });
+                        }
+                    });
             configuration.put(SinkUtil.NAME_OPT, "langstream");
             String table = (String) agentConfiguration.get("table");
             String mapping = (String) agentConfiguration.get("mapping");
@@ -116,7 +136,8 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
             processor.start(configuration);
         }
 
-        private final AtomicReference<CompletableFuture<?>> currentRecordStatus = new AtomicReference<>();
+        private final AtomicReference<CompletableFuture<?>> currentRecordStatus =
+                new AtomicReference<>();
 
         @Override
         public void upsert(Record record, Map<String, Object> context) throws Exception {
@@ -136,12 +157,10 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
             }
         }
 
-
         @Override
         public void close() {
             processor.stop();
         }
-
 
         private class SinkTaskProcessorImpl extends AbstractSinkTask {
             @Override
@@ -162,7 +181,10 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
 
             @Override
             protected void handleFailure(
-                    AbstractSinkRecord abstractRecord, Throwable e, String cql, Runnable failCounter) {
+                    AbstractSinkRecord abstractRecord,
+                    Throwable e,
+                    String cql,
+                    Runnable failCounter) {
                 // Store the topic-partition and offset that had an error. However, we want
                 // to keep track of the *lowest* offset in a topic-partition that failed. Because
                 // requests are sent in parallel and response ordering is non-deterministic,
@@ -175,7 +197,8 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                 // we perform these checks/updates in a synchronized block. Presumably failures
                 // don't occur that often, so we don't have to be very fancy here.
                 Record record = ((LangStreamSinkRecordAdapter) abstractRecord).getRecord();
-                CassandraSinkConfig.IgnoreErrorsPolicy ignoreErrors = processor.getInstanceState().getConfig().getIgnoreErrors();
+                CassandraSinkConfig.IgnoreErrorsPolicy ignoreErrors =
+                        processor.getInstanceState().getConfig().getIgnoreErrors();
                 boolean driverFailure = cql != null;
                 if (driverFailure) {
                     log.warn(
@@ -188,7 +211,8 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                 }
 
                 if (ignoreErrors == CassandraSinkConfig.IgnoreErrorsPolicy.NONE
-                        || (ignoreErrors == CassandraSinkConfig.IgnoreErrorsPolicy.DRIVER && !driverFailure)) {
+                        || (ignoreErrors == CassandraSinkConfig.IgnoreErrorsPolicy.DRIVER
+                                && !driverFailure)) {
                     currentRecordStatus.get().completeExceptionally(e);
                 } else {
                     currentRecordStatus.get().complete(null);
@@ -212,8 +236,7 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
 
         private static class LangStreamSinkRecordAdapter implements AbstractSinkRecord {
 
-            @Getter
-            private final Record record;
+            @Getter private final Record record;
 
             public LangStreamSinkRecordAdapter(Record record) {
                 this.record = record;
@@ -221,35 +244,36 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
 
             @Override
             public Iterable<AbstractSinkRecordHeader> headers() {
-                return record
-                        .headers()
-                        .stream()
-                        .map(h -> new AbstractSinkRecordHeader() {
+                return record.headers().stream()
+                        .map(
+                                h ->
+                                        new AbstractSinkRecordHeader() {
 
-                            @Override
-                            public AbstractSchema schema() {
-                                return new SimpleStringSchema();
-                            }
+                                            @Override
+                                            public AbstractSchema schema() {
+                                                return new SimpleStringSchema();
+                                            }
 
-                            @Override
-                            public String key() {
-                                return h.key();
-                            }
+                                            @Override
+                                            public String key() {
+                                                return h.key();
+                                            }
 
-                            @Override
-                            public byte[] value() {
-                                Object v = h.value();
-                                if (v == null) {
-                                    return null;
-                                } else if (v instanceof byte[] b) {
-                                    return b;
-                                } else if (v instanceof String s) {
-                                    return s.getBytes(StandardCharsets.UTF_8);
-                                } else {
-                                    return v.toString().getBytes(StandardCharsets.UTF_8);
-                                }
-                            }
-                        })
+                                            @Override
+                                            public byte[] value() {
+                                                Object v = h.value();
+                                                if (v == null) {
+                                                    return null;
+                                                } else if (v instanceof byte[] b) {
+                                                    return b;
+                                                } else if (v instanceof String s) {
+                                                    return s.getBytes(StandardCharsets.UTF_8);
+                                                } else {
+                                                    return v.toString()
+                                                            .getBytes(StandardCharsets.UTF_8);
+                                                }
+                                            }
+                                        })
                         .collect(Collectors.toList());
             }
 

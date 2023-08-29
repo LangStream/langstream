@@ -16,11 +16,12 @@
 package ai.langstream.deployer.k8s.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
-import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.runtime.api.agent.AgentSpec;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
@@ -38,32 +39,44 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 @Testcontainers
 public class AgentControllerIT {
 
-    @RegisterExtension
-    static final OperatorExtension deployment = new OperatorExtension();
+    @RegisterExtension static final OperatorExtension deployment = new OperatorExtension();
 
     @Test
     void testAgentController() {
         final KubernetesClient client = deployment.getClient();
         final String namespace = "langstream-my-tenant";
-        client.resource(new NamespaceBuilder()
-                .withNewMetadata()
-                .withName(namespace)
-                .endMetadata().build()).serverSideApply();
+        client.resource(
+                        new NamespaceBuilder()
+                                .withNewMetadata()
+                                .withName(namespace)
+                                .endMetadata()
+                                .build())
+                .serverSideApply();
 
-        final String agentCustomResourceName = AgentResourcesFactory.getAgentCustomResourceName("my-app", "agent-id");
+        final String agentCustomResourceName =
+                AgentResourcesFactory.getAgentCustomResourceName("my-app", "agent-id");
 
-        client
-                .resource(AgentResourcesFactory.generateAgentSecret(agentCustomResourceName, new RuntimePodConfiguration(
-                        Map.of("input", Map.of("is_input", true)),
-                        Map.of("output", Map.of("is_output", true)),
-                        new AgentSpec(AgentSpec.ComponentType.PROCESSOR, "my-tenant",
-                                "agent-id", "my-app", "fn-type", Map.of("config", true), Map.of()),
-                        new StreamingCluster("noop", Map.of("config", true))
-                )))
+        client.resource(
+                        AgentResourcesFactory.generateAgentSecret(
+                                agentCustomResourceName,
+                                new RuntimePodConfiguration(
+                                        Map.of("input", Map.of("is_input", true)),
+                                        Map.of("output", Map.of("is_output", true)),
+                                        new AgentSpec(
+                                                AgentSpec.ComponentType.PROCESSOR,
+                                                "my-tenant",
+                                                "agent-id",
+                                                "my-app",
+                                                "fn-type",
+                                                Map.of("config", true),
+                                                Map.of()),
+                                        new StreamingCluster("noop", Map.of("config", true)))))
                 .inNamespace(namespace)
                 .serverSideApply();
 
-        final AgentCustomResource resource = getCr("""
+        final AgentCustomResource resource =
+                getCr(
+                        """
                 apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
@@ -76,27 +89,47 @@ public class AgentControllerIT {
                     agentConfigSecretRef: %s
                     agentConfigSecretRefChecksum: xx
                     tenant: my-tenant
-                """.formatted(agentCustomResourceName, agentCustomResourceName));
-
-
+                """
+                                .formatted(agentCustomResourceName, agentCustomResourceName));
 
         client.resource(resource).inNamespace(namespace).create();
 
-        Awaitility.await().untilAsserted(() -> {
-            assertEquals(1, client.apps().statefulSets().inNamespace(namespace).list().getItems().size());
-            assertEquals(AgentLifecycleStatus.Status.DEPLOYING,
-                    client.resource(resource).inNamespace(namespace).get().getStatus().getStatus().getStatus());
-        });
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            assertEquals(
+                                    1,
+                                    client.apps()
+                                            .statefulSets()
+                                            .inNamespace(namespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
+                            assertEquals(
+                                    AgentLifecycleStatus.Status.DEPLOYING,
+                                    client.resource(resource)
+                                            .inNamespace(namespace)
+                                            .get()
+                                            .getStatus()
+                                            .getStatus()
+                                            .getStatus());
+                        });
 
-        final StatefulSet statefulSet = client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
+        final StatefulSet statefulSet =
+                client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
         final StatefulSetSpec spec = statefulSet.getSpec();
 
         final PodSpec templateSpec = spec.getTemplate().getSpec();
 
         assertEquals(templateSpec.getVolumes().get(0).getName(), "app-config");
-        assertEquals(templateSpec.getVolumes().get(0).getSecret().getSecretName(), agentCustomResourceName);
-        assertEquals(templateSpec.getVolumes().get(0).getSecret().getItems().get(0).getKey(), "app-config");
-        assertEquals(templateSpec.getVolumes().get(0).getSecret().getItems().get(0).getPath(), "config");
+        assertEquals(
+                templateSpec.getVolumes().get(0).getSecret().getSecretName(),
+                agentCustomResourceName);
+        assertEquals(
+                templateSpec.getVolumes().get(0).getSecret().getItems().get(0).getKey(),
+                "app-config");
+        assertEquals(
+                templateSpec.getVolumes().get(0).getSecret().getItems().get(0).getPath(), "config");
         final Container container = templateSpec.getContainers().get(0);
         assertEquals("busybox", container.getImage());
         assertEquals("IfNotPresent", container.getImagePullPolicy());
@@ -107,10 +140,9 @@ public class AgentControllerIT {
         int args = 0;
         assertEquals("agent-runtime", container.getArgs().get(args++));
         assertEquals("/app-config/config", container.getArgs().get(args++));
-
     }
+
     private AgentCustomResource getCr(String yaml) {
         return SerializationUtil.readYaml(yaml, AgentCustomResource.class);
     }
-
 }

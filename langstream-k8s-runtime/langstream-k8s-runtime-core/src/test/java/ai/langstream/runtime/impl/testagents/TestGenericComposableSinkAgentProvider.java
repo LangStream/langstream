@@ -17,22 +17,21 @@ package ai.langstream.runtime.impl.testagents;
 
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
-import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
-
+import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import java.util.List;
 import java.util.Set;
 
 public class TestGenericComposableSinkAgentProvider extends AbstractComposableAgentProvider {
 
     public TestGenericComposableSinkAgentProvider() {
-        super(Set.of("generic-composable-sink"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
+        super(
+                Set.of("generic-composable-sink"),
+                List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
         return ComponentType.SINK;
     }
-
 }
-

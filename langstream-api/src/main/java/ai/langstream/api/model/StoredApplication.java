@@ -30,6 +30,4 @@ public class StoredApplication {
     private Application instance;
     private String codeArchiveReference;
     private ApplicationStatus status;
-
-
 }

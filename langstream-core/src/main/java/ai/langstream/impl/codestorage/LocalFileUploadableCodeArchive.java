@@ -15,9 +15,7 @@
  */
 package ai.langstream.impl.codestorage;
 
-import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.codestorage.UploadableCodeArchive;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;

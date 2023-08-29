@@ -16,6 +16,7 @@
 package ai.langstream.impl.storage.k8s.apps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
@@ -34,74 +35,106 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 class KubernetesApplicationStoreLogsTest {
 
-    @RegisterExtension
-    static final KubeK3sServer k3s = new KubeK3sServer(true);
+    @RegisterExtension static final KubeK3sServer k3s = new KubeK3sServer(true);
 
     @Test
     void testLogs() {
         final KubernetesApplicationStore store = new KubernetesApplicationStore();
-        store.initialize(Map.of("namespaceprefix", "langstream-", "controlPlaneUrl", "http://localhost:8090"));
+        store.initialize(
+                Map.of(
+                        "namespaceprefix",
+                        "langstream-",
+                        "controlPlaneUrl",
+                        "http://localhost:8090"));
         store.onTenantCreated("mytenant");
         AgentCustomResource cr = agentCustomResource("mytenant", "myapp");
         k3s.getClient().resource(cr).inNamespace("langstream-mytenant").serverSideApply();
         cr = k3s.getClient().resource(cr).inNamespace("langstream-mytenant").get();
-        final StatefulSet sts = AgentResourcesFactory.generateStatefulSet(
-                cr,
-                new AgentResourceUnitConfiguration()
-        );
+        final StatefulSet sts =
+                AgentResourcesFactory.generateStatefulSet(cr, new AgentResourceUnitConfiguration());
         sts.getSpec().getTemplate().getSpec().getInitContainers().clear();
-        sts.getSpec().getTemplate().getSpec().getContainers().get(0)
-                        .setCommand(List.of("sh", "-c"));
-        sts.getSpec().getTemplate().getSpec().getContainers().get(0)
+        sts.getSpec()
+                .getTemplate()
+                .getSpec()
+                .getContainers()
+                .get(0)
+                .setCommand(List.of("sh", "-c"));
+        sts.getSpec()
+                .getTemplate()
+                .getSpec()
+                .getContainers()
+                .get(0)
                 .setArgs(List.of("while true; do echo 'hello'; sleep 1000000; done"));
         k3s.getClient().resource(sts).inNamespace("langstream-mytenant").serverSideApply();
 
-        Awaitility.await().untilAsserted(() -> {
-            final List<ApplicationStore.PodLogHandler> podHandlers =
-                    store.logs("mytenant", "myapp", new ApplicationStore.LogOptions());
-            assertEquals(2, podHandlers.size());
-        });
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            final List<ApplicationStore.PodLogHandler> podHandlers =
+                                    store.logs(
+                                            "mytenant", "myapp", new ApplicationStore.LogOptions());
+                            assertEquals(2, podHandlers.size());
+                        });
         List<ApplicationStore.PodLogHandler> podHandlers =
                 store.logs("mytenant", "myapp", new ApplicationStore.LogOptions());
-        podHandlers.get(0)
-                .start(line -> {
-                    assertEquals("\u001B[32mmyapp-agent111-0 hello\u001B[0m\n", line);
-                    return false;
-                });
-        podHandlers.get(1)
-                .start(line -> {
-                    assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
-                    return false;
-                });
+        podHandlers
+                .get(0)
+                .start(
+                        line -> {
+                            assertEquals("\u001B[32mmyapp-agent111-0 hello\u001B[0m\n", line);
+                            return false;
+                        });
+        podHandlers
+                .get(1)
+                .start(
+                        line -> {
+                            assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
+                            return false;
+                        });
 
-        podHandlers = store.logs("mytenant", "myapp",
-                new ApplicationStore.LogOptions(List.of("myapp-agent111-1")));
+        podHandlers =
+                store.logs(
+                        "mytenant",
+                        "myapp",
+                        new ApplicationStore.LogOptions(List.of("myapp-agent111-1")));
         assertEquals(1, podHandlers.size());
-        podHandlers.get(0)
-                .start(line -> {
-                    assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
-                    return false;
-                });
-
+        podHandlers
+                .get(0)
+                .start(
+                        line -> {
+                            assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
+                            return false;
+                        });
     }
 
-    private static AgentCustomResource agentCustomResource(final String tenant, final String applicationId) {
+    private static AgentCustomResource agentCustomResource(
+            final String tenant, final String applicationId) {
 
         final String agentId = "agent111";
-        final String agentCustomResourceName = AgentResourcesFactory.getAgentCustomResourceName(applicationId, agentId);
+        final String agentCustomResourceName =
+                AgentResourcesFactory.getAgentCustomResourceName(applicationId, agentId);
 
         k3s.getClient()
-                .resource(AgentResourcesFactory.generateAgentSecret(agentCustomResourceName, new RuntimePodConfiguration(
-                        Map.of("input", Map.of("is_input", true)),
-                        Map.of("output", Map.of("is_output", true)),
-                        new AgentSpec(AgentSpec.ComponentType.PROCESSOR, "my-tenant",
-                                agentId, "my-app", "fn-type", Map.of("config", true), Map.of()),
-                        new StreamingCluster("noop", Map.of("config", true))
-                )))
+                .resource(
+                        AgentResourcesFactory.generateAgentSecret(
+                                agentCustomResourceName,
+                                new RuntimePodConfiguration(
+                                        Map.of("input", Map.of("is_input", true)),
+                                        Map.of("output", Map.of("is_output", true)),
+                                        new AgentSpec(
+                                                AgentSpec.ComponentType.PROCESSOR,
+                                                "my-tenant",
+                                                agentId,
+                                                "my-app",
+                                                "fn-type",
+                                                Map.of("config", true),
+                                                Map.of()),
+                                        new StreamingCluster("noop", Map.of("config", true)))))
                 .inNamespace("langstream-" + tenant)
                 .serverSideApply();
 
-        return SerializationUtil.readYaml("""
+        return SerializationUtil.readYaml(
+                """
                 apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
@@ -117,6 +150,13 @@ class KubernetesApplicationStoreLogsTest {
                     resources:
                         size: 1
                         parallelism: 2
-                """.formatted(agentCustomResourceName, tenant, applicationId, agentId, agentCustomResourceName), AgentCustomResource.class);
+                """
+                        .formatted(
+                                agentCustomResourceName,
+                                tenant,
+                                applicationId,
+                                agentId,
+                                agentCustomResourceName),
+                AgentCustomResource.class);
     }
 }

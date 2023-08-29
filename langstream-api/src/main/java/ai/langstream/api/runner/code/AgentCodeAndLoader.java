@@ -16,7 +16,6 @@
 package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runtime.ComponentType;
-
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -89,7 +88,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
 
             @Override
             public void commit(List<Record> records) throws Exception {
-                executeWithContextClassloader(agentCode -> ((AgentSource) agentCode).commit(records));
+                executeWithContextClassloader(
+                        agentCode -> ((AgentSource) agentCode).commit(records));
             }
 
             @Override
@@ -109,7 +109,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
 
             @Override
             public void setMetadata(String id, String agentType, long startedAt) throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.setMetadata(id, agentType, startedAt));
+                executeWithContextClassloader(
+                        agentCode -> agentCode.setMetadata(id, agentType, startedAt));
             }
 
             @Override
@@ -150,7 +151,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
 
             @Override
             public void setCommitCallback(CommitCallback callback) {
-                executeNoExceptionWithContextClassloader(agentCode -> ((AgentSink) agentCode).setCommitCallback(callback));
+                executeNoExceptionWithContextClassloader(
+                        agentCode -> ((AgentSink) agentCode).setCommitCallback(callback));
             }
 
             @Override
@@ -170,7 +172,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
 
             @Override
             public void setMetadata(String id, String agentType, long startedAt) throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.setMetadata(id, agentType, startedAt));
+                executeWithContextClassloader(
+                        agentCode -> agentCode.setMetadata(id, agentType, startedAt));
             }
 
             @Override
@@ -205,7 +208,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
         return new AgentProcessor() {
             @Override
             public void process(List<Record> records, RecordSink recordSink) {
-                executeNoExceptionWithContextClassloader((agentCode -> ((AgentProcessor) agentCode).process(records, recordSink)));
+                executeNoExceptionWithContextClassloader(
+                        (agentCode -> ((AgentProcessor) agentCode).process(records, recordSink)));
             }
 
             @Override
@@ -225,7 +229,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
 
             @Override
             public void setMetadata(String id, String agentType, long startedAt) throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.setMetadata(id, agentType, startedAt));
+                executeWithContextClassloader(
+                        agentCode -> agentCode.setMetadata(id, agentType, startedAt));
             }
 
             @Override
@@ -276,6 +281,6 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
 
     @FunctionalInterface
     public interface CallableNoException {
-        Object call(AgentCode agent) ;
+        Object call(AgentCode agent);
     }
 }

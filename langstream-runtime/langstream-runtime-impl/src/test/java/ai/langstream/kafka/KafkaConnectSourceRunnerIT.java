@@ -16,6 +16,10 @@
 package ai.langstream.kafka;
 
 import ai.langstream.AbstractApplicationRunner;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.ConfigDef;
@@ -25,11 +29,6 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-
 @Slf4j
 class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
 
@@ -38,8 +37,10 @@ class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of(
-                        "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -61,23 +62,26 @@ class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
                                       connector.class: %s
                                       num-messages: 5
                                       offset.storage.topic: "offset-topic"
-                                """.formatted(DummySourceConnector.class.getName()));
+                                """
+                                .formatted(DummySourceConnector.class.getName()));
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
                 executeAgentRunners(applicationRuntime);
-                waitForMessages(consumer, List.of(
-                        "message-0", "message-1", "message-2", "message-3", "message-4"));
-
+                waitForMessages(
+                        consumer,
+                        List.of("message-0", "message-1", "message-2", "message-3", "message-4"));
             }
         }
-
     }
 
     public static final class DummySourceConnector extends SourceConnector {
 
         private Map<String, String> connectorConfiguration;
+
         @Override
         public void start(Map<String, String> map) {
             this.connectorConfiguration = map;
@@ -95,8 +99,7 @@ class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
         }
 
         @Override
-        public void stop() {
-        }
+        public void stop() {}
 
         @Override
         public ConfigDef config() {
@@ -113,8 +116,7 @@ class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
 
         BlockingQueue<String> messages = new ArrayBlockingQueue<>(10);
 
-        public DummySource() {
-        }
+        public DummySource() {}
 
         @Override
         public void start(Map<String, String> map) {
@@ -133,23 +135,22 @@ class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
                 log.info("Nothing to return");
                 return List.of();
             } else {
-                return List.of(new SourceRecord(
-                        Map.of(),
-                        Map.of(),
-                        null,
-                        0,
-                        null,
-                        null,
-                        null,
-                        message,
-                        System.currentTimeMillis()
-                ));
+                return List.of(
+                        new SourceRecord(
+                                Map.of(),
+                                Map.of(),
+                                null,
+                                0,
+                                null,
+                                null,
+                                null,
+                                message,
+                                System.currentTimeMillis()));
             }
         }
 
         @Override
-        public void stop() {
-        }
+        public void stop() {}
 
         @Override
         public String version() {

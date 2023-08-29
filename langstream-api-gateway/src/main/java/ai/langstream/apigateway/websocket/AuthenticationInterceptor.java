@@ -41,23 +41,28 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 public class AuthenticationInterceptor implements HandshakeInterceptor {
 
     @Override
-    public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
-                                   Map<String, Object> attributes) throws Exception {
+    public boolean beforeHandshake(
+            ServerHttpRequest request,
+            ServerHttpResponse response,
+            WebSocketHandler wsHandler,
+            Map<String, Object> attributes)
+            throws Exception {
         final ServletServerHttpRequest httpRequest = (ServletServerHttpRequest) request;
         final ServletServerHttpResponse httpResponse = (ServletServerHttpResponse) response;
         try {
-            final String queryString = httpRequest.getServletRequest()
-                    .getQueryString();
+            final String queryString = httpRequest.getServletRequest().getQueryString();
             final Map<String, String> querystring = parseQuerystring(queryString);
 
-            final WebSocketHandler delegate = ((ExceptionWebSocketHandlerDecorator) wsHandler)
-                    .getLastHandler();
+            final WebSocketHandler delegate =
+                    ((ExceptionWebSocketHandlerDecorator) wsHandler).getLastHandler();
             final AbstractHandler handler = (AbstractHandler) delegate;
 
             final AntPathMatcher antPathMatcher = new AntPathMatcher();
             final String path = httpRequest.getURI().getPath();
-            final Map<String, String> vars = antPathMatcher.extractUriTemplateVariables(handler.path(), path);
-            final GatewayRequestContext gatewayRequestContext = handler.validateRequest(vars, querystring);
+            final Map<String, String> vars =
+                    antPathMatcher.extractUriTemplateVariables(handler.path(), path);
+            final GatewayRequestContext gatewayRequestContext =
+                    handler.validateRequest(vars, querystring);
 
             final Map<String, String> principalValues;
             try {
@@ -68,21 +73,22 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
                 if (error == null || error.isEmpty()) {
                     error = "unknown";
                 }
-                httpResponse.getServletResponse().sendError(HttpStatus.FORBIDDEN.value(),
-                        error);
+                httpResponse.getServletResponse().sendError(HttpStatus.FORBIDDEN.value(), error);
                 return false;
             }
             log.info("Authentication passed!");
 
             final AuthenticatedGatewayRequestContext authenticatedGatewayRequestContext =
-                    getAuthenticatedGatewayRequestContext(gatewayRequestContext, principalValues, attributes);
+                    getAuthenticatedGatewayRequestContext(
+                            gatewayRequestContext, principalValues, attributes);
             attributes.put("context", authenticatedGatewayRequestContext);
             handler.onBeforeHandshakeCompleted(authenticatedGatewayRequestContext);
             return true;
         } catch (Throwable error) {
             log.info("Internal error {}", error.getMessage(), error);
-            httpResponse.getServletResponse().sendError(HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    error.getMessage());
+            httpResponse
+                    .getServletResponse()
+                    .sendError(HttpStatus.INTERNAL_SERVER_ERROR.value(), error.getMessage());
             return false;
         }
     }
@@ -93,15 +99,19 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
         }
     }
 
-    private Map<String, String> authenticate(GatewayRequestContext gatewayRequestContext) throws AuthFailedException {
-        final Gateway.Authentication authentication = gatewayRequestContext.gateway().authentication();
+    private Map<String, String> authenticate(GatewayRequestContext gatewayRequestContext)
+            throws AuthFailedException {
+        final Gateway.Authentication authentication =
+                gatewayRequestContext.gateway().authentication();
         final Map<String, String> principalValues;
         if (authentication != null) {
             final String provider = authentication.provider();
 
             final GatewayAuthenticationProvider authenticationProvider =
-                    GatewayAuthenticationProviderRegistry.loadProvider(provider, authentication.configuration());
-            final GatewayAuthenticationResult result = authenticationProvider.authenticate(gatewayRequestContext);
+                    GatewayAuthenticationProviderRegistry.loadProvider(
+                            provider, authentication.configuration());
+            final GatewayAuthenticationResult result =
+                    authenticationProvider.authenticate(gatewayRequestContext);
             if (!result.authenticated()) {
                 throw new AuthFailedException(result.reason());
             }
@@ -116,7 +126,8 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
     }
 
     private AuthenticatedGatewayRequestContext getAuthenticatedGatewayRequestContext(
-            GatewayRequestContext gatewayRequestContext, Map<String, String> principalValues,
+            GatewayRequestContext gatewayRequestContext,
+            Map<String, String> principalValues,
             Map<String, Object> attributes) {
         return new AuthenticatedGatewayRequestContext() {
             @Override
@@ -166,12 +177,12 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
         };
     }
 
-
     @Override
-    public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
-                               Exception exception) {
-    }
-
+    public void afterHandshake(
+            ServerHttpRequest request,
+            ServerHttpResponse response,
+            WebSocketHandler wsHandler,
+            Exception exception) {}
 
     private static Map<String, String> parseQuerystring(String queryString) {
         Map<String, String> map = new HashMap<>();
@@ -185,7 +196,10 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
             if ("".equals(name)) {
                 continue;
             }
-            String value = keyValuePair.length > 1 ? URLDecoder.decode(keyValuePair[1], StandardCharsets.UTF_8) : "";
+            String value =
+                    keyValuePair.length > 1
+                            ? URLDecoder.decode(keyValuePair[1], StandardCharsets.UTF_8)
+                            : "";
             map.put(name, value);
         }
         return map;

@@ -17,16 +17,18 @@ package ai.langstream.impl.codestorage;
 
 import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageProvider;
-import lombok.extern.slf4j.Slf4j;
 import java.nio.file.Paths;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class LocalDiskCodeStorageProvider implements CodeStorageProvider {
 
     public static final String PATH = "path";
+
     @Override
-    public CodeStorage createImplementation(String codeStorageType, Map<String, Object> configuration) {
+    public CodeStorage createImplementation(
+            String codeStorageType, Map<String, Object> configuration) {
         String path = configuration.getOrDefault(PATH, "/tmp").toString();
         return new LocalDiskCodeStorage(Paths.get(path));
     }

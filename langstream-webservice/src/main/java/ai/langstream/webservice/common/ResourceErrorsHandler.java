@@ -35,6 +35,7 @@ public class ResourceErrorsHandler {
             return ProblemDetail.forStatusAndDetail(rs.getStatusCode(), rs.getMessage());
         }
         log.error("Internal error", exception);
-        return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
+        return ProblemDetail.forStatusAndDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
     }
 }

@@ -20,7 +20,6 @@ import java.nio.file.Path;
 
 public abstract class RuntimeStarter {
 
-
     public abstract void start(String... args) throws Exception;
 
     protected Path getPathFromEnv(String envVar, String defaultValue) {

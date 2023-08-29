@@ -18,42 +18,53 @@ package ai.langstream.cli.commands.gateway;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.cli.websocket.WebSocketClient;
 import jakarta.websocket.CloseReason;
-
 import java.net.URI;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "consume",
+@CommandLine.Command(
+        name = "consume",
         mixinStandardHelpOptions = true,
         description = "Consume messages from a gateway")
 public class ConsumeGatewayCmd extends BaseGatewayCmd {
 
     @CommandLine.Parameters(description = "Application ID")
     private String applicationId;
+
     @CommandLine.Parameters(description = "Gateway ID")
     private String gatewayId;
 
-    @CommandLine.Option(names = {"-p", "--param"}, description = "Gateway parameters. Format: key=value")
+    @CommandLine.Option(
+            names = {"-p", "--param"},
+            description = "Gateway parameters. Format: key=value")
     private Map<String, String> params;
-    @CommandLine.Option(names = {"-c", "--credentials"}, description = "Credentials for the gateway. Required if the gateway requires authentication.")
+
+    @CommandLine.Option(
+            names = {"-c", "--credentials"},
+            description =
+                    "Credentials for the gateway. Required if the gateway requires authentication.")
     private String credentials;
 
-    @CommandLine.Option(names = {"--position"}, description = "Initial position of the consumer. \"latest\", \"earliest\" or a offset value. "
-            + "The offset value can be retrieved after consuming a message of the same topic.")
+    @CommandLine.Option(
+            names = {"--position"},
+            description =
+                    "Initial position of the consumer. \"latest\", \"earliest\" or a offset value. "
+                            + "The offset value can be retrieved after consuming a message of the same topic.")
     private String initialPosition;
 
-    @CommandLine.Option(names = {"-n", "--num-messages"}, description = "Number of messages to wait. Negative or zero means infinite.")
+    @CommandLine.Option(
+            names = {"-n", "--num-messages"},
+            description = "Number of messages to wait. Negative or zero means infinite.")
     private int numMessages = 0;
 
-    @CommandLine.Option(names = {"--connect-timeout"}, description = "Connect timeout for WebSocket connections in seconds.")
+    @CommandLine.Option(
+            names = {"--connect-timeout"},
+            description = "Connect timeout for WebSocket connections in seconds.")
     private long connectTimeoutSeconds = 0;
-
-
 
     @Override
     @SneakyThrows
@@ -62,47 +73,58 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
         if (initialPosition != null) {
             options.put("position", initialPosition);
         }
-        final String consumePath = validateGatewayAndGetUrl(applicationId, gatewayId, Gateway.GatewayType.consume,
-                params, options, credentials);
+        final String consumePath =
+                validateGatewayAndGetUrl(
+                        applicationId,
+                        gatewayId,
+                        Gateway.GatewayType.consume,
+                        params,
+                        options,
+                        credentials);
 
-        final Duration connectTimeout = connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;
+        final Duration connectTimeout =
+                connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;
 
         final Integer expectedMessages = numMessages > 0 ? numMessages : null;
         final CountDownLatch latch;
         if (numMessages > 0) {
             latch = new CountDownLatch(numMessages);
-        }else {
+        } else {
             latch = new CountDownLatch(1);
         }
-        try (final WebSocketClient ignored = new WebSocketClient(new WebSocketClient.Handler() {
-            @Override
-            public void onMessage(String msg) {
-                if (latch.getCount() > 0) {
-                    if (expectedMessages != null) {
-                        latch.countDown();
-                    }
-                    log(msg);
-                }
-            }
+        try (final WebSocketClient ignored =
+                new WebSocketClient(
+                                new WebSocketClient.Handler() {
+                                    @Override
+                                    public void onMessage(String msg) {
+                                        if (latch.getCount() > 0) {
+                                            if (expectedMessages != null) {
+                                                latch.countDown();
+                                            }
+                                            log(msg);
+                                        }
+                                    }
 
-            @Override
-            public void onClose(CloseReason closeReason) {
-                exit();
-            }
+                                    @Override
+                                    public void onClose(CloseReason closeReason) {
+                                        exit();
+                                    }
 
-            private void exit() {
-                while (latch.getCount() > 0) {
-                    latch.countDown();
-                }
-            }
+                                    private void exit() {
+                                        while (latch.getCount() > 0) {
+                                            latch.countDown();
+                                        }
+                                    }
 
-            @Override
-            public void onError(Throwable throwable) {
-                log("Connection error: %s".formatted(throwable.getMessage()));
-                exit();
-            }
-        })
-                .connect(URI.create(consumePath), connectTimeout)) {
+                                    @Override
+                                    public void onError(Throwable throwable) {
+                                        log(
+                                                "Connection error: %s"
+                                                        .formatted(throwable.getMessage()));
+                                        exit();
+                                    }
+                                })
+                        .connect(URI.create(consumePath), connectTimeout)) {
             log("Connected to %s".formatted(consumePath));
             latch.await();
         }

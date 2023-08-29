@@ -22,8 +22,7 @@ import picocli.CommandLine;
 
 public abstract class BaseTenantCmd extends BaseCmd {
 
-    @CommandLine.ParentCommand
-    private RootTenantCmd cmd;
+    @CommandLine.ParentCommand private RootTenantCmd cmd;
 
     @Override
     protected RootCmd getRootCmd() {

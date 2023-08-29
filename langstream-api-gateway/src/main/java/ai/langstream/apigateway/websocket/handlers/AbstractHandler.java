@@ -15,14 +15,14 @@
  */
 package ai.langstream.apigateway.websocket.handlers;
 
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Gateways;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -55,21 +55,33 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
     abstract String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString);
 
-    abstract String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString);
+    abstract String applicationIdFromPath(
+            Map<String, String> parsedPath, Map<String, String> queryString);
 
-    abstract String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString);
+    abstract String gatewayFromPath(
+            Map<String, String> parsedPath, Map<String, String> queryString);
 
+    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext gatewayRequestContext)
+            throws Exception {}
 
-    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext gatewayRequestContext) throws Exception {}
+    abstract void onOpen(
+            WebSocketSession webSocketSession,
+            AuthenticatedGatewayRequestContext gatewayRequestContext)
+            throws Exception;
 
-    abstract void onOpen(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext gatewayRequestContext) throws Exception;
+    abstract void onMessage(
+            WebSocketSession webSocketSession,
+            AuthenticatedGatewayRequestContext gatewayRequestContext,
+            TextMessage message)
+            throws Exception;
 
-    abstract void onMessage(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext gatewayRequestContext, TextMessage message) throws Exception;
-
-    abstract void onClose(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext gatewayRequestContext, CloseStatus status) throws Exception;
+    abstract void onClose(
+            WebSocketSession webSocketSession,
+            AuthenticatedGatewayRequestContext gatewayRequestContext,
+            CloseStatus status)
+            throws Exception;
 
     abstract void validateOptions(Map<String, String> options);
-
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -99,7 +111,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+    protected void handleTextMessage(WebSocketSession session, TextMessage message)
+            throws Exception {
         try {
             onMessage(session, getContext(session), message);
         } catch (Throwable throwable) {
@@ -109,7 +122,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status)
+            throws Exception {
         super.afterConnectionClosed(session, status);
         try {
             onClose(session, getContext(session), status);
@@ -118,7 +132,6 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         }
         closeCloseableResources(session);
     }
-
 
     @Override
     public boolean supportsPartialMessages() {
@@ -132,11 +145,11 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         }
         final Application application = applicationSpecs.getApplication();
         application.setSecrets(applicationStore.getSecrets(tenant, applicationId));
-        return ApplicationPlaceholderResolver
-                .resolvePlaceholders(application);
+        return ApplicationPlaceholderResolver.resolvePlaceholders(application);
     }
 
-    private Gateway extractGateway(String gatewayId, Application application, Gateway.GatewayType type) {
+    private Gateway extractGateway(
+            String gatewayId, Application application, Gateway.GatewayType type) {
         final Gateways gatewaysObj = application.getGateways();
         if (gatewaysObj == null) {
             throw new IllegalArgumentException("no gateways defined for the application");
@@ -148,7 +161,6 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
         Gateway selectedGateway = null;
 
-
         for (Gateway gateway : gateways) {
             if (gateway.id().equals(gatewayId) && type == gateway.type()) {
                 selectedGateway = gateway;
@@ -157,12 +169,17 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         }
         if (selectedGateway == null) {
             throw new IllegalArgumentException(
-                    "gateway " + gatewayId + " of type " + type + " is not defined in the application");
+                    "gateway "
+                            + gatewayId
+                            + " of type "
+                            + type
+                            + " is not defined in the application");
         }
         return selectedGateway;
     }
 
-    public GatewayRequestContext validateRequest(Map<String, String> pathVars, Map<String, String> queryString) {
+    public GatewayRequestContext validateRequest(
+            Map<String, String> pathVars, Map<String, String> queryString) {
         Map<String, String> options = new HashMap<>();
         Map<String, String> userParameters = new HashMap<>();
 
@@ -174,9 +191,12 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             } else if (entry.getKey().startsWith("param:")) {
                 userParameters.put(entry.getKey().substring("param:".length()), entry.getValue());
             } else {
-                throw new IllegalArgumentException("invalid query parameter " + entry.getKey() + ". "
-                        + "To specify a gateway parameter, use the format param:<parameter_name>."
-                        + "To specify a option, use the format option:<option_name>.");
+                throw new IllegalArgumentException(
+                        "invalid query parameter "
+                                + entry.getKey()
+                                + ". "
+                                + "To specify a gateway parameter, use the format param:<parameter_name>."
+                                + "To specify a option, use the format option:<option_name>.");
             }
         }
 
@@ -188,14 +208,14 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         final Gateway.GatewayType type = gatewayType();
         final Gateway gateway = extractGateway(gatewayId, application, type);
 
-
         final List<String> requiredParameters = gateway.parameters();
         Set<String> allUserParameterKeys = new HashSet<>(userParameters.keySet());
         if (requiredParameters != null) {
             for (String requiredParameter : requiredParameters) {
                 final String value = userParameters.get(requiredParameter);
                 if (!StringUtils.hasText(value)) {
-                    throw new IllegalArgumentException("missing required parameter " + requiredParameter);
+                    throw new IllegalArgumentException(
+                            "missing required parameter " + requiredParameter);
                 }
                 allUserParameterKeys.remove(requiredParameter);
             }
@@ -204,9 +224,6 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             throw new IllegalArgumentException("unknown parameters: " + allUserParameterKeys);
         }
         validateOptions(options);
-
-
-
 
         return new GatewayRequestContext() {
 
@@ -247,8 +264,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         };
     }
 
-
-    protected void recordCloseableResource(WebSocketSession webSocketSession, AutoCloseable... closeables) {
+    protected void recordCloseableResource(
+            WebSocketSession webSocketSession, AutoCloseable... closeables) {
         List<AutoCloseable> currentCloseable =
                 (List<AutoCloseable>) webSocketSession.getAttributes().get("closeables");
 

@@ -15,28 +15,26 @@
  */
 package ai.langstream.impl.deploy;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.spy;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ComputeCluster;
 import ai.langstream.api.model.StreamingCluster;
-import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.impl.noop.NoOpComputeClusterRuntimeProvider;
 import ai.langstream.impl.parser.ModelBuilder;
-
 import java.util.Map;
 import lombok.Cleanup;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.spy;
-
 class ApplicationDeployerTest {
-
 
     static class MockClusterRuntimeRegistry extends ClusterRuntimeRegistry {
         public MockClusterRuntimeRegistry() {
@@ -47,7 +45,8 @@ class ApplicationDeployerTest {
             computeClusterImplementations.put(name, clusterRuntime);
         }
 
-        public void addStreamingClusterRuntime(String name, StreamingClusterRuntime clusterRuntime) {
+        public void addStreamingClusterRuntime(
+                String name, StreamingClusterRuntime clusterRuntime) {
             streamingClusterImplementations.put(name, clusterRuntime);
         }
 
@@ -57,7 +56,8 @@ class ApplicationDeployerTest {
         }
 
         @Override
-        public StreamingClusterRuntime getStreamingClusterRuntime(StreamingCluster streamingCluster) {
+        public StreamingClusterRuntime getStreamingClusterRuntime(
+                StreamingCluster streamingCluster) {
             return streamingClusterImplementations.get(streamingCluster.type());
         }
     }
@@ -66,21 +66,24 @@ class ApplicationDeployerTest {
     void testDeploy() throws Exception {
 
         final MockClusterRuntimeRegistry registry = new MockClusterRuntimeRegistry();
-        final ComputeClusterRuntime mockRuntime = spy(new NoOpComputeClusterRuntimeProvider.NoOpClusterRuntime());
-        final StreamingClusterRuntime mockStreamingRuntime = Mockito.mock(StreamingClusterRuntime.class);
+        final ComputeClusterRuntime mockRuntime =
+                spy(new NoOpComputeClusterRuntimeProvider.NoOpClusterRuntime());
+        final StreamingClusterRuntime mockStreamingRuntime =
+                Mockito.mock(StreamingClusterRuntime.class);
         registry.addClusterRuntime("mock", mockRuntime);
         registry.addStreamingClusterRuntime("mock", mockStreamingRuntime);
 
-        final @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .pluginsRegistry(new PluginsRegistry())
-                .registry(registry)
-                .build();
+        final @Cleanup ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .pluginsRegistry(new PluginsRegistry())
+                        .registry(registry)
+                        .build();
 
-
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("configuration.yaml",
-                        """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
                                 configuration:
                                     resources:
                                         - type: "openai-azure-config"
@@ -88,30 +91,49 @@ class ApplicationDeployerTest {
                                           id: "openai-azure"
                                           configuration:
                                             credentials: "{{secrets.openai-credentials.accessKey}}"
-                                    
-                                """), """
+
+                                """),
+                                """
                                 instance:
                                     streamingCluster:
                                         type: mock
                                     computeCluster:
                                         type: mock
-                                """, """
+                                """,
+                                """
                                  secrets:
                                     - name: "OpenAI Azure credentials"
                                       id: "openai-credentials"
                                       data:
                                         accessKey: "my-access-key"
-                                """).getApplication();
+                                """)
+                        .getApplication();
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         deployer.deploy("tenant", implementation, null);
-        Mockito.doAnswer(invocationOnMock -> {
-            final Application resolvedApplicationInstance =
-                    (Application) invocationOnMock.getArguments()[0];
-            Assertions.assertEquals("my-access-key",
-                    resolvedApplicationInstance.getResources().get("openai-azure").configuration()
-                            .get("accessKey"));
-            return null;
-        }).when(mockRuntime).deploy(Mockito.anyString(), Mockito.any(), eq(mockStreamingRuntime), Mockito.any());
-        Mockito.verify(mockRuntime).deploy(Mockito.anyString(), Mockito.any(), eq(mockStreamingRuntime), Mockito.any());
+        Mockito.doAnswer(
+                        invocationOnMock -> {
+                            final Application resolvedApplicationInstance =
+                                    (Application) invocationOnMock.getArguments()[0];
+                            Assertions.assertEquals(
+                                    "my-access-key",
+                                    resolvedApplicationInstance
+                                            .getResources()
+                                            .get("openai-azure")
+                                            .configuration()
+                                            .get("accessKey"));
+                            return null;
+                        })
+                .when(mockRuntime)
+                .deploy(
+                        Mockito.anyString(),
+                        Mockito.any(),
+                        eq(mockStreamingRuntime),
+                        Mockito.any());
+        Mockito.verify(mockRuntime)
+                .deploy(
+                        Mockito.anyString(),
+                        Mockito.any(),
+                        eq(mockStreamingRuntime),
+                        Mockito.any());
     }
 }

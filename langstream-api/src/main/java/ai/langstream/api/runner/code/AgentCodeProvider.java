@@ -15,15 +15,14 @@
  */
 package ai.langstream.api.runner.code;
 
-/**
- * Factory
- */
+/** Factory */
 public interface AgentCodeProvider {
 
     boolean supports(String agentType);
 
     /**
      * Create a new AgentCode for the given agent type
+     *
      * @return the new AgentCode
      */
     AgentCode createInstance(String agentType);

@@ -18,7 +18,6 @@ package ai.langstream.deployer.k8s;
 import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import jakarta.enterprise.context.ApplicationScoped;
-
 import java.util.Map;
 import lombok.Getter;
 
@@ -27,25 +26,22 @@ public class ResolvedDeployerConfiguration {
 
     public ResolvedDeployerConfiguration(DeployerConfiguration configuration) {
         this.clusterRuntime = SerializationUtil.readYaml(configuration.clusterRuntime(), Map.class);
-        this.agentResources = SerializationUtil.readYaml(configuration.agentResources(), AgentResourceUnitConfiguration.class);
-        this.podTemplate = SerializationUtil.readYaml(configuration.podTemplate(), PodTemplate.class);
+        this.agentResources =
+                SerializationUtil.readYaml(
+                        configuration.agentResources(), AgentResourceUnitConfiguration.class);
+        this.podTemplate =
+                SerializationUtil.readYaml(configuration.podTemplate(), PodTemplate.class);
         this.runtimeImage = configuration.runtimeImage().orElse(null);
         this.runtimeImagePullPolicy = configuration.runtimeImagePullPolicy().orElse(null);
     }
 
-    @Getter
-    private Map<String, Object> clusterRuntime;
+    @Getter private Map<String, Object> clusterRuntime;
 
-    @Getter
-    private AgentResourceUnitConfiguration agentResources;
+    @Getter private AgentResourceUnitConfiguration agentResources;
 
-    @Getter
-    private PodTemplate podTemplate;
+    @Getter private PodTemplate podTemplate;
 
-    @Getter
-    private String runtimeImage;
+    @Getter private String runtimeImage;
 
-    @Getter
-    private String runtimeImagePullPolicy;
-
+    @Getter private String runtimeImagePullPolicy;
 }

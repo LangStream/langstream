@@ -19,7 +19,6 @@ import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
-
 import java.util.List;
 import java.util.Map;
 
@@ -61,9 +60,7 @@ public class TopicProducerSink extends AbstractAgentCode implements AgentSink {
 
     @Override
     public String toString() {
-        return "TopicProducerSink{" +
-                "producer=" + producer +
-                '}';
+        return "TopicProducerSink{" + "producer=" + producer + '}';
     }
 
     @Override

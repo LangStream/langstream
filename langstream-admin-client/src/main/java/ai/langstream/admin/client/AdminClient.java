@@ -36,9 +36,9 @@ public class AdminClient implements AutoCloseable {
     private final AdminClientLogger logger;
     private ExecutorService executorService;
     private HttpClient httpClient;
-    
 
-    public AdminClient(AdminClientConfiguration adminClientConfiguration, AdminClientLogger logger) {
+    public AdminClient(
+            AdminClientConfiguration adminClientConfiguration, AdminClientLogger logger) {
         this.configuration = adminClientConfiguration;
         this.logger = logger;
     }
@@ -50,11 +50,12 @@ public class AdminClient implements AutoCloseable {
     public synchronized HttpClient getHttpClient() {
         if (httpClient == null) {
             executorService = Executors.newCachedThreadPool();
-            httpClient = HttpClient.newBuilder()
-                    .executor(executorService)
-                    .connectTimeout(Duration.ofSeconds(30))
-                    .followRedirects(HttpClient.Redirect.ALWAYS)
-                    .build();
+            httpClient =
+                    HttpClient.newBuilder()
+                            .executor(executorService)
+                            .connectTimeout(Duration.ofSeconds(30))
+                            .followRedirects(HttpClient.Redirect.ALWAYS)
+                            .build();
         }
         return httpClient;
     }
@@ -64,7 +65,8 @@ public class AdminClient implements AutoCloseable {
         return http(httpRequest, HttpResponse.BodyHandlers.ofString());
     }
 
-    public <T> HttpResponse<T> http(HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler) {
+    public <T> HttpResponse<T> http(
+            HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler) {
         try {
             final HttpResponse<T> response = getHttpClient().send(httpRequest, bodyHandler);
             final int status = response.statusCode();
@@ -80,7 +82,8 @@ public class AdminClient implements AutoCloseable {
             }
             throw new RuntimeException("Unexpected status code: " + status);
         } catch (ConnectException error) {
-            throw new RuntimeException("Cannot connect to " + httpRequest.uri() + ": " + error.getMessage(), error);
+            throw new RuntimeException(
+                    "Cannot connect to " + httpRequest.uri() + ": " + error.getMessage(), error);
         } catch (IOException | InterruptedException error) {
             throw new RuntimeException("Unexpected network error " + error, error);
         }
@@ -96,73 +99,73 @@ public class AdminClient implements AutoCloseable {
 
     public HttpRequest newGet(String uri) {
         return withAuth(
-                HttpRequest.newBuilder()
-                        .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
-                        .version(HttpClient.Version.HTTP_1_1)
-                        .GET()
-        )
+                        HttpRequest.newBuilder()
+                                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                                .version(HttpClient.Version.HTTP_1_1)
+                                .GET())
                 .build();
     }
 
     public HttpRequest newDependencyGet(URL uri) throws URISyntaxException {
-        return withAuth(HttpRequest.newBuilder()
-                .uri(uri.toURI())
-                .version(HttpClient.Version.HTTP_1_1)
-                .GET()
-        )
+        return withAuth(
+                        HttpRequest.newBuilder()
+                                .uri(uri.toURI())
+                                .version(HttpClient.Version.HTTP_1_1)
+                                .GET())
                 .build();
     }
 
     public HttpRequest newDelete(String uri) {
-        return withAuth(HttpRequest.newBuilder()
-                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
-                .version(HttpClient.Version.HTTP_1_1)
-                .DELETE()
-        )
+        return withAuth(
+                        HttpRequest.newBuilder()
+                                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                                .version(HttpClient.Version.HTTP_1_1)
+                                .DELETE())
                 .build();
     }
 
-    public HttpRequest newPut(String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
-        return withAuth(HttpRequest.newBuilder()
-                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
-                .header("Content-Type", contentType)
-                .version(HttpClient.Version.HTTP_1_1)
-                .PUT(bodyPublisher)
-        )
+    public HttpRequest newPut(
+            String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
+        return withAuth(
+                        HttpRequest.newBuilder()
+                                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                                .header("Content-Type", contentType)
+                                .version(HttpClient.Version.HTTP_1_1)
+                                .PUT(bodyPublisher))
                 .build();
     }
 
-    public HttpRequest newPatch(String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
-        return withAuth(HttpRequest.newBuilder()
-                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
-                .header("Content-Type", contentType)
-                .version(HttpClient.Version.HTTP_1_1)
-                .method("PATCH", bodyPublisher)
-        )
+    public HttpRequest newPatch(
+            String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
+        return withAuth(
+                        HttpRequest.newBuilder()
+                                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                                .header("Content-Type", contentType)
+                                .version(HttpClient.Version.HTTP_1_1)
+                                .method("PATCH", bodyPublisher))
                 .build();
     }
 
-
-    public HttpRequest newPost(String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
-        return withAuth(HttpRequest.newBuilder()
-                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
-                .header("Content-Type", contentType)
-                .version(HttpClient.Version.HTTP_1_1)
-                .POST(bodyPublisher)
-        )
+    public HttpRequest newPost(
+            String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
+        return withAuth(
+                        HttpRequest.newBuilder()
+                                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                                .header("Content-Type", contentType)
+                                .version(HttpClient.Version.HTTP_1_1)
+                                .POST(bodyPublisher))
                 .build();
     }
 
     public String tenantAppPath(String uri) {
         final String tenant = configuration.getTenant();
         if (tenant == null) {
-            throw new IllegalStateException("Tenant not set. Run 'langstream configure tenant <tenant>' to set it.");
+            throw new IllegalStateException(
+                    "Tenant not set. Run 'langstream configure tenant <tenant>' to set it.");
         }
         logger.debug("Using tenant: %s".formatted(tenant));
         return "/applications/%s%s".formatted(tenant, uri);
     }
-
-
 
     public Applications applications() {
         return new ApplicationsImpl();
@@ -172,7 +175,9 @@ public class AdminClient implements AutoCloseable {
         @Override
         public void deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
             final String path = tenantAppPath("/" + application);
-            final String contentType = "multipart/form-data; boundary=%s".formatted(multiPartBodyPublisher.getBoundary());
+            final String contentType =
+                    "multipart/form-data; boundary=%s"
+                            .formatted(multiPartBodyPublisher.getBoundary());
             final HttpRequest request = newPost(path, contentType, multiPartBodyPublisher.build());
             http(request);
         }
@@ -180,7 +185,9 @@ public class AdminClient implements AutoCloseable {
         @Override
         public void update(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
             final String path = tenantAppPath("/" + application);
-            final String contentType = "multipart/form-data; boundary=%s".formatted(multiPartBodyPublisher.getBoundary());
+            final String contentType =
+                    "multipart/form-data; boundary=%s"
+                            .formatted(multiPartBodyPublisher.getBoundary());
             final HttpRequest request = newPatch(path, contentType, multiPartBodyPublisher.build());
             http(request);
         }
@@ -210,19 +217,22 @@ public class AdminClient implements AutoCloseable {
             return download(application, null, HttpResponse.BodyHandlers.ofByteArray());
         }
 
-
-
         @Override
-        public <T> HttpResponse<T> download(String application, HttpResponse.BodyHandler<T> responseBodyHandler) {
+        public <T> HttpResponse<T> download(
+                String application, HttpResponse.BodyHandler<T> responseBodyHandler) {
             return download(application, null, responseBodyHandler);
         }
 
         @Override
-        public <T> HttpResponse<T> download(String application, String codeStorageId,
-                                            HttpResponse.BodyHandler<T> responseBodyHandler) {
+        public <T> HttpResponse<T> download(
+                String application,
+                String codeStorageId,
+                HttpResponse.BodyHandler<T> responseBodyHandler) {
 
-            final String uri = codeStorageId == null ? tenantAppPath("/" + application + "/code") :
-                    tenantAppPath("/" + application + "/code/" + codeStorageId);
+            final String uri =
+                    codeStorageId == null
+                            ? tenantAppPath("/" + application + "/code")
+                            : tenantAppPath("/" + application + "/code/" + codeStorageId);
             return http(newGet(uri), responseBodyHandler);
         }
     }

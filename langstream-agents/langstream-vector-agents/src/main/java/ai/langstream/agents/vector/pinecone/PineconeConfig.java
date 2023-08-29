@@ -22,14 +22,19 @@ import lombok.Data;
 public final class PineconeConfig {
     @JsonProperty(value = "api-key", required = true)
     private String apiKey;
+
     @JsonProperty(value = "environment", required = true)
     private String environment = "default";
+
     @JsonProperty(value = "project-name", required = true)
     private String projectName;
+
     @JsonProperty(value = "index-name", required = true)
     private String indexName;
+
     @JsonProperty(value = "endpoint")
     private String endpoint;
+
     @JsonProperty("server-side-timeout-sec")
     private int serverSideTimeoutSec = 10;
 }

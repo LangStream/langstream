@@ -16,7 +16,6 @@
 package ai.langstream.api.runner.topics;
 
 import ai.langstream.api.runner.code.Record;
-
 import java.util.List;
 import java.util.Map;
 
@@ -28,14 +27,13 @@ public interface TopicConsumer extends AutoCloseable {
 
     default void start() throws Exception {}
 
-    default void close() throws Exception  {}
+    default void close() throws Exception {}
 
-    default List<Record> read()throws Exception  {
+    default List<Record> read() throws Exception {
         return List.of();
     }
 
-    default void commit(List<Record> records) throws Exception {
-    }
+    default void commit(List<Record> records) throws Exception {}
 
     default Map<String, Object> getInfo() {
         return Map.of();

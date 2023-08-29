@@ -15,15 +15,14 @@
  */
 package ai.langstream.api.runtime;
 
-/**
- * Factory
- */
+/** Factory */
 public interface StreamingClusterRuntimeProvider {
 
     boolean supports(String type);
 
     /**
      * Create a new cluster runtime for the given application instance
+     *
      * @return the physical application instance
      */
     StreamingClusterRuntime getImplementation();

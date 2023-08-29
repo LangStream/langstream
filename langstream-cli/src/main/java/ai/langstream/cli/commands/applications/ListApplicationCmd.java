@@ -16,20 +16,25 @@
 package ai.langstream.cli.commands.applications;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "list",
+@CommandLine.Command(
+        name = "list",
         mixinStandardHelpOptions = true,
         description = "List all LangStream applications")
 public class ListApplicationCmd extends BaseApplicationCmd {
 
-    protected static final String[] COLUMNS_FOR_RAW = {"id", "streaming", "compute", "status", "executors", "replicas"};
-    @CommandLine.Option(names = {"-o"}, description = "Output format")
+    protected static final String[] COLUMNS_FOR_RAW = {
+        "id", "streaming", "compute", "status", "executors", "replicas"
+    };
+
+    @CommandLine.Option(
+            names = {"-o"},
+            description = "Output format")
     private Formats format = Formats.raw;
 
     @Override
@@ -45,46 +50,53 @@ public class ListApplicationCmd extends BaseApplicationCmd {
                 case "id":
                     return searchValueInJson(jsonNode, "application-id");
                 case "streaming":
-                    return searchValueInJson(jsonNode, "application.instance.streamingCluster.type");
+                    return searchValueInJson(
+                            jsonNode, "application.instance.streamingCluster.type");
                 case "compute":
                     return searchValueInJson(jsonNode, "application.instance.computeCluster.type");
                 case "status":
                     return searchValueInJson(jsonNode, "status.status.status");
-                case "executors": {
-                    int countDeployed = 0;
-                    final List<Map<String, Object>> executors =
-                            (List<Map<String, Object>>) searchValueInJson(jsonNode, "status.executors");
-                    for (Map<String, Object> stringObjectEntry : executors) {
-                        final Object status = searchValueInJson(stringObjectEntry, "status.status");
-                        if (status != null && status.toString().equals("DEPLOYED")) {
-                            countDeployed++;
-                        }
-                    }
-                    return "%d/%d".formatted(countDeployed, executors.size());
-                }
-                case "replicas": {
-                    int countRunning = 0;
-                    int countAll = 0;
-                    final List<Map<String, Object>> executors =
-                            (List<Map<String, Object>>) searchValueInJson(jsonNode, "status.executors");
-                    for (Map<String, Object> stringObjectEntry : executors) {
-                        final List<Map<String, Object>> replicas = (List<Map<String, Object>>) stringObjectEntry.get("replicas");
-                        if (replicas == null) {
-                            continue;
-                        }
-                        for (Map<String, Object> objectEntry : replicas) {
-                            countAll++;
-                            final Object status = objectEntry.get("status");
-                            if (status != null && status.toString().equals("RUNNING")) {
-                                countRunning++;
+                case "executors":
+                    {
+                        int countDeployed = 0;
+                        final List<Map<String, Object>> executors =
+                                (List<Map<String, Object>>)
+                                        searchValueInJson(jsonNode, "status.executors");
+                        for (Map<String, Object> stringObjectEntry : executors) {
+                            final Object status =
+                                    searchValueInJson(stringObjectEntry, "status.status");
+                            if (status != null && status.toString().equals("DEPLOYED")) {
+                                countDeployed++;
                             }
                         }
+                        return "%d/%d".formatted(countDeployed, executors.size());
                     }
-                    if (countAll == 0) {
-                        return "";
+                case "replicas":
+                    {
+                        int countRunning = 0;
+                        int countAll = 0;
+                        final List<Map<String, Object>> executors =
+                                (List<Map<String, Object>>)
+                                        searchValueInJson(jsonNode, "status.executors");
+                        for (Map<String, Object> stringObjectEntry : executors) {
+                            final List<Map<String, Object>> replicas =
+                                    (List<Map<String, Object>>) stringObjectEntry.get("replicas");
+                            if (replicas == null) {
+                                continue;
+                            }
+                            for (Map<String, Object> objectEntry : replicas) {
+                                countAll++;
+                                final Object status = objectEntry.get("status");
+                                if (status != null && status.toString().equals("RUNNING")) {
+                                    countRunning++;
+                                }
+                            }
+                        }
+                        if (countAll == 0) {
+                            return "";
+                        }
+                        return "%d/%d".formatted(countRunning, countAll);
                     }
-                    return "%d/%d".formatted(countRunning, countAll);
-                }
                 default:
                     return jsonNode.get(s);
             }

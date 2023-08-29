@@ -17,8 +17,10 @@ package ai.langstream.runtime.api.deployer;
 
 public class RuntimeDeployerConstants {
 
-    public static final String CLUSTER_RUNTIME_CONFIG_ENV = "LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION";
-    public static final String CLUSTER_RUNTIME_CONFIG_ENV_DEFAULT = "/cluster-runtime-config/config";
+    public static final String CLUSTER_RUNTIME_CONFIG_ENV =
+            "LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION";
+    public static final String CLUSTER_RUNTIME_CONFIG_ENV_DEFAULT =
+            "/cluster-runtime-config/config";
 
     public static final String APP_CONFIG_ENV = "LANGSTREAM_RUNTIME_DEPLOYER_APP_CONFIGURATION";
     public static final String APP_CONFIG_ENV_DEFAULT = "/app-config/config";

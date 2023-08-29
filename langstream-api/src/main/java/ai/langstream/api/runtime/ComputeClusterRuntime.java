@@ -20,13 +20,12 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
-
 import java.util.List;
 import java.util.Map;
 
 /**
- * This is the interface that the LangStream framework uses to interact with the cluster. It is used to
- * model a physical cluster runtime (Pulsar, Kafka....)
+ * This is the interface that the LangStream framework uses to interact with the cluster. It is used
+ * to model a physical cluster runtime (Pulsar, Kafka....)
  */
 public interface ComputeClusterRuntime extends AutoCloseable {
 
@@ -41,34 +40,47 @@ public interface ComputeClusterRuntime extends AutoCloseable {
      * @param streamingClusterRuntime the cluster runtime
      * @return the physical application instance
      */
-    ExecutionPlan buildExecutionPlan(String applicationId, Application application, PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime);
-
+    ExecutionPlan buildExecutionPlan(
+            String applicationId,
+            Application application,
+            PluginsRegistry pluginsRegistry,
+            StreamingClusterRuntime streamingClusterRuntime);
 
     /**
      * Get a connection implementation.
+     *
      * @param module the module
      * @param connection the connection
      * @return the connection implementation
      */
-    ConnectionImplementation getConnectionImplementation(Module module,
-                                                         Pipeline pipeline,
-                                                         Connection connection,
-                                                         ConnectionImplementation.ConnectionDirection direction,
-                                                         ExecutionPlan applicationInstance,
-                                                         StreamingClusterRuntime streamingClusterRuntime);
+    ConnectionImplementation getConnectionImplementation(
+            Module module,
+            Pipeline pipeline,
+            Connection connection,
+            ConnectionImplementation.ConnectionDirection direction,
+            ExecutionPlan applicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime);
 
-    Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
-                  String codeStorageArchiveId);
+    Object deploy(
+            String tenant,
+            ExecutionPlan applicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime,
+            String codeStorageArchiveId);
 
-    void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
-                String codeStorageArchiveId);
+    void delete(
+            String tenant,
+            ExecutionPlan applicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime,
+            String codeStorageArchiveId);
 
     List<ExecutionPlanOptimiser> getExecutionPlanOptimisers();
 
-    default AgentNodeMetadata computeAgentMetadata(AgentConfiguration agentConfiguration, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime) {
+    default AgentNodeMetadata computeAgentMetadata(
+            AgentConfiguration agentConfiguration,
+            ExecutionPlan physicalApplicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime) {
         return null;
     }
 
-    default void close() {
-    }
+    default void close() {}
 }

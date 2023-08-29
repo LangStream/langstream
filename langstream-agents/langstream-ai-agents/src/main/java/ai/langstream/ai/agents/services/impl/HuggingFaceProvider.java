@@ -30,10 +30,6 @@ import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.SneakyThrows;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -42,11 +38,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import lombok.SneakyThrows;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HuggingFaceProvider implements ServiceProviderProvider {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper MAPPER =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> agentConfiguration) {
@@ -55,11 +54,14 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
 
     @Override
     public ServiceProvider createImplementation(Map<String, Object> agentConfiguration) {
-        return new HuggingFaceServiceProvider((Map<String, Object>) agentConfiguration.get("huggingface"));
+        return new HuggingFaceServiceProvider(
+                (Map<String, Object>) agentConfiguration.get("huggingface"));
     }
 
     static class HuggingFaceServiceProvider implements ServiceProvider {
-        private static final Logger log = LoggerFactory.getLogger(com.datastax.oss.streaming.ai.services.HuggingFaceServiceProvider.class);
+        private static final Logger log =
+                LoggerFactory.getLogger(
+                        com.datastax.oss.streaming.ai.services.HuggingFaceServiceProvider.class);
         private final Map<String, Object> providerConfiguration;
 
         public HuggingFaceServiceProvider(Map<String, Object> providerConfiguration) {
@@ -67,26 +69,41 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
         }
 
         public HuggingFaceServiceProvider(TransformStepConfig tranformConfiguration) {
-            this.providerConfiguration = (Map)(new ObjectMapper()).convertValue(tranformConfiguration.getHuggingface(), Map.class);
+            this.providerConfiguration =
+                    (Map)
+                            (new ObjectMapper())
+                                    .convertValue(
+                                            tranformConfiguration.getHuggingface(), Map.class);
         }
 
-        public CompletionsService getCompletionsService(Map<String, Object> additionalConfiguration) {
+        public CompletionsService getCompletionsService(
+                Map<String, Object> additionalConfiguration) {
             String accessKey = (String) providerConfiguration.get("access-key");
-            String url = (String) providerConfiguration.getOrDefault("inference-url", "https://api-inference.huggingface.co");
+            String url =
+                    (String)
+                            providerConfiguration.getOrDefault(
+                                    "inference-url", "https://api-inference.huggingface.co");
             return new HuggingFaceCompletionsService(url, accessKey, additionalConfiguration);
         }
 
-        public EmbeddingsService getEmbeddingsService(Map<String, Object> additionalConfiguration) throws Exception {
-            String provider = additionalConfiguration.getOrDefault("provider", ComputeProvider.API.name()).toString().toUpperCase();
-            String modelUrl = (String)additionalConfiguration.get("modelUrl");
-            String model = (String)additionalConfiguration.get("model");
-            Map<String, String> options = (Map)additionalConfiguration.get("options");
-            Map<String, String> arguments = (Map)additionalConfiguration.get("arguments");
+        public EmbeddingsService getEmbeddingsService(Map<String, Object> additionalConfiguration)
+                throws Exception {
+            String provider =
+                    additionalConfiguration
+                            .getOrDefault("provider", ComputeProvider.API.name())
+                            .toString()
+                            .toUpperCase();
+            String modelUrl = (String) additionalConfiguration.get("modelUrl");
+            String model = (String) additionalConfiguration.get("model");
+            Map<String, String> options = (Map) additionalConfiguration.get("options");
+            Map<String, String> arguments = (Map) additionalConfiguration.get("arguments");
             switch (provider) {
                 case "LOCAL" -> {
-                    AbstractHuggingFaceEmbeddingService.HuggingFaceConfig.HuggingFaceConfigBuilder builder =
-                        AbstractHuggingFaceEmbeddingService.HuggingFaceConfig.builder().options(options)
-                            .arguments(arguments);
+                    AbstractHuggingFaceEmbeddingService.HuggingFaceConfig.HuggingFaceConfigBuilder
+                            builder =
+                                    AbstractHuggingFaceEmbeddingService.HuggingFaceConfig.builder()
+                                            .options(options)
+                                            .arguments(arguments);
                     if (model != null && !model.isEmpty()) {
                         builder.modelName(model);
                         if (modelUrl == null || modelUrl.isEmpty()) {
@@ -99,14 +116,20 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                 }
                 case "API" -> {
                     Objects.requireNonNull(model, "model name is required");
-                    HuggingFaceRestEmbeddingService.HuggingFaceApiConfig.HuggingFaceApiConfigBuilder apiBuilder =
-                        HuggingFaceRestEmbeddingService.HuggingFaceApiConfig.builder()
-                            .accessKey((String) this.providerConfiguration.get("access-key")).model(model);
+                    HuggingFaceRestEmbeddingService.HuggingFaceApiConfig.HuggingFaceApiConfigBuilder
+                            apiBuilder =
+                                    HuggingFaceRestEmbeddingService.HuggingFaceApiConfig.builder()
+                                            .accessKey(
+                                                    (String)
+                                                            this.providerConfiguration.get(
+                                                                    "access-key"))
+                                            .model(model);
                     String apiUurl = (String) this.providerConfiguration.get("api-url");
                     if (apiUurl != null && !apiUurl.isEmpty()) {
                         apiBuilder.hfUrl(apiUurl);
                     }
-                    String modelCheckUrl = (String) this.providerConfiguration.get("model-check-url");
+                    String modelCheckUrl =
+                            (String) this.providerConfiguration.get("model-check-url");
                     if (modelCheckUrl != null && !modelCheckUrl.isEmpty()) {
                         apiBuilder.hfCheckUrl(modelCheckUrl);
                     }
@@ -117,12 +140,12 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                     }
                     return new HuggingFaceRestEmbeddingService(apiBuilder.build());
                 }
-                default -> throw new IllegalArgumentException("Unsupported HuggingFace service type: " + provider);
+                default -> throw new IllegalArgumentException(
+                        "Unsupported HuggingFace service type: " + provider);
             }
         }
 
-        public void close() {
-        }
+        public void close() {}
 
         private static class HuggingFaceCompletionsService implements CompletionsService {
 
@@ -131,8 +154,7 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
             final String accessKey;
 
             public HuggingFaceCompletionsService(
-                    String url, String accessKey,
-                    Map<String, Object> additionalConfiguration) {
+                    String url, String accessKey, Map<String, Object> additionalConfiguration) {
                 this.url = url;
                 this.accessKey = accessKey;
                 this.httpClient = HttpClient.newHttpClient();
@@ -140,39 +162,45 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
 
             @Override
             @SneakyThrows
-            public ChatCompletions getChatCompletions(List<ChatMessage> list, Map<String, Object> map) {
+            public ChatCompletions getChatCompletions(
+                    List<ChatMessage> list, Map<String, Object> map) {
 
                 String model = (String) map.get("model");
                 // https://huggingface.co/docs/api-inference/quicktour
                 String url = this.url + "/models/%s";
-                String finalUrl = url
-                        .formatted(model);
-                String request = MAPPER.writeValueAsString(list
-                        .stream()
-                        .map(ChatMessage::getContent)
-                        .collect(Collectors.toList()));
+                String finalUrl = url.formatted(model);
+                String request =
+                        MAPPER.writeValueAsString(
+                                list.stream()
+                                        .map(ChatMessage::getContent)
+                                        .collect(Collectors.toList()));
                 log.info("URL: {}", finalUrl);
                 log.info("Request: {}", request);
-                HttpResponse<String> response = httpClient.send(HttpRequest.newBuilder()
-                        .uri(URI.create(finalUrl))
-                        .header("Authorization", "Bearer " + accessKey)
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(request))
-                        .build(), HttpResponse.BodyHandlers.ofString());
+                HttpResponse<String> response =
+                        httpClient.send(
+                                HttpRequest.newBuilder()
+                                        .uri(URI.create(finalUrl))
+                                        .header("Authorization", "Bearer " + accessKey)
+                                        .header("Content-Type", "application/json")
+                                        .POST(HttpRequest.BodyPublishers.ofString(request))
+                                        .build(),
+                                HttpResponse.BodyHandlers.ofString());
                 String body = response.body();
                 log.info("Response: {}", body);
-                List<ResponseBean> responseBeans = MAPPER.readValue(body, new TypeReference<>() {
-                });
+                List<ResponseBean> responseBeans = MAPPER.readValue(body, new TypeReference<>() {});
                 ChatCompletions result = new ChatCompletions();
-                result.setChoices(responseBeans.stream().map(r-> new ChatChoice(
-                        new ChatMessage("user").setContent(r.sequence)
-                )).collect(Collectors.toList()));
+                result.setChoices(
+                        responseBeans.stream()
+                                .map(
+                                        r ->
+                                                new ChatChoice(
+                                                        new ChatMessage("user")
+                                                                .setContent(r.sequence)))
+                                .collect(Collectors.toList()));
                 return result;
             }
         }
 
-        record ResponseBean(String score, String token_str, String sequence) {
-        }
-
+        record ResponseBean(String score, String token_str, String sequence) {}
     }
 }

@@ -16,13 +16,10 @@
 package ai.langstream.cli.commands.tenants;
 
 import java.net.http.HttpRequest;
-
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "put",
-        mixinStandardHelpOptions = true,
-        description = "Put a tenant")
+@CommandLine.Command(name = "put", mixinStandardHelpOptions = true, description = "Put a tenant")
 public class PutTenantCmd extends BaseTenantCmd {
 
     @CommandLine.Parameters(description = "Name of the tenant")
@@ -31,10 +28,13 @@ public class PutTenantCmd extends BaseTenantCmd {
     @Override
     @SneakyThrows
     public void run() {
-        getClient().http(getClient().newPut(pathForTenant(name),
-                "application/json",
-                HttpRequest.BodyPublishers.ofString("{}")));
+        getClient()
+                .http(
+                        getClient()
+                                .newPut(
+                                        pathForTenant(name),
+                                        "application/json",
+                                        HttpRequest.BodyPublishers.ofString("{}")));
         log("tenant %s created/updated".formatted(name));
-
     }
 }

@@ -17,6 +17,10 @@ package ai.langstream.kafka.runner;
 
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -24,11 +28,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public abstract class KafkaRecord implements Record {
 
@@ -41,7 +40,8 @@ public abstract class KafkaRecord implements Record {
     }
 
     private record KafkaHeader(String key, byte[] value) implements Header {
-        public static List<Header> fromKafkaHeaders(org.apache.kafka.common.header.Headers headers) {
+        public static List<Header> fromKafkaHeaders(
+                org.apache.kafka.common.header.Headers headers) {
             List<Header> result = new ArrayList<>();
             for (org.apache.kafka.common.header.Header header : headers) {
                 result.add(new KafkaHeader(header.key(), header.value()));
@@ -49,7 +49,8 @@ public abstract class KafkaRecord implements Record {
             return result;
         }
 
-        public static List<Header> fromKafkaHeaders(org.apache.kafka.connect.header.Headers headers) {
+        public static List<Header> fromKafkaHeaders(
+                org.apache.kafka.connect.header.Headers headers) {
             List<Header> result = new ArrayList<>();
             for (org.apache.kafka.connect.header.Header header : headers) {
                 result.add(new KafkaHeader(header.key(), toBytes(header.value(), header.schema())));
@@ -74,11 +75,13 @@ public abstract class KafkaRecord implements Record {
 
     public interface KafkaSourceOffsetProvider {
         Map<String, ?> sourcePartition();
+
         Map<String, ?> sourceOffset();
     }
 
     public interface KafkaConsumerOffsetProvider {
         long offset();
+
         int estimateRecordSize();
 
         TopicPartition getTopicPartition();
@@ -86,13 +89,13 @@ public abstract class KafkaRecord implements Record {
 
     @EqualsAndHashCode
     @ToString
-    private static class KafkaConsumerRecord
-            extends KafkaRecord
+    private static class KafkaConsumerRecord extends KafkaRecord
             implements KafkaConsumerOffsetProvider {
         private final ConsumerRecord<?, ?> record;
 
         public KafkaConsumerRecord(ConsumerRecord<?, ?> record) {
-            super(KafkaHeader.fromKafkaHeaders(record.headers()),
+            super(
+                    KafkaHeader.fromKafkaHeaders(record.headers()),
                     new TopicPartition(record.topic(), record.partition()));
             this.record = record;
         }
@@ -136,18 +139,20 @@ public abstract class KafkaRecord implements Record {
         public TimestampType timestampType() {
             return record.timestampType();
         }
-
     }
 
     @EqualsAndHashCode
     @ToString
-    private static class KafkaSourceRecord
-            extends KafkaRecord
+    private static class KafkaSourceRecord extends KafkaRecord
             implements KafkaSourceOffsetProvider {
         private final SourceRecord record;
+
         public KafkaSourceRecord(SourceRecord record) {
-            super(KafkaHeader.fromKafkaHeaders(record.headers()),
-                    new TopicPartition(record.topic(), record.kafkaPartition() != null ? record.kafkaPartition() :  0));
+            super(
+                    KafkaHeader.fromKafkaHeaders(record.headers()),
+                    new TopicPartition(
+                            record.topic(),
+                            record.kafkaPartition() != null ? record.kafkaPartition() : 0));
             this.record = record;
         }
 

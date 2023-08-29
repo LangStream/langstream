@@ -37,44 +37,59 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @AllArgsConstructor
 public class SecurityConfiguration implements WebMvcConfigurer {
 
-  private final CorsFilter corsFilter;
+    private final CorsFilter corsFilter;
 
-  @Bean
-  @ConditionalOnProperty(name = "application.security.enabled", havingValue = "false", matchIfMissing = true)
-  public WebSecurityCustomizer webSecurityCustomizer() {
-    return web -> web.ignoring().anyRequest();
-  }
+    @Bean
+    @ConditionalOnProperty(
+            name = "application.security.enabled",
+            havingValue = "false",
+            matchIfMissing = true)
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return web -> web.ignoring().anyRequest();
+    }
 
-  @Bean
-  @ConditionalOnProperty(name = "application.security.enabled", havingValue = "true")
-  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    // @formatter:off
-    return http
-        .csrf().disable()
-        .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
-        .formLogin().disable()
-        .httpBasic().disable()
-        .sessionManagement()
-          .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-          .and()
-        .authorizeHttpRequests()
-          .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-          .requestMatchers("/swagger-ui/**").permitAll()
-          .requestMatchers("/swagger-ui.html").permitAll()
-          .requestMatchers("/v3/api-docs/**").permitAll()
-          .requestMatchers("/management/health").permitAll()
-          .requestMatchers("/management/health/**").permitAll()
-          .requestMatchers("/management/info").permitAll()
-          .requestMatchers("/management/prometheus").permitAll()
-          .requestMatchers("/management/**").authenticated()
-          .anyRequest().authenticated()
-          .and()
-      .build();
-    // @formatter:on
-  }
+    @Bean
+    @ConditionalOnProperty(name = "application.security.enabled", havingValue = "true")
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // @formatter:off
+        return http.csrf()
+                .disable()
+                .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
+                .formLogin()
+                .disable()
+                .httpBasic()
+                .disable()
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .authorizeHttpRequests()
+                .requestMatchers(HttpMethod.OPTIONS, "/**")
+                .permitAll()
+                .requestMatchers("/swagger-ui/**")
+                .permitAll()
+                .requestMatchers("/swagger-ui.html")
+                .permitAll()
+                .requestMatchers("/v3/api-docs/**")
+                .permitAll()
+                .requestMatchers("/management/health")
+                .permitAll()
+                .requestMatchers("/management/health/**")
+                .permitAll()
+                .requestMatchers("/management/info")
+                .permitAll()
+                .requestMatchers("/management/prometheus")
+                .permitAll()
+                .requestMatchers("/management/**")
+                .authenticated()
+                .anyRequest()
+                .authenticated()
+                .and()
+                .build();
+        // @formatter:on
+    }
 
-  @Override
-  public void addCorsMappings(CorsRegistry registry) {
-    registry.addMapping("/**").allowedMethods("*");
-  }
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**").allowedMethods("*");
+    }
 }

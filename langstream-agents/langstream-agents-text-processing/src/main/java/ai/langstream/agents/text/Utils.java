@@ -16,7 +16,6 @@
 package ai.langstream.agents.text;
 
 import ai.langstream.api.runner.code.Header;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;

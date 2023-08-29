@@ -18,7 +18,6 @@ package ai.langstream.impl.noop;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.common.AbstractAgentProvider;
-
 import java.util.List;
 import java.util.Set;
 

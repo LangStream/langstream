@@ -15,27 +15,32 @@
  */
 package ai.langstream.kafka.runtime;
 
-import ai.langstream.api.model.SchemaDefinition;
-import ai.langstream.api.runtime.ConnectionImplementation;
-import ai.langstream.api.runtime.Topic;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 
-@Slf4j
-public record KafkaTopic(String name, int partitions, int replicationFactor, SchemaDefinition keySchema, SchemaDefinition valueSchema, String createMode,
-                         boolean implicit,
-                         Map<String, Object> config, Map<String, Object> options)
-        implements ConnectionImplementation, Topic {
-    public Map<String,Object> createConsumerConfiguration() {
-        Map<String, Object> configuration = new HashMap<>();
+import ai.langstream.api.model.SchemaDefinition;
+import ai.langstream.api.runtime.ConnectionImplementation;
+import ai.langstream.api.runtime.Topic;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
+public record KafkaTopic(
+        String name,
+        int partitions,
+        int replicationFactor,
+        SchemaDefinition keySchema,
+        SchemaDefinition valueSchema,
+        String createMode,
+        boolean implicit,
+        Map<String, Object> config,
+        Map<String, Object> options)
+        implements ConnectionImplementation, Topic {
+    public Map<String, Object> createConsumerConfiguration() {
+        Map<String, Object> configuration = new HashMap<>();
 
         // this is for the Agent
         configuration.put("topic", name);
@@ -44,11 +49,12 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
         configuration.put(VALUE_DESERIALIZER_CLASS_CONFIG, getDeserializerForSchema(valueSchema));
 
         if (options != null) {
-            options.forEach((key, value) -> {
-                if (key.startsWith("consumer.")) {
-                    configuration.put(key.substring("consumer.".length()), value);
-                }
-            });
+            options.forEach(
+                    (key, value) -> {
+                        if (key.startsWith("consumer.")) {
+                            configuration.put(key.substring("consumer.".length()), value);
+                        }
+                    });
 
             Object deadLetterTopicProducer = options.get("deadLetterTopicProducer");
             if (deadLetterTopicProducer != null) {
@@ -66,28 +72,34 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
         }
 
         return switch (schema.type()) {
-            case "string" -> org.apache.kafka.common.serialization.StringDeserializer.class.getName();
-            case "bytes" -> org.apache.kafka.common.serialization.ByteArrayDeserializer.class.getName();
+            case "string" -> org.apache.kafka.common.serialization.StringDeserializer.class
+                    .getName();
+            case "bytes" -> org.apache.kafka.common.serialization.ByteArrayDeserializer.class
+                    .getName();
             case "avro" -> io.confluent.kafka.serializers.KafkaAvroDeserializer.class.getName();
-            default -> throw new IllegalArgumentException("Unsupported schema type: " + schema.type());
+            default -> throw new IllegalArgumentException(
+                    "Unsupported schema type: " + schema.type());
         };
     }
 
     private String getSerializerForSchema(SchemaDefinition schema) {
         if (schema == null) {
-            // we use reflection to dynamically configure the Serializer for the object, see KafkaProducerWrapper
+            // we use reflection to dynamically configure the Serializer for the object, see
+            // KafkaProducerWrapper
             return org.apache.kafka.common.serialization.ByteArraySerializer.class.getName();
         }
 
         return switch (schema.type()) {
             case "string" -> org.apache.kafka.common.serialization.StringSerializer.class.getName();
-            case "bytes" -> org.apache.kafka.common.serialization.ByteArraySerializer.class.getName();
+            case "bytes" -> org.apache.kafka.common.serialization.ByteArraySerializer.class
+                    .getName();
             case "avro" -> io.confluent.kafka.serializers.KafkaAvroSerializer.class.getName();
-            default -> throw new IllegalArgumentException("Unsupported schema type: " + schema.type());
+            default -> throw new IllegalArgumentException(
+                    "Unsupported schema type: " + schema.type());
         };
     }
 
-    public Map<String,Object> createProducerConfiguration() {
+    public Map<String, Object> createProducerConfiguration() {
         Map<String, Object> configuration = new HashMap<>();
 
         // this is for the Agent
@@ -97,11 +109,12 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
         configuration.put(VALUE_SERIALIZER_CLASS_CONFIG, getSerializerForSchema(valueSchema));
 
         if (options != null) {
-            options.forEach((key, value) -> {
-                if (key.startsWith("producer.")) {
-                    configuration.put(key.substring("producer.".length()), value);
-                }
-            });
+            options.forEach(
+                    (key, value) -> {
+                        if (key.startsWith("producer.")) {
+                            configuration.put(key.substring("producer.".length()), value);
+                        }
+                    });
         }
 
         return configuration;
@@ -119,11 +132,10 @@ public record KafkaTopic(String name, int partitions, int replicationFactor, Sch
 
     @Override
     public void bindDeadletterTopic(Topic deadletterTopic) {
-        if (! (deadletterTopic instanceof KafkaTopic kafkaTopic)) {
+        if (!(deadletterTopic instanceof KafkaTopic kafkaTopic)) {
             throw new IllegalArgumentException();
         }
         log.info("Binding deadletter topic {} to topic {}", deadletterTopic, this.topicName());
-        options.put("deadLetterTopicProducer",
-                kafkaTopic.createProducerConfiguration());
+        options.put("deadLetterTopicProducer", kafkaTopic.createProducerConfiguration());
     }
 }

@@ -17,14 +17,15 @@ package ai.langstream.impl.storage.k8s.codestorage;
 
 import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageProvider;
-import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class S3CodeStorageProvider implements CodeStorageProvider {
 
     @Override
-    public CodeStorage createImplementation(String codeStorageType, Map<String, Object> configuration) {
+    public CodeStorage createImplementation(
+            String codeStorageType, Map<String, Object> configuration) {
         return new S3CodeStorage(configuration);
     }
 

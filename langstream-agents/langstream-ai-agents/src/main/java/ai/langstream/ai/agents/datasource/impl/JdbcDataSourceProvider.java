@@ -17,9 +17,6 @@ package ai.langstream.ai.agents.datasource.impl;
 
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -35,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JdbcDataSourceProvider implements DataSourceProvider {
@@ -46,7 +45,8 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
 
     @Override
     @SneakyThrows
-    public QueryStepDataSource createDataSourceImplementation(Map<String, Object> dataSourceConfig){
+    public QueryStepDataSource createDataSourceImplementation(
+            Map<String, Object> dataSourceConfig) {
         return new DataSourceImpl(dataSourceConfig);
     }
 
@@ -61,8 +61,14 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
             log.info("Connecting to {}, config {}", properties.getProperty("url"), properties);
             if (!driverClass.isEmpty()) {
                 log.info("Loading JDBC Driver {}", driverClass);
-                Driver driver = (Driver) Class.forName(driverClass, true, Thread.currentThread().getContextClassLoader())
-                        .getConstructor().newInstance();
+                Driver driver =
+                        (Driver)
+                                Class.forName(
+                                                driverClass,
+                                                true,
+                                                Thread.currentThread().getContextClassLoader())
+                                        .getConstructor()
+                                        .newInstance();
                 // https://www.kfu.com/~nsayer/Java/dyn-jdbc.html
                 DriverManager.registerDriver(new DriverShim(driver));
             }
@@ -85,7 +91,8 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
                     Map<String, String> result = new HashMap<>();
                     for (int i = 1; i <= numColumns; i++) {
                         Object value = resultSet.getObject(i);
-                        result.put(metaData.getColumnName(i), value != null ? value.toString() : null);
+                        result.put(
+                                metaData.getColumnName(i), value != null ? value.toString() : null);
                     }
                     results.add(result);
                 }
@@ -107,24 +114,31 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
 
     static class DriverShim implements Driver {
         private final Driver driver;
+
         DriverShim(Driver d) {
             this.driver = d;
         }
+
         public boolean acceptsURL(String u) throws SQLException {
             return this.driver.acceptsURL(u);
         }
+
         public Connection connect(String u, Properties p) throws SQLException {
             return this.driver.connect(u, p);
         }
+
         public int getMajorVersion() {
             return this.driver.getMajorVersion();
         }
+
         public int getMinorVersion() {
             return this.driver.getMinorVersion();
         }
+
         public DriverPropertyInfo[] getPropertyInfo(String u, Properties p) throws SQLException {
             return this.driver.getPropertyInfo(u, p);
         }
+
         public boolean jdbcCompliant() {
             return this.driver.jdbcCompliant();
         }

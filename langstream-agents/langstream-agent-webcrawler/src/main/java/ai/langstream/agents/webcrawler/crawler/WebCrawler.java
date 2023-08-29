@@ -15,6 +15,8 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
+import java.net.CookieManager;
+import java.net.CookieStore;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
@@ -22,9 +24,6 @@ import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.UnsupportedMimeTypeException;
 import org.jsoup.nodes.Document;
-
-import java.net.CookieManager;
-import java.net.CookieStore;
 
 @Slf4j
 @Getter
@@ -38,9 +37,10 @@ public class WebCrawler {
 
     private final CookieStore cookieStore;
 
-    public WebCrawler(WebCrawlerConfiguration configuration,
-                      WebCrawlerStatus status,
-                      DocumentVisitor visitor) {
+    public WebCrawler(
+            WebCrawlerConfiguration configuration,
+            WebCrawlerStatus status,
+            DocumentVisitor visitor) {
         this.configuration = configuration;
         this.visitor = visitor;
         this.status = status;
@@ -82,7 +82,10 @@ public class WebCrawler {
                 if (!location.equals(current)) {
                     if (!configuration.isAllowedDomain(location)) {
                         redirectedToForbiddenDomain = true;
-                        log.warn("A redirection to a forbidden domain happened (from {} to {})", current, location);
+                        log.warn(
+                                "A redirection to a forbidden domain happened (from {} to {})",
+                                current,
+                                location);
                     } else {
                         log.info("A redirection happened from {} to {}", current, location);
                         status.addUrl(location, true);
@@ -119,7 +122,10 @@ public class WebCrawler {
             // we did something
             return true;
         } catch (UnsupportedMimeTypeException notHtml) {
-            log.info("Url {} lead to a {} content-type document. Skipping", current, notHtml.getMimeType());
+            log.info(
+                    "Url {} lead to a {} content-type document. Skipping",
+                    current,
+                    notHtml.getMimeType());
             status.addUrl(current, false);
 
             // prevent from being banned for flooding
@@ -132,18 +138,21 @@ public class WebCrawler {
         }
 
         if (!redirectedToForbiddenDomain) {
-            document.getElementsByAttribute("href").forEach(element -> {
-                if (configuration.isAllowedTag(element.tagName())) {
-                    String url = element.absUrl("href");
-                    if (configuration.isAllowedDomain(url)) {
-                        status.addUrl(url, true);
-                    } else {
-                        log.info("Ignoring not allowed url: {}", url);
-                        status.addUrl(url, false);
-                    }
-                }
-            });
-            visitor.visit(new ai.langstream.agents.webcrawler.crawler.Document(current, document.html()));
+            document.getElementsByAttribute("href")
+                    .forEach(
+                            element -> {
+                                if (configuration.isAllowedTag(element.tagName())) {
+                                    String url = element.absUrl("href");
+                                    if (configuration.isAllowedDomain(url)) {
+                                        status.addUrl(url, true);
+                                    } else {
+                                        log.info("Ignoring not allowed url: {}", url);
+                                        status.addUrl(url, false);
+                                    }
+                                }
+                            });
+            visitor.visit(
+                    new ai.langstream.agents.webcrawler.crawler.Document(current, document.html()));
         }
 
         // prevent from being banned for flooding
@@ -153,5 +162,4 @@ public class WebCrawler {
 
         return true;
     }
-
 }

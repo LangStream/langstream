@@ -46,7 +46,6 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -76,7 +75,6 @@ public class ApplicationResource {
 
     private final ExecutorService logsThreadPool = Executors.newCachedThreadPool();
 
-
     private void performAuthorization(Authentication authentication, final String tenant) {
         if (authentication == null) {
             return;
@@ -85,9 +83,15 @@ public class ApplicationResource {
             throw new IllegalStateException();
         }
         if (authentication.getAuthorities() != null) {
-            final GrantedAuthority grantedAuthority = authentication.getAuthorities().stream()
-                    .filter(authority -> authority.getAuthority().equals(TokenAuthFilter.ROLE_ADMIN))
-                    .findFirst().orElse(null);
+            final GrantedAuthority grantedAuthority =
+                    authentication.getAuthorities().stream()
+                            .filter(
+                                    authority ->
+                                            authority
+                                                    .getAuthority()
+                                                    .equals(TokenAuthFilter.ROLE_ADMIN))
+                            .findFirst()
+                            .orElse(null);
             if (grantedAuthority != null) {
                 return;
             }
@@ -104,13 +108,16 @@ public class ApplicationResource {
 
     @GetMapping("/{tenant}")
     @Operation(summary = "Get all applications")
-    Collection<ApplicationDescription> getApplications(Authentication authentication, @NotBlank @PathVariable("tenant") String tenant) {
+    Collection<ApplicationDescription> getApplications(
+            Authentication authentication, @NotBlank @PathVariable("tenant") String tenant) {
         performAuthorization(authentication, tenant);
         return applicationService.getAllApplications(tenant).values().stream()
-                .map(app -> new ApplicationDescription(app.getApplicationId(), app.getInstance(), app.getStatus()))
+                .map(
+                        app ->
+                                new ApplicationDescription(
+                                        app.getApplicationId(), app.getInstance(), app.getStatus()))
                 .toList();
     }
-
 
     @PostMapping(value = "/{tenant}/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create and deploy an application")
@@ -120,15 +127,20 @@ public class ApplicationResource {
             @NotBlank @PathVariable("id") String applicationId,
             @RequestParam("app") MultipartFile appFile,
             @RequestParam String instance,
-            @RequestParam Optional<String> secrets) throws Exception {
+            @RequestParam Optional<String> secrets)
+            throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
-                parseApplicationInstance(applicationId,
+                parseApplicationInstance(
+                        applicationId,
                         Optional.of(appFile),
                         Optional.of(instance),
                         secrets,
                         tenant);
-        applicationService.deployApplication(tenant, applicationId, parsedApplication.getApplication(),
+        applicationService.deployApplication(
+                tenant,
+                applicationId,
+                parsedApplication.getApplication(),
                 parsedApplication.getCodeArchiveReference());
     }
 
@@ -140,16 +152,17 @@ public class ApplicationResource {
             @NotBlank @PathVariable("id") String applicationId,
             @NotNull @RequestParam("app") Optional<MultipartFile> appFile,
             @RequestParam Optional<String> instance,
-            @RequestParam Optional<String> secrets) throws Exception {
+            @RequestParam Optional<String> secrets)
+            throws Exception {
         performAuthorization(authentication, tenant);
-        final ParsedApplication parsedApplication = parseApplicationInstance(applicationId,
-                appFile,
-                instance, secrets, tenant);
-        applicationService.updateApplication(tenant, applicationId,
+        final ParsedApplication parsedApplication =
+                parseApplicationInstance(applicationId, appFile, instance, secrets, tenant);
+        applicationService.updateApplication(
+                tenant,
+                applicationId,
                 parsedApplication.getApplication(),
                 parsedApplication.getCodeArchiveReference());
     }
-
 
     @Data
     static class ParsedApplication {
@@ -157,37 +170,47 @@ public class ApplicationResource {
         private String codeArchiveReference;
     }
 
-    private ParsedApplication parseApplicationInstance(String name,
-                                                       Optional<MultipartFile> file,
-                                                       Optional<String> instance,
-                                                       Optional<String> secrets,
-                                                       String tenant)
+    private ParsedApplication parseApplicationInstance(
+            String name,
+            Optional<MultipartFile> file,
+            Optional<String> instance,
+            Optional<String> secrets,
+            String tenant)
             throws Exception {
         final ParsedApplication parsedApplication = new ParsedApplication();
-        withApplicationZip(file, (zip, appDirectories) -> {
-            try {
-                final ModelBuilder.ApplicationWithPackageInfo app =
-                        ModelBuilder.buildApplicationInstance(appDirectories, instance.orElse(null),
-                                secrets.orElse(null));
-                final String codeArchiveReference;
-                if (zip == null) {
-                    codeArchiveReference = null;
-                } else {
-                    codeArchiveReference = codeStorageService.deployApplicationCodeStorage(tenant, name, zip);
-
-                }
-                log.info("Parsed application {} {} with code archive {}", name, app.getApplication(),
-                        codeArchiveReference);
-                parsedApplication.setApplication(app);
-                parsedApplication.setCodeArchiveReference(codeArchiveReference);
-            } catch (Exception e) {
-                throw new IllegalArgumentException(e);
-            }
-        });
+        withApplicationZip(
+                file,
+                (zip, appDirectories) -> {
+                    try {
+                        final ModelBuilder.ApplicationWithPackageInfo app =
+                                ModelBuilder.buildApplicationInstance(
+                                        appDirectories,
+                                        instance.orElse(null),
+                                        secrets.orElse(null));
+                        final String codeArchiveReference;
+                        if (zip == null) {
+                            codeArchiveReference = null;
+                        } else {
+                            codeArchiveReference =
+                                    codeStorageService.deployApplicationCodeStorage(
+                                            tenant, name, zip);
+                        }
+                        log.info(
+                                "Parsed application {} {} with code archive {}",
+                                name,
+                                app.getApplication(),
+                                codeArchiveReference);
+                        parsedApplication.setApplication(app);
+                        parsedApplication.setCodeArchiveReference(codeArchiveReference);
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException(e);
+                    }
+                });
         return parsedApplication;
     }
 
-    private void withApplicationZip(Optional<MultipartFile> file, BiConsumer<Path, List<Path>> appDirectoriesConsumer)
+    private void withApplicationZip(
+            Optional<MultipartFile> file, BiConsumer<Path, List<Path>> appDirectoriesConsumer)
             throws Exception {
         if (file.isPresent()) {
             Path tempdir = Files.createTempDirectory("zip-extract");
@@ -208,19 +231,18 @@ public class ApplicationResource {
         }
     }
 
-
     private static void deleteDirectory(Path tempdir) throws IOException {
-        Files
-                .walk(tempdir)
+        Files.walk(tempdir)
                 .sorted(Comparator.reverseOrder())
-                .forEach(path -> {
-                    try {
-                        log.info("Deleting temporary file {}", path);
-                        Files.delete(path);  //delete each file or directory
-                    } catch (IOException e) {
-                        log.info("Cannot delete file {}", path, e);
-                    }
-                });
+                .forEach(
+                        path -> {
+                            try {
+                                log.info("Deleting temporary file {}", path);
+                                Files.delete(path); // delete each file or directory
+                            } catch (IOException e) {
+                                log.info("Cannot delete file {}", path, e);
+                            }
+                        });
     }
 
     @DeleteMapping("/{tenant}/{applicationId}")
@@ -228,7 +250,7 @@ public class ApplicationResource {
     void deleteApplication(
             Authentication authentication,
             @NotBlank @PathVariable("tenant") String tenant,
-                           @NotBlank @PathVariable("applicationId") String applicationId) {
+            @NotBlank @PathVariable("applicationId") String applicationId) {
         performAuthorization(authentication, tenant);
         getAppOrThrow(tenant, applicationId);
         applicationService.deleteApplication(tenant, applicationId);
@@ -243,11 +265,13 @@ public class ApplicationResource {
             @NotBlank @PathVariable("applicationId") String applicationId) {
         performAuthorization(authentication, tenant);
         final StoredApplication app = getAppWithStatusOrThrow(tenant, applicationId, true);
-        return new ApplicationDescription(app.getApplicationId(), app.getInstance(), app.getStatus());
+        return new ApplicationDescription(
+                app.getApplicationId(), app.getInstance(), app.getStatus());
     }
 
-
-    @GetMapping(value = "/{tenant}/{applicationId}/logs", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @GetMapping(
+            value = "/{tenant}/{applicationId}/logs",
+            produces = MediaType.APPLICATION_NDJSON_VALUE)
     @Operation(summary = "Get application logs by name")
     Flux<String> getApplicationLogs(
             Authentication authentication,
@@ -258,25 +282,32 @@ public class ApplicationResource {
         getAppOrThrow(tenant, applicationId);
 
         final List<ApplicationStore.PodLogHandler> podLogs =
-                applicationService.getPodLogs(tenant, applicationId,
+                applicationService.getPodLogs(
+                        tenant,
+                        applicationId,
                         new ApplicationStore.LogOptions(filterReplicas.orElse(null)));
         if (podLogs.isEmpty()) {
             return Flux.empty();
         }
-        return Flux.create((Consumer<FluxSink<String>>) fluxSink -> {
-            for (ApplicationStore.PodLogHandler podLog : podLogs) {
-                logsThreadPool.submit(() -> {
-                    try {
-                        podLog.start(line -> {
-                            fluxSink.next(line);
-                            return true;
-                        });
-                    } catch (Exception e) {
-                        fluxSink.error(e);
-                    }
-                });
-            }
-        }).subscribeOn(Schedulers.fromExecutor(logsThreadPool));
+        return Flux.create(
+                        (Consumer<FluxSink<String>>)
+                                fluxSink -> {
+                                    for (ApplicationStore.PodLogHandler podLog : podLogs) {
+                                        logsThreadPool.submit(
+                                                () -> {
+                                                    try {
+                                                        podLog.start(
+                                                                line -> {
+                                                                    fluxSink.next(line);
+                                                                    return true;
+                                                                });
+                                                    } catch (Exception e) {
+                                                        fluxSink.error(e);
+                                                    }
+                                                });
+                                    }
+                                })
+                .subscribeOn(Schedulers.fromExecutor(logsThreadPool));
     }
 
     @GetMapping(value = "/{tenant}/{applicationId}/code", produces = "application/zip")
@@ -286,14 +317,17 @@ public class ApplicationResource {
             Authentication authentication,
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("applicationId") String applicationId,
-            HttpServletResponse response) throws Exception {
+            HttpServletResponse response)
+            throws Exception {
         performAuthorization(authentication, tenant);
         final ApplicationSpecs app = getAppOrThrow(tenant, applicationId);
         final String codeArchiveId = app.getCodeArchiveReference();
         return downloadCode(tenant, applicationId, response, codeArchiveId);
     }
 
-    @GetMapping(value = "/{tenant}/{applicationId}/code/{codeArchiveReference}", produces = "application/zip")
+    @GetMapping(
+            value = "/{tenant}/{applicationId}/code/{codeArchiveReference}",
+            produces = "application/zip")
     @Operation(summary = "Get code of an application by id and code archive reference")
     @ResponseBody
     Resource getApplicationCode(
@@ -301,28 +335,32 @@ public class ApplicationResource {
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("applicationId") String applicationId,
             @NotBlank @PathVariable("codeArchiveReference") String codeArchiveReference,
-            HttpServletResponse response) throws Exception {
+            HttpServletResponse response)
+            throws Exception {
         performAuthorization(authentication, tenant);
         getAppOrThrow(tenant, applicationId);
         return downloadCode(tenant, applicationId, response, codeArchiveReference);
     }
 
-    private Resource downloadCode(String tenant, String applicationId, HttpServletResponse response,
-                                  String codeArchiveId) throws CodeStorageException {
+    private Resource downloadCode(
+            String tenant, String applicationId, HttpServletResponse response, String codeArchiveId)
+            throws CodeStorageException {
 
-        final byte[] code = codeStorageService.downloadApplicationCode(tenant, applicationId, codeArchiveId);
+        final byte[] code =
+                codeStorageService.downloadApplicationCode(tenant, applicationId, codeArchiveId);
         final String filename = "%s-%s.zip".formatted(tenant, applicationId);
 
-        response.addHeader("Content-Disposition", "attachment; filename=\"%s\"".formatted(filename));
+        response.addHeader(
+                "Content-Disposition", "attachment; filename=\"%s\"".formatted(filename));
         return new ByteArrayResource(code);
     }
 
-    private StoredApplication getAppWithStatusOrThrow(String tenant, String applicationId, boolean queryPods) {
-        final StoredApplication app = applicationService.getApplication(tenant, applicationId, queryPods);
+    private StoredApplication getAppWithStatusOrThrow(
+            String tenant, String applicationId, boolean queryPods) {
+        final StoredApplication app =
+                applicationService.getApplication(tenant, applicationId, queryPods);
         if (app == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "application not found"
-            );
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "application not found");
         }
         return app;
     }
@@ -330,12 +368,8 @@ public class ApplicationResource {
     private ApplicationSpecs getAppOrThrow(String tenant, String applicationId) {
         final ApplicationSpecs app = applicationService.getApplicationSpecs(tenant, applicationId);
         if (app == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "application not found"
-            );
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "application not found");
         }
         return app;
     }
 }
-
-

@@ -17,11 +17,7 @@ package ai.langstream.api.codestorage;
 
 import java.util.Objects;
 
-
-public record CodeArchiveMetadata (
-    String tenant,
-    String codeStoreId,
-    String applicationId) {
+public record CodeArchiveMetadata(String tenant, String codeStoreId, String applicationId) {
     public CodeArchiveMetadata {
         Objects.requireNonNull(tenant);
         Objects.requireNonNull(codeStoreId);

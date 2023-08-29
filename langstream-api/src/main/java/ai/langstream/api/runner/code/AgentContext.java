@@ -16,18 +16,19 @@
 package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runner.topics.TopicAdmin;
-import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicConnectionProvider;
+import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 
 public interface AgentContext {
-    BadRecordHandler DEFAULT_BAD_RECORD_HANDLER = (record, t, cleanup) -> {
-        cleanup.run();
-        if (t instanceof RuntimeException) {
-            throw (RuntimeException) t;
-        }
-        throw new RuntimeException(t);
-    };
+    BadRecordHandler DEFAULT_BAD_RECORD_HANDLER =
+            (record, t, cleanup) -> {
+                cleanup.run();
+                if (t instanceof RuntimeException) {
+                    throw (RuntimeException) t;
+                }
+                throw new RuntimeException(t);
+            };
 
     TopicConsumer getTopicConsumer();
 

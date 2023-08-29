@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 package ai.langstream.api.model;
+
 import java.util.Map;
 
-public record Instance (StreamingCluster streamingCluster, ComputeCluster computeCluster, Map<String, Object> globals){
-
-}
+public record Instance(
+        StreamingCluster streamingCluster,
+        ComputeCluster computeCluster,
+        Map<String, Object> globals) {}

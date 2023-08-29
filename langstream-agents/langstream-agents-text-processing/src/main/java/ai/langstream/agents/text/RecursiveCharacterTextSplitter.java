@@ -24,10 +24,12 @@ import java.util.regex.Pattern;
 public class RecursiveCharacterTextSplitter extends TextSplitter {
     private final List<String> separators;
 
-    public RecursiveCharacterTextSplitter(List<String> separators, boolean keepSeparator,
-                                          int chunkSize,
-                                          int chunkOverlap,
-                                          Function<String, Integer> lengthFunction) {
+    public RecursiveCharacterTextSplitter(
+            List<String> separators,
+            boolean keepSeparator,
+            int chunkSize,
+            int chunkOverlap,
+            Function<String, Integer> lengthFunction) {
         super(chunkSize, chunkOverlap, lengthFunction, keepSeparator, false);
         this.separators = separators != null ? separators : Arrays.asList("\n\n", "\n", " ", "");
     }
@@ -50,7 +52,7 @@ public class RecursiveCharacterTextSplitter extends TextSplitter {
         }
         List<String> splits = splitTextWithRegex(text, separator, keepSeparator);
         List<String> goodSplits = new ArrayList<>();
-        String separatorToUse = keepSeparator ?  "" : separator;
+        String separatorToUse = keepSeparator ? "" : separator;
 
         for (String s : splits) {
             if (lengthFunction.apply(s) < chunkSize) {

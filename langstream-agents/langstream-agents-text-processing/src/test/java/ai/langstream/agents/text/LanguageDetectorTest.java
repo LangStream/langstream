@@ -15,16 +15,15 @@
  */
 package ai.langstream.agents.text;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
 
 @Slf4j
 public class LanguageDetectorTest {
@@ -35,25 +34,23 @@ public class LanguageDetectorTest {
         SingleRecordAgentProcessor instance = provider.createInstance("language-detector");
         instance.init(Map.of("property", "detected-language"));
 
-
         assertEquals("en", detectLanguage(instance, "This is a English"));
         assertEquals("it", detectLanguage(instance, "Questo é italiano"));
         assertEquals("fr", detectLanguage(instance, "Parlez-vous français?"));
-
     }
 
-    private static String detectLanguage(SingleRecordAgentProcessor instance, String text) throws Exception {
-        Record fromSource = SimpleRecord
-                .builder()
-                .key("filename.txt")
-                .value(text.getBytes(StandardCharsets.UTF_8))
-                .origin("origin")
-                .timestamp(System.currentTimeMillis())
-                .build();
+    private static String detectLanguage(SingleRecordAgentProcessor instance, String text)
+            throws Exception {
+        Record fromSource =
+                SimpleRecord.builder()
+                        .key("filename.txt")
+                        .value(text.getBytes(StandardCharsets.UTF_8))
+                        .origin("origin")
+                        .timestamp(System.currentTimeMillis())
+                        .build();
 
         Record result = instance.processRecord(fromSource).get(0);
         log.info("Result: {}", result);
         return result.getHeader("detected-language").value().toString();
     }
-
 }

@@ -15,24 +15,26 @@
  */
 package ai.langstream.model.parser;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.impl.parser.ModelBuilder;
-import org.junit.jupiter.api.Test;
-
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Test;
 
 public class ErrorsSpecsTest {
 
     @Test
     public void testConfigureErrors() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of("module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 errors:
@@ -59,7 +61,8 @@ public class ErrorsSpecsTest {
                                        retries: 5
                                        on-failure: fail
                                 """,
-                        "module2.yaml", """
+                                        "module2.yaml",
+                                        """
                                 module: "module-2"
                                 id: "pipeline-2"
                                 topics:
@@ -82,7 +85,10 @@ public class ErrorsSpecsTest {
                                     errors:
                                        retries: 5
                                        on-failure: skip
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
         {
             // use pipeline defaults
@@ -135,7 +141,6 @@ public class ErrorsSpecsTest {
             assertEquals(5, agent4.getErrors().getRetries());
             assertEquals("skip", agent4.getErrors().getOnFailure());
         }
-
     }
 
     private static String buildInstanceYaml() {

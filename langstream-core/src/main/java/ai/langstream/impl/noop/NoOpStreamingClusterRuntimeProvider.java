@@ -53,7 +53,8 @@ public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRunt
 
         @Override
         public void bindDeadletterTopic(Topic deadletterTopic) {
-            log.error("Setting deadletter topic configuration on dummy cluster: {}", deadletterTopic);
+            log.error(
+                    "Setting deadletter topic configuration on dummy cluster: {}", deadletterTopic);
             this.deadletterTopic = deadletterTopic;
         }
 
@@ -61,8 +62,10 @@ public class NoOpStreamingClusterRuntimeProvider implements StreamingClusterRunt
             return deadletterTopic;
         }
     }
+
     @Override
     public StreamingClusterRuntime getImplementation() {
-        return (topicDefinition, applicationInstance) -> new SimpleTopic(topicDefinition.getName(), topicDefinition.isImplicit());
+        return (topicDefinition, applicationInstance) ->
+                new SimpleTopic(topicDefinition.getName(), topicDefinition.isImplicit());
     }
 }

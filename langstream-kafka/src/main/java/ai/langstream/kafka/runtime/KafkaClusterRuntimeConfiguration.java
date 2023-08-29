@@ -15,11 +15,10 @@
  */
 package ai.langstream.kafka.runtime;
 
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -27,5 +26,4 @@ import java.util.Map;
 public class KafkaClusterRuntimeConfiguration {
 
     private Map<String, Object> admin;
-
 }

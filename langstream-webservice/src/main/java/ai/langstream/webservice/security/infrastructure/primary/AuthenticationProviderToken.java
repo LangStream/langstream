@@ -59,18 +59,16 @@ public class AuthenticationProviderToken {
     private final String audienceClaim;
     private final String audience;
 
-    public AuthenticationProviderToken(AuthTokenProperties tokenProperties) throws IOException, IllegalArgumentException {
+    public AuthenticationProviderToken(AuthTokenProperties tokenProperties)
+            throws IOException, IllegalArgumentException {
         this.publicKeyAlg = getPublicKeyAlgType(tokenProperties);
         parser =
-                Jwts
-                        .parserBuilder()
+                Jwts.parserBuilder()
                         .setSigningKeyResolver(
                                 new JwksUriSigningKeyResolver(
                                         publicKeyAlg.getValue(),
                                         tokenProperties.jwksHostsAllowlist(),
-                                        getValidationKeyFromConfig(tokenProperties)
-                                )
-                        )
+                                        getValidationKeyFromConfig(tokenProperties)))
                         .build();
         this.roleClaim = getTokenRoleClaim(tokenProperties);
         this.audienceClaim = getTokenAudienceClaim(tokenProperties);
@@ -78,8 +76,9 @@ public class AuthenticationProviderToken {
 
         if (this.audienceClaim != null && this.audience == null) {
             throw new IllegalArgumentException(
-                    "Token Audience Claim [" + this.audienceClaim + "] configured, but Audience stands for this broker not."
-            );
+                    "Token Audience Claim ["
+                            + this.audienceClaim
+                            + "] configured, but Audience stands for this broker not.");
         }
     }
 
@@ -94,27 +93,33 @@ public class AuthenticationProviderToken {
             if (this.audienceClaim != null) {
                 Object object = jwt.getBody().get(this.audienceClaim);
                 if (object == null) {
-                    throw new JwtException("Found null Audience in token, for claimed field: " + this.audienceClaim);
+                    throw new JwtException(
+                            "Found null Audience in token, for claimed field: "
+                                    + this.audienceClaim);
                 }
 
                 if (object instanceof List) {
                     List<String> audiences = (List) object;
-                    if (
-                            audiences
-                                    .stream()
-                                    .noneMatch(audienceInToken -> audienceInToken.equals(this.audience))
-                    ) {
+                    if (audiences.stream()
+                            .noneMatch(audienceInToken -> audienceInToken.equals(this.audience))) {
                         throw new AuthenticationException(
-                                "Audiences in token: [" + String.join(", ", audiences) + "] not contains this broker: " + this.audience
-                        );
+                                "Audiences in token: ["
+                                        + String.join(", ", audiences)
+                                        + "] not contains this broker: "
+                                        + this.audience);
                     }
                 } else {
                     if (!(object instanceof String)) {
-                        throw new AuthenticationException("Audiences in token is not in expected format: " + object);
+                        throw new AuthenticationException(
+                                "Audiences in token is not in expected format: " + object);
                     }
 
                     if (!object.equals(this.audience)) {
-                        throw new AuthenticationException("Audiences in token: [" + object + "] not contains this broker: " + this.audience);
+                        throw new AuthenticationException(
+                                "Audiences in token: ["
+                                        + object
+                                        + "] not contains this broker: "
+                                        + this.audience);
                     }
                 }
             }
@@ -140,7 +145,9 @@ public class AuthenticationProviderToken {
             return body.get(this.roleClaim, String.class);
         } catch (RequiredTypeException var4) {
             List list = body.get(this.roleClaim, List.class);
-            return list != null && !list.isEmpty() && list.get(0) instanceof String ? (String) list.get(0) : null;
+            return list != null && !list.isEmpty() && list.get(0) instanceof String
+                    ? (String) list.get(0)
+                    : null;
         }
     }
 
@@ -166,7 +173,8 @@ public class AuthenticationProviderToken {
                 try {
                     return Decoders.BASE64.decode(keyConfUrl);
                 } catch (DecodingException var3) {
-                    String msg = "Illegal base64 character or Key file " + keyConfUrl + " doesn't exist";
+                    String msg =
+                            "Illegal base64 character or Key file " + keyConfUrl + " doesn't exist";
                     throw new IOException(msg, var3);
                 }
             } else {
@@ -193,20 +201,23 @@ public class AuthenticationProviderToken {
         return StringUtils.isNotBlank(tokenAuthClaim) ? tokenAuthClaim : "sub";
     }
 
-    private SignatureAlgorithm getPublicKeyAlgType(AuthTokenProperties tokenProperties) throws IllegalArgumentException {
+    private SignatureAlgorithm getPublicKeyAlgType(AuthTokenProperties tokenProperties)
+            throws IllegalArgumentException {
         String tokenPublicAlg = tokenProperties.publicAlg();
         if (StringUtils.isNotBlank(tokenPublicAlg)) {
             try {
                 return SignatureAlgorithm.forName(tokenPublicAlg);
             } catch (SignatureException var4) {
-                throw new IllegalArgumentException("invalid algorithm provided " + tokenPublicAlg, var4);
+                throw new IllegalArgumentException(
+                        "invalid algorithm provided " + tokenPublicAlg, var4);
             }
         } else {
             return SignatureAlgorithm.RS256;
         }
     }
 
-    private static PublicKey decodePublicKey(byte[] key, SignatureAlgorithm algType) throws IOException {
+    private static PublicKey decodePublicKey(byte[] key, SignatureAlgorithm algType)
+            throws IOException {
         try {
             X509EncodedKeySpec spec = new X509EncodedKeySpec(key);
             KeyFactory kf = KeyFactory.getInstance(keyTypeForSignatureAlgorithm(algType));
@@ -227,12 +238,14 @@ public class AuthenticationProviderToken {
         }
     }
 
-    private String getTokenAudienceClaim(AuthTokenProperties tokenProperties) throws IllegalArgumentException {
+    private String getTokenAudienceClaim(AuthTokenProperties tokenProperties)
+            throws IllegalArgumentException {
         String tokenAudienceClaim = tokenProperties.audienceClaim();
         return StringUtils.isNotBlank(tokenAudienceClaim) ? tokenAudienceClaim : null;
     }
 
-    private String getTokenAudience(AuthTokenProperties tokenProperties) throws IllegalArgumentException {
+    private String getTokenAudience(AuthTokenProperties tokenProperties)
+            throws IllegalArgumentException {
         String tokenAudience = tokenProperties.audience();
         return StringUtils.isNotBlank(tokenAudience) ? tokenAudience : null;
     }

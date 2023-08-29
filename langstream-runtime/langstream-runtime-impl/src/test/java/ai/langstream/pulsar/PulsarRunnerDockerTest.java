@@ -17,6 +17,7 @@ package ai.langstream.pulsar;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
@@ -57,21 +58,22 @@ class PulsarRunnerDockerTest {
 
     private static PulsarContainer pulsarContainer;
 
-    @RegisterExtension
-    static final KubeTestServer kubeServer = new KubeTestServer();
+    @RegisterExtension static final KubeTestServer kubeServer = new KubeTestServer();
 
     private static PulsarAdmin admin;
-
 
     @Test
     public void testRunAITools() throws Exception {
         final String appId = "application";
         kubeServer.spyAgentCustomResources("tenant", appId + "-step1");
-        final Map<String, Secret> secrets = kubeServer.spyAgentCustomResourcesSecrets("tenant", appId + "-step1");
+        final Map<String, Secret> secrets =
+                kubeServer.spyAgentCustomResourcesSecrets("tenant", appId + "-step1");
 
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -88,48 +90,67 @@ class PulsarRunnerDockerTest {
                                     configuration:
                                       fields:
                                         - "description"
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
-
         ExecutionPlan implementation = deployer.createImplementation(appId, applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof PulsarTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                        instanceof PulsarTopic);
         deployer.deploy("tenant", implementation, null);
         assertEquals(1, secrets.size());
         final Secret secret = secrets.values().iterator().next();
         final RuntimePodConfiguration runtimePodConfiguration =
                 AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
 
-        try (PulsarClient client = PulsarClientUtils.buildPulsarClient(implementation.getApplication().getInstance().streamingCluster());
-             Producer<byte[]> producer = client.newProducer().topic("input-topic").create();
-             org.apache.pulsar.client.api.Consumer<byte[]> consumer = client.newConsumer().topic("output-topic").subscriptionName("test").subscribe()
-             ) {
+        try (PulsarClient client =
+                        PulsarClientUtils.buildPulsarClient(
+                                implementation.getApplication().getInstance().streamingCluster());
+                Producer<byte[]> producer = client.newProducer().topic("input-topic").create();
+                org.apache.pulsar.client.api.Consumer<byte[]> consumer =
+                        client.newConsumer()
+                                .topic("output-topic")
+                                .subscriptionName("test")
+                                .subscribe()) {
 
             // produce one message to the input-topic
-            producer
-                    .newMessage()
-                    .value("{\"name\": \"some name\", \"description\": \"some description\"}".getBytes(StandardCharsets.UTF_8))
+            producer.newMessage()
+                    .value(
+                            "{\"name\": \"some name\", \"description\": \"some description\"}"
+                                    .getBytes(StandardCharsets.UTF_8))
                     .key("key")
                     .properties(Map.of("header-key", "header-value"))
                     .send();
             producer.flush();
 
-            AgentRunner.runAgent(runtimePodConfiguration, null, null, AbstractApplicationRunner.agentsDirectory, new AgentInfo(), 5);
+            AgentRunner.runAgent(
+                    runtimePodConfiguration,
+                    null,
+                    null,
+                    AbstractApplicationRunner.agentsDirectory,
+                    new AgentInfo(),
+                    5);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
             Message<byte[]> record = consumer.receive();
-            assertEquals("{\"name\":\"some name\"}", new String(record.getValue(), StandardCharsets.UTF_8));
+            assertEquals(
+                    "{\"name\":\"some name\"}",
+                    new String(record.getValue(), StandardCharsets.UTF_8));
             assertEquals("header-value", record.getProperties().get("header-key"));
         }
-
     }
 
     private static String buildInstanceYaml() {
@@ -146,23 +167,28 @@ class PulsarRunnerDockerTest {
                         serviceUrl: "%s"
                       defaultTenant: "public"
                       defaultNamespace: "default"
-                """.formatted("http://localhost:" + pulsarContainer.getMappedPort(8080),
-                "pulsar://localhost:" + pulsarContainer.getMappedPort(6650));
+                """
+                .formatted(
+                        "http://localhost:" + pulsarContainer.getMappedPort(8080),
+                        "pulsar://localhost:" + pulsarContainer.getMappedPort(6650));
     }
-
 
     @BeforeAll
     public static void setup() throws Exception {
-        pulsarContainer = new PulsarContainer(DockerImageName.parse(IMAGE)
-                .asCompatibleSubstituteFor("apachepulsar/pulsar"))
-                .withStartupTimeout(Duration.ofSeconds(120)) // Mac M1 is slow with Intel docker images
-                .withLogConsumer(outputFrame -> log.info("pulsar> {}", outputFrame.getUtf8String().trim()));
+        pulsarContainer =
+                new PulsarContainer(
+                                DockerImageName.parse(IMAGE)
+                                        .asCompatibleSubstituteFor("apachepulsar/pulsar"))
+                        .withStartupTimeout(
+                                Duration.ofSeconds(120)) // Mac M1 is slow with Intel docker images
+                        .withLogConsumer(
+                                outputFrame ->
+                                        log.info("pulsar> {}", outputFrame.getUtf8String().trim()));
         // start Pulsar and wait for it to be ready to accept requests
         pulsarContainer.start();
         admin =
                 PulsarAdmin.builder()
-                        .serviceHttpUrl(
-                                "http://localhost:" + pulsarContainer.getMappedPort(8080))
+                        .serviceHttpUrl("http://localhost:" + pulsarContainer.getMappedPort(8080))
                         .build();
 
         try {

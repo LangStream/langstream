@@ -15,16 +15,13 @@
  */
 package ai.langstream.api.runner.code;
 
+import java.util.Collection;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.Collection;
-import java.util.Set;
-
-/**
- * Basic implementation of {@link Record} interface.
- */
+/** Basic implementation of {@link Record} interface. */
 @Data
 @Builder
 public final class SimpleRecord implements Record {
@@ -32,8 +29,7 @@ public final class SimpleRecord implements Record {
     final Object value;
     final String origin;
     final Long timestamp;
-    @Builder.Default
-    final Collection<Header> headers = Set.of();
+    @Builder.Default final Collection<Header> headers = Set.of();
 
     @Override
     public Object key() {
@@ -62,6 +58,7 @@ public final class SimpleRecord implements Record {
 
     /**
      * Copy all fields from {@link Record} to new {@link SimpleRecordBuilder}.
+     *
      * @param record record to copy from
      * @return the new {@link SimpleRecordBuilder}
      */
@@ -75,10 +72,7 @@ public final class SimpleRecord implements Record {
     }
 
     public static SimpleRecord of(Object key, Object value) {
-        return builder()
-                .key(key)
-                .value(value)
-                .build();
+        return builder().key(key).value(value).build();
     }
 
     @Data

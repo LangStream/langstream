@@ -22,13 +22,12 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.ExecutionPlanOptimiser;
 import ai.langstream.impl.common.DefaultAgentNode;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPlanOptimiser {
@@ -40,15 +39,19 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
 
     @Override
     public boolean canMerge(AgentNode previousAgent, AgentNode agentImplementation) {
-        boolean result = (previousAgent instanceof DefaultAgentNode agent1
-                && agent1.isComposable()
-                && agentImplementation instanceof DefaultAgentNode agent2
-                && agent2.isComposable()
-                && Objects.equals("true", agent1.getConfiguration().getOrDefault("composable", "true") + "")
-                && Objects.equals("true", agent2.getConfiguration().getOrDefault("composable", "true") + "")
-                && Objects.equals(agent1.getResourcesSpec(), agent2.getResourcesSpec())
-                && Objects.equals(agent1.getErrorsSpec(), agent2.getErrorsSpec())
-        );
+        boolean result =
+                (previousAgent instanceof DefaultAgentNode agent1
+                        && agent1.isComposable()
+                        && agentImplementation instanceof DefaultAgentNode agent2
+                        && agent2.isComposable()
+                        && Objects.equals(
+                                "true",
+                                agent1.getConfiguration().getOrDefault("composable", "true") + "")
+                        && Objects.equals(
+                                "true",
+                                agent2.getConfiguration().getOrDefault("composable", "true") + "")
+                        && Objects.equals(agent1.getResourcesSpec(), agent2.getResourcesSpec())
+                        && Objects.equals(agent1.getErrorsSpec(), agent2.getErrorsSpec()));
         if (log.isDebugEnabled()) {
             log.debug("canMerge {}", previousAgent);
             log.debug("canMerge {}", agentImplementation);
@@ -61,7 +64,12 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
     }
 
     @Override
-    public AgentNode mergeAgents(Module module, Pipeline pipeline, AgentNode previousAgent, AgentNode agentImplementation, ExecutionPlan instance) {
+    public AgentNode mergeAgents(
+            Module module,
+            Pipeline pipeline,
+            AgentNode previousAgent,
+            AgentNode agentImplementation,
+            ExecutionPlan instance) {
         if (previousAgent instanceof DefaultAgentNode agent1
                 && agentImplementation instanceof DefaultAgentNode agent2) {
 
@@ -73,18 +81,22 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 configurationAgent2.put("configuration", agent2.getConfiguration());
                 configurationAgent2.put("agentId", agent2.getId());
 
-                Map<String, Object> newAgent1Configuration = new HashMap<>(agent1.getConfiguration());
+                Map<String, Object> newAgent1Configuration =
+                        new HashMap<>(agent1.getConfiguration());
                 if (agent2.getComponentType() == ComponentType.PROCESSOR) {
-                    List<Map<String, Object>> processors = (List<Map<String, Object>>) newAgent1Configuration.get("processors");
+                    List<Map<String, Object>> processors =
+                            (List<Map<String, Object>>) newAgent1Configuration.get("processors");
                     processors.add(configurationAgent2);
                 } else if (agent2.getComponentType() == ComponentType.SOURCE) {
-                    Map<String, Object> currentSource = (Map<String, Object>) newAgent1Configuration.get("source");
+                    Map<String, Object> currentSource =
+                            (Map<String, Object>) newAgent1Configuration.get("source");
                     if (!currentSource.isEmpty()) {
                         throw new IllegalStateException("Cannot merge two sources");
                     }
                     currentSource.putAll(configurationAgent2);
                 } else if (agent2.getComponentType() == ComponentType.SINK) {
-                    Map<String, Object> currentSink = (Map<String, Object>) newAgent1Configuration.get("sink");
+                    Map<String, Object> currentSink =
+                            (Map<String, Object>) newAgent1Configuration.get("sink");
                     if (!currentSink.isEmpty()) {
                         throw new IllegalStateException("Cannot merge two sinks");
                     }
@@ -93,7 +105,10 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
 
                 log.info("Discarding topic {}", agent1.getOutputConnectionImplementation());
                 instance.discardTopic(agent1.getOutputConnectionImplementation());
-                agent1.overrideConfigurationAfterMerge(AbstractCompositeAgentProvider.AGENT_TYPE, newAgent1Configuration, agent2.getOutputConnectionImplementation());
+                agent1.overrideConfigurationAfterMerge(
+                        AbstractCompositeAgentProvider.AGENT_TYPE,
+                        newAgent1Configuration,
+                        agent2.getOutputConnectionImplementation());
             } else {
                 List<Map<String, Object>> processors = new ArrayList<>();
                 Map<String, Object> source = new HashMap<>();
@@ -111,7 +126,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 } else if (agent1.getComponentType() == ComponentType.PROCESSOR) {
                     processors.add(configurationAgent1);
                 } else {
-                    throw new IllegalStateException("Invalid agent type " + agent1.getComponentType());
+                    throw new IllegalStateException(
+                            "Invalid agent type " + agent1.getComponentType());
                 }
 
                 Map<String, Object> configurationAgent2 = new HashMap<>();
@@ -125,7 +141,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 } else if (agent2.getComponentType() == ComponentType.PROCESSOR) {
                     processors.add(configurationAgent2);
                 } else {
-                    throw new IllegalStateException("Invalid agent type " + agent2.getComponentType());
+                    throw new IllegalStateException(
+                            "Invalid agent type " + agent2.getComponentType());
                 }
 
                 Map<String, Object> result = new HashMap<>();
@@ -137,7 +154,10 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                     log.info("Discarding topic {}", agent1.getOutputConnectionImplementation());
                     instance.discardTopic(agent1.getOutputConnectionImplementation());
                 }
-                agent1.overrideConfigurationAfterMerge(AbstractCompositeAgentProvider.AGENT_TYPE, result, agent2.getOutputConnectionImplementation());
+                agent1.overrideConfigurationAfterMerge(
+                        AbstractCompositeAgentProvider.AGENT_TYPE,
+                        result,
+                        agent2.getOutputConnectionImplementation());
             }
             log.info("Agent 1 modified: {}", agent1);
             if (agent2.getInputConnectionImplementation() != null) {

@@ -15,10 +15,5 @@
  */
 package ai.langstream.runtime.api.agent;
 
-import ai.langstream.runtime.api.ClusterConfiguration;
-
-public record DownloadAgentCodeConfiguration(String codeDownloadPath,
-                                             String tenant,
-                                             String applicationId,
-                                             String codeArchiveId) {
-}
+public record DownloadAgentCodeConfiguration(
+        String codeDownloadPath, String tenant, String applicationId, String codeArchiveId) {}

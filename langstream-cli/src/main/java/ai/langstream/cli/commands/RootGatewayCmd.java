@@ -21,14 +21,12 @@ import ai.langstream.cli.commands.gateway.ProduceGatewayCmd;
 import lombok.Getter;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "gateway", mixinStandardHelpOptions = true, description = "Interact with a application gateway",
-        subcommands = {
-                ProduceGatewayCmd.class,
-                ConsumeGatewayCmd.class,
-                ChatGatewayCmd.class
-        })
+@CommandLine.Command(
+        name = "gateway",
+        mixinStandardHelpOptions = true,
+        description = "Interact with a application gateway",
+        subcommands = {ProduceGatewayCmd.class, ConsumeGatewayCmd.class, ChatGatewayCmd.class})
 @Getter
 public class RootGatewayCmd {
-    @CommandLine.ParentCommand
-    private RootCmd rootCmd;
+    @CommandLine.ParentCommand private RootCmd rootCmd;
 }

@@ -27,28 +27,28 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 class SpringdocConfiguration {
 
-  @Value("${application.version:undefined}")
-  private String version;
+    @Value("${application.version:undefined}")
+    private String version;
 
-  @Bean
-  public OpenAPI getOpenAPI() {
-    return new OpenAPI().info(swaggerInfo()).externalDocs(swaggerExternalDoc());
-  }
+    @Bean
+    public OpenAPI getOpenAPI() {
+        return new OpenAPI().info(swaggerInfo()).externalDocs(swaggerExternalDoc());
+    }
 
-  private Info swaggerInfo() {
-    return new Info()
-      .title("Project API")
-      .description("Project description API")
-      .version(version)
-      .license(new License().name("No license").url(""));
-  }
+    private Info swaggerInfo() {
+        return new Info()
+                .title("Project API")
+                .description("Project description API")
+                .version(version)
+                .license(new License().name("No license").url(""));
+    }
 
-  private ExternalDocumentation swaggerExternalDoc() {
-    return new ExternalDocumentation().description("Project Documentation").url("");
-  }
+    private ExternalDocumentation swaggerExternalDoc() {
+        return new ExternalDocumentation().description("Project Documentation").url("");
+    }
 
-  @Bean
-  public GroupedOpenApi allOpenAPI() {
-    return GroupedOpenApi.builder().group("all").pathsToMatch("/api/**").build();
-  }
+    @Bean
+    public GroupedOpenApi allOpenAPI() {
+        return GroupedOpenApi.builder().group("all").pathsToMatch("/api/**").build();
+    }
 }

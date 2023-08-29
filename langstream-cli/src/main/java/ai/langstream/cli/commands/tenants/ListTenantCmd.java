@@ -18,7 +18,8 @@ package ai.langstream.cli.commands.tenants;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "list",
+@CommandLine.Command(
+        name = "list",
         mixinStandardHelpOptions = true,
         description = "List all tenants")
 public class ListTenantCmd extends BaseTenantCmd {

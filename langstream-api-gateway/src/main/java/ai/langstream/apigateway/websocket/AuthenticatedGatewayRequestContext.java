@@ -23,5 +23,4 @@ public interface AuthenticatedGatewayRequestContext extends GatewayRequestContex
     Map<String, Object> attributes();
 
     Map<String, String> principalValues();
-
 }

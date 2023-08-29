@@ -29,7 +29,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @Kind("Agent")
 @Singular("agent")
 @Plural("agents")
-public class AgentCustomResource extends CustomResource<AgentSpec, AgentStatus> implements Namespaced {
+public class AgentCustomResource extends CustomResource<AgentSpec, AgentStatus>
+        implements Namespaced {
 
     @Override
     protected AgentStatus initStatus() {
@@ -37,5 +38,4 @@ public class AgentCustomResource extends CustomResource<AgentSpec, AgentStatus> 
         agentStatus.setStatus(AgentLifecycleStatus.CREATED);
         return agentStatus;
     }
-
 }

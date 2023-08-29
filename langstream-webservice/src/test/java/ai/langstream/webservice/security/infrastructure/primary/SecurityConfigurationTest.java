@@ -18,8 +18,8 @@ package ai.langstream.webservice.security.infrastructure.primary;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.webservice.common.GlobalMetadataService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,44 +31,44 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-@SpringBootTest(properties = {
-        "application.security.enabled=true",
-        "application.security.token.secret-key=jDdra78Vo1+RVMGY2easnWe0sAFrEa2581ra5YMotbE=",
-        "application.security.token.auth-claim=iss",
-        "application.security.token.admin-roles=testrole"})
+@SpringBootTest(
+        properties = {
+            "application.security.enabled=true",
+            "application.security.token.secret-key=jDdra78Vo1+RVMGY2easnWe0sAFrEa2581ra5YMotbE=",
+            "application.security.token.auth-claim=iss",
+            "application.security.token.admin-roles=testrole"
+        })
 @AutoConfigureMockMvc
 @DirtiesContext
 class SecurityConfigurationTest {
-
 
     protected static final String ROLE_NOTADMIN =
             "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJub3RhZG1pbiJ9.SMRG0RwT4O9XzOOIPhOV2K7TdwDJI4EDNNFruN_3qtc";
     protected static final String ROLE_TESTROLE =
             "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0cm9sZSJ9.Y6VOsE3vw4zOuRnG_WtVGWn25lgwNGkY5VrRpXR9SVI";
-    @Autowired
-    MockMvc mockMvc;
+    @Autowired MockMvc mockMvc;
 
-    @MockBean
-    GlobalMetadataService globalMetadataService;
-    @MockBean
-    ApplicationStore applicationStore;
+    @MockBean GlobalMetadataService globalMetadataService;
+    @MockBean ApplicationStore applicationStore;
 
     @Test
     void shouldBeAuthorized() throws Exception {
         // Token with "iss": "testrole"
         String token = ROLE_TESTROLE;
-        mockMvc.perform(put("/api/tenants/security-configuration-resource").header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        put("/api/tenants/security-configuration-resource")
+                                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
 
     @Test
     void shouldBeForbiddenIfTokenIsInvalid() throws Exception {
         String token = "invalid";
-        mockMvc
-                .perform(put("/api/tenants/security-configuration-resource").header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        put("/api/tenants/security-configuration-resource")
+                                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
 
@@ -76,8 +76,9 @@ class SecurityConfigurationTest {
     void shouldBeForbiddenIfNotInAdminRole() throws Exception {
         // Token with "iss": "notadmin"
         String token = ROLE_NOTADMIN;
-        mockMvc
-                .perform(put("/api/tenants/security-configuration-resource").header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                        put("/api/tenants/security-configuration-resource")
+                                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
 
@@ -87,26 +88,34 @@ class SecurityConfigurationTest {
         String token = ROLE_NOTADMIN;
         List<Map.Entry<HttpMethod, String>> requests = new ArrayList<>();
         requests.add(Map.entry(HttpMethod.GET, "/api/applications/{tenant}"));
-        requests.add(Map.entry(HttpMethod.GET,"/api/applications/{tenant}/app"));
-        requests.add(Map.entry(HttpMethod.GET,"/api/applications/{tenant}/app/logs"));
-        requests.add(Map.entry(HttpMethod.GET,"/api/applications/{tenant}/app/code"));
-        requests.add(Map.entry(HttpMethod.GET,"/api/applications/{tenant}/app/code/code-id-1"));
-        requests.add(Map.entry(HttpMethod.DELETE,"/api/applications/{tenant}/app"));
+        requests.add(Map.entry(HttpMethod.GET, "/api/applications/{tenant}/app"));
+        requests.add(Map.entry(HttpMethod.GET, "/api/applications/{tenant}/app/logs"));
+        requests.add(Map.entry(HttpMethod.GET, "/api/applications/{tenant}/app/code"));
+        requests.add(Map.entry(HttpMethod.GET, "/api/applications/{tenant}/app/code/code-id-1"));
+        requests.add(Map.entry(HttpMethod.DELETE, "/api/applications/{tenant}/app"));
 
         for (Map.Entry<HttpMethod, String> entry : requests) {
             System.out.println("testing " + entry.getKey() + " " + entry.getValue());
-            mockMvc.perform(MockMvcRequestBuilders.request(entry.getKey(), entry.getValue().replace("{tenant}", "notadmin"))
-                            .header("Authorization", "Bearer " + token))
+            mockMvc.perform(
+                            MockMvcRequestBuilders.request(
+                                            entry.getKey(),
+                                            entry.getValue().replace("{tenant}", "notadmin"))
+                                    .header("Authorization", "Bearer " + token))
                     .andExpect(status().isNotFound());
 
-            mockMvc.perform(MockMvcRequestBuilders.request(entry.getKey(), entry.getValue().replace("{tenant}", "another-tenant"))
-                            .header("Authorization", "Bearer " + token))
+            mockMvc.perform(
+                            MockMvcRequestBuilders.request(
+                                            entry.getKey(),
+                                            entry.getValue().replace("{tenant}", "another-tenant"))
+                                    .header("Authorization", "Bearer " + token))
                     .andExpect(status().isForbidden());
 
-            mockMvc.perform(MockMvcRequestBuilders.request(entry.getKey(), entry.getValue().replace("{tenant}", "notadmin"))
-                            .header("Authorization", "Bearer " + ROLE_TESTROLE))
+            mockMvc.perform(
+                            MockMvcRequestBuilders.request(
+                                            entry.getKey(),
+                                            entry.getValue().replace("{tenant}", "notadmin"))
+                                    .header("Authorization", "Bearer " + ROLE_TESTROLE))
                     .andExpect(status().isNotFound());
         }
     }
-
 }

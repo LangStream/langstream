@@ -23,5 +23,4 @@ import lombok.Data;
 public class ApplicationStatus extends BaseStatus {
 
     ApplicationLifecycleStatus status;
-
 }

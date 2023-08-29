@@ -70,8 +70,11 @@ public class S3CodeStorage implements CodeStorage {
 
         log.info("Connecting to S3 BlobStorage at {} with accessKey {}", endpoint, accessKey);
 
-        httpClient = HttpUtils.newDefaultHttpClient(DEFAULT_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT,
-                DEFAULT_CONNECTION_TIMEOUT);
+        httpClient =
+                HttpUtils.newDefaultHttpClient(
+                        DEFAULT_CONNECTION_TIMEOUT,
+                        DEFAULT_CONNECTION_TIMEOUT,
+                        DEFAULT_CONNECTION_TIMEOUT);
         minioClient =
                 MinioClient.builder()
                         .endpoint(endpoint)
@@ -79,39 +82,39 @@ public class S3CodeStorage implements CodeStorage {
                         .credentials(accessKey, secretKey)
                         .build();
 
-        if (!minioClient.bucketExists(BucketExistsArgs.builder()
-                .bucket(bucketName)
-                .build())) {
+        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
             log.info("Creating bucket {}", bucketName);
-            minioClient.makeBucket(MakeBucketArgs
-                    .builder()
-                    .bucket(bucketName)
-                    .build());
+            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
         } else {
             log.info("Bucket {} already exists", bucketName);
         }
     }
 
-
     @Override
-    public CodeArchiveMetadata storeApplicationCode(String tenant, String applicationId, String version,
-                                                    UploadableCodeArchive codeArchive) throws CodeStorageException {
+    public CodeArchiveMetadata storeApplicationCode(
+            String tenant, String applicationId, String version, UploadableCodeArchive codeArchive)
+            throws CodeStorageException {
 
         try {
             Path tempFile = Files.createTempFile("langstream", "upload");
             try {
                 Files.copy(codeArchive.getData(), tempFile, StandardCopyOption.REPLACE_EXISTING);
-                String codeStoreId = tenant + "_" + applicationId + "_" + version + "_" + UUID.randomUUID();
-                log.info("Storing code archive {} for tenant {} and application {} with version {}", codeStoreId,
-                        tenant, applicationId, version);
+                String codeStoreId =
+                        tenant + "_" + applicationId + "_" + version + "_" + UUID.randomUUID();
+                log.info(
+                        "Storing code archive {} for tenant {} and application {} with version {}",
+                        codeStoreId,
+                        tenant,
+                        applicationId,
+                        version);
 
                 minioClient.uploadObject(
                         UploadObjectArgs.builder()
-                                .userMetadata(Map.of(
-                                        OBJECT_METADATA_KEY_TENANT, tenant,
-                                        OBJECT_METADATA_KEY_APPLICATION, applicationId,
-                                        OBJECT_METADATA_KEY_VERSION, version)
-                                )
+                                .userMetadata(
+                                        Map.of(
+                                                OBJECT_METADATA_KEY_TENANT, tenant,
+                                                OBJECT_METADATA_KEY_APPLICATION, applicationId,
+                                                OBJECT_METADATA_KEY_VERSION, version))
                                 .bucket(bucketName)
                                 .object(tenant + "/" + codeStoreId)
                                 .contentType("application/zip")
@@ -129,17 +132,19 @@ public class S3CodeStorage implements CodeStorage {
     }
 
     @Override
-    public void downloadApplicationCode(String tenant, String codeStoreId, DownloadedCodeHandled codeArchive)
+    public void downloadApplicationCode(
+            String tenant, String codeStoreId, DownloadedCodeHandled codeArchive)
             throws CodeStorageException {
         try {
             Path tempFile = Files.createTempDirectory("langstream-download-code");
             Path zipFile = tempFile.resolve("code.zip");
             try {
-                minioClient.downloadObject(DownloadObjectArgs.builder()
-                        .bucket(bucketName)
-                        .filename(zipFile.toAbsolutePath().toString())
-                        .object(tenant + "/" + codeStoreId)
-                        .build());
+                minioClient.downloadObject(
+                        DownloadObjectArgs.builder()
+                                .bucket(bucketName)
+                                .filename(zipFile.toAbsolutePath().toString())
+                                .object(tenant + "/" + codeStoreId)
+                                .build());
                 codeArchive.accept(new LocalZipFileArchiveFile(zipFile));
             } finally {
                 if (Files.exists(zipFile)) {
@@ -154,21 +159,27 @@ public class S3CodeStorage implements CodeStorage {
     }
 
     @Override
-    public CodeArchiveMetadata describeApplicationCode(String tenant, String codeStoreId) throws CodeStorageException {
+    public CodeArchiveMetadata describeApplicationCode(String tenant, String codeStoreId)
+            throws CodeStorageException {
         try {
             final String objectName = tenant + "/" + codeStoreId;
-            final StatObjectResponse statObjectResponse = minioClient.statObject(StatObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .build());
+            final StatObjectResponse statObjectResponse =
+                    minioClient.statObject(
+                            StatObjectArgs.builder().bucket(bucketName).object(objectName).build());
             final Map<String, String> metadata = statObjectResponse.userMetadata();
             final String objectTenant = metadata.get(OBJECT_METADATA_KEY_TENANT);
             if (!Objects.equals(objectTenant, tenant)) {
                 throw new CodeStorageException(
-                        "Tenant mismatch in S3 object " + objectName + ": " + objectTenant + " != " + tenant);
+                        "Tenant mismatch in S3 object "
+                                + objectName
+                                + ": "
+                                + objectTenant
+                                + " != "
+                                + tenant);
             }
             final String applicationId = metadata.get(OBJECT_METADATA_KEY_APPLICATION);
-            Objects.requireNonNull(applicationId, "S3 object " + objectName + " contains empty application");
+            Objects.requireNonNull(
+                    applicationId, "S3 object " + objectName + " contains empty application");
             return new CodeArchiveMetadata(tenant, codeStoreId, applicationId);
         } catch (ErrorResponseException errorResponseException) {
             // https://github.com/minio/minio-java/blob/7ca9500165ee13d39f293691943b93c19c31ebc2/api/src/main/java/io/minio/S3Base.java#L682-L692
@@ -182,12 +193,11 @@ public class S3CodeStorage implements CodeStorage {
     }
 
     @Override
-    public void deleteApplicationCode(String tenant, String codeStoreId) throws CodeStorageException {
+    public void deleteApplicationCode(String tenant, String codeStoreId)
+            throws CodeStorageException {
         try {
-            minioClient.removeObject(RemoveObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(codeStoreId)
-                    .build());
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder().bucket(bucketName).object(codeStoreId).build());
         } catch (MinioException | NoSuchAlgorithmException | InvalidKeyException | IOException e) {
             throw new CodeStorageException(e);
         }
@@ -211,6 +221,5 @@ public class S3CodeStorage implements CodeStorage {
                 }
             }
         }
-
     }
 }

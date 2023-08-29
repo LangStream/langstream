@@ -23,11 +23,21 @@ import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeProvider;
 import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
-import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.pulsar.PulsarClientUtils;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Consumer;
@@ -39,17 +49,6 @@ import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.common.schema.KeyValue;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRuntimeProvider {
@@ -82,16 +81,19 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
         }
 
         @Override
-        public TopicReader createReader(StreamingCluster streamingCluster,
-                                        Map<String, Object> configuration,
-                                        TopicOffsetPosition initialPosition) {
+        public TopicReader createReader(
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration,
+                TopicOffsetPosition initialPosition) {
             Map<String, Object> copy = new HashMap<>(configuration);
             final TopicConsumer consumer = createConsumer(null, streamingCluster, configuration);
             switch (initialPosition.position()) {
-                case Earliest -> copy.put("subscriptionInitialPosition", SubscriptionInitialPosition.Earliest);
-                case Latest -> copy.put("subscriptionInitialPosition", SubscriptionInitialPosition.Latest);
-                default ->
-                    throw new IllegalArgumentException("Unsupported initial position: " + initialPosition.position());
+                case Earliest -> copy.put(
+                        "subscriptionInitialPosition", SubscriptionInitialPosition.Earliest);
+                case Latest -> copy.put(
+                        "subscriptionInitialPosition", SubscriptionInitialPosition.Latest);
+                default -> throw new IllegalArgumentException(
+                        "Unsupported initial position: " + initialPosition.position());
             }
             return new TopicReader() {
                 @Override
@@ -123,21 +125,29 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
         }
 
         @Override
-        public TopicConsumer createConsumer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        public TopicConsumer createConsumer(
+                String agentId,
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
             return new PulsarTopicConsumer(copy);
         }
 
         @Override
-        public TopicProducer createProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        public TopicProducer createProducer(
+                String agentId,
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
             return new PulsarTopicProducer(copy);
         }
 
         @Override
-        public TopicAdmin createTopicAdmin(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
-            return new TopicAdmin() {
-            };
+        public TopicAdmin createTopicAdmin(
+                String agentId,
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration) {
+            return new TopicAdmin() {};
         }
 
         private static class PulsarConsumerRecord implements Record {
@@ -145,7 +155,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             private final Object finalValue;
             private final Message<GenericRecord> receive;
 
-            public PulsarConsumerRecord(Object finalKey, Object finalValue, Message<GenericRecord> receive) {
+            public PulsarConsumerRecord(
+                    Object finalKey, Object finalValue, Message<GenericRecord> receive) {
                 this.finalKey = finalKey;
                 this.finalValue = finalValue;
                 this.receive = receive;
@@ -174,22 +185,24 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             public Collection<Header> headers() {
                 return receive.getProperties().entrySet().stream()
-                        .map(e -> new Header() {
-                            @Override
-                            public String key() {
-                                return e.getKey();
-                            }
+                        .map(
+                                e ->
+                                        new Header() {
+                                            @Override
+                                            public String key() {
+                                                return e.getKey();
+                                            }
 
-                            @Override
-                            public String value() {
-                                return e.getValue();
-                            }
+                                            @Override
+                                            public String value() {
+                                                return e.getValue();
+                                            }
 
-                            @Override
-                            public String valueAsString() {
-                                return e.getValue();
-                            }
-                        })
+                                            @Override
+                                            public String valueAsString() {
+                                                return e.getValue();
+                                            }
+                                        })
                         .collect(Collectors.toList());
             }
         }
@@ -205,7 +218,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 this.configuration = configuration;
             }
 
-
             @Override
             public Object getNativeConsumer() {
                 return consumer;
@@ -214,15 +226,14 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             public void start() throws Exception {
                 String topic = (String) configuration.remove("topic");
-                consumer = client
-                        .newConsumer(Schema.AUTO_CONSUME())
-                        .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
-                        .loadConf(configuration)
-                        .topic(topic)
-                        .subscriptionType(SubscriptionType.Failover)
-                        .ackTimeout(60000, java.util.concurrent.TimeUnit.MILLISECONDS)
-                        .subscribe();
-
+                consumer =
+                        client.newConsumer(Schema.AUTO_CONSUME())
+                                .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
+                                .loadConf(configuration)
+                                .topic(topic)
+                                .subscriptionType(SubscriptionType.Failover)
+                                .ackTimeout(60000, java.util.concurrent.TimeUnit.MILLISECONDS)
+                                .subscribe();
             }
 
             @Override
@@ -245,7 +256,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 }
                 Object key = receive.getKey();
                 Object value = receive.getValue().getNativeObject();
-                if (value instanceof KeyValue<?,?> kv) {
+                if (value instanceof KeyValue<?, ?> kv) {
                     key = kv.getKey();
                     value = kv.getValue();
                 }
@@ -266,7 +277,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             }
         }
 
-        private class PulsarTopicProducer  <K> implements TopicProducer {
+        private class PulsarTopicProducer<K> implements TopicProducer {
 
             private final Map<String, Object> configuration;
             private final AtomicLong totalIn = new AtomicLong();
@@ -285,10 +296,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 if (schema == null) {
                     schema = (Schema) Schema.BYTES;
                 }
-                producer = client.newProducer(schema)
-                        .topic(topic)
-                        .loadConf(configuration)
-                        .create();
+                producer = client.newProducer(schema).topic(topic).loadConf(configuration).create();
             }
 
             @Override
@@ -311,16 +319,21 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 for (Record r : records) {
                     log.info("Writing message {}", r);
                     // TODO: handle KV
-                    handles.add(producer.newMessage()
-                            .key(r.key() != null ? r.key().toString() : null)
-                            .value(convertValue(r))
-                            .properties(r
-                                    .headers()
-                                    .stream()
-                                    .collect(Collectors.toMap(
-                                        Header::key,
-                                        h -> h.value() != null ? h.value().toString() : null)))
-                            .sendAsync());
+                    handles.add(
+                            producer.newMessage()
+                                    .key(r.key() != null ? r.key().toString() : null)
+                                    .value(convertValue(r))
+                                    .properties(
+                                            r.headers().stream()
+                                                    .collect(
+                                                            Collectors.toMap(
+                                                                    Header::key,
+                                                                    h ->
+                                                                            h.value() != null
+                                                                                    ? h.value()
+                                                                                            .toString()
+                                                                                    : null)))
+                                    .sendAsync());
                 }
                 CompletableFuture.allOf(handles.toArray(new CompletableFuture[0])).join();
             }
@@ -339,7 +352,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     case STRING:
                         return (K) value.toString();
                     default:
-                        throw new IllegalArgumentException("Unsupported output schema type " + schema);
+                        throw new IllegalArgumentException(
+                                "Unsupported output schema type " + schema);
                 }
             }
 

@@ -16,11 +16,6 @@
 package ai.langstream.kafkaconnect;
 
 import com.google.common.collect.Maps;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.connect.sink.SinkTaskContext;
-
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Map;
@@ -28,9 +23,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.sink.SinkTaskContext;
 
 @Slf4j
-public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
+public class KafkaConnectSinkTaskContext implements SinkTaskContext {
 
     private final Map<String, String> config;
 
@@ -38,12 +37,13 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
     private final Runnable onCommitRequest;
     private final AtomicBoolean runRepartition = new AtomicBoolean(false);
 
-    private final ConcurrentHashMap<TopicPartition, Long> currentOffsets = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<TopicPartition, Long> currentOffsets =
+            new ConcurrentHashMap<>();
 
-
-    public KafkaConnectSinkTaskContext(Map<String, String> config,
-                                       java.util.function.Consumer<ConsumerCommand> cqrsConsumer,
-                                       Runnable onCommitRequest) {
+    public KafkaConnectSinkTaskContext(
+            Map<String, String> config,
+            java.util.function.Consumer<ConsumerCommand> cqrsConsumer,
+            Runnable onCommitRequest) {
         this.config = config;
 
         this.cqrsConsumer = cqrsConsumer;
@@ -60,7 +60,9 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
         map.forEach(this::seekAndUpdateOffset);
 
         if (runRepartition.compareAndSet(true, false)) {
-            cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.REPARTITION, currentOffsets.keySet()));
+            cqrsConsumer.accept(
+                    new ConsumerCommand(
+                            ConsumerCommand.Command.REPARTITION, currentOffsets.keySet()));
         }
     }
 
@@ -69,18 +71,23 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
         seekAndUpdateOffset(topicPartition, l);
 
         if (runRepartition.compareAndSet(true, false)) {
-            cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.REPARTITION, currentOffsets.keySet()));
+            cqrsConsumer.accept(
+                    new ConsumerCommand(
+                            ConsumerCommand.Command.REPARTITION, currentOffsets.keySet()));
         }
     }
 
     public Map<TopicPartition, OffsetAndMetadata> currentOffsets() {
-        final Map<TopicPartition, OffsetAndMetadata> snapshot = Maps.newHashMapWithExpectedSize(currentOffsets.size());
-        currentOffsets.forEach((topicPartition, offset) -> {
-            if (offset > 0) {
-                snapshot.put(topicPartition,
-                        new OffsetAndMetadata(offset, Optional.empty(), null));
-            }
-        });
+        final Map<TopicPartition, OffsetAndMetadata> snapshot =
+                Maps.newHashMapWithExpectedSize(currentOffsets.size());
+        currentOffsets.forEach(
+                (topicPartition, offset) -> {
+                    if (offset > 0) {
+                        snapshot.put(
+                                topicPartition,
+                                new OffsetAndMetadata(offset, Optional.empty(), null));
+                    }
+                });
         return snapshot;
     }
 
@@ -90,8 +97,10 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
 
     private void seekAndUpdateOffset(TopicPartition topicPartition, long offset) {
 
-        cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.SEEK,
-                new AbstractMap.SimpleEntry<>(topicPartition, offset)));
+        cqrsConsumer.accept(
+                new ConsumerCommand(
+                        ConsumerCommand.Command.SEEK,
+                        new AbstractMap.SimpleEntry<>(topicPartition, offset)));
         if (!currentOffsets.containsKey(topicPartition)) {
             runRepartition.set(true);
         }
@@ -110,13 +119,15 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
     @Override
     public void pause(TopicPartition... partitions) {
         log.debug("Pausing partitions {}.", partitions);
-        cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.PAUSE, Arrays.asList(partitions)));
+        cqrsConsumer.accept(
+                new ConsumerCommand(ConsumerCommand.Command.PAUSE, Arrays.asList(partitions)));
     }
 
     @Override
     public void resume(TopicPartition... partitions) {
         log.debug("Resuming partitions: {}", partitions);
-        cqrsConsumer.accept(new ConsumerCommand(ConsumerCommand.Command.RESUME, Arrays.asList(partitions)));
+        cqrsConsumer.accept(
+                new ConsumerCommand(ConsumerCommand.Command.RESUME, Arrays.asList(partitions)));
     }
 
     @Override
@@ -124,5 +135,4 @@ public class KafkaConnectSinkTaskContext implements SinkTaskContext  {
         log.info("requestCommit() is called.");
         onCommitRequest.run();
     }
-
 }

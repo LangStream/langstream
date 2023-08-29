@@ -15,9 +15,9 @@
  */
 package ai.langstream.webservice;
 
+import ai.langstream.api.model.TenantConfiguration;
 import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.webservice.config.TenantProperties;
-import ai.langstream.api.model.TenantConfiguration;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationListener;
@@ -27,28 +27,21 @@ import org.springframework.stereotype.Component;
 @Component
 @AllArgsConstructor
 @Slf4j
-public class LangStreamEventListener implements
-        ApplicationListener<ContextRefreshedEvent> {
+public class LangStreamEventListener implements ApplicationListener<ContextRefreshedEvent> {
 
     private final GlobalMetadataService globalMetadataService;
     private final TenantProperties tenantProperties;
 
-
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        if (tenantProperties.getDefaultTenant() != null &&
-                tenantProperties.getDefaultTenant().isCreate()) {
+        if (tenantProperties.getDefaultTenant() != null
+                && tenantProperties.getDefaultTenant().isCreate()) {
             final String name = tenantProperties.getDefaultTenant().getName();
             log.info("Creating default tenant {}", name);
-            globalMetadataService.putTenant(name, TenantConfiguration.builder()
-                    .name(name)
-                    .build());
+            globalMetadataService.putTenant(name, TenantConfiguration.builder().name(name).build());
         } else {
             log.info("No default tenant configured");
         }
         globalMetadataService.syncTenantsConfiguration();
-
     }
-
-
 }

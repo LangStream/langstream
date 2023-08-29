@@ -36,7 +36,7 @@ public class ErrorsSpec {
 
     public static final ErrorsSpec DEFAULT = new ErrorsSpec(FAIL, 0);
 
-    public ErrorsSpec withDefaultsFrom(ErrorsSpec higherLevel){
+    public ErrorsSpec withDefaultsFrom(ErrorsSpec higherLevel) {
         if (higherLevel == null) {
             return this;
         }

@@ -18,7 +18,6 @@ package ai.langstream.api.model;
 import java.util.HashMap;
 import java.util.Map;
 
-
 public record ComputeCluster(String type, Map<String, Object> configuration) {
     public ComputeCluster {
         if (configuration == null) {

@@ -18,11 +18,13 @@ package ai.langstream.runtime.impl.k8s.agents;
 import ai.langstream.impl.agents.AbstractCompositeAgentProvider;
 import ai.langstream.impl.noop.NoOpComputeClusterRuntimeProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-
 import java.util.List;
 
 public class KubernetesCompositeAgentProvider extends AbstractCompositeAgentProvider {
     public KubernetesCompositeAgentProvider() {
-        super(List.of(KubernetesClusterRuntime.CLUSTER_TYPE, NoOpComputeClusterRuntimeProvider.CLUSTER_TYPE));
+        super(
+                List.of(
+                        KubernetesClusterRuntime.CLUSTER_TYPE,
+                        NoOpComputeClusterRuntimeProvider.CLUSTER_TYPE));
     }
 }

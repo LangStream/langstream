@@ -15,25 +15,27 @@
  */
 package ai.langstream.api.database;
 
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Map;
 import java.util.ServiceLoader;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class VectorDatabaseWriterProviderRegistry {
 
     public static VectorDatabaseWriter createWriter(Map<String, Object> configuration) {
         Map<String, Object> conf = configuration == null ? Map.of() : configuration;
-        ServiceLoader<VectorDatabaseWriterProvider> loader = ServiceLoader.load(VectorDatabaseWriterProvider.class);
-        final VectorDatabaseWriterProvider store = loader
-                .stream()
-                .filter(p -> p.get().supports(conf))
-                .findFirst()
-                .orElseThrow(
-                        () -> new RuntimeException("No VectorDatabaseWriterProvider found for datasource " + configuration)
-                )
-                .get();
+        ServiceLoader<VectorDatabaseWriterProvider> loader =
+                ServiceLoader.load(VectorDatabaseWriterProvider.class);
+        final VectorDatabaseWriterProvider store =
+                loader.stream()
+                        .filter(p -> p.get().supports(conf))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new RuntimeException(
+                                                "No VectorDatabaseWriterProvider found for datasource "
+                                                        + configuration))
+                        .get();
         return store.createImplementation(configuration);
     }
 }

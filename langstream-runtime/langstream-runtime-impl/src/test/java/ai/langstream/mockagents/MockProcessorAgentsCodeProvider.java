@@ -24,18 +24,16 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import ai.langstream.api.runtime.ComponentType;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
@@ -44,7 +42,6 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
         return "mock-failing-processor".equals(agentType)
                 || "mock-failing-sink".equals(agentType)
                 || "mock-async-processor".equals(agentType);
-
     }
 
     @Override
@@ -59,7 +56,6 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
             default:
                 throw new IllegalStateException();
         }
-
     }
 
     private static class AsyncProcessor extends AbstractAgentCode implements AgentProcessor {
@@ -67,16 +63,21 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
         ScheduledExecutorService executorService;
         Random random = new Random();
         AtomicInteger idGenerator = new AtomicInteger();
+
         @Override
         public void process(List<Record> records, RecordSink recordSink) {
             for (Record record : records) {
                 int delay = random.nextInt(500);
                 int id = idGenerator.incrementAndGet();
-                executorService.schedule(() -> {
-                    log.info("EXC{} Processing record {}", id, record.value());
-                    recordSink.emit(new SourceRecordAndResult(record, List.of(record), null));
-                    log.info("EXC{} Processed record {}", id, record.value());
-                }, delay, TimeUnit.MILLISECONDS);
+                executorService.schedule(
+                        () -> {
+                            log.info("EXC{} Processing record {}", id, record.value());
+                            recordSink.emit(
+                                    new SourceRecordAndResult(record, List.of(record), null));
+                            log.info("EXC{} Processed record {}", id, record.value());
+                        },
+                        delay,
+                        TimeUnit.MILLISECONDS);
             }
         }
 
@@ -144,7 +145,10 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
         @Override
         public void write(List<Record> records) {
             for (Record record : records) {
-                log.info("Processing record value {}, failOnContent {}", record.value(), failOnContent);
+                log.info(
+                        "Processing record value {}, failOnContent {}",
+                        record.value(),
+                        failOnContent);
                 if (Objects.equals(record.value(), failOnContent)) {
                     throw new RuntimeException("Failing on content: " + failOnContent);
                 }

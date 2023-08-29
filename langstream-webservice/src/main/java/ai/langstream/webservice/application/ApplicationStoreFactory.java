@@ -15,10 +15,9 @@
  */
 package ai.langstream.webservice.application;
 
-import ai.langstream.webservice.config.StorageProperties;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.storage.ApplicationStoreRegistry;
-
+import ai.langstream.webservice.config.StorageProperties;
 import java.util.Objects;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

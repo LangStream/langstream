@@ -27,5 +27,4 @@ public record AuthTokenProperties(
         String audienceClaim,
         String audience,
         List<String> adminRoles,
-        String jwksHostsAllowlist
-) {}
+        String jwksHostsAllowlist) {}

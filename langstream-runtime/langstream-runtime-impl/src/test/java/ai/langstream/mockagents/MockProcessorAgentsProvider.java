@@ -20,15 +20,16 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.impl.common.AbstractAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class MockProcessorAgentsProvider extends AbstractAgentProvider{
+public class MockProcessorAgentsProvider extends AbstractAgentProvider {
     public MockProcessorAgentsProvider() {
-        super(Set.of("mock-failing-processor", "mock-failing-sink", "mock-async-processor"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
+        super(
+                Set.of("mock-failing-processor", "mock-failing-sink", "mock-async-processor"),
+                List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override
@@ -40,5 +41,4 @@ public class MockProcessorAgentsProvider extends AbstractAgentProvider{
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
         return ComponentType.PROCESSOR;
     }
-
 }

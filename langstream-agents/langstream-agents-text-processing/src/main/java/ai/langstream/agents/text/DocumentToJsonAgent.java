@@ -19,11 +19,10 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DocumentToJsonAgent extends SingleRecordAgentProcessor {
@@ -35,7 +34,9 @@ public class DocumentToJsonAgent extends SingleRecordAgentProcessor {
     @Override
     public void init(Map<String, Object> configuration) {
         this.textField = configuration.getOrDefault("text-field", "text").toString();
-        this.copyProperties = Boolean.parseBoolean(configuration.getOrDefault("copy-properties", "true").toString());
+        this.copyProperties =
+                Boolean.parseBoolean(
+                        configuration.getOrDefault("copy-properties", "true").toString());
     }
 
     @Override
@@ -52,10 +53,7 @@ public class DocumentToJsonAgent extends SingleRecordAgentProcessor {
             record.headers().forEach(h -> asJson.put(h.key(), h.value()));
         }
 
-        return List.of(SimpleRecord
-                .copyFrom(record)
-                .value(MAPPER.writeValueAsString(asJson))
-                .build());
-
+        return List.of(
+                SimpleRecord.copyFrom(record).value(MAPPER.writeValueAsString(asJson)).build());
     }
 }

@@ -19,6 +19,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.webservice.WebAppTestConfig;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -44,20 +45,21 @@ import org.springframework.test.web.servlet.MockMvc;
 @DirtiesContext
 class ApplicationLogsTest {
 
-    @Autowired
-    MockMvc mockMvc;
+    @Autowired MockMvc mockMvc;
 
-    @RegisterExtension
-    static final KubeTestServer k3s = new KubeTestServer();
+    @RegisterExtension static final KubeTestServer k3s = new KubeTestServer();
 
     @Test
     void test() throws Exception {
         k3s.expectTenantCreated("default");
-        mockMvc.perform(put("/api/tenants/default"))
-                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/tenants/default")).andExpect(status().isOk());
 
         k3s.spyApplicationCustomResources("langstream-default", "test");
-        AppTestHelper.deployApp(mockMvc, "default", "test", """
+        AppTestHelper.deployApp(
+                mockMvc,
+                "default",
+                "test",
+                """
                         id: app1
                         name: test
                         topics: []
@@ -69,19 +71,16 @@ class ApplicationLogsTest {
                             type: pulsar
                           computeCluster:
                             type: none
-                        """, null);
-
+                        """,
+                null);
 
         final Pod pod1 = Mockito.mock(Pod.class);
 
-        when(pod1.getMetadata()).thenReturn(new ObjectMetaBuilder()
-                .withName("pod1")
-                .build());
+        when(pod1.getMetadata()).thenReturn(new ObjectMetaBuilder().withName("pod1").build());
         final Pod pod2 = Mockito.mock(Pod.class);
-        when(pod2.getMetadata()).thenReturn(new ObjectMetaBuilder()
-                .withName("pod2")
-                .build());
-        k3s.getServer().expect()
+        when(pod2.getMetadata()).thenReturn(new ObjectMetaBuilder().withName("pod2").build());
+        k3s.getServer()
+                .expect()
                 .get()
                 .withPath(
                         "/api/v1/namespaces/langstream-default/pods?labelSelector=app%3Dlangstream-runtime"
@@ -92,16 +91,9 @@ class ApplicationLogsTest {
                             final PodList res = new PodList();
                             res.setItems(List.of(pod1, pod2));
                             return res;
-                        }
-                ).always();
+                        })
+                .always();
 
-
-        mockMvc
-                .perform(
-                        get("/api/applications/default/test/logs")
-                )
-                .andExpect(status().isOk());
-
+        mockMvc.perform(get("/api/applications/default/test/logs")).andExpect(status().isOk());
     }
-
 }

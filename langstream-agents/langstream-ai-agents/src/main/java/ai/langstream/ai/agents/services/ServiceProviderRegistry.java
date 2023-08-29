@@ -18,15 +18,12 @@ package ai.langstream.ai.agents.services;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * This is the API to load a CodeStorage implementation.
- */
+/** This is the API to load a CodeStorage implementation. */
 @Slf4j
 public class ServiceProviderRegistry {
 
@@ -45,8 +42,7 @@ public class ServiceProviderRegistry {
         }
 
         @Override
-        public void close() {
-        }
+        public void close() {}
     }
 
     public static ServiceProvider getServiceProvider(Map<String, Object> agentConfiguration) {
@@ -57,17 +53,14 @@ public class ServiceProviderRegistry {
             log.debug("Loading AI ServiceProvider implementation for {}", agentConfiguration);
         }
 
-        ServiceLoader<ServiceProviderProvider> loader = ServiceLoader.load(ServiceProviderProvider.class);
-        Optional<ServiceLoader.Provider<ServiceProviderProvider>> provider = loader
-                .stream()
-                .filter(p -> p.get().supports(agentConfiguration))
-                .findFirst();
+        ServiceLoader<ServiceProviderProvider> loader =
+                ServiceLoader.load(ServiceProviderProvider.class);
+        Optional<ServiceLoader.Provider<ServiceProviderProvider>> provider =
+                loader.stream().filter(p -> p.get().supports(agentConfiguration)).findFirst();
         if (provider.isPresent()) {
             return provider.get().get().createImplementation(agentConfiguration);
         } else {
             return NoServiceProvider.INSTANCE;
         }
     }
-
-
 }

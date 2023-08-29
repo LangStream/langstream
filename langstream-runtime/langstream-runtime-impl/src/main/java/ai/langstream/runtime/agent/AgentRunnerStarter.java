@@ -21,6 +21,7 @@ import static ai.langstream.runtime.api.agent.AgentRunnerConstants.DOWNLOADED_CO
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV_DEFAULT;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
+
 import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
@@ -30,17 +31,16 @@ import java.nio.file.Path;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * This is the main entry point for the pods that run the LangStream runtime and Java code.
- */
+/** This is the main entry point for the pods that run the LangStream runtime and Java code. */
 @Slf4j
 public class AgentRunnerStarter extends RuntimeStarter {
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
-    private static final MainErrorHandler mainErrorHandler = error -> {
-        log.error("Unexpected error", error);
-        System.exit(-1);
-    };
+    private static final MainErrorHandler mainErrorHandler =
+            error -> {
+                log.error("Unexpected error", error);
+                System.exit(-1);
+            };
 
     public interface MainErrorHandler {
         void handleError(Throwable error);
@@ -70,13 +70,14 @@ public class AgentRunnerStarter extends RuntimeStarter {
         Path codeDirectory;
         Path agentsDirectory;
         if (args.length == 0) {
-            podRuntimeConfiguration =
-                    getPathFromEnv(POD_CONFIG_ENV, POD_CONFIG_ENV_DEFAULT);
-            codeDirectory = getPathFromEnv(DOWNLOADED_CODE_PATH_ENV, DOWNLOADED_CODE_PATH_ENV_DEFAULT);
+            podRuntimeConfiguration = getPathFromEnv(POD_CONFIG_ENV, POD_CONFIG_ENV_DEFAULT);
+            codeDirectory =
+                    getPathFromEnv(DOWNLOADED_CODE_PATH_ENV, DOWNLOADED_CODE_PATH_ENV_DEFAULT);
             agentsDirectory = getPathFromEnv(AGENTS_ENV, AGENTS_ENV_DEFAULT);
         } else if (args.length == 1) {
             podRuntimeConfiguration = Path.of(args[0]);
-            codeDirectory = getPathFromEnv(DOWNLOADED_CODE_PATH_ENV, DOWNLOADED_CODE_PATH_ENV_DEFAULT);
+            codeDirectory =
+                    getPathFromEnv(DOWNLOADED_CODE_PATH_ENV, DOWNLOADED_CODE_PATH_ENV_DEFAULT);
             agentsDirectory = getPathFromEnv(AGENTS_ENV, AGENTS_ENV_DEFAULT);
         } else if (args.length == 2) {
             podRuntimeConfiguration = Path.of(args[0]);
@@ -91,14 +92,18 @@ public class AgentRunnerStarter extends RuntimeStarter {
         }
 
         log.info("Loading pod configuration from {}", podRuntimeConfiguration);
-        RuntimePodConfiguration configuration = MAPPER.readValue(podRuntimeConfiguration.toFile(),
-                RuntimePodConfiguration.class);
+        RuntimePodConfiguration configuration =
+                MAPPER.readValue(podRuntimeConfiguration.toFile(), RuntimePodConfiguration.class);
 
         log.info("Loading code from {}", codeDirectory);
         log.info("Loading agents from {}", agentsDirectory);
 
-        agentRunner.run(configuration, podRuntimeConfiguration, codeDirectory, agentsDirectory,
-                new AgentInfo(), -1);
-
+        agentRunner.run(
+                configuration,
+                podRuntimeConfiguration,
+                codeDirectory,
+                agentsDirectory,
+                new AgentInfo(),
+                -1);
     }
 }

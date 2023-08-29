@@ -21,7 +21,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -41,14 +40,17 @@ public class CommandTestBase {
     private Path cliYaml;
 
     @BeforeEach
-    public void beforeEach(WireMockRuntimeInfo wmRuntimeInfo, @TempDir Path tempDir) throws Exception {
+    public void beforeEach(WireMockRuntimeInfo wmRuntimeInfo, @TempDir Path tempDir)
+            throws Exception {
         this.tempDir = tempDir;
 
         cliYaml = Path.of(tempDir.toFile().getAbsolutePath(), "cli.yaml");
-        final String config = """
+        final String config =
+                """
                 webServiceUrl: http://localhost:%d
                 tenant: %s
-                """.formatted(wmRuntimeInfo.getHttpPort(), TENANT);
+                """
+                        .formatted(wmRuntimeInfo.getHttpPort(), TENANT);
         Files.writeString(cliYaml, config);
         wireMock = wmRuntimeInfo.getWireMock();
         wireMockBaseUrl = wmRuntimeInfo.getHttpBaseUrl();
@@ -68,15 +70,17 @@ public class CommandTestBase {
         }
     }
 
-    public record CommandResult(int exitCode, String out, String err) {
-    }
-
+    public record CommandResult(int exitCode, String out, String err) {}
 
     protected CommandResult executeCommand(String... args) {
-        final String[] fullArgs = Stream.concat(
-                        Arrays.stream(new String[]{"--conf", cliYaml.toFile().getAbsolutePath()}),
-                        Arrays.stream(args))
-                .toArray(String[]::new);
+        final String[] fullArgs =
+                Stream.concat(
+                                Arrays.stream(
+                                        new String[] {
+                                            "--conf", cliYaml.toFile().getAbsolutePath()
+                                        }),
+                                Arrays.stream(args))
+                        .toArray(String[]::new);
         log.info("executing command: {}", Arrays.toString(fullArgs));
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -101,6 +105,4 @@ public class CommandTestBase {
         log.info(outRes);
         return new CommandResult(exitCode, outRes, errRes);
     }
-
-
 }

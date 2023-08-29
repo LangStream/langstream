@@ -19,18 +19,16 @@ import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.common.AbstractAgentProvider;
 import ai.langstream.impl.common.DefaultAgentNode;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * Implements support for processors that can be executed in memory into a single pipeline.
- * This is a special processor that executes a pipeline of Agents in memory.
- * It is not expected to be exposed to the user.
- * It is created internally by the planner.
+ * Implements support for processors that can be executed in memory into a single pipeline. This is
+ * a special processor that executes a pipeline of Agents in memory. It is not expected to be
+ * exposed to the user. It is created internally by the planner.
  */
 @Slf4j
 public abstract class AbstractCompositeAgentProvider extends AbstractAgentProvider {
@@ -53,14 +51,18 @@ public abstract class AbstractCompositeAgentProvider extends AbstractAgentProvid
         return true;
     }
 
-    public static Map<String, Object> getProcessorConfigurationAt(DefaultAgentNode composite, int index, String expectedType) {
+    public static Map<String, Object> getProcessorConfigurationAt(
+            DefaultAgentNode composite, int index, String expectedType) {
         if (!Objects.equals(AGENT_TYPE, composite.getAgentType())) {
             throw new IllegalArgumentException("Not a composite agent: " + composite);
         }
-        Map<String, Object> processorAgent = ((List<Map<String, Object>>) composite.getConfiguration().get("processors")).get(index);
+        Map<String, Object> processorAgent =
+                ((List<Map<String, Object>>) composite.getConfiguration().get("processors"))
+                        .get(index);
         Objects.requireNonNull(processorAgent.get("agentId"));
         if (!expectedType.equals(processorAgent.get("agentType"))) {
-            throw new IllegalArgumentException("Expected " + expectedType + " but got " + processorAgent.get("agentType"));
+            throw new IllegalArgumentException(
+                    "Expected " + expectedType + " but got " + processorAgent.get("agentType"));
         }
 
         return (Map<String, Object>) processorAgent.get("configuration");

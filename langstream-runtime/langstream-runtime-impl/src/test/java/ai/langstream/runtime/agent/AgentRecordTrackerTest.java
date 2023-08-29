@@ -15,24 +15,24 @@
  */
 package ai.langstream.runtime.agent;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 public class AgentRecordTrackerTest {
 
-    private record MyRecord (Object key, Object value, String origin, Long timestamp, Collection<Header> headers) implements Record {
-    }
+    private record MyRecord(
+            Object key, Object value, String origin, Long timestamp, Collection<Header> headers)
+            implements Record {}
 
     private static class MySource extends AbstractAgentCode implements AgentSource {
 
@@ -58,7 +58,10 @@ public class AgentRecordTrackerTest {
         Record sourceRecord = new MyRecord("key", "sourceValue", "origin", 0L, null);
         Record sinkRecord = new MyRecord("key", "sinkValue", "origin", 0L, null);
 
-        tracker.track(List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(sinkRecord), null)));
+        tracker.track(
+                List.of(
+                        new AgentProcessor.SourceRecordAndResult(
+                                sourceRecord, List.of(sinkRecord), null)));
 
         tracker.commit(List.of(sinkRecord));
 
@@ -80,7 +83,10 @@ public class AgentRecordTrackerTest {
         Record sinkRecord = new MyRecord("key", "sinkValue", "origin", 0L, null);
         Record sinkRecord2 = new MyRecord("key", "sinkValue2", "origin", 0L, null);
 
-        tracker.track(List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(sinkRecord, sinkRecord2), null)));
+        tracker.track(
+                List.of(
+                        new AgentProcessor.SourceRecordAndResult(
+                                sourceRecord, List.of(sinkRecord, sinkRecord2), null)));
 
         // the sink commits only 1 of the 2 records
         tracker.commit(List.of(sinkRecord));
@@ -105,7 +111,8 @@ public class AgentRecordTrackerTest {
         Record sourceRecord = new MyRecord("key", "sourceValue", "origin", 0L, null);
         Record sinkRecord = new MyRecord("key", "sinkValue", "origin", 0L, null);
 
-        tracker.track(List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), null)));
+        tracker.track(
+                List.of(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), null)));
 
         tracker.commit(List.of(sinkRecord));
 
@@ -115,7 +122,5 @@ public class AgentRecordTrackerTest {
         // ensure no leaks
         assertTrue(tracker.remainingSinkRecordsForSourceRecord.isEmpty());
         assertTrue(tracker.sinkToSourceMapping.isEmpty());
-
     }
-
 }

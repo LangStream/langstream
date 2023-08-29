@@ -30,51 +30,53 @@ public class MetricsHttpServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        exporter.doGet(new HttpServletRequestAdapter() {
-            @Override
-            public String getHeader(String s) {
-                return req.getHeader(s);
-            }
+        exporter.doGet(
+                new HttpServletRequestAdapter() {
+                    @Override
+                    public String getHeader(String s) {
+                        return req.getHeader(s);
+                    }
 
-            @Override
-            public String getRequestURI() {
-                return req.getRequestURI();
-            }
+                    @Override
+                    public String getRequestURI() {
+                        return req.getRequestURI();
+                    }
 
-            @Override
-            public String getMethod() {
-                return req.getMethod();
-            }
+                    @Override
+                    public String getMethod() {
+                        return req.getMethod();
+                    }
 
-            @Override
-            public String[] getParameterValues(String s) {
-                return req.getParameterValues(s);
-            }
+                    @Override
+                    public String[] getParameterValues(String s) {
+                        return req.getParameterValues(s);
+                    }
 
-            @Override
-            public String getContextPath() {
-                return req.getContextPath();
-            }
-        }, new HttpServletResponseAdapter() {
-            @Override
-            public int getStatus() {
-                return resp.getStatus();
-            }
+                    @Override
+                    public String getContextPath() {
+                        return req.getContextPath();
+                    }
+                },
+                new HttpServletResponseAdapter() {
+                    @Override
+                    public int getStatus() {
+                        return resp.getStatus();
+                    }
 
-            @Override
-            public void setStatus(int i) {
-                resp.setStatus(i);
-            }
+                    @Override
+                    public void setStatus(int i) {
+                        resp.setStatus(i);
+                    }
 
-            @Override
-            public void setContentType(String s) {
-                resp.setContentType(s);
-            }
+                    @Override
+                    public void setContentType(String s) {
+                        resp.setContentType(s);
+                    }
 
-            @Override
-            public PrintWriter getWriter() throws IOException {
-                return resp.getWriter();
-            }
-        });
+                    @Override
+                    public PrintWriter getWriter() throws IOException {
+                        return resp.getWriter();
+                    }
+                });
     }
 }

@@ -15,6 +15,11 @@
  */
 package ai.langstream.agents.webcrawler;
 
+import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
+import static ai.langstream.api.util.ConfigurationUtils.getInt;
+import static ai.langstream.api.util.ConfigurationUtils.getSet;
+import static ai.langstream.api.util.ConfigurationUtils.getString;
+
 import ai.langstream.agents.webcrawler.crawler.Document;
 import ai.langstream.agents.webcrawler.crawler.StatusStorage;
 import ai.langstream.agents.webcrawler.crawler.WebCrawler;
@@ -52,11 +57,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 
-import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
-import static ai.langstream.api.util.ConfigurationUtils.getInt;
-import static ai.langstream.api.util.ConfigurationUtils.getSet;
-import static ai.langstream.api.util.ConfigurationUtils.getString;
-
 @Slf4j
 public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
@@ -80,13 +80,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final StatusStorage statusStorage = new S3StatusStorage();
 
-
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
         bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
-        String endpoint = getString("endpoint", "http://minio-endpoint.-not-set:9090", configuration);
-        String username =  getString("access-key", "minioadmin", configuration);
-        String password =  getString("secret-key", "minioadmin", configuration);
+        String endpoint =
+                getString("endpoint", "http://minio-endpoint.-not-set:9090", configuration);
+        String username = getString("access-key", "minioadmin", configuration);
+        String password = getString("secret-key", "minioadmin", configuration);
         String region = getString("region", "", configuration);
         allowedDomains = getSet("allowed-domains", configuration);
         seedUrls = getSet("seed-urls", configuration);
@@ -94,24 +94,26 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         maxUnflushedPages = getInt("max-unflushed-pages", 100, configuration);
 
         flushNext.set(maxUnflushedPages);
-        int minTimeBetweenRequests =
-            getInt("min-time-between-requests", 100, configuration);
+        int minTimeBetweenRequests = getInt("min-time-between-requests", 100, configuration);
         String userAgent = getString("user-agent", "langstream.ai-webcrawler/1.0", configuration);
         int maxErrorCount = getInt("max-error-count", 5, configuration);
         int httpTimeout = getInt("http-timeout", 10000, configuration);
 
         boolean handleCookies = getBoolean("handle-cookies", true, configuration);
 
-        log.info("Connecting to S3 Bucket at {} in region {} with user {}", endpoint, region, username);
+        log.info(
+                "Connecting to S3 Bucket at {} in region {} with user {}",
+                endpoint,
+                region,
+                username);
         log.info("allowed-domains: {}", allowedDomains);
         log.info("seed-urls: {}", seedUrls);
         log.info("user-agent: {}", userAgent);
         log.info("max-unflushed-pages: {}", maxUnflushedPages);
         log.info("min-time-between-requests: {}", minTimeBetweenRequests);
 
-        MinioClient.Builder builder = MinioClient.builder()
-                .endpoint(endpoint)
-                .credentials(username, password);
+        MinioClient.Builder builder =
+                MinioClient.builder().endpoint(endpoint).credentials(username, password);
         if (!region.isBlank()) {
             builder.region(region);
         }
@@ -119,21 +121,18 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
         makeBucketIfNotExists(bucketName);
 
-        WebCrawlerConfiguration webCrawlerConfiguration = WebCrawlerConfiguration
-                .builder()
-                .allowedDomains(allowedDomains)
-                .minTimeBetweenRequests(minTimeBetweenRequests)
-                .userAgent(userAgent)
-                .handleCookies(handleCookies)
-                .httpTimeout(httpTimeout)
-                .maxErrorCount(maxErrorCount)
-                .build();
+        WebCrawlerConfiguration webCrawlerConfiguration =
+                WebCrawlerConfiguration.builder()
+                        .allowedDomains(allowedDomains)
+                        .minTimeBetweenRequests(minTimeBetweenRequests)
+                        .userAgent(userAgent)
+                        .handleCookies(handleCookies)
+                        .httpTimeout(httpTimeout)
+                        .maxErrorCount(maxErrorCount)
+                        .build();
 
         WebCrawlerStatus status = new WebCrawlerStatus();
         crawler = new WebCrawler(webCrawlerConfiguration, status, foundDocuments::add);
-
-
-
     }
 
     @Override
@@ -143,18 +142,19 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         log.info("Status file is {}", statusFileName);
     }
 
-
     private void makeBucketIfNotExists(String bucketName)
-        throws ServerException, InsufficientDataException, ErrorResponseException, IOException,
-        NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
-        if (!minioClient.bucketExists(BucketExistsArgs.builder()
-                .bucket(bucketName)
-                .build())) {
+            throws ServerException,
+                    InsufficientDataException,
+                    ErrorResponseException,
+                    IOException,
+                    NoSuchAlgorithmException,
+                    InvalidKeyException,
+                    InvalidResponseException,
+                    XmlParserException,
+                    InternalException {
+        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
             log.info("Creating bucket {}", bucketName);
-            minioClient.makeBucket(MakeBucketArgs
-                    .builder()
-                    .bucket(bucketName)
-                    .build());
+            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
         } else {
             log.info("Bucket {} already exists", bucketName);
         }
@@ -168,12 +168,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
     }
 
-
     @Override
     public void start() throws Exception {
         crawler.getStatus().reloadFrom(statusStorage);
 
-        for (String url :seedUrls) {
+        for (String url : seedUrls) {
             crawler.crawl(url);
         }
     }
@@ -190,7 +189,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 log.info("No more documents found.");
                 flushStatus();
             } else {
-                // we did something but no new documents were found (for instance a redirection has been processed)
+                // we did something but no new documents were found (for instance a redirection has
+                // been processed)
                 // no need to sleep
                 if (foundDocuments.isEmpty()) {
                     log.info("The last cycle didn't produce any new documents");
@@ -203,8 +203,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
 
         Document document = foundDocuments.remove();
-        return List.of(new WebCrawlerSourceRecord(document.content().getBytes(StandardCharsets.UTF_8),
-                document.url()));
+        return List.of(
+                new WebCrawlerSourceRecord(
+                        document.content().getBytes(StandardCharsets.UTF_8), document.url()));
     }
 
     private List<Record> sleepForNoResults() throws Exception {
@@ -214,12 +215,16 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     protected Map<String, Object> buildAdditionalInfo() {
-        return Map.of("bucketName", bucketName,
-                "statusFileName", statusFileName,
-                "seed-Urls", seedUrls,
-                "allowed-domains", allowedDomains);
+        return Map.of(
+                "bucketName",
+                bucketName,
+                "statusFileName",
+                statusFileName,
+                "seed-Urls",
+                seedUrls,
+                "allowed-domains",
+                allowedDomains);
     }
-
 
     @Override
     public void commit(List<Record> records) {
@@ -245,8 +250,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
 
         /**
-         * the key is used for routing, so it is better to set it to something meaningful.
-         * In case of retransmission the message will be sent to the same partition.
+         * the key is used for routing, so it is better to set it to something meaningful. In case
+         * of retransmission the message will be sent to the same partition.
+         *
          * @return the key
          */
         @Override
@@ -276,9 +282,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
         @Override
         public String toString() {
-            return "WebCrawlerSourceRecord{" +
-                    "url='" + url + '\'' +
-                    '}';
+            return "WebCrawlerSourceRecord{" + "url='" + url + '\'' + '}';
         }
     }
 
@@ -289,21 +293,24 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         public void storeStatus(Map<String, Object> metadata) throws Exception {
             byte[] content = MAPPER.writeValueAsBytes(metadata);
             log.info("Storing status in {}, {} bytes", statusFileName, content.length);
-            minioClient.putObject(io.minio.PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(statusFileName)
-                    .contentType("text/json")
-                    .stream(new ByteArrayInputStream(content), content.length, -1)
-                    .build());
+            minioClient.putObject(
+                    io.minio.PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(statusFileName)
+                            .contentType("text/json")
+                            .stream(new ByteArrayInputStream(content), content.length, -1)
+                            .build());
         }
 
         @Override
         public Map<String, Object> getCurrentStatus() throws Exception {
             try {
-                GetObjectResponse result = minioClient.getObject(GetObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(statusFileName)
-                        .build());
+                GetObjectResponse result =
+                        minioClient.getObject(
+                                GetObjectArgs.builder()
+                                        .bucket(bucketName)
+                                        .object(statusFileName)
+                                        .build());
                 byte[] content = result.readAllBytes();
                 log.info("Restoring status from {}, {} bytes", statusFileName, content.length);
                 return MAPPER.readValue(content, Map.class);

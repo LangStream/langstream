@@ -15,13 +15,12 @@
  */
 package ai.langstream.webservice.common;
 
-import ai.langstream.webservice.config.StorageProperties;
 import ai.langstream.api.model.TenantConfiguration;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.storage.GlobalMetadataStore;
 import ai.langstream.api.storage.GlobalMetadataStoreRegistry;
 import ai.langstream.impl.storage.GlobalMetadataStoreManager;
-
+import ai.langstream.webservice.config.StorageProperties;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
@@ -31,9 +30,11 @@ public class GlobalMetadataService {
 
     private final GlobalMetadataStoreManager store;
 
-    public GlobalMetadataService(StorageProperties storageProperties, ApplicationStore applicationStore) {
+    public GlobalMetadataService(
+            StorageProperties storageProperties, ApplicationStore applicationStore) {
         final GlobalMetadataStore globalMetadataStore =
-                GlobalMetadataStoreRegistry.loadStore(storageProperties.getGlobal().getType(),
+                GlobalMetadataStoreRegistry.loadStore(
+                        storageProperties.getGlobal().getType(),
                         storageProperties.getGlobal().getConfiguration());
         store = new GlobalMetadataStoreManager(globalMetadataStore, applicationStore);
     }
@@ -60,5 +61,4 @@ public class GlobalMetadataService {
     public void syncTenantsConfiguration() {
         store.syncTenantsConfiguration();
     }
-
 }

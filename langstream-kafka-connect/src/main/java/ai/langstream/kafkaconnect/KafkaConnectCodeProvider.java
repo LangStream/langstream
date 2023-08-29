@@ -31,6 +31,5 @@ public class KafkaConnectCodeProvider implements AgentCodeProvider {
             case "source" -> new KafkaConnectSourceAgent();
             default -> throw new IllegalStateException();
         };
-
     }
 }

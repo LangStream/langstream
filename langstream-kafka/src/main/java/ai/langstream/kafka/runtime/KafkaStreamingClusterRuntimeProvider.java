@@ -19,7 +19,8 @@ import ai.langstream.api.runtime.StreamingClusterRuntimeProvider;
 
 public class KafkaStreamingClusterRuntimeProvider implements StreamingClusterRuntimeProvider {
 
-    private final KafkaStreamingClusterRuntime kafkaClusterRuntime = new KafkaStreamingClusterRuntime();
+    private final KafkaStreamingClusterRuntime kafkaClusterRuntime =
+            new KafkaStreamingClusterRuntime();
 
     @Override
     public KafkaStreamingClusterRuntime getImplementation() {

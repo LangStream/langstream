@@ -16,25 +16,22 @@
 package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runtime.ComponentType;
-
 import java.util.List;
 
-/**
- * Body of the agent
- */
+/** Body of the agent */
 public interface AgentSource extends AgentCode {
 
     /**
      * The agent generates records returns them as list of records.
+     *
      * @return the list of output records
      * @throws Exception if the agent fails to process the records
      */
     List<Record> read() throws Exception;
 
-
     /**
-     * Called by the framework to indicate that the agent has successfully processed
-     * all the records returned by read up to the latest.
+     * Called by the framework to indicate that the agent has successfully processed all the records
+     * returned by read up to the latest.
      */
     void commit(List<Record> records) throws Exception;
 
@@ -44,10 +41,10 @@ public interface AgentSource extends AgentCode {
     }
 
     /**
-     * Called by the framework to indicate that the agent has failed to process
-     * permanently the records returned by read up to the latest.
-     * For instance the source may send the records to a dead letter queue
-     * or throw an error
+     * Called by the framework to indicate that the agent has failed to process permanently the
+     * records returned by read up to the latest. For instance the source may send the records to a
+     * dead letter queue or throw an error
+     *
      * @param record the record that failed
      * @throws Exception if the source fails to process the permanently failed record
      */

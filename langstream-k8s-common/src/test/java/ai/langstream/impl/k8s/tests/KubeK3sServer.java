@@ -16,6 +16,7 @@
 package ai.langstream.impl.k8s.tests;
 
 import static org.mockito.ArgumentMatchers.isNull;
+
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.K3sContainerVersion;
@@ -40,10 +41,8 @@ import org.testcontainers.containers.output.OutputFrame;
 @Slf4j
 public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAllCallback {
 
-    @Getter
-    private K3sContainer k3sContainer;
-    @Getter
-    private KubernetesClient client;
+    @Getter private K3sContainer k3sContainer;
+    @Getter private KubernetesClient client;
     private MockedStatic mocked;
 
     private final boolean installCRDs;
@@ -72,25 +71,29 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
     @Override
     public void afterAll(ExtensionContext extensionContext) throws Exception {
         close();
-
     }
 
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
 
-        k3sContainer = new K3sContainer(new KubernetesImageSpec<>(K3sContainerVersion.VERSION_1_25_0)
-                .withImage("rancher/k3s:v1.25.3-k3s1"));
+        k3sContainer =
+                new K3sContainer(
+                        new KubernetesImageSpec<>(K3sContainerVersion.VERSION_1_25_0)
+                                .withImage("rancher/k3s:v1.25.3-k3s1"));
         k3sContainer.withLogConsumer(
-                (Consumer<OutputFrame>) outputFrame -> log.debug("k3s> {}", outputFrame.getUtf8String().trim()));
+                (Consumer<OutputFrame>)
+                        outputFrame -> log.debug("k3s> {}", outputFrame.getUtf8String().trim()));
         k3sContainer.start();
         final Path tempFile = Files.createTempFile("langstream-test-kube", ".yaml");
-        Files.writeString(tempFile,
-            k3sContainer.getKubeconfig());
-        System.out.println("To inspect the container\nKUBECONFIG=" + tempFile.toFile().getAbsolutePath() + " k9s");
-        client = new KubernetesClientBuilder()
-                .withConfig(Config.fromKubeconfig(k3sContainer.getKubeconfig()))
-                .build();
-
+        Files.writeString(tempFile, k3sContainer.getKubeconfig());
+        System.out.println(
+                "To inspect the container\nKUBECONFIG="
+                        + tempFile.toFile().getAbsolutePath()
+                        + " k9s");
+        client =
+                new KubernetesClientBuilder()
+                        .withConfig(Config.fromKubeconfig(k3sContainer.getKubeconfig()))
+                        .build();
 
         mocked = Mockito.mockStatic(KubernetesClientFactory.class);
         mocked.when(() -> KubernetesClientFactory.get(isNull())).thenReturn(client);
@@ -100,7 +103,11 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
 
             Path basePath = null;
 
-            List<String> locations = List.of("helm", Path.of("..", "helm").toString(), Path.of("..", "..", "helm").toString());
+            List<String> locations =
+                    List.of(
+                            "helm",
+                            Path.of("..", "helm").toString(),
+                            Path.of("..", "..", "helm").toString());
 
             for (String location : locations) {
                 basePath = Path.of(location);
@@ -112,18 +119,22 @@ public class KubeK3sServer implements AutoCloseable, BeforeAllCallback, AfterAll
                 throw new IllegalStateException("Could not find helm directory");
             }
 
-            try (final InputStream fin = Files.newInputStream(
-                    Path.of(basePath.toFile().getAbsolutePath(),  "crds",
-                            "applications.langstream.ai-v1.yml"))) {
+            try (final InputStream fin =
+                    Files.newInputStream(
+                            Path.of(
+                                    basePath.toFile().getAbsolutePath(),
+                                    "crds",
+                                    "applications.langstream.ai-v1.yml"))) {
                 client.load(fin).create();
             }
-            try (final InputStream fin = Files.newInputStream(
-                    Path.of(basePath.toFile().getAbsolutePath(),  "crds",
-                            "agents.langstream.ai-v1.yml"))) {
+            try (final InputStream fin =
+                    Files.newInputStream(
+                            Path.of(
+                                    basePath.toFile().getAbsolutePath(),
+                                    "crds",
+                                    "agents.langstream.ai-v1.yml"))) {
                 client.load(fin).create();
             }
         }
-
     }
-
 }

@@ -18,8 +18,9 @@ package ai.langstream.agents.text;
 public interface LengthFunction {
 
     /**
-     * Calculate the length of the text.
-     * It may be for example the number of characters or the number of words or tokens.
+     * Calculate the length of the text. It may be for example the number of characters or the
+     * number of words or tokens.
+     *
      * @param text the text to calculate the length of
      * @return the length
      */

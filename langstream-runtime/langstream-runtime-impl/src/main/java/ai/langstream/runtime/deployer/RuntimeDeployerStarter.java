@@ -16,6 +16,7 @@
 package ai.langstream.runtime.deployer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+
 import ai.langstream.api.model.Secrets;
 import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
@@ -25,18 +26,20 @@ import java.nio.file.Path;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * This is the main entry point for the deployer runtime.
- */
+/** This is the main entry point for the deployer runtime. */
 @Slf4j
 public class RuntimeDeployerStarter extends RuntimeStarter {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .configure(FAIL_ON_UNKNOWN_PROPERTIES, false); // this helps with forward compatibility
-    private static final ErrorHandler errorHandler = error -> {
-        log.error("Unexpected error", error);
-        System.exit(-1);
-    };
+    private static final ObjectMapper MAPPER =
+            new ObjectMapper()
+                    .configure(
+                            FAIL_ON_UNKNOWN_PROPERTIES,
+                            false); // this helps with forward compatibility
+    private static final ErrorHandler errorHandler =
+            error -> {
+                log.error("Unexpected error", error);
+                System.exit(-1);
+            };
 
     public interface ErrorHandler {
         void handleError(Throwable error);
@@ -67,15 +70,20 @@ public class RuntimeDeployerStarter extends RuntimeStarter {
         }
         if (args.length == 1) {
             clusterRuntimeConfigPath =
-                    getPathFromEnv(RuntimeDeployerConstants.CLUSTER_RUNTIME_CONFIG_ENV,
+                    getPathFromEnv(
+                            RuntimeDeployerConstants.CLUSTER_RUNTIME_CONFIG_ENV,
                             RuntimeDeployerConstants.CLUSTER_RUNTIME_CONFIG_ENV_DEFAULT);
-            appConfigPath = getPathFromEnv(RuntimeDeployerConstants.APP_CONFIG_ENV,
-                    RuntimeDeployerConstants.APP_CONFIG_ENV_DEFAULT);
+            appConfigPath =
+                    getPathFromEnv(
+                            RuntimeDeployerConstants.APP_CONFIG_ENV,
+                            RuntimeDeployerConstants.APP_CONFIG_ENV_DEFAULT);
             secretsPath = getOptionalPathFromEnv(RuntimeDeployerConstants.APP_SECRETS_ENV);
         } else if (args.length == 2) {
             clusterRuntimeConfigPath = Path.of(args[1]);
-            appConfigPath = getPathFromEnv(RuntimeDeployerConstants.APP_CONFIG_ENV,
-                    RuntimeDeployerConstants.APP_CONFIG_ENV_DEFAULT);
+            appConfigPath =
+                    getPathFromEnv(
+                            RuntimeDeployerConstants.APP_CONFIG_ENV,
+                            RuntimeDeployerConstants.APP_CONFIG_ENV_DEFAULT);
             secretsPath = getOptionalPathFromEnv(RuntimeDeployerConstants.APP_SECRETS_ENV);
         } else if (args.length == 3) {
             clusterRuntimeConfigPath = Path.of(args[1]);
@@ -92,7 +100,8 @@ public class RuntimeDeployerStarter extends RuntimeStarter {
 
         log.info("Loading cluster runtime config from {}", clusterRuntimeConfigPath);
         final Map<String, Map<String, Object>> clusterRuntimeConfiguration =
-                (Map<String, Map<String, Object>>) MAPPER.readValue(clusterRuntimeConfigPath.toFile(), Map.class);
+                (Map<String, Map<String, Object>>)
+                        MAPPER.readValue(clusterRuntimeConfigPath.toFile(), Map.class);
         log.info("clusterRuntimeConfiguration {}", clusterRuntimeConfiguration);
 
         log.info("Loading app configuration from {}", appConfigPath);
@@ -109,12 +118,11 @@ public class RuntimeDeployerStarter extends RuntimeStarter {
         }
 
         switch (arg0) {
-            case "delete" -> runtimeDeployer.delete(clusterRuntimeConfiguration, configuration, secrets);
-            case "deploy" -> runtimeDeployer.deploy(clusterRuntimeConfiguration, configuration, secrets);
+            case "delete" -> runtimeDeployer.delete(
+                    clusterRuntimeConfiguration, configuration, secrets);
+            case "deploy" -> runtimeDeployer.deploy(
+                    clusterRuntimeConfiguration, configuration, secrets);
             default -> throw new IllegalArgumentException("Unknown command " + arg0);
         }
-
     }
-
 }
-

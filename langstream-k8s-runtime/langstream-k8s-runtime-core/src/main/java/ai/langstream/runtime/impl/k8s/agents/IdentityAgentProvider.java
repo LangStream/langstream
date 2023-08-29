@@ -15,19 +15,16 @@
  */
 package ai.langstream.runtime.impl.k8s.agents;
 
+import static ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime.CLUSTER_TYPE;
+
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
-import static ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime.CLUSTER_TYPE;
-
-/**
- * Implements support for the identity function.
- */
+/** Implements support for the identity function. */
 @Slf4j
 public class IdentityAgentProvider extends AbstractComposableAgentProvider {
 

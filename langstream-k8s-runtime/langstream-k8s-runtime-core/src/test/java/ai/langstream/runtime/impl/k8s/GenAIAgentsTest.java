@@ -15,6 +15,10 @@
  */
 package ai.langstream.runtime.impl.k8s;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -28,17 +32,12 @@ import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.noop.NoOpStreamingClusterRuntimeProvider;
 import ai.langstream.impl.parser.ModelBuilder;
+import java.util.List;
+import java.util.Map;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class GenAIAgentsTest {
@@ -56,11 +55,11 @@ class GenAIAgentsTest {
 
     @Test
     public void testOpenAIComputeEmbeddingFunction() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        
-                        "configuration.yaml",
-                        """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
                                 configuration:
                                   resources:
                                     - name: open-ai
@@ -70,7 +69,8 @@ class GenAIAgentsTest {
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
-                        "module.yaml", """
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -88,56 +88,62 @@ class GenAIAgentsTest {
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        try (ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build()) {
+        try (ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build()) {
 
             Module module = applicationInstance.getModule("module-1");
 
-            ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+            ExecutionPlan implementation =
+                    deployer.createImplementation("app", applicationInstance);
             assertEquals(1, implementation.getAgents().size());
-            assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName(
-                            "input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-            assertTrue(implementation.getConnectionImplementation(module,
-                    Connection.fromTopic(TopicDefinition.fromName(
-                            "output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(
+                    implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                            instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+            assertTrue(
+                    implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName("output-topic")))
+                            instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
 
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
             assertNotNull(agentImplementation);
-            DefaultAgentNode step =
-                    (DefaultAgentNode) agentImplementation;
+            DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
-            Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
+            Map<String, Object> openAIConfiguration =
+                    (Map<String, Object>) configuration.get("openai");
             log.info("openAIConfiguration: {}", openAIConfiguration);
             assertEquals("http://something", openAIConfiguration.get("url"));
             assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
             assertEquals("azure", openAIConfiguration.get("provider"));
 
-
-            List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+            List<Map<String, Object>> steps =
+                    (List<Map<String, Object>>) configuration.get("steps");
             assertEquals(1, steps.size());
             Map<String, Object> step1 = steps.get(0);
             assertEquals("text-embedding-ada-002", step1.get("model"));
             assertEquals("value.embeddings", step1.get("embeddings-field"));
             assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
         }
-
-
     }
 
     @Test
     public void testMergeGenAIToolKitAgents() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        
-                        "configuration.yaml",
-                        """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
                                 configuration:
                                   resources:
                                     - name: open-ai
@@ -147,7 +153,8 @@ class GenAIAgentsTest {
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
-                        "module.yaml", """
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -171,13 +178,17 @@ class GenAIAgentsTest {
                                     configuration:
                                       fields: "embeddings"
                                       part: "value"
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
@@ -187,12 +198,13 @@ class GenAIAgentsTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        DefaultAgentNode step =
-                (DefaultAgentNode) agentImplementation;
+        DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
 
         assertEquals(AbstractCompositeAgentProvider.AGENT_TYPE, step.getAgentType());
 
-        Map<String, Object> configuration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 0, "compute-ai-embeddings");
+        Map<String, Object> configuration =
+                AbstractCompositeAgentProvider.getProcessorConfigurationAt(
+                        step, 0, "compute-ai-embeddings");
         log.info("Configuration: {}", configuration);
 
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
@@ -200,7 +212,6 @@ class GenAIAgentsTest {
         assertEquals("http://something", openAIConfiguration.get("url"));
         assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
         assertEquals("azure", openAIConfiguration.get("provider"));
-
 
         List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
         assertEquals(1, steps.size());
@@ -210,8 +221,8 @@ class GenAIAgentsTest {
         assertEquals("value.embeddings", step1.get("embeddings-field"));
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
-
-        configuration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 1, "drop-fields");
+        configuration =
+                AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 1, "drop-fields");
         steps = (List<Map<String, Object>>) configuration.get("steps");
         assertEquals(1, steps.size());
         Map<String, Object> step2 = steps.get(0);
@@ -219,25 +230,32 @@ class GenAIAgentsTest {
         assertEquals("embeddings", step2.get("fields"));
         assertEquals("value", step2.get("part"));
 
-
         // verify that the intermediate topic is not created
-        log.info("topics {}", implementation.getTopics().keySet().stream().map(TopicDefinition::getName).toList());
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        log.info(
+                "topics {}",
+                implementation.getTopics().keySet().stream()
+                        .map(TopicDefinition::getName)
+                        .toList());
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("output-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
         assertEquals(2, implementation.getTopics().size());
-
     }
-
 
     @Test
     public void testDontMergeGenAIToolKitAgentsWithExplicitLogTopic() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        
-                        "configuration.yaml",
-                        """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
                                 configuration:
                                   resources:
                                     - name: open-ai
@@ -247,7 +265,8 @@ class GenAIAgentsTest {
                                         access-key: "xxcxcxc"
                                         provider: "azure"
                                   """,
-                        "module.yaml", """
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -275,13 +294,17 @@ class GenAIAgentsTest {
                                     configuration:
                                       fields: "embeddings"
                                       part: "value"
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
@@ -292,18 +315,18 @@ class GenAIAgentsTest {
         {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
             assertNotNull(agentImplementation);
-            DefaultAgentNode step =
-                    (DefaultAgentNode) agentImplementation;
+            DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
-            Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
+            Map<String, Object> openAIConfiguration =
+                    (Map<String, Object>) configuration.get("openai");
             log.info("openAIConfiguration: {}", openAIConfiguration);
             assertEquals("http://something", openAIConfiguration.get("url"));
             assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
             assertEquals("azure", openAIConfiguration.get("provider"));
 
-
-            List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+            List<Map<String, Object>> steps =
+                    (List<Map<String, Object>>) configuration.get("steps");
             assertEquals(1, steps.size());
             Map<String, Object> step1 = steps.get(0);
             assertEquals("compute-ai-embeddings", step1.get("type"));
@@ -315,18 +338,18 @@ class GenAIAgentsTest {
         {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "step2");
             assertNotNull(agentImplementation);
-            DefaultAgentNode step =
-                    (DefaultAgentNode) agentImplementation;
+            DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
-            Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
+            Map<String, Object> openAIConfiguration =
+                    (Map<String, Object>) configuration.get("openai");
             log.info("openAIConfiguration: {}", openAIConfiguration);
             assertEquals("http://something", openAIConfiguration.get("url"));
             assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
             assertEquals("azure", openAIConfiguration.get("provider"));
 
-
-            List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+            List<Map<String, Object>> steps =
+                    (List<Map<String, Object>>) configuration.get("steps");
             assertEquals(1, steps.size());
             Map<String, Object> step2 = steps.get(0);
             assertEquals("drop-fields", step2.get("type"));
@@ -334,27 +357,36 @@ class GenAIAgentsTest {
             assertEquals("value", step2.get("part"));
         }
 
-
         // verify that the intermediate topic is not created
-        log.info("topics {}", implementation.getTopics().keySet().stream().map(TopicDefinition::getName).toList());
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("log-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        log.info(
+                "topics {}",
+                implementation.getTopics().keySet().stream()
+                        .map(TopicDefinition::getName)
+                        .toList());
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("output-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module, Connection.fromTopic(TopicDefinition.fromName("log-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
         assertEquals(3, implementation.getTopics().size());
-
     }
-
 
     @Test
     public void testMapAllGenAIToolKitAgents() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        
-                        "configuration.yaml",
-                        """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
                                 configuration:
                                   resources:
                                     - name: open-ai
@@ -368,7 +400,8 @@ class GenAIAgentsTest {
                                       configuration:
                                         connectionUrl: localhost:1544
                                   """,
-                        "module.yaml", """
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -432,13 +465,17 @@ class GenAIAgentsTest {
                                     output: "output-topic"
                                     configuration:
                                       schema-type: "string"
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
@@ -448,10 +485,11 @@ class GenAIAgentsTest {
 
         AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
         assertNotNull(agentImplementation);
-        DefaultAgentNode step =
-                (DefaultAgentNode) agentImplementation;
+        DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
 
-        Map<String, Object> configuration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 0, "compute-ai-embeddings");
+        Map<String, Object> configuration =
+                AbstractCompositeAgentProvider.getProcessorConfigurationAt(
+                        step, 0, "compute-ai-embeddings");
         log.info("Configuration: {}", configuration);
         Map<String, Object> openAIConfiguration = (Map<String, Object>) configuration.get("openai");
         log.info("openAIConfiguration: {}", openAIConfiguration);
@@ -474,22 +512,25 @@ class GenAIAgentsTest {
         // verify that the intermediate topics are not created
         log.info("topics {}", implementation.getTopics());
         assertEquals(2, implementation.getTopics().size());
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-
-
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("output-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
     }
-
 
     @Test
     public void testMultipleQuerySteps() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        
-                        "configuration.yaml",
-                        """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
                                 configuration:
                                   resources:
                                     - name: open-ai
@@ -507,7 +548,8 @@ class GenAIAgentsTest {
                                       configuration:
                                         connectionUrl: localhost:1545
                                   """,
-                        "module.yaml", """
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -542,13 +584,17 @@ class GenAIAgentsTest {
                                     output: "output-topic"
                                     configuration:
                                       schema-type: "string"
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
@@ -560,9 +606,11 @@ class GenAIAgentsTest {
             DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
-            Map<String, Object> datasourceConfiguration1 = (Map<String, Object>) configuration.get("datasource");
+            Map<String, Object> datasourceConfiguration1 =
+                    (Map<String, Object>) configuration.get("datasource");
             assertEquals("localhost:1544", datasourceConfiguration1.get("connectionUrl"));
-            List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+            List<Map<String, Object>> steps =
+                    (List<Map<String, Object>>) configuration.get("steps");
             assertEquals(1, steps.size());
         }
 
@@ -570,11 +618,15 @@ class GenAIAgentsTest {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "query2");
             DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             {
-                Map<String, Object> configuration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 0, "query");
+                Map<String, Object> configuration =
+                        AbstractCompositeAgentProvider.getProcessorConfigurationAt(
+                                step, 0, "query");
                 log.info("Configuration: {}", configuration);
-                Map<String, Object> datasourceConfiguration1 = (Map<String, Object>) configuration.get("datasource");
+                Map<String, Object> datasourceConfiguration1 =
+                        (Map<String, Object>) configuration.get("datasource");
                 assertEquals("localhost:1545", datasourceConfiguration1.get("connectionUrl"));
-                List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+                List<Map<String, Object>> steps =
+                        (List<Map<String, Object>>) configuration.get("steps");
                 // query + cast
                 assertEquals(1, steps.size());
             }
@@ -583,28 +635,37 @@ class GenAIAgentsTest {
             AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 1, "cast");
         }
 
-
         // verify that an intermediate topic is created
-        log.info("topics {}", implementation.getTopics().keySet().stream().map(TopicDefinition::getName).toList());
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("input-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("output-topic"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("agent-query2-input"))) instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
-
-
-
-
+        log.info(
+                "topics {}",
+                implementation.getTopics().keySet().stream()
+                        .map(TopicDefinition::getName)
+                        .toList());
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(TopicDefinition.fromName("output-topic")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(
+                                        TopicDefinition.fromName("agent-query2-input")))
+                        instanceof NoOpStreamingClusterRuntimeProvider.SimpleTopic);
     }
 
     @Test
     public void testEmbeddingsThanQuery() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        
-                        "configuration.yaml",
-                        """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
                                 configuration:
                                   resources:
                                     - name: open-ai
@@ -618,7 +679,8 @@ class GenAIAgentsTest {
                                       configuration:
                                         connectionUrl: localhost:1544
                                   """,
-                        "module.yaml", """
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -651,13 +713,17 @@ class GenAIAgentsTest {
                                     output: "output-topic"
                                     configuration:
                                       schema-type: "string"
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
@@ -669,20 +735,22 @@ class GenAIAgentsTest {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
             DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
 
-
-            Map<String, Object> computeAiConfiguration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 0, "compute-ai-embeddings");
+            Map<String, Object> computeAiConfiguration =
+                    AbstractCompositeAgentProvider.getProcessorConfigurationAt(
+                            step, 0, "compute-ai-embeddings");
             assertNotNull(computeAiConfiguration.get("openai"));
 
-            Map<String, Object> configuration = AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 1, "query");
+            Map<String, Object> configuration =
+                    AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 1, "query");
             log.info("Configuration: {}", configuration);
-            Map<String, Object> datasourceConfiguration1 = (Map<String, Object>) configuration.get("datasource");
+            Map<String, Object> datasourceConfiguration1 =
+                    (Map<String, Object>) configuration.get("datasource");
             assertEquals("localhost:1544", datasourceConfiguration1.get("connectionUrl"));
-            List<Map<String, Object>> steps = (List<Map<String, Object>>) configuration.get("steps");
+            List<Map<String, Object>> steps =
+                    (List<Map<String, Object>>) configuration.get("steps");
             assertEquals(1, steps.size());
-
 
             AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 2, "cast");
         }
     }
-
 }

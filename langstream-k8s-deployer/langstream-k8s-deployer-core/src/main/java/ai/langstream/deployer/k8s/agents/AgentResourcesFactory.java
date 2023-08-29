@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s.agents;
 
 import static ai.langstream.deployer.k8s.CRDConstants.MAX_AGENT_ID_LENGTH;
+
 import ai.langstream.api.model.ApplicationStatus;
 import ai.langstream.api.runner.code.AgentStatusResponse;
 import ai.langstream.deployer.k8s.CRDConstants;
@@ -50,10 +51,6 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import lombok.Builder;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -75,18 +72,23 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.Builder;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AgentResourcesFactory {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper MAPPER =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     protected static final String AGENT_SECRET_DATA_APP = "app-config";
 
     public static Service generateHeadlessService(AgentCustomResource agentCustomResource) {
-        final Map<String, String> agentLabels = getAgentLabels(agentCustomResource.getSpec().getAgentId(),
-                agentCustomResource.getSpec().getApplicationId());
+        final Map<String, String> agentLabels =
+                getAgentLabels(
+                        agentCustomResource.getSpec().getAgentId(),
+                        agentCustomResource.getSpec().getApplicationId());
         return new ServiceBuilder()
                 .withNewMetadata()
                 .withName(agentCustomResource.getMetadata().getName())
@@ -95,28 +97,24 @@ public class AgentResourcesFactory {
                 .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(agentCustomResource))
                 .endMetadata()
                 .withNewSpec()
-                .withPorts(List.of(
-                        new ServicePortBuilder()
-                                .withName("http")
-                                .withPort(8080)
-                                .build()
-                        )
-                )
+                .withPorts(
+                        List.of(new ServicePortBuilder().withName("http").withPort(8080).build()))
                 .withSelector(agentLabels)
                 .withClusterIP("None")
                 .endSpec()
                 .build();
     }
 
-    public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource,
-                                                  AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+    public static StatefulSet generateStatefulSet(
+            AgentCustomResource agentCustomResource,
+            AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
         return generateStatefulSet(agentCustomResource, agentResourceUnitConfiguration, null);
     }
 
-
-    public static StatefulSet generateStatefulSet(AgentCustomResource agentCustomResource,
-                                                  AgentResourceUnitConfiguration agentResourceUnitConfiguration,
-                                                  PodTemplate podTemplate) {
+    public static StatefulSet generateStatefulSet(
+            AgentCustomResource agentCustomResource,
+            AgentResourceUnitConfiguration agentResourceUnitConfiguration,
+            PodTemplate podTemplate) {
 
         final AgentSpec spec = agentCustomResource.getSpec();
 
@@ -128,93 +126,112 @@ public class AgentResourcesFactory {
         final String downloadCodePath = "/app-code-download";
 
         final DownloadAgentCodeConfiguration downloadAgentCodeConfiguration =
-                new DownloadAgentCodeConfiguration(downloadCodePath, spec.getTenant(), spec.getApplicationId(),
+                new DownloadAgentCodeConfiguration(
+                        downloadCodePath,
+                        spec.getTenant(),
+                        spec.getApplicationId(),
                         spec.getCodeArchiveId());
 
-        final Container injectConfigForDownloadCodeInitContainer = new ContainerBuilder()
-                .withName("code-download-init")
-                .withImage(spec.getImage())
-                .withImagePullPolicy(spec.getImagePullPolicy())
-                .withResources(new ResourceRequirementsBuilder().withRequests(Map.of("cpu", Quantity.parse("100m"),
-                        "memory", Quantity.parse("100Mi"))).build())
-                .withCommand("bash", "-c")
-                .withArgs("echo '%s' > /download-config/config".formatted(writeInlineBashJson(downloadAgentCodeConfiguration)))
-                .withVolumeMounts(new VolumeMountBuilder()
-                        .withName(downloadConfigVolume)
-                        .withMountPath("/download-config")
-                        .build()
-                )
-                .withTerminationMessagePolicy("FallbackToLogsOnError")
-                .build();
+        final Container injectConfigForDownloadCodeInitContainer =
+                new ContainerBuilder()
+                        .withName("code-download-init")
+                        .withImage(spec.getImage())
+                        .withImagePullPolicy(spec.getImagePullPolicy())
+                        .withResources(
+                                new ResourceRequirementsBuilder()
+                                        .withRequests(
+                                                Map.of(
+                                                        "cpu",
+                                                        Quantity.parse("100m"),
+                                                        "memory",
+                                                        Quantity.parse("100Mi")))
+                                        .build())
+                        .withCommand("bash", "-c")
+                        .withArgs(
+                                "echo '%s' > /download-config/config"
+                                        .formatted(
+                                                writeInlineBashJson(
+                                                        downloadAgentCodeConfiguration)))
+                        .withVolumeMounts(
+                                new VolumeMountBuilder()
+                                        .withName(downloadConfigVolume)
+                                        .withMountPath("/download-config")
+                                        .build())
+                        .withTerminationMessagePolicy("FallbackToLogsOnError")
+                        .build();
 
-        final Container downloadCodeInitContainer = new ContainerBuilder()
-                .withName("code-download")
-                .withImage(spec.getImage())
-                .withImagePullPolicy(spec.getImagePullPolicy())
-                .withArgs("agent-code-download")
-                .withEnv(new EnvVarBuilder()
-                        .withName(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV)
-                        .withValue("/cluster-config/config")
-                        .build(),
-                        new EnvVarBuilder()
-                                .withName(AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV)
-                                .withValue("/download-config/config")
-                                .build(),
-                        new EnvVarBuilder()
-                                .withName(AgentCodeDownloaderConstants.TOKEN_ENV)
-                                .withValue("/var/run/secrets/kubernetes.io/serviceaccount/token")
-                                .build()
-                )
-                .withVolumeMounts(
-                        new VolumeMountBuilder()
-                                .withName(clusterConfigVolume)
-                                .withMountPath("/cluster-config")
-                                .build(),
-                        new VolumeMountBuilder()
-                                .withName(downloadConfigVolume)
-                                .withMountPath("/download-config")
-                                .build(),
-                        new VolumeMountBuilder()
-                                .withName(downloadCodeVolume)
-                                .withMountPath(downloadCodePath)
-                                .build()
-                )
-                .withTerminationMessagePolicy("FallbackToLogsOnError")
-                .build();
+        final Container downloadCodeInitContainer =
+                new ContainerBuilder()
+                        .withName("code-download")
+                        .withImage(spec.getImage())
+                        .withImagePullPolicy(spec.getImagePullPolicy())
+                        .withArgs("agent-code-download")
+                        .withEnv(
+                                new EnvVarBuilder()
+                                        .withName(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV)
+                                        .withValue("/cluster-config/config")
+                                        .build(),
+                                new EnvVarBuilder()
+                                        .withName(AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV)
+                                        .withValue("/download-config/config")
+                                        .build(),
+                                new EnvVarBuilder()
+                                        .withName(AgentCodeDownloaderConstants.TOKEN_ENV)
+                                        .withValue(
+                                                "/var/run/secrets/kubernetes.io/serviceaccount/token")
+                                        .build())
+                        .withVolumeMounts(
+                                new VolumeMountBuilder()
+                                        .withName(clusterConfigVolume)
+                                        .withMountPath("/cluster-config")
+                                        .build(),
+                                new VolumeMountBuilder()
+                                        .withName(downloadConfigVolume)
+                                        .withMountPath("/download-config")
+                                        .build(),
+                                new VolumeMountBuilder()
+                                        .withName(downloadCodeVolume)
+                                        .withMountPath(downloadCodePath)
+                                        .build())
+                        .withTerminationMessagePolicy("FallbackToLogsOnError")
+                        .build();
 
-        final Container container = new ContainerBuilder()
-                .withName("runtime")
-                .withImage(spec.getImage())
-                .withImagePullPolicy(spec.getImagePullPolicy())
-                .withPorts(List.of(new ContainerPort(8080, null, null, "http", "TCP")))
-//                .withLivenessProbe(createLivenessProbe())
-//                .withReadinessProbe(createReadinessProbe())
-                .withResources(convertResources(spec.getResources(), agentResourceUnitConfiguration))
-                .withEnv(new EnvVarBuilder()
-                        .withName(AgentRunnerConstants.POD_CONFIG_ENV)
-                        .withValue("/app-config/config")
-                        .build(),
-                        new EnvVarBuilder()
-                                .withName(AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV)
-                                .withValue(downloadCodePath)
-                                .build()
-                )
-                // keep args for backward compatibility
-                .withArgs("agent-runtime", "/app-config/config", downloadCodePath)
-                .withVolumeMounts(
-                        new VolumeMountBuilder()
-                        .withName(appConfigVolume)
-                        .withMountPath("/app-config")
-                        .build(),
-                        new VolumeMountBuilder()
-                            .withName(downloadCodeVolume)
-                            .withMountPath(downloadCodePath)
-                            .build()
-                )
-                .withTerminationMessagePolicy("FallbackToLogsOnError")
-                .build();
+        final Container container =
+                new ContainerBuilder()
+                        .withName("runtime")
+                        .withImage(spec.getImage())
+                        .withImagePullPolicy(spec.getImagePullPolicy())
+                        .withPorts(List.of(new ContainerPort(8080, null, null, "http", "TCP")))
+                        //                .withLivenessProbe(createLivenessProbe())
+                        //                .withReadinessProbe(createReadinessProbe())
+                        .withResources(
+                                convertResources(
+                                        spec.getResources(), agentResourceUnitConfiguration))
+                        .withEnv(
+                                new EnvVarBuilder()
+                                        .withName(AgentRunnerConstants.POD_CONFIG_ENV)
+                                        .withValue("/app-config/config")
+                                        .build(),
+                                new EnvVarBuilder()
+                                        .withName(AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV)
+                                        .withValue(downloadCodePath)
+                                        .build())
+                        // keep args for backward compatibility
+                        .withArgs("agent-runtime", "/app-config/config", downloadCodePath)
+                        .withVolumeMounts(
+                                new VolumeMountBuilder()
+                                        .withName(appConfigVolume)
+                                        .withMountPath("/app-config")
+                                        .build(),
+                                new VolumeMountBuilder()
+                                        .withName(downloadCodeVolume)
+                                        .withMountPath(downloadCodePath)
+                                        .build())
+                        .withTerminationMessagePolicy("FallbackToLogsOnError")
+                        .build();
 
-        final Map<String, String> labels = getAgentLabels(spec.getAgentId(), spec.getApplicationId());
+        final Map<String, String> labels =
+                getAgentLabels(spec.getAgentId(), spec.getApplicationId());
 
         final String name = agentCustomResource.getMetadata().getName();
         return new StatefulSetBuilder()
@@ -233,46 +250,56 @@ public class AgentResourcesFactory {
                 .withPodManagementPolicy("Parallel")
                 .withNewTemplate()
                 .withNewMetadata()
-                .withAnnotations(Map.of("ai.langstream/config-checksum", spec.getAgentConfigSecretRefChecksum()))
+                .withAnnotations(
+                        Map.of(
+                                "ai.langstream/config-checksum",
+                                spec.getAgentConfigSecretRefChecksum()))
                 .withLabels(labels)
                 .endMetadata()
                 .withNewSpec()
                 .withTolerations(podTemplate != null ? podTemplate.tolerations() : null)
                 .withNodeSelector(podTemplate != null ? podTemplate.nodeSelector() : null)
                 .withTerminationGracePeriodSeconds(60L)
-                .withInitContainers(List.of(injectConfigForDownloadCodeInitContainer, downloadCodeInitContainer))
+                .withInitContainers(
+                        List.of(
+                                injectConfigForDownloadCodeInitContainer,
+                                downloadCodeInitContainer))
                 .withContainers(List.of(container))
-                .withVolumes(new VolumeBuilder()
-                        .withName(appConfigVolume)
-                        .withNewSecret()
-                        .withSecretName(spec.getAgentConfigSecretRef())
-                        .withItems(new io.fabric8.kubernetes.api.model.KeyToPathBuilder()
-                                .withKey(AGENT_SECRET_DATA_APP)
-                                .withPath("config")
-                                .build()
-                        )
-                        .endSecret()
-                        .build(),
+                .withVolumes(
+                        new VolumeBuilder()
+                                .withName(appConfigVolume)
+                                .withNewSecret()
+                                .withSecretName(spec.getAgentConfigSecretRef())
+                                .withItems(
+                                        new io.fabric8.kubernetes.api.model.KeyToPathBuilder()
+                                                .withKey(AGENT_SECRET_DATA_APP)
+                                                .withPath("config")
+                                                .build())
+                                .endSecret()
+                                .build(),
                         new VolumeBuilder()
                                 .withName(clusterConfigVolume)
                                 .withNewSecret()
                                 .withSecretName(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET)
-                                .withItems(new io.fabric8.kubernetes.api.model.KeyToPathBuilder()
-                                        .withKey(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET_KEY)
-                                        .withPath("config")
-                                        .build()
-                                )
+                                .withItems(
+                                        new io.fabric8.kubernetes.api.model.KeyToPathBuilder()
+                                                .withKey(
+                                                        CRDConstants
+                                                                .TENANT_CLUSTER_CONFIG_SECRET_KEY)
+                                                .withPath("config")
+                                                .build())
                                 .endSecret()
                                 .build(),
                         new VolumeBuilder()
                                 .withName(downloadCodeVolume)
-                                .withNewEmptyDir().endEmptyDir()
+                                .withNewEmptyDir()
+                                .endEmptyDir()
                                 .build(),
                         new VolumeBuilder()
                                 .withName(downloadConfigVolume)
-                                .withNewEmptyDir().endEmptyDir()
-                                .build()
-                )
+                                .withNewEmptyDir()
+                                .endEmptyDir()
+                                .build())
                 .withServiceAccountName(spec.getTenant())
                 .endSpec()
                 .endTemplate()
@@ -280,44 +307,55 @@ public class AgentResourcesFactory {
                 .build();
     }
 
-    private static String writeInlineBashJson(DownloadAgentCodeConfiguration downloadAgentCodeConfiguration) {
-        return SerializationUtil.writeAsJson(downloadAgentCodeConfiguration).replace("'", "'\"'\"'");
+    private static String writeInlineBashJson(
+            DownloadAgentCodeConfiguration downloadAgentCodeConfiguration) {
+        return SerializationUtil.writeAsJson(downloadAgentCodeConfiguration)
+                .replace("'", "'\"'\"'");
     }
 
-    public static Secret generateAgentSecret(String agentFullName, RuntimePodConfiguration runtimePodConfiguration) {
+    public static Secret generateAgentSecret(
+            String agentFullName, RuntimePodConfiguration runtimePodConfiguration) {
         return new SecretBuilder()
                 .withNewMetadata()
                 .withName(agentFullName)
                 .endMetadata()
-                .withData(Map.of(AGENT_SECRET_DATA_APP,
-                                Base64.getEncoder().encodeToString(SerializationUtil.writeAsJsonBytes(runtimePodConfiguration))
-                        )
-                )
+                .withData(
+                        Map.of(
+                                AGENT_SECRET_DATA_APP,
+                                Base64.getEncoder()
+                                        .encodeToString(
+                                                SerializationUtil.writeAsJsonBytes(
+                                                        runtimePodConfiguration))))
                 .build();
     }
 
     public static RuntimePodConfiguration readRuntimePodConfigurationFromSecret(Secret secret) {
-        final String appConfig = secret.getData()
-                .get(AGENT_SECRET_DATA_APP);
-        return SerializationUtil.readJson(new String(Base64.getDecoder().decode(appConfig), StandardCharsets.UTF_8),
+        final String appConfig = secret.getData().get(AGENT_SECRET_DATA_APP);
+        return SerializationUtil.readJson(
+                new String(Base64.getDecoder().decode(appConfig), StandardCharsets.UTF_8),
                 RuntimePodConfiguration.class);
     }
 
-    private static int computeReplicas(AgentResourceUnitConfiguration agentResourceUnitConfiguration,
-                                       AgentSpec.Resources resources) {
+    private static int computeReplicas(
+            AgentResourceUnitConfiguration agentResourceUnitConfiguration,
+            AgentSpec.Resources resources) {
         Integer requestedParallelism = resources == null ? null : resources.parallelism();
         if (requestedParallelism == null) {
             requestedParallelism = agentResourceUnitConfiguration.getDefaultInstanceUnits();
         }
         if (requestedParallelism > agentResourceUnitConfiguration.getMaxInstanceUnits()) {
-            throw new IllegalArgumentException("Requested %d instances, max is %d".formatted(requestedParallelism,
-                    agentResourceUnitConfiguration.getMaxInstanceUnits()));
+            throw new IllegalArgumentException(
+                    "Requested %d instances, max is %d"
+                            .formatted(
+                                    requestedParallelism,
+                                    agentResourceUnitConfiguration.getMaxInstanceUnits()));
         }
         return requestedParallelism;
     }
 
-    private static ResourceRequirements convertResources(AgentSpec.Resources resources,
-                                                         AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+    private static ResourceRequirements convertResources(
+            AgentSpec.Resources resources,
+            AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
         Integer memCpuUnits = resources == null ? null : resources.size();
         if (memCpuUnits == null) {
             memCpuUnits = agentResourceUnitConfiguration.getDefaultCpuMemUnits();
@@ -329,23 +367,37 @@ public class AgentResourcesFactory {
         }
 
         if (memCpuUnits > agentResourceUnitConfiguration.getMaxCpuMemUnits()) {
-            throw new IllegalArgumentException("Requested %d cpu/mem units, max is %d".formatted(memCpuUnits,
-                    agentResourceUnitConfiguration.getMaxCpuMemUnits()));
+            throw new IllegalArgumentException(
+                    "Requested %d cpu/mem units, max is %d"
+                            .formatted(
+                                    memCpuUnits,
+                                    agentResourceUnitConfiguration.getMaxCpuMemUnits()));
         }
         if (instances > agentResourceUnitConfiguration.getMaxInstanceUnits()) {
-            throw new IllegalArgumentException("Requested %d instance units, max is %d".formatted(instances,
-                    agentResourceUnitConfiguration.getMaxInstanceUnits()));
+            throw new IllegalArgumentException(
+                    "Requested %d instance units, max is %d"
+                            .formatted(
+                                    instances,
+                                    agentResourceUnitConfiguration.getMaxInstanceUnits()));
         }
 
         final Map<String, Quantity> requests = new HashMap<>();
-        requests.put("cpu",
-                Quantity.parse("%f".formatted(memCpuUnits * agentResourceUnitConfiguration.getCpuPerUnit())));
-        requests.put("memory",
-                Quantity.parse("%dM".formatted(memCpuUnits * agentResourceUnitConfiguration.getMemPerUnit())));
+        requests.put(
+                "cpu",
+                Quantity.parse(
+                        "%f"
+                                .formatted(
+                                        memCpuUnits
+                                                * agentResourceUnitConfiguration.getCpuPerUnit())));
+        requests.put(
+                "memory",
+                Quantity.parse(
+                        "%dM"
+                                .formatted(
+                                        memCpuUnits
+                                                * agentResourceUnitConfiguration.getMemPerUnit())));
 
-        return new ResourceRequirementsBuilder()
-                .withRequests(requests)
-                .build();
+        return new ResourceRequirementsBuilder().withRequests(requests).build();
     }
 
     public static Map<String, String> getAgentLabels(String agentId, String applicationId) {
@@ -355,15 +407,15 @@ public class AgentResourcesFactory {
                 CRDConstants.AGENT_LABEL_APPLICATION, applicationId);
     }
 
-    public static AgentCustomResource generateAgentCustomResource(final String applicationId,
-                                                                  final String agentId,
-                                                                  final AgentSpec agentSpec) {
+    public static AgentCustomResource generateAgentCustomResource(
+            final String applicationId, final String agentId, final AgentSpec agentSpec) {
         final AgentCustomResource agentCR = new AgentCustomResource();
         final String agentName = getAgentCustomResourceName(applicationId, agentId);
-        agentCR.setMetadata(new ObjectMetaBuilder()
-                .withName(agentName)
-                .withLabels(getAgentLabels(agentId, applicationId))
-                .build());
+        agentCR.setMetadata(
+                new ObjectMetaBuilder()
+                        .withName(agentName)
+                        .withLabels(getAgentLabels(agentId, applicationId))
+                        .build());
         agentSpec.setApplicationId(applicationId);
         agentSpec.setAgentId(agentId);
         agentCR.setSpec(agentSpec);
@@ -385,7 +437,6 @@ public class AgentResourcesFactory {
         private Map<String, Object> configuration;
     }
 
-
     public static Map<String, ApplicationStatus.AgentStatus> aggregateAgentsStatus(
             final KubernetesClient client,
             final String namespace,
@@ -393,15 +444,21 @@ public class AgentResourcesFactory {
             final List<String> declaredAgents,
             final Map<String, AgentRunnerSpec> agentRunners,
             boolean queryPods) {
-        final Map<String, AgentCustomResource> agentCustomResources = client.resources(AgentCustomResource.class)
-                .inNamespace(namespace)
-                .withLabel(CRDConstants.AGENT_LABEL_APPLICATION, applicationId)
-                .list()
-                .getItems()
-                .stream().collect(Collectors.toMap(
-                        a -> a.getMetadata().getLabels().get(CRDConstants.AGENT_LABEL_AGENT_ID),
-                        Function.identity()
-                ));
+        final Map<String, AgentCustomResource> agentCustomResources =
+                client
+                        .resources(AgentCustomResource.class)
+                        .inNamespace(namespace)
+                        .withLabel(CRDConstants.AGENT_LABEL_APPLICATION, applicationId)
+                        .list()
+                        .getItems()
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        a ->
+                                                a.getMetadata()
+                                                        .getLabels()
+                                                        .get(CRDConstants.AGENT_LABEL_AGENT_ID),
+                                        Function.identity()));
 
         Map<String, ApplicationStatus.AgentStatus> agents = new HashMap<>();
 
@@ -413,14 +470,14 @@ public class AgentResourcesFactory {
             }
             ApplicationStatus.AgentStatus agentStatus = new ApplicationStatus.AgentStatus();
             agentStatus.setStatus(cr.getStatus().getStatus());
-            AgentRunnerSpec agentRunnerSpec = agentRunners
-                    .values()
-                    .stream()
-                    .filter(a-> a.getAgentId().equals(declaredAgent))
-                    .findFirst()
-                    .orElse(null);
+            AgentRunnerSpec agentRunnerSpec =
+                    agentRunners.values().stream()
+                            .filter(a -> a.getAgentId().equals(declaredAgent))
+                            .findFirst()
+                            .orElse(null);
             Map<String, ApplicationStatus.AgentWorkerStatus> podStatuses =
-                    getPodStatuses(client, applicationId, namespace, declaredAgent, agentRunnerSpec);
+                    getPodStatuses(
+                            client, applicationId, namespace, declaredAgent, agentRunnerSpec);
             agentStatus.setWorkers(podStatuses);
 
             agents.put(declaredAgent, agentStatus);
@@ -433,68 +490,90 @@ public class AgentResourcesFactory {
         return agents;
     }
 
-    private static void queryPodsStatus(Map<String, ApplicationStatus.AgentStatus> agents,
-                                        String applicationId) {
+    private static void queryPodsStatus(
+            Map<String, ApplicationStatus.AgentStatus> agents, String applicationId) {
         if (agents.isEmpty()) {
             return;
         }
         HttpClient httpClient = HttpClient.newHttpClient();
         ExecutorService threadPool = Executors.newFixedThreadPool(Math.min(agents.size(), 4));
         try {
-            Map<String, CompletableFuture<ApplicationStatus.AgentWorkerStatus>> futures = new HashMap<>();
+            Map<String, CompletableFuture<ApplicationStatus.AgentWorkerStatus>> futures =
+                    new HashMap<>();
 
-            for (Map.Entry<String, ApplicationStatus.AgentStatus> agentEntries : agents.entrySet()) {
+            for (Map.Entry<String, ApplicationStatus.AgentStatus> agentEntries :
+                    agents.entrySet()) {
                 String declaredAgent = agentEntries.getKey();
                 ApplicationStatus.AgentStatus agentStatus = agentEntries.getValue();
 
-                for (Map.Entry<String, ApplicationStatus.AgentWorkerStatus> entry : agentStatus.getWorkers().entrySet()) {
+                for (Map.Entry<String, ApplicationStatus.AgentWorkerStatus> entry :
+                        agentStatus.getWorkers().entrySet()) {
                     ApplicationStatus.AgentWorkerStatus agentWorkerStatus = entry.getValue();
                     String url = agentWorkerStatus.getUrl();
-                    CompletableFuture<ApplicationStatus.AgentWorkerStatus> result = new CompletableFuture<>();
+                    CompletableFuture<ApplicationStatus.AgentWorkerStatus> result =
+                            new CompletableFuture<>();
                     String podId = declaredAgent + "##" + entry.getKey();
                     futures.put(podId, result);
-                    threadPool.submit(() -> {
-                        try {
-                            if (url != null) {
-                                log.info("Querying pod {} for agent {} in application {}",
-                                        url, declaredAgent, applicationId);
-                                List<AgentStatusResponse> agentsStatus = queryAgentStatus(url, httpClient);
-                                log.info("Info for pod {}: {}", entry.getKey(), agentsStatus);
-                                ApplicationStatus.AgentWorkerStatus agentWorkerStatusWithInfo =
-                                        agentWorkerStatus.applyAgentStatus(agentsStatus);
-                                result.complete(agentWorkerStatusWithInfo);
-                            } else {
-                                log.warn("No URL for pod {} for agent {} in application {}",
-                                        entry.getKey(), declaredAgent, applicationId);
-                                result.complete(agentWorkerStatus);
-                            }
-                        } catch (Throwable error) {
-                            result.completeExceptionally(error);
-                        }
-                    });
+                    threadPool.submit(
+                            () -> {
+                                try {
+                                    if (url != null) {
+                                        log.info(
+                                                "Querying pod {} for agent {} in application {}",
+                                                url,
+                                                declaredAgent,
+                                                applicationId);
+                                        List<AgentStatusResponse> agentsStatus =
+                                                queryAgentStatus(url, httpClient);
+                                        log.info(
+                                                "Info for pod {}: {}",
+                                                entry.getKey(),
+                                                agentsStatus);
+                                        ApplicationStatus.AgentWorkerStatus
+                                                agentWorkerStatusWithInfo =
+                                                        agentWorkerStatus.applyAgentStatus(
+                                                                agentsStatus);
+                                        result.complete(agentWorkerStatusWithInfo);
+                                    } else {
+                                        log.warn(
+                                                "No URL for pod {} for agent {} in application {}",
+                                                entry.getKey(),
+                                                declaredAgent,
+                                                applicationId);
+                                        result.complete(agentWorkerStatus);
+                                    }
+                                } catch (Throwable error) {
+                                    result.completeExceptionally(error);
+                                }
+                            });
                 }
             }
 
             // wait for all futures to complete
             try {
-                CompletableFuture
-                        .allOf(futures.values().toArray(CompletableFuture[]::new))
-                        .join();
+                CompletableFuture.allOf(futures.values().toArray(CompletableFuture[]::new)).join();
             } catch (CancellationException | CompletionException ignore) {
             }
 
-            for (Map.Entry<String, ApplicationStatus.AgentStatus> agentEntries : agents.entrySet()) {
+            for (Map.Entry<String, ApplicationStatus.AgentStatus> agentEntries :
+                    agents.entrySet()) {
                 String declaredAgent = agentEntries.getKey();
                 ApplicationStatus.AgentStatus agentStatus = agentEntries.getValue();
-                for (Map.Entry<String, ApplicationStatus.AgentWorkerStatus> entry : agentStatus.getWorkers().entrySet()) {
+                for (Map.Entry<String, ApplicationStatus.AgentWorkerStatus> entry :
+                        agentStatus.getWorkers().entrySet()) {
                     String podId = declaredAgent + "##" + entry.getKey();
-                    CompletableFuture<ApplicationStatus.AgentWorkerStatus> future = futures.get(podId);
+                    CompletableFuture<ApplicationStatus.AgentWorkerStatus> future =
+                            futures.get(podId);
                     try {
                         ApplicationStatus.AgentWorkerStatus newStatus = future.get();
                         entry.setValue(newStatus);
                     } catch (InterruptedException | ExecutionException impossibleToGetStatus) {
-                        log.warn("Failed to query pod {} for agent {} in application {}: {}",
-                                entry.getKey(), declaredAgent, applicationId, impossibleToGetStatus + "");
+                        log.warn(
+                                "Failed to query pod {} for agent {} in application {}: {}",
+                                entry.getKey(),
+                                declaredAgent,
+                                applicationId,
+                                impossibleToGetStatus + "");
                     }
                 }
             }
@@ -505,15 +584,17 @@ public class AgentResourcesFactory {
 
     private static List<AgentStatusResponse> queryAgentStatus(String url, HttpClient httpClient) {
         try {
-            String body = httpClient.send(HttpRequest.newBuilder()
-                                    .uri(URI.create(url + "/info"))
-                                    .GET()
-                                    .timeout(Duration.ofSeconds(10))
-                                    .build(),
-                            HttpResponse.BodyHandlers.ofString())
-                    .body();
-            return MAPPER.readValue(body, new TypeReference<>() {
-            });
+            String body =
+                    httpClient
+                            .send(
+                                    HttpRequest.newBuilder()
+                                            .uri(URI.create(url + "/info"))
+                                            .GET()
+                                            .timeout(Duration.ofSeconds(10))
+                                            .build(),
+                                    HttpResponse.BodyHandlers.ofString())
+                            .body();
+            return MAPPER.readValue(body, new TypeReference<>() {});
         } catch (IOException | InterruptedException e) {
             log.warn("Failed to query agent info from {}", url, e);
             return List.of();
@@ -521,47 +602,58 @@ public class AgentResourcesFactory {
     }
 
     private static Map<String, ApplicationStatus.AgentWorkerStatus> getPodStatuses(
-            KubernetesClient client, String applicationId, final String namespace,
-            final String agent, final AgentRunnerSpec agentRunnerSpec) {
-        final List<Pod> pods = client.resources(Pod.class)
-                .inNamespace(namespace)
-                .withLabels(getAgentLabels(agent, applicationId))
-                .list()
-                .getItems();
+            KubernetesClient client,
+            String applicationId,
+            final String namespace,
+            final String agent,
+            final AgentRunnerSpec agentRunnerSpec) {
+        final List<Pod> pods =
+                client.resources(Pod.class)
+                        .inNamespace(namespace)
+                        .withLabels(getAgentLabels(agent, applicationId))
+                        .list()
+                        .getItems();
 
-        return KubeUtil.getPodsStatuses(pods)
-                .entrySet()
-                .stream()
-                .map(e -> {
-                    KubeUtil.PodStatus podStatus = e.getValue();
-                    ApplicationStatus.AgentWorkerStatus status = switch (podStatus.getState()) {
-                        case RUNNING -> ApplicationStatus.AgentWorkerStatus.RUNNING(podStatus.getUrl());
-                        case WAITING -> ApplicationStatus.AgentWorkerStatus.INITIALIZING();
-                        case ERROR -> ApplicationStatus.AgentWorkerStatus.ERROR(podStatus.getUrl(), podStatus.getMessage());
-                    };
-                    if (agentRunnerSpec != null) {
-                        status = status.withAgentSpec(agentRunnerSpec.getAgentId(),
-                                agentRunnerSpec.getAgentType(),
-                                agentRunnerSpec.getComponentType(),
-                                agentRunnerSpec.getConfiguration(),
-                                agentRunnerSpec.getInputTopic(),
-                                agentRunnerSpec.getOutputTopic());
-                    }
-                    return new AbstractMap.SimpleEntry<>(e.getKey(), status);
-                })
+        return KubeUtil.getPodsStatuses(pods).entrySet().stream()
+                .map(
+                        e -> {
+                            KubeUtil.PodStatus podStatus = e.getValue();
+                            ApplicationStatus.AgentWorkerStatus status =
+                                    switch (podStatus.getState()) {
+                                        case RUNNING -> ApplicationStatus.AgentWorkerStatus.RUNNING(
+                                                podStatus.getUrl());
+                                        case WAITING -> ApplicationStatus.AgentWorkerStatus
+                                                .INITIALIZING();
+                                        case ERROR -> ApplicationStatus.AgentWorkerStatus.ERROR(
+                                                podStatus.getUrl(), podStatus.getMessage());
+                                    };
+                            if (agentRunnerSpec != null) {
+                                status =
+                                        status.withAgentSpec(
+                                                agentRunnerSpec.getAgentId(),
+                                                agentRunnerSpec.getAgentType(),
+                                                agentRunnerSpec.getComponentType(),
+                                                agentRunnerSpec.getConfiguration(),
+                                                agentRunnerSpec.getInputTopic(),
+                                                agentRunnerSpec.getOutputTopic());
+                            }
+                            return new AbstractMap.SimpleEntry<>(e.getKey(), status);
+                        })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-
-
-
-    public static List<String> getAgentPods(KubernetesClient client, String namespace, String applicationId) {
-        return client.pods().inNamespace(namespace)
-                .withLabels(new TreeMap<>(Map.of(
-                                CRDConstants.COMMON_LABEL_APP, "langstream-runtime",
-                                CRDConstants.AGENT_LABEL_APPLICATION, applicationId)
-                        )
-                )
+    public static List<String> getAgentPods(
+            KubernetesClient client, String namespace, String applicationId) {
+        return client
+                .pods()
+                .inNamespace(namespace)
+                .withLabels(
+                        new TreeMap<>(
+                                Map.of(
+                                        CRDConstants.COMMON_LABEL_APP,
+                                        "langstream-runtime",
+                                        CRDConstants.AGENT_LABEL_APPLICATION,
+                                        applicationId)))
                 .list()
                 .getItems()
                 .stream()
@@ -570,16 +662,19 @@ public class AgentResourcesFactory {
                 .collect(Collectors.toList());
     }
 
-    public static void validateAgentId(String agentId, String applicationId) throws IllegalArgumentException{
+    public static void validateAgentId(String agentId, String applicationId)
+            throws IllegalArgumentException {
         final String fullAgentId = getAgentCustomResourceName(applicationId, agentId);
         if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(fullAgentId).matches()) {
-            throw new IllegalArgumentException(("Agent id '%s' (computed as '%s') contains illegal characters. "
-                    + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.").formatted(agentId, fullAgentId));
+            throw new IllegalArgumentException(
+                    ("Agent id '%s' (computed as '%s') contains illegal characters. "
+                                    + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.")
+                            .formatted(agentId, fullAgentId));
         }
         if (agentId.length() > MAX_AGENT_ID_LENGTH) {
-            throw new IllegalArgumentException("Agent id '%s' is too long, max length is %d. To fully control the agent id, you can set the 'id' field.".formatted(agentId,
-                    MAX_AGENT_ID_LENGTH));
+            throw new IllegalArgumentException(
+                    "Agent id '%s' is too long, max length is %d. To fully control the agent id, you can set the 'id' field."
+                            .formatted(agentId, MAX_AGENT_ID_LENGTH));
         }
     }
-
 }

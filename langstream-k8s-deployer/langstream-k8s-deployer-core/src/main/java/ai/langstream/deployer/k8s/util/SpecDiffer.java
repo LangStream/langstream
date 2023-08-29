@@ -16,38 +16,42 @@
 package ai.langstream.deployer.k8s.util;
 
 import java.util.List;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SpecDiffer {
 
-    private static final JSONComparator.Result EXPECTED_WAS_NULL_RESULT = new JSONComparator.Result() {
-        @Override
-        public boolean areEquals() {
-            return false;
-        }
+    private static final JSONComparator.Result EXPECTED_WAS_NULL_RESULT =
+            new JSONComparator.Result() {
+                @Override
+                public boolean areEquals() {
+                    return false;
+                }
 
-        @Override
-        public List<JSONComparator.FieldComparisonDiff> diffs() {
-            return List.of(new JSONComparator.FieldComparisonDiff("ROOT_OBJECT", null, "NOT NULL"));
-        }
-    };
+                @Override
+                public List<JSONComparator.FieldComparisonDiff> diffs() {
+                    return List.of(
+                            new JSONComparator.FieldComparisonDiff(
+                                    "ROOT_OBJECT", null, "NOT NULL"));
+                }
+            };
 
-    private static final JSONComparator.Result ACTUAL_WAS_NULL_RESULT = new JSONComparator.Result() {
-        @Override
-        public boolean areEquals() {
-            return false;
-        }
+    private static final JSONComparator.Result ACTUAL_WAS_NULL_RESULT =
+            new JSONComparator.Result() {
+                @Override
+                public boolean areEquals() {
+                    return false;
+                }
 
-        @Override
-        public List<JSONComparator.FieldComparisonDiff> diffs() {
-            return List.of(new JSONComparator.FieldComparisonDiff("ROOT_OBJECT", "NOT NULL", null));
-        }
-    };
+                @Override
+                public List<JSONComparator.FieldComparisonDiff> diffs() {
+                    return List.of(
+                            new JSONComparator.FieldComparisonDiff(
+                                    "ROOT_OBJECT", "NOT NULL", null));
+                }
+            };
 
-    private SpecDiffer() {
-    }
+    private SpecDiffer() {}
 
     public static JSONComparator.Result generateDiff(String expectedJson, String actualJson) {
         if (expectedJson == null && actualJson == null) {
@@ -59,9 +63,7 @@ public class SpecDiffer {
         if (actualJson == null) {
             return ACTUAL_WAS_NULL_RESULT;
         }
-        return new JSONAssertComparator()
-                .compare(expectedJson, actualJson);
-
+        return new JSONAssertComparator().compare(expectedJson, actualJson);
     }
 
     public static JSONComparator.Result generateDiff(Object expectedSpec, Object actualSpec) {
@@ -107,12 +109,12 @@ public class SpecDiffer {
         return generateDiff(expectedJson, actualStr);
     }
 
-
     public static void logDetailedSpecDiff(JSONComparator.Result diff) {
         logDetailedSpecDiff(diff, null, null);
     }
 
-    public static void logDetailedSpecDiff(JSONComparator.Result diff, String currentAsJson, String newSpecAsJson) {
+    public static void logDetailedSpecDiff(
+            JSONComparator.Result diff, String currentAsJson, String newSpecAsJson) {
         if (diff == EXPECTED_WAS_NULL_RESULT) {
             log.info("Spec was null");
             return;
@@ -129,23 +131,25 @@ public class SpecDiffer {
             final String completeField = failure.field();
             final String expectedValue = failure.expected();
             if (actualValue == null) {
-                log.info("""
+                log.info(
+                        """
                         was: '%s=%s', now removed
-                        """.formatted(completeField, expectedValue));
+                        """
+                                .formatted(completeField, expectedValue));
             } else if (expectedValue == null) {
-                log.info("""
+                log.info(
+                        """
                         was empty, now: '%s=%s'
-                        """.formatted(completeField, actualValue));
+                        """
+                                .formatted(completeField, actualValue));
             } else {
-                log.info("""
+                log.info(
+                        """
                         '%s' value differs:
                             was: %s
                             now: %s
-                        """.formatted(
-                        completeField,
-                        expectedValue,
-                        actualValue
-                ));
+                        """
+                                .formatted(completeField, expectedValue, actualValue));
             }
         }
     }

@@ -20,15 +20,18 @@ import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 
-
 public class TikTokLengthFunction implements LengthFunction {
 
-    private final static EncodingRegistry REGISTRY = Encodings.newDefaultEncodingRegistry();
+    private static final EncodingRegistry REGISTRY = Encodings.newDefaultEncodingRegistry();
     private final EncodingType encodingType;
 
     public TikTokLengthFunction(String encoding) {
-        encodingType = EncodingType.fromName(encoding)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown encoding: " + encoding));
+        encodingType =
+                EncodingType.fromName(encoding)
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "Unknown encoding: " + encoding));
     }
 
     @Override

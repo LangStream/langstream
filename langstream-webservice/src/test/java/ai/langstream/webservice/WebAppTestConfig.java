@@ -15,9 +15,8 @@
  */
 package ai.langstream.webservice;
 
-import ai.langstream.webservice.config.StorageProperties;
 import ai.langstream.impl.storage.LocalStore;
-
+import ai.langstream.webservice.config.StorageProperties;
 import java.nio.file.Files;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -33,17 +32,15 @@ public class WebAppTestConfig {
     @SneakyThrows
     public StorageProperties storageProperties() {
         return new StorageProperties(
-                new StorageProperties.AppsStoreProperties("kubernetes", Map.of(
-                        "namespaceprefix",
-                        "langstream-"
-                )),
-                new StorageProperties.GlobalMetadataStoreProperties("local",
+                new StorageProperties.AppsStoreProperties(
+                        "kubernetes", Map.of("namespaceprefix", "langstream-")),
+                new StorageProperties.GlobalMetadataStoreProperties(
+                        "local",
                         Map.of(
                                 LocalStore.LOCAL_BASEDIR,
-                                Files.createTempDirectory("langstream-test").toFile().getAbsolutePath()
-                        )
-                ),
-                new StorageProperties.CodeStorageProperties()
-        );
+                                Files.createTempDirectory("langstream-test")
+                                        .toFile()
+                                        .getAbsolutePath())),
+                new StorageProperties.CodeStorageProperties());
     }
 }

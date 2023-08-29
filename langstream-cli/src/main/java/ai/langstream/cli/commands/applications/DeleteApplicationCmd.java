@@ -18,7 +18,8 @@ package ai.langstream.cli.commands.applications;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "delete",
+@CommandLine.Command(
+        name = "delete",
         mixinStandardHelpOptions = true,
         description = "Delete an application")
 public class DeleteApplicationCmd extends BaseApplicationCmd {

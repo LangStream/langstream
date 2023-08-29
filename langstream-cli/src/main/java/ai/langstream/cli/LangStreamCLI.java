@@ -18,7 +18,6 @@ package ai.langstream.cli;
 import ai.langstream.cli.commands.RootCmd;
 import picocli.CommandLine;
 
-
 public class LangStreamCLI {
 
     public static void main(String... args) {
@@ -30,19 +29,29 @@ public class LangStreamCLI {
         final CommandLine cmdLine = new CommandLine(new RootCmd());
         CommandLine gen = cmdLine.getSubcommands().get("generate-completion");
         gen.getCommandSpec().usageMessage().hidden(true);
-        return cmdLine
-                .setExecutionExceptionHandler((e, commandLine, parseResult) -> {
-                    if (e.getMessage() != null) {
-                        commandLine.getErr().println(commandLine.getColorScheme().errorText(e.getMessage()));
-                        RootCmd rootCmd = cmdLine.getCommand();
-                        if (rootCmd.isVerbose()) {
-                            e.printStackTrace(commandLine.getErr());
-                        }
-                    } else {
-                        commandLine.getErr().println(commandLine.getColorScheme().errorText("Internal error " + e ));
-                    }
-                    return 1;
-                })
+        return cmdLine.setExecutionExceptionHandler(
+                        (e, commandLine, parseResult) -> {
+                            if (e.getMessage() != null) {
+                                commandLine
+                                        .getErr()
+                                        .println(
+                                                commandLine
+                                                        .getColorScheme()
+                                                        .errorText(e.getMessage()));
+                                RootCmd rootCmd = cmdLine.getCommand();
+                                if (rootCmd.isVerbose()) {
+                                    e.printStackTrace(commandLine.getErr());
+                                }
+                            } else {
+                                commandLine
+                                        .getErr()
+                                        .println(
+                                                commandLine
+                                                        .getColorScheme()
+                                                        .errorText("Internal error " + e));
+                            }
+                            return 1;
+                        })
                 .execute(args);
     }
 }

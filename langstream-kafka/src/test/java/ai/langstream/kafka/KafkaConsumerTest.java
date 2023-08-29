@@ -15,10 +15,10 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.kafka.extensions.KafkaContainerExtension;
-import ai.langstream.kafka.runner.KafkaConsumerWrapper;
-import ai.langstream.kafka.runner.KafkaTopicConnectionsRuntime;
-import ai.langstream.kafka.runtime.KafkaTopic;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -33,6 +33,17 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.kafka.extensions.KafkaContainerExtension;
+import ai.langstream.kafka.runner.KafkaConsumerWrapper;
+import ai.langstream.kafka.runner.KafkaTopicConnectionsRuntime;
+import ai.langstream.kafka.runtime.KafkaTopic;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -43,18 +54,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class KafkaConsumerTest {
@@ -67,29 +66,37 @@ class KafkaConsumerTest {
     public void testKafkaConsumerCommitOffsets(int numPartitions) throws Exception {
         final AdminClient admin = kafkaContainer.getAdmin();
         String topicName = "input-topic-" + numPartitions + "parts";
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: %s
                                     creation-mode: create-if-not-exists
-                                    partitions: %d                                     
-                                """.formatted(topicName, numPartitions)),
-                        buildInstanceYaml(), null).getApplication();
+                                    partitions: %d
+                                """
+                                                .formatted(topicName, numPartitions)),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName(topicName))) instanceof KafkaTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module, Connection.fromTopic(TopicDefinition.fromName(topicName)))
+                        instanceof KafkaTopic);
 
         deployer.deploy("tenant", implementation, null);
 
@@ -105,13 +112,18 @@ class KafkaConsumerTest {
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
 
-
-        StreamingCluster streamingCluster = implementation.getApplication().getInstance().streamingCluster();
+        StreamingCluster streamingCluster =
+                implementation.getApplication().getInstance().streamingCluster();
         KafkaTopicConnectionsRuntime runtime = new KafkaTopicConnectionsRuntime();
         runtime.init(streamingCluster);
         String agentId = "agent-1";
-        try (TopicProducer producer = runtime.createProducer(agentId, streamingCluster, Map.of("topic", topicName));
-             KafkaConsumerWrapper consumer = (KafkaConsumerWrapper) runtime.createConsumer(agentId, streamingCluster, Map.of("topic", topicName))) {
+        try (TopicProducer producer =
+                        runtime.createProducer(
+                                agentId, streamingCluster, Map.of("topic", topicName));
+                KafkaConsumerWrapper consumer =
+                        (KafkaConsumerWrapper)
+                                runtime.createConsumer(
+                                        agentId, streamingCluster, Map.of("topic", topicName))) {
             producer.start();
             consumer.start();
 
@@ -127,10 +139,12 @@ class KafkaConsumerTest {
                 consumer.commit(readFromConsumer);
             }
 
-            consumer.getUncommittedOffsets().forEach((tp, set) -> {
-                log.info("Uncommitted offsets for partition {}: {}", tp, set);
-                assertEquals(0, set.size());
-            });
+            consumer.getUncommittedOffsets()
+                    .forEach(
+                            (tp, set) -> {
+                                log.info("Uncommitted offsets for partition {}: {}", tp, set);
+                                assertEquals(0, set.size());
+                            });
 
             int numMessagesHere = 30;
             // partial acks, this is not an error
@@ -141,29 +155,32 @@ class KafkaConsumerTest {
             log.info("Producer metrics: {}", producer.getInfo());
 
             List<Record> readFromConsumer = consumeRecords(consumer, 6);
-            List<Record> onlySome = readFromConsumer.subList(readFromConsumer.size() / 2, readFromConsumer.size());
+            List<Record> onlySome =
+                    readFromConsumer.subList(readFromConsumer.size() / 2, readFromConsumer.size());
             log.info("Committing only {}", onlySome);
             List<Record> theOthers = readFromConsumer.subList(0, readFromConsumer.size() / 2);
 
             // partial ack is allowed
             consumer.commit(onlySome);
 
-            consumer.getUncommittedOffsets().forEach((tp, set) -> {
-                log.info("Uncommitted offsets for partition {}: {}", tp, set);
-                assertEquals(numMessagesHere / 2, set.size());
-            });
+            consumer.getUncommittedOffsets()
+                    .forEach(
+                            (tp, set) -> {
+                                log.info("Uncommitted offsets for partition {}: {}", tp, set);
+                                assertEquals(numMessagesHere / 2, set.size());
+                            });
 
             log.info("Committing the others {}", theOthers);
 
             consumer.commit(theOthers);
 
-            consumer.getUncommittedOffsets().forEach((tp, set) -> {
-                log.info("Uncommitted offsets for partition {}: {}", tp, set);
-                assertEquals(0, set.size());
-            });
-
+            consumer.getUncommittedOffsets()
+                    .forEach(
+                            (tp, set) -> {
+                                log.info("Uncommitted offsets for partition {}: {}", tp, set);
+                                assertEquals(0, set.size());
+                            });
         }
-
     }
 
     @Test
@@ -172,29 +189,37 @@ class KafkaConsumerTest {
         int numThreads = 8;
         final AdminClient admin = kafkaContainer.getAdmin();
         String topicName = "input-topic-" + numPartitions + "-parts-mt";
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                                "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: %s
                                     creation-mode: create-if-not-exists
-                                    partitions: %d                                     
-                                """.formatted(topicName, numPartitions)),
-                        buildInstanceYaml(), null).getApplication();
+                                    partitions: %d
+                                """
+                                                .formatted(topicName, numPartitions)),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName(topicName))) instanceof KafkaTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module, Connection.fromTopic(TopicDefinition.fromName(topicName)))
+                        instanceof KafkaTopic);
 
         deployer.deploy("tenant", implementation, null);
 
@@ -210,13 +235,18 @@ class KafkaConsumerTest {
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
 
-
-        StreamingCluster streamingCluster = implementation.getApplication().getInstance().streamingCluster();
+        StreamingCluster streamingCluster =
+                implementation.getApplication().getInstance().streamingCluster();
         KafkaTopicConnectionsRuntime runtime = new KafkaTopicConnectionsRuntime();
         runtime.init(streamingCluster);
         String agentId = "agent-1";
-        try (TopicProducer producer = runtime.createProducer(agentId, streamingCluster, Map.of("topic", topicName));
-             KafkaConsumerWrapper consumer = (KafkaConsumerWrapper) runtime.createConsumer(agentId, streamingCluster, Map.of("topic", topicName))) {
+        try (TopicProducer producer =
+                        runtime.createProducer(
+                                agentId, streamingCluster, Map.of("topic", topicName));
+                KafkaConsumerWrapper consumer =
+                        (KafkaConsumerWrapper)
+                                runtime.createConsumer(
+                                        agentId, streamingCluster, Map.of("topic", topicName))) {
             producer.start();
             consumer.start();
 
@@ -239,29 +269,35 @@ class KafkaConsumerTest {
                 assertTrue(threadPool.awaitTermination(10, TimeUnit.SECONDS));
             }
 
-            consumer.getUncommittedOffsets().forEach((tp, set) -> {
-                log.info("Uncommitted offsets for partition {}: {}", tp, set);
-                assertEquals(0, set.size());
-            });
-
+            consumer.getUncommittedOffsets()
+                    .forEach(
+                            (tp, set) -> {
+                                log.info("Uncommitted offsets for partition {}: {}", tp, set);
+                                assertEquals(0, set.size());
+                            });
         }
-
     }
 
     @NotNull
     private static List<Record> consumeRecords(TopicConsumer consumer, int atLeast) {
         List<Record> readFromConsumer = new ArrayList<>();
-        Awaitility.await().untilAsserted(() -> {
-            readFromConsumer.addAll(consumer.read());
-            log.info("Read {} records:  {}", readFromConsumer.size(), readFromConsumer);
-            assertTrue(readFromConsumer.size() >= atLeast);
-        });
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            readFromConsumer.addAll(consumer.read());
+                            log.info(
+                                    "Read {} records:  {}",
+                                    readFromConsumer.size(),
+                                    readFromConsumer);
+                            assertTrue(readFromConsumer.size() >= atLeast);
+                        });
         log.info("Consumer metrics {}", consumer.getInfo());
         return readFromConsumer;
     }
 
     private static Record generateRecord(String value) {
-        return SimpleRecord.builder().key(value)
+        return SimpleRecord.builder()
+                .key(value)
                 .value(value)
                 .origin("origin")
                 .timestamp(System.currentTimeMillis())
@@ -274,10 +310,11 @@ class KafkaConsumerTest {
                   streamingCluster:
                     type: "kafka"
                     configuration:
-                      admin:                                      
+                      admin:
                         bootstrap.servers: "%s"
                   computeCluster:
                      type: "none"
-                """.formatted(kafkaContainer.getBootstrapServers());
+                """
+                .formatted(kafkaContainer.getBootstrapServers());
     }
 }

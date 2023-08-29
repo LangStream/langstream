@@ -19,7 +19,8 @@ import java.util.Map;
 
 public interface GatewayAuthenticationResult {
 
-    static GatewayAuthenticationResult authenticationSuccessful(Map<String, String> principalValues) {
+    static GatewayAuthenticationResult authenticationSuccessful(
+            Map<String, String> principalValues) {
         return new GatewayAuthenticationResult() {
             @Override
             public boolean authenticated() {
@@ -62,5 +63,4 @@ public interface GatewayAuthenticationResult {
     String reason();
 
     Map<String, String> principalValues();
-
 }

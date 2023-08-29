@@ -16,24 +16,26 @@
 package ai.langstream.kafka;
 
 import ai.langstream.AbstractApplicationRunner;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 @Slf4j
-class AsyncProcessingIT extends AbstractApplicationRunner  {
+class AsyncProcessingIT extends AbstractApplicationRunner {
 
     @Test
     public void testProcessMultiThreadOutOfOrder() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
-        Map<String, String> application = Map.of(
-                        "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -51,9 +53,11 @@ class AsyncProcessingIT extends AbstractApplicationRunner  {
                                     output: "output-topic"
                                 """);
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                         KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
+                    KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
                 Set<String> expected = new HashSet<>();
                 int numMessages = 100;
@@ -68,9 +72,5 @@ class AsyncProcessingIT extends AbstractApplicationRunner  {
                 waitForMessagesInAnyOrder(consumer, expected);
             }
         }
-
     }
-
-
-
 }

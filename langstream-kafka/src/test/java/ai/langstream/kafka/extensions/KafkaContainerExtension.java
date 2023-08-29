@@ -17,14 +17,11 @@ package ai.langstream.kafka.extensions;
 
 import java.util.Map;
 import java.util.function.Consumer;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.testcontainers.containers.Container;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.output.OutputFrame;
@@ -57,18 +54,19 @@ public class KafkaContainerExtension implements BeforeAllCallback, AfterAllCallb
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
         network = Network.newNetwork();
-        kafkaContainer = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
-                .withNetwork(network)
-                .withLogConsumer(new Consumer<OutputFrame>() {
-                    @Override
-                    public void accept(OutputFrame outputFrame) {
-                        log.debug("kafka> {}", outputFrame.getUtf8String().trim());
-                    }
-                });
+        kafkaContainer =
+                new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
+                        .withNetwork(network)
+                        .withLogConsumer(
+                                new Consumer<OutputFrame>() {
+                                    @Override
+                                    public void accept(OutputFrame outputFrame) {
+                                        log.debug("kafka> {}", outputFrame.getUtf8String().trim());
+                                    }
+                                });
         // start Pulsar and wait for it to be ready to accept requests
         kafkaContainer.start();
-        admin =
-                AdminClient.create(Map.of("bootstrap.servers", getBootstrapServers()));
+        admin = AdminClient.create(Map.of("bootstrap.servers", getBootstrapServers()));
     }
 
     public String getBootstrapServers() {

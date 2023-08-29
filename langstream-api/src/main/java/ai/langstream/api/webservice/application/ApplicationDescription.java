@@ -27,15 +27,14 @@ import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.TopicDefinition;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
@@ -44,12 +43,15 @@ public class ApplicationDescription {
 
     @JsonProperty("application-id")
     private String applicationId;
+
     @JsonProperty("application")
     private ApplicationDefinition application;
+
     @JsonProperty("status")
     private AgentStatusDescription status;
 
-    public ApplicationDescription(String applicationId, Application application, ApplicationStatus status) {
+    public ApplicationDescription(
+            String applicationId, Application application, ApplicationStatus status) {
         this.applicationId = applicationId;
         this.application = new ApplicationDefinition(application);
         this.status = new AgentStatusDescription(status);
@@ -61,8 +63,8 @@ public class ApplicationDescription {
 
         private ApplicationDefinition(Application application) {
             this.resources = application.getResources();
-            this.modules = application.getModules().values()
-                    .stream().map(ModuleDefinition::new).toList();
+            this.modules =
+                    application.getModules().values().stream().map(ModuleDefinition::new).toList();
             this.gateways = application.getGateways();
             this.instance = application.getInstance();
         }
@@ -96,12 +98,11 @@ public class ApplicationDescription {
 
         public AgentStatusDescription(ApplicationStatus status) {
             this.status = status.getStatus();
-            this.executors = status.getAgents()
-                    .entrySet()
-                    .stream()
-                    .map(entry -> new ExecutorDescription(entry.getKey(), entry.getValue()))
-                    .sorted(Comparator.comparing(ExecutorDescription::getId))
-                    .toList();
+            this.executors =
+                    status.getAgents().entrySet().stream()
+                            .map(entry -> new ExecutorDescription(entry.getKey(), entry.getValue()))
+                            .sorted(Comparator.comparing(ExecutorDescription::getId))
+                            .toList();
         }
     }
 
@@ -115,15 +116,13 @@ public class ApplicationDescription {
         public ExecutorDescription(String id, ApplicationStatus.AgentStatus status) {
             this.id = id;
             this.status = status.getStatus();
-            this.replicas = status.getWorkers()
-                    .entrySet()
-                    .stream()
-                    .map(entry -> new ReplicaStatus(entry.getKey(), entry.getValue()))
-                    .sorted(Comparator.comparing(ReplicaStatus::getId))
-                    .toList();
+            this.replicas =
+                    status.getWorkers().entrySet().stream()
+                            .map(entry -> new ReplicaStatus(entry.getKey(), entry.getValue()))
+                            .sorted(Comparator.comparing(ReplicaStatus::getId))
+                            .toList();
         }
     }
-
 
     @Data
     @NoArgsConstructor
@@ -134,8 +133,7 @@ public class ApplicationDescription {
         private ApplicationStatus.AgentWorkerStatus.Status status;
         private String reason;
         // do not report this to users
-        @JsonIgnore
-        private String url;
+        @JsonIgnore private String url;
 
         private List<AgentStatus> agents = new ArrayList<>();
 
@@ -144,11 +142,10 @@ public class ApplicationDescription {
             this.status = workerStatus.getStatus();
             this.reason = workerStatus.getReason();
             this.url = workerStatus.getUrl();
-            this.agents = workerStatus
-                    .getAgents()
-                    .stream()
-                    .map(AgentStatus::new)
-                    .collect(Collectors.toList());
+            this.agents =
+                    workerStatus.getAgents().stream()
+                            .map(AgentStatus::new)
+                            .collect(Collectors.toList());
         }
     }
 
@@ -158,12 +155,16 @@ public class ApplicationDescription {
     public static class AgentStatus {
         @JsonProperty("agent-id")
         private String agentId;
+
         @JsonProperty("agent-type")
         private String agentType;
+
         @JsonProperty("component-type")
         private String componentType;
+
         @JsonProperty("metrics")
         private Metrics metrics;
+
         @JsonProperty("info")
         private Map<String, Object> info;
 
@@ -182,10 +183,13 @@ public class ApplicationDescription {
     public static final class Metrics {
         @JsonProperty("total-in")
         private Long totalIn;
+
         @JsonProperty("total-out")
         private Long totalOut;
+
         @JsonProperty("started-at")
         private Long startedAt;
+
         @JsonProperty("last-processed-at")
         private Long lastProcessedAt;
 

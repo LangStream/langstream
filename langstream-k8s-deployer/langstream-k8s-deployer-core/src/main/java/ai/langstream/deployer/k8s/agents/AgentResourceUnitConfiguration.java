@@ -30,5 +30,4 @@ public class AgentResourceUnitConfiguration {
 
     private int maxCpuMemUnits = 8;
     private int maxInstanceUnits = 8;
-
 }

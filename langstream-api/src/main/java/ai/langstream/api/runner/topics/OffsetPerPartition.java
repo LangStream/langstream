@@ -17,4 +17,4 @@ package ai.langstream.api.runner.topics;
 
 import java.util.Map;
 
-public record OffsetPerPartition(Map<String, String> offsets){}
+public record OffsetPerPartition(Map<String, String> offsets) {}

@@ -16,19 +16,18 @@
 package ai.langstream.api.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.Map;
-
 @Getter
 @Setter
 @ToString
 @EqualsAndHashCode
-public class TopicDefinition  {
+public class TopicDefinition {
 
     public static final String CREATE_MODE_NONE = "none";
     public static final String CREATE_MODE_CREATE_IF_NOT_EXISTS = "create-if-not-exists";
@@ -38,18 +37,19 @@ public class TopicDefinition  {
     }
 
     public static TopicDefinition fromName(String name) {
-        return new TopicDefinition(name, CREATE_MODE_NONE,false, 0, null, null, Map.of(), Map.of());
+        return new TopicDefinition(
+                name, CREATE_MODE_NONE, false, 0, null, null, Map.of(), Map.of());
     }
 
-
-    public TopicDefinition(String name,
-                           String creationMode,
-                           boolean implicit,
-                           int partitions,
-                           SchemaDefinition keySchema,
-                           SchemaDefinition valueSchema,
-                           Map<String, Object> options,
-                           Map<String, Object> config) {
+    public TopicDefinition(
+            String name,
+            String creationMode,
+            boolean implicit,
+            int partitions,
+            SchemaDefinition keySchema,
+            SchemaDefinition valueSchema,
+            Map<String, Object> options,
+            Map<String, Object> config) {
         this();
         this.name = name;
         this.creationMode = Objects.requireNonNullElse(creationMode, CREATE_MODE_NONE);
@@ -66,15 +66,15 @@ public class TopicDefinition  {
 
     @JsonProperty("creation-mode")
     private String creationMode;
+
     // Kafka Admin special configuration options
     private Map<String, Object> config;
     private Map<String, Object> options;
     private SchemaDefinition keySchema;
     private SchemaDefinition valueSchema;
     private int partitions;
-    /**
-     * If true, the topic is not declared in the application, but is expected to exist.
-     */
+
+    /** If true, the topic is not declared in the application, but is expected to exist. */
     private boolean implicit;
 
     private void validateCreationMode() {
@@ -84,7 +84,6 @@ public class TopicDefinition  {
                 break;
             default:
                 throw new IllegalArgumentException("Invalid creation mode: " + creationMode);
-
         }
     }
 }

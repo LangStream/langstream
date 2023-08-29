@@ -29,5 +29,4 @@ public class ApplicationSpecs {
     private String applicationId;
     private Application application;
     private String codeArchiveReference;
-
 }

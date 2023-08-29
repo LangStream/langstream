@@ -18,12 +18,6 @@ package ai.langstream.agents.text;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.parser.AutoDetectParser;
-import org.apache.tika.parser.ParseContext;
-import org.apache.tika.parser.ParsingReader;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringWriter;
@@ -31,6 +25,11 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.ParsingReader;
 
 @Slf4j
 public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
@@ -48,13 +47,12 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
         try (Reader reader = new ParsingReader(parser, stream, metadata, parseContext)) {
             StringWriter valueAsString = new StringWriter();
             String[] names = metadata.names();
-            log.info("Document type: {} Content {}", Stream.of(names)
-                .collect(Collectors.toMap(Function.identity(), metadata::get)), valueAsString);
+            log.info(
+                    "Document type: {} Content {}",
+                    Stream.of(names).collect(Collectors.toMap(Function.identity(), metadata::get)),
+                    valueAsString);
             reader.transferTo(valueAsString);
-            return List.of(SimpleRecord
-                .copyFrom(record)
-                .value(valueAsString.toString())
-                .build());
+            return List.of(SimpleRecord.copyFrom(record).value(valueAsString.toString()).build());
         }
     }
 }

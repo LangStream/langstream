@@ -19,10 +19,11 @@ import ai.langstream.api.runtime.StreamingClusterRuntimeProvider;
 
 public class PulsarStreamingClusterRuntimeProvider implements StreamingClusterRuntimeProvider {
 
-    private final PulsarStreamingClusterRuntime pulsarClusterRuntime = new PulsarStreamingClusterRuntime();
+    private final PulsarStreamingClusterRuntime pulsarClusterRuntime =
+            new PulsarStreamingClusterRuntime();
 
     @Override
-    public  PulsarStreamingClusterRuntime getImplementation() {
+    public PulsarStreamingClusterRuntime getImplementation() {
         return pulsarClusterRuntime;
     }
 

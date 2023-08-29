@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -62,20 +61,30 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
         bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
-        String endpoint = configuration.getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090").toString();
-        String username =  configuration.getOrDefault("access-key", "minioadmin").toString();
-        String password =  configuration.getOrDefault("secret-key", "minioadmin").toString();
+        String endpoint =
+                configuration
+                        .getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090")
+                        .toString();
+        String username = configuration.getOrDefault("access-key", "minioadmin").toString();
+        String password = configuration.getOrDefault("secret-key", "minioadmin").toString();
         String region = configuration.getOrDefault("region", "").toString();
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
-        extensions = Set.of(
-                configuration.getOrDefault("file-extensions", DEFAULT_EXTENSIONS_FILTER).toString().split(","));
+        extensions =
+                Set.of(
+                        configuration
+                                .getOrDefault("file-extensions", DEFAULT_EXTENSIONS_FILTER)
+                                .toString()
+                                .split(","));
 
-        log.info("Connecting to S3 Bucket at {} in region {} with user {}", endpoint, region, username);
+        log.info(
+                "Connecting to S3 Bucket at {} in region {} with user {}",
+                endpoint,
+                region,
+                username);
         log.info("Getting files with extensions {} (use '*' to no filter)", extensions);
 
-        MinioClient.Builder builder = MinioClient.builder()
-                .endpoint(endpoint)
-                .credentials(username, password);
+        MinioClient.Builder builder =
+                MinioClient.builder().endpoint(endpoint).credentials(username, password);
         if (!region.isBlank()) {
             builder.region(region);
         }
@@ -85,16 +94,18 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
     }
 
     private void makeBucketIfNotExists(String bucketName)
-        throws ServerException, InsufficientDataException, ErrorResponseException, IOException,
-        NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
-        if (!minioClient.bucketExists(BucketExistsArgs.builder()
-                .bucket(bucketName)
-                .build())) {
+            throws ServerException,
+                    InsufficientDataException,
+                    ErrorResponseException,
+                    IOException,
+                    NoSuchAlgorithmException,
+                    InvalidKeyException,
+                    InvalidResponseException,
+                    XmlParserException,
+                    InternalException {
+        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
             log.info("Creating bucket {}", bucketName);
-            minioClient.makeBucket(MakeBucketArgs
-                    .builder()
-                    .bucket(bucketName)
-                    .build());
+            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
         } else {
             log.info("Bucket {} already exists", bucketName);
         }
@@ -126,11 +137,12 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
             if (!objectsToCommit.contains(name)) {
                 log.info("Found new object {}, size {} KB", item.objectName(), item.size() / 1024);
                 try {
-                    GetObjectResponse objectResponse = minioClient.getObject(
-                            GetObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(name)
-                                    .build());
+                    GetObjectResponse objectResponse =
+                            minioClient.getObject(
+                                    GetObjectArgs.builder()
+                                            .bucket(bucketName)
+                                            .object(name)
+                                            .build());
                     objectsToCommit.add(name);
                     byte[] read = objectResponse.readAllBytes();
                     records.add(new S3SourceRecord(read, name));
@@ -172,7 +184,6 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         return Map.of("bucketName", bucketName);
     }
 
-
     @Override
     public void commit(List<Record> records) throws Exception {
         for (Record record : records) {
@@ -180,10 +191,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
             String objectName = s3SourceRecord.name;
             log.info("Removing object {}", objectName);
             minioClient.removeObject(
-                RemoveObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .build());
+                    RemoveObjectArgs.builder().bucket(bucketName).object(objectName).build());
             objectsToCommit.remove(objectName);
         }
     }
@@ -198,8 +206,9 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         }
 
         /**
-         * the key is used for routing, so it is better to set it to something meaningful.
-         * In case of retransmission the message will be sent to the same partition.
+         * the key is used for routing, so it is better to set it to something meaningful. In case
+         * of retransmission the message will be sent to the same partition.
+         *
          * @return the key
          */
         @Override
@@ -233,6 +242,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
 
             final String key;
             final String value;
+
             @Override
             public String key() {
                 return key;

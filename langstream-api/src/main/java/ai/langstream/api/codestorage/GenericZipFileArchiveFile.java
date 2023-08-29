@@ -23,9 +23,7 @@ import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-/**
- * This is an archive file that is a zip file.
- */
+/** This is an archive file that is a zip file. */
 public abstract class GenericZipFileArchiveFile implements DownloadedCodeArchive {
 
     public static void extractTo(InputStream inputStream, Path directory) throws IOException {

@@ -18,7 +18,6 @@ package ai.langstream.api.model;
 import java.util.HashMap;
 import java.util.Map;
 
-
 public record StreamingCluster(String type, Map<String, Object> configuration) {
     public StreamingCluster {
         if (configuration == null) {

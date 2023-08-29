@@ -25,11 +25,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class S3CodeStorageConfiguration {
     private String type;
+
     @JsonAlias({"bucketname", "bucket-name"})
     private String bucketName = "langstream-code-storage";
+
     private String endpoint = "s3.amazonaws.com";
+
     @JsonAlias({"accesskey", "access-key"})
     private String accessKey;
+
     @JsonAlias({"secretkey", "secret-key"})
     private String secretKey;
 }

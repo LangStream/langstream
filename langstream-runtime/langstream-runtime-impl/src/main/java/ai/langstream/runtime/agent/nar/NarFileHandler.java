@@ -18,10 +18,6 @@ package ai.langstream.runtime.agent.nar;
 import ai.langstream.api.codestorage.GenericZipFileArchiveFile;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
-import lombok.Data;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -38,9 +34,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import lombok.Data;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-
 public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPackageLoader {
 
     private final Path packagesDirectory;
@@ -51,12 +49,12 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
     private List<URLClassLoader> classloaders;
     private final Map<String, PackageMetadata> packages = new HashMap<>();
 
-    public NarFileHandler(Path packagesDirectory, ClassLoader customCodeClassloader) throws Exception {
+    public NarFileHandler(Path packagesDirectory, ClassLoader customCodeClassloader)
+            throws Exception {
         this.packagesDirectory = packagesDirectory;
         this.temporaryDirectory = Files.createTempDirectory("nar");
         this.customCodeClassloader = customCodeClassloader;
     }
-
 
     private static void deleteDirectory(Path dir) throws Exception {
         try (DirectoryStream<Path> all = Files.newDirectoryStream(dir)) {
@@ -74,7 +72,7 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
     public void close() {
 
         for (PackageMetadata metadata : packages.values()) {
-            URLClassLoader classLoader  = metadata.getClassLoader();
+            URLClassLoader classLoader = metadata.getClassLoader();
             if (classLoader != null) {
                 try {
                     classLoader.close();
@@ -86,7 +84,7 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
 
         try {
             deleteDirectory(temporaryDirectory);
-        } catch ( Exception e ) {
+        } catch (Exception e) {
             log.error("Cannot delete temporary directory {}", temporaryDirectory, e);
         }
     }
@@ -115,7 +113,6 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
             file.extractTo(dest);
             directory = dest;
         }
-
     }
 
     public void scan() throws Exception {
@@ -140,18 +137,25 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
                 byte[] bytes = inputStream.readAllBytes();
                 String string = new String(bytes, StandardCharsets.UTF_8);
                 BufferedReader reader = new BufferedReader(new StringReader(string));
-                List<String> agents = reader.lines()
-                        .filter(s -> !s.isBlank() && !s.startsWith("#"))
-                        .toList();
-                log.info("The file {} contains a static index, skipping the unpacking. It is expected that handles these agents: {}", narFile, agents);
-                PackageMetadata metadata = new PackageMetadata(narFile, filename, Set.copyOf(agents));
+                List<String> agents =
+                        reader.lines().filter(s -> !s.isBlank() && !s.startsWith("#")).toList();
+                log.info(
+                        "The file {} contains a static index, skipping the unpacking. It is expected that handles these agents: {}",
+                        narFile,
+                        agents);
+                PackageMetadata metadata =
+                        new PackageMetadata(narFile, filename, Set.copyOf(agents));
                 packages.put(filename, metadata);
                 return;
             }
 
-            ZipEntry serviceProvider = zipFile.getEntry("META-INF/services/ai.langstream.api.runner.code.AgentCodeProvider");
+            ZipEntry serviceProvider =
+                    zipFile.getEntry(
+                            "META-INF/services/ai.langstream.api.runner.code.AgentCodeProvider");
             if (serviceProvider == null) {
-                log.info("The file {} does not contain any AgentCodeProvider, skipping the file", narFile);
+                log.info(
+                        "The file {} does not contain any AgentCodeProvider, skipping the file",
+                        narFile);
                 return;
             }
         }
@@ -161,7 +165,6 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
         packages.put(filename, metadata);
     }
 
-
     @Override
     @SneakyThrows
     public AgentCodeRegistry.AgentPackage loadPackageForAgent(String agentType) {
@@ -169,9 +172,13 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
         if (packageForAgentType == null) {
             return null;
         }
-        URLClassLoader classLoader = createClassloaderForPackage(customCodeClassloader, packageForAgentType);
-        log.info("For package {}, classloader {}, parent {}", packageForAgentType.getName(),
-                classLoader, classLoader.getParent());
+        URLClassLoader classLoader =
+                createClassloaderForPackage(customCodeClassloader, packageForAgentType);
+        log.info(
+                "For package {}, classloader {}, parent {}",
+                packageForAgentType.getName(),
+                classLoader,
+                classLoader.getParent());
         return new AgentCodeRegistry.AgentPackage() {
             @Override
             public ClassLoader getClassloader() {
@@ -186,14 +193,11 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
     }
 
     public PackageMetadata getPackageForAgentType(String name) {
-        return packages
-                .values()
-                .stream()
+        return packages.values().stream()
                 .filter(p -> p.agents != null && p.agents.contains(name))
                 .findFirst()
                 .orElse(null);
     }
-
 
     @Override
     public List<? extends ClassLoader> getAllClassloaders() throws Exception {
@@ -215,7 +219,8 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
         return customCodeClassloader;
     }
 
-    private static URLClassLoader createClassloaderForPackage(ClassLoader parent, PackageMetadata metadata) throws Exception {
+    private static URLClassLoader createClassloaderForPackage(
+            ClassLoader parent, PackageMetadata metadata) throws Exception {
 
         if (metadata.classLoader != null) {
             return metadata.classLoader;
@@ -229,8 +234,7 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
         log.info("Adding agents code {}", metadata.directory);
         urls.add(metadata.directory.toFile().toURI().toURL());
 
-        Path metaInfDirectory = metadata.directory
-                .resolve("META-INF");
+        Path metaInfDirectory = metadata.directory.resolve("META-INF");
         if (Files.isDirectory(metaInfDirectory)) {
 
             Path dependencies = metaInfDirectory.resolve("bundled-dependencies");
@@ -249,5 +253,4 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
         metadata.classLoader = result;
         return result;
     }
-
 }

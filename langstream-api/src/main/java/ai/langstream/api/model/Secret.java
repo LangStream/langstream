@@ -17,5 +17,4 @@ package ai.langstream.api.model;
 
 import java.util.Map;
 
-public record Secret(String id, String name, Map<String, Object> data) {
-}
+public record Secret(String id, String name, Map<String, Object> data) {}

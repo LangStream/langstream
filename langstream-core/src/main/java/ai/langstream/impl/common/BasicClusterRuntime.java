@@ -34,25 +34,24 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-/**
- * Basic class with common utility methods for a ClusterRuntime.
- */
+/** Basic class with common utility methods for a ClusterRuntime. */
 @Slf4j
 public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
     private static final int DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS = 0;
 
     @Override
-    public ExecutionPlan buildExecutionPlan(String applicationId,
-                                            Application application,
-                                            PluginsRegistry pluginsRegistry, StreamingClusterRuntime streamingClusterRuntime) {
+    public ExecutionPlan buildExecutionPlan(
+            String applicationId,
+            Application application,
+            PluginsRegistry pluginsRegistry,
+            StreamingClusterRuntime streamingClusterRuntime) {
 
         if (StringUtils.isEmpty(applicationId)) {
             throw new IllegalArgumentException("Application id cannot be empty");
         }
 
-        ExecutionPlan result =
-                new ExecutionPlan(applicationId, application);
+        ExecutionPlan result = new ExecutionPlan(applicationId, application);
 
         detectTopics(result, streamingClusterRuntime);
 
@@ -63,36 +62,40 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
         return result;
     }
 
-    protected void validateExecutionPlan(ExecutionPlan plan, StreamingClusterRuntime streamingClusterRuntime) throws IllegalArgumentException {
-    }
+    protected void validateExecutionPlan(
+            ExecutionPlan plan, StreamingClusterRuntime streamingClusterRuntime)
+            throws IllegalArgumentException {}
 
     /**
      * Detects topics that are explicitly defined in the application instance.
+     *
      * @param result the execution plan
      * @param streamingClusterRuntime the cluster runtime
      */
-    protected void detectTopics(ExecutionPlan result,
-                                StreamingClusterRuntime streamingClusterRuntime) {
+    protected void detectTopics(
+            ExecutionPlan result, StreamingClusterRuntime streamingClusterRuntime) {
         Application applicationInstance = result.getApplication();
         for (Module module : applicationInstance.getModules().values()) {
             for (TopicDefinition topic : module.getTopics().values()) {
-                Topic topicImplementation = streamingClusterRuntime.createTopicImplementation(topic, result);
+                Topic topicImplementation =
+                        streamingClusterRuntime.createTopicImplementation(topic, result);
                 result.registerTopic(topic, topicImplementation);
             }
         }
     }
 
     /**
-     * Detects the Agaents and build connections to them.
-     * This operation may implicitly declare additional topics.
+     * Detects the Agaents and build connections to them. This operation may implicitly declare
+     * additional topics.
+     *
      * @param result the execution plan
      * @param streamingClusterRuntime the cluster runtime
      * @param pluginsRegistry the plugins registry
      */
-
-    protected void detectAgents(ExecutionPlan result,
-                                StreamingClusterRuntime streamingClusterRuntime,
-                                PluginsRegistry pluginsRegistry) {
+    protected void detectAgents(
+            ExecutionPlan result,
+            StreamingClusterRuntime streamingClusterRuntime,
+            PluginsRegistry pluginsRegistry) {
         Application applicationInstance = result.getApplication();
         for (Module module : applicationInstance.getModules().values()) {
             if (module.getPipelines() == null) {
@@ -102,28 +105,45 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                 log.info("Pipeline: {}", pipeline.getName());
                 AgentNode previousAgent = null;
                 for (AgentConfiguration agentConfiguration : pipeline.getAgents()) {
-                    previousAgent = buildAgent(module, pipeline, agentConfiguration, result, pluginsRegistry,
-                            streamingClusterRuntime, previousAgent);
+                    previousAgent =
+                            buildAgent(
+                                    module,
+                                    pipeline,
+                                    agentConfiguration,
+                                    result,
+                                    pluginsRegistry,
+                                    streamingClusterRuntime,
+                                    previousAgent);
                 }
             }
         }
     }
 
-
-    protected AgentNode buildAgent(Module module,
-                                   Pipeline pipeline,
-                                   AgentConfiguration agentConfiguration,
-                                   ExecutionPlan result,
-                                   PluginsRegistry pluginsRegistry,
-                                   StreamingClusterRuntime streamingClusterRuntime,
-                                   AgentNode previousAgent) {
-        log.info("Processing agent {} id={} type={}", agentConfiguration.getName(), agentConfiguration.getId(),
+    protected AgentNode buildAgent(
+            Module module,
+            Pipeline pipeline,
+            AgentConfiguration agentConfiguration,
+            ExecutionPlan result,
+            PluginsRegistry pluginsRegistry,
+            StreamingClusterRuntime streamingClusterRuntime,
+            AgentNode previousAgent) {
+        log.info(
+                "Processing agent {} id={} type={}",
+                agentConfiguration.getName(),
+                agentConfiguration.getId(),
                 agentConfiguration.getType());
         AgentNodeProvider agentImplementationProvider =
                 pluginsRegistry.lookupAgentImplementation(agentConfiguration.getType(), this);
 
-        AgentNode agentImplementation = agentImplementationProvider
-                .createImplementation(agentConfiguration, module, pipeline, result, this, pluginsRegistry, streamingClusterRuntime );
+        AgentNode agentImplementation =
+                agentImplementationProvider.createImplementation(
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        result,
+                        this,
+                        pluginsRegistry,
+                        streamingClusterRuntime);
 
         boolean merged = false;
         if (previousAgent != null) {
@@ -132,19 +152,37 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             if (agentImplementation instanceof DefaultAgentNode agent2
                     && previousAgent instanceof DefaultAgentNode agent1) {
 
-                ConnectionImplementation agent1OutputConnectionImplementation = agent1.getOutputConnectionImplementation();
-                if (agent1OutputConnectionImplementation.equals(agent2.getInputConnectionImplementation())
-                    && agent1OutputConnectionImplementation instanceof Topic topic
-                    && topic.implicit()) {
-                    log.info("Agent {} Output connection is {}", agent1.getId(), agent1OutputConnectionImplementation);
-                    log.info("Agent {} Input connection is {}", agent2.getId(), agent2.getInputConnectionImplementation());
-                    log.info("Agent {} the two agents are consecutive with an implicit topic in the pipeline", agentConfiguration.getId());
+                ConnectionImplementation agent1OutputConnectionImplementation =
+                        agent1.getOutputConnectionImplementation();
+                if (agent1OutputConnectionImplementation.equals(
+                                agent2.getInputConnectionImplementation())
+                        && agent1OutputConnectionImplementation instanceof Topic topic
+                        && topic.implicit()) {
+                    log.info(
+                            "Agent {} Output connection is {}",
+                            agent1.getId(),
+                            agent1OutputConnectionImplementation);
+                    log.info(
+                            "Agent {} Input connection is {}",
+                            agent2.getId(),
+                            agent2.getInputConnectionImplementation());
+                    log.info(
+                            "Agent {} the two agents are consecutive with an implicit topic in the pipeline",
+                            agentConfiguration.getId());
 
                     consecutiveAgentsWithImplictTopic = true;
                 } else {
-                    log.info("Agent {} Output connection is {}", agent1.getId(), agent1OutputConnectionImplementation);
-                    log.info("Agent {} Input connection is {}", agent2.getId(), agent2.getInputConnectionImplementation());
-                    log.info("Agent {} the two agents are NOT consecutive in the pipeline", agentConfiguration.getId());
+                    log.info(
+                            "Agent {} Output connection is {}",
+                            agent1.getId(),
+                            agent1OutputConnectionImplementation);
+                    log.info(
+                            "Agent {} Input connection is {}",
+                            agent2.getId(),
+                            agent2.getInputConnectionImplementation());
+                    log.info(
+                            "Agent {} the two agents are NOT consecutive in the pipeline",
+                            agentConfiguration.getId());
                 }
             }
 
@@ -152,14 +190,19 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                 for (ExecutionPlanOptimiser optimiser : getExecutionPlanOptimisers()) {
                     if (optimiser.supports(getClusterType())) {
                         if (optimiser.canMerge(previousAgent, agentImplementation)) {
-                            agentImplementation = optimiser.mergeAgents(module, pipeline, previousAgent, agentImplementation, result);
+                            agentImplementation =
+                                    optimiser.mergeAgents(
+                                            module,
+                                            pipeline,
+                                            previousAgent,
+                                            agentImplementation,
+                                            result);
                             merged = true;
                             break;
                         }
                     }
                 }
             }
-
         }
         if (!merged) {
             result.registerAgent(module, agentConfiguration.getId(), agentImplementation);
@@ -168,103 +211,175 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
     }
 
     @Override
-    public ConnectionImplementation getConnectionImplementation(Module module, Pipeline pipeline,
-                                                                Connection connection,
-                                                                ConnectionImplementation.ConnectionDirection direction,
-                                                                ExecutionPlan physicalApplicationInstance,
-                                                                StreamingClusterRuntime streamingClusterRuntime) {
+    public ConnectionImplementation getConnectionImplementation(
+            Module module,
+            Pipeline pipeline,
+            Connection connection,
+            ConnectionImplementation.ConnectionDirection direction,
+            ExecutionPlan physicalApplicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime) {
         return switch (connection.connectionType()) {
             case TOPIC -> {
                 // compare by name
-                Topic result =
-                        physicalApplicationInstance.getTopicByName(connection.definition());
+                Topic result = physicalApplicationInstance.getTopicByName(connection.definition());
                 if (result == null) {
-                    throw new IllegalArgumentException("Topic " + connection.definition() + " not found, " +
-                            "only " + physicalApplicationInstance.getTopics().keySet()
-                        .stream()
-                        .map(TopicDefinition::getName)
-                        .toList() + " are available");
+                    throw new IllegalArgumentException(
+                            "Topic "
+                                    + connection.definition()
+                                    + " not found, "
+                                    + "only "
+                                    + physicalApplicationInstance.getTopics().keySet().stream()
+                                            .map(TopicDefinition::getName)
+                                            .toList()
+                                    + " are available");
                 }
 
-                ensureDeadLetterTopic(connection, physicalApplicationInstance, streamingClusterRuntime, result);
+                ensureDeadLetterTopic(
+                        connection, physicalApplicationInstance, streamingClusterRuntime, result);
 
                 yield result;
             }
             case AGENT -> {
-                AgentConfiguration agentConfiguration = pipeline
-                        .getAgent(connection.definition());
+                AgentConfiguration agentConfiguration = pipeline.getAgent(connection.definition());
                 yield switch (direction) {
                     case OUTPUT -> {
-                        Topic result = buildImplicitTopicForAgent(physicalApplicationInstance, agentConfiguration,  streamingClusterRuntime);
-                        ensureDeadLetterTopic(connection, physicalApplicationInstance, streamingClusterRuntime, result);
+                        Topic result =
+                                buildImplicitTopicForAgent(
+                                        physicalApplicationInstance,
+                                        agentConfiguration,
+                                        streamingClusterRuntime);
+                        ensureDeadLetterTopic(
+                                connection,
+                                physicalApplicationInstance,
+                                streamingClusterRuntime,
+                                result);
                         yield result;
                     }
                     case INPUT -> {
                         if (agentConfiguration.getOutput() != null) {
-                            yield getConnectionImplementation(module, pipeline, agentConfiguration.getOutput(), ConnectionImplementation.ConnectionDirection.OUTPUT, physicalApplicationInstance, streamingClusterRuntime);
+                            yield getConnectionImplementation(
+                                    module,
+                                    pipeline,
+                                    agentConfiguration.getOutput(),
+                                    ConnectionImplementation.ConnectionDirection.OUTPUT,
+                                    physicalApplicationInstance,
+                                    streamingClusterRuntime);
                         }
-                        throw new IllegalStateException("Invalid agent configuration for (" + agentConfiguration.getName() + ") , missing output");
+                        throw new IllegalStateException(
+                                "Invalid agent configuration for ("
+                                        + agentConfiguration.getName()
+                                        + ") , missing output");
                     }
                 };
             }
         };
     }
 
-    private void ensureDeadLetterTopic(Connection connection, ExecutionPlan physicalApplicationInstance, StreamingClusterRuntime streamingClusterRuntime, Topic result) {
+    private void ensureDeadLetterTopic(
+            Connection connection,
+            ExecutionPlan physicalApplicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime,
+            Topic result) {
         if (connection.enableDeadletterQueue()) {
-            TopicDefinition topicDefinition = physicalApplicationInstance.getTopicDefinitionByName(result.topicName());
-            Topic deadLetterTopic = buildImplicitTopicForDeadletterQueue(result, topicDefinition, streamingClusterRuntime, physicalApplicationInstance);
+            TopicDefinition topicDefinition =
+                    physicalApplicationInstance.getTopicDefinitionByName(result.topicName());
+            Topic deadLetterTopic =
+                    buildImplicitTopicForDeadletterQueue(
+                            result,
+                            topicDefinition,
+                            streamingClusterRuntime,
+                            physicalApplicationInstance);
             result.bindDeadletterTopic(deadLetterTopic);
         }
     }
 
-    private Topic buildImplicitTopicForDeadletterQueue(Topic connection, TopicDefinition inputTopicDefinition, StreamingClusterRuntime streamingClusterRuntime,
-                                                      ExecutionPlan physicalApplicationInstance) {
+    private Topic buildImplicitTopicForDeadletterQueue(
+            Topic connection,
+            TopicDefinition inputTopicDefinition,
+            StreamingClusterRuntime streamingClusterRuntime,
+            ExecutionPlan physicalApplicationInstance) {
         // connecting two agents requires an intermediate topic
         String name = connection.topicName() + "-deadletter";
-        log.info("Automatically creating deadletter topic {} for topic {}", name, connection.topicName());
-        // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
+        log.info(
+                "Automatically creating deadletter topic {} for topic {}",
+                name,
+                connection.topicName());
+        // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar
+        // Cluster
         String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
         // we keep the same schemas as the input topic
-        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode,
-                inputTopicDefinition.isImplicit(),
-                inputTopicDefinition.getPartitions(),
-                inputTopicDefinition.getKeySchema(),
-                inputTopicDefinition.getValueSchema(),
-                Map.of(), Map.of());
-        Topic topicImplementation = streamingClusterRuntime.createTopicImplementation(topicDefinition, physicalApplicationInstance);
+        TopicDefinition topicDefinition =
+                new TopicDefinition(
+                        name,
+                        creationMode,
+                        inputTopicDefinition.isImplicit(),
+                        inputTopicDefinition.getPartitions(),
+                        inputTopicDefinition.getKeySchema(),
+                        inputTopicDefinition.getValueSchema(),
+                        Map.of(),
+                        Map.of());
+        Topic topicImplementation =
+                streamingClusterRuntime.createTopicImplementation(
+                        topicDefinition, physicalApplicationInstance);
         physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);
         return topicImplementation;
     }
 
-    protected Topic buildImplicitTopicForAgent(ExecutionPlan physicalApplicationInstance,
-                                                                  AgentConfiguration agentConfiguration,
-                                                                  StreamingClusterRuntime streamingClusterRuntime) {
+    protected Topic buildImplicitTopicForAgent(
+            ExecutionPlan physicalApplicationInstance,
+            AgentConfiguration agentConfiguration,
+            StreamingClusterRuntime streamingClusterRuntime) {
         // connecting two agents requires an intermediate topic
         String name = "agent-" + agentConfiguration.getId() + "-input";
-        log.info("Automatically creating topic {} in order to connect as input for agent {}", name, agentConfiguration.getId());
-        // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar Cluster
+        log.info(
+                "Automatically creating topic {} in order to connect as input for agent {}",
+                name,
+                agentConfiguration.getId());
+        // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar
+        // Cluster
         String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
-        TopicDefinition topicDefinition = new TopicDefinition(name, creationMode, true, DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS, null, null,
-                Map.of(), Map.of());
-        Topic topicImplementation = streamingClusterRuntime.createTopicImplementation(topicDefinition, physicalApplicationInstance);
+        TopicDefinition topicDefinition =
+                new TopicDefinition(
+                        name,
+                        creationMode,
+                        true,
+                        DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS,
+                        null,
+                        null,
+                        Map.of(),
+                        Map.of());
+        Topic topicImplementation =
+                streamingClusterRuntime.createTopicImplementation(
+                        topicDefinition, physicalApplicationInstance);
         physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);
 
         return topicImplementation;
     }
 
     @Override
-    public Object deploy(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
-                         String codeStorageArchiveId) {
+    public Object deploy(
+            String tenant,
+            ExecutionPlan applicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime,
+            String codeStorageArchiveId) {
         streamingClusterRuntime.deploy(applicationInstance);
-        log.warn("ClusterType " + getClusterType() + " doesn't actually deploy agents, it's just a logical representation");
+        log.warn(
+                "ClusterType "
+                        + getClusterType()
+                        + " doesn't actually deploy agents, it's just a logical representation");
         return null;
     }
 
     @Override
-    public void delete(String tenant, ExecutionPlan applicationInstance, StreamingClusterRuntime streamingClusterRuntime,
-                       String codeStorageArchiveId) {
+    public void delete(
+            String tenant,
+            ExecutionPlan applicationInstance,
+            StreamingClusterRuntime streamingClusterRuntime,
+            String codeStorageArchiveId) {
         streamingClusterRuntime.delete(applicationInstance);
-        log.warn("ClusterType " + getClusterType() + " doesn't actually deploy agents, it's just a logical representation");
+        log.warn(
+                "ClusterType "
+                        + getClusterType()
+                        + " doesn't actually deploy agents, it's just a logical representation");
     }
 }

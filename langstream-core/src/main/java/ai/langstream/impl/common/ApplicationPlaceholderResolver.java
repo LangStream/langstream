@@ -42,23 +42,22 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ApplicationPlaceholderResolver {
 
-    private static final ObjectMapper mapper = new ObjectMapper()
-            .enable(SerializationFeature.INDENT_OUTPUT);
+    private static final ObjectMapper mapper =
+            new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-    private ApplicationPlaceholderResolver() {
-    }
+    private ApplicationPlaceholderResolver() {}
 
     @SneakyThrows
     public static Application resolvePlaceholders(Application instance) {
         instance = deepCopy(instance);
         final Map<String, Object> context = createContext(instance);
         if (log.isDebugEnabled()) {
-            log.debug("Resolving placeholders with context:\n{}", mapper.writeValueAsString(context));
+            log.debug(
+                    "Resolving placeholders with context:\n{}", mapper.writeValueAsString(context));
         }
         if (log.isDebugEnabled()) {
             log.debug("Resolve context: {}", context);
         }
-
 
         instance.setInstance(resolveInstance(instance, context));
         instance.setResources(resolveResources(instance, context));
@@ -66,8 +65,6 @@ public class ApplicationPlaceholderResolver {
         instance.setGateways(resolveGateways(instance, context));
         return instance;
     }
-
-
 
     static Map<String, Object> createContext(Application application) throws IOException {
         Map<String, Object> context = new HashMap<>();
@@ -86,7 +83,8 @@ public class ApplicationPlaceholderResolver {
         return context;
     }
 
-    private static Map<String, Module> resolveModules(Application instance, Map<String, Object> context) {
+    private static Map<String, Module> resolveModules(
+            Application instance, Map<String, Object> context) {
         Map<String, Module> newModules = new LinkedHashMap<>();
         for (Map.Entry<String, Module> moduleEntry : instance.getModules().entrySet()) {
             final Module module = moduleEntry.getValue();
@@ -104,7 +102,8 @@ public class ApplicationPlaceholderResolver {
         return newModules;
     }
 
-    private static Instance resolveInstance(Application applicationInstance, Map<String, Object> context) {
+    private static Instance resolveInstance(
+            Application applicationInstance, Map<String, Object> context) {
         final StreamingCluster newCluster;
         final ComputeCluster newComputeCluster;
         final Instance instance = applicationInstance.getInstance();
@@ -113,36 +112,36 @@ public class ApplicationPlaceholderResolver {
         }
         final StreamingCluster cluster = instance.streamingCluster();
         if (cluster != null) {
-            newCluster = new StreamingCluster(cluster.type(), resolveMap(context, cluster.configuration()));
+            newCluster =
+                    new StreamingCluster(
+                            cluster.type(), resolveMap(context, cluster.configuration()));
         } else {
             newCluster = null;
         }
         final ComputeCluster computeCluster = instance.computeCluster();
         if (computeCluster != null) {
-            newComputeCluster = new ComputeCluster(computeCluster.type(), resolveMap(context, computeCluster.configuration()));
+            newComputeCluster =
+                    new ComputeCluster(
+                            computeCluster.type(),
+                            resolveMap(context, computeCluster.configuration()));
         } else {
             newComputeCluster = null;
         }
-        return new Instance(
-                newCluster,
-                newComputeCluster,
-                resolveMap(context, instance.globals())
-        );
+        return new Instance(newCluster, newComputeCluster, resolveMap(context, instance.globals()));
     }
 
-    private static Map<String, Resource> resolveResources(Application instance,
-                                                          Map<String, Object> context) {
+    private static Map<String, Resource> resolveResources(
+            Application instance, Map<String, Object> context) {
         Map<String, Resource> newResources = new HashMap<>();
         for (Map.Entry<String, Resource> resourceEntry : instance.getResources().entrySet()) {
             final Resource resource = resourceEntry.getValue();
-            newResources.put(resourceEntry.getKey(),
+            newResources.put(
+                    resourceEntry.getKey(),
                     new Resource(
                             resource.id(),
                             resource.name(),
                             resource.type(),
-                            resolveMap(context, resource.configuration())
-                    )
-            );
+                            resolveMap(context, resource.configuration())));
         }
         return newResources;
     }
@@ -154,11 +153,22 @@ public class ApplicationPlaceholderResolver {
         List<Gateway> newGateways = new ArrayList<>();
         for (Gateway gateway : instance.getGateways().gateways()) {
             Gateway.Authentication authentication = gateway.authentication();
-            if (gateway.authentication() != null && gateway.authentication().configuration() != null) {
-                authentication = new Gateway.Authentication(authentication.provider(), resolveMap(context, gateway.authentication().configuration()));
+            if (gateway.authentication() != null
+                    && gateway.authentication().configuration() != null) {
+                authentication =
+                        new Gateway.Authentication(
+                                authentication.provider(),
+                                resolveMap(context, gateway.authentication().configuration()));
             }
-            newGateways.add(new Gateway(gateway.id(), gateway.type(),
-                    gateway.topic(), authentication, gateway.parameters(), gateway.produceOptions(), gateway.consumeOptions()));
+            newGateways.add(
+                    new Gateway(
+                            gateway.id(),
+                            gateway.type(),
+                            gateway.topic(),
+                            authentication,
+                            gateway.parameters(),
+                            gateway.produceOptions(),
+                            gateway.consumeOptions()));
         }
         return new Gateways(newGateways);
     }
@@ -190,21 +200,19 @@ public class ApplicationPlaceholderResolver {
         }
     }
 
-    private record Placeholder(String key, String value, String finalReplacement) {
-    }
+    private record Placeholder(String key, String value, String finalReplacement) {}
 
     static String resolveValue(Map<String, Object> context, String template) {
         List<Placeholder> placeholders = new ArrayList<>();
         placeholders.add(new Placeholder("{{% ", "{__MUSTACHE_ESCAPING_PREFIX ", "{{ "));
-        placeholders.add(new Placeholder("{{%# ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPSTART ", "{{# "));
+        placeholders.add(
+                new Placeholder("{{%# ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPSTART ", "{{# "));
         placeholders.add(new Placeholder("{{%/ ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPEND ", "{{/ "));
         String escaped = template;
         for (Placeholder placeholder : placeholders) {
             escaped = escaped.replace(placeholder.key, placeholder.value);
         }
-        final String result = Mustache.compiler()
-                .compile(escaped)
-                .execute(context);
+        final String result = Mustache.compiler().compile(escaped).execute(context);
         String finalResult = result;
         for (Placeholder placeholder : placeholders) {
             finalResult = finalResult.replace(placeholder.value, placeholder.finalReplacement);

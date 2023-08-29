@@ -39,42 +39,62 @@ public class CodeStorageService {
     public CodeStorageService(StorageProperties storageProperties) {
         log.info("Loading CodeStorage implementation for " + storageProperties);
         codeStorage =
-                CodeStorageRegistry.getCodeStorage(storageProperties.getCode().getType(),
+                CodeStorageRegistry.getCodeStorage(
+                        storageProperties.getCode().getType(),
                         storageProperties.getCode().getConfiguration());
     }
 
-    public String deployApplicationCodeStorage(String tenant, String application, Path zipFile) throws CodeStorageException {
-       String uuid = UUID.randomUUID().toString();
-        CodeArchiveMetadata archiveMetadata = codeStorage.storeApplicationCode(tenant, application, uuid,
-                new LocalFileUploadableCodeArchive(zipFile));
+    public String deployApplicationCodeStorage(String tenant, String application, Path zipFile)
+            throws CodeStorageException {
+        String uuid = UUID.randomUUID().toString();
+        CodeArchiveMetadata archiveMetadata =
+                codeStorage.storeApplicationCode(
+                        tenant, application, uuid, new LocalFileUploadableCodeArchive(zipFile));
         if (!Objects.equals(tenant, archiveMetadata.tenant())
-            || !Objects.equals(application, archiveMetadata.applicationId())) {
-            throw new CodeStorageException("Invalid archive metadata " + archiveMetadata +
-                    " for tenant " + tenant + " and application " + application);
+                || !Objects.equals(application, archiveMetadata.applicationId())) {
+            throw new CodeStorageException(
+                    "Invalid archive metadata "
+                            + archiveMetadata
+                            + " for tenant "
+                            + tenant
+                            + " and application "
+                            + application);
         }
         return archiveMetadata.codeStoreId();
     }
 
-    public byte[] downloadApplicationCode(String tenant, String applicationId, String codeStoreId) throws CodeStorageException {
-        final CodeArchiveMetadata codeArchiveMetadata = codeStorage.describeApplicationCode(tenant, codeStoreId);
+    public byte[] downloadApplicationCode(String tenant, String applicationId, String codeStoreId)
+            throws CodeStorageException {
+        final CodeArchiveMetadata codeArchiveMetadata =
+                codeStorage.describeApplicationCode(tenant, codeStoreId);
         if (codeArchiveMetadata == null) {
-            throw new IllegalArgumentException("Invalid code archive " + codeStoreId + " for tenant " + tenant + " and application " + applicationId);
+            throw new IllegalArgumentException(
+                    "Invalid code archive "
+                            + codeStoreId
+                            + " for tenant "
+                            + tenant
+                            + " and application "
+                            + applicationId);
         }
         if (!Objects.equals(codeArchiveMetadata.tenant(), tenant)) {
-            throw new IllegalArgumentException("Invalid tenant " + tenant + " for code archive " + codeStoreId);
+            throw new IllegalArgumentException(
+                    "Invalid tenant " + tenant + " for code archive " + codeStoreId);
         }
         if (!Objects.equals(codeArchiveMetadata.applicationId(), applicationId)) {
-            throw new IllegalArgumentException("Invalid application id " + tenant + " for code archive " + codeStoreId);
+            throw new IllegalArgumentException(
+                    "Invalid application id " + tenant + " for code archive " + codeStoreId);
         }
         AtomicReference<byte[]> result = new AtomicReference<>();
-        codeStorage.downloadApplicationCode(tenant, codeStoreId, new CodeStorage.DownloadedCodeHandled() {
-            @Override
-            @SneakyThrows
-            public void accept(DownloadedCodeArchive archive) {
-                result.set(archive.getData());
-            }
-        });
+        codeStorage.downloadApplicationCode(
+                tenant,
+                codeStoreId,
+                new CodeStorage.DownloadedCodeHandled() {
+                    @Override
+                    @SneakyThrows
+                    public void accept(DownloadedCodeArchive archive) {
+                        result.set(archive.getData());
+                    }
+                });
         return result.get();
     }
-
 }

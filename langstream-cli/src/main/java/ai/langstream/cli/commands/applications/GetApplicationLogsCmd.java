@@ -22,7 +22,8 @@ import java.util.List;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "logs",
+@CommandLine.Command(
+        name = "logs",
         mixinStandardHelpOptions = true,
         description = "Get LangStream application logs")
 public class GetApplicationLogsCmd extends BaseApplicationCmd {
@@ -30,7 +31,9 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
     @CommandLine.Parameters(description = "Name of the application")
     private String name;
 
-    @CommandLine.Option(names = {"-f"}, description = "Filter logs by the worker id")
+    @CommandLine.Option(
+            names = {"-f"},
+            description = "Filter logs by the worker id")
     private List<String> filter;
 
     @Override
@@ -38,21 +41,28 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
     public void run() {
         final String filterStr = filter == null ? "" : "?filter=" + String.join(",", filter);
         final AdminClient client = getClient();
-        client.getHttpClient().sendAsync(client.newGet(client.tenantAppPath("/" + name + "/logs" + filterStr)), HttpResponse.BodyHandlers.ofByteArrayConsumer(
-                bytes -> {
-                    if (bytes.isPresent()) {
-                        command.commandLine().getOut().print(new String(bytes.get(), StandardCharsets.UTF_8));
-                        command.commandLine().getOut().flush();
-                    }
-
-                }))
+        client.getHttpClient()
+                .sendAsync(
+                        client.newGet(client.tenantAppPath("/" + name + "/logs" + filterStr)),
+                        HttpResponse.BodyHandlers.ofByteArrayConsumer(
+                                bytes -> {
+                                    if (bytes.isPresent()) {
+                                        command.commandLine()
+                                                .getOut()
+                                                .print(
+                                                        new String(
+                                                                bytes.get(),
+                                                                StandardCharsets.UTF_8));
+                                        command.commandLine().getOut().flush();
+                                    }
+                                }))
                 .thenApply(HttpResponse::statusCode)
-                .thenAccept((status) -> {
-                    if (status != 200) {
-                        err("ERROR: %d status received".formatted(status));
-                    }
-                }).join();
-
-
+                .thenAccept(
+                        (status) -> {
+                            if (status != 200) {
+                                err("ERROR: %d status received".formatted(status));
+                            }
+                        })
+                .join();
     }
 }

@@ -15,11 +15,9 @@
  */
 package ai.langstream.api.model;
 
-import lombok.Data;
-
 import java.util.ArrayList;
 import java.util.List;
-
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
@@ -40,14 +38,12 @@ public class Pipeline {
 
     private List<AgentConfiguration> agents = new ArrayList<>();
 
-
     public void addAgentConfiguration(AgentConfiguration a) {
         agents.add(a);
     }
 
     public AgentConfiguration getAgent(String definition) {
-        return agents
-                .stream()
+        return agents.stream()
                 .filter(a -> a.getId().equals(definition))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Agent not found: " + definition));

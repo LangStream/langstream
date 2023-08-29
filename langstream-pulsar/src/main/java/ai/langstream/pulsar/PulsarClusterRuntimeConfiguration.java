@@ -31,5 +31,4 @@ public class PulsarClusterRuntimeConfiguration {
     private Map<String, Object> authentication;
     private String defaultTenant = "public";
     private String defaultNamespace = "default";
-
 }

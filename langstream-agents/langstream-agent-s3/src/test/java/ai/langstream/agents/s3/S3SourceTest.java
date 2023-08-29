@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Record;
@@ -49,19 +50,21 @@ import org.testcontainers.utility.DockerImageName;
 public class S3SourceTest {
 
     private static final AgentCodeRegistry AGENT_CODE_REGISTRY = new AgentCodeRegistry();
-    private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:2.2.0");
+    private static final DockerImageName localstackImage =
+            DockerImageName.parse("localstack/localstack:2.2.0");
 
     @Container
-    private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage)
-        .withServices(S3);
+    private static final LocalStackContainer localstack =
+            new LocalStackContainer(localstackImage).withServices(S3);
 
     private static MinioClient minioClient;
 
     @BeforeAll
     static void setup() {
-        minioClient = MinioClient.builder()
-            .endpoint(localstack.getEndpointOverride(S3).toString())
-            .build();
+        minioClient =
+                MinioClient.builder()
+                        .endpoint(localstack.getEndpointOverride(S3).toString())
+                        .build();
     }
 
     @Test
@@ -72,30 +75,34 @@ public class S3SourceTest {
         for (int i = 0; i < 10; i++) {
             String s = content + i;
             minioClient.putObject(
-                PutObjectArgs.builder()
-                    .bucket(bucket)
-                    .object("test-" + i + ".txt")
-                    .stream(new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)), s.length(), -1)
-                    .build()
-            );
+                    PutObjectArgs.builder().bucket(bucket).object("test-" + i + ".txt").stream(
+                                    new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)),
+                                    s.length(),
+                                    -1)
+                            .build());
         }
 
         List<Record> read = agentSource.read();
         assertEquals(1, read.size());
-        assertArrayEquals("test-content-0".getBytes(StandardCharsets.UTF_8), (byte[]) read.get(0).value());
+        assertArrayEquals(
+                "test-content-0".getBytes(StandardCharsets.UTF_8), (byte[]) read.get(0).value());
 
         // DO NOT COMMIT, the source should not return the same objects
 
         List<Record> read2 = agentSource.read();
 
         assertEquals(1, read2.size());
-        assertArrayEquals("test-content-1".getBytes(StandardCharsets.UTF_8), (byte[]) read2.get(0).value());
+        assertArrayEquals(
+                "test-content-1".getBytes(StandardCharsets.UTF_8), (byte[]) read2.get(0).value());
 
         // COMMIT (out of order)
         agentSource.commit(read2);
         agentSource.commit(read);
 
-        Iterator<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build()).iterator();
+        Iterator<Result<Item>> results =
+                minioClient
+                        .listObjects(ListObjectsArgs.builder().bucket(bucket).build())
+                        .iterator();
         for (int i = 2; i < 10; i++) {
             Result<Item> item = results.next();
             assertEquals("test-" + i + ".txt", item.get().objectName());
@@ -109,7 +116,10 @@ public class S3SourceTest {
         agentSource.commit(all);
         all.clear();
 
-        results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build()).iterator();
+        results =
+                minioClient
+                        .listObjects(ListObjectsArgs.builder().bucket(bucket).build())
+                        .iterator();
         assertFalse(results.hasNext());
 
         for (int i = 0; i < 10; i++) {
@@ -123,13 +133,21 @@ public class S3SourceTest {
     void emptyBucket() throws Exception {
         String bucket = "langstream-test-" + UUID.randomUUID();
         AgentSource agentSource = buildAgentSource(bucket);
-        assertFalse(minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build()).iterator().hasNext());
+        assertFalse(
+                minioClient
+                        .listObjects(ListObjectsArgs.builder().bucket(bucket).build())
+                        .iterator()
+                        .hasNext());
         agentSource.commit(List.of());
         List<Record> read = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             read.addAll(agentSource.read());
         }
-        assertFalse(minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build()).iterator().hasNext());
+        assertFalse(
+                minioClient
+                        .listObjects(ListObjectsArgs.builder().bucket(bucket).build())
+                        .iterator()
+                        .hasNext());
         agentSource.commit(read);
     }
 
@@ -139,18 +157,19 @@ public class S3SourceTest {
         AgentSource agentSource = buildAgentSource(bucket);
         String content = "test-content";
         minioClient.putObject(
-            PutObjectArgs.builder()
-                .bucket(bucket)
-                .object("test")
-                .stream(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), content.length(), -1)
-                .build());
+                PutObjectArgs.builder().bucket(bucket).object("test").stream(
+                                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)),
+                                content.length(),
+                                -1)
+                        .build());
         List<Record> read = agentSource.read();
         minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object("test").build());
         agentSource.commit(read);
     }
 
     private AgentSource buildAgentSource(String bucket) throws Exception {
-        AgentSource agentSource = (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("s3-source").agentCode();
+        AgentSource agentSource =
+                (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("s3-source").agentCode();
         Map<String, Object> configs = new HashMap<>();
         String endpoint = localstack.getEndpointOverride(S3).toString();
         configs.put("endpoint", endpoint);

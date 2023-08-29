@@ -15,10 +15,10 @@
  */
 package ai.langstream.deployer.k8s.controllers;
 
+import ai.langstream.deployer.k8s.util.SerializationUtil;
 import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.exception.ExecutionException;
 import com.dajudge.kindcontainer.kubectl.KubectlContainer;
-import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
@@ -40,7 +40,6 @@ import org.testcontainers.utility.DockerImageName;
 
 public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
 
-
     GenericContainer<?> container;
     K3sContainer k3s;
     KubernetesClient client;
@@ -59,8 +58,6 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
             k3s.stop();
             k3s = null;
         }
-
-
     }
 
     @Override
@@ -72,50 +69,60 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
         Testcontainers.exposeHostPorts(k3s.getFirstMappedPort());
         final Path kubeconfigFile = writeKubeConfigForOperatorContainer();
         container =
-                new GenericContainer<>(DockerImageName.parse("langstream/langstream-deployer:latest-dev"));
-        container.withFileSystemBind(kubeconfigFile.toFile().getAbsolutePath(), "/tmp/kubeconfig.yaml");
+                new GenericContainer<>(
+                        DockerImageName.parse("langstream/langstream-deployer:latest-dev"));
+        container.withFileSystemBind(
+                kubeconfigFile.toFile().getAbsolutePath(), "/tmp/kubeconfig.yaml");
         container.withEnv("KUBECONFIG", "/tmp/kubeconfig.yaml");
         container.withEnv("QUARKUS_KUBERNETES_CLIENT_TRUST_CERTS", "true");
         container.withExposedPorts(8080);
         container.withAccessToHost(true);
-        container.setWaitStrategy(new HttpWaitStrategy()
-                .forPort(8080)
-                .forPath("/q/health/ready"));
-        container.withLogConsumer(outputFrame -> System.out.print("operator>" + outputFrame.getUtf8String()));
+        container.setWaitStrategy(new HttpWaitStrategy().forPort(8080).forPath("/q/health/ready"));
+        container.withLogConsumer(
+                outputFrame -> System.out.print("operator>" + outputFrame.getUtf8String()));
         container.start();
-        client = new KubernetesClientBuilder()
-                .withConfig(Config.fromKubeconfig(k3s.getKubeconfig()))
-                .build();
+        client =
+                new KubernetesClientBuilder()
+                        .withConfig(Config.fromKubeconfig(k3s.getKubeconfig()))
+                        .build();
     }
-
 
     public KubernetesClient getClient() {
         return client;
     }
 
-
     private void applyCRDs() throws IOException, ExecutionException, InterruptedException {
         final KubectlContainer kubectl = k3s.kubectl();
-        Files.list(Path.of("..", "..", "helm", "crds")).forEach(path -> {
-            try {
-                kubectl.copyFileToContainer(Transferable.of(Files.readAllBytes(path)), "/crds/" + path.getFileName());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
-        kubectl
-                .apply
-                .from("/crds")
-                .run();
+        Files.list(Path.of("..", "..", "helm", "crds"))
+                .forEach(
+                        path -> {
+                            try {
+                                kubectl.copyFileToContainer(
+                                        Transferable.of(Files.readAllBytes(path)),
+                                        "/crds/" + path.getFileName());
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+        kubectl.apply.from("/crds").run();
     }
 
     private Path writeKubeConfigForOperatorContainer() throws IOException {
-        final Path kubeconfigFile = Files.createTempDirectory("test-k3s").resolve("kubeconfig.yaml");
+        final Path kubeconfigFile =
+                Files.createTempDirectory("test-k3s").resolve("kubeconfig.yaml");
 
         final Map asMap = SerializationUtil.readYaml(k3s.getInternalKubeconfig(), Map.class);
-        ((List<Map<String, Object>>)asMap.get("clusters")).get(0).put("cluster", Map.of(
-                "server", String.format("https://%s:%d", "host.testcontainers.internal", k3s.getFirstMappedPort()),
-                "insecure-skip-tls-verify", true));
+        ((List<Map<String, Object>>) asMap.get("clusters"))
+                .get(0)
+                .put(
+                        "cluster",
+                        Map.of(
+                                "server",
+                                String.format(
+                                        "https://%s:%d",
+                                        "host.testcontainers.internal", k3s.getFirstMappedPort()),
+                                "insecure-skip-tls-verify",
+                                true));
         final String newConfig = SerializationUtil.writeAsYaml(asMap);
         Files.writeString(kubeconfigFile, newConfig);
         return kubeconfigFile;

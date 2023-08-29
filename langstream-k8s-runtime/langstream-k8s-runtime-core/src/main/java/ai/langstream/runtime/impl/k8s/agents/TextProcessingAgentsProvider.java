@@ -19,22 +19,21 @@ import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * Implements support for Text Processing Agents.
- */
+/** Implements support for Text Processing Agents. */
 @Slf4j
 public class TextProcessingAgentsProvider extends AbstractComposableAgentProvider {
 
-    private static final Set<String> SUPPORTED_AGENT_TYPES = Set.of("text-extractor",
-            "language-detector",
-            "text-splitter",
-            "text-normaliser",
-            "document-to-json");
+    private static final Set<String> SUPPORTED_AGENT_TYPES =
+            Set.of(
+                    "text-extractor",
+                    "language-detector",
+                    "text-splitter",
+                    "text-normaliser",
+                    "document-to-json");
 
     public TextProcessingAgentsProvider() {
         super(SUPPORTED_AGENT_TYPES, List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));

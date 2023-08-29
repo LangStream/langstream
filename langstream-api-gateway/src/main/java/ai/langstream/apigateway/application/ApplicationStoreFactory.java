@@ -15,12 +15,10 @@
  */
 package ai.langstream.apigateway.application;
 
-import ai.langstream.apigateway.config.StorageProperties;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.storage.ApplicationStoreRegistry;
-
+import ai.langstream.apigateway.config.StorageProperties;
 import java.util.Objects;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

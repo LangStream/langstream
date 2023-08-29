@@ -15,29 +15,28 @@
  */
 package ai.langstream.api.runner.code;
 
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * The runtime registry is a singleton that holds all the runtime information about the
- * possible implementations of the LangStream API.
+ * The runtime registry is a singleton that holds all the runtime information about the possible
+ * implementations of the LangStream API.
  */
 @Slf4j
 public class AgentCodeRegistry {
 
     private AgentPackageLoader agentPackageLoader;
 
-    public AgentCodeRegistry() {
-    }
+    public AgentCodeRegistry() {}
 
     public interface AgentPackage {
         String getName();
+
         ClassLoader getClassloader();
     }
 
@@ -49,16 +48,18 @@ public class AgentCodeRegistry {
         ClassLoader getCustomCodeClassloader();
     }
 
-
     @SneakyThrows
     public AgentCodeAndLoader getAgentCode(String agentType) {
         log.info("Loading agent code for type {}", agentType);
         Objects.requireNonNull(agentType, "agentType cannot be null");
 
-        ClassLoader customCodeClassloader = agentPackageLoader != null ?
-                agentPackageLoader.getCustomCodeClassloader() : AgentCodeRegistry.class.getClassLoader();
+        ClassLoader customCodeClassloader =
+                agentPackageLoader != null
+                        ? agentPackageLoader.getCustomCodeClassloader()
+                        : AgentCodeRegistry.class.getClassLoader();
         // always allow to find the system agents
-        AgentCodeAndLoader agentCodeProviderProviderFromSystem = loadFromClassloader(agentType, customCodeClassloader);
+        AgentCodeAndLoader agentCodeProviderProviderFromSystem =
+                loadFromClassloader(agentType, customCodeClassloader);
         if (agentCodeProviderProviderFromSystem != null) {
             log.info("The agent {} is loaded from the system classpath", agentType);
             return agentCodeProviderProviderFromSystem;
@@ -69,10 +70,15 @@ public class AgentCodeRegistry {
 
             if (agentPackage != null) {
                 log.info("Found the package the agent belongs to: {}", agentPackage.getName());
-                AgentCodeAndLoader agentCodeProviderProvider = loadFromClassloader(agentType, agentPackage.getClassloader());
+                AgentCodeAndLoader agentCodeProviderProvider =
+                        loadFromClassloader(agentType, agentPackage.getClassloader());
                 if (agentCodeProviderProvider == null) {
-                    throw new RuntimeException("Package " + agentPackage.getName()
-                            + " declared to support agent type "+agentType+" but no agent found");
+                    throw new RuntimeException(
+                            "Package "
+                                    + agentPackage.getName()
+                                    + " declared to support agent type "
+                                    + agentType
+                                    + " but no agent found");
                 }
                 return agentCodeProviderProvider;
             }
@@ -80,10 +86,12 @@ public class AgentCodeRegistry {
             log.info("No agent found in the package, let's try to find it among all the packages");
 
             // we are not lucky, let's try to find the agent in all the packages
-            List<ClassLoader> candidateClassloaders = new ArrayList<>(agentPackageLoader.getAllClassloaders());
+            List<ClassLoader> candidateClassloaders =
+                    new ArrayList<>(agentPackageLoader.getAllClassloaders());
 
             for (ClassLoader classLoader : candidateClassloaders) {
-                AgentCodeAndLoader agentCodeProviderProvider = loadFromClassloader(agentType, classLoader);
+                AgentCodeAndLoader agentCodeProviderProvider =
+                        loadFromClassloader(agentType, classLoader);
                 if (agentCodeProviderProvider != null) {
                     return agentCodeProviderProvider;
                 }
@@ -93,20 +101,22 @@ public class AgentCodeRegistry {
         throw new RuntimeException("No AgentCodeProvider found for type " + agentType);
     }
 
-    private static AgentCodeAndLoader loadFromClassloader(String agentType, ClassLoader classLoader) {
-        ServiceLoader<AgentCodeProvider> loader = ServiceLoader.load(AgentCodeProvider.class, classLoader);
-        Optional<ServiceLoader.Provider<AgentCodeProvider>> agentCodeProviderProvider = loader
-                .stream()
-                .filter(p -> p.get().supports(agentType))
-                .findFirst();
+    private static AgentCodeAndLoader loadFromClassloader(
+            String agentType, ClassLoader classLoader) {
+        ServiceLoader<AgentCodeProvider> loader =
+                ServiceLoader.load(AgentCodeProvider.class, classLoader);
+        Optional<ServiceLoader.Provider<AgentCodeProvider>> agentCodeProviderProvider =
+                loader.stream().filter(p -> p.get().supports(agentType)).findFirst();
 
         return agentCodeProviderProvider
-            .map(provider -> new AgentCodeAndLoader(provider.get().createInstance(agentType), classLoader))
-            .orElse(null);
+                .map(
+                        provider ->
+                                new AgentCodeAndLoader(
+                                        provider.get().createInstance(agentType), classLoader))
+                .orElse(null);
     }
 
     public void setAgentPackageLoader(AgentPackageLoader loader) {
         this.agentPackageLoader = loader;
     }
-
 }

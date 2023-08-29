@@ -23,5 +23,4 @@ public interface TopicAdmin extends AutoCloseable {
     default Object getNativeTopicAdmin() {
         return null;
     }
-
 }

@@ -16,12 +16,12 @@
 package ai.langstream.kafka;
 
 import ai.langstream.AbstractApplicationRunner;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
-import java.util.List;
-import java.util.Map;
 
 @Slf4j
 class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
@@ -31,8 +31,10 @@ class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-module-1-pipeline-1-text-extractor-1"};
 
-        Map<String, String> application = Map.of(
-                        "module.yaml", """
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -64,18 +66,26 @@ class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
                                         trimSpaces: true
                                 """);
 
-        try (ApplicationRuntime applicationRuntime = deployApplication(tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
+                    KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
-                sendMessage("input-topic","Questo testo è scritto in Italiano.", producer);
-                sendMessage("input-topic","This text is written in English, but it is very long,\nso you may want to split it into chunks.", producer);
+                sendMessage("input-topic", "Questo testo è scritto in Italiano.", producer);
+                sendMessage(
+                        "input-topic",
+                        "This text is written in English, but it is very long,\nso you may want to split it into chunks.",
+                        producer);
 
                 executeAgentRunners(applicationRuntime);
-                waitForMessages(consumer, List.of("this text is written in english, but it is very", "long,", "so you may want to split it into chunks."));
+                waitForMessages(
+                        consumer,
+                        List.of(
+                                "this text is written in english, but it is very",
+                                "long,",
+                                "so you may want to split it into chunks."));
             }
         }
-
     }
-
 }

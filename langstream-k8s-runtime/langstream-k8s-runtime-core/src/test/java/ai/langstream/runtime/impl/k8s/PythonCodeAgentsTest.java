@@ -17,6 +17,7 @@ package ai.langstream.runtime.impl.k8s;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
@@ -50,9 +51,11 @@ class PythonCodeAgentsTest {
 
     @Test
     public void testConfigurePythonAgents() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 pipeline:
@@ -77,26 +80,34 @@ class PythonCodeAgentsTest {
                                       agent.class: my.python.module.MyClass
                                       config1: value1
                                       config2: value2
-                                """), buildInstanceYaml(), null).getApplication();
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
         assertEquals(3, implementation.getAgents().size());
-        log.info("topics {}", implementation.getTopics().keySet().stream().map(TopicDefinition::getName).toList());
+        log.info(
+                "topics {}",
+                implementation.getTopics().keySet().stream()
+                        .map(TopicDefinition::getName)
+                        .toList());
         assertEquals(2, implementation.getTopics().size());
 
         {
-            AgentNode agentImplementation = implementation.getAgentImplementation(module, "source1");
+            AgentNode agentImplementation =
+                    implementation.getAgentImplementation(module, "source1");
             assertNotNull(agentImplementation);
-            DefaultAgentNode step =
-                    (DefaultAgentNode) agentImplementation;
+            DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
             assertEquals("my.python.module.MyClass", configuration.get("agent.class"));
@@ -106,10 +117,10 @@ class PythonCodeAgentsTest {
         }
 
         {
-            AgentNode agentImplementation = implementation.getAgentImplementation(module, "process1");
+            AgentNode agentImplementation =
+                    implementation.getAgentImplementation(module, "process1");
             assertNotNull(agentImplementation);
-            DefaultAgentNode step =
-                    (DefaultAgentNode) agentImplementation;
+            DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
             assertEquals("my.python.module.MyClass", configuration.get("agent.class"));
@@ -121,8 +132,7 @@ class PythonCodeAgentsTest {
         {
             AgentNode agentImplementation = implementation.getAgentImplementation(module, "sink1");
             assertNotNull(agentImplementation);
-            DefaultAgentNode step =
-                    (DefaultAgentNode) agentImplementation;
+            DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
             assertEquals("my.python.module.MyClass", configuration.get("agent.class"));
@@ -131,6 +141,4 @@ class PythonCodeAgentsTest {
             assertEquals(ComponentType.SINK, step.getComponentType());
         }
     }
-
-
 }

@@ -27,12 +27,12 @@ public class CRDConstants {
     public static final String AGENT_LABEL_APPLICATION = "langstream-application";
     public static final String AGENT_LABEL_AGENT_ID = "langstream-agent";
 
-
     public static final String JOB_PREFIX_CLEANUP = "langstream-runtime-deployer-cleanup-";
     public static final String JOB_PREFIX_DEPLOYER = "langstream-runtime-deployer-";
 
     // The name of the secret containing the cluster configuration.
-    // This secret cannot clash with application's secrets since this is an invalid application id (more than 20 chars).
+    // This secret cannot clash with application's secrets since this is an invalid application id
+    // (more than 20 chars).
     public static final String TENANT_CLUSTER_CONFIG_SECRET = "langstream-cluster-config";
     public static final String TENANT_CLUSTER_CONFIG_SECRET_KEY = "cluster-config";
 
@@ -50,5 +50,4 @@ public class CRDConstants {
     public static final int MAX_AGENT_ID_LENGTH = 37;
 
     public static final Pattern RESOURCE_NAME_PATTERN = Pattern.compile("^([a-z])[-a-z0-9]+$");
-
 }

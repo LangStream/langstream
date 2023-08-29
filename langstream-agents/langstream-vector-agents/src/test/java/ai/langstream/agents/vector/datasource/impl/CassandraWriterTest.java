@@ -16,6 +16,7 @@
 package ai.langstream.agents.vector.datasource.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.agents.vector.VectorDBSinkAgent;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.Record;
@@ -37,26 +38,36 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 public class CassandraWriterTest {
     @Container
-    CassandraContainer cassandra = new CassandraContainer(new DockerImageName("cassandra", "latest"));
+    CassandraContainer cassandra =
+            new CassandraContainer(new DockerImageName("cassandra", "latest"));
 
     @Test
     void testWrite() throws Exception {
-        CqlSession session = CqlSession
-                .builder()
-                .addContactPoint(this.cassandra.getContactPoint())
-                .withLocalDatacenter(this.cassandra.getLocalDatacenter())
-                .build();
+        CqlSession session =
+                CqlSession.builder()
+                        .addContactPoint(this.cassandra.getContactPoint())
+                        .withLocalDatacenter(this.cassandra.getLocalDatacenter())
+                        .build();
 
-        session.execute("CREATE KEYSPACE IF NOT EXISTS vsearch WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : '1' };");
-        session.execute("CREATE TABLE vsearch.products (id int PRIMARY KEY,name TEXT,description TEXT);");
+        session.execute(
+                "CREATE KEYSPACE IF NOT EXISTS vsearch WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : '1' };");
+        session.execute(
+                "CREATE TABLE vsearch.products (id int PRIMARY KEY,name TEXT,description TEXT);");
 
-        Map<String, Object> datasourceConfig = Map.of("service", "cassandra",
-        "loadBalancing-localDc", cassandra.getLocalDatacenter(),
-        "contact-points", cassandra.getContactPoint().getHostString(),
-            "port", cassandra.getContactPoint().getPort());
+        Map<String, Object> datasourceConfig =
+                Map.of(
+                        "service",
+                        "cassandra",
+                        "loadBalancing-localDc",
+                        cassandra.getLocalDatacenter(),
+                        "contact-points",
+                        cassandra.getContactPoint().getHostString(),
+                        "port",
+                        cassandra.getContactPoint().getPort());
 
-
-        VectorDBSinkAgent agent = (VectorDBSinkAgent) new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode();
+        VectorDBSinkAgent agent =
+                (VectorDBSinkAgent)
+                        new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode();
         Map<String, Object> configuration = new HashMap<>();
         configuration.put("datasource", datasourceConfig);
 
@@ -68,30 +79,36 @@ public class CassandraWriterTest {
         List<Record> committed = new ArrayList<>();
         agent.setCommitCallback(committed::addAll);
 
-        Map<String, Object> value = Map.of("id", "1",
-                "description", "test-description", "name", "test-name");
+        Map<String, Object> value =
+                Map.of("id", "1", "description", "test-description", "name", "test-name");
         SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
         agent.write(List.of(record));
 
         assertEquals(committed.get(0), record);
         agent.close();
 
-
         ResultSet execute = session.execute("SELECT * FROM vsearch.products WHERE id=1");
         assertEquals(1, execute.all().size());
-
     }
 
     @Test
     @Disabled
     void testWriteAstra() throws Exception {
 
-        Map<String, Object> datasourceConfig = Map.of("service", "astra",
-                "username", "xxxx",
-                    "password", "xxxxx+-ZR9QqyI-z+FfHm7e92eClu,sriPeUoc2OkWALvPoOtvDT0pqtHbDjyzgdKTk5ghMW49tdol8vg-YfjE,qklG-jd_HLK.t",
-                    "secureBundle", "base64:xxxx");
+        Map<String, Object> datasourceConfig =
+                Map.of(
+                        "service",
+                        "astra",
+                        "username",
+                        "xxxx",
+                        "password",
+                        "xxxxx+-ZR9QqyI-z+FfHm7e92eClu,sriPeUoc2OkWALvPoOtvDT0pqtHbDjyzgdKTk5ghMW49tdol8vg-YfjE,qklG-jd_HLK.t",
+                        "secureBundle",
+                        "base64:xxxx");
 
-        VectorDBSinkAgent agent = (VectorDBSinkAgent) new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode();
+        VectorDBSinkAgent agent =
+                (VectorDBSinkAgent)
+                        new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode();
         Map<String, Object> configuration = new HashMap<>();
         configuration.put("datasource", datasourceConfig);
 
@@ -103,15 +120,12 @@ public class CassandraWriterTest {
         List<Record> committed = new ArrayList<>();
         agent.setCommitCallback(committed::addAll);
 
-        Map<String, Object> value = Map.of("id", "1",
-                "description", "test-description", "name", "test-name");
+        Map<String, Object> value =
+                Map.of("id", "1", "description", "test-description", "name", "test-name");
         SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
         agent.write(List.of(record));
 
         assertEquals(committed.get(0), record);
         agent.close();
-
-
-
     }
 }

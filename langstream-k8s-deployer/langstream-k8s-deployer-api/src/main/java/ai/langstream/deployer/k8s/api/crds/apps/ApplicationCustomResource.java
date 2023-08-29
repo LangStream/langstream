@@ -31,7 +31,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @Singular("application")
 @Plural("applications")
 @ShortNames({"app"})
-public class ApplicationCustomResource extends CustomResource<ApplicationSpec, ApplicationStatus> implements Namespaced {
+public class ApplicationCustomResource extends CustomResource<ApplicationSpec, ApplicationStatus>
+        implements Namespaced {
 
     @Override
     protected ApplicationStatus initStatus() {
@@ -39,5 +40,4 @@ public class ApplicationCustomResource extends CustomResource<ApplicationSpec, A
         status.setStatus(ApplicationLifecycleStatus.CREATED);
         return status;
     }
-
 }

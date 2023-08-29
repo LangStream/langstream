@@ -15,7 +15,7 @@
  */
 package ai.langstream.api.codestorage;
 
-public class CodeStorageException extends Exception{
+public class CodeStorageException extends Exception {
     public CodeStorageException(Throwable cause) {
         super(cause);
     }

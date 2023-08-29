@@ -53,10 +53,8 @@ public class StorageProperties {
         private Map<String, Object> configuration = new HashMap<>();
     }
 
-    @NotBlank
-    private AppsStoreProperties apps;
+    @NotBlank private AppsStoreProperties apps;
     private GlobalMetadataStoreProperties global;
 
     private CodeStorageProperties code;
-
 }

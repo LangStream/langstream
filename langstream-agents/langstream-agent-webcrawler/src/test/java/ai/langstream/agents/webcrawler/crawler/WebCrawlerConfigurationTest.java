@@ -15,11 +15,10 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class WebCrawlerConfigurationTest {
     @Test
@@ -33,11 +32,9 @@ class WebCrawlerConfigurationTest {
         assertFalse(verifyDomain("http://domain/something/....", Set.of()));
     }
 
-
     private boolean verifyDomain(String url, Set<String> allowedDomains) {
-        WebCrawlerConfiguration configuration = WebCrawlerConfiguration.builder()
-                .allowedDomains(allowedDomains)
-                .build();
+        WebCrawlerConfiguration configuration =
+                WebCrawlerConfiguration.builder().allowedDomains(allowedDomains).build();
         return configuration.isAllowedDomain(url);
     }
 }

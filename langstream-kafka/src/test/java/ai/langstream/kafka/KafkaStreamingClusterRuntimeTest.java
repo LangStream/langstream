@@ -15,7 +15,8 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.kafka.runtime.KafkaTopic;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -25,42 +26,51 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.kafka.runtime.KafkaTopic;
+import java.util.Map;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class KafkaStreamingClusterRuntimeTest {
 
     @Test
     public void testMapKafkaTopics() throws Exception {
-        Application applicationInstance = ModelBuilder
-                .buildApplicationInstance(Map.of(
-                        "module.yaml", """
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
                                 module: "module-1"
-                                id: "pipeline-1"                                
+                                id: "pipeline-1"
                                 topics:
                                   - name: "input-topic-cassandra"
                                     creation-mode: create-if-not-exists
                                     schema:
                                       type: avro
-                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'                               
-                                """), buildInstanceYaml(), null).getApplication();
+                                      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item_vector","type":"bytes"}]}}'
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = ApplicationDeployer
-                .builder()
-                .registry(new ClusterRuntimeRegistry())
-                .pluginsRegistry(new PluginsRegistry())
-                .build();
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
 
         Module module = applicationInstance.getModule("module-1");
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
-        assertTrue(implementation.getConnectionImplementation(module,
-                Connection.fromTopic(TopicDefinition.fromName("input-topic-cassandra"))) instanceof KafkaTopic);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module,
+                                Connection.fromTopic(
+                                        TopicDefinition.fromName("input-topic-cassandra")))
+                        instanceof KafkaTopic);
     }
 
     private static String buildInstanceYaml() {
@@ -69,12 +79,10 @@ class KafkaStreamingClusterRuntimeTest {
                   streamingCluster:
                     type: "kafka"
                     configuration:
-                      admin:                                      
-                        bootstrapServers: "localhost:9092"                  
+                      admin:
+                        bootstrapServers: "localhost:9092"
                   computeCluster:
                      type: "none"
                 """;
     }
-
-
 }

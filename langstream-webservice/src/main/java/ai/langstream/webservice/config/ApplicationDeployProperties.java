@@ -18,8 +18,6 @@ package ai.langstream.webservice.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "application.apps")
-public record ApplicationDeployProperties(
-        GatewayProperties gateway
-) {
+public record ApplicationDeployProperties(GatewayProperties gateway) {
     public record GatewayProperties(boolean requireAuthentication) {}
 }

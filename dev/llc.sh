@@ -315,7 +315,7 @@ if [ "$arg1" == "start" ]; then
   start "$@"
 elif [ "$arg1" == "delete" ]; then
   shift
-  stop
+  delete
 elif [ "$arg1" == "langstream" ]; then
   shift
   run_cli "$@"

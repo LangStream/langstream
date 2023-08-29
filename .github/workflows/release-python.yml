@@ -47,7 +47,7 @@ jobs:
       - name: Build Runtime
         run: |
           chmod +x mvnw
-          ./mvnw clean install -pl ":langstream-runtime-impl" -DskipTests -am 
+          ./mvnw clean install -DskipTests
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1

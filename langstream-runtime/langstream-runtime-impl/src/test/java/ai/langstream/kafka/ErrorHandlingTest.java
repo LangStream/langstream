@@ -17,6 +17,7 @@ package ai.langstream.kafka;
 
 
 import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.mockagents.MockProcessorAgentsCodeProvider;
 import ai.langstream.runtime.agent.AgentRunner;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -225,7 +226,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
 
                 Awaitility.await().untilAsserted(() -> {
                     assertEquals(1,
-                            FailingProcessorAgentCodeProvider.FailingSink.acceptedRecords.size());
+                            MockProcessorAgentsCodeProvider.FailingSink.acceptedRecords.size());
                 });
             }
         }
@@ -331,7 +332,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
 
                 Awaitility.await().untilAsserted(() -> {
                     assertEquals(10,
-                            FailingProcessorAgentCodeProvider.FailingSink.acceptedRecords.size());
+                            MockProcessorAgentsCodeProvider.FailingSink.acceptedRecords.size());
                 });
             }
         }

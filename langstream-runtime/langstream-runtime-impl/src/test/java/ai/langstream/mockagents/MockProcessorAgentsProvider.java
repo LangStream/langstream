@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.runtime.impl.testagents;
+package ai.langstream.mockagents;
 
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
@@ -26,9 +26,9 @@ import java.util.List;
 import java.util.Set;
 
 @Slf4j
-public class MockFailingAgentProcessorProvider extends AbstractAgentProvider{
-    public MockFailingAgentProcessorProvider() {
-        super(Set.of("mock-failing-processor", "mock-failing-sink"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
+public class MockProcessorAgentsProvider extends AbstractAgentProvider{
+    public MockProcessorAgentsProvider() {
+        super(Set.of("mock-failing-processor", "mock-failing-sink", "mock-async-processor"), List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
     }
 
     @Override

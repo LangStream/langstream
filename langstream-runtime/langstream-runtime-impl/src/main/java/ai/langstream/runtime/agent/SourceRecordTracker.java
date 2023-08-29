@@ -59,6 +59,9 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
         for (Record record : orderedSourceRecordsToCommit) {
             AtomicInteger remaining = remainingSinkRecordsForSourceRecord.get(record);
             log.info("remaining {} for record {}", remaining, record);
+            if (remaining == null) {
+                throw new IllegalStateException("No sink records for source record " + record +". Something went wrong");
+            }
             if (remaining.get() == 0) {
                 sourceRecordsToCommit.add(record);
             } else {

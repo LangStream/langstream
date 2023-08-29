@@ -19,6 +19,7 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -27,6 +28,7 @@ import org.apache.kafka.common.TopicPartition;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,14 +38,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
-public class KafkaConsumerWrapper implements TopicConsumer {
+public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceListener {
     private final Map<String, Object> configuration;
     private final String topicName;
     private final AtomicInteger totalOut = new AtomicInteger();
     KafkaConsumer consumer;
 
-    AtomicInteger pendingCommits = new AtomicInteger(0);
-    AtomicReference<Throwable> commitFailure = new AtomicReference();
+    final AtomicInteger pendingCommits = new AtomicInteger(0);
+    final AtomicReference<Throwable> commitFailure = new AtomicReference();
+
+    @Getter
+    private final Map<TopicPartition, TreeSet<Long>> uncommittedOffsets = new ConcurrentHashMap<>();
 
     private final Map<TopicPartition, OffsetAndMetadata> committed = new ConcurrentHashMap<>();
 
@@ -53,7 +58,7 @@ public class KafkaConsumerWrapper implements TopicConsumer {
     }
 
     @Override
-    public Object getNativeConsumer() {
+    public synchronized Object getNativeConsumer() {
         if (consumer == null) {
             throw new IllegalStateException("Consumer not started");
         }
@@ -61,30 +66,65 @@ public class KafkaConsumerWrapper implements TopicConsumer {
     }
 
     @Override
-    public void start() {
+    public synchronized void start() {
         consumer = new KafkaConsumer(configuration);
         if (topicName != null) {
-            consumer.subscribe(List.of(topicName));
+            consumer.subscribe(List.of(topicName), this);
         }
     }
 
     @Override
-    public long getTotalOut() {
+    public synchronized void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+        log.info("Partitions revoked: {}", partitions);
+        for (TopicPartition topicPartition : partitions) {
+            OffsetAndMetadata offsetAndMetadata = committed.remove(topicPartition);
+            if (offsetAndMetadata != null) {
+                log.info("Current offset {} on partition {} (revoked)", offsetAndMetadata.offset(), topicPartition);
+            }
+            TreeSet<Long> remove = uncommittedOffsets.remove(topicPartition);
+            if (remove != null && !remove.isEmpty()) {
+                log.warn("There are uncommitted offsets {} on partition {} (revoked), this messages will be re-delivered",
+                        remove, topicPartition);
+            }
+        }
+    }
+
+    @Override
+    public synchronized void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+        log.info("Partitions assigned: {}", partitions);
+        for (TopicPartition topicPartition :partitions) {
+            OffsetAndMetadata offsetAndMetadata = consumer.committed(topicPartition);
+            if (offsetAndMetadata != null) {
+                log.info("Last committed offset for {} is {}", topicPartition, offsetAndMetadata.offset());
+                committed.put(topicPartition, offsetAndMetadata);
+            } else {
+                log.info("Last committed offset for {} is null", topicPartition);
+            }
+        }
+    }
+
+    @Override
+    public synchronized long getTotalOut() {
         return totalOut.get();
+    }
+
+    private synchronized KafkaConsumer getConsumer() {
+        return consumer;
     }
 
     @Override
     public Map<String, Object> getInfo() {
         Map<String, Object> result = new HashMap<>();
+        KafkaConsumer consumer = getConsumer();
         if (consumer != null) {
             result.put("kafkaConsumerMetrics",
-                    KafkaMetricsUtils.metricsToMap(consumer.metrics()));
+                    KafkaMetricsUtils.metricsToMap(this.consumer.metrics()));
         }
         return result;
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         log.info("Closing consumer to {} with {} pending commits", topicName, pendingCommits.get());
 
         if (consumer != null) {
@@ -93,10 +133,11 @@ public class KafkaConsumerWrapper implements TopicConsumer {
     }
 
     @Override
-    public List<Record> read() {
+    public synchronized List<Record> read() {
         if (commitFailure.get() != null) {
             throw new RuntimeException("latest commit failed", commitFailure.get());
         }
+        KafkaConsumer consumer = getConsumer();
         ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(1));
         List<Record> result = new ArrayList<>(poll.count());
         for (ConsumerRecord<?, ?> record : poll) {
@@ -110,9 +151,15 @@ public class KafkaConsumerWrapper implements TopicConsumer {
     }
 
 
-    @Getter
-    private final Map<TopicPartition, TreeSet<Long>> uncommittedOffsets = new HashMap<>();
-
+    /**
+     * Commit the offsets of the records.
+     * This method may be called from different threads.
+     * Per each partition we must keep track of the offsets that have been committed.
+     * But we can commit only offsets sequentially, without gaps.
+     * It is possible that in case of out-of-order processing we have to commit only a subset of the records.
+     * In case of rebalance or failure messages will be re-delivered.
+     * @param records the records to commit, it is not strictly required from them to be in some order.
+     */
     @Override
     public synchronized void commit(List<Record> records) {
         for (Record record :records) {
@@ -131,6 +178,7 @@ public class KafkaConsumerWrapper implements TopicConsumer {
                 }
             }
 
+            // advance the offset up the first gap
             long least = offsetsForPartition.first();
             long currentOffset = offsetAndMetadata == null ? -1 : offsetAndMetadata.offset();
             while (least == currentOffset + 1) {

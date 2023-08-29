@@ -48,6 +48,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -57,6 +58,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
@@ -183,6 +185,34 @@ public abstract class AbstractApplicationRunner {
                         } else {
                             assertEquals(expectedValue, actualValue);
                         }
+                    }
+                });
+
+        return result;
+    }
+
+    protected List<ConsumerRecord> waitForMessagesInAnyOrder(KafkaConsumer consumer,
+                                                   Set<String> expected) {
+        List<ConsumerRecord> result = new ArrayList<>();
+        List<Object> received = new ArrayList<>();
+
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+                    ConsumerRecords<String, String> poll = consumer.poll(Duration.ofSeconds(2));
+                    for (ConsumerRecord record : poll) {
+                        log.info("Received message {}", record);
+                        received.add(record.value());
+                        result.add(record);
+                    }
+                    log.info("Result: {}", received);
+                    received.forEach(r -> log.info("Received |{}|", r));
+
+                    assertEquals(expected.size(), received.size());
+                    for (Object expectedValue : expected) {
+                        // this doesn't work for byte[]
+                        assertFalse(expectedValue instanceof byte[]);
+                        assertTrue(received.contains(expectedValue), "Expected value " + expectedValue + " not found in " + received);
                     }
                 });
 

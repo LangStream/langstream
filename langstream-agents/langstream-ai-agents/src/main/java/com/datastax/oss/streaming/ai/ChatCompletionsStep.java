@@ -76,6 +76,7 @@ public class ChatCompletionsStep implements TransformStep {
                         .setTemperature(config.getTemperature())
                         .setTopP(config.getTopP())
                         .setLogitBias(config.getLogitBias())
+                        .setStream(config.isStream())
                         .setUser(config.getUser())
                         .setStop(config.getStop())
                         .setPresencePenalty(config.getPresencePenalty())

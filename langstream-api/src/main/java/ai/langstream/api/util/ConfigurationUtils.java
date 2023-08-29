@@ -80,7 +80,7 @@ public class ConfigurationUtils {
             String key, Integer defaultValue, Map<String, Object> configuration) {
         Object value = configuration.getOrDefault(key, defaultValue);
         if (value == null) {
-            return null;
+            return defaultValue;
         }
         if (value instanceof Number n) {
             return n.intValue();
@@ -93,7 +93,7 @@ public class ConfigurationUtils {
             String key, Double defaultValue, Map<String, Object> configuration) {
         Object value = configuration.getOrDefault(key, defaultValue);
         if (value == null) {
-            return null;
+            return defaultValue;
         }
         if (value instanceof Number n) {
             return n.doubleValue();
@@ -105,6 +105,9 @@ public class ConfigurationUtils {
     public static boolean getBoolean(
             String key, boolean defaultValue, Map<String, Object> configuration) {
         Object value = configuration.getOrDefault(key, defaultValue);
+        if (value == null) {
+            return defaultValue;
+        }
         if (value instanceof Boolean n) {
             return n.booleanValue();
         } else {

@@ -33,6 +33,9 @@ public class ChatCompletionsConfig extends StepConfig {
     @JsonProperty(value = "completion-field")
     private String fieldName;
 
+    @JsonProperty(value = "stream")
+    private boolean stream = true;
+
     @JsonProperty(value = "log-field")
     private String logField;
 

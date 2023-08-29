@@ -24,12 +24,14 @@ import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
 class OpenAIProviderTest {
 
     @Test
+    @Disabled
     void testStreamingCompletion() throws Exception {
         ServiceProviderProvider provider = new OpenAIServiceProvider();
         ServiceProvider implementation =

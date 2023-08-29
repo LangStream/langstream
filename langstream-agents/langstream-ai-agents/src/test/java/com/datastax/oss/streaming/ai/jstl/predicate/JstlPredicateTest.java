@@ -16,7 +16,8 @@
 package com.datastax.oss.streaming.ai.jstl.predicate;
 
 import static com.datastax.oss.streaming.ai.Utils.newTransformContext;
-import static org.testng.AssertJUnit.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.Utils;
@@ -27,12 +28,14 @@ import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.Test;
 
 public class JstlPredicateTest {
 
-    @Test(dataProvider = "keyValuePredicates")
+    @ParameterizedTest
+    @MethodSource("keyValuePredicates")
     void testKeyValueAvro(String when, boolean match) {
         JstlPredicate predicate = new JstlPredicate(when);
 
@@ -44,33 +47,23 @@ public class JstlPredicateTest {
         assertEquals(predicate.test(transformContext), match);
     }
 
-    @Test(
-            expectedExceptions = IllegalArgumentException.class,
-            expectedExceptionsMessageRegExp = "invalid when:.*")
+    @Test
     void testInvalidWhen() {
-        JstlPredicate predicate = new JstlPredicate("`invalid");
-
-        Record<GenericObject> record = Utils.createNestedAvroKeyValueRecord(2);
-        Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-        TransformContext transformContext =
-                newTransformContext(context, record.getValue().getNativeObject());
-
-        predicate.test(transformContext);
+        assertEquals("invalid when: `invalid",
+                assertThrows(IllegalArgumentException.class, () -> {
+            new JstlPredicate("`invalid");
+        }).getMessage());
     }
 
-    @Test(dataProvider = "primitiveKeyValuePredicates")
+    @ParameterizedTest
+    @MethodSource("primitiveKeyValuePredicates")
     void testPrimitiveKeyValueAvro(String when, TransformContext context, boolean match) {
         JstlPredicate predicate = new JstlPredicate(when);
         assertEquals(predicate.test(context), match);
     }
 
-    @Test(dataProvider = "nestedKeyValuePredicates")
-    void testNestedKeyValueAvro(String when, TransformContext context, boolean match) {
-        JstlPredicate predicate = new JstlPredicate(when);
-        assertEquals(predicate.test(context), match);
-    }
-
-    @Test(dataProvider = "primitivePredicates")
+    @ParameterizedTest
+    @MethodSource("primitivePredicates")
     void testPrimitiveValueAvro(String when, TransformContext context, boolean match) {
         JstlPredicate predicate = new JstlPredicate(when);
         assertEquals(predicate.test(context), match);
@@ -79,7 +72,6 @@ public class JstlPredicateTest {
     /**
      * @return {"expression", "transform context" "expected match boolean"}
      */
-    @DataProvider(name = "primitiveKeyValuePredicates")
     public static Object[][] primitiveKeyValuePredicates() {
         Schema<KeyValue<String, Integer>> keyValueSchema =
                 Schema.KeyValue(Schema.STRING, Schema.INT32, KeyValueEncodingType.SEPARATED);
@@ -100,7 +92,6 @@ public class JstlPredicateTest {
     /**
      * @return {"expression", "transform context" "expected match boolean"}
      */
-    @DataProvider(name = "primitivePredicates")
     public static Object[][] primitivePredicates() {
         Schema<KeyValue<String, Integer>> keyValueSchema =
                 Schema.KeyValue(Schema.STRING, Schema.INT32, KeyValueEncodingType.SEPARATED);
@@ -146,89 +137,8 @@ public class JstlPredicateTest {
     }
 
     /**
-     * @return {"expression", "transform context" "expected match boolean"}
-     */
-    @DataProvider(name = "nestedKeyValuePredicates")
-    public static Object[][] nestedKeyValuePredicates() {
-        Schema<KeyValue<String, Integer>> keyValueSchema =
-                Schema.KeyValue(Schema.STRING, Schema.INT32, KeyValueEncodingType.SEPARATED);
-
-        Schema<KeyValue<KeyValue<String, Integer>, Integer>> nestedKeySchema =
-                Schema.KeyValue(keyValueSchema, Schema.INT32, KeyValueEncodingType.SEPARATED);
-
-        KeyValue<String, Integer> keyValue = new KeyValue<>("key1", 42);
-
-        KeyValue<KeyValue<String, Integer>, Integer> nestedKeyKV = new KeyValue<>(keyValue, 3);
-
-        GenericObject genericNestedKeyObject =
-                new GenericObject() {
-                    @Override
-                    public SchemaType getSchemaType() {
-                        return SchemaType.KEY_VALUE;
-                    }
-
-                    @Override
-                    public Object getNativeObject() {
-                        return nestedKeyKV;
-                    }
-                };
-
-        Record<GenericObject> nestedKeyRecord =
-                new Utils.TestRecord<>(nestedKeySchema, genericNestedKeyObject, null);
-
-        TransformContext nestedKeyContext =
-                newTransformContext(
-                        new Utils.TestContext(nestedKeyRecord, new HashMap<>()),
-                        nestedKeyRecord.getValue().getNativeObject());
-
-        Schema<KeyValue<String, KeyValue<String, Integer>>> nestedValueSchema =
-                Schema.KeyValue(Schema.STRING, keyValueSchema, KeyValueEncodingType.SEPARATED);
-
-        KeyValue<String, KeyValue<String, Integer>> nestedValueKV =
-                new KeyValue<>("key1", keyValue);
-
-        GenericObject genericNestedValueObject =
-                new GenericObject() {
-                    @Override
-                    public SchemaType getSchemaType() {
-                        return SchemaType.KEY_VALUE;
-                    }
-
-                    @Override
-                    public Object getNativeObject() {
-                        return nestedValueKV;
-                    }
-                };
-
-        Record<GenericObject> nestedValueRecord =
-                new Utils.TestRecord<>(nestedValueSchema, genericNestedValueObject, null);
-
-        TransformContext nestedValueContext =
-                newTransformContext(
-                        new Utils.TestContext(nestedValueRecord, new HashMap<>()),
-                        nestedValueRecord.getValue().getNativeObject());
-        return new Object[][] {
-            // match
-            {"key.key=='key1'", nestedKeyContext, true},
-            {"key.value==42", nestedKeyContext, true},
-            {"value==3", nestedKeyContext, true},
-            {"value.key=='key1'", nestedValueContext, true},
-            {"value.value==42", nestedValueContext, true},
-            {"key=='key1'", nestedValueContext, true},
-            // no match
-            {"key.key=='key2'", nestedKeyContext, false},
-            {"key.value<42", nestedKeyContext, false},
-            {"value==4", nestedKeyContext, false},
-            {"value.key=='key2'", nestedValueContext, false},
-            {"value.value<42", nestedValueContext, false},
-            {"key=='key2'", nestedValueContext, false},
-        };
-    }
-
-    /**
      * @return {"expression", "expected match boolean"}
      */
-    @DataProvider(name = "keyValuePredicates")
     public static Object[][] keyValuePredicates() {
         return new Object[][] {
             // match

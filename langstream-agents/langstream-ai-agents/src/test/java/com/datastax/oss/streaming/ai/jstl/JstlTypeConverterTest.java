@@ -15,7 +15,9 @@
  */
 package com.datastax.oss.streaming.ai.jstl;
 
-import static org.testng.AssertJUnit.assertNull;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -33,9 +35,9 @@ import java.util.Date;
 import java.util.TimeZone;
 import org.apache.avro.util.Utf8;
 import org.apache.pulsar.client.api.Schema;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.Test;
 
 public class JstlTypeConverterTest {
 
@@ -61,7 +63,6 @@ public class JstlTypeConverterTest {
         assertNull(converter.coerceToType(null, BigDecimal.class));
     }
 
-    @DataProvider(name = "conversions")
     public static Object[][] conversions() {
         TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
         byte byteValue = (byte) 42;
@@ -349,15 +350,20 @@ public class JstlTypeConverterTest {
         };
     }
 
-    @Test(dataProvider = "conversions")
+    @ParameterizedTest
+    @MethodSource("conversions")
     public void testNonNullConversions(Object o, Class<?> type, Object expected) {
         Object converted = converter.coerceToType(o, type);
-        Assert.assertEquals(converted.getClass(), type);
+        assertEquals(converted.getClass(), type);
         if (type.equals(Time.class)) {
             // j.s.Time equality is weird...
-            Assert.assertEquals(((Time) converted).toLocalTime(), ((Time) expected).toLocalTime());
+            assertEquals(((Time) converted).toLocalTime(), ((Time) expected).toLocalTime());
         } else {
-            Assert.assertEquals(converted, expected);
+            if (converted instanceof byte[]) {
+                assertArrayEquals((byte[]) converted, (byte[]) expected);
+            } else {
+                assertEquals(converted, expected);
+            }
         }
     }
 }

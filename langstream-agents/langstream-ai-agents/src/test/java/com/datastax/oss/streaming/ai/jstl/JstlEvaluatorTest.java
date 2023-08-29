@@ -15,7 +15,8 @@
  */
 package com.datastax.oss.streaming.ai.jstl;
 
-import static org.testng.AssertJUnit.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.Utils;
@@ -25,18 +26,22 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import org.apache.pulsar.client.api.Schema;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.Test;
 
 public class JstlEvaluatorTest {
-    @Test(
-            dataProvider = "methodInvocationExpressionProvider",
-            expectedExceptions = MethodNotFoundException.class)
+
+    @ParameterizedTest
+    @MethodSource("methodInvocationExpressionProvider")
     void testMethodInvocationsDisabled(String expression, TransformContext context) {
-        new JstlEvaluator<>(String.format("${%s}", expression), String.class).evaluate(context);
+        assertThrows(MethodNotFoundException.class, () -> {
+            new JstlEvaluator<>(String.format("${%s}", expression), String.class).evaluate(context);
+        });
     }
 
-    @Test(dataProvider = "functionExpressionProvider")
+    @ParameterizedTest
+    @MethodSource("functionExpressionProvider")
     void testFunctions(String expression, TransformContext context, Object expectedValue) {
         assertEquals(
                 expectedValue,
@@ -89,7 +94,6 @@ public class JstlEvaluatorTest {
     /**
      * @return {"expression", "transform context"}
      */
-    @DataProvider(name = "methodInvocationExpressionProvider")
     public static Object[][] methodInvocationExpressionProvider() {
         TransformContext primitiveStringContext =
                 Utils.createContextWithPrimitiveRecord(Schema.STRING, "test-message", "header-key");
@@ -106,7 +110,6 @@ public class JstlEvaluatorTest {
     /**
      * @return {"expression", "context", "expected value"}
      */
-    @DataProvider(name = "functionExpressionProvider")
     public static Object[][] functionExpressionProvider() {
         TransformContext primitiveBytesContext =
                 Utils.createContextWithPrimitiveRecord(

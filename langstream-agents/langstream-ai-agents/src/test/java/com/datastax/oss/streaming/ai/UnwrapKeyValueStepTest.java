@@ -15,8 +15,8 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.apache.avro.generic.GenericData;
 import org.apache.pulsar.client.api.Schema;
@@ -24,7 +24,7 @@ import org.apache.pulsar.client.api.schema.GenericObject;
 import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 public class UnwrapKeyValueStepTest {
 

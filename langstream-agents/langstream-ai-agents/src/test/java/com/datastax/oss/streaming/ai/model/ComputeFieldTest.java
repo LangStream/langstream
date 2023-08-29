@@ -15,21 +15,23 @@
  */
 package com.datastax.oss.streaming.ai.model;
 
-import static org.testng.AssertJUnit.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 public class ComputeFieldTest {
 
-    @Test(
-            expectedExceptions = IllegalArgumentException.class,
-            expectedExceptionsMessageRegExp = "Invalid compute field name: newStringField\\..*")
+    @Test
     void testInvalidComputeFieldName() {
-        ComputeField.builder()
-                .scopedName("newStringField")
-                .expression("'Hotaru'")
-                .type(ComputeFieldType.STRING)
-                .build();
+        assertEquals("Invalid compute field name: newStringField. It should be prefixed with 'key.' or 'value.' or 'properties.' or be one of [key, value, destinationTopic, messageKey]",
+        assertThrows(IllegalArgumentException.class, () -> {
+            ComputeField.builder()
+                    .scopedName("newStringField")
+                    .expression("'Hotaru'")
+                    .type(ComputeFieldType.STRING)
+                    .build();
+        }).getMessage());
     }
 
     @Test

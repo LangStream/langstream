@@ -21,11 +21,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 @Slf4j
 public class AstraDBDataSourceTest {
-    @Test(enabled = false)
+    @Test
+    @Disabled
     void testQueryWithParameters() throws Exception {
         AstraDBDataSource source = new AstraDBDataSource();
         DataSourceConfig dataSourceConfig = buildDataSourceConfig();
@@ -38,7 +40,7 @@ public class AstraDBDataSourceTest {
         log.info("maps {}", maps);
     }
 
-    @Test(enabled = false)
+    @Disabled
     void testQueryWithVectorSearch() throws Exception {
         AstraDBDataSource source = new AstraDBDataSource();
         DataSourceConfig dataSourceConfig = buildDataSourceConfig();

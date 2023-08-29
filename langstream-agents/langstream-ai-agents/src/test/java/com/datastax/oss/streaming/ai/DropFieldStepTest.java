@@ -15,10 +15,10 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotSame;
-import static org.testng.Assert.assertNull;
-import static org.testng.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +39,7 @@ import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 public class DropFieldStepTest {
 

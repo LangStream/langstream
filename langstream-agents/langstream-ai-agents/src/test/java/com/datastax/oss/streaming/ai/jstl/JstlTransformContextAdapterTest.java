@@ -16,9 +16,9 @@
 package com.datastax.oss.streaming.ai.jstl;
 
 import static com.datastax.oss.streaming.ai.Utils.newTransformContext;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNull;
-import static org.testng.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.Utils;
@@ -39,7 +39,7 @@ import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 public class JstlTransformContextAdapterTest {
     private static final org.apache.avro.Schema dateType =

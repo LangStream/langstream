@@ -17,9 +17,9 @@ package com.datastax.oss.pulsar.functions.transforms;
 
 import static com.datastax.oss.pulsar.functions.transforms.Utils.assertNonOptionalField;
 import static com.datastax.oss.pulsar.functions.transforms.Utils.assertOptionalField;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertThrows;
-import static org.testng.AssertJUnit.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.google.gson.Gson;
@@ -41,14 +41,13 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Context;
 import org.apache.pulsar.functions.api.Record;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @Slf4j
 public class TransformFunctionTest {
 
-    @DataProvider(name = "validConfigs")
     public static Object[][] validConfigs() {
         return new Object[][] {
             {"{'steps': [{'type': 'drop-fields', 'fields': ['some-field']}]}"},
@@ -128,7 +127,8 @@ public class TransformFunctionTest {
         };
     }
 
-    @Test(dataProvider = "validConfigs")
+    @ParameterizedTest
+    @MethodSource("validConfigs")
     void testValidConfig(String validConfig) {
         String userConfig = validConfig.replace("'", "\"");
         Map<String, Object> config =
@@ -138,7 +138,8 @@ public class TransformFunctionTest {
         transformFunction.initialize(context);
     }
 
-    @DataProvider(name = "invalidConfigs")
+    @ParameterizedTest
+    @MethodSource("invalidConfigs")
     public static Object[][] invalidConfigs() {
         return new Object[][] {
             {"{}"},
@@ -214,7 +215,8 @@ public class TransformFunctionTest {
         };
     }
 
-    @Test(dataProvider = "invalidConfigs")
+    @ParameterizedTest
+    @MethodSource("invalidConfigs")
     void testInvalidConfig(String invalidConfig) {
         String userConfig = invalidConfig.replace("'", "\"");
         Map<String, Object> config =
@@ -421,7 +423,8 @@ public class TransformFunctionTest {
                 "{\"valueField1\":\"value1\",\"valueField2\":\"value2\",\"valueField3\":\"value3\"}");
     }
 
-    @Test(dataProvider = "dropStepConfigs")
+    @ParameterizedTest
+    @MethodSource("dropStepConfigs")
     void testDropOnPredicateMatch(String stepConfig, boolean drop) throws Exception {
         RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
         recordSchemaBuilder.field("firstName").type(SchemaType.STRING);
@@ -455,12 +458,13 @@ public class TransformFunctionTest {
             GenericData.Record read =
                     Utils.getRecord(outputRecord.getSchema(), (byte[]) outputRecord.getValue());
             assertEquals(read.get("age"), 42);
-            Assert.assertNull(read.getSchema().getField("firstName"));
-            Assert.assertNull(read.getSchema().getField("lastName"));
+            assertNull(read.getSchema().getField("firstName"));
+            assertNull(read.getSchema().getField("lastName"));
         }
     }
 
-    @DataProvider(name = "dropStepConfigs")
+    @ParameterizedTest
+    @MethodSource("dropStepConfigs")
     public static Object[][] dropStepConfigs() {
         return new Object[][] {
             {

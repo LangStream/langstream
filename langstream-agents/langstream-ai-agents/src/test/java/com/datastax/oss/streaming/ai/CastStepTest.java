@@ -15,8 +15,9 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import com.datastax.oss.streaming.ai.model.TransformSchemaType;
 import java.nio.charset.StandardCharsets;
@@ -36,8 +37,9 @@ import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class CastStepTest {
 
@@ -65,7 +67,6 @@ public class CastStepTest {
                         + "\"valueField3\": \"value3\"}");
     }
 
-    @DataProvider
     public static Object[][] testPrimitiveSchemaTypes() {
         TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
         return new Object[][] {
@@ -121,7 +122,8 @@ public class CastStepTest {
         };
     }
 
-    @Test(dataProvider = "testPrimitiveSchemaTypes")
+    @ParameterizedTest
+    @MethodSource("testPrimitiveSchemaTypes")
     void testPrimitiveSchemaTypes(
             String input,
             TransformSchemaType outputSchemaType,
@@ -139,6 +141,12 @@ public class CastStepTest {
         Record<?> outputRecord = Utils.process(record, step);
 
         assertEquals(outputRecord.getSchema(), expectedSchema);
-        assertEquals(outputRecord.getValue(), expectedOutput);
+
+        if (expectedOutput instanceof byte[]) {
+            assertArrayEquals((byte[]) outputRecord.getValue(), (byte[]) expectedOutput);
+        } else {
+            assertEquals(outputRecord.getValue(), expectedOutput);
+        }
+
     }
 }

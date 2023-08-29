@@ -23,9 +23,11 @@ import static org.apache.avro.Schema.Type.FLOAT;
 import static org.apache.avro.Schema.Type.INT;
 import static org.apache.avro.Schema.Type.LONG;
 import static org.apache.avro.Schema.Type.STRING;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertSame;
-import static org.testng.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.datastax.oss.streaming.ai.model.ComputeField;
 import com.datastax.oss.streaming.ai.model.ComputeFieldType;
@@ -70,8 +72,9 @@ import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.Test;
 
 public class ComputeStepTest {
 
@@ -395,12 +398,12 @@ public class ComputeStepTest {
         assertEquals(read.get("age").asText(), "43");
     }
 
-    @DataProvider(name = "jsonStringSchemas")
     public static Object[][] jsonStringSchemas() {
         return new Object[][] {{Schema.STRING}, {Schema.BYTES}};
     }
 
-    @Test(dataProvider = "jsonStringSchemas")
+    @ParameterizedTest
+    @MethodSource("jsonStringSchemas")
     void testStringJson(Schema schema) throws Exception {
         SchemaType schemaType = schema.getSchemaInfo().getType();
         Object json =
@@ -431,11 +434,14 @@ public class ComputeStepTest {
                         + "\"integerStr\":\"13360\"}";
         if (schemaType == SchemaType.BYTES) {
             expected = ((String) expected).getBytes(StandardCharsets.UTF_8);
+            assertArrayEquals((byte[]) outputRecord.getValue(), (byte[]) expected);
+        } else {
+            assertEquals(outputRecord.getValue(), expected);
         }
-        assertEquals(outputRecord.getValue(), expected);
     }
 
-    @Test(dataProvider = "jsonStringSchemas")
+    @ParameterizedTest
+    @MethodSource("jsonStringSchemas")
     void testKVStringJson(Schema<?> schema) throws Exception {
         SchemaType schemaType = schema.getSchemaInfo().getType();
         Object json =
@@ -483,8 +489,10 @@ public class ComputeStepTest {
                         + "\"integerStr\":\"13360\"}";
         if (schemaType == SchemaType.BYTES) {
             expected = ((String) expected).getBytes(StandardCharsets.UTF_8);
+            assertArrayEquals((byte[]) messageValue.getKey(), (byte[]) expected);
+        } else {
+            assertEquals(messageValue.getKey(), expected);
         }
-        assertEquals(messageValue.getKey(), expected);
     }
 
     @Test
@@ -601,36 +609,39 @@ public class ComputeStepTest {
                 ByteBuffer.wrap("Hotaru".getBytes(StandardCharsets.UTF_8)));
     }
 
-    @Test(expectedExceptions = AvroRuntimeException.class)
+    @Test
     void testAvroNullsNotAllowed() throws Exception {
-        RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
-        recordSchemaBuilder.field("firstName").type(SchemaType.STRING);
+        assertThrows(AvroRuntimeException.class, () -> {
+            RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
+            recordSchemaBuilder.field("firstName").type(SchemaType.STRING);
 
-        SchemaInfo schemaInfo = recordSchemaBuilder.build(SchemaType.AVRO);
-        GenericSchema<GenericRecord> genericSchema = Schema.generic(schemaInfo);
+            SchemaInfo schemaInfo = recordSchemaBuilder.build(SchemaType.AVRO);
+            GenericSchema<GenericRecord> genericSchema = Schema.generic(schemaInfo);
 
-        GenericRecord genericRecord =
-                genericSchema.newRecordBuilder().set("firstName", "Jane").build();
+            GenericRecord genericRecord =
+                    genericSchema.newRecordBuilder().set("firstName", "Jane").build();
 
-        Record<GenericObject> record =
-                new Utils.TestRecord<>(genericSchema, genericRecord, "test-key");
+            Record<GenericObject> record =
+                    new Utils.TestRecord<>(genericSchema, genericRecord, "test-key");
 
-        ComputeStep step =
-                ComputeStep.builder()
-                        .fields(
-                                Collections.singletonList(
-                                        ComputeField.builder()
-                                                .scopedName("value.newLongField")
-                                                .expression("null")
-                                                .optional(false)
-                                                .type(ComputeFieldType.INT64)
-                                                .build()))
-                        .build();
-        Utils.process(record, step);
+            ComputeStep step =
+                    ComputeStep.builder()
+                            .fields(
+                                    Collections.singletonList(
+                                            ComputeField.builder()
+                                                    .scopedName("value.newLongField")
+                                                    .expression("null")
+                                                    .optional(false)
+                                                    .type(ComputeFieldType.INT64)
+                                                    .build()))
+                            .build();
+            Utils.process(record, step);
+        });
     }
 
-    @Test(expectedExceptions = UnsupportedOperationException.class)
+    @Test
     void testAvroNullInferredType() throws Exception {
+        assertThrows(UnsupportedOperationException.class, () -> {
         RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
 
         SchemaInfo schemaInfo = recordSchemaBuilder.build(SchemaType.AVRO);
@@ -649,6 +660,7 @@ public class ComputeStepTest {
                         .build());
         ComputeStep step = ComputeStep.builder().fields(fields).build();
         Utils.process(record, step);
+        });
     }
 
     @Test
@@ -853,7 +865,8 @@ public class ComputeStepTest {
         assertEquals(messageSchema.getKeyValueEncodingType(), KeyValueEncodingType.SEPARATED);
     }
 
-    @Test(dataProvider = "primitiveSchemaTypesProvider")
+    @ParameterizedTest
+    @MethodSource("primitiveSchemaTypesProvider")
     void testPrimitiveSchemaTypes(
             String expression,
             ComputeFieldType newSchema,
@@ -877,13 +890,18 @@ public class ComputeStepTest {
                                                 .build()))
                         .build();
 
-        Record<GenericObject> outputRecord = Utils.process(record, step);
+        Record<?> outputRecord = Utils.process(record, step);
 
         assertEquals(outputRecord.getSchema(), expectedSchema);
-        assertEquals(outputRecord.getValue(), expectedValue);
+        if (expectedValue instanceof byte[]) {
+            assertArrayEquals((byte[]) outputRecord.getValue(), (byte[]) expectedValue);
+        } else {
+            assertEquals(outputRecord.getValue(), expectedValue);
+        }
     }
 
-    @Test(dataProvider = "primitiveInferredSchemaTypesProvider")
+    @ParameterizedTest
+    @MethodSource("primitiveInferredSchemaTypesProvider")
     void testPrimitiveInferredSchemaTypes(
             Object input,
             Schema<?> inputSchema,
@@ -908,32 +926,38 @@ public class ComputeStepTest {
                                                 .build()))
                         .build();
 
-        Record<GenericObject> outputRecord = Utils.process(record, step);
+        Record<?> outputRecord = Utils.process(record, step);
 
         assertEquals(outputRecord.getSchema(), expectedSchema);
-        assertEquals(outputRecord.getValue(), expectedValue);
+        if (expectedValue instanceof byte[]) {
+            assertArrayEquals((byte[]) outputRecord.getValue(), (byte[]) expectedValue);
+        } else {
+            assertEquals(outputRecord.getValue(), expectedValue);
+        }
     }
 
-    @Test(expectedExceptions = UnsupportedOperationException.class)
+    @Test
     void testNullInferredSchemaType() throws Exception {
-        Record<GenericObject> record =
-                new Utils.TestRecord<>(
-                        Schema.STRING,
-                        AutoConsumeSchema.wrapPrimitiveObject(
-                                "input", SchemaType.STRING, new byte[] {}),
-                        "");
+        assertThrows(UnsupportedOperationException.class, () -> {
+            Record<GenericObject> record =
+                    new Utils.TestRecord<>(
+                            Schema.STRING,
+                            AutoConsumeSchema.wrapPrimitiveObject(
+                                    "input", SchemaType.STRING, new byte[]{}),
+                            "");
 
-        ComputeStep step =
-                ComputeStep.builder()
-                        .fields(
-                                Collections.singletonList(
-                                        ComputeField.builder()
-                                                .scopedName("value")
-                                                .expression("null")
-                                                .build()))
-                        .build();
+            ComputeStep step =
+                    ComputeStep.builder()
+                            .fields(
+                                    Collections.singletonList(
+                                            ComputeField.builder()
+                                                    .scopedName("value")
+                                                    .expression("null")
+                                                    .build()))
+                            .build();
 
-        Utils.process(record, step);
+            Utils.process(record, step);
+        });
     }
 
     @Test
@@ -1045,7 +1069,8 @@ public class ComputeStepTest {
         assertSame(messageValue.getValue(), recordValue.getValue());
     }
 
-    @Test(dataProvider = "destinationTopicProvider")
+    @ParameterizedTest
+    @MethodSource("destinationTopicProvider")
     void testAvroComputeDestinationTopic(String topic) throws Exception {
         RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
         recordSchemaBuilder.field("firstName").type(SchemaType.STRING);
@@ -1159,7 +1184,6 @@ public class ComputeStepTest {
         assertEquals(outputRecord.getProperties().get("newKey"), "c2");
     }
 
-    @DataProvider(name = "destinationTopicProvider")
     public static Object[] destinationTopicProvider() {
         return new Object[] {"targetTopic", "randomTopic"};
     }
@@ -1167,7 +1191,6 @@ public class ComputeStepTest {
     /**
      * @return {"expression", "new schema", "expected value", "expectedSchema"}
      */
-    @DataProvider(name = "primitiveSchemaTypesProvider")
     public static Object[][] primitiveSchemaTypesProvider() {
         return new Object[][] {
             {"'newValue'", ComputeFieldType.STRING, "newValue", Schema.STRING},
@@ -1225,7 +1248,6 @@ public class ComputeStepTest {
         };
     }
 
-    @DataProvider(name = "primitiveInferredSchemaTypesProvider")
     public static Object[][] primitiveInferredSchemaTypesProvider() {
         LocalDateTime now = LocalDateTime.now();
         return new Object[][] {

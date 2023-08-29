@@ -15,10 +15,12 @@
  */
 package com.datastax.oss.streaming.ai.jstl;
 
-import static org.testng.AssertJUnit.assertEquals;
-import static org.testng.AssertJUnit.assertFalse;
-import static org.testng.AssertJUnit.assertNull;
-import static org.testng.AssertJUnit.assertTrue;
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -32,8 +34,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class JstlFunctionsTest {
 
@@ -123,17 +127,21 @@ public class JstlFunctionsTest {
         assertEquals(fixedInstant, JstlFunctions.now());
     }
 
-    @Test(dataProvider = "millisTimestampAddProvider")
+
+    @ParameterizedTest
+    @MethodSource("millisTimestampAddProvider")
     void testAddDateMillis(long input, int delta, String unit, Instant expected) {
         assertEquals(expected, JstlFunctions.timestampAdd(input, delta, unit));
     }
 
-    @Test(dataProvider = "utcTimestampAddProvider")
+    @ParameterizedTest
+    @MethodSource("utcTimestampAddProvider")
     void testAddDateUTC(String input, int delta, String unit, Instant expected) {
         assertEquals(expected, JstlFunctions.timestampAdd(input, delta, unit));
     }
 
-    @Test(dataProvider = "nonUtcTimestampAddProvider")
+    @ParameterizedTest
+    @MethodSource("nonUtcTimestampAddProvider")
     void testAddDateNonUTC(String input, int delta, String unit, Instant expected) {
         assertEquals(expected, JstlFunctions.timestampAdd(input, delta, unit));
     }
@@ -154,28 +162,29 @@ public class JstlFunctionsTest {
                         "2022-10-02T01:02:03Z", 1, "hours".getBytes(StandardCharsets.UTF_8)));
     }
 
-    @Test(dataProvider = "toBigDecimalProvider")
+    @ParameterizedTest
+    @MethodSource("toBigDecimalProvider")
     void testToBigDecimal(Object value, Object scale, BigDecimal expected) {
         assertEquals(expected, JstlFunctions.toBigDecimal(value, scale));
     }
 
-    @Test(dataProvider = "toBigDecimalWithoutScaleProvider")
+    @ParameterizedTest
+    @MethodSource("toBigDecimalWithoutScaleProvider")
     void testToBigDecimalWithoutScale(Object value, BigDecimal expected) {
         assertEquals(expected, JstlFunctions.toBigDecimal(value));
     }
 
-    @Test(
-            expectedExceptions = jakarta.el.ELException.class,
-            expectedExceptionsMessageRegExp =
-                    "Cannot convert \\[7\\] of type \\[class java.lang.Byte\\] to \\[class java.time.Instant\\]")
+    @Test
     void testInvalidAddDate() {
-        JstlFunctions.dateadd((byte) 7, 0, "days");
+        assertEquals("Cannot convert [7] of type [class java.lang.Byte] to [class java.time.Instant]",
+                assertThrows(jakarta.el.ELException.class, () -> {
+                    JstlFunctions.dateadd((byte) 7, 0, "days");
+                }).getMessage());
     }
 
     /**
      * @return {"value convertible to BigInteger, scale, "expected BigDecimal value"}
      */
-    @DataProvider(name = "toBigDecimalProvider")
     public static Object[][] toBigDecimalProvider() {
         BigDecimal bigDecimal = new BigDecimal("12.34567890123456789012345678901234567890");
         BigDecimal smallDecimal = new BigDecimal("1234.5678");
@@ -194,7 +203,6 @@ public class JstlFunctionsTest {
     /**
      * @return {"value convertible to double, "expected BigDecimal value"}
      */
-    @DataProvider(name = "toBigDecimalWithoutScaleProvider")
     public static Object[][] toBigDecimalWithoutScaleProvider() {
         BigDecimal bigDecimal = BigDecimal.valueOf(12.34567890123456789012345678901234567890d);
         BigDecimal smallDecimal = BigDecimal.valueOf(1234.5678f);
@@ -211,7 +219,6 @@ public class JstlFunctionsTest {
     /**
      * @return {"input date in epoch millis", "delta", "unit", "expected value (in epoch millis)"}
      */
-    @DataProvider(name = "millisTimestampAddProvider")
     public static Object[][] millisTimestampAddProvider() {
         Instant instant = Instant.parse("2022-10-02T01:02:03Z");
         long millis = instant.toEpochMilli();
@@ -246,7 +253,6 @@ public class JstlFunctionsTest {
     /**
      * @return {"input date", "delta", "unit", "expected value"}
      */
-    @DataProvider(name = "utcTimestampAddProvider")
     public static Object[][] utcTimestampAddProvider() {
         String utcDateTime = "2022-10-02T01:02:03Z";
         Instant instant = Instant.parse("2022-10-02T01:02:03Z");
@@ -281,7 +287,6 @@ public class JstlFunctionsTest {
     /**
      * @return {"input date", "delta", "unit", "expected value (in epoch millis)"}
      */
-    @DataProvider(name = "nonUtcTimestampAddProvider")
     public static Object[][] nonUtcTimestampAddProvider() {
         String nonUtcDateTime = "2022-10-02T01:02:03+02:00";
         long twoHoursMillis = Duration.ofHours(2).toMillis();
@@ -394,12 +399,13 @@ public class JstlFunctionsTest {
         };
     }
 
-    @Test(
-            expectedExceptions = IllegalArgumentException.class,
-            expectedExceptionsMessageRegExp =
-                    "Invalid unit: lightyear. Should be one of \\[years, months, days, hours, minutes, seconds, millis\\]")
+
+    @Test
     void testAddDateInvalidUnit() {
-        JstlFunctions.timestampAdd(0L, 0, "lightyear");
+        assertEquals("Invalid unit: lightyear. Should be one of [years, months, days, hours, minutes, seconds, millis]",
+        assertThrows(IllegalArgumentException.class, () -> {
+            JstlFunctions.timestampAdd(0L, 0, "lightyear");
+        }).getMessage());
     }
 
     @Test

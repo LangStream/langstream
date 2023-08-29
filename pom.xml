@@ -39,7 +39,6 @@
     <!-- same version of Kafka -->
     <netty.version>4.1.92.Final</netty.version>
     <testcontainers.version>1.18.3</testcontainers.version>
-    <testng.version>7.8.0</testng.version>
     <junit-jupiter.version>5.9.3</junit-jupiter.version>
     <lombok.version>1.18.28</lombok.version>
     <jackson.version>2.14.2</jackson.version>
@@ -232,12 +231,6 @@
         <version>${testcontainers.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.testng</groupId>
-        <artifactId>testng</artifactId>
-        <version>${testng.version}</version>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.springframework.boot</groupId>

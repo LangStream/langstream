@@ -15,15 +15,15 @@
  */
 package com.datastax.oss.pulsar.functions.transforms;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.models.ChatCompletions;
@@ -45,14 +45,14 @@ import org.apache.pulsar.client.api.schema.KeyValueSchema;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.functions.api.Context;
 import org.apache.pulsar.functions.api.Record;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 @Slf4j
 public class AIToolsTest {
 
-    @DataProvider(name = "validConfigs")
     public static Object[][] validConfigs() {
         return new Object[][] {
             {
@@ -107,7 +107,9 @@ public class AIToolsTest {
         };
     }
 
-    @Test(dataProvider = "validConfigs")
+
+    @ParameterizedTest
+    @MethodSource("validConfigs")
     void testValidConfig(String validConfig) {
         System.setProperty("ALLOWED_HF_URLS", "jar://");
         log.info("testing valid config: {}", validConfig);
@@ -119,7 +121,8 @@ public class AIToolsTest {
         transformFunction.initialize(context);
     }
 
-    @DataProvider(name = "invalidConfigs")
+    @ParameterizedTest
+    @MethodSource("invalidConfigs")
     public static Object[][] invalidConfigs() {
         return new Object[][] {
             {"{'steps': [], 'openai': {'url': 'some-url'}}"},
@@ -151,7 +154,8 @@ public class AIToolsTest {
         };
     }
 
-    @Test(dataProvider = "invalidConfigs")
+    @ParameterizedTest
+    @MethodSource("invalidConfigs")
     void testInvalidConfig(String invalidConfig) {
 
         String userConfig = invalidConfig.replace("'", "\"");

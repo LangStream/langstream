@@ -15,12 +15,13 @@
  */
 package com.datastax.oss.streaming.ai;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.models.ChatCompletions;
@@ -53,10 +54,11 @@ import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 public class ChatCompletionsStepTest {
 
@@ -76,7 +78,7 @@ public class ChatCompletionsStepTest {
     private OpenAICompletionService completionService;
     private OpenAIClient openAIClient;
 
-    @BeforeMethod
+    @BeforeEach
     void setup() throws Exception {
         openAIClient = mock(OpenAIClient.class);
         when(openAIClient.getChatCompletions(eq("test-model"), any()))
@@ -116,12 +118,12 @@ public class ChatCompletionsStepTest {
                 "test-message test-key 42 test-input-topic test-output-topic test-value");
     }
 
-    @DataProvider(name = "structuredSchemaTypes")
     public static Object[][] structuredSchemaTypes() {
         return new Object[][] {{SchemaType.AVRO}, {SchemaType.JSON}};
     }
 
-    @Test(dataProvider = "structuredSchemaTypes")
+    @ParameterizedTest
+    @MethodSource("structuredSchemaTypes")
     void testStructured(SchemaType schemaType) throws Exception {
         TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
         RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
@@ -168,12 +170,12 @@ public class ChatCompletionsStepTest {
                 "Jane Doe 42 19359 1672700645006 83045006 test-key");
     }
 
-    @DataProvider(name = "jsonStringSchemas")
     public static Object[][] jsonStringSchemas() {
         return new Object[][] {{Schema.STRING}, {Schema.BYTES}};
     }
 
-    @Test(dataProvider = "jsonStringSchemas")
+    @ParameterizedTest
+    @MethodSource("jsonStringSchemas")
     void testJsonString(Schema<?> schema) throws Exception {
         TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
         Object json =
@@ -206,7 +208,8 @@ public class ChatCompletionsStepTest {
                 "Jane Doe 42 19359 1672700645006 83045006 test-key");
     }
 
-    @Test(dataProvider = "structuredSchemaTypes")
+    @ParameterizedTest
+    @MethodSource("structuredSchemaTypes")
     void testKVStructured(SchemaType schemaType) throws Exception {
         ArgumentCaptor<ChatCompletionsOptions> captor =
                 ArgumentCaptor.forClass(ChatCompletionsOptions.class);
@@ -224,7 +227,8 @@ public class ChatCompletionsStepTest {
         assertEquals(captor.getValue().getMessages().get(0).getContent(), "value1 key2");
     }
 
-    @Test(dataProvider = "jsonStringSchemas")
+    @ParameterizedTest
+    @MethodSource("jsonStringSchemas")
     void testKVJsonString(Schema<?> schema) throws Exception {
         TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
         Object json =
@@ -390,7 +394,6 @@ public class ChatCompletionsStepTest {
         assertEquals(((JsonNode) messageValue.getValue()).get("chat").asText(), "result");
     }
 
-    @DataProvider(name = "jsonStringFieldOutput")
     public static Object[][] jsonStringFieldOutput() {
         return new Object[][] {
             {Schema.STRING, "{\"name\":\"Jane\"}", "{\"name\":\"Jane\",\"chat\":\"result\"}"},
@@ -402,7 +405,8 @@ public class ChatCompletionsStepTest {
         };
     }
 
-    @Test(dataProvider = "jsonStringFieldOutput")
+    @ParameterizedTest
+    @MethodSource("jsonStringFieldOutput")
     void testJsonStringValueFieldOutput(Schema<?> schema, Object input, Object expected)
             throws Exception {
         Record<GenericObject> record =
@@ -420,7 +424,11 @@ public class ChatCompletionsStepTest {
                 Utils.process(record, new ChatCompletionsStep(completionService, config));
 
         assertEquals(outputRecord.getSchema(), schema);
-        assertEquals(outputRecord.getValue(), expected);
+        if (expected instanceof  byte[]) {
+            assertArrayEquals((byte[]) outputRecord.getValue(),(byte[])  expected);
+        } else {
+            assertEquals(outputRecord.getValue(), expected);
+        }
     }
 
     @Test
@@ -462,7 +470,8 @@ public class ChatCompletionsStepTest {
         assertEquals(((JsonNode) messageValue.getKey()).get("chat").asText(), "result");
     }
 
-    @Test(dataProvider = "jsonStringFieldOutput")
+    @ParameterizedTest
+    @MethodSource("jsonStringFieldOutput")
     void testJsonStringKeyFieldOutput(Schema<?> schema, Object input, Object expected)
             throws Exception {
         Schema<? extends KeyValue<?, Integer>> keyValueSchema =
@@ -487,6 +496,10 @@ public class ChatCompletionsStepTest {
         KeyValue<?, ?> messageValue = (KeyValue<?, ?>) outputRecord.getValue();
 
         assertEquals(messageSchema.getKeySchema(), schema);
-        assertEquals(messageValue.getKey(), expected);
+        if (expected instanceof byte[]) {
+            assertArrayEquals((byte[]) messageValue.getKey(), (byte[]) expected);
+        } else {
+            assertEquals(messageValue.getKey(), expected);
+        }
     }
 }

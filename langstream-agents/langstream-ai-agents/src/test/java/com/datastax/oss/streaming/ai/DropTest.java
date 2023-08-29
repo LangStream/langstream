@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import static org.testng.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.GenericObject;
@@ -29,7 +29,7 @@ import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 public class DropTest {
 

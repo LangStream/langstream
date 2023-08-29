@@ -22,7 +22,7 @@ import static org.junit.Assert.assertNotNull;
 import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 public class AvroUtilTest {
     private static final MyLogicalType MY_LOGICAL_TYPE = new MyLogicalType();

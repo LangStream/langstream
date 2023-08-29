@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import static org.testng.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,7 +41,7 @@ import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 public class QueryStepTest {
 

@@ -15,8 +15,8 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.datastax.oss.streaming.ai.embeddings.MockEmbeddingsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,8 +35,8 @@ import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
-import org.testng.annotations.Ignore;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 public class ComputeAIEmbeddingsTest {
 
@@ -95,7 +95,7 @@ public class ComputeAIEmbeddingsTest {
     }
 
     @Test
-    @Ignore("JSON not supported at the moment")
+    @Disabled("JSON not supported at the moment")
     void testJson() throws Exception {
         RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
         recordSchemaBuilder.field("firstName").type(SchemaType.STRING);

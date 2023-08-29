@@ -36,13 +36,7 @@ class OpenAIProviderTest {
                 provider.createImplementation(
                         Map.of(
                                 "openai",
-                                Map.of(
-                                        "provider",
-                                        "azure",
-                                        "access-key",
-                                        "xxx",
-                                        "url",
-                                        "xxx")));
+                                Map.of("provider", "azure", "access-key", "xxx", "url", "xxx")));
 
         CompletionsService service = implementation.getCompletionsService(Map.of());
         ChatCompletions chatCompletions =

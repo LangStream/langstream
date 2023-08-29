@@ -412,6 +412,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
     private class StreamPodLogHandler implements PodLogHandler {
         private final String tenant;
         private final String pod;
+        private InputStream in;
+        private volatile boolean closed;
 
         public StreamPodLogHandler(String tenant, String pod) {
             this.tenant = tenant;
@@ -432,12 +434,27 @@ public class KubernetesApplicationStore implements ApplicationStore {
                     if (!continueLoop) {
                         return;
                     }
+                    if (closed) {
+                        return;
+                    }
                 } catch (Throwable tt) {
-                    log.info("Error while streaming logs for pod {}", pod, tt);
+                    if (!closed) {
+                        log.warn("Error while streaming logs for pod {}", pod, tt);
+                    }
                     onLogLine.onEnd();
                 }
 
             }
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+            try {
+                in.close();
+            } catch (Throwable ignored) {
+            }
+
         }
 
         private boolean streamUntilEOF(LogLineConsumer onLogLine) throws IOException {
@@ -453,7 +470,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
                             .withPrettyOutput()
                             .withReadyWaitTimeout(Integer.MAX_VALUE)
                             .watchLog(); ) {
-                final InputStream in = watchLog.getOutput();
+                in = watchLog.getOutput();
                 try (BufferedReader br =
                         new BufferedReader(new InputStreamReader(in))) {
                     String line;
@@ -461,6 +478,9 @@ public class KubernetesApplicationStore implements ApplicationStore {
                         String coloredLog = "\u001B[%sm[%s] %s\u001B[0m\n".formatted(color, pod, line);
                         final boolean shallContinue = onLogLine.onLogLine(coloredLog);
                         if (!shallContinue) {
+                            return false;
+                        }
+                        if (closed) {
                             return false;
                         }
                     }

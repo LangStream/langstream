@@ -46,20 +46,26 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
     public void run() {
         final String filterStr = filter == null ? "" : "?filter=" + String.join(",", filter);
         final AdminClient client = getClient();
-        final HttpRequest request = client.newGet(client.tenantAppPath("/" + name + "/logs" + filterStr));
+        final HttpRequest request =
+                client.newGet(client.tenantAppPath("/" + name + "/logs" + filterStr));
         final HttpResponse<InputStream> response =
                 client.getHttpClient().send(request, HttpResponse.BodyHandlers.ofInputStream());
         if (response.statusCode() != 200) {
-            throw new RuntimeException("Failed to get application logs: " + response.statusCode());
+            throw new RuntimeException(
+                    "Failed to get application logs: "
+                            + response.statusCode()
+                            + " "
+                            + new String(response.body().readAllBytes(), StandardCharsets.UTF_8));
         }
 
         BufferedReader br = new BufferedReader(new InputStreamReader(response.body()));
         String line;
         try {
             while ((line = br.readLine()) != null) {
-                command.commandLine()
-                        .getOut()
-                        .print(line);
+                if ("Heartbeat".equals(line)) {
+                    continue;
+                }
+                command.commandLine().getOut().println(line);
                 command.commandLine().getOut().flush();
             }
         } catch (IOException e) {

@@ -58,11 +58,15 @@ public interface ApplicationStore extends GenericStore {
 
     interface PodLogHandler {
         void start(LogLineConsumer onLogLine);
+
         String getPodName();
+
+        void close();
     }
 
     interface LogLineConsumer {
         boolean onLogLine(String line);
+
         void onEnd();
     }
 

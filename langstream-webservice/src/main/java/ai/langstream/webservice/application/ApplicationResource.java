@@ -36,12 +36,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -73,7 +77,15 @@ public class ApplicationResource {
     ApplicationService applicationService;
     CodeStorageService codeStorageService;
 
-    private final ExecutorService logsThreadPool = Executors.newCachedThreadPool();
+    private final ScheduledExecutorService logsHeartbeatThreadPool = Executors.newSingleThreadScheduledExecutor(
+            new BasicThreadFactory.Builder()
+                    .namingPattern("app-logs-hb-%d")
+                    .build()
+    );
+    private final ExecutorService logsThreadPool = Executors.newCachedThreadPool(new BasicThreadFactory.Builder()
+            .namingPattern("app-logs-%d")
+            .build()
+    );
 
     private void performAuthorization(Authentication authentication, final String tenant) {
         if (authentication == null) {
@@ -286,12 +298,24 @@ public class ApplicationResource {
                         tenant,
                         applicationId,
                         new ApplicationStore.LogOptions(filterReplicas.orElse(null)));
+        AtomicLong lastSent = new AtomicLong(Long.MAX_VALUE);
         final Consumer<FluxSink<String>> fluxSinkConsumer = fluxSink -> {
             if (podLogs.isEmpty()) {
                 fluxSink.next("No pods found\n");
                 fluxSink.complete();
                 return;
             }
+            fluxSink.onDispose(() -> podLogs.forEach(ApplicationStore.PodLogHandler::close));
+            logsHeartbeatThreadPool.scheduleWithFixedDelay(() -> {
+                try {
+                    if (lastSent.get() + TimeUnit.SECONDS.toMillis(30)
+                            < System.currentTimeMillis()) {
+                        fluxSink.next("Heartbeat\n");
+                        lastSent.set(System.currentTimeMillis());
+                    }
+                } catch (Throwable e) {
+                }
+            }, 30, 30, TimeUnit.SECONDS);
             for (ApplicationStore.PodLogHandler podLog : podLogs) {
                 fluxSink.next("Start receiving log for pod %s\n".formatted(podLog.getPodName()));
                 logsThreadPool.submit(
@@ -301,11 +325,13 @@ public class ApplicationResource {
                                     @Override
                                     public boolean onLogLine(String line) {
                                         fluxSink.next(line);
+                                        lastSent.set(System.currentTimeMillis());
                                         return true;
                                     }
 
                                     @Override
                                     public void onEnd() {
+                                        lastSent.set(System.currentTimeMillis());
                                         fluxSink.complete();
                                     }
                                 };
@@ -316,7 +342,7 @@ public class ApplicationResource {
                         });
             }
         };
-        return Flux.create(fluxSinkConsumer).subscribeOn(Schedulers.fromExecutor(logsThreadPool));
+        return Flux.create(fluxSinkConsumer);
     }
 
     @GetMapping(value = "/{tenant}/{applicationId}/code", produces = "application/zip")

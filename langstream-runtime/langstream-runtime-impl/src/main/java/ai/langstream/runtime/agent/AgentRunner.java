@@ -369,9 +369,7 @@ public class AgentRunner
         while ((maxLoops < 0) || (maxLoops-- > 0)) {
             if (records != null && !records.isEmpty()) {
                 // in case of permanent FAIL this method will throw an exception
-                runProcessorAgent(function, records, errorsHandler, source, new RecordSink() {
-                    @Override
-                    public void emit(AgentProcessor.SourceRecordAndResult sourceRecordAndResult) {
+                runProcessorAgent(function, records, errorsHandler, source, (AgentProcessor.SourceRecordAndResult sourceRecordAndResult) -> {
 
                         if (sourceRecordAndResult.error() != null) {
                             // handle error
@@ -401,7 +399,7 @@ public class AgentRunner
                             setFatalError(e, fatalError);
                         }
                     }
-                });
+                );
             }
             checkFatalError(fatalError);
 
@@ -483,10 +481,7 @@ public class AgentRunner
                                             AgentSource source,
                                             RecordSink finalSink) {
         log.info("runProcessor on {} records", sourceRecords.size());
-        processor.process(sourceRecords,
-            new RecordSink() {
-                @Override
-                public void emit(AgentProcessor.SourceRecordAndResult result) {
+        processor.process(sourceRecords, (AgentProcessor.SourceRecordAndResult result) -> {
                     Record sourceRecord = result.sourceRecord();
                     try {
                         log.info("Result for record {}: {}", sourceRecord, result);
@@ -529,8 +524,7 @@ public class AgentRunner
                         log.error("Error while processing record {}", sourceRecord, error);
                         finalSink.emit(new AgentProcessor.SourceRecordAndResult(sourceRecord, List.of(), error));
                     }
-                }
-            });
+                });
     }
 
     public static final class PermanentFailureException extends Exception {

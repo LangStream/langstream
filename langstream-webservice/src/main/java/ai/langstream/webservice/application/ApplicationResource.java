@@ -293,7 +293,7 @@ public class ApplicationResource {
                 return;
             }
             for (ApplicationStore.PodLogHandler podLog : podLogs) {
-                fluxSink.next("Start receiving pod log for pod %s\n".formatted(podLog.getPodName()));
+                fluxSink.next("Start receiving log for pod %s\n".formatted(podLog.getPodName()));
                 logsThreadPool.submit(
                         () -> {
                             try {

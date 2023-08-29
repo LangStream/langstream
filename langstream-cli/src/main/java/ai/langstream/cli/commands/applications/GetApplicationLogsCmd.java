@@ -63,7 +63,7 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
                 command.commandLine().getOut().flush();
             }
         } catch (IOException e) {
-            throw new RuntimeException("Unable to read status event stream", e);
+            throw new RuntimeException("Unable to read logs", e);
         }
     }
 }

@@ -458,16 +458,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
                         new BufferedReader(new InputStreamReader(in))) {
                     String line;
                     while ((line = br.readLine()) != null) {
-                        String coloredLog =
-                                "\u001B["
-                                        + color
-                                        + "m"
-                                        + pod
-                                        + " "
-                                        + line
-                                        + "\u001B[0m\n";
-                        final boolean shallContinue =
-                                onLogLine.onLogLine(coloredLog);
+                        String coloredLog = "\u001B[%sm[%s] %s\u001B[0m\n".formatted(color, pod, line);
+                        final boolean shallContinue = onLogLine.onLogLine(coloredLog);
                         if (!shallContinue) {
                             return false;
                         }

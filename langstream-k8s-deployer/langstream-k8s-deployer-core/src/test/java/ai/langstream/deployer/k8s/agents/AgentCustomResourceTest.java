@@ -189,7 +189,9 @@ class AgentCustomResourceTest {
         resource = k3s.getClient().resource(resource).inNamespace(namespace).get();
         final StatefulSet statefulSet =
                 AgentResourcesFactory.generateStatefulSet(
-                        resource, new AgentResourceUnitConfiguration());
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(resource)
+                                .build());
         statefulSet.getSpec().getTemplate().getSpec().setInitContainers(List.of());
         k3s.getClient().resource(statefulSet).inNamespace(namespace).serverSideApply();
     }

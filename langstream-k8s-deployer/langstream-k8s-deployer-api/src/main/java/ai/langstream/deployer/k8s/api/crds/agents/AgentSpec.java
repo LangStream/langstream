@@ -28,8 +28,8 @@ public class AgentSpec extends NamespacedSpec {
 
     private String agentId;
     private String applicationId;
-    private String image;
-    private String imagePullPolicy;
+    @Deprecated private String image;
+    @Deprecated private String imagePullPolicy;
     private String agentConfigSecretRef;
     private String agentConfigSecretRefChecksum;
     private Resources resources;

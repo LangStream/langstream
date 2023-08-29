@@ -63,6 +63,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -74,6 +75,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -105,18 +107,30 @@ public class AgentResourcesFactory {
                 .build();
     }
 
-    public static StatefulSet generateStatefulSet(
-            AgentCustomResource agentCustomResource,
-            AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
-        return generateStatefulSet(agentCustomResource, agentResourceUnitConfiguration, null);
+    @Builder
+    @Getter
+    public static class GenerateStatefulsetParams {
+        private AgentCustomResource agentCustomResource;
+
+        @Builder.Default
+        private AgentResourceUnitConfiguration agentResourceUnitConfiguration =
+                new AgentResourceUnitConfiguration();
+
+        private String image;
+        private String imagePullPolicy;
+        private PodTemplate podTemplate;
     }
 
-    public static StatefulSet generateStatefulSet(
-            AgentCustomResource agentCustomResource,
-            AgentResourceUnitConfiguration agentResourceUnitConfiguration,
-            PodTemplate podTemplate) {
+    public static StatefulSet generateStatefulSet(GenerateStatefulsetParams params) {
+        final AgentCustomResource agentCustomResource =
+                Objects.requireNonNull(params.getAgentCustomResource());
+        final AgentResourceUnitConfiguration agentResourceUnitConfiguration =
+                Objects.requireNonNull(params.getAgentResourceUnitConfiguration());
+        final PodTemplate podTemplate = params.getPodTemplate();
 
         final AgentSpec spec = agentCustomResource.getSpec();
+        final String image = getStsImage(params, spec);
+        final String imagePullPolicy = getStsImagePullPolicy(params, spec);
 
         final String appConfigVolume = "app-config";
         final String clusterConfigVolume = "cluster-config";
@@ -135,8 +149,8 @@ public class AgentResourcesFactory {
         final Container injectConfigForDownloadCodeInitContainer =
                 new ContainerBuilder()
                         .withName("code-download-init")
-                        .withImage(spec.getImage())
-                        .withImagePullPolicy(spec.getImagePullPolicy())
+                        .withImage(image)
+                        .withImagePullPolicy(imagePullPolicy)
                         .withResources(
                                 new ResourceRequirementsBuilder()
                                         .withRequests(
@@ -163,8 +177,8 @@ public class AgentResourcesFactory {
         final Container downloadCodeInitContainer =
                 new ContainerBuilder()
                         .withName("code-download")
-                        .withImage(spec.getImage())
-                        .withImagePullPolicy(spec.getImagePullPolicy())
+                        .withImage(image)
+                        .withImagePullPolicy(imagePullPolicy)
                         .withArgs("agent-code-download")
                         .withEnv(
                                 new EnvVarBuilder()
@@ -199,8 +213,8 @@ public class AgentResourcesFactory {
         final Container container =
                 new ContainerBuilder()
                         .withName("runtime")
-                        .withImage(spec.getImage())
-                        .withImagePullPolicy(spec.getImagePullPolicy())
+                        .withImage(image)
+                        .withImagePullPolicy(imagePullPolicy)
                         .withPorts(List.of(new ContainerPort(8080, null, null, "http", "TCP")))
                         //                .withLivenessProbe(createLivenessProbe())
                         //                .withReadinessProbe(createReadinessProbe())
@@ -305,6 +319,30 @@ public class AgentResourcesFactory {
                 .endTemplate()
                 .endSpec()
                 .build();
+    }
+
+    private static String getStsImagePullPolicy(GenerateStatefulsetParams params, AgentSpec spec) {
+        final String imagePullPolicy = params.getImagePullPolicy();
+        final String containerImagePullPolicy =
+                imagePullPolicy != null && !imagePullPolicy.isBlank()
+                        ? imagePullPolicy
+                        : spec.getImagePullPolicy();
+        if (containerImagePullPolicy == null) {
+            throw new IllegalStateException(
+                    "Runtime image pull policy is not specified, neither in the resource and in the deployer configuration.");
+        }
+        return containerImagePullPolicy;
+    }
+
+    private static String getStsImage(GenerateStatefulsetParams params, AgentSpec spec) {
+        final String image = params.getImage();
+
+        final String containerImage = image != null && !image.isBlank() ? image : spec.getImage();
+        if (containerImage == null) {
+            throw new IllegalStateException(
+                    "Runtime image is not specified, neither in the resource and in the deployer configuration.");
+        }
+        return containerImage;
     }
 
     private static String writeInlineBashJson(

@@ -17,6 +17,7 @@ package ai.langstream.runtime.impl.k8s;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
@@ -59,8 +60,6 @@ class KubernetesClusterRuntimeDockerTest {
     private ApplicationDeployer getDeployer() {
         final KubernetesClusterRuntimeConfiguration config =
                 new KubernetesClusterRuntimeConfiguration();
-        config.setImage("langstream/langstream-generic-agent:latest");
-        config.setImagePullPolicy("Never");
         config.setNamespacePrefix("langstream-");
 
         @Cleanup
@@ -162,8 +161,8 @@ class KubernetesClusterRuntimeDockerTest {
         final AgentCustomResource agent = agentsCRs.values().iterator().next();
 
         assertEquals(tenant, agent.getSpec().getTenant());
-        assertEquals("langstream/langstream-generic-agent:latest", agent.getSpec().getImage());
-        assertEquals("Never", agent.getSpec().getImagePullPolicy());
+        assertNull(agent.getSpec().getImage());
+        assertNull(agent.getSpec().getImagePullPolicy());
         assertEquals("step1", agent.getSpec().getAgentId());
         assertEquals("app", agent.getSpec().getApplicationId());
         assertEquals("app-step1", agent.getSpec().getAgentConfigSecretRef());

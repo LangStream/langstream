@@ -98,8 +98,15 @@ public class AgentController extends BaseController<AgentCustomResource>
         protected StatefulSet desired(
                 AgentCustomResource primary, Context<AgentCustomResource> context) {
             try {
-                return AgentResourcesFactory.generateStatefulSet(
-                        primary, configuration.getAgentResources(), configuration.getPodTemplate());
+                final AgentResourcesFactory.GenerateStatefulsetParams params =
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(primary)
+                                .agentResourceUnitConfiguration(configuration.getAgentResources())
+                                .podTemplate(configuration.getPodTemplate())
+                                .image(configuration.getRuntimeImage())
+                                .imagePullPolicy(configuration.getRuntimeImagePullPolicy())
+                                .build();
+                return AgentResourcesFactory.generateStatefulSet(params);
             } catch (Throwable t) {
                 log.errorf(
                         t,

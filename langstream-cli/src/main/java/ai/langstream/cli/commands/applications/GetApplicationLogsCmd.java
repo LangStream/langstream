@@ -16,6 +16,11 @@
 package ai.langstream.cli.commands.applications;
 
 import ai.langstream.admin.client.AdminClient;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -41,28 +46,24 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
     public void run() {
         final String filterStr = filter == null ? "" : "?filter=" + String.join(",", filter);
         final AdminClient client = getClient();
-        client.getHttpClient()
-                .sendAsync(
-                        client.newGet(client.tenantAppPath("/" + name + "/logs" + filterStr)),
-                        HttpResponse.BodyHandlers.ofByteArrayConsumer(
-                                bytes -> {
-                                    if (bytes.isPresent()) {
-                                        command.commandLine()
-                                                .getOut()
-                                                .print(
-                                                        new String(
-                                                                bytes.get(),
-                                                                StandardCharsets.UTF_8));
-                                        command.commandLine().getOut().flush();
-                                    }
-                                }))
-                .thenApply(HttpResponse::statusCode)
-                .thenAccept(
-                        (status) -> {
-                            if (status != 200) {
-                                err("ERROR: %d status received".formatted(status));
-                            }
-                        })
-                .join();
+        final HttpRequest request = client.newGet(client.tenantAppPath("/" + name + "/logs" + filterStr));
+        final HttpResponse<InputStream> response =
+                client.getHttpClient().send(request, HttpResponse.BodyHandlers.ofInputStream());
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Failed to get application logs: " + response.statusCode());
+        }
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(response.body()));
+        String line;
+        try {
+            while ((line = br.readLine()) != null) {
+                command.commandLine()
+                        .getOut()
+                        .print(line);
+                command.commandLine().getOut().flush();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to read status event stream", e);
+        }
     }
 }

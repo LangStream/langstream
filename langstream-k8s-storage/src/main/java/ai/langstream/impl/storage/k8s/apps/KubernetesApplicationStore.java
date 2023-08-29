@@ -43,6 +43,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -399,53 +400,81 @@ public class KubernetesApplicationStore implements ApplicationStore {
                             }
                             return true;
                         })
-                .map(
-                        pod -> {
-                            return new PodLogHandler() {
-                                @Override
-                                @SneakyThrows
-                                public void start(LogLineConsumer onLogLine) {
-                                    final PodResource podResource =
-                                            client.pods()
-                                                    .inNamespace(tenantToNamespace(tenant))
-                                                    .withName(pod);
-                                    final int replicas = extractReplicas(pod);
-                                    final String color = LOG_COLORS[replicas % LOG_COLORS.length];
-                                    try (final LogWatch watchLog =
-                                            podResource
-                                                    .inContainer("runtime")
-                                                    .withPrettyOutput()
-                                                    .withReadyWaitTimeout(Integer.MAX_VALUE)
-                                                    .watchLog(); ) {
-                                        final InputStream in = watchLog.getOutput();
-                                        try (BufferedReader br =
-                                                new BufferedReader(new InputStreamReader(in))) {
-                                            String line;
-                                            while ((line = br.readLine()) != null) {
-                                                String coloredLog =
-                                                        "\u001B["
-                                                                + color
-                                                                + "m"
-                                                                + pod
-                                                                + " "
-                                                                + line
-                                                                + "\u001B[0m\n";
-                                                final boolean shallContinue =
-                                                        onLogLine.onLogLine(coloredLog);
-                                                if (!shallContinue) {
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            };
-                        })
+                .map(pod -> new StreamPodLogHandler(tenant, pod))
                 .collect(Collectors.toList());
     }
 
     private int extractReplicas(String pod) {
         final String[] split = pod.split("-");
         return Integer.parseInt(split[split.length - 1]);
+    }
+
+    private class StreamPodLogHandler implements PodLogHandler {
+        private final String tenant;
+        private final String pod;
+
+        public StreamPodLogHandler(String tenant, String pod) {
+            this.tenant = tenant;
+            this.pod = pod;
+        }
+
+        @Override
+        public String getPodName() {
+            return pod;
+        }
+
+        @Override
+        @SneakyThrows
+        public void start(LogLineConsumer onLogLine) {
+            while (true) {
+                try {
+                    boolean continueLoop = streamUntilEOF(onLogLine);
+                    if (!continueLoop) {
+                        return;
+                    }
+                } catch (Throwable tt) {
+                    log.info("Error while streaming logs for pod {}", pod, tt);
+                    onLogLine.onEnd();
+                }
+
+            }
+        }
+
+        private boolean streamUntilEOF(LogLineConsumer onLogLine) throws IOException {
+            final PodResource podResource =
+                    client.pods()
+                            .inNamespace(tenantToNamespace(tenant))
+                            .withName(pod);
+            final int replicas = extractReplicas(pod);
+            final String color = LOG_COLORS[replicas % LOG_COLORS.length];
+            try (final LogWatch watchLog =
+                    podResource
+                            .inContainer("runtime")
+                            .withPrettyOutput()
+                            .withReadyWaitTimeout(Integer.MAX_VALUE)
+                            .watchLog(); ) {
+                final InputStream in = watchLog.getOutput();
+                try (BufferedReader br =
+                        new BufferedReader(new InputStreamReader(in))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        String coloredLog =
+                                "\u001B["
+                                        + color
+                                        + "m"
+                                        + pod
+                                        + " "
+                                        + line
+                                        + "\u001B[0m\n";
+                        final boolean shallContinue =
+                                onLogLine.onLogLine(coloredLog);
+                        if (!shallContinue) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return onLogLine.onLogLine("[%s] EOF\n".formatted(pod));
+        }
     }
 }

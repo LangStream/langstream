@@ -286,28 +286,37 @@ public class ApplicationResource {
                         tenant,
                         applicationId,
                         new ApplicationStore.LogOptions(filterReplicas.orElse(null)));
-        if (podLogs.isEmpty()) {
-            return Flux.empty();
-        }
-        return Flux.create(
-                        (Consumer<FluxSink<String>>)
-                                fluxSink -> {
-                                    for (ApplicationStore.PodLogHandler podLog : podLogs) {
-                                        logsThreadPool.submit(
-                                                () -> {
-                                                    try {
-                                                        podLog.start(
-                                                                line -> {
-                                                                    fluxSink.next(line);
-                                                                    return true;
-                                                                });
-                                                    } catch (Exception e) {
-                                                        fluxSink.error(e);
-                                                    }
-                                                });
+        final Consumer<FluxSink<String>> fluxSinkConsumer = fluxSink -> {
+            if (podLogs.isEmpty()) {
+                fluxSink.next("No pods found\n");
+                fluxSink.complete();
+                return;
+            }
+            for (ApplicationStore.PodLogHandler podLog : podLogs) {
+                fluxSink.next("Start receiving pod log for pod %s\n".formatted(podLog.getPodName()));
+                logsThreadPool.submit(
+                        () -> {
+                            try {
+                                final ApplicationStore.LogLineConsumer logLineConsumer = new ApplicationStore.LogLineConsumer() {
+                                    @Override
+                                    public boolean onLogLine(String line) {
+                                        fluxSink.next(line);
+                                        return true;
                                     }
-                                })
-                .subscribeOn(Schedulers.fromExecutor(logsThreadPool));
+
+                                    @Override
+                                    public void onEnd() {
+                                        fluxSink.complete();
+                                    }
+                                };
+                                podLog.start(logLineConsumer);
+                            } catch (Exception e) {
+                                fluxSink.error(e);
+                            }
+                        });
+            }
+        };
+        return Flux.create(fluxSinkConsumer).subscribeOn(Schedulers.fromExecutor(logsThreadPool));
     }
 
     @GetMapping(value = "/{tenant}/{applicationId}/code", produces = "application/zip")

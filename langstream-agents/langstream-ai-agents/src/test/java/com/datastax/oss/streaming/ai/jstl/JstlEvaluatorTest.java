@@ -26,18 +26,21 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import org.apache.pulsar.client.api.Schema;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.api.Test;
 
 public class JstlEvaluatorTest {
 
     @ParameterizedTest
     @MethodSource("methodInvocationExpressionProvider")
     void testMethodInvocationsDisabled(String expression, TransformContext context) {
-        assertThrows(MethodNotFoundException.class, () -> {
-            new JstlEvaluator<>(String.format("${%s}", expression), String.class).evaluate(context);
-        });
+        assertThrows(
+                MethodNotFoundException.class,
+                () -> {
+                    new JstlEvaluator<>(String.format("${%s}", expression), String.class)
+                            .evaluate(context);
+                });
     }
 
     @ParameterizedTest

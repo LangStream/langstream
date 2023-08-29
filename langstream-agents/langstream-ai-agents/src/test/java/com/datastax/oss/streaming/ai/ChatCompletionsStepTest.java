@@ -16,12 +16,12 @@
 package com.datastax.oss.streaming.ai;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.models.ChatCompletions;
@@ -55,10 +55,10 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
-import org.junit.jupiter.api.Test;
 
 public class ChatCompletionsStepTest {
 
@@ -424,8 +424,8 @@ public class ChatCompletionsStepTest {
                 Utils.process(record, new ChatCompletionsStep(completionService, config));
 
         assertEquals(outputRecord.getSchema(), schema);
-        if (expected instanceof  byte[]) {
-            assertArrayEquals((byte[]) outputRecord.getValue(),(byte[])  expected);
+        if (expected instanceof byte[]) {
+            assertArrayEquals((byte[]) outputRecord.getValue(), (byte[]) expected);
         } else {
             assertEquals(outputRecord.getValue(), expected);
         }

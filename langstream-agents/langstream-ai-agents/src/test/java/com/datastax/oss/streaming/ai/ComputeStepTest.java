@@ -72,9 +72,9 @@ import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.api.Test;
 
 public class ComputeStepTest {
 
@@ -611,56 +611,60 @@ public class ComputeStepTest {
 
     @Test
     void testAvroNullsNotAllowed() throws Exception {
-        assertThrows(AvroRuntimeException.class, () -> {
-            RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
-            recordSchemaBuilder.field("firstName").type(SchemaType.STRING);
+        assertThrows(
+                AvroRuntimeException.class,
+                () -> {
+                    RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
+                    recordSchemaBuilder.field("firstName").type(SchemaType.STRING);
 
-            SchemaInfo schemaInfo = recordSchemaBuilder.build(SchemaType.AVRO);
-            GenericSchema<GenericRecord> genericSchema = Schema.generic(schemaInfo);
+                    SchemaInfo schemaInfo = recordSchemaBuilder.build(SchemaType.AVRO);
+                    GenericSchema<GenericRecord> genericSchema = Schema.generic(schemaInfo);
 
-            GenericRecord genericRecord =
-                    genericSchema.newRecordBuilder().set("firstName", "Jane").build();
+                    GenericRecord genericRecord =
+                            genericSchema.newRecordBuilder().set("firstName", "Jane").build();
 
-            Record<GenericObject> record =
-                    new Utils.TestRecord<>(genericSchema, genericRecord, "test-key");
+                    Record<GenericObject> record =
+                            new Utils.TestRecord<>(genericSchema, genericRecord, "test-key");
 
-            ComputeStep step =
-                    ComputeStep.builder()
-                            .fields(
-                                    Collections.singletonList(
-                                            ComputeField.builder()
-                                                    .scopedName("value.newLongField")
-                                                    .expression("null")
-                                                    .optional(false)
-                                                    .type(ComputeFieldType.INT64)
-                                                    .build()))
-                            .build();
-            Utils.process(record, step);
-        });
+                    ComputeStep step =
+                            ComputeStep.builder()
+                                    .fields(
+                                            Collections.singletonList(
+                                                    ComputeField.builder()
+                                                            .scopedName("value.newLongField")
+                                                            .expression("null")
+                                                            .optional(false)
+                                                            .type(ComputeFieldType.INT64)
+                                                            .build()))
+                                    .build();
+                    Utils.process(record, step);
+                });
     }
 
     @Test
     void testAvroNullInferredType() throws Exception {
-        assertThrows(UnsupportedOperationException.class, () -> {
-        RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> {
+                    RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
 
-        SchemaInfo schemaInfo = recordSchemaBuilder.build(SchemaType.AVRO);
-        GenericSchema<GenericRecord> genericSchema = Schema.generic(schemaInfo);
+                    SchemaInfo schemaInfo = recordSchemaBuilder.build(SchemaType.AVRO);
+                    GenericSchema<GenericRecord> genericSchema = Schema.generic(schemaInfo);
 
-        GenericRecord genericRecord = genericSchema.newRecordBuilder().build();
+                    GenericRecord genericRecord = genericSchema.newRecordBuilder().build();
 
-        Record<GenericObject> record =
-                new Utils.TestRecord<>(genericSchema, genericRecord, "test-key");
+                    Record<GenericObject> record =
+                            new Utils.TestRecord<>(genericSchema, genericRecord, "test-key");
 
-        List<ComputeField> fields = new ArrayList<>();
-        fields.add(
-                ComputeField.builder()
-                        .scopedName("value.newStringField")
-                        .expression("null")
-                        .build());
-        ComputeStep step = ComputeStep.builder().fields(fields).build();
-        Utils.process(record, step);
-        });
+                    List<ComputeField> fields = new ArrayList<>();
+                    fields.add(
+                            ComputeField.builder()
+                                    .scopedName("value.newStringField")
+                                    .expression("null")
+                                    .build());
+                    ComputeStep step = ComputeStep.builder().fields(fields).build();
+                    Utils.process(record, step);
+                });
     }
 
     @Test
@@ -938,26 +942,28 @@ public class ComputeStepTest {
 
     @Test
     void testNullInferredSchemaType() throws Exception {
-        assertThrows(UnsupportedOperationException.class, () -> {
-            Record<GenericObject> record =
-                    new Utils.TestRecord<>(
-                            Schema.STRING,
-                            AutoConsumeSchema.wrapPrimitiveObject(
-                                    "input", SchemaType.STRING, new byte[]{}),
-                            "");
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> {
+                    Record<GenericObject> record =
+                            new Utils.TestRecord<>(
+                                    Schema.STRING,
+                                    AutoConsumeSchema.wrapPrimitiveObject(
+                                            "input", SchemaType.STRING, new byte[] {}),
+                                    "");
 
-            ComputeStep step =
-                    ComputeStep.builder()
-                            .fields(
-                                    Collections.singletonList(
-                                            ComputeField.builder()
-                                                    .scopedName("value")
-                                                    .expression("null")
-                                                    .build()))
-                            .build();
+                    ComputeStep step =
+                            ComputeStep.builder()
+                                    .fields(
+                                            Collections.singletonList(
+                                                    ComputeField.builder()
+                                                            .scopedName("value")
+                                                            .expression("null")
+                                                            .build()))
+                                    .build();
 
-            Utils.process(record, step);
-        });
+                    Utils.process(record, step);
+                });
     }
 
     @Test

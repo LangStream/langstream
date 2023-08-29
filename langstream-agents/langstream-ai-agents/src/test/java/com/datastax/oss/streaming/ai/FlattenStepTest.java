@@ -36,7 +36,6 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
 import org.junit.jupiter.api.Test;
 
-
 public class FlattenStepTest {
 
     @Test
@@ -260,43 +259,65 @@ public class FlattenStepTest {
 
     @Test
     void testNestedKeyValueInvalidType() throws Exception {
-        assertEquals("Unsupported part for Flatten: invalid",
-        assertThrows(IllegalArgumentException.class, () -> {
-            // given
-            Record<GenericObject> nestedKVRecord = Utils.createNestedAvroKeyValueRecord(4);
+        assertEquals(
+                "Unsupported part for Flatten: invalid",
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> {
+                                    // given
+                                    Record<GenericObject> nestedKVRecord =
+                                            Utils.createNestedAvroKeyValueRecord(4);
 
-            // then
-            Utils.process(nestedKVRecord, FlattenStep.builder().part("invalid").build());
-        }).getMessage());
+                                    // then
+                                    Utils.process(
+                                            nestedKVRecord,
+                                            FlattenStep.builder().part("invalid").build());
+                                })
+                        .getMessage());
     }
 
     @Test
     void testNestedKeyValueNonAvroSchema() throws Exception {
-        assertEquals("Unsupported schema type for Flatten: JSON",
-                assertThrows(IllegalStateException.class, () -> {
-        // given
-        Record<GenericObject> nestedKVRecord = Utils.createNestedJSONRecord(4, "myKey");
+        assertEquals(
+                "Unsupported schema type for Flatten: JSON",
+                assertThrows(
+                                IllegalStateException.class,
+                                () -> {
+                                    // given
+                                    Record<GenericObject> nestedKVRecord =
+                                            Utils.createNestedJSONRecord(4, "myKey");
 
-        // then
-        Utils.process(nestedKVRecord, FlattenStep.builder().part("value").build());
-                }).getMessage());
+                                    // then
+                                    Utils.process(
+                                            nestedKVRecord,
+                                            FlattenStep.builder().part("value").build());
+                                })
+                        .getMessage());
     }
 
     @Test
     void testNestedSchemalessValue() throws Exception {
-        assertEquals("Flatten requires non-null schemas!",
-                assertThrows(IllegalStateException.class, () -> {
-        // given
-        Record<GenericObject> nestedKVRecord =
-                new Utils.TestRecord<>(
-                        null,
-                        AutoConsumeSchema.wrapPrimitiveObject(
-                                "value", SchemaType.STRING, new byte[] {}),
-                        "myKey");
+        assertEquals(
+                "Flatten requires non-null schemas!",
+                assertThrows(
+                                IllegalStateException.class,
+                                () -> {
+                                    // given
+                                    Record<GenericObject> nestedKVRecord =
+                                            new Utils.TestRecord<>(
+                                                    null,
+                                                    AutoConsumeSchema.wrapPrimitiveObject(
+                                                            "value",
+                                                            SchemaType.STRING,
+                                                            new byte[] {}),
+                                                    "myKey");
 
-        // then
-        Utils.process(nestedKVRecord, FlattenStep.builder().part("value").build());
-                }).getMessage());
+                                    // then
+                                    Utils.process(
+                                            nestedKVRecord,
+                                            FlattenStep.builder().part("value").build());
+                                })
+                        .getMessage());
     }
 
     private void assertSchemasFlattened(

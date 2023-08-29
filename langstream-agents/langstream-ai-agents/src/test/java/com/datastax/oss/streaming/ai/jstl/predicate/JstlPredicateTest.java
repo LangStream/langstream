@@ -26,11 +26,10 @@ import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.GenericObject;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
-import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.api.Test;
 
 public class JstlPredicateTest {
 
@@ -49,10 +48,14 @@ public class JstlPredicateTest {
 
     @Test
     void testInvalidWhen() {
-        assertEquals("invalid when: `invalid",
-                assertThrows(IllegalArgumentException.class, () -> {
-            new JstlPredicate("`invalid");
-        }).getMessage());
+        assertEquals(
+                "invalid when: `invalid",
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> {
+                                    new JstlPredicate("`invalid");
+                                })
+                        .getMessage());
     }
 
     @ParameterizedTest

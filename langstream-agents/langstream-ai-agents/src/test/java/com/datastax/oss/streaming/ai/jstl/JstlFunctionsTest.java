@@ -15,7 +15,6 @@
  */
 package com.datastax.oss.streaming.ai.jstl;
 
-import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -34,7 +33,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -127,7 +125,6 @@ public class JstlFunctionsTest {
         assertEquals(fixedInstant, JstlFunctions.now());
     }
 
-
     @ParameterizedTest
     @MethodSource("millisTimestampAddProvider")
     void testAddDateMillis(long input, int delta, String unit, Instant expected) {
@@ -176,10 +173,14 @@ public class JstlFunctionsTest {
 
     @Test
     void testInvalidAddDate() {
-        assertEquals("Cannot convert [7] of type [class java.lang.Byte] to [class java.time.Instant]",
-                assertThrows(jakarta.el.ELException.class, () -> {
-                    JstlFunctions.dateadd((byte) 7, 0, "days");
-                }).getMessage());
+        assertEquals(
+                "Cannot convert [7] of type [class java.lang.Byte] to [class java.time.Instant]",
+                assertThrows(
+                                jakarta.el.ELException.class,
+                                () -> {
+                                    JstlFunctions.dateadd((byte) 7, 0, "days");
+                                })
+                        .getMessage());
     }
 
     /**
@@ -399,13 +400,16 @@ public class JstlFunctionsTest {
         };
     }
 
-
     @Test
     void testAddDateInvalidUnit() {
-        assertEquals("Invalid unit: lightyear. Should be one of [years, months, days, hours, minutes, seconds, millis]",
-        assertThrows(IllegalArgumentException.class, () -> {
-            JstlFunctions.timestampAdd(0L, 0, "lightyear");
-        }).getMessage());
+        assertEquals(
+                "Invalid unit: lightyear. Should be one of [years, months, days, hours, minutes, seconds, millis]",
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> {
+                                    JstlFunctions.timestampAdd(0L, 0, "lightyear");
+                                })
+                        .getMessage());
     }
 
     @Test

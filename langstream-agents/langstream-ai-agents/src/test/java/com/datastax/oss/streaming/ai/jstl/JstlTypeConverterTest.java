@@ -35,9 +35,9 @@ import java.util.Date;
 import java.util.TimeZone;
 import org.apache.avro.util.Utf8;
 import org.apache.pulsar.client.api.Schema;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.api.Test;
 
 public class JstlTypeConverterTest {
 

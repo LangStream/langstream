@@ -24,14 +24,18 @@ public class ComputeFieldTest {
 
     @Test
     void testInvalidComputeFieldName() {
-        assertEquals("Invalid compute field name: newStringField. It should be prefixed with 'key.' or 'value.' or 'properties.' or be one of [key, value, destinationTopic, messageKey]",
-        assertThrows(IllegalArgumentException.class, () -> {
-            ComputeField.builder()
-                    .scopedName("newStringField")
-                    .expression("'Hotaru'")
-                    .type(ComputeFieldType.STRING)
-                    .build();
-        }).getMessage());
+        assertEquals(
+                "Invalid compute field name: newStringField. It should be prefixed with 'key.' or 'value.' or 'properties.' or be one of [key, value, destinationTopic, messageKey]",
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> {
+                                    ComputeField.builder()
+                                            .scopedName("newStringField")
+                                            .expression("'Hotaru'")
+                                            .type(ComputeFieldType.STRING)
+                                            .build();
+                                })
+                        .getMessage());
     }
 
     @Test

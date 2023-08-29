@@ -147,6 +147,5 @@ public class CastStepTest {
         } else {
             assertEquals(outputRecord.getValue(), expectedOutput);
         }
-
     }
 }

@@ -18,8 +18,8 @@ package com.datastax.oss.pulsar.functions.transforms;
 import static com.datastax.oss.pulsar.functions.transforms.Utils.assertNonOptionalField;
 import static com.datastax.oss.pulsar.functions.transforms.Utils.assertOptionalField;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.google.gson.Gson;
@@ -138,8 +138,6 @@ public class TransformFunctionTest {
         transformFunction.initialize(context);
     }
 
-    @ParameterizedTest
-    @MethodSource("invalidConfigs")
     public static Object[][] invalidConfigs() {
         return new Object[][] {
             {"{}"},
@@ -463,8 +461,6 @@ public class TransformFunctionTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("dropStepConfigs")
     public static Object[][] dropStepConfigs() {
         return new Object[][] {
             {

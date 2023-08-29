@@ -410,7 +410,7 @@ public class BaseEndToEndTest implements TestWatcher {
     @BeforeAll
     @SneakyThrows
     public static void setup() {
-        namespace = "ls-test-" + UUID.randomUUID().toString().substring(0, 8);
+
 
         // kubeServer = new LocalK3sContainer();
         kubeServer = new RunningHostCluster();
@@ -420,16 +420,7 @@ public class BaseEndToEndTest implements TestWatcher {
                 .withConfig(Config.fromKubeconfig(kubeServer.getKubeConfig()))
                 .build();
 
-        // cleanup previous runs
-        cleanupAllEndToEndTestsNamespaces();
 
-        client.resource(new NamespaceBuilder()
-                        .withNewMetadata()
-                        .withName(namespace)
-                        .withLabels(Map.of("app", "ls-test"))
-                        .endMetadata()
-                        .build())
-                .serverSideApply();
         try {
 
 
@@ -450,17 +441,31 @@ public class BaseEndToEndTest implements TestWatcher {
             imagesFutures.add(CompletableFuture.runAsync(() ->
                     kubeServer.ensureImage("langstream/langstream-api-gateway:latest-dev")));
 
-            final CompletableFuture<Void> allFuture =
-                    CompletableFuture.runAsync(BaseEndToEndTest::installLangStream);
             CompletableFuture.allOf(kafkaFuture, minioFuture, imagesFutures.get(0), imagesFutures.get(1), imagesFutures.get(2),
-                    allFuture).join();
+                    imagesFutures.get(3)).join();
 
-            awaitControlPlaneReady();
-            awaitApiGatewayReady();
         } catch (Throwable ee) {
             dumpTest("BeforeAll");
             throw ee;
         }
+    }
+
+    @BeforeEach
+    @SneakyThrows
+    public void setupSingleTest() {
+        // cleanup previous runs
+        cleanupAllEndToEndTestsNamespaces();
+        namespace = "ls-test-" + UUID.randomUUID().toString().substring(0, 8);
+
+        client.resource(new NamespaceBuilder()
+                        .withNewMetadata()
+                        .withName(namespace)
+                        .withLabels(Map.of("app", "ls-test"))
+                        .endMetadata()
+                        .build())
+                .serverSideApply();
+
+
     }
 
     private static void cleanupAllEndToEndTestsNamespaces() {
@@ -475,7 +480,14 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     @SneakyThrows
-    private static void installLangStream() {
+    protected void installLangStreamCluster(boolean authentication) {
+        CompletableFuture.runAsync(() -> installLangStream(authentication)).get();
+        awaitControlPlaneReady();
+        awaitApiGatewayReady();
+    }
+
+    @SneakyThrows
+    private static void installLangStream(boolean authentication) {
         client.resources(ClusterRole.class)
                 .withName("langstream-deployer")
                 .delete();
@@ -503,11 +515,6 @@ public class BaseEndToEndTest implements TestWatcher {
                 .delete();
 
 
-        final String deleteCmd =
-                "helm delete %s -n %s".formatted("langstream", namespace);
-        log.info("Running {}", deleteCmd);
-        runProcess(deleteCmd.split(" "), true);
-
         final String values = """
                 controlPlane:
                   image:
@@ -521,6 +528,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   app:
                     config:
                       application.storage.global.type: kubernetes
+                      application.security.enabled: false
                                 
                 deployer:
                   image:

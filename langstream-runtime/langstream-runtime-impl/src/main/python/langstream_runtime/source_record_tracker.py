@@ -39,14 +39,22 @@ class SourceRecordTracker(CommitCallback):
             self.source.commit(source_records_to_commit)
         # forget about this batch records
         for record in sink_records:
-            del self.sink_to_source_mapping[record]
+            self.sink_to_source_mapping.pop(record, None)
 
     def track(self, sink_records: List[Tuple[Record, List[Record]]]):
+        source_records_to_commit = []
         # map each sink record to the original source record
         for source_record_and_result in sink_records:
             source_record = source_record_and_result[0]
             result_records = source_record_and_result[1]
             if not isinstance(result_records, Exception):
-                self.remaining_sink_records_for_source_record[source_record] = len(result_records)
-                for sink_record in result_records:
-                    self.sink_to_source_mapping[sink_record] = source_record
+                if len(result_records) == 0:
+                    # commit immediately if the result is empty
+                    source_records_to_commit.append(source_record)
+                else:
+                    self.remaining_sink_records_for_source_record[source_record] = len(result_records)
+                    for sink_record in result_records:
+                        self.sink_to_source_mapping[sink_record] = source_record
+
+        if hasattr(self.source, 'commit'):
+            self.source.commit(source_records_to_commit)

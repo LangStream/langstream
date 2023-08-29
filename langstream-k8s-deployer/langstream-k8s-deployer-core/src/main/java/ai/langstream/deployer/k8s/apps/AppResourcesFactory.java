@@ -166,7 +166,7 @@ public class AppResourcesFactory {
                 .withNewSpec()
                 .withTolerations(podTemplate != null ? podTemplate.tolerations() : null)
                 .withNodeSelector(podTemplate != null ? podTemplate.nodeSelector() : null)
-                .withServiceAccount(tenant)
+                .withServiceAccountName(tenant)
                 .withVolumes(new VolumeBuilder()
                                 .withName("app-config")
                                 .withEmptyDir(new EmptyDirVolumeSource())

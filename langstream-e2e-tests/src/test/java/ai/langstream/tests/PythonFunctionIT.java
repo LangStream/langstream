@@ -28,9 +28,10 @@ public class PythonFunctionIT extends BaseEndToEndTest {
 
     @Test
     public void test() {
+        installLangStreamCluster(false);
         final String tenant = "ten-" + System.currentTimeMillis();
         executeCommandOnClient("""
-                bin/langstream tenants put %s && 
+                bin/langstream tenants put %s &&
                 bin/langstream configure tenant %s""".formatted(
                 tenant,
                 tenant).replace(System.lineSeparator(), " ").split(" "));

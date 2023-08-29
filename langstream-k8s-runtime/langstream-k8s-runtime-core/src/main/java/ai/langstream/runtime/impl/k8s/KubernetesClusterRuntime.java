@@ -31,7 +31,6 @@ import ai.langstream.impl.common.BasicClusterRuntime;
 import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import ai.langstream.impl.agents.ComposableAgentExecutionPlanOptimiser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -47,9 +46,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class KubernetesClusterRuntime extends BasicClusterRuntime {
-    static final ObjectMapper mapper = new ObjectMapper()
-            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    static final ObjectMapper mapper =
+            new ObjectMapper()
+                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     public static final String CLUSTER_TYPE = "kubernetes";
 
     static final List<ExecutionPlanOptimiser> OPTIMISERS =
@@ -197,10 +197,10 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         final AgentSpec agentSpec = new AgentSpec();
         agentSpec.setTenant(tenant);
         agentSpec.setApplicationId(applicationInstance.getApplicationId());
-        agentSpec.setResources(new AgentSpec.Resources(
-                ((DefaultAgentNode) agent).getResourcesSpec().parallelism(),
-                ((DefaultAgentNode) agent).getResourcesSpec().size()
-        ));
+        agentSpec.setResources(
+                new AgentSpec.Resources(
+                        ((DefaultAgentNode) agent).getResourcesSpec().parallelism(),
+                        ((DefaultAgentNode) agent).getResourcesSpec().size()));
         agentSpec.setAgentConfigSecretRef(secretName);
         agentSpec.setCodeArchiveId(codeStorageArchiveId);
         MessageDigest digest = MessageDigest.getInstance("SHA-256");

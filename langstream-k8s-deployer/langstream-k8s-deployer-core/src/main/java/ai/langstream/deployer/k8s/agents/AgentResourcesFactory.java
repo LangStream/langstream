@@ -51,12 +51,6 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import java.util.Objects;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -69,6 +63,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -80,6 +75,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -111,25 +107,26 @@ public class AgentResourcesFactory {
                 .build();
     }
 
-
     @Builder
     @Getter
     public static class GenerateStatefulsetParams {
         private AgentCustomResource agentCustomResource;
+
         @Builder.Default
-        private AgentResourceUnitConfiguration agentResourceUnitConfiguration = new AgentResourceUnitConfiguration();
+        private AgentResourceUnitConfiguration agentResourceUnitConfiguration =
+                new AgentResourceUnitConfiguration();
+
         private String image;
         private String imagePullPolicy;
         private PodTemplate podTemplate;
-
     }
 
     public static StatefulSet generateStatefulSet(GenerateStatefulsetParams params) {
-        final AgentCustomResource agentCustomResource = Objects.requireNonNull(params.getAgentCustomResource());
+        final AgentCustomResource agentCustomResource =
+                Objects.requireNonNull(params.getAgentCustomResource());
         final AgentResourceUnitConfiguration agentResourceUnitConfiguration =
                 Objects.requireNonNull(params.getAgentResourceUnitConfiguration());
         final PodTemplate podTemplate = params.getPodTemplate();
-
 
         final AgentSpec spec = agentCustomResource.getSpec();
         final String image = getStsImage(params, spec);
@@ -149,88 +146,103 @@ public class AgentResourcesFactory {
                         spec.getApplicationId(),
                         spec.getCodeArchiveId());
 
-        final Container injectConfigForDownloadCodeInitContainer = new ContainerBuilder()
-                .withName("code-download-init")
-                .withImage(image)
-                .withImagePullPolicy(imagePullPolicy)
-                .withResources(new ResourceRequirementsBuilder().withRequests(Map.of("cpu", Quantity.parse("100m"),
-                        "memory", Quantity.parse("100Mi"))).build())
-                .withCommand("bash", "-c")
-                .withArgs("echo '%s' > /download-config/config".formatted(writeInlineBashJson(downloadAgentCodeConfiguration)))
-                .withVolumeMounts(new VolumeMountBuilder()
-                        .withName(downloadConfigVolume)
-                        .withMountPath("/download-config")
-                        .build()
-                )
-                .withTerminationMessagePolicy("FallbackToLogsOnError")
-                .build();
+        final Container injectConfigForDownloadCodeInitContainer =
+                new ContainerBuilder()
+                        .withName("code-download-init")
+                        .withImage(image)
+                        .withImagePullPolicy(imagePullPolicy)
+                        .withResources(
+                                new ResourceRequirementsBuilder()
+                                        .withRequests(
+                                                Map.of(
+                                                        "cpu",
+                                                        Quantity.parse("100m"),
+                                                        "memory",
+                                                        Quantity.parse("100Mi")))
+                                        .build())
+                        .withCommand("bash", "-c")
+                        .withArgs(
+                                "echo '%s' > /download-config/config"
+                                        .formatted(
+                                                writeInlineBashJson(
+                                                        downloadAgentCodeConfiguration)))
+                        .withVolumeMounts(
+                                new VolumeMountBuilder()
+                                        .withName(downloadConfigVolume)
+                                        .withMountPath("/download-config")
+                                        .build())
+                        .withTerminationMessagePolicy("FallbackToLogsOnError")
+                        .build();
 
-        final Container downloadCodeInitContainer = new ContainerBuilder()
-                .withName("code-download")
-                .withImage(image)
-                .withImagePullPolicy(imagePullPolicy)
-                .withArgs("agent-code-download")
-                .withEnv(new EnvVarBuilder()
-                        .withName(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV)
-                        .withValue("/cluster-config/config")
-                        .build(),
-                        new EnvVarBuilder()
-                                .withName(AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV)
-                                .withValue("/download-config/config")
-                                .build(),
-                        new EnvVarBuilder()
-                                .withName(AgentCodeDownloaderConstants.TOKEN_ENV)
-                                .withValue("/var/run/secrets/kubernetes.io/serviceaccount/token")
-                                .build()
-                )
-                .withVolumeMounts(
-                        new VolumeMountBuilder()
-                                .withName(clusterConfigVolume)
-                                .withMountPath("/cluster-config")
-                                .build(),
-                        new VolumeMountBuilder()
-                                .withName(downloadConfigVolume)
-                                .withMountPath("/download-config")
-                                .build(),
-                        new VolumeMountBuilder()
-                                .withName(downloadCodeVolume)
-                                .withMountPath(downloadCodePath)
-                                .build()
-                )
-                .withTerminationMessagePolicy("FallbackToLogsOnError")
-                .build();
+        final Container downloadCodeInitContainer =
+                new ContainerBuilder()
+                        .withName("code-download")
+                        .withImage(image)
+                        .withImagePullPolicy(imagePullPolicy)
+                        .withArgs("agent-code-download")
+                        .withEnv(
+                                new EnvVarBuilder()
+                                        .withName(AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV)
+                                        .withValue("/cluster-config/config")
+                                        .build(),
+                                new EnvVarBuilder()
+                                        .withName(AgentCodeDownloaderConstants.DOWNLOAD_CONFIG_ENV)
+                                        .withValue("/download-config/config")
+                                        .build(),
+                                new EnvVarBuilder()
+                                        .withName(AgentCodeDownloaderConstants.TOKEN_ENV)
+                                        .withValue(
+                                                "/var/run/secrets/kubernetes.io/serviceaccount/token")
+                                        .build())
+                        .withVolumeMounts(
+                                new VolumeMountBuilder()
+                                        .withName(clusterConfigVolume)
+                                        .withMountPath("/cluster-config")
+                                        .build(),
+                                new VolumeMountBuilder()
+                                        .withName(downloadConfigVolume)
+                                        .withMountPath("/download-config")
+                                        .build(),
+                                new VolumeMountBuilder()
+                                        .withName(downloadCodeVolume)
+                                        .withMountPath(downloadCodePath)
+                                        .build())
+                        .withTerminationMessagePolicy("FallbackToLogsOnError")
+                        .build();
 
-        final Container container = new ContainerBuilder()
-                .withName("runtime")
-                .withImage(image)
-                .withImagePullPolicy(imagePullPolicy)
-                .withPorts(List.of(new ContainerPort(8080, null, null, "http", "TCP")))
-//                .withLivenessProbe(createLivenessProbe())
-//                .withReadinessProbe(createReadinessProbe())
-                .withResources(convertResources(spec.getResources(), agentResourceUnitConfiguration))
-                .withEnv(new EnvVarBuilder()
-                        .withName(AgentRunnerConstants.POD_CONFIG_ENV)
-                        .withValue("/app-config/config")
-                        .build(),
-                        new EnvVarBuilder()
-                                .withName(AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV)
-                                .withValue(downloadCodePath)
-                                .build()
-                )
-                // keep args for backward compatibility
-                .withArgs("agent-runtime", "/app-config/config", downloadCodePath)
-                .withVolumeMounts(
-                        new VolumeMountBuilder()
-                        .withName(appConfigVolume)
-                        .withMountPath("/app-config")
-                        .build(),
-                        new VolumeMountBuilder()
-                            .withName(downloadCodeVolume)
-                            .withMountPath(downloadCodePath)
-                            .build()
-                )
-                .withTerminationMessagePolicy("FallbackToLogsOnError")
-                .build();
+        final Container container =
+                new ContainerBuilder()
+                        .withName("runtime")
+                        .withImage(image)
+                        .withImagePullPolicy(imagePullPolicy)
+                        .withPorts(List.of(new ContainerPort(8080, null, null, "http", "TCP")))
+                        //                .withLivenessProbe(createLivenessProbe())
+                        //                .withReadinessProbe(createReadinessProbe())
+                        .withResources(
+                                convertResources(
+                                        spec.getResources(), agentResourceUnitConfiguration))
+                        .withEnv(
+                                new EnvVarBuilder()
+                                        .withName(AgentRunnerConstants.POD_CONFIG_ENV)
+                                        .withValue("/app-config/config")
+                                        .build(),
+                                new EnvVarBuilder()
+                                        .withName(AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV)
+                                        .withValue(downloadCodePath)
+                                        .build())
+                        // keep args for backward compatibility
+                        .withArgs("agent-runtime", "/app-config/config", downloadCodePath)
+                        .withVolumeMounts(
+                                new VolumeMountBuilder()
+                                        .withName(appConfigVolume)
+                                        .withMountPath("/app-config")
+                                        .build(),
+                                new VolumeMountBuilder()
+                                        .withName(downloadCodeVolume)
+                                        .withMountPath(downloadCodePath)
+                                        .build())
+                        .withTerminationMessagePolicy("FallbackToLogsOnError")
+                        .build();
 
         final Map<String, String> labels =
                 getAgentLabels(spec.getAgentId(), spec.getApplicationId());
@@ -311,9 +323,13 @@ public class AgentResourcesFactory {
 
     private static String getStsImagePullPolicy(GenerateStatefulsetParams params, AgentSpec spec) {
         final String imagePullPolicy = params.getImagePullPolicy();
-        final String containerImagePullPolicy = imagePullPolicy != null && !imagePullPolicy.isBlank() ? imagePullPolicy: spec.getImagePullPolicy();
+        final String containerImagePullPolicy =
+                imagePullPolicy != null && !imagePullPolicy.isBlank()
+                        ? imagePullPolicy
+                        : spec.getImagePullPolicy();
         if (containerImagePullPolicy == null) {
-            throw new IllegalStateException("Runtime image pull policy is not specified, neither in the resource and in the deployer configuration.");
+            throw new IllegalStateException(
+                    "Runtime image pull policy is not specified, neither in the resource and in the deployer configuration.");
         }
         return containerImagePullPolicy;
     }
@@ -321,15 +337,18 @@ public class AgentResourcesFactory {
     private static String getStsImage(GenerateStatefulsetParams params, AgentSpec spec) {
         final String image = params.getImage();
 
-        final String containerImage = image != null && !image.isBlank() ? image: spec.getImage();
+        final String containerImage = image != null && !image.isBlank() ? image : spec.getImage();
         if (containerImage == null) {
-            throw new IllegalStateException("Runtime image is not specified, neither in the resource and in the deployer configuration.");
+            throw new IllegalStateException(
+                    "Runtime image is not specified, neither in the resource and in the deployer configuration.");
         }
         return containerImage;
     }
 
-    private static String writeInlineBashJson(DownloadAgentCodeConfiguration downloadAgentCodeConfiguration) {
-        return SerializationUtil.writeAsJson(downloadAgentCodeConfiguration).replace("'", "'\"'\"'");
+    private static String writeInlineBashJson(
+            DownloadAgentCodeConfiguration downloadAgentCodeConfiguration) {
+        return SerializationUtil.writeAsJson(downloadAgentCodeConfiguration)
+                .replace("'", "'\"'\"'");
     }
 
     public static Secret generateAgentSecret(

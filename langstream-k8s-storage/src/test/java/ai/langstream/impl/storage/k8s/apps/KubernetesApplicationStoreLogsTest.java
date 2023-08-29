@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.storage.ApplicationStore;
-import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
@@ -50,11 +49,11 @@ class KubernetesApplicationStoreLogsTest {
         AgentCustomResource cr = agentCustomResource("mytenant", "myapp");
         k3s.getClient().resource(cr).inNamespace("langstream-mytenant").serverSideApply();
         cr = k3s.getClient().resource(cr).inNamespace("langstream-mytenant").get();
-        final StatefulSet sts = AgentResourcesFactory.generateStatefulSet(
-                AgentResourcesFactory.GenerateStatefulsetParams.builder()
-                .agentCustomResource(cr)
-                .build()
-        );
+        final StatefulSet sts =
+                AgentResourcesFactory.generateStatefulSet(
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(cr)
+                                .build());
         sts.getSpec().getTemplate().getSpec().getInitContainers().clear();
         sts.getSpec()
                 .getTemplate()

@@ -481,7 +481,7 @@ public class AgentRunner
                                             List<Record> sourceRecords,
                                             ErrorsHandler errorsHandler,
                                             AgentSource source,
-                                            RecordSink finalSink) throws Exception {
+                                            RecordSink finalSink) {
         log.info("runProcessor on {} records", sourceRecords.size());
         processor.process(sourceRecords,
             new RecordSink() {

@@ -111,7 +111,7 @@ public class KafkaConsumerWrapper implements TopicConsumer {
 
 
     @Getter
-    private Map<TopicPartition, TreeSet<Long>> uncommittedOffsets = new HashMap<>();
+    private final Map<TopicPartition, TreeSet<Long>> uncommittedOffsets = new HashMap<>();
 
     @Override
     public synchronized void commit(List<Record> records) {
@@ -119,9 +119,8 @@ public class KafkaConsumerWrapper implements TopicConsumer {
             KafkaRecord.KafkaConsumerOffsetProvider kafkaRecord = (KafkaRecord.KafkaConsumerOffsetProvider) record;
             TopicPartition topicPartition = kafkaRecord.getTopicPartition();
             long offset = kafkaRecord.offset();
-            TreeSet<Long> offsetsForPartition = uncommittedOffsets.computeIfAbsent(topicPartition, (key) -> {
-                return new TreeSet<>();
-            });
+            TreeSet<Long> offsetsForPartition = 
+                uncommittedOffsets.computeIfAbsent(topicPartition, (key) -> new TreeSet<>());
             offsetsForPartition.add(offset);
             OffsetAndMetadata offsetAndMetadata = committed.get(topicPartition);
             if (offsetAndMetadata == null) {

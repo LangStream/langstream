@@ -68,7 +68,7 @@ class KafkaConsumerTest {
                                 id: "pipeline-1"                                
                                 topics:
                                   - name: "input-topic"
-                                    creation-mode: create-if-not-exists                            
+                                    creation-mode: create-if-not-exists
                                   - name: "input-topic-2-partitions"
                                     creation-mode: create-if-not-exists
                                     partitions: 2                                     

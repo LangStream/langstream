@@ -17,8 +17,6 @@ package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runtime.ComponentType;
 import java.util.Objects;
-import lombok.Getter;
-import lombok.ToString;
 
 import java.util.List;
 
@@ -30,11 +28,11 @@ public interface AgentProcessor extends AgentCode {
     /**
      * The agent processes records and returns a list of records.
      * The transactionality of the function is guaranteed by the runtime.
+     * This method should not throw any exceptions, but report errors to the RecordSink.
      * @param records the list of input records
      * @return the list of output records
-     * @throws Exception if the agent fails to process the records
      */
-    List<SourceRecordAndResult> process(List<Record> records) throws Exception;
+    void process(List<Record> records, RecordSink recordSink);
 
     @Override
     default ComponentType componentType() {

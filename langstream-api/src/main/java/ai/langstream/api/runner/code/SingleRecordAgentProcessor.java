@@ -17,7 +17,6 @@ package ai.langstream.api.runner.code;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,22 +29,18 @@ public abstract class SingleRecordAgentProcessor extends AbstractAgentCode imple
     public abstract List<Record> processRecord(Record record) throws Exception;
 
     @Override
-    public final List<SourceRecordAndResult> process(List<Record> records) {
-        List<SourceRecordAndResult> result = new ArrayList<>();
+    public final void process(List<Record> records, RecordSink recordSink) {
         for (Record record : records) {
             try {
                 List<Record> process = processRecord(record);
                 processed(1, process.size());
-                if (!process.isEmpty()) {
-                    result.add(new SourceRecordAndResult(record, process, null));
-                }
+                recordSink.emit(new SourceRecordAndResult(record, process, null));
             } catch (Throwable error) {
                 log.error("Error processing record: {}", record, error);
                 errors.incrementAndGet();
-                result.add(new SourceRecordAndResult(record, null, error));
+                recordSink.emit(new SourceRecordAndResult(record, null, error));
             }
         }
-        return result;
     }
 
     @Override

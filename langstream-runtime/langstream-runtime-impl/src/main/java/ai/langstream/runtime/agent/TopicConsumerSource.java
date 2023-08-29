@@ -52,7 +52,6 @@ public class TopicConsumerSource extends AbstractAgentCode implements AgentSourc
     @Override
     public void permanentFailure(Record record, Exception error) {
         // DLQ
-        log.error("Sending record to DLQ: {}", record);
         deadLetterQueueProducer.write(List.of(record));
     }
 

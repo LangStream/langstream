@@ -204,8 +204,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
 
         return new AgentProcessor() {
             @Override
-            public List<SourceRecordAndResult> process(List<Record> records) throws Exception {
-                return callWithContextClassloader(agentCode -> ((AgentProcessor) agentCode).process(records));
+            public void process(List<Record> records, RecordSink recordSink) {
+                executeNoExceptionWithContextClassloader((agentCode -> ((AgentProcessor) agentCode).process(records, recordSink)));
             }
 
             @Override

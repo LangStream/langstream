@@ -2,4 +2,3 @@ ai.langstream.runtime.impl.testagents.TestGenericAgentProvider
 ai.langstream.runtime.impl.testagents.TestGenericSinkAgentProvider
 ai.langstream.runtime.impl.testagents.TestGenericSourceAgentProvider
 ai.langstream.runtime.impl.testagents.TestGenericComposableSinkAgentProvider
-ai.langstream.runtime.impl.testagents.MockFailingAgentProcessorProvider

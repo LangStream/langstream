@@ -1,1 +1,1 @@
-ai.langstream.kafka.FailingProcessorAgentCodeProvider
+ai.langstream.mockagents.MockProcessorAgentsCodeProvider

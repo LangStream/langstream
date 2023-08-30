@@ -19,14 +19,17 @@ topics:
     creation-mode: create-if-not-exists
   - name: "output-topic"
     creation-mode: create-if-not-exists
+  - name: "history-topic"
+    creation-mode: create-if-not-exists
 pipeline:
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
     input: "input-topic"
-    output: "output-topic"
+    output: "history-topic"
     configuration:
       model: "gpt-35-turbo" # This needs to be set to the model deployment name, not the base name
       completion-field: "value"
+      stream-to-topic: "output-topic"
       min-chunks-per-message: 10
       stream: true
       messages:

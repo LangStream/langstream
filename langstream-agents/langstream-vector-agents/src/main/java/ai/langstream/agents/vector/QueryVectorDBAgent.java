@@ -67,8 +67,7 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
         TransformContext context = GenAIToolKitAgent.recordToTransformContext(record, true);
         TransformFunctionUtil.processTransformSteps(context, steps);
         context.convertMapToStringOrBytes();
-        Optional<Record> recordResult =
-                GenAIToolKitAgent.transformContextToRecord(context, record.headers());
+        Optional<Record> recordResult = GenAIToolKitAgent.transformContextToRecord(context);
         log.info("recordResult {}", recordResult);
         return recordResult.map(List::of).orElseGet(List::of);
     }

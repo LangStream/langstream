@@ -55,12 +55,14 @@ import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.model.config.UnwrapKeyValueConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 
 @Slf4j
 public class TransformFunctionUtil {
@@ -110,7 +114,6 @@ public class TransformFunctionUtil {
         return dataSource;
     }
 
-
     public static StepPredicatePair buildStep(
             TransformStepConfig transformConfig,
             ServiceProvider serviceProvider,
@@ -149,7 +152,10 @@ public class TransformFunctionUtil {
                 break;
             case "ai-chat-completions":
                 transformStep =
-                        newChatCompletionsFunction((ChatCompletionsConfig) step, serviceProvider, streamingAnswersConsumerFactory);
+                        newChatCompletionsFunction(
+                                (ChatCompletionsConfig) step,
+                                serviceProvider,
+                                streamingAnswersConsumerFactory);
                 break;
             case "query":
                 transformStep = newQuery((QueryConfig) step, dataSource);
@@ -261,7 +267,10 @@ public class TransformFunctionUtil {
     }
 
     public static ChatCompletionsStep newChatCompletionsFunction(
-            ChatCompletionsConfig config, ServiceProvider serviceProvider, ChatCompletionsStep.StreamingAnswersConsumerFactory streamingAnswersConsumerFactory) throws Exception {
+            ChatCompletionsConfig config,
+            ServiceProvider serviceProvider,
+            ChatCompletionsStep.StreamingAnswersConsumerFactory streamingAnswersConsumerFactory)
+            throws Exception {
         CompletionsService completionsService =
                 serviceProvider.getCompletionsService(convertToMap(config));
         return new ChatCompletionsStep(completionsService, streamingAnswersConsumerFactory, config);
@@ -334,17 +343,6 @@ public class TransformFunctionUtil {
         return Double.parseDouble(o.toString());
     }
 
-    public static Integer getInteger(String name, Map<String, Object> options) {
-        Object o = options.get(name);
-        if (o == null) {
-            return null;
-        }
-        if (o instanceof Number) {
-            return ((Number) o).intValue();
-        }
-        return Integer.parseInt(o.toString());
-    }
-
     public static byte[] getBytes(ByteBuffer byteBuffer) {
         if (byteBuffer == null) {
             return null;
@@ -358,5 +356,36 @@ public class TransformFunctionUtil {
         byte[] array = new byte[byteBuffer.remaining()];
         byteBuffer.get(array);
         return array;
+    }
+
+    public static Object safeClone(Object object) {
+        if (object == null) {
+            return null;
+        }
+        if (object.getClass().isPrimitive()) {
+            return object;
+        }
+        if (object instanceof Map map) {
+            HashMap<Object, Object> res = new HashMap<>();
+            map.forEach((k, v) -> res.put(safeClone(k), safeClone(v)));
+            return res;
+        }
+        if (object instanceof List list) {
+            List<Object> res = new ArrayList<>();
+            list.forEach(v -> res.add(safeClone(v)));
+            return res;
+        }
+        if (object instanceof Set set) {
+            Set<Object> res = new HashSet<>();
+            set.forEach(v -> res.add(safeClone(v)));
+            return res;
+        }
+        if (object instanceof GenericRecord genericRecord) {
+            return GenericData.get().deepCopy(genericRecord.getSchema(), genericRecord);
+        }
+        if (object instanceof JsonNode jsonNode) {
+            return jsonNode.deepCopy();
+        }
+        throw new UnsupportedOperationException("Cannot copy a value of " + object.getClass());
     }
 }

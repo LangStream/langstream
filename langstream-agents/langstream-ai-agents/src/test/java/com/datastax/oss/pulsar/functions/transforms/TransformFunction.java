@@ -230,7 +230,6 @@ public class TransformFunction
         }
     }
 
-
     public static List<StepPredicatePair> getTransformSteps(
             TransformStepConfig transformConfig,
             ServiceProvider serviceProvider,

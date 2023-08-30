@@ -23,6 +23,7 @@ import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
+import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ComponentType;
 import com.datastax.oss.streaming.ai.ChatCompletionsStep;
@@ -113,8 +114,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                 ___ -> {
                     try {
                         context.convertMapToStringOrBytes();
-                        Optional<Record> recordResult =
-                                transformContextToRecord(context, record.headers());
+                        Optional<Record> recordResult = transformContextToRecord(context);
                         log.info("Result {}", recordResult);
                         return recordResult.map(List::of).orElseGet(List::of);
                     } catch (Exception e) {
@@ -148,13 +148,19 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         configuration.remove("vertex");
         config = MAPPER.convertValue(configuration, TransformStepConfig.class);
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
-        streamingAnswersConsumerFactory = new TopicProducerStreamingAnswersConsumerFactory(agentContext);
+        streamingAnswersConsumerFactory =
+                new TopicProducerStreamingAnswersConsumerFactory(agentContext);
         List<StepConfig> stepsConfig = config.getSteps();
         if (stepsConfig.size() != 1) {
             throw new IllegalArgumentException("Only one step is supported");
         }
-        step =  TransformFunctionUtil.buildStep(config, serviceProvider, dataSource, streamingAnswersConsumerFactory,
-                stepsConfig.get(0));
+        step =
+                TransformFunctionUtil.buildStep(
+                        config,
+                        serviceProvider,
+                        dataSource,
+                        streamingAnswersConsumerFactory,
+                        stepsConfig.get(0));
         step.getTransformStep().init();
     }
 
@@ -217,11 +223,18 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         return context;
     }
 
-    public static Optional<Record> transformContextToRecord(
-            TransformContext context, Collection<Header> headers) {
+    public static Optional<Record> transformContextToRecord(TransformContext context) {
         if (context.isDropCurrentRecord()) {
             return Optional.empty();
         }
+        List<Header> headers = new ArrayList<>();
+        context.getProperties()
+                .forEach(
+                        (key, value) -> {
+                            SimpleRecord.SimpleHeader header =
+                                    new SimpleRecord.SimpleHeader(key, value);
+                            headers.add(header);
+                        });
         return Optional.of(new TransformRecord(context, headers));
     }
 
@@ -313,7 +326,8 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         throw new IllegalArgumentException("Unsupported data type: " + javaType);
     }
 
-    private static class TopicProducerStreamingAnswersConsumerFactory implements ChatCompletionsStep.StreamingAnswersConsumerFactory {
+    private static class TopicProducerStreamingAnswersConsumerFactory
+            implements ChatCompletionsStep.StreamingAnswersConsumerFactory {
         private final AgentContext agentContext;
 
         public TopicProducerStreamingAnswersConsumerFactory(AgentContext agentContext) {
@@ -322,15 +336,18 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
 
         @Override
         public ChatCompletionsStep.StreamingAnswersConsumer create(String topicName) {
-            TopicProducer topicProducer = agentContext
-                    .getTopicConnectionProvider().createProducer(agentContext.getGlobalAgentId(),
-                            Map.of("topicName", topicName));
+            TopicProducer topicProducer =
+                    agentContext
+                            .getTopicConnectionProvider()
+                            .createProducer(
+                                    agentContext.getGlobalAgentId(),
+                                    Map.of("topicName", topicName));
             return new TopicStreamingAnswersConsumer(topicProducer);
         }
     }
 
-
-    private static class TopicStreamingAnswersConsumer implements ChatCompletionsStep.StreamingAnswersConsumer {
+    private static class TopicStreamingAnswersConsumer
+            implements ChatCompletionsStep.StreamingAnswersConsumer {
         private TopicProducer topicProducer;
 
         public TopicStreamingAnswersConsumer(TopicProducer topicProducer) {
@@ -338,8 +355,23 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         }
 
         @Override
-        public void streamAnswerChunk(int index, String message, boolean last, TransformContext outputMessage) {
-            log.info("index: {}, message: {}, last: {}", index, message, last);
+        public void streamAnswerChunk(
+                int index, String message, boolean last, TransformContext outputMessage) {
+            Optional<Record> record = transformContextToRecord(outputMessage);
+            if (record.isPresent()) {
+                log.info(
+                        "index: {}, message: {}, last: {}: record {}",
+                        index,
+                        message,
+                        last,
+                        record);
+                topicProducer.write(List.of(record.get()));
+            }
+        }
+
+        @Override
+        public void close() {
+            topicProducer.close();
         }
     }
 }

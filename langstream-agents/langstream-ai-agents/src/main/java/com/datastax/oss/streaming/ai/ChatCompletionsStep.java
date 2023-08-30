@@ -17,7 +17,6 @@ package com.datastax.oss.streaming.ai;
 
 import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.convertToMap;
 
-import ai.langstream.api.runner.code.Record;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
@@ -33,7 +32,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
 
@@ -58,21 +56,30 @@ public class ChatCompletionsStep implements TransformStep {
     }
 
     public interface StreamingAnswersConsumer {
-        void streamAnswerChunk(int index, String message, boolean last, TransformContext outputMessage);
+        void streamAnswerChunk(
+                int index, String message, boolean last, TransformContext outputMessage);
+
+        default void close() {}
     }
 
     // for tests
     public ChatCompletionsStep(
-            CompletionsService completionsService,
-            ChatCompletionsConfig config) {
-        this(completionsService, (topicName) -> {
-            return new StreamingAnswersConsumer() {
-                @Override
-                public void streamAnswerChunk(int index, String message, boolean last, TransformContext outputMessage) {
-                    log.info("index: {}, message: {}, last: {}", index, message, last);
-                }
-            };
-        }, config);
+            CompletionsService completionsService, ChatCompletionsConfig config) {
+        this(
+                completionsService,
+                (topicName) -> {
+                    return new StreamingAnswersConsumer() {
+                        @Override
+                        public void streamAnswerChunk(
+                                int index,
+                                String message,
+                                boolean last,
+                                TransformContext outputMessage) {
+                            log.info("index: {}, message: {}, last: {}", index, message, last);
+                        }
+                    };
+                },
+                config);
     }
 
     public ChatCompletionsStep(
@@ -95,8 +102,15 @@ public class ChatCompletionsStep implements TransformStep {
     public void init() throws Exception {
         if (config.getStreamToTopic() != null && !config.getStreamToTopic().isEmpty()) {
             log.info("Streaming answers to topic {}", config.getStreamToTopic());
-            this.streamingAnswersConsumer = streamingAnswersConsumerFactory
-                    .create(config.getStreamToTopic());
+            this.streamingAnswersConsumer =
+                    streamingAnswersConsumerFactory.create(config.getStreamToTopic());
+        }
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (this.streamingAnswersConsumer != null) {
+            this.streamingAnswersConsumer.close();
         }
     }
 
@@ -131,42 +145,55 @@ public class ChatCompletionsStep implements TransformStep {
         options.remove("messages");
 
         CompletableFuture<ChatCompletions> chatCompletionsHandle =
-                completionsService.getChatCompletions(messages, new CompletionsService.StreamingChunksConsumer() {
-                    @Override
-                    public void consumeChunk(int index, ChatChoice chunk, boolean last) {
-                        streamingAnswersConsumer.streamAnswerChunk(index,
-                                chunk.getMessage().getContent(),
-                                last,
-                                transformContext);
+                completionsService.getChatCompletions(
+                        messages,
+                        new CompletionsService.StreamingChunksConsumer() {
+                            @Override
+                            public void consumeChunk(int index, ChatChoice chunk, boolean last) {
+
+                                // we must copy the context because the same context is used for all
+                                // chunks
+                                // and also for the final answer
+                                TransformContext copy = transformContext.copy();
+
+                                applyResultFieldToContext(copy, chunk);
+                                streamingAnswersConsumer.streamAnswerChunk(
+                                        index, chunk.getMessage().getContent(), last, copy);
+                            }
+                        },
+                        options);
+
+        return chatCompletionsHandle.thenApply(
+                chatCompletions -> {
+                    ChatChoice chatChoice = chatCompletions.getChoices().get(0);
+                    applyResultFieldToContext(transformContext, chatChoice);
+
+                    String logField = config.getLogField();
+                    if (logField != null && !logField.isEmpty()) {
+                        Map<String, Object> logMap = new HashMap<>();
+                        logMap.put("model", config.getModel());
+                        logMap.put("options", options);
+                        logMap.put("messages", messages);
+                        transformContext.setResultField(
+                                TransformContext.toJson(logMap),
+                                logField,
+                                org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING),
+                                avroKeySchemaCache,
+                                avroValueSchemaCache);
                     }
-                }, options);
+                    return null;
+                });
+    }
 
-
-        return chatCompletionsHandle.thenApply(chatCompletions -> {
-
-            String content = chatCompletions.getChoices().get(0).getMessage().getContent();
-            String fieldName = config.getFieldName();
-            transformContext.setResultField(
-                    content,
-                    fieldName,
-                    org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING),
-                    avroKeySchemaCache,
-                    avroValueSchemaCache);
-
-            String logField = config.getLogField();
-            if (logField != null && !logField.isEmpty()) {
-                Map<String, Object> logMap = new HashMap<>();
-                logMap.put("model", config.getModel());
-                logMap.put("options", options);
-                logMap.put("messages", messages);
-                transformContext.setResultField(
-                        TransformContext.toJson(logMap),
-                        logField,
-                        org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING),
-                        avroKeySchemaCache,
-                        avroValueSchemaCache);
-            }
-            return null;
-        });
+    private void applyResultFieldToContext(
+            TransformContext transformContext, ChatChoice chatChoice) {
+        String content = chatChoice.getMessage().getContent();
+        String fieldName = config.getFieldName();
+        transformContext.setResultField(
+                content,
+                fieldName,
+                Schema.create(Schema.Type.STRING),
+                avroKeySchemaCache,
+                avroValueSchemaCache);
     }
 }

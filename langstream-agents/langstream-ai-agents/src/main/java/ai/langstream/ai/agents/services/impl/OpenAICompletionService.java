@@ -52,8 +52,7 @@ public class OpenAICompletionService implements CompletionsService {
             List<ChatMessage> messages,
             StreamingChunksConsumer streamingChunksConsumer,
             Map<String, Object> options) {
-        int minChunksPerMessage =
-                getInteger("min-chunks-per-message", 10, options);
+        int minChunksPerMessage = getInteger("min-chunks-per-message", 10, options);
         ChatCompletionsOptions chatCompletionsOptions =
                 new ChatCompletionsOptions(
                                 messages.stream()
@@ -83,7 +82,8 @@ public class OpenAICompletionService implements CompletionsService {
                     client.getChatCompletionsStream(
                             (String) options.get("model"), chatCompletionsOptions);
             ChatCompletionsConsumer chatCompletionsConsumer =
-                    new ChatCompletionsConsumer(streamingChunksConsumer, minChunksPerMessage, finished);
+                    new ChatCompletionsConsumer(
+                            streamingChunksConsumer, minChunksPerMessage, finished);
             model.stream().forEach(chatCompletionsConsumer);
             return finished.thenApply(
                     ___ -> {
@@ -135,7 +135,9 @@ public class OpenAICompletionService implements CompletionsService {
                 CompletableFuture<?> finished) {
             this.minChunksPerMessage = minChunksPerMessage;
             this.streamingChunksConsumer =
-                    streamingChunksConsumer != null ? streamingChunksConsumer : (index, chunk, last) -> {};
+                    streamingChunksConsumer != null
+                            ? streamingChunksConsumer
+                            : (index, chunk, last) -> {};
             this.finished = finished;
         }
 

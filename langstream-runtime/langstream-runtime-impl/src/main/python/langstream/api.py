@@ -131,7 +131,7 @@ class Agent(ABC):
 
     def agent_info(self) -> Dict[str, Any]:
         """Return the agent information."""
-        pass
+        return {}
 
     def set_context(self, context: AgentContext):
         """Set the agent context."""

@@ -37,6 +37,7 @@ import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.agent.api.AgentInfoServlet;
+import ai.langstream.runtime.agent.api.GetFromUriServlet;
 import ai.langstream.runtime.agent.api.MetricsHttpServlet;
 import ai.langstream.runtime.agent.nar.NarFileHandler;
 import ai.langstream.runtime.agent.python.PythonCodeAgentProvider;
@@ -45,6 +46,7 @@ import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.prometheus.client.hotspot.DefaultExports;
+import jakarta.servlet.Servlet;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -93,7 +95,11 @@ public class AgentRunner {
         context.setContextPath("/");
         server.setHandler(context);
         context.addServlet(new ServletHolder(new MetricsHttpServlet()), "/metrics");
-        context.addServlet(new ServletHolder(new AgentInfoServlet(agentInfo)), "/info");
+        Servlet infoServlet =
+                agentInfo != null
+                        ? new AgentInfoServlet(agentInfo)
+                        : new GetFromUriServlet("http://localhost:8081/info");
+        context.addServlet(new ServletHolder(infoServlet), "/info");
         server.start();
         return server;
     }
@@ -124,37 +130,38 @@ public class AgentRunner {
             AgentInfo agentInfo,
             int maxLoops)
             throws Exception {
+        log.info("Pod Configuration {}", configuration);
 
-        Server server = bootstrapHttpServer(agentInfo);
-        try {
-            log.info("Pod Configuration {}", configuration);
+        // agentId is the identity of the agent in the cluster
+        // it is shared by all the instances of the agent
+        String agentId =
+                configuration.agent().applicationId() + "-" + configuration.agent().agentId();
 
-            // agentId is the identity of the agent in the cluster
-            // it is shared by all the instances of the agent
-            String agentId =
-                    configuration.agent().applicationId() + "-" + configuration.agent().agentId();
+        log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
 
-            log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
+        ClassLoader customLibClassloader =
+                buildCustomLibClassloader(
+                        codeDirectory, Thread.currentThread().getContextClassLoader());
+        try (NarFileHandler narFileHandler =
+                new NarFileHandler(agentsDirectory, customLibClassloader)) {
+            narFileHandler.scan();
+            AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
+            agentCodeRegistry.setAgentPackageLoader(narFileHandler);
 
-            ClassLoader customLibClassloader =
-                    buildCustomLibClassloader(
-                            codeDirectory, Thread.currentThread().getContextClassLoader());
-            try (NarFileHandler narFileHandler =
-                    new NarFileHandler(agentsDirectory, customLibClassloader)) {
-                narFileHandler.scan();
-                AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
-                agentCodeRegistry.setAgentPackageLoader(narFileHandler);
+            TopicConnectionsRuntime topicConnectionsRuntime =
+                    TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(
+                            configuration.streamingCluster());
 
-                TopicConnectionsRuntime topicConnectionsRuntime =
-                        TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(
-                                configuration.streamingCluster());
-
-                log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
+            log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
+            try {
+                AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
+                Server server = null;
                 try {
-                    AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
                     if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
+                        server = bootstrapHttpServer(null);
                         runPythonAgent(podRuntimeConfiguration, codeDirectory);
                     } else {
+                        server = bootstrapHttpServer(agentInfo);
                         runJavaAgent(
                                 configuration,
                                 maxLoops,
@@ -164,11 +171,13 @@ public class AgentRunner {
                                 agentInfo);
                     }
                 } finally {
-                    topicConnectionsRuntime.close();
+                    if (server != null) {
+                        server.stop();
+                    }
                 }
+            } finally {
+                topicConnectionsRuntime.close();
             }
-        } finally {
-            server.stop();
         }
     }
 

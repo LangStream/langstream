@@ -32,6 +32,7 @@ public class AgentInfoServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setContentType("application/json");
         MAPPER.writeValue(resp.getOutputStream(), agentInfo.serveWorkerStatus());
     }
 }

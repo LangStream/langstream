@@ -16,7 +16,7 @@
 
 import logging
 import re
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
 from confluent_kafka import Consumer, Producer, Message, TopicPartition, KafkaException
 from confluent_kafka.serialization import StringDeserializer
@@ -194,6 +194,9 @@ class KafkaTopicConsumer(TopicConsumer):
         else:
             logging.info(f"Offsets committed: {partitions}")
 
+    def get_native_consumer(self) -> Any:
+        return self.consumer
+
 
 class KafkaTopicProducer(TopicProducer):
     def __init__(self, configs):
@@ -236,3 +239,6 @@ class KafkaTopicProducer(TopicProducer):
                 headers=headers,
             )
         self.producer.flush()
+
+    def get_native_producer(self) -> Any:
+        return self.producer

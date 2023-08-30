@@ -15,11 +15,24 @@
 # limitations under the License.
 #
 
-from .api import Agent, Record, Sink, Source, Processor, CommitCallback
+from .api import (
+    Agent,
+    Record,
+    Sink,
+    Source,
+    Processor,
+    CommitCallback,
+    TopicConsumer,
+    TopicProducer,
+    AgentContext,
+)
 from .util import SimpleRecord, SingleRecordProcessor
 
 __all__ = [
     "Record",
+    "TopicConsumer",
+    "TopicProducer",
+    "AgentContext",
     "Agent",
     "Source",
     "Sink",

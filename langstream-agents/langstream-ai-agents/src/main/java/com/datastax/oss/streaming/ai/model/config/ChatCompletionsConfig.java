@@ -34,7 +34,7 @@ public class ChatCompletionsConfig extends StepConfig {
     private String streamToTopic;
 
     @JsonProperty(value = "min-chunks-per-message")
-    private int minChunksPerMessage = 10;
+    private int minChunksPerMessage = 20;
 
     @JsonProperty(value = "completion-field")
     private String fieldName;

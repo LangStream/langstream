@@ -84,7 +84,10 @@ class OpenAIProviderTest {
                                 new CompletionsService.StreamingChunksConsumer() {
                                     @Override
                                     public void consumeChunk(
-                                            int index, ChatChoice chunk, boolean last) {
+                                            String answerId,
+                                            int index,
+                                            ChatChoice chunk,
+                                            boolean last) {
                                         chunks.add(chunk.getMessage().getContent());
                                         log.info(
                                                 "chunk: (last={}) {} {}",

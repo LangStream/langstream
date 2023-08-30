@@ -150,12 +150,17 @@ public class ChatCompletionsStep implements TransformStep {
                         messages,
                         new CompletionsService.StreamingChunksConsumer() {
                             @Override
-                            public void consumeChunk(int index, ChatChoice chunk, boolean last) {
+                            public void consumeChunk(
+                                    String answerId, int index, ChatChoice chunk, boolean last) {
 
                                 // we must copy the context because the same context is used for all
                                 // chunks
                                 // and also for the final answer
                                 TransformContext copy = transformContext.copy();
+
+                                copy.getProperties().put("stream-id", answerId);
+                                copy.getProperties().put("stream-index", index + "");
+                                copy.getProperties().put("stream-last-message", last + "");
 
                                 applyResultFieldToContext(copy, chunk);
                                 streamingAnswersConsumer.streamAnswerChunk(

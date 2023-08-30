@@ -52,7 +52,7 @@ public class OpenAICompletionService implements CompletionsService {
             List<ChatMessage> messages,
             StreamingChunksConsumer streamingChunksConsumer,
             Map<String, Object> options) {
-        int minChunksPerMessage = getInteger("min-chunks-per-message", 10, options);
+        int minChunksPerMessage = getInteger("min-chunks-per-message", 20, options);
         ChatCompletionsOptions chatCompletionsOptions =
                 new ChatCompletionsOptions(
                                 messages.stream()
@@ -137,7 +137,7 @@ public class OpenAICompletionService implements CompletionsService {
             this.streamingChunksConsumer =
                     streamingChunksConsumer != null
                             ? streamingChunksConsumer
-                            : (index, chunk, last) -> {};
+                            : (answerId, index, chunk, last) -> {};
             this.finished = finished;
         }
 
@@ -145,6 +145,7 @@ public class OpenAICompletionService implements CompletionsService {
         public synchronized void accept(
                 com.azure.ai.openai.models.ChatCompletions chatCompletions) {
             List<com.azure.ai.openai.models.ChatChoice> choices = chatCompletions.getChoices();
+            String answerId = chatCompletions.getId();
             if (!choices.isEmpty()) {
                 com.azure.ai.openai.models.ChatChoice first = choices.get(0);
                 CompletionsFinishReason finishReason = first.getFinishReason();
@@ -170,7 +171,8 @@ public class OpenAICompletionService implements CompletionsService {
                 if (numberOfChunks.get() >= minChunksPerMessage || last) {
                     ChatChoice chunk =
                             new ChatChoice(new ChatMessage(role.get(), writer.toString()));
-                    streamingChunksConsumer.consumeChunk(index.incrementAndGet(), chunk, last);
+                    streamingChunksConsumer.consumeChunk(
+                            answerId, index.incrementAndGet(), chunk, last);
                     writer.getBuffer().setLength(0);
                     numberOfChunks.set(0);
                 }

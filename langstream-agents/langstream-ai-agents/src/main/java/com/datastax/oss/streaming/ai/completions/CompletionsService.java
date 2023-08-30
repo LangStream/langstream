@@ -26,6 +26,6 @@ public interface CompletionsService {
             Map<String, Object> options);
 
     interface StreamingChunksConsumer {
-        void consumeChunk(int index, ChatChoice chunk, boolean last);
+        void consumeChunk(String answerId, int index, ChatChoice chunk, boolean last);
     }
 }

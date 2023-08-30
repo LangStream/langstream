@@ -30,7 +30,7 @@ pipeline:
       model: "gpt-35-turbo" # This needs to be set to the model deployment name, not the base name
       completion-field: "value"
       stream-to-topic: "output-topic"
-      min-chunks-per-message: 10
+      min-chunks-per-message: 5
       stream: true
       messages:
         - role: user

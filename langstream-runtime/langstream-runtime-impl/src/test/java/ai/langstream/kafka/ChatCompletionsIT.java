@@ -167,7 +167,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
 
                 waitForMessages(consumer, List.of("A car is a vehicle"));
 
-                waitForMessages(streamConsumer, List.of("A car is", " a vehicle"));
+                waitForMessages(streamConsumer, List.of("A", " car is", " a vehicle"));
             }
         }
     }

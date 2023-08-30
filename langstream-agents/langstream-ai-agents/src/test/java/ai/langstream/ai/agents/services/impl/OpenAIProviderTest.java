@@ -108,8 +108,9 @@ class OpenAIProviderTest {
         assertEquals(
                 "A car is a vehicle",
                 chatCompletions.getChoices().get(0).getMessage().getContent());
-        assertEquals(2, chunks.size());
-        assertEquals("A car is", chunks.get(0));
-        assertEquals(" a vehicle", chunks.get(1));
+        assertEquals(3, chunks.size());
+        assertEquals("A", chunks.get(0));
+        assertEquals(" car is", chunks.get(1));
+        assertEquals(" a vehicle", chunks.get(2));
     }
 }

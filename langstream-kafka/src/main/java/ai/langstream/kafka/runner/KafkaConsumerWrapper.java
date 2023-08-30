@@ -133,9 +133,12 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
 
     @Override
     public synchronized void close() {
-        log.info("Closing consumer to {} with {} pending commits", topicName, pendingCommits.get());
-
         if (consumer != null) {
+            consumer.commitSync(committed);
+            log.info(
+                    "Closing consumer to {} with {} pending commits",
+                    topicName,
+                    pendingCommits.get());
             consumer.close();
         }
     }
@@ -149,6 +152,17 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(1));
         List<Record> result = new ArrayList<>(poll.count());
         for (ConsumerRecord<?, ?> record : poll) {
+            TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
+            OffsetAndMetadata offsetAndMetadata = committed.get(topicPartition);
+            if (offsetAndMetadata != null) {
+                if (offsetAndMetadata.offset() >= record.offset()) {
+                    log.warn(
+                            "Skipping message {} on partition {} because it has been already processed",
+                            record,
+                            topicPartition);
+                    continue;
+                }
+            }
             result.add(KafkaRecord.fromKafkaConsumerRecord(record));
         }
         if (!result.isEmpty()) {
@@ -223,6 +237,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         }
 
         pendingCommits.incrementAndGet();
+
         consumer.commitAsync(
                 committed,
                 (map, e) -> {

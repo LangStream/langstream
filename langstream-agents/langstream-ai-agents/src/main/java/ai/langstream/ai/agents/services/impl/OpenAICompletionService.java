@@ -127,6 +127,8 @@ public class OpenAICompletionService implements CompletionsService {
         private final StringWriter writer = new StringWriter();
         private final AtomicInteger numberOfChunks = new AtomicInteger();
         private final int minChunksPerMessage;
+
+        private AtomicInteger currentChunkSize = new AtomicInteger(1);
         private AtomicInteger index = new AtomicInteger();
 
         public ChatCompletionsConsumer(
@@ -168,7 +170,13 @@ public class OpenAICompletionService implements CompletionsService {
                     numberOfChunks.incrementAndGet();
                 }
 
-                if (numberOfChunks.get() >= minChunksPerMessage || last) {
+                // start from 1 chunk, then double the size until we reach the minChunksPerMessage
+                // this gives better latencies for the first message
+                int currentMinChunksPerMessage = currentChunkSize.get();
+
+                if (numberOfChunks.get() >= currentMinChunksPerMessage || last) {
+                    currentChunkSize.set(
+                            Math.min(currentMinChunksPerMessage * 2, minChunksPerMessage));
                     ChatChoice chunk =
                             new ChatChoice(new ChatMessage(role.get(), writer.toString()));
                     streamingChunksConsumer.consumeChunk(

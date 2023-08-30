@@ -197,6 +197,9 @@ class KafkaTopicConsumer(TopicConsumer):
     def get_native_consumer(self) -> Any:
         return self.consumer
 
+    def get_info(self) -> Dict[str, Any]:
+        return {'topicName': self.topic}
+
 
 class KafkaTopicProducer(TopicProducer):
     def __init__(self, configs):
@@ -242,3 +245,6 @@ class KafkaTopicProducer(TopicProducer):
 
     def get_native_producer(self) -> Any:
         return self.producer
+
+    def get_info(self) -> Dict[str, Any]:
+        return {'topicName': self.topic}

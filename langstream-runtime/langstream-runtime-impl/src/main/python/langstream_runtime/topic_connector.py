@@ -15,7 +15,7 @@
 #
 
 import logging
-from typing import List
+from typing import List, Dict, Any
 
 from langstream import (
     Source,
@@ -66,6 +66,9 @@ class TopicConsumerWithDLQSource(TopicConsumerSource):
         logging.error(f"Sending record to DLQ: {record}")
         self.dlq_producer.write([record])
 
+    def agent_info(self) -> Dict[str, Any]:
+        return self.consumer.get_info()
+
 
 class TopicProducerSink(Sink):
     def __init__(self, producer: TopicProducer):
@@ -86,6 +89,9 @@ class TopicProducerSink(Sink):
 
     def set_commit_callback(self, commit_callback: CommitCallback):
         self.commit_callback = commit_callback
+
+    def agent_info(self) -> Dict[str, Any]:
+        return self.producer.get_info()
 
     def __str__(self):
         return f"TopicProducerSink{{producer={self.producer}}}"

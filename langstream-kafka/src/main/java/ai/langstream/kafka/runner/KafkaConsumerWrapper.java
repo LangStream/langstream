@@ -122,6 +122,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
     @Override
     public Map<String, Object> getInfo() {
         Map<String, Object> result = new HashMap<>();
+        result.put("topicName", topicName);
         KafkaConsumer consumer = getConsumer();
         if (consumer != null) {
             result.put(

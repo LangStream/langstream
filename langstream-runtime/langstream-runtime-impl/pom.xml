@@ -287,7 +287,7 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <workingDirectory>${project.build.directory}/python</workingDirectory>
+              <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
               <executable>black</executable>
               <arguments>
                 <argument>.</argument>
@@ -301,7 +301,7 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <workingDirectory>${project.build.directory}/python</workingDirectory>
+              <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
               <executable>ruff</executable>
               <arguments>
                 <argument>--fix</argument>

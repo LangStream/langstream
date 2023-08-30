@@ -226,7 +226,7 @@ public class TransformFunction
         steps = getTransformSteps(transformConfig, serviceProvider, dataSource);
 
         for (StepPredicatePair pair : steps) {
-            pair.getTransformStep().init();
+            pair.getTransformStep().start();
         }
     }
 

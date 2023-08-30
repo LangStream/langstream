@@ -99,7 +99,7 @@ public class ChatCompletionsStep implements TransformStep {
     }
 
     @Override
-    public void init() throws Exception {
+    public void start() throws Exception {
         if (config.getStreamToTopic() != null && !config.getStreamToTopic().isEmpty()) {
             log.info("Streaming answers to topic {}", config.getStreamToTopic());
             this.streamingAnswersConsumer =
@@ -142,6 +142,7 @@ public class ChatCompletionsStep implements TransformStep {
                         .setFrequencyPenalty(config.getFrequencyPenalty());
         Map<String, Object> options = convertToMap(chatCompletionsOptions);
         options.put("model", config.getModel());
+        options.put("min-chunks-per-message", config.getMinChunksPerMessage());
         options.remove("messages");
 
         CompletableFuture<ChatCompletions> chatCompletionsHandle =

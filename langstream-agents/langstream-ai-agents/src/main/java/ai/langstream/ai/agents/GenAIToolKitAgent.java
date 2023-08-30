@@ -70,7 +70,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     private ServiceProvider serviceProvider;
     private AgentContext agentContext;
 
-    private ChatCompletionsStep.StreamingAnswersConsumerFactory streamingAnswersConsumerFactory;
+    private TopicProducerStreamingAnswersConsumerFactory streamingAnswersConsumerFactory;
 
     @Override
     public ComponentType componentType() {
@@ -78,7 +78,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     }
 
     @Override
-    public void setContext(AgentContext context) throws Exception {
+    public void setContext(AgentContext context) {
         this.agentContext = context;
     }
 
@@ -148,8 +148,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         configuration.remove("vertex");
         config = MAPPER.convertValue(configuration, TransformStepConfig.class);
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
-        streamingAnswersConsumerFactory =
-                new TopicProducerStreamingAnswersConsumerFactory(agentContext);
+        streamingAnswersConsumerFactory = new TopicProducerStreamingAnswersConsumerFactory();
         List<StepConfig> stepsConfig = config.getSteps();
         if (stepsConfig.size() != 1) {
             throw new IllegalArgumentException("Only one step is supported");
@@ -161,7 +160,12 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                         dataSource,
                         streamingAnswersConsumerFactory,
                         stepsConfig.get(0));
-        step.getTransformStep().init();
+    }
+
+    @Override
+    public void start() throws Exception {
+        streamingAnswersConsumerFactory.setAgentContext(agentContext);
+        step.getTransformStep().start();
     }
 
     @Override
@@ -328,11 +332,9 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
 
     private static class TopicProducerStreamingAnswersConsumerFactory
             implements ChatCompletionsStep.StreamingAnswersConsumerFactory {
-        private final AgentContext agentContext;
+        private AgentContext agentContext;
 
-        public TopicProducerStreamingAnswersConsumerFactory(AgentContext agentContext) {
-            this.agentContext = agentContext;
-        }
+        public TopicProducerStreamingAnswersConsumerFactory() {}
 
         @Override
         public ChatCompletionsStep.StreamingAnswersConsumer create(String topicName) {
@@ -340,9 +342,13 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                     agentContext
                             .getTopicConnectionProvider()
                             .createProducer(
-                                    agentContext.getGlobalAgentId(),
-                                    Map.of("topicName", topicName));
+                                    agentContext.getGlobalAgentId(), Map.of("topic", topicName));
+            topicProducer.start();
             return new TopicStreamingAnswersConsumer(topicProducer);
+        }
+
+        public void setAgentContext(AgentContext agentContext) {
+            this.agentContext = agentContext;
         }
     }
 

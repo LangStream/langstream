@@ -72,7 +72,7 @@ class OpenAIProviderTest {
                                         "provider",
                                         "azure",
                                         "access-key",
-                                        "783fe7bc013149f2a197ce3a4ef54531",
+                                        "xxxxxxx",
                                         "url",
                                         vmRuntimeInfo.getHttpBaseUrl())));
 

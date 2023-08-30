@@ -17,32 +17,14 @@
 import logging
 from typing import List
 
-from langstream import Source, Record, Sink, CommitCallback
-
-
-class TopicConsumer(object):
-    def start(self):
-        pass
-
-    def close(self):
-        pass
-
-    def read(self) -> List[Record]:
-        return []
-
-    def commit(self, records: List[Record]):
-        pass
-
-
-class TopicProducer(object):
-    def start(self):
-        pass
-
-    def close(self):
-        pass
-
-    def write(self, records: List[Record]):
-        pass
+from langstream import (
+    Source,
+    Record,
+    Sink,
+    CommitCallback,
+    TopicProducer,
+    TopicConsumer,
+)
 
 
 class TopicConsumerSource(Source):

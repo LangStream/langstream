@@ -16,9 +16,20 @@
 #
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Dict, Union
+from dataclasses import dataclass
+from typing import Any, List, Tuple, Dict, Union, Optional
 
-__all__ = ["Record", "Agent", "Source", "Sink", "Processor", "CommitCallback"]
+__all__ = [
+    "Record",
+    "AgentContext",
+    "Agent",
+    "Source",
+    "Sink",
+    "Processor",
+    "CommitCallback",
+    "TopicConsumer",
+    "TopicProducer",
+]
 
 
 class Record(ABC):
@@ -50,6 +61,59 @@ class Record(ABC):
         pass
 
 
+class TopicConsumer(ABC):
+    """The topic consumer interface"""
+
+    def start(self):
+        """Start the consumer."""
+        pass
+
+    def close(self):
+        """Close the consumer"""
+        pass
+
+    def read(self) -> List[Record]:
+        """Read records from the topic."""
+        return []
+
+    def commit(self, records: List[Record]):
+        """Commit records."""
+        pass
+
+    def get_native_consumer(self) -> Any:
+        """Return the native wrapped consumer"""
+        pass
+
+
+class TopicProducer(ABC):
+    """The topic producer interface"""
+
+    def start(self):
+        """Start the producer."""
+        pass
+
+    def close(self):
+        """Close the producer."""
+        pass
+
+    def write(self, records: List[Record]):
+        """Write records to the topic."""
+        pass
+
+    def get_native_producer(self) -> Any:
+        """Return the native wrapped producer"""
+        pass
+
+
+@dataclass
+class AgentContext(object):
+    """The Agent context"""
+
+    topic_consumer: Optional[TopicConsumer] = None
+    topic_producer: Optional[TopicProducer] = None
+    global_agent_id: Optional[str] = None
+
+
 class Agent(ABC):
     """The Agent interface"""
 
@@ -66,7 +130,11 @@ class Agent(ABC):
         pass
 
     def agent_info(self) -> Dict[str, Any]:
-        """Return the agent information"""
+        """Return the agent information."""
+        pass
+
+    def set_context(self, context: AgentContext):
+        """Set the agent context."""
         pass
 
 

@@ -169,7 +169,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                                 logNoNewline(String.valueOf(record.get("value")));
                                 if (isLastMessage) {
                                     logServer("\n");
-                                    logServer("End-of-Stream");
+                                    logServer(".");
                                     waitingConsumeMessage.set(false);
                                 }
                             } else {

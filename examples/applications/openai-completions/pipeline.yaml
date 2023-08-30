@@ -34,4 +34,4 @@ pipeline:
       stream: true
       messages:
         - role: user
-          content: "What can you tell me about {{% value}} ?"
+          content: "You are an helpful assistant. Below you can fine a question from the user. Please try to help them the best way you can.\n\n{{% value}}"

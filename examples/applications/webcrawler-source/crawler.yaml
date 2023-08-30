@@ -22,8 +22,8 @@ pipeline:
   - name: "Crawl the WebSite"
     type: "webcrawler-source"
     configuration:
-      seed-urls: ["https://docs.langstream.ai/", "https://github.com/LangStream/langstream"]
-      allowed-domains: ["https://docs.langstream.ai", "https://github.com/LangStream/langstream"]
+      seed-urls: ["https://docs.langstream.ai/"]
+      allowed-domains: ["https://docs.langstream.ai"]
       min-time-between-requests: 100
       max-error-count: 5
       http-timeout: 10000

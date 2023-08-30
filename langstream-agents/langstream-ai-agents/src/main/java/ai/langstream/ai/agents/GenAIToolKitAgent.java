@@ -18,16 +18,20 @@ package ai.langstream.ai.agents;
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.ai.agents.services.ServiceProviderRegistry;
 import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
+import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ComponentType;
+import com.datastax.oss.streaming.ai.ChatCompletionsStep;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
 import com.datastax.oss.streaming.ai.model.TransformSchemaType;
+import com.datastax.oss.streaming.ai.model.config.StepConfig;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
@@ -63,10 +67,18 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     private TransformStepConfig config;
     private QueryStepDataSource dataSource;
     private ServiceProvider serviceProvider;
+    private AgentContext agentContext;
+
+    private ChatCompletionsStep.StreamingAnswersConsumerFactory streamingAnswersConsumerFactory;
 
     @Override
     public ComponentType componentType() {
         return ComponentType.PROCESSOR;
+    }
+
+    @Override
+    public void setContext(AgentContext context) throws Exception {
+        this.agentContext = context;
     }
 
     @Override
@@ -136,12 +148,14 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         configuration.remove("vertex");
         config = MAPPER.convertValue(configuration, TransformStepConfig.class);
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
-        List<StepPredicatePair> steps =
-                TransformFunctionUtil.getTransformSteps(config, serviceProvider, dataSource);
-        if (steps.size() != 1) {
+        streamingAnswersConsumerFactory = new TopicProducerStreamingAnswersConsumerFactory(agentContext);
+        List<StepConfig> stepsConfig = config.getSteps();
+        if (stepsConfig.size() != 1) {
             throw new IllegalArgumentException("Only one step is supported");
         }
-        step = steps.get(0);
+        step =  TransformFunctionUtil.buildStep(config, serviceProvider, dataSource, streamingAnswersConsumerFactory,
+                stepsConfig.get(0));
+        step.getTransformStep().init();
     }
 
     @Override
@@ -297,5 +311,35 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
             return TransformSchemaType.JSON;
         }
         throw new IllegalArgumentException("Unsupported data type: " + javaType);
+    }
+
+    private static class TopicProducerStreamingAnswersConsumerFactory implements ChatCompletionsStep.StreamingAnswersConsumerFactory {
+        private final AgentContext agentContext;
+
+        public TopicProducerStreamingAnswersConsumerFactory(AgentContext agentContext) {
+            this.agentContext = agentContext;
+        }
+
+        @Override
+        public ChatCompletionsStep.StreamingAnswersConsumer create(String topicName) {
+            TopicProducer topicProducer = agentContext
+                    .getTopicConnectionProvider().createProducer(agentContext.getGlobalAgentId(),
+                            Map.of("topicName", topicName));
+            return new TopicStreamingAnswersConsumer(topicProducer);
+        }
+    }
+
+
+    private static class TopicStreamingAnswersConsumer implements ChatCompletionsStep.StreamingAnswersConsumer {
+        private TopicProducer topicProducer;
+
+        public TopicStreamingAnswersConsumer(TopicProducer topicProducer) {
+            this.topicProducer = topicProducer;
+        }
+
+        @Override
+        public void streamAnswerChunk(int index, String message, boolean last, TransformContext outputMessage) {
+            log.info("index: {}, message: {}, last: {}", index, message, last);
+        }
     }
 }

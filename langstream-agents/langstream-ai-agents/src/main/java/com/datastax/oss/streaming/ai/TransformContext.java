@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Data;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Conversions;
 import org.apache.avro.Schema;
@@ -247,7 +248,8 @@ public class TransformContext {
         }
     }
 
-    public static String toJson(Object object) throws JsonProcessingException {
+    @SneakyThrows
+    public static String toJson(Object object){
         return OBJECT_MAPPER.writeValueAsString(object);
     }
 

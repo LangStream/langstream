@@ -30,6 +30,9 @@ public class ChatCompletionsConfig extends StepConfig {
     @JsonProperty(value = "messages", required = true)
     private List<ChatMessage> messages;
 
+    @JsonProperty(value = "stream-to-topic")
+    private String streamToTopic;
+
     @JsonProperty(value = "completion-field")
     private String fieldName;
 

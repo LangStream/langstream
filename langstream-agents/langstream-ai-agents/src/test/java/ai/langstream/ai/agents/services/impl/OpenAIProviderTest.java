@@ -23,22 +23,25 @@ import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import java.util.List;
 import java.util.Map;
+
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
+@WireMockTest
 class OpenAIProviderTest {
 
     @Test
-    @Disabled
-    void testStreamingCompletion() throws Exception {
+    void testStreamingCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
         ServiceProviderProvider provider = new OpenAIServiceProvider();
         ServiceProvider implementation =
                 provider.createImplementation(
                         Map.of(
                                 "openai",
-                                Map.of("provider", "azure", "access-key", "xxx", "url", "xxx")));
+                                Map.of("provider", "azure", "access-key", "783fe7bc013149f2a197ce3a4ef54531", "url", "https://datastax-openai-dev.openai.azure.com")));
 
         CompletionsService service = implementation.getCompletionsService(Map.of());
         ChatCompletions chatCompletions =
@@ -46,7 +49,7 @@ class OpenAIProviderTest {
                                 List.of(new ChatMessage("user").setContent("What is a car?")),
                                 new CompletionsService.StreamingChunksConsumer() {
                                     @Override
-                                    public void consumeChunk(ChatChoice chunk, boolean last) {
+                                    public void consumeChunk(int index, ChatChoice chunk, boolean last) {
                                         log.info(
                                                 "chunk: (last={}) {} {}",
                                                 last,

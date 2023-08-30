@@ -20,7 +20,11 @@ import java.util.concurrent.CompletableFuture;
 public interface TransformStep extends AutoCloseable {
     default void close() throws Exception {}
 
-    void process(TransformContext transformContext) throws Exception;
+    default void init() throws Exception {}
+
+    default void process(TransformContext transformContext) throws Exception {
+        throw new UnsupportedOperationException("Not implemented yet, implement this method or processAsync");
+    }
 
     default CompletableFuture<?> processAsync(TransformContext transformContext) {
         try {

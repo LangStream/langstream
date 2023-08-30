@@ -110,22 +110,12 @@ public class TransformFunctionUtil {
         return dataSource;
     }
 
-    public static List<StepPredicatePair> getTransformSteps(
-            TransformStepConfig transformConfig,
-            ServiceProvider serviceProvider,
-            QueryStepDataSource dataSource)
-            throws Exception {
-        List<StepPredicatePair> steps = new ArrayList<>();
-        for (StepConfig step : transformConfig.getSteps()) {
-            steps.add(buildStep(transformConfig, serviceProvider, dataSource, step));
-        }
-        return steps;
-    }
 
     public static StepPredicatePair buildStep(
             TransformStepConfig transformConfig,
             ServiceProvider serviceProvider,
             QueryStepDataSource dataSource,
+            ChatCompletionsStep.StreamingAnswersConsumerFactory streamingAnswersConsumerFactory,
             StepConfig step)
             throws Exception {
         TransformStep transformStep;
@@ -159,7 +149,7 @@ public class TransformFunctionUtil {
                 break;
             case "ai-chat-completions":
                 transformStep =
-                        newChatCompletionsFunction((ChatCompletionsConfig) step, serviceProvider);
+                        newChatCompletionsFunction((ChatCompletionsConfig) step, serviceProvider, streamingAnswersConsumerFactory);
                 break;
             case "query":
                 transformStep = newQuery((QueryConfig) step, dataSource);
@@ -271,10 +261,10 @@ public class TransformFunctionUtil {
     }
 
     public static ChatCompletionsStep newChatCompletionsFunction(
-            ChatCompletionsConfig config, ServiceProvider serviceProvider) throws Exception {
+            ChatCompletionsConfig config, ServiceProvider serviceProvider, ChatCompletionsStep.StreamingAnswersConsumerFactory streamingAnswersConsumerFactory) throws Exception {
         CompletionsService completionsService =
                 serviceProvider.getCompletionsService(convertToMap(config));
-        return new ChatCompletionsStep(completionsService, config);
+        return new ChatCompletionsStep(completionsService, streamingAnswersConsumerFactory, config);
     }
 
     public static TransformStep newQuery(QueryConfig config, QueryStepDataSource dataSource) {

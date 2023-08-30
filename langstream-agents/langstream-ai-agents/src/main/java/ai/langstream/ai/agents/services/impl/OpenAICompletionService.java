@@ -41,8 +41,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class OpenAICompletionService implements CompletionsService {
 
-    private static final int MIN_CHUNKS_PER_MESSAGE = 10;
-
     private OpenAIClient client;
 
     public OpenAICompletionService(OpenAIClient client) {
@@ -54,6 +52,8 @@ public class OpenAICompletionService implements CompletionsService {
             List<ChatMessage> messages,
             StreamingChunksConsumer streamingChunksConsumer,
             Map<String, Object> options) {
+        int minChunksPerMessage =
+                getInteger("min-chunks-per-message", 10, options);
         ChatCompletionsOptions chatCompletionsOptions =
                 new ChatCompletionsOptions(
                                 messages.stream()
@@ -83,7 +83,7 @@ public class OpenAICompletionService implements CompletionsService {
                     client.getChatCompletionsStream(
                             (String) options.get("model"), chatCompletionsOptions);
             ChatCompletionsConsumer chatCompletionsConsumer =
-                    new ChatCompletionsConsumer(streamingChunksConsumer, finished);
+                    new ChatCompletionsConsumer(streamingChunksConsumer, minChunksPerMessage, finished);
             model.stream().forEach(chatCompletionsConsumer);
             return finished.thenApply(
                     ___ -> {
@@ -91,7 +91,7 @@ public class OpenAICompletionService implements CompletionsService {
                                 List.of(
                                         new ChatChoice(
                                                 chatCompletionsConsumer
-                                                        .buillTotalAnswerMessage())));
+                                                        .buildTotalAnswerMessage())));
                         return result;
                     });
         } else {
@@ -126,11 +126,16 @@ public class OpenAICompletionService implements CompletionsService {
 
         private final StringWriter writer = new StringWriter();
         private final AtomicInteger numberOfChunks = new AtomicInteger();
+        private final int minChunksPerMessage;
+        private AtomicInteger index = new AtomicInteger();
 
         public ChatCompletionsConsumer(
-                StreamingChunksConsumer streamingChunksConsumer, CompletableFuture<?> finished) {
+                StreamingChunksConsumer streamingChunksConsumer,
+                int minChunksPerMessage,
+                CompletableFuture<?> finished) {
+            this.minChunksPerMessage = minChunksPerMessage;
             this.streamingChunksConsumer =
-                    streamingChunksConsumer != null ? streamingChunksConsumer : (chunk, last) -> {};
+                    streamingChunksConsumer != null ? streamingChunksConsumer : (index, chunk, last) -> {};
             this.finished = finished;
         }
 
@@ -160,10 +165,10 @@ public class OpenAICompletionService implements CompletionsService {
                     numberOfChunks.incrementAndGet();
                 }
 
-                if (numberOfChunks.get() > MIN_CHUNKS_PER_MESSAGE || last) {
+                if (numberOfChunks.get() > minChunksPerMessage || last) {
                     ChatChoice chunk =
                             new ChatChoice(new ChatMessage(role.get(), writer.toString()));
-                    streamingChunksConsumer.consumeChunk(chunk, last);
+                    streamingChunksConsumer.consumeChunk(index.incrementAndGet(), chunk, last);
                     writer.getBuffer().setLength(0);
                     numberOfChunks.set(0);
                 }
@@ -173,7 +178,7 @@ public class OpenAICompletionService implements CompletionsService {
             }
         }
 
-        public ChatMessage buillTotalAnswerMessage() {
+        public ChatMessage buildTotalAnswerMessage() {
             return new ChatMessage(role.get(), totalAnswer.toString());
         }
     }

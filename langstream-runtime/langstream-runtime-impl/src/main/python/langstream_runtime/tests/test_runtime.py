@@ -33,6 +33,7 @@ from langstream import (
 from langstream_runtime import runtime
 
 
+
 @patch("time.time_ns", return_value=12345000000)
 def test_simple_agent(_):
     config_yaml = """

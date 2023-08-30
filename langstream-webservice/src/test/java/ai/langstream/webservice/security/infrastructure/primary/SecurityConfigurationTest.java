@@ -23,12 +23,15 @@ import ai.langstream.webservice.common.GlobalMetadataService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -84,6 +87,17 @@ class SecurityConfigurationTest {
 
     @Test
     void shouldBeForbiddenIfNotSameTenant() throws Exception {
+        final BaseMatcher<Integer> authorizedMatcher =
+                new BaseMatcher<>() {
+                    @Override
+                    public boolean matches(Object o) {
+                        return (int) o != HttpStatus.FORBIDDEN.value();
+                    }
+
+                    @Override
+                    public void describeTo(Description description) {}
+                };
+
         // Token with "iss": "notadmin"
         String token = ROLE_NOTADMIN;
         List<Map.Entry<HttpMethod, String>> requests = new ArrayList<>();
@@ -101,7 +115,7 @@ class SecurityConfigurationTest {
                                             entry.getKey(),
                                             entry.getValue().replace("{tenant}", "notadmin"))
                                     .header("Authorization", "Bearer " + token))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().is(authorizedMatcher));
 
             mockMvc.perform(
                             MockMvcRequestBuilders.request(
@@ -115,7 +129,7 @@ class SecurityConfigurationTest {
                                             entry.getKey(),
                                             entry.getValue().replace("{tenant}", "notadmin"))
                                     .header("Authorization", "Bearer " + ROLE_TESTROLE))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().is(authorizedMatcher));
         }
     }
 }

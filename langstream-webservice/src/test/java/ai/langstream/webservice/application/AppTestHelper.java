@@ -72,7 +72,28 @@ public class AppTestHelper {
                 applicationId,
                 appFileContent,
                 instanceContent,
-                secretsContent);
+                secretsContent,
+                true);
+    }
+
+    public static ResultActions deployApp(
+            MockMvc mockMvc,
+            String tenant,
+            String applicationId,
+            String appFileContent,
+            String instanceContent,
+            String secretsContent,
+            boolean checkOk)
+            throws Exception {
+        return updateApp(
+                mockMvc,
+                false,
+                tenant,
+                applicationId,
+                appFileContent,
+                instanceContent,
+                secretsContent,
+                checkOk);
     }
 
     public static ResultActions updateApp(
@@ -90,7 +111,8 @@ public class AppTestHelper {
                 applicationId,
                 appFileContent,
                 instanceContent,
-                secretsContent);
+                secretsContent,
+                true);
     }
 
     public static ResultActions updateApp(
@@ -100,7 +122,8 @@ public class AppTestHelper {
             String applicationId,
             String appFileContent,
             String instanceContent,
-            String secretsContent)
+            String secretsContent,
+            boolean checkOk)
             throws Exception {
         final MockMultipartHttpServletRequestBuilder multipart =
                 multipart(
@@ -117,6 +140,10 @@ public class AppTestHelper {
             multipart.part(
                     new MockPart("secrets", secretsContent.getBytes(StandardCharsets.UTF_8)));
         }
-        return mockMvc.perform(multipart).andExpect(status().isOk());
+        final ResultActions perform = mockMvc.perform(multipart);
+        if (checkOk) {
+            return perform.andExpect(status().isOk());
+        }
+        return perform;
     }
 }

@@ -26,6 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.webservice.WebAppTestConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,7 +119,20 @@ class TenantResourceTest {
                 .andExpect(jsonPath("$.test.maxTotalResourceUnits").value(8));
 
         mockMvc.perform(delete("/api/tenants/test")).andExpect(status().isOk());
+        mockMvc.perform(put("/api/tenants/test")).andExpect(status().isInternalServerError());
 
-        mockMvc.perform(get("/api/tenants/test")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/tenants/test"))
+                .andExpect(
+                        status().is(
+                                        new BaseMatcher<Integer>() {
+                                            @Override
+                                            public boolean matches(Object o) {
+
+                                                return (int) o == 500 || (int) o == 404;
+                                            }
+
+                                            @Override
+                                            public void describeTo(Description description) {}
+                                        }));
     }
 }

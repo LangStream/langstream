@@ -173,13 +173,7 @@ class AppsCmdTest extends CommandTestBase {
                                 aMultipart("instance").withBody(equalTo("instance: {}")))
                         .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result =
-                executeCommand(
-                        "apps",
-                        "update",
-                        "my-app",
-                        "-i",
-                        instance);
+        CommandResult result = executeCommand("apps", "update", "my-app", "-i", instance);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }
@@ -209,7 +203,7 @@ class AppsCmdTest extends CommandTestBase {
                         "-i",
                         instance,
                         "-app",
-                         langstream.toFile().getAbsolutePath());
+                        langstream.toFile().getAbsolutePath());
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }
@@ -230,15 +224,10 @@ class AppsCmdTest extends CommandTestBase {
 
         CommandResult result =
                 executeCommand(
-                        "apps",
-                        "update",
-                        "my-app",
-                        "-app",
-                        langstream.toFile().getAbsolutePath());
+                        "apps", "update", "my-app", "-app", langstream.toFile().getAbsolutePath());
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }
-
 
     @Test
     public void testUpdateSecrets() throws Exception {
@@ -249,13 +238,7 @@ class AppsCmdTest extends CommandTestBase {
                                 aMultipart("secrets").withBody(equalTo("secrets: []")))
                         .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
 
-        CommandResult result =
-                executeCommand(
-                        "apps",
-                        "update",
-                        "my-app",
-                        "-s",
-                        secrets);
+        CommandResult result = executeCommand("apps", "update", "my-app", "-s", secrets);
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }

@@ -42,6 +42,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
     private final String topicName;
     private final AtomicInteger totalOut = new AtomicInteger();
     KafkaConsumer consumer;
+    private boolean nativeConsumerGrabbed;
 
     final AtomicInteger pendingCommits = new AtomicInteger(0);
     final AtomicReference<Throwable> commitFailure = new AtomicReference();
@@ -61,6 +62,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         if (consumer == null) {
             throw new IllegalStateException("Consumer not started");
         }
+        nativeConsumerGrabbed = true;
         return consumer;
     }
 
@@ -68,6 +70,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
     public synchronized void start() {
         consumer = new KafkaConsumer(configuration);
         if (topicName != null) {
+            log.info("Subscribing consumer to {}", topicName);
             consumer.subscribe(List.of(topicName), this);
         }
     }
@@ -134,7 +137,10 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
     @Override
     public synchronized void close() {
         if (consumer != null) {
-            consumer.commitSync(committed);
+            if (topicName != null && !nativeConsumerGrabbed) {
+                log.info("Closing consumer to {}", topicName);
+                consumer.commitSync(committed);
+            }
             log.info(
                     "Closing consumer to {} with {} pending commits",
                     topicName,

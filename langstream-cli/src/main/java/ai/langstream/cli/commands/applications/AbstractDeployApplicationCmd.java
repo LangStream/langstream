@@ -163,6 +163,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         if (isUpdate() && appDirectory == null && instanceFile == null && secretsFile == null) {
             throw new IllegalArgumentException("no application, instance or secrets file provided");
         }
+        if (!isUpdate() && (appDirectory == null || instanceFile == null)) {
+            throw new IllegalArgumentException("application and instance files are required");
+        }
 
         if (appDirectory != null) {
             // parse locally the application in order to validate it
@@ -181,7 +184,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         final Map<String, Object> contents = new HashMap<>();
         contents.put("app", tempZip);
-        contents.put("instance", Files.readString(instanceFile.toPath()));
+        if (instanceFile != null) {
+            contents.put("instance", Files.readString(instanceFile.toPath()));
+        }
         if (secretsFile != null) {
             contents.put("secrets", Files.readString(secretsFile.toPath()));
         }

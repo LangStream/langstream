@@ -220,19 +220,20 @@ def run(configuration, agent=None, agent_info: AgentInfo = AgentInfo(), max_loop
     streaming_cluster = configuration['streamingCluster']
     topic_connections_runtime = topic_connections_registry.get_topic_connections_runtime(streaming_cluster)
 
-    agent_id = f"{configuration['agent'].get('applicationId')}-{configuration['agent'].get('agentId')}"
+    agent_id = configuration['agent'].get('agentId')
     agent_type = configuration['agent'].get('agentType')
+    application_agent_id = f"{configuration['agent'].get('applicationId')}-{agent_id}"
 
     if 'input' in configuration and len(configuration['input']) > 0:
-        consumer = topic_connections_runtime.create_topic_consumer(agent_id, streaming_cluster, configuration['input'])
-        dlq_producer = topic_connections_runtime.create_dlq_producer(agent_id, streaming_cluster,
+        consumer = topic_connections_runtime.create_topic_consumer(application_agent_id, streaming_cluster, configuration['input'])
+        dlq_producer = topic_connections_runtime.create_dlq_producer(application_agent_id, streaming_cluster,
                                                                      configuration['input'])
     else:
         consumer = NoopTopicConsumer()
         dlq_producer = None
 
     if 'output' in configuration and len(configuration['output']) > 0:
-        producer = topic_connections_runtime.create_topic_producer(agent_id, streaming_cluster, configuration['output'])
+        producer = topic_connections_runtime.create_topic_producer(application_agent_id, streaming_cluster, configuration['output'])
     else:
         producer = NoopTopicProducer()
 

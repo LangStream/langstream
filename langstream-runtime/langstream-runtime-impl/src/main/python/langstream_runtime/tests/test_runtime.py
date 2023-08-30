@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import json
 import logging
 from typing import List, Tuple, Union, Dict, Any
@@ -44,7 +45,7 @@ def test_simple_agent(_):
     print(json.dumps(agent_info.worker_status(), indent=2))
     assert json.dumps(agent_info.worker_status(), indent=2) == """[
   {
-    "agent-id": "testApplicationId-testAgentId",
+    "agent-id": "testAgentId",
     "agent-type": "testAgentType",
     "component-type": "SOURCE",
     "info": {
@@ -68,7 +69,7 @@ def test_simple_agent(_):
     }
   },
   {
-    "agent-id": "testApplicationId-testAgentId",
+    "agent-id": "testAgentId",
     "agent-type": "testAgentType",
     "component-type": "PROCESSOR",
     "info": {
@@ -92,7 +93,7 @@ def test_simple_agent(_):
     }
   },
   {
-    "agent-id": "testApplicationId-testAgentId",
+    "agent-id": "testAgentId",
     "agent-type": "testAgentType",
     "component-type": "SINK",
     "info": {

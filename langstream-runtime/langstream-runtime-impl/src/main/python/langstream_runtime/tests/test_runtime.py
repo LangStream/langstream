@@ -22,13 +22,20 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from langstream import Source, Sink, CommitCallback, Record, SimpleRecord, SingleRecordProcessor
+from langstream import (
+    Source,
+    Sink,
+    CommitCallback,
+    Record,
+    SimpleRecord,
+    SingleRecordProcessor,
+)
 from langstream_runtime import runtime
 
 
-@patch('time.time_ns', return_value=12345000000)
+@patch("time.time_ns", return_value=12345000000)
 def test_simple_agent(_):
-    config_yaml = f"""
+    config_yaml = """
         streamingCluster:
             type: kafka
         agent:
@@ -43,7 +50,9 @@ def test_simple_agent(_):
     agent_info = runtime.AgentInfo()
     runtime.run(config, agent=agent, agent_info=agent_info, max_loops=2)
     print(json.dumps(agent_info.worker_status(), indent=2))
-    assert json.dumps(agent_info.worker_status(), indent=2) == """[
+    assert (
+        json.dumps(agent_info.worker_status(), indent=2)
+        == """[
   {
     "agent-id": "testAgentId",
     "agent-type": "testAgentType",
@@ -117,47 +126,48 @@ def test_simple_agent(_):
     }
   }
 ]"""
+    )
 
 
 class TestAgent(Source, Sink, SingleRecordProcessor):
     def __init__(self):
         self.context = {
-            'config': [],
-            'start': 0,
-            'close': 0,
-            'set_commit_callback': 0,
-            'records': []
+            "config": [],
+            "start": 0,
+            "close": 0,
+            "set_commit_callback": 0,
+            "records": [],
         }
         self.commit_callback = None
 
     def init(self, config):
-        self.context['config'].append(config)
+        self.context["config"].append(config)
 
     def start(self):
-        self.context['start'] += 1
+        self.context["start"] += 1
 
     def close(self):
-        self.context['close'] += 1
+        self.context["close"] += 1
 
     def read(self):
-        return [SimpleRecord('some record ' + str(len(self.context['records'])))]
+        return [SimpleRecord("some record " + str(len(self.context["records"])))]
 
     def set_commit_callback(self, commit_callback: CommitCallback):
-        self.context['set_commit_callback'] += 1
+        self.context["set_commit_callback"] += 1
 
     def write(self, records):
         for record in records:
-            self.context['records'].append(record.value())
+            self.context["records"].append(record.value())
 
     def process_record(self, record: Record) -> List[Record]:
-        return [SimpleRecord(record.value() + ' processed')]
+        return [SimpleRecord(record.value() + " processed")]
 
     def agent_info(self) -> Dict[str, Any]:
         return self.context
 
 
 class AbstractFailingAgent(object):
-    def __init__(self, records, fail_on_content='fail-me', batch_size=1):
+    def __init__(self, records, fail_on_content="fail-me", batch_size=1):
         self.commit_callback = None
         self.batch_size = batch_size
         self.records = records.copy()
@@ -174,7 +184,6 @@ class AbstractFailingAgent(object):
 
 
 class FailingProcessor(AbstractFailingAgent, SingleRecordProcessor):
-
     def read(self) -> List[Record]:
         result = []
         if len(self.records) > 0:
@@ -186,14 +195,16 @@ class FailingProcessor(AbstractFailingAgent, SingleRecordProcessor):
                     break
         return result
 
-    def process(self, records: List[Record]) -> List[Tuple[Record, Union[List[Record], Exception]]]:
+    def process(
+        self, records: List[Record]
+    ) -> List[Tuple[Record, Union[List[Record], Exception]]]:
         self.execution_count += 1
         return super().process(records)
 
     def process_record(self, record: Record) -> List[Record]:
-        logging.info(f'Processing {record.value()}', record.value())
+        logging.info(f"Processing {record.value()}", record.value())
         if record.value() in self.fail_on_content:
-            raise Exception(f'Failed on {record.value()}')
+            raise Exception(f"Failed on {record.value()}")
         return [record]
 
     def write(self, records: List[Record]):
@@ -201,9 +212,8 @@ class FailingProcessor(AbstractFailingAgent, SingleRecordProcessor):
 
 
 class FailingSink(AbstractFailingAgent, SingleRecordProcessor):
-
     def read(self) -> List[Record]:
-        record = SimpleRecord('source-record')
+        record = SimpleRecord("source-record")
         self.uncommitted.append(record)
         return [record]
 
@@ -220,46 +230,178 @@ class FailingSink(AbstractFailingAgent, SingleRecordProcessor):
     def write(self, records: List[Record]):
         self.execution_count += 1
         for record in records:
-            logging.info(f'Writing {record.value()}', record.value())
+            logging.info(f"Writing {record.value()}", record.value())
             if record.value() in self.fail_on_content:
-                raise Exception(f'Failed on {record.value()}')
+                raise Exception(f"Failed on {record.value()}")
             self.commit_callback.commit([record])
 
 
 @pytest.mark.parametrize(
-    'retries, on_failure, agent, run_should_throw, expected_uncommitted, expected_executions',
+    "retries, on_failure, agent, run_should_throw, expected_uncommitted, "
+    "expected_executions",
     [
-        pytest.param(0, 'skip', FailingProcessor([SimpleRecord('fail-me')]), False, 0, 1, id='processor skip'),
-        pytest.param(3, 'fail', FailingProcessor([SimpleRecord('fail-me')]), True, 1, 3,
-                     id='processor fail with retries'),
-        pytest.param(0, 'fail', FailingProcessor([SimpleRecord('fail-me')]), True, 1, 1,
-                     id='processor fail no retries'),
-        pytest.param(0, 'dead-letter', FailingProcessor([SimpleRecord('fail-me')]), True, 1, 1,
-                     id='processor dead-letter no dlq configured'),
-        pytest.param(0, 'skip', FailingProcessor([SimpleRecord('fail-me'), SimpleRecord('process-me')]), False, 0, 2,
-                     id='processor some failed some good with skip'),
-        pytest.param(0, 'skip', FailingProcessor([SimpleRecord('process-me'), SimpleRecord('fail-me')]), False, 0, 2,
-                     id='processor some good some failed with skip'),
-        pytest.param(0, 'skip', FailingProcessor([SimpleRecord('fail-me'), SimpleRecord('process-me')], batch_size=2),
-                     False, 0, 1, id='processor some failed some good with skip and batching'),
-        pytest.param(0, 'skip', FailingProcessor([SimpleRecord('process-me'), SimpleRecord('fail-me')], batch_size=2),
-                     False, 0, 1, id='processor some good some failed with skip and batching'),
-        pytest.param(0, 'skip', FailingSink([SimpleRecord('fail-me')]), False, 0, 1, id='sink skip'),
-        pytest.param(3, 'fail', FailingSink([SimpleRecord('fail-me')]), True, 1, 3, id='sink fail with retries'),
-        pytest.param(0, 'fail', FailingSink([SimpleRecord('fail-me')]), True, 1, 1, id='sink fail no retries'),
-        pytest.param(0, 'dead-letter', FailingSink([SimpleRecord('fail-me')]), True, 1, 1,
-                     id='sink dead-letter no dlq configured'),
-        pytest.param(0, 'skip', FailingSink([SimpleRecord('fail-me'), SimpleRecord('process-me')]), False, 0, 2,
-                     id='sink some failed some good with skip'),
-        pytest.param(0, 'skip', FailingSink([SimpleRecord('process-me'), SimpleRecord('fail-me')]), False, 0, 2,
-                     id='sink some good some failed with skip'),
-        pytest.param(0, 'skip', FailingSink([SimpleRecord('fail-me'), SimpleRecord('process-me')], batch_size=2),
-                     False, 0, 1, id='sink some failed some good with skip and batching'),
-        pytest.param(0, 'skip', FailingSink([SimpleRecord('process-me'), SimpleRecord('fail-me')], batch_size=2),
-                     False, 0, 1, id='sink some good some failed with skip and batching'),
-    ])
-def test_errors_handler(retries, on_failure, agent: AbstractFailingAgent, run_should_throw, expected_uncommitted,
-                        expected_executions):
+        pytest.param(
+            0,
+            "skip",
+            FailingProcessor([SimpleRecord("fail-me")]),
+            False,
+            0,
+            1,
+            id="processor skip",
+        ),
+        pytest.param(
+            3,
+            "fail",
+            FailingProcessor([SimpleRecord("fail-me")]),
+            True,
+            1,
+            3,
+            id="processor fail with retries",
+        ),
+        pytest.param(
+            0,
+            "fail",
+            FailingProcessor([SimpleRecord("fail-me")]),
+            True,
+            1,
+            1,
+            id="processor fail no retries",
+        ),
+        pytest.param(
+            0,
+            "dead-letter",
+            FailingProcessor([SimpleRecord("fail-me")]),
+            True,
+            1,
+            1,
+            id="processor dead-letter no dlq configured",
+        ),
+        pytest.param(
+            0,
+            "skip",
+            FailingProcessor([SimpleRecord("fail-me"), SimpleRecord("process-me")]),
+            False,
+            0,
+            2,
+            id="processor some failed some good with skip",
+        ),
+        pytest.param(
+            0,
+            "skip",
+            FailingProcessor([SimpleRecord("process-me"), SimpleRecord("fail-me")]),
+            False,
+            0,
+            2,
+            id="processor some good some failed with skip",
+        ),
+        pytest.param(
+            0,
+            "skip",
+            FailingProcessor(
+                [SimpleRecord("fail-me"), SimpleRecord("process-me")], batch_size=2
+            ),
+            False,
+            0,
+            1,
+            id="processor some failed some good with skip and batching",
+        ),
+        pytest.param(
+            0,
+            "skip",
+            FailingProcessor(
+                [SimpleRecord("process-me"), SimpleRecord("fail-me")], batch_size=2
+            ),
+            False,
+            0,
+            1,
+            id="processor some good some failed with skip and batching",
+        ),
+        pytest.param(
+            0,
+            "skip",
+            FailingSink([SimpleRecord("fail-me")]),
+            False,
+            0,
+            1,
+            id="sink skip",
+        ),
+        pytest.param(
+            3,
+            "fail",
+            FailingSink([SimpleRecord("fail-me")]),
+            True,
+            1,
+            3,
+            id="sink fail with retries",
+        ),
+        pytest.param(
+            0,
+            "fail",
+            FailingSink([SimpleRecord("fail-me")]),
+            True,
+            1,
+            1,
+            id="sink fail no retries",
+        ),
+        pytest.param(
+            0,
+            "dead-letter",
+            FailingSink([SimpleRecord("fail-me")]),
+            True,
+            1,
+            1,
+            id="sink dead-letter no dlq configured",
+        ),
+        pytest.param(
+            0,
+            "skip",
+            FailingSink([SimpleRecord("fail-me"), SimpleRecord("process-me")]),
+            False,
+            0,
+            2,
+            id="sink some failed some good with skip",
+        ),
+        pytest.param(
+            0,
+            "skip",
+            FailingSink([SimpleRecord("process-me"), SimpleRecord("fail-me")]),
+            False,
+            0,
+            2,
+            id="sink some good some failed with skip",
+        ),
+        pytest.param(
+            0,
+            "skip",
+            FailingSink(
+                [SimpleRecord("fail-me"), SimpleRecord("process-me")], batch_size=2
+            ),
+            False,
+            0,
+            1,
+            id="sink some failed some good with skip and batching",
+        ),
+        pytest.param(
+            0,
+            "skip",
+            FailingSink(
+                [SimpleRecord("process-me"), SimpleRecord("fail-me")], batch_size=2
+            ),
+            False,
+            0,
+            1,
+            id="sink some good some failed with skip and batching",
+        ),
+    ],
+)
+def test_errors_handler(
+    retries,
+    on_failure,
+    agent: AbstractFailingAgent,
+    run_should_throw,
+    expected_uncommitted,
+    expected_executions,
+):
     config_yaml = f"""
             streamingCluster:
                 type: kafka

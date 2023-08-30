@@ -25,11 +25,23 @@ from functools import partial
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import List, Tuple, Union, Dict, Any, Optional
 
-from langstream import Agent, Source, Sink, Processor, Record, SingleRecordProcessor, CommitCallback
+from langstream import (
+    Agent,
+    Source,
+    Sink,
+    Processor,
+    Record,
+    SingleRecordProcessor,
+    CommitCallback,
+)
 from . import topic_connections_registry
 from .source_record_tracker import SourceRecordTracker
-from .topic_connector import TopicConsumer, TopicProducer, TopicProducerSink, \
-    TopicConsumerWithDLQSource
+from .topic_connector import (
+    TopicConsumer,
+    TopicProducer,
+    TopicProducerSink,
+    TopicConsumerWithDLQSource,
+)
 
 
 def current_time_millis():
@@ -37,24 +49,26 @@ def current_time_millis():
 
 
 class ErrorsProcessingOutcome(str, Enum):
-    SKIP = 'SKIP'
-    RETRY = 'RETRY'
-    FAIL = 'FAIL'
+    SKIP = "SKIP"
+    RETRY = "RETRY"
+    FAIL = "FAIL"
 
 
 class ErrorsHandler(object):
     def __init__(self, configuration):
         self.failures = 0
         self.configuration = configuration or {}
-        self.retries = int(self.configuration.get('retries', 0))
-        self.on_failure_action = self.configuration.get('onFailure', 'fail')
+        self.retries = int(self.configuration.get("retries", 0))
+        self.on_failure_action = self.configuration.get("onFailure", "fail")
 
     def handle_errors(self, source_record: Record, error) -> ErrorsProcessingOutcome:
         self.failures += 1
-        logging.info(f'Handling error {error} for source record {source_record}, '
-                     f'errors count {self.failures} (max retries {self.retries})')
+        logging.info(
+            f"Handling error {error} for source record {source_record}, "
+            f"errors count {self.failures} (max retries {self.retries})"
+        )
         if self.failures >= self.retries:
-            if self.on_failure_action == 'skip':
+            if self.on_failure_action == "skip":
                 return ErrorsProcessingOutcome.SKIP
             else:
                 return ErrorsProcessingOutcome.FAIL
@@ -62,18 +76,24 @@ class ErrorsHandler(object):
             return ErrorsProcessingOutcome.RETRY
 
     def fail_processing_on_permanent_errors(self):
-        return self.on_failure_action not in ['skip', 'dead-letter']
+        return self.on_failure_action not in ["skip", "dead-letter"]
 
 
 class ComponentType(str, Enum):
-    SOURCE = 'SOURCE'
-    PROCESSOR = 'PROCESSOR'
-    SINK = 'SINK'
+    SOURCE = "SOURCE"
+    PROCESSOR = "PROCESSOR"
+    SINK = "SINK"
 
 
 class RuntimeAgent(Agent):
-    def __init__(self, agent: Agent, component_type: ComponentType, agent_id, agent_type,
-                 started_at=current_time_millis()):
+    def __init__(
+        self,
+        agent: Agent,
+        component_type: ComponentType,
+        agent_id,
+        agent_type,
+        started_at=current_time_millis(),
+    ):
         self.agent = agent
         self.component_type = component_type
         self.agent_id = agent_id
@@ -85,36 +105,37 @@ class RuntimeAgent(Agent):
         self.last_processed_at = 0
 
     def init(self, config: Dict[str, Any]):
-        call_method_if_exists(self.agent, 'init', config)
+        call_method_if_exists(self.agent, "init", config)
 
     def start(self):
-        call_method_if_exists(self.agent, 'start')
+        call_method_if_exists(self.agent, "start")
 
     def close(self):
-        call_method_if_exists(self.agent, 'close')
+        call_method_if_exists(self.agent, "close")
 
     def agent_info(self) -> Dict[str, Any]:
-        return call_method_if_exists(self.agent, 'agent_info') or {}
+        return call_method_if_exists(self.agent, "agent_info") or {}
 
     def get_agent_status(self) -> List[Dict[str, Any]]:
         return [
             {
-                'agent-id': self.agent_id,
-                'agent-type': self.agent_type,
-                'component-type': self.component_type,
-                'info': self.agent_info(),
-                'metrics': {
-                    'total-in': self.total_in,
-                    'total-out': self.total_out,
-                    'last-processed_at': self.last_processed_at
-                }
+                "agent-id": self.agent_id,
+                "agent-type": self.agent_type,
+                "component-type": self.component_type,
+                "info": self.agent_info(),
+                "metrics": {
+                    "total-in": self.total_in,
+                    "total-out": self.total_out,
+                    "last-processed_at": self.last_processed_at,
+                },
             }
         ]
 
 
 class RuntimeSource(RuntimeAgent, Source):
-
-    def __init__(self, source: Source, agent_id, agent_type, started_at=current_time_millis()):
+    def __init__(
+        self, source: Source, agent_id, agent_type, started_at=current_time_millis()
+    ):
         super().__init__(source, ComponentType.SOURCE, agent_id, agent_type, started_at)
 
     def read(self) -> List[Record]:
@@ -124,21 +145,30 @@ class RuntimeSource(RuntimeAgent, Source):
         return read
 
     def commit(self, records: List[Record]):
-        call_method_if_exists(self.agent, 'commit', records)
+        call_method_if_exists(self.agent, "commit", records)
 
     def permanent_failure(self, record: Record, error: Exception):
-        if callable(getattr(self.agent, 'permanent_failure', None)):
+        if callable(getattr(self.agent, "permanent_failure", None)):
             self.agent.permanent_failure(record, error)
         else:
             raise error
 
 
 class RuntimeProcessor(RuntimeAgent, Processor):
+    def __init__(
+        self,
+        processor: Processor,
+        agent_id,
+        agent_type,
+        started_at=current_time_millis(),
+    ):
+        super().__init__(
+            processor, ComponentType.PROCESSOR, agent_id, agent_type, started_at
+        )
 
-    def __init__(self, processor: Processor, agent_id, agent_type, started_at=current_time_millis()):
-        super().__init__(processor, ComponentType.PROCESSOR, agent_id, agent_type, started_at)
-
-    def process(self, records: List[Record]) -> List[Tuple[Record, Union[List[Record], Exception]]]:
+    def process(
+        self, records: List[Record]
+    ) -> List[Tuple[Record, Union[List[Record], Exception]]]:
         self.last_processed_at = current_time_millis()
         self.total_in += len(records)
         results = self.agent.process(records)
@@ -151,8 +181,9 @@ class RuntimeProcessor(RuntimeAgent, Processor):
 
 
 class RuntimeSink(RuntimeAgent, Sink):
-
-    def __init__(self, sink: Sink, agent_id, agent_type, started_at=current_time_millis()):
+    def __init__(
+        self, sink: Sink, agent_id, agent_type, started_at=current_time_millis()
+    ):
         super().__init__(sink, ComponentType.SINK, agent_id, agent_type, started_at)
 
     def write(self, records: List[Record]):
@@ -165,7 +196,6 @@ class RuntimeSink(RuntimeAgent, Sink):
 
 
 class AgentInfo(object):
-
     def __init__(self):
         self.source: Optional[RuntimeSource] = None
         self.processor: Optional[RuntimeProcessor] = None
@@ -181,7 +211,6 @@ class AgentInfo(object):
 
 # We use a basic HTTP server to not bring a lot of dependencies to the runtime
 class HttpHandler(BaseHTTPRequestHandler):
-
     def __init__(self, agent_info, *args, **kwargs):
         self.agent_info = agent_info
         # BaseHTTPRequestHandler calls do_GET **inside** __init__ !!!
@@ -189,19 +218,25 @@ class HttpHandler(BaseHTTPRequestHandler):
         super().__init__(*args, **kwargs)
 
     def do_GET(self):
-        if self.path == '/info':
+        if self.path == "/info":
             self.send_response(200)
-            self.send_header('Content-type', 'application/json')
+            self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps(self.agent_info.worker_status()).encode('utf-8'))
+            self.wfile.write(
+                json.dumps(self.agent_info.worker_status()).encode("utf-8")
+            )
         else:
             self.send_response(404)
             self.end_headers()
 
 
-def run_with_server(configuration, agent=None, agent_info: AgentInfo = AgentInfo(), max_loops=-1):
-    httpd = HTTPServer(('', 8081), partial(HttpHandler, agent_info))
-    http_thread = threading.Thread(target=lambda s: s.serve_forever(), args=(httpd,), daemon=True)
+def run_with_server(
+    configuration, agent=None, agent_info: AgentInfo = AgentInfo(), max_loops=-1
+):
+    httpd = HTTPServer(("", 8081), partial(HttpHandler, agent_info))
+    http_thread = threading.Thread(
+        target=lambda s: s.serve_forever(), args=(httpd,), daemon=True
+    )
     http_thread.start()
 
     try:
@@ -214,68 +249,83 @@ def run_with_server(configuration, agent=None, agent_info: AgentInfo = AgentInfo
 def run(configuration, agent=None, agent_info: AgentInfo = AgentInfo(), max_loops=-1):
     logging.info(f"Pod Configuration {configuration}")
 
-    if 'streamingCluster' not in configuration:
-        raise ValueError('streamingCluster cannot be null')
+    if "streamingCluster" not in configuration:
+        raise ValueError("streamingCluster cannot be null")
 
-    streaming_cluster = configuration['streamingCluster']
-    topic_connections_runtime = topic_connections_registry.get_topic_connections_runtime(streaming_cluster)
+    streaming_cluster = configuration["streamingCluster"]
+    topic_connections_runtime = (
+        topic_connections_registry.get_topic_connections_runtime(streaming_cluster)
+    )
 
-    agent_id = configuration['agent'].get('agentId')
-    agent_type = configuration['agent'].get('agentType')
+    agent_id = configuration["agent"].get("agentId")
+    agent_type = configuration["agent"].get("agentType")
     application_agent_id = f"{configuration['agent'].get('applicationId')}-{agent_id}"
 
-    if 'input' in configuration and len(configuration['input']) > 0:
-        consumer = topic_connections_runtime.create_topic_consumer(application_agent_id, streaming_cluster, configuration['input'])
-        dlq_producer = topic_connections_runtime.create_dlq_producer(application_agent_id, streaming_cluster,
-                                                                     configuration['input'])
+    if "input" in configuration and len(configuration["input"]) > 0:
+        consumer = topic_connections_runtime.create_topic_consumer(
+            application_agent_id, streaming_cluster, configuration["input"]
+        )
+        dlq_producer = topic_connections_runtime.create_dlq_producer(
+            application_agent_id, streaming_cluster, configuration["input"]
+        )
     else:
         consumer = NoopTopicConsumer()
         dlq_producer = None
 
-    if 'output' in configuration and len(configuration['output']) > 0:
-        producer = topic_connections_runtime.create_topic_producer(application_agent_id, streaming_cluster, configuration['output'])
+    if "output" in configuration and len(configuration["output"]) > 0:
+        producer = topic_connections_runtime.create_topic_producer(
+            application_agent_id, streaming_cluster, configuration["output"]
+        )
     else:
         producer = NoopTopicProducer()
 
     if not agent:
         agent = init_agent(configuration)
 
-    if hasattr(agent, 'read'):
+    if hasattr(agent, "read"):
         source = RuntimeSource(agent, agent_id, agent_type)
     else:
         source = RuntimeSource(
-            TopicConsumerWithDLQSource(consumer, dlq_producer if dlq_producer else NoopTopicProducer()),
-            'topic-source',
-            'topic-source')
+            TopicConsumerWithDLQSource(
+                consumer, dlq_producer if dlq_producer else NoopTopicProducer()
+            ),
+            "topic-source",
+            "topic-source",
+        )
 
     agent_info.source = source
 
-    if hasattr(agent, 'write'):
+    if hasattr(agent, "write"):
         sink = RuntimeSink(agent, agent_id, agent_type)
     else:
-        sink = RuntimeSink(TopicProducerSink(producer), 'topic-sink', 'topic-sink')
+        sink = RuntimeSink(TopicProducerSink(producer), "topic-sink", "topic-sink")
 
     agent_info.sink = sink
 
-    if hasattr(agent, 'process'):
+    if hasattr(agent, "process"):
         processor = RuntimeProcessor(agent, agent_id, agent_type)
     else:
         processor = RuntimeProcessor(NoopProcessor(), "identity", "identity")
 
     agent_info.processor = processor
 
-    run_main_loop(source, sink, processor, ErrorsHandler(configuration['agent'].get('errorHandlerConfiguration')),
-                  max_loops)
+    run_main_loop(
+        source,
+        sink,
+        processor,
+        ErrorsHandler(configuration["agent"].get("errorHandlerConfiguration")),
+        max_loops,
+    )
 
 
 def init_agent(configuration):
-    agent_config = configuration['agent']['configuration']
-    full_class_name = agent_config['className']
-    class_name = full_class_name.split('.')[-1]
-    module_name = full_class_name[:-len(class_name) - 1]
+    agent_config = configuration["agent"]["configuration"]
+    full_class_name = agent_config["className"]
+    class_name = full_class_name.split(".")[-1]
+    module_name = full_class_name[: -len(class_name) - 1]
     module = importlib.import_module(module_name)
     agent = getattr(module, class_name)()
-    call_method_if_exists(agent, 'init', agent_config)
+    call_method_if_exists(agent, "init", agent_config)
     return agent
 
 
@@ -285,8 +335,13 @@ def call_method_if_exists(klass, method, *args, **kwargs):
         return method(*args, **kwargs)
 
 
-def run_main_loop(source: RuntimeSource, sink: RuntimeSink, processor: RuntimeProcessor, errors_handler: ErrorsHandler,
-                  max_loops: int):
+def run_main_loop(
+    source: RuntimeSource,
+    sink: RuntimeSink,
+    processor: RuntimeProcessor,
+    errors_handler: ErrorsHandler,
+    max_loops: int,
+):
     for component in {a.agent: a for a in {source, sink, processor}}.values():
         component.start()
 
@@ -299,7 +354,9 @@ def run_main_loop(source: RuntimeSource, sink: RuntimeSink, processor: RuntimePr
             records = source.read()
             if records and len(records) > 0:
                 # in case of permanent FAIL this method will throw an exception
-                processor_results = run_processor_agent(processor, records, errors_handler, source)
+                processor_results = run_processor_agent(
+                    processor, records, errors_handler, source
+                )
                 # sinkRecord == null is the SKIP case
 
                 # in this case we do not send the records to the sink
@@ -313,8 +370,14 @@ def run_main_loop(source: RuntimeSource, sink: RuntimeSink, processor: RuntimePr
                                 source.commit([source_record])
                             else:
                                 if len(processor_result) > 0:
-                                    write_records_to_the_sink(sink, source_record, processor_result, errors_handler,
-                                                              source_record_tracker, source)
+                                    write_records_to_the_sink(
+                                        sink,
+                                        source_record,
+                                        processor_result,
+                                        errors_handler,
+                                        source_record_tracker,
+                                        source,
+                                    )
                     except Exception as e:
                         logging.exception("Error while processing records")
                         # raise the error
@@ -327,16 +390,20 @@ def run_main_loop(source: RuntimeSource, sink: RuntimeSink, processor: RuntimePr
 
 
 def run_processor_agent(
-        processor: Processor,
-        source_records: List[Record],
-        errors_handler: ErrorsHandler,
-        source: Source) -> List[Tuple[Record, List[Record]]]:
+    processor: Processor,
+    source_records: List[Record],
+    errors_handler: ErrorsHandler,
+    source: Source,
+) -> List[Tuple[Record, List[Record]]]:
     records_to_process = source_records
     results_by_record = {}
     trial_number = 0
     while len(records_to_process) > 0:
         trial_number += 1
-        logging.info(f'run processor on {len(records_to_process)} records (trial #{trial_number})')
+        logging.info(
+            f"run processor on {len(records_to_process)} records "
+            f"(trial #{trial_number})"
+        )
         results = safe_process_records(processor, records_to_process)
         records_to_process = []
         for result in results:
@@ -346,30 +413,39 @@ def run_processor_agent(
             if isinstance(processor_result, Exception):
                 action = errors_handler.handle_errors(source_record, processor_result)
                 if action == ErrorsProcessingOutcome.SKIP:
-                    logging.error(f'Unrecoverable error {processor_result} while processing the records, skipping')
+                    logging.error(
+                        f"Unrecoverable error {processor_result} while processing the "
+                        f"records, skipping"
+                    )
                     results_by_record[source_record] = (source_record, processor_result)
                 elif action == ErrorsProcessingOutcome.RETRY:
-                    logging.error(f'Retryable error {processor_result} while processing the records, retrying')
+                    logging.error(
+                        f"Retryable error {processor_result} while processing the "
+                        f"records, retrying"
+                    )
                     records_to_process.append(source_record)
                 elif action == ErrorsProcessingOutcome.FAIL:
                     logging.error(
-                        f'Unrecoverable error {processor_result} while processing some the records, failing')
+                        f"Unrecoverable error {processor_result} while processing some "
+                        f"records, failing"
+                    )
                     # TODO: replace with custom exception ?
                     source.permanent_failure(source_record, processor_result)
                     if errors_handler.fail_processing_on_permanent_errors():
-                        logging.error('Failing processing on permanent error')
+                        logging.error("Failing processing on permanent error")
                         raise processor_result
-                    # in case the source does not throw an exception we mark the record as "skipped"
+                    # in case the source does not throw an exception we mark the record
+                    # as "skipped"
                     results_by_record[source_record] = (source_record, processor_result)
                 else:
-                    raise ValueError(f'Unexpected value: {action}')
+                    raise ValueError(f"Unexpected value: {action}")
 
     return [results_by_record[source_record] for source_record in source_records]
 
 
 def safe_process_records(
-        processor: Processor,
-        records_to_process: List[Record]) -> List[Tuple[Record, Union[List[Record], Exception]]]:
+    processor: Processor, records_to_process: List[Record]
+) -> List[Tuple[Record, Union[List[Record], Exception]]]:
     try:
         return processor.process(records_to_process)
     except Exception as e:
@@ -377,12 +453,13 @@ def safe_process_records(
 
 
 def write_records_to_the_sink(
-        sink: Sink,
-        source_record: Record,
-        processor_records: List[Record],
-        errors_handler: ErrorsHandler,
-        source_record_tracker: SourceRecordTracker,
-        source: Source):
+    sink: Sink,
+    source_record: Record,
+    processor_records: List[Record],
+    errors_handler: ErrorsHandler,
+    source_record_tracker: SourceRecordTracker,
+    source: Source,
+):
     for_the_sink = processor_records.copy()
 
     while True:
@@ -393,27 +470,35 @@ def write_records_to_the_sink(
             action = errors_handler.handle_errors(source_record, error)
             if action == ErrorsProcessingOutcome.SKIP:
                 # skip (the whole batch)
-                logging.error(f"Unrecoverable error {error} while processing the records, skipping")
+                logging.error(
+                    f"Unrecoverable error {error} while processing the records, "
+                    f"skipping"
+                )
                 source_record_tracker.commit(for_the_sink)
                 return
             elif action == ErrorsProcessingOutcome.RETRY:
                 # retry (the whole batch)
-                logging.error(f'Retryable error {error} while processing the records, retrying')
+                logging.error(
+                    f"Retryable error {error} while processing the records, retrying"
+                )
             elif action == ErrorsProcessingOutcome.FAIL:
-                logging.error(f'Unrecoverable error {error} while processing some the records, failing')
+                logging.error(
+                    f"Unrecoverable error {error} while processing some records, "
+                    f"failing"
+                )
                 # TODO: replace with custom exception ?
                 source.permanent_failure(source_record, error)
                 if errors_handler.fail_processing_on_permanent_errors():
-                    logging.error('Failing processing on permanent error')
+                    logging.error("Failing processing on permanent error")
                     raise error
-                # in case the source does not throw an exception we mark the record as "skipped"
+                # in case the source does not throw an exception we mark the record as
+                # "skipped"
                 source_record_tracker.commit(for_the_sink)
             else:
-                raise ValueError(f'Unexpected value: {action}')
+                raise ValueError(f"Unexpected value: {action}")
 
 
 class NoopTopicConsumer(TopicConsumer):
-
     def read(self):
         logging.info("Sleeping for 1 second, no records...")
         time.sleep(1)
@@ -421,12 +506,10 @@ class NoopTopicConsumer(TopicConsumer):
 
 
 class NoopTopicProducer(TopicProducer):
-
     def write(self, records):
         pass
 
 
 class NoopProcessor(SingleRecordProcessor):
-
     def process_record(self, record: Record) -> List[Record]:
         return [record]

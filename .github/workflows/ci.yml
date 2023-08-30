@@ -69,6 +69,12 @@ jobs:
         if: ${{ matrix.name == 'Runtime' }}
         run: |
           ./mvnw verify -pl ":langstream-runtime-impl" -Pdocker
+          if [[ `git status --porcelain` ]]; then
+            echo "Found runtime impl changed after building, please build the runtime impl and commit the changes. "
+            git status
+            git diff
+            exit 1
+          fi
 
       - name: 'Test: Api Gateway'
         if: ${{ matrix.name == 'Api Gateway' }}

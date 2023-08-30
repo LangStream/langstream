@@ -18,14 +18,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple, Dict, Union
 
-__all__ = [
-    'Record',
-    'Agent',
-    'Source',
-    'Sink',
-    'Processor',
-    'CommitCallback'
-]
+__all__ = ["Record", "Agent", "Source", "Sink", "Processor", "CommitCallback"]
 
 
 class Record(ABC):
@@ -89,11 +82,13 @@ class Source(Agent):
         pass
 
     def commit(self, records: List[Record]):
-        """Called by the framework to indicate the records that have been successfully processed."""
+        """Called by the framework to indicate the records that have been successfully
+        processed."""
         pass
 
     def permanent_failure(self, record: Record, error: Exception):
-        """Called by the framework to indicate that the agent has permanently failed to process the record.
+        """Called by the framework to indicate that the agent has permanently failed to
+        process the record.
         The Source agent may send the records to a dead letter queue or raise an error.
         """
         raise error
@@ -106,9 +101,11 @@ class Processor(Agent):
     """
 
     @abstractmethod
-    def process(self, records: List[Record]) -> List[Tuple[Record, Union[List[Record], Exception]]]:
-        """The agent processes records and returns a list containing the association of these records and the result
-        of these record processing.
+    def process(
+        self, records: List[Record]
+    ) -> List[Tuple[Record, Union[List[Record], Exception]]]:
+        """The agent processes records and returns a list containing the association of
+        these records and the result of these record processing.
         The result of each record processing is a list of new records or an exception.
         The transactionality of the function is guaranteed by the runtime.
         """
@@ -118,7 +115,8 @@ class Processor(Agent):
 class CommitCallback(ABC):
     @abstractmethod
     def commit(self, records: List[Record]):
-        """Called by a Sink to indicate the records that have been successfully written."""
+        """Called by a Sink to indicate the records that have been successfully
+        written."""
         pass
 
 
@@ -130,11 +128,12 @@ class Sink(Agent):
 
     @abstractmethod
     def write(self, records: List[Record]):
-        """The Sink agent receives records from the framework and typically writes them to an external service."""
+        """The Sink agent receives records from the framework and typically writes them
+        to an external service."""
         pass
 
     @abstractmethod
     def set_commit_callback(self, commit_callback: CommitCallback):
-        """Called by the framework to specify a CommitCallback that shall be used by the Sink to indicate the
-        records that have been written."""
+        """Called by the framework to specify a CommitCallback that shall be used by the
+        Sink to indicate the records that have been written."""
         pass

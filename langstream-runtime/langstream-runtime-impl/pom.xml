@@ -281,6 +281,35 @@
         <version>3.1.0</version>
         <executions>
           <execution>
+            <id>python-lint-black</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
+              <executable>black</executable>
+              <arguments>
+                <argument>.</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>python-lint-ruff</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
+              <executable>ruff</executable>
+              <arguments>
+                <argument>--fix</argument>
+                <argument>.</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
             <id>python-test</id>
             <phase>test</phase>
             <goals>
@@ -451,6 +480,14 @@
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>exec-maven-plugin</artifactId>
             <executions>
+              <execution>
+                <id>python-lint-black</id>
+                <phase>none</phase>
+              </execution>
+              <execution>
+                <id>python-lint-ruff</id>
+                <phase>none</phase>
+              </execution>
               <execution>
                 <id>python-test</id>
                 <phase>none</phase>

@@ -1,2 +1,4 @@
 tox
+black
+ruff
 build

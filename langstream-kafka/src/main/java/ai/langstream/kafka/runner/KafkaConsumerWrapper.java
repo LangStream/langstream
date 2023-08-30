@@ -42,7 +42,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
     private final String topicName;
     private final AtomicInteger totalOut = new AtomicInteger();
     KafkaConsumer consumer;
-    private boolean nativeConsumerGrabbed;
+    private boolean commitEverCalled;
 
     final AtomicInteger pendingCommits = new AtomicInteger(0);
     final AtomicReference<Throwable> commitFailure = new AtomicReference();
@@ -62,7 +62,6 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         if (consumer == null) {
             throw new IllegalStateException("Consumer not started");
         }
-        nativeConsumerGrabbed = true;
         return consumer;
     }
 
@@ -137,8 +136,8 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
     @Override
     public synchronized void close() {
         if (consumer != null) {
-            if (topicName != null && !nativeConsumerGrabbed) {
-                log.info("Closing consumer to {}", topicName);
+            if (topicName != null && commitEverCalled) {
+                log.info("Committing offsets on {}: {}", topicName, committed);
                 consumer.commitSync(committed);
             }
             log.info(
@@ -194,6 +193,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
      */
     @Override
     public synchronized void commit(List<Record> records) {
+        commitEverCalled = true;
         for (Record record : records) {
             KafkaRecord.KafkaConsumerOffsetProvider kafkaRecord =
                     (KafkaRecord.KafkaConsumerOffsetProvider) record;

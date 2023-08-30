@@ -19,4 +19,32 @@ import io.fabric8.kubernetes.api.model.Toleration;
 import java.util.List;
 import java.util.Map;
 
-public record PodTemplate(List<Toleration> tolerations, Map<String, String> nodeSelector) {}
+public record PodTemplate(
+        List<Toleration> tolerations,
+        Map<String, String> nodeSelector,
+        Map<String, String> annotations) {
+
+    static PodTemplate merge(PodTemplate primary, PodTemplate secondary) {
+        return new PodTemplate(
+                merge(primary.tolerations(), secondary.tolerations()),
+                merge(primary.nodeSelector(), secondary.nodeSelector()),
+                merge(primary.annotations(), secondary.annotations()));
+    }
+
+    private static Map<String, String> merge(
+            Map<String, String> primary, Map<String, String> secondary) {
+        if (primary == null || primary.isEmpty()) {
+            return secondary;
+        } else {
+            return primary;
+        }
+    }
+
+    private static <T> List<T> merge(List<T> primary, List<T> secondary) {
+        if (primary == null || primary.isEmpty()) {
+            return secondary;
+        } else {
+            return primary;
+        }
+    }
+}

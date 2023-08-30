@@ -102,7 +102,7 @@ public class AgentController extends BaseController<AgentCustomResource>
                         AgentResourcesFactory.GenerateStatefulsetParams.builder()
                                 .agentCustomResource(primary)
                                 .agentResourceUnitConfiguration(configuration.getAgentResources())
-                                .podTemplate(configuration.getPodTemplate())
+                                .podTemplate(configuration.getAgentPodTemplate())
                                 .image(configuration.getRuntimeImage())
                                 .imagePullPolicy(configuration.getRuntimeImagePullPolicy())
                                 .build();

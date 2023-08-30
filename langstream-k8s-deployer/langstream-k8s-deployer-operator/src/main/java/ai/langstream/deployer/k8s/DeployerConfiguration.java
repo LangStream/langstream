@@ -36,6 +36,12 @@ public interface DeployerConfiguration {
     @WithDefault("{}")
     String podTemplate();
 
+    @WithDefault("{}")
+    String appDeployerPodTemplate();
+
+    @WithDefault("{}")
+    String agentPodTemplate();
+
     Optional<String> runtimeImage();
 
     Optional<String> runtimeImagePullPolicy();

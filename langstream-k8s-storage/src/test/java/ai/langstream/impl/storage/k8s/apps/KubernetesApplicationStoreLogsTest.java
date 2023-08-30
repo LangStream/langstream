@@ -82,16 +82,28 @@ class KubernetesApplicationStoreLogsTest {
         podHandlers
                 .get(0)
                 .start(
-                        line -> {
-                            assertEquals("\u001B[32mmyapp-agent111-0 hello\u001B[0m\n", line);
-                            return false;
+                        new ApplicationStore.LogLineConsumer() {
+                            @Override
+                            public boolean onLogLine(String line) {
+                                assertEquals("\u001B[32m[myapp-agent111-0] hello\u001B[0m\n", line);
+                                return false;
+                            }
+
+                            @Override
+                            public void onEnd() {}
                         });
         podHandlers
                 .get(1)
                 .start(
-                        line -> {
-                            assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
-                            return false;
+                        new ApplicationStore.LogLineConsumer() {
+                            @Override
+                            public boolean onLogLine(String line) {
+                                assertEquals("\u001B[33m[myapp-agent111-1] hello\u001B[0m\n", line);
+                                return false;
+                            }
+
+                            @Override
+                            public void onEnd() {}
                         });
 
         podHandlers =
@@ -103,9 +115,15 @@ class KubernetesApplicationStoreLogsTest {
         podHandlers
                 .get(0)
                 .start(
-                        line -> {
-                            assertEquals("\u001B[33mmyapp-agent111-1 hello\u001B[0m\n", line);
-                            return false;
+                        new ApplicationStore.LogLineConsumer() {
+                            @Override
+                            public boolean onLogLine(String line) {
+                                assertEquals("\u001B[33m[myapp-agent111-1] hello\u001B[0m\n", line);
+                                return false;
+                            }
+
+                            @Override
+                            public void onEnd() {}
                         });
     }
 

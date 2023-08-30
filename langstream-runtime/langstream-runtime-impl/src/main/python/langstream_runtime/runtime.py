@@ -16,22 +16,30 @@
 #
 
 import importlib
+import json
 import logging
+import threading
 import time
 from enum import Enum
-from typing import List, Tuple, Union
+from functools import partial
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from typing import List, Tuple, Union, Dict, Any, Optional
 
-from langstream import Source, Sink, Processor, Record, SingleRecordProcessor
+from langstream import Agent, Source, Sink, Processor, Record, SingleRecordProcessor, CommitCallback
 from . import topic_connections_registry
 from .source_record_tracker import SourceRecordTracker
 from .topic_connector import TopicConsumer, TopicProducer, TopicProducerSink, \
     TopicConsumerWithDLQSource
 
 
-class ErrorsProcessingOutcome(Enum):
-    SKIP = 1
-    RETRY = 2
-    FAIL = 3
+def current_time_millis():
+    return int(time.time_ns() / 1000_000)
+
+
+class ErrorsProcessingOutcome(str, Enum):
+    SKIP = 'SKIP'
+    RETRY = 'RETRY'
+    FAIL = 'FAIL'
 
 
 class ErrorsHandler(object):
@@ -57,7 +65,153 @@ class ErrorsHandler(object):
         return self.on_failure_action not in ['skip', 'dead-letter']
 
 
-def run(configuration, agent=None, max_loops=-1):
+class ComponentType(str, Enum):
+    SOURCE = 'SOURCE'
+    PROCESSOR = 'PROCESSOR'
+    SINK = 'SINK'
+
+
+class RuntimeAgent(Agent):
+    def __init__(self, agent: Agent, component_type: ComponentType, agent_id, agent_type,
+                 started_at=current_time_millis()):
+        self.agent = agent
+        self.component_type = component_type
+        self.agent_id = agent_id
+        self.agent_type = agent_type
+        self.started_at = started_at
+        self.total_in = 0
+        self.total_out = 0
+        self.total_errors = 0
+        self.last_processed_at = 0
+
+    def init(self, config: Dict[str, Any]):
+        call_method_if_exists(self.agent, 'init', config)
+
+    def start(self):
+        call_method_if_exists(self.agent, 'start')
+
+    def close(self):
+        call_method_if_exists(self.agent, 'close')
+
+    def agent_info(self) -> Dict[str, Any]:
+        return call_method_if_exists(self.agent, 'agent_info') or {}
+
+    def get_agent_status(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                'agent-id': self.agent_id,
+                'agent-type': self.agent_type,
+                'component-type': self.component_type,
+                'info': self.agent_info(),
+                'metrics': {
+                    'total-in': self.total_in,
+                    'total-out': self.total_out,
+                    'last-processed_at': self.last_processed_at
+                }
+            }
+        ]
+
+
+class RuntimeSource(RuntimeAgent, Source):
+
+    def __init__(self, source: Source, agent_id, agent_type, started_at=current_time_millis()):
+        super().__init__(source, ComponentType.SOURCE, agent_id, agent_type, started_at)
+
+    def read(self) -> List[Record]:
+        read = self.agent.read()
+        self.last_processed_at = current_time_millis()
+        self.total_out += len(read)
+        return read
+
+    def commit(self, records: List[Record]):
+        call_method_if_exists(self.agent, 'commit', records)
+
+    def permanent_failure(self, record: Record, error: Exception):
+        if callable(getattr(self.agent, 'permanent_failure', None)):
+            self.agent.permanent_failure(record, error)
+        else:
+            raise error
+
+
+class RuntimeProcessor(RuntimeAgent, Processor):
+
+    def __init__(self, processor: Processor, agent_id, agent_type, started_at=current_time_millis()):
+        super().__init__(processor, ComponentType.PROCESSOR, agent_id, agent_type, started_at)
+
+    def process(self, records: List[Record]) -> List[Tuple[Record, Union[List[Record], Exception]]]:
+        self.last_processed_at = current_time_millis()
+        self.total_in += len(records)
+        results = self.agent.process(records)
+        for _, result in results:
+            if isinstance(result, Exception):
+                self.total_errors += 1
+            else:
+                self.total_out += len(result)
+        return results
+
+
+class RuntimeSink(RuntimeAgent, Sink):
+
+    def __init__(self, sink: Sink, agent_id, agent_type, started_at=current_time_millis()):
+        super().__init__(sink, ComponentType.SINK, agent_id, agent_type, started_at)
+
+    def write(self, records: List[Record]):
+        self.last_processed_at = current_time_millis()
+        self.total_in += len(records)
+        return self.agent.write(records)
+
+    def set_commit_callback(self, commit_callback: CommitCallback):
+        self.agent.set_commit_callback(commit_callback)
+
+
+class AgentInfo(object):
+
+    def __init__(self):
+        self.source: Optional[RuntimeSource] = None
+        self.processor: Optional[RuntimeProcessor] = None
+        self.sink: Optional[RuntimeSink] = None
+
+    def worker_status(self):
+        status = []
+        for agent in [self.source, self.processor, self.sink]:
+            if agent:
+                status.extend(agent.get_agent_status())
+        return status
+
+
+# We use a basic HTTP server to not bring a lot of dependencies to the runtime
+class HttpHandler(BaseHTTPRequestHandler):
+
+    def __init__(self, agent_info, *args, **kwargs):
+        self.agent_info = agent_info
+        # BaseHTTPRequestHandler calls do_GET **inside** __init__ !!!
+        # So we have to call super().__init__ after setting attributes.
+        super().__init__(*args, **kwargs)
+
+    def do_GET(self):
+        if self.path == '/info':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(self.agent_info.worker_status()).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+
+def run_with_server(configuration, agent=None, agent_info: AgentInfo = AgentInfo(), max_loops=-1):
+    httpd = HTTPServer(('', 8081), partial(HttpHandler, agent_info))
+    http_thread = threading.Thread(target=lambda s: s.serve_forever(), args=(httpd,), daemon=True)
+    http_thread.start()
+
+    try:
+        run(configuration, agent, agent_info, max_loops)
+    finally:
+        httpd.shutdown()
+        http_thread.join()
+
+
+def run(configuration, agent=None, agent_info: AgentInfo = AgentInfo(), max_loops=-1):
     logging.info(f"Pod Configuration {configuration}")
 
     if 'streamingCluster' not in configuration:
@@ -66,18 +220,20 @@ def run(configuration, agent=None, max_loops=-1):
     streaming_cluster = configuration['streamingCluster']
     topic_connections_runtime = topic_connections_registry.get_topic_connections_runtime(streaming_cluster)
 
-    agent_id = f"{configuration['agent']['applicationId']}-{configuration['agent']['agentId']}"
+    agent_id = configuration['agent'].get('agentId')
+    agent_type = configuration['agent'].get('agentType')
+    application_agent_id = f"{configuration['agent'].get('applicationId')}-{agent_id}"
 
     if 'input' in configuration and len(configuration['input']) > 0:
-        consumer = topic_connections_runtime.create_topic_consumer(agent_id, streaming_cluster, configuration['input'])
-        dlq_producer = topic_connections_runtime.create_dlq_producer(agent_id, streaming_cluster,
+        consumer = topic_connections_runtime.create_topic_consumer(application_agent_id, streaming_cluster, configuration['input'])
+        dlq_producer = topic_connections_runtime.create_dlq_producer(application_agent_id, streaming_cluster,
                                                                      configuration['input'])
     else:
         consumer = NoopTopicConsumer()
         dlq_producer = None
 
     if 'output' in configuration and len(configuration['output']) > 0:
-        producer = topic_connections_runtime.create_topic_producer(agent_id, streaming_cluster, configuration['output'])
+        producer = topic_connections_runtime.create_topic_producer(application_agent_id, streaming_cluster, configuration['output'])
     else:
         producer = NoopTopicProducer()
 
@@ -85,19 +241,28 @@ def run(configuration, agent=None, max_loops=-1):
         agent = init_agent(configuration)
 
     if hasattr(agent, 'read'):
-        source = agent
+        source = RuntimeSource(agent, agent_id, agent_type)
     else:
-        source = TopicConsumerWithDLQSource(consumer, dlq_producer if dlq_producer else NoopTopicProducer())
+        source = RuntimeSource(
+            TopicConsumerWithDLQSource(consumer, dlq_producer if dlq_producer else NoopTopicProducer()),
+            'topic-source',
+            'topic-source')
+
+    agent_info.source = source
 
     if hasattr(agent, 'write'):
-        sink = agent
+        sink = RuntimeSink(agent, agent_id, agent_type)
     else:
-        sink = TopicProducerSink(producer)
+        sink = RuntimeSink(TopicProducerSink(producer), 'topic-sink', 'topic-sink')
+
+    agent_info.sink = sink
 
     if hasattr(agent, 'process'):
-        processor = agent
+        processor = RuntimeProcessor(agent, agent_id, agent_type)
     else:
-        processor = NoopProcessor()
+        processor = RuntimeProcessor(NoopProcessor(), "identity", "identity")
+
+    agent_info.processor = processor
 
     run_main_loop(source, sink, processor, ErrorsHandler(configuration['agent'].get('errorHandlerConfiguration')),
                   max_loops)
@@ -117,12 +282,13 @@ def init_agent(configuration):
 def call_method_if_exists(klass, method, *args, **kwargs):
     method = getattr(klass, method, None)
     if callable(method):
-        method(*args, **kwargs)
+        return method(*args, **kwargs)
 
 
-def run_main_loop(source: Source, sink: Sink, processor: Processor, errors_handler: ErrorsHandler, max_loops: int):
-    for component in {source, sink, processor}:
-        call_method_if_exists(component, 'start')
+def run_main_loop(source: RuntimeSource, sink: RuntimeSink, processor: RuntimeProcessor, errors_handler: ErrorsHandler,
+                  max_loops: int):
+    for component in {a.agent: a for a in {source, sink, processor}}.values():
+        component.start()
 
     try:
         source_record_tracker = SourceRecordTracker(source)
@@ -133,21 +299,21 @@ def run_main_loop(source: Source, sink: Sink, processor: Processor, errors_handl
             records = source.read()
             if records and len(records) > 0:
                 # in case of permanent FAIL this method will throw an exception
-                sink_records = run_processor_agent(processor, records, errors_handler, source)
+                processor_results = run_processor_agent(processor, records, errors_handler, source)
                 # sinkRecord == null is the SKIP case
 
                 # in this case we do not send the records to the sink
                 # and the source has already committed the records
-                if sink_records is not None:
+                if processor_results is not None:
                     try:
-                        source_record_tracker.track(sink_records)
-                        for source_record_and_result in sink_records:
-                            if isinstance(source_record_and_result[1], Exception):
+                        source_record_tracker.track(processor_results)
+                        for source_record, processor_result in processor_results:
+                            if isinstance(processor_result, Exception):
                                 # commit skipped records
-                                call_method_if_exists(source, 'commit', [source_record_and_result[0]])
+                                source.commit([source_record])
                             else:
-                                if len(source_record_and_result[1]) > 0:
-                                    write_records_to_the_sink(sink, source_record_and_result, errors_handler,
+                                if len(processor_result) > 0:
+                                    write_records_to_the_sink(sink, source_record, processor_result, errors_handler,
                                                               source_record_tracker, source)
                     except Exception as e:
                         logging.exception("Error while processing records")
@@ -156,8 +322,8 @@ def run_main_loop(source: Source, sink: Sink, processor: Processor, errors_handl
                         raise e
 
     finally:
-        for component in {source, sink, processor}:
-            call_method_if_exists(component, 'close')
+        for component in {a.agent: a for a in {source, sink, processor}}.values():
+            component.close()
 
 
 def run_processor_agent(
@@ -212,12 +378,12 @@ def safe_process_records(
 
 def write_records_to_the_sink(
         sink: Sink,
-        source_record_and_result: Tuple[Record, List[Record]],
+        source_record: Record,
+        processor_records: List[Record],
         errors_handler: ErrorsHandler,
         source_record_tracker: SourceRecordTracker,
         source: Source):
-    source_record = source_record_and_result[0]
-    for_the_sink = source_record_and_result[1].copy()
+    for_the_sink = processor_records.copy()
 
     while True:
         try:
@@ -247,6 +413,7 @@ def write_records_to_the_sink(
 
 
 class NoopTopicConsumer(TopicConsumer):
+
     def read(self):
         logging.info("Sleeping for 1 second, no records...")
         time.sleep(1)
@@ -260,5 +427,6 @@ class NoopTopicProducer(TopicProducer):
 
 
 class NoopProcessor(SingleRecordProcessor):
+
     def process_record(self, record: Record) -> List[Record]:
         return [record]

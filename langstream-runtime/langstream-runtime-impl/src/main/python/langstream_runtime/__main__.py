@@ -29,4 +29,4 @@ if __name__ == '__main__':
 
     with open(sys.argv[1], 'r') as file:
         config = yaml.safe_load(file)
-        runtime.run(config)
+        runtime.run_with_server(config)

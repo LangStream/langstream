@@ -16,21 +16,50 @@
 package ai.langstream.deployer.k8s;
 
 import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
-import ai.langstream.deployer.k8s.util.SerializationUtil;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Map;
 import lombok.Getter;
+import lombok.SneakyThrows;
 
 @ApplicationScoped
 public class ResolvedDeployerConfiguration {
 
+    private static final ObjectMapper yamlMapper =
+            new ObjectMapper(
+                            YAMLFactory.builder()
+                                    .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES)
+                                    .disable(YAMLGenerator.Feature.SPLIT_LINES)
+                                    .build())
+                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+    @SneakyThrows
     public ResolvedDeployerConfiguration(DeployerConfiguration configuration) {
-        this.clusterRuntime = SerializationUtil.readYaml(configuration.clusterRuntime(), Map.class);
+        this.clusterRuntime = yamlMapper.readValue(configuration.clusterRuntime(), Map.class);
         this.agentResources =
-                SerializationUtil.readYaml(
+                yamlMapper.readValue(
                         configuration.agentResources(), AgentResourceUnitConfiguration.class);
-        this.podTemplate =
-                SerializationUtil.readYaml(configuration.podTemplate(), PodTemplate.class);
+        final PodTemplate commonPodTemplate =
+                yamlMapper.readValue(configuration.podTemplate(), PodTemplate.class);
+
+        this.agentPodTemplate =
+                PodTemplate.merge(
+                        yamlMapper.readValue(configuration.agentPodTemplate(), PodTemplate.class),
+                        commonPodTemplate);
+
+        this.appDeployerPodTemplate =
+                PodTemplate.merge(
+                        yamlMapper.readValue(
+                                configuration.appDeployerPodTemplate(), PodTemplate.class),
+                        commonPodTemplate);
+
         this.runtimeImage = configuration.runtimeImage().orElse(null);
         this.runtimeImagePullPolicy = configuration.runtimeImagePullPolicy().orElse(null);
     }
@@ -39,7 +68,9 @@ public class ResolvedDeployerConfiguration {
 
     @Getter private AgentResourceUnitConfiguration agentResources;
 
-    @Getter private PodTemplate podTemplate;
+    @Getter private PodTemplate appDeployerPodTemplate;
+
+    @Getter private PodTemplate agentPodTemplate;
 
     @Getter private String runtimeImage;
 

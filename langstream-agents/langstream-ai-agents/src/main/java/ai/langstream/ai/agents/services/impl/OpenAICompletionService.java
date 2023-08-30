@@ -167,7 +167,7 @@ public class OpenAICompletionService implements CompletionsService {
                     numberOfChunks.incrementAndGet();
                 }
 
-                if (numberOfChunks.get() > minChunksPerMessage || last) {
+                if (numberOfChunks.get() >= minChunksPerMessage || last) {
                     ChatChoice chunk =
                             new ChatChoice(new ChatMessage(role.get(), writer.toString()));
                     streamingChunksConsumer.consumeChunk(index.incrementAndGet(), chunk, last);

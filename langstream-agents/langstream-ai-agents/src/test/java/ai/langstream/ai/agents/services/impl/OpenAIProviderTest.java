@@ -15,6 +15,11 @@
  */
 package ai.langstream.ai.agents.services.impl;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
@@ -25,6 +30,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +40,29 @@ class OpenAIProviderTest {
 
     @Test
     void testStreamingCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
+
+        stubFor(
+                post("/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview")
+                        .willReturn(
+                                okJson(
+                                        """
+                      data: {"id":"chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u","object":"chat.completion.chunk","created":1693397792,"model":"gpt-35-turbo","choices":[{"index":0,"finish_reason":null,"delta":{"role":"assistant"}}],"usage":null}
+
+                      data: {"id":"chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u","object":"chat.completion.chunk","created":1693397792,"model":"gpt-35-turbo","choices":[{"index":0,"finish_reason":null,"delta":{"content":"A"}}],"usage":null}
+
+                      data: {"id":"chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u","object":"chat.completion.chunk","created":1693397792,"model":"gpt-35-turbo","choices":[{"index":0,"finish_reason":null,"delta":{"content":" car"}}],"usage":null}
+
+                      data: {"id":"chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u","object":"chat.completion.chunk","created":1693397792,"model":"gpt-35-turbo","choices":[{"index":0,"finish_reason":null,"delta":{"content":" is"}}],"usage":null}
+
+                      data: {"id":"chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u","object":"chat.completion.chunk","created":1693397792,"model":"gpt-35-turbo","choices":[{"index":0,"finish_reason":null,"delta":{"content":" a"}}],"usage":null}
+
+                      data: {"id":"chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u","object":"chat.completion.chunk","created":1693397792,"model":"gpt-35-turbo","choices":[{"index":0,"finish_reason":null,"delta":{"content":" vehicle"}}],"usage":null}
+
+                      data: {"id":"chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u","object":"chat.completion.chunk","created":1693397792,"model":"gpt-35-turbo","choices":[{"index":0,"finish_reason":"stop","delta":{}}],"usage":null}
+
+                      data: [DONE]
+                      """)));
+
         ServiceProviderProvider provider = new OpenAIServiceProvider();
         ServiceProvider implementation =
                 provider.createImplementation(
@@ -45,8 +74,9 @@ class OpenAIProviderTest {
                                         "access-key",
                                         "783fe7bc013149f2a197ce3a4ef54531",
                                         "url",
-                                        "https://datastax-openai-dev.openai.azure.com")));
+                                        vmRuntimeInfo.getHttpBaseUrl())));
 
+        List<String> chunks = new CopyOnWriteArrayList<>();
         CompletionsService service = implementation.getCompletionsService(Map.of());
         ChatCompletions chatCompletions =
                 service.getChatCompletions(
@@ -55,6 +85,7 @@ class OpenAIProviderTest {
                                     @Override
                                     public void consumeChunk(
                                             int index, ChatChoice chunk, boolean last) {
+                                        chunks.add(chunk.getMessage().getContent());
                                         log.info(
                                                 "chunk: (last={}) {} {}",
                                                 last,
@@ -62,8 +93,20 @@ class OpenAIProviderTest {
                                                 chunk.getMessage().getContent());
                                     }
                                 },
-                                Map.of("model", "gpt-35-turbo", "stream", true))
+                                Map.of(
+                                        "model",
+                                        "gpt-35-turbo",
+                                        "stream",
+                                        true,
+                                        "min-chunks-per-message",
+                                        3))
                         .get();
         log.info("result: {}", chatCompletions);
+        assertEquals(
+                "A car is a vehicle",
+                chatCompletions.getChoices().get(0).getMessage().getContent());
+        assertEquals(2, chunks.size());
+        assertEquals("A car is", chunks.get(0));
+        assertEquals(" a vehicle", chunks.get(1));
     }
 }

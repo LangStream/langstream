@@ -292,7 +292,7 @@ public class GenAITest {
         assertEquals("result", valueAvroRecord.get("completion").toString());
         assertEquals(
                 valueAvroRecord.get("log").toString(),
-                "{\"options\":{\"max_tokens\":null,\"temperature\":null,\"top_p\":null,\"logit_bias\":null,\"user\":null,\"n\":null,\"stop\":null,\"presence_penalty\":null,\"frequency_penalty\":null,\"stream\":true,\"model\":\"test-model\"},\"messages\":[{\"role\":\"user\",\"content\":\"value1 key2\"}],\"model\":\"test-model\"}");
+                "{\"options\":{\"max_tokens\":null,\"temperature\":null,\"top_p\":null,\"logit_bias\":null,\"user\":null,\"n\":null,\"stop\":null,\"presence_penalty\":null,\"frequency_penalty\":null,\"stream\":true,\"model\":\"test-model\",\"min-chunks-per-message\":20},\"messages\":[{\"role\":\"user\",\"content\":\"value1 key2\"}],\"model\":\"test-model\"}");
     }
 
     @Test

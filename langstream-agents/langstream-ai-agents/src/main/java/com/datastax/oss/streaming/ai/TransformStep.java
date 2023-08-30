@@ -16,6 +16,7 @@
 package com.datastax.oss.streaming.ai;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public interface TransformStep extends AutoCloseable {
     default void close() throws Exception {}
@@ -23,8 +24,15 @@ public interface TransformStep extends AutoCloseable {
     default void start() throws Exception {}
 
     default void process(TransformContext transformContext) throws Exception {
-        throw new UnsupportedOperationException(
-                "Not implemented yet, implement this method or processAsync");
+        try {
+            processAsync(transformContext).get();
+        } catch (ExecutionException err) {
+            if (err.getCause() instanceof Exception) {
+                throw (Exception) err.getCause();
+            } else {
+                throw err;
+            }
+        }
     }
 
     default CompletableFuture<?> processAsync(TransformContext transformContext) {

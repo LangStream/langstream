@@ -279,6 +279,7 @@ public class TransformFunction
             Context context, Object value, boolean attemptJsonConversion) {
         Record<?> currentRecord = context.getCurrentRecord();
         TransformContext transformContext = new TransformContext();
+        transformContext.setProperties(new HashMap<>());
         transformContext.setInputTopic(currentRecord.getTopicName().orElse(null));
         transformContext.setOutputTopic(currentRecord.getDestinationTopic().orElse(null));
         transformContext.setKey(currentRecord.getKey().orElse(null));

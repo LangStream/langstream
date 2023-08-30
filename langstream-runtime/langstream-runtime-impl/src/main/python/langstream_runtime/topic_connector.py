@@ -21,7 +21,6 @@ from langstream import Source, Record, Sink, CommitCallback
 
 
 class TopicConsumer(object):
-
     def start(self):
         pass
 
@@ -36,7 +35,6 @@ class TopicConsumer(object):
 
 
 class TopicProducer(object):
-
     def start(self):
         pass
 
@@ -48,7 +46,6 @@ class TopicProducer(object):
 
 
 class TopicConsumerSource(Source):
-
     def __init__(self, consumer: TopicConsumer):
         self.consumer = consumer
 
@@ -59,19 +56,18 @@ class TopicConsumerSource(Source):
         self.consumer.commit(records)
 
     def start(self):
-        logging.info(f'Starting consumer {self.consumer}')
+        logging.info(f"Starting consumer {self.consumer}")
         self.consumer.start()
 
     def close(self):
-        logging.info(f'Closing consumer {self.consumer}')
+        logging.info(f"Closing consumer {self.consumer}")
         self.consumer.close()
 
     def __str__(self):
-        return f'TopicConsumerSource{{consumer={self.consumer}}}'
+        return f"TopicConsumerSource{{consumer={self.consumer}}}"
 
 
 class TopicConsumerWithDLQSource(TopicConsumerSource):
-
     def __init__(self, consumer: TopicConsumer, dlq_producer: TopicProducer):
         super().__init__(consumer)
         self.dlq_producer = dlq_producer
@@ -85,22 +81,21 @@ class TopicConsumerWithDLQSource(TopicConsumerSource):
         self.dlq_producer.close()
 
     def permanent_failure(self, record: Record, error: Exception):
-        logging.error(f'Sending record to DLQ: {record}')
+        logging.error(f"Sending record to DLQ: {record}")
         self.dlq_producer.write([record])
 
 
 class TopicProducerSink(Sink):
-
     def __init__(self, producer: TopicProducer):
         self.producer = producer
         self.commit_callback = None
 
     def start(self):
-        logging.info(f'Starting producer {self.producer}')
+        logging.info(f"Starting producer {self.producer}")
         self.producer.start()
 
     def close(self):
-        logging.info(f'Closing producer {self.producer}')
+        logging.info(f"Closing producer {self.producer}")
         self.producer.close()
 
     def write(self, records: List[Record]):
@@ -111,4 +106,4 @@ class TopicProducerSink(Sink):
         self.commit_callback = commit_callback
 
     def __str__(self):
-        return f'TopicProducerSink{{producer={self.producer}}}'
+        return f"TopicProducerSink{{producer={self.producer}}}"

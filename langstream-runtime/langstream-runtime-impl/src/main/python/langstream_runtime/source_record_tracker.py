@@ -35,7 +35,7 @@ class SourceRecordTracker(CommitCallback):
                 if self.remaining_sink_records_for_source_record[source_record] == 0:
                     source_records_to_commit.append(source_record)
 
-        if hasattr(self.source, 'commit'):
+        if hasattr(self.source, "commit"):
             self.source.commit(source_records_to_commit)
         # forget about this batch records
         for record in sink_records:
@@ -50,9 +50,11 @@ class SourceRecordTracker(CommitCallback):
                     # commit immediately if the result is empty
                     source_records_to_commit.append(source_record)
                 else:
-                    self.remaining_sink_records_for_source_record[source_record] = len(result_records)
+                    self.remaining_sink_records_for_source_record[source_record] = len(
+                        result_records
+                    )
                     for sink_record in result_records:
                         self.sink_to_source_mapping[sink_record] = source_record
 
-        if hasattr(self.source, 'commit'):
+        if hasattr(self.source, "commit"):
             self.source.commit(source_records_to_commit)

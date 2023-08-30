@@ -19,17 +19,20 @@ from typing import Any, List, Tuple, Union
 
 from .api import Record, Processor
 
-__all__ = [
-    'SimpleRecord',
-    'SingleRecordProcessor'
-]
+__all__ = ["SimpleRecord", "SingleRecordProcessor"]
 
 
 class SimpleRecord(Record):
     """A basic implementation of the Record interface"""
 
-    def __init__(self, value, key=None, origin: str = None, timestamp: int = None,
-                 headers: List[Tuple[str, Any]] = None):
+    def __init__(
+        self,
+        value,
+        key=None,
+        origin: str = None,
+        timestamp: int = None,
+        headers: List[Tuple[str, Any]] = None,
+    ):
         self._value = value
         self._key = key
         self._origin = origin
@@ -52,8 +55,10 @@ class SimpleRecord(Record):
         return self._headers
 
     def __str__(self):
-        return f"Record(value={self._value}, key={self._key}, origin={self._origin}, timestamp={self._timestamp}, " \
-               f"headers={self._headers})"
+        return (
+            f"Record(value={self._value}, key={self._key}, origin={self._origin}, "
+            f"timestamp={self._timestamp}, headers={self._headers})"
+        )
 
     def __repr__(self):
         return self.__str__()
@@ -67,7 +72,9 @@ class SingleRecordProcessor(Processor):
         """Process one record and return a list of records or raise an exception"""
         pass
 
-    def process(self, records: List[Record]) -> List[Tuple[Record, Union[List[Record], Exception]]]:
+    def process(
+        self, records: List[Record]
+    ) -> List[Tuple[Record, Union[List[Record], Exception]]]:
         results = []
         for record in records:
             try:

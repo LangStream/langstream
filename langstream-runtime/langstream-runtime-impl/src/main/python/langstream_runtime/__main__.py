@@ -21,12 +21,12 @@ import yaml
 
 from . import runtime
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(sys.argv)
     if len(sys.argv) != 2:
         print("Missing pod configuration file argument")
         sys.exit(1)
 
-    with open(sys.argv[1], 'r') as file:
+    with open(sys.argv[1], "r") as file:
         config = yaml.safe_load(file)
         runtime.run_with_server(config)

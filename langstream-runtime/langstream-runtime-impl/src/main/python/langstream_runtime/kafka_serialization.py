@@ -17,8 +17,13 @@
 
 import struct as _struct
 
-from confluent_kafka.serialization import Serializer, SerializationError, StringSerializer, DoubleSerializer, \
-    IntegerSerializer
+from confluent_kafka.serialization import (
+    Serializer,
+    SerializationError,
+    StringSerializer,
+    DoubleSerializer,
+    IntegerSerializer,
+)
 
 
 class BooleanSerializer(Serializer):
@@ -52,7 +57,7 @@ class BooleanSerializer(Serializer):
         if obj is None:
             return None
 
-        return b'\x01' if obj else b'\x00'
+        return b"\x01" if obj else b"\x00"
 
 
 class LongSerializer(Serializer):
@@ -87,7 +92,7 @@ class LongSerializer(Serializer):
             return None
 
         try:
-            return _struct.pack('>q', obj)
+            return _struct.pack(">q", obj)
         except _struct.error as e:
             raise SerializationError(str(e))
 

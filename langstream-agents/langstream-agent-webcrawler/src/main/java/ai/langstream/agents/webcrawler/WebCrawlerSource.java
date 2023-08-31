@@ -83,6 +83,16 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final StatusStorage statusStorage = new S3StatusStorage();
 
+    private Runnable onReindexStart;
+
+    public Runnable getOnReindexStart() {
+        return onReindexStart;
+    }
+
+    public void setOnReindexStart(Runnable onReindexStart) {
+        this.onReindexStart = onReindexStart;
+    }
+
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
         bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
@@ -219,20 +229,34 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     }
 
     private void checkReindexIsNeeded() {
+        if (reindexIntervalSeconds <= 0) {
+            return;
+        }
         long lastIndexEndTimestamp = crawler.getStatus().getLastIndexEndTimestamp();
         if (lastIndexEndTimestamp <= 0) {
             // indexing is not finished yet
+            log.debug("Reindexing is not needed, indexing is not finished yet");
             return;
         }
         long lastIndexStartTimestamp = crawler.getStatus().getLastIndexStartTimestamp();
         long now = System.currentTimeMillis();
-        long elapsed = now - lastIndexStartTimestamp;
-        if (lastIndexStartTimestamp > 0 && elapsed >= reindexIntervalSeconds * 1000) {
+        long elapsedSeconds = (now - lastIndexStartTimestamp) / 1000;
+        if (elapsedSeconds >= reindexIntervalSeconds) {
+            if (onReindexStart != null) {
+                onReindexStart.run();
+            }
             log.info(
-                    "Reindexing is needed, last index start timestamp is {}",
-                    Instant.ofEpochMilli(lastIndexStartTimestamp));
+                    "Reindexing is needed, last index start timestamp is {}, {} seconds ago",
+                    Instant.ofEpochMilli(lastIndexStartTimestamp),
+                    elapsedSeconds);
             crawler.restartIndexing(seedUrls);
+            finished = false;
             flushStatus();
+        } else {
+            log.debug(
+                    "Reindexing is not needed, last index start timestamp is {}, {} seconds ago",
+                    Instant.ofEpochMilli(lastIndexStartTimestamp),
+                    elapsedSeconds);
         }
     }
 

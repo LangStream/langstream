@@ -34,6 +34,7 @@ public class WebCrawlerStatus {
 
     /** Timestamp of the last index start. This is used to avoid reprocessing the indexing. */
     private long lastIndexStartTimestamp = 0;
+
     /** Timestamp of the last index end. This is used to avoid reprocessing the indexing. */
     private long lastIndexEndTimestamp = 0;
 

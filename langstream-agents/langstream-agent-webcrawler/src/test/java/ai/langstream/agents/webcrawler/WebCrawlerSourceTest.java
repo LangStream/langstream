@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -82,7 +83,7 @@ public class WebCrawlerSourceTest {
         for (int i = 0; i < 3; i++) {
             log.info("ITERATION #{}", i);
             WebCrawlerSource agentSource =
-                    buildAgentSource(bucket, allowed, Set.of(), Set.of(), url);
+                    buildAgentSource(bucket, allowed, Set.of(), Set.of(), url, Map.of());
             List<Record> read = agentSource.read();
             Set<String> urls = new HashSet<>();
             int count = 0;
@@ -122,7 +123,7 @@ public class WebCrawlerSourceTest {
 
             int count = 1000;
             WebCrawlerSource agentSource =
-                    buildAgentSource(bucket, allowed, allowedPaths, forbidden, url);
+                    buildAgentSource(bucket, allowed, allowedPaths, forbidden, url, Map.of());
             List<Record> read = agentSource.read();
             Set<String> urls = new HashSet<>();
             while (count-- > 0) {
@@ -144,7 +145,6 @@ public class WebCrawlerSourceTest {
 
     @Test
     void testBasic(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-
         stubFor(
                 get("/index.html")
                         .willReturn(
@@ -174,12 +174,19 @@ public class WebCrawlerSourceTest {
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = wmRuntimeInfo.getHttpBaseUrl() + "/index.html";
         String allowed = wmRuntimeInfo.getHttpBaseUrl();
-
-        WebCrawlerSource agentSource = buildAgentSource(bucket, allowed, Set.of(), Set.of(), url);
+        Map<String, Object> additionalConfig = Map.of("reindex-interval-seconds", "4");
+        WebCrawlerSource agentSource =
+                buildAgentSource(bucket, allowed, Set.of(), Set.of(), url, additionalConfig);
         List<Record> read = agentSource.read();
         Set<String> urls = new HashSet<>();
+        AtomicInteger reindexCount = new AtomicInteger();
+        agentSource.setOnReindexStart(
+                () -> {
+                    reindexCount.incrementAndGet();
+                    urls.clear();
+                });
         Map<String, String> pages = new HashMap<>();
-        while (!read.isEmpty()) {
+        while (reindexCount.get() < 3) {
             log.info("read: {}", read);
             for (Record r : read) {
                 String docUrl = r.key().toString();
@@ -227,7 +234,8 @@ public class WebCrawlerSourceTest {
             String domain,
             Set<String> allowed,
             Set<String> forbidden,
-            String seedUrl)
+            String seedUrl,
+            Map<String, Object> additionalConfig)
             throws Exception {
         AgentSource agentSource =
                 (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("webcrawler-source").agentCode();
@@ -241,6 +249,7 @@ public class WebCrawlerSourceTest {
         configs.put("forbidden-paths", forbidden);
         configs.put("max-unflushed-pages", 5);
         configs.put("min-time-between-requests", 500);
+        configs.putAll(additionalConfig);
         agentSource.init(configs);
         agentSource.setContext(
                 new AgentContext() {

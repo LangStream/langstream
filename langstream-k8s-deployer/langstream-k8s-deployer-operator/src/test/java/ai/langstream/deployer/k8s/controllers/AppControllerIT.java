@@ -270,8 +270,9 @@ public class AppControllerIT {
         assertEquals("bash", initContainer.getCommand().get(0));
         assertEquals("-c", initContainer.getCommand().get(1));
         assertEquals(
-                "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{app: true}\","
-                        + "\"codeStorageArchiveId\":null}' > /app-config/config && echo '{}' > /cluster-runtime-config/config",
+                "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": "
+                        + "{}}\",\"codeStorageArchiveId\":null}' > /app-config/config && echo '{}' > "
+                        + "/cluster-runtime-config/config",
                 initContainer.getArgs().get(0));
     }
 

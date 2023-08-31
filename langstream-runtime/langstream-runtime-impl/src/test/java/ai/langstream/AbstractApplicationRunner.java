@@ -336,7 +336,20 @@ public abstract class AbstractApplicationRunner {
         return new AgentRunResult(allAgentsInfo);
     }
 
+    private volatile boolean validateConsumerOffsets = true;
+
+    public boolean isValidateConsumerOffsets() {
+        return validateConsumerOffsets;
+    }
+
+    public void setValidateConsumerOffsets(boolean validateConsumerOffsets) {
+        this.validateConsumerOffsets = validateConsumerOffsets;
+    }
+
     private void validateAgentInfoBeforeStop(AgentInfo agentInfo) {
+        if (!validateConsumerOffsets) {
+            return;
+        }
         agentInfo
                 .serveWorkerStatus()
                 .forEach(

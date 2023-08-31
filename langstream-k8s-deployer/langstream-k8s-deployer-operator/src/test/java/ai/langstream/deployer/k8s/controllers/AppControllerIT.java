@@ -47,6 +47,12 @@ public class AppControllerIT {
                             "DEPLOYER_RUNTIME_IMAGE", "busybox",
                             "DEPLOYER_RUNTIME_IMAGE_PULL_POLICY", "IfNotPresent"));
 
+
+    static AtomicInteger counter = new AtomicInteger(0);
+    static String genTenant() {
+        return "tenant-" + counter.incrementAndGet();
+    }
+
     @Test
     void testAppController() {
 
@@ -134,7 +140,7 @@ public class AppControllerIT {
     @Test
     void testAppResources() {
 
-        final String tenant = "my-tenant";
+        final String tenant = genTenant();
         setupTenant(tenant);
         final ApplicationCustomResource app1 = createAppWithResources(tenant, 1, 1);
         awaitApplicationDeployingStatus(app1);

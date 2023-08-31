@@ -152,9 +152,9 @@ public class ApplicationResourceLimitsChecker {
         final SerializedApplicationInstance serializedApplicationInstance =
                 ApplicationSpec.deserializeApplication(
                         applicationCustomResource.getSpec().getApplication());
-        final Collection<SerializedApplicationInstance.AgentRunnerDefinition> agents =
-                serializedApplicationInstance.getAgentRunners().values();
-        if (agents.isEmpty()) {
+        final Map<String, SerializedApplicationInstance.AgentRunnerDefinition> runners =
+                serializedApplicationInstance.getAgentRunners();
+        if (runners == null || runners.isEmpty()) {
             log.warn(
                     "Application {} has no agents configured, this might be a old format of the agent definition.",
                     applicationCustomResource.getMetadata().getName());
@@ -162,7 +162,7 @@ public class ApplicationResourceLimitsChecker {
         }
 
         int totalUnits = 0;
-        for (SerializedApplicationInstance.AgentRunnerDefinition agent : agents) {
+        for (SerializedApplicationInstance.AgentRunnerDefinition agent : runners.values()) {
             if (agent.getResources() == null) {
                 // mantain backward-compatibility
                 log.warn(

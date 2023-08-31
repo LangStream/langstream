@@ -21,7 +21,6 @@ import ai.langstream.deployer.k8s.api.crds.apps.ApplicationStatus;
 import ai.langstream.deployer.k8s.api.crds.apps.SerializedApplicationInstance;
 import ai.langstream.deployer.k8s.util.KeyedLockHandler;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

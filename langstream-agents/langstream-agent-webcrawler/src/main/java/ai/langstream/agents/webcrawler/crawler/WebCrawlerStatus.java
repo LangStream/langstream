@@ -130,12 +130,12 @@ public class WebCrawlerStatus {
 
         // the '#' character is used to identify a fragment in a URL
         // we have to remove it to avoid duplicates
-        url = removeFragment(url);
+        String urlNoFragment = removeFragment(url);
 
-        if (visitedUrls.contains(url)) {
+        if (visitedUrls.contains(urlNoFragment)) {
             return;
         }
-        visitedUrls.add(url);
+        visitedUrls.add(urlNoFragment);
         if (toScan) {
             log.info("adding url {} to list", url);
             pendingUrls.add(url);
@@ -167,8 +167,8 @@ public class WebCrawlerStatus {
     }
 
     public int temporaryErrorOnUrl(String url) {
-        url = removeFragment(url);
-        visitedUrls.remove(url);
+        String urlNoFragment = removeFragment(url);
+        visitedUrls.remove(urlNoFragment);
         return errorCount.compute(
                 url,
                 (u, current) -> {
@@ -183,5 +183,7 @@ public class WebCrawlerStatus {
     public void reset() {
         visitedUrls.clear();
         errorCount.clear();
+        pendingUrls.clear();
+        remainingUrls.clear();
     }
 }

@@ -100,8 +100,7 @@ jobs:
         if: ${{ matrix.name == 'Style' }}
         run: |
           #!/bin/bash
-          # ensure docker build script works
-          ./docker/build.sh
+          mvn clean install -DskipTests
           if [[ `git status --porcelain` ]]; then
             echo "Found changes after building, please re-build the CRDs or run ./mvnw spotless:apply and commit the changes. "
             git status

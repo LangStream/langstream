@@ -47,7 +47,7 @@ elif [ "$only_image" == "api-gateway" ]; then
   build_docker_image langstream-api-gateway
 else
   # Build all artifacts
-  ./mvnw install -DskipTests -Ddocker.platforms="$(docker_platforms)" -PskipPython
+  ./mvnw install -DskipTests -T 1C -Ddocker.platforms="$(docker_platforms)" -PskipPython
   # Build docker images
   ./mvnw package -DskipTests -Pdocker -T 1C -Ddocker.platforms="$(docker_platforms)" -PskipPython
   docker images | head -n 5

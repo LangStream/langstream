@@ -336,14 +336,14 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-agents-s3</artifactId>
+      <artifactId>langstream-agent-s3</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-agents-webcrawler</artifactId>
+      <artifactId>langstream-agent-webcrawler</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>

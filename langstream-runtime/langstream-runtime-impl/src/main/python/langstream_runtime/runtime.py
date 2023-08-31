@@ -93,13 +93,13 @@ class RuntimeAgent(Agent):
         component_type: ComponentType,
         agent_id,
         agent_type,
-        started_at=current_time_millis(),
+        started_at=None,
     ):
         self.agent = agent
         self.component_type = component_type
         self.agent_id = agent_id
         self.agent_type = agent_type
-        self.started_at = started_at
+        self.started_at = started_at or current_time_millis()
         self.total_in = 0
         self.total_out = 0
         self.total_errors = 0
@@ -127,7 +127,8 @@ class RuntimeAgent(Agent):
                 "metrics": {
                     "total-in": self.total_in,
                     "total-out": self.total_out,
-                    "last-processed_at": self.last_processed_at,
+                    "started-at": self.started_at,
+                    "last-processed-at": self.last_processed_at,
                 },
             }
         ]
@@ -137,10 +138,14 @@ class RuntimeAgent(Agent):
 
 
 class RuntimeSource(RuntimeAgent, Source):
-    def __init__(
-        self, source: Source, agent_id, agent_type, started_at=current_time_millis()
-    ):
-        super().__init__(source, ComponentType.SOURCE, agent_id, agent_type, started_at)
+    def __init__(self, source: Source, agent_id, agent_type, started_at=None):
+        super().__init__(
+            source,
+            ComponentType.SOURCE,
+            agent_id,
+            agent_type,
+            started_at or current_time_millis(),
+        )
 
     def read(self) -> List[Record]:
         read = self.agent.read()
@@ -164,10 +169,14 @@ class RuntimeProcessor(RuntimeAgent, Processor):
         processor: Processor,
         agent_id,
         agent_type,
-        started_at=current_time_millis(),
+        started_at=None,
     ):
         super().__init__(
-            processor, ComponentType.PROCESSOR, agent_id, agent_type, started_at
+            processor,
+            ComponentType.PROCESSOR,
+            agent_id,
+            agent_type,
+            started_at or current_time_millis(),
         )
 
     def process(
@@ -185,10 +194,14 @@ class RuntimeProcessor(RuntimeAgent, Processor):
 
 
 class RuntimeSink(RuntimeAgent, Sink):
-    def __init__(
-        self, sink: Sink, agent_id, agent_type, started_at=current_time_millis()
-    ):
-        super().__init__(sink, ComponentType.SINK, agent_id, agent_type, started_at)
+    def __init__(self, sink: Sink, agent_id, agent_type, started_at=None):
+        super().__init__(
+            sink,
+            ComponentType.SINK,
+            agent_id,
+            agent_type,
+            started_at or current_time_millis(),
+        )
 
     def write(self, records: List[Record]):
         self.last_processed_at = current_time_millis()

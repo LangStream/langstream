@@ -81,7 +81,8 @@ def test_simple_agent(_):
     "metrics": {
       "total-in": 0,
       "total-out": 2,
-      "last-processed_at": 12345
+      "started-at": 12345,
+      "last-processed-at": 12345
     }
   },
   {
@@ -111,7 +112,8 @@ def test_simple_agent(_):
     "metrics": {
       "total-in": 2,
       "total-out": 2,
-      "last-processed_at": 12345
+      "started-at": 12345,
+      "last-processed-at": 12345
     }
   },
   {
@@ -141,7 +143,8 @@ def test_simple_agent(_):
     "metrics": {
       "total-in": 2,
       "total-out": 0,
-      "last-processed_at": 12345
+      "started-at": 12345,
+      "last-processed-at": 12345
     }
   }
 ]"""

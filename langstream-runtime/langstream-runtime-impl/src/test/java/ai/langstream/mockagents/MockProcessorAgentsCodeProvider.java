@@ -73,10 +73,8 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
                 try {
                     executorService.schedule(
                             () -> {
-                                log.info("EXC{} Processing record {}", id, record.value());
                                 recordSink.emit(
                                         new SourceRecordAndResult(record, List.of(record), null));
-                                log.info("EXC{} Processed record {}", id, record.value());
                             },
                             delay,
                             TimeUnit.MILLISECONDS);

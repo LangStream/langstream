@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -64,9 +65,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private String bucketName;
     private Set<String> allowedDomains;
+    private Set<String> forbiddenPaths;
     private Set<String> seedUrls;
     private MinioClient minioClient;
     private int idleTime;
+    private int reindexIntervalSeconds;
 
     private String statusFileName;
 
@@ -89,12 +92,14 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         String password = getString("secret-key", "minioadmin", configuration);
         String region = getString("region", "", configuration);
         allowedDomains = getSet("allowed-domains", configuration);
+        forbiddenPaths = getSet("forbidden-paths", configuration);
         seedUrls = getSet("seed-urls", configuration);
         idleTime = getInt("idle-time", 1, configuration);
+        reindexIntervalSeconds = getInt("reindex-interval-seconds", 60 * 60 * 24, configuration);
         maxUnflushedPages = getInt("max-unflushed-pages", 100, configuration);
 
         flushNext.set(maxUnflushedPages);
-        int minTimeBetweenRequests = getInt("min-time-between-requests", 100, configuration);
+        int minTimeBetweenRequests = getInt("min-time-between-requests", 500, configuration);
         String userAgent = getString("user-agent", "langstream.ai-webcrawler/1.0", configuration);
         int maxErrorCount = getInt("max-error-count", 5, configuration);
         int httpTimeout = getInt("http-timeout", 10000, configuration);
@@ -107,10 +112,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 region,
                 username);
         log.info("allowed-domains: {}", allowedDomains);
+        log.info("forbidden-paths: {}", forbiddenPaths);
         log.info("seed-urls: {}", seedUrls);
         log.info("user-agent: {}", userAgent);
         log.info("max-unflushed-pages: {}", maxUnflushedPages);
         log.info("min-time-between-requests: {}", minTimeBetweenRequests);
+        log.info("reindex-interval-seconds: {}", reindexIntervalSeconds);
 
         MinioClient.Builder builder =
                 MinioClient.builder().endpoint(endpoint).credentials(username, password);
@@ -124,6 +131,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         WebCrawlerConfiguration webCrawlerConfiguration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(allowedDomains)
+                        .forbiddenPaths(forbiddenPaths)
                         .minTimeBetweenRequests(minTimeBetweenRequests)
                         .userAgent(userAgent)
                         .handleCookies(handleCookies)
@@ -180,6 +188,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     @Override
     public List<Record> read() throws Exception {
         if (finished) {
+            checkReindexIsNeeded();
             return sleepForNoResults();
         }
         if (foundDocuments.isEmpty()) {
@@ -187,6 +196,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             if (!somethingDone) {
                 finished = true;
                 log.info("No more documents found.");
+                crawler.getStatus().setLastIndexEndTimestamp(System.currentTimeMillis());
                 flushStatus();
             } else {
                 // we did something but no new documents were found (for instance a redirection has
@@ -206,6 +216,24 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         return List.of(
                 new WebCrawlerSourceRecord(
                         document.content().getBytes(StandardCharsets.UTF_8), document.url()));
+    }
+
+    private void checkReindexIsNeeded() {
+        long lastIndexEndTimestamp = crawler.getStatus().getLastIndexEndTimestamp();
+        if (lastIndexEndTimestamp <= 0) {
+            // indexing is not finished yet
+            return;
+        }
+        long lastIndexStartTimestamp = crawler.getStatus().getLastIndexStartTimestamp();
+        long now = System.currentTimeMillis();
+        long elapsed = now - lastIndexStartTimestamp;
+        if (lastIndexStartTimestamp > 0 && elapsed >= reindexIntervalSeconds * 1000) {
+            log.info(
+                    "Reindexing is needed, last index start timestamp is {}",
+                    Instant.ofEpochMilli(lastIndexStartTimestamp));
+            crawler.restartIndexing(seedUrls);
+            flushStatus();
+        }
     }
 
     private List<Record> sleepForNoResults() throws Exception {

@@ -81,7 +81,8 @@ public class WebCrawlerSourceTest {
         // perform multiple iterations, in order to see the recovery mechanism in action
         for (int i = 0; i < 3; i++) {
             log.info("ITERATION #{}", i);
-            WebCrawlerSource agentSource = buildAgentSource(bucket, allowed, url);
+            WebCrawlerSource agentSource =
+                    buildAgentSource(bucket, allowed, Set.of(), Set.of(), url);
             List<Record> read = agentSource.read();
             Set<String> urls = new HashSet<>();
             int count = 0;
@@ -100,24 +101,35 @@ public class WebCrawlerSourceTest {
     }
 
     @Test
-    @Disabled("This test is disabled because it connects to a real live website")
+    // @Disabled("This test is disabled because it connects to a real live website")
     void testReadLangStreamGithubRepo() throws Exception {
         try {
             String bucket = "langstream-test-" + UUID.randomUUID();
             String url = "https://github.com/LangStream/langstream";
             String allowed = "https://github.com/LangStream/langstream";
+            Set<String> allowedPaths = Set.of();
+            Set<String> forbidden =
+                    Set.of(
+                            "/LangStream/langstream/actions",
+                            "/LangStream/langstream/issues",
+                            "/LangStream/langstream/pulls",
+                            "/LangStream/langstream/commits",
+                            "/LangStream/langstream/commit",
+                            "/LangStream/langstream/pull",
+                            "/LangStream/langstream/pulse");
 
             // perform multiple iterations, in order to see the recovery mechanism in action
 
             int count = 1000;
-            WebCrawlerSource agentSource = buildAgentSource(bucket, allowed, url);
+            WebCrawlerSource agentSource =
+                    buildAgentSource(bucket, allowed, allowedPaths, forbidden, url);
             List<Record> read = agentSource.read();
             Set<String> urls = new HashSet<>();
             while (count-- > 0) {
                 log.info("read: {}", read);
                 for (Record r : read) {
                     String docUrl = r.key().toString();
-                    log.info("content: {}", new String((byte[]) r.value()));
+                    // log.info("content: {}", new String((byte[]) r.value()));
                     assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
                 }
                 agentSource.commit(read);
@@ -163,7 +175,7 @@ public class WebCrawlerSourceTest {
         String url = wmRuntimeInfo.getHttpBaseUrl() + "/index.html";
         String allowed = wmRuntimeInfo.getHttpBaseUrl();
 
-        WebCrawlerSource agentSource = buildAgentSource(bucket, allowed, url);
+        WebCrawlerSource agentSource = buildAgentSource(bucket, allowed, Set.of(), Set.of(), url);
         List<Record> read = agentSource.read();
         Set<String> urls = new HashSet<>();
         Map<String, String> pages = new HashMap<>();
@@ -210,7 +222,12 @@ public class WebCrawlerSourceTest {
                 pages.get("thirdPage.html"));
     }
 
-    private WebCrawlerSource buildAgentSource(String bucket, String domain, String seedUrl)
+    private WebCrawlerSource buildAgentSource(
+            String bucket,
+            String domain,
+            Set<String> allowed,
+            Set<String> forbidden,
+            String seedUrl)
             throws Exception {
         AgentSource agentSource =
                 (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("webcrawler-source").agentCode();
@@ -220,6 +237,8 @@ public class WebCrawlerSourceTest {
         configs.put("bucketName", bucket);
         configs.put("seed-urls", seedUrl);
         configs.put("allowed-domains", domain);
+        configs.put("allowed-paths", allowed);
+        configs.put("forbidden-paths", forbidden);
         configs.put("max-unflushed-pages", 5);
         configs.put("min-time-between-requests", 500);
         agentSource.init(configs);

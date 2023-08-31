@@ -35,6 +35,6 @@ class WebCrawlerConfigurationTest {
     private boolean verifyDomain(String url, Set<String> allowedDomains) {
         WebCrawlerConfiguration configuration =
                 WebCrawlerConfiguration.builder().allowedDomains(allowedDomains).build();
-        return configuration.isAllowedDomain(url);
+        return configuration.isAllowedUrl(url);
     }
 }

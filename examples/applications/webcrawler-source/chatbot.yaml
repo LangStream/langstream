@@ -25,13 +25,11 @@ errors:
     on-failure: "skip"
 pipeline:
   - name: "convert-to-structure"
-    id: "convert-to-structure"
     type: "document-to-json"
     input: "questions-topic"
     configuration:
       text-field: "question"
   - name: "compute-embeddings"
-    id: "compute-embeddings"
     type: "compute-ai-embeddings"
     configuration:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model

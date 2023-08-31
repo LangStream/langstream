@@ -26,6 +26,7 @@ import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.webservice.config.ApplicationDeployProperties;
+import ai.langstream.webservice.config.TenantProperties;
 import java.util.List;
 import java.util.Map;
 import lombok.Cleanup;
@@ -212,7 +213,8 @@ class ApplicationServiceValidateUpdateTest {
                 null,
                 null,
                 new ApplicationDeployProperties(
-                        new ApplicationDeployProperties.GatewayProperties(false)));
+                        new ApplicationDeployProperties.GatewayProperties(false)),
+                new TenantProperties());
     }
 
     @SneakyThrows

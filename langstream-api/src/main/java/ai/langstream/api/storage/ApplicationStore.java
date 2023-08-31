@@ -49,6 +49,8 @@ public interface ApplicationStore extends GenericStore {
 
     Map<String, StoredApplication> list(String tenant);
 
+    Map<String, Integer> getResourceUsage(String tenant);
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

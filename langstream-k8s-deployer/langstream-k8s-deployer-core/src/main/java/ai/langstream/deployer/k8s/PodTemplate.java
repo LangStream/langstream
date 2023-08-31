@@ -24,7 +24,7 @@ public record PodTemplate(
         Map<String, String> nodeSelector,
         Map<String, String> annotations) {
 
-    static PodTemplate merge(PodTemplate primary, PodTemplate secondary) {
+    public static PodTemplate merge(PodTemplate primary, PodTemplate secondary) {
         return new PodTemplate(
                 merge(primary.tolerations(), secondary.tolerations()),
                 merge(primary.nodeSelector(), secondary.nodeSelector()),

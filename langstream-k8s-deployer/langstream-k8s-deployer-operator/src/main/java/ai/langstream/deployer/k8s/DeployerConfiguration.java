@@ -22,6 +22,9 @@ import java.util.Optional;
 @ConfigMapping(prefix = "deployer")
 public interface DeployerConfiguration {
 
+    @WithDefault("{}")
+    String globalStorage();
+
     // workaround: quarkus doesn't support dynamic maps
     @WithDefault("{}")
     String clusterRuntime();

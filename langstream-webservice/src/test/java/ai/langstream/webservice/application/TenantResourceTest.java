@@ -17,6 +17,8 @@ package ai.langstream.webservice.application;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,7 +35,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+@SpringBootTest(
+        properties = {
+                "application.tenants.max-total-resource-units-limit=8"
+        })
 @AutoConfigureMockMvc
 @Slf4j
 @Import(WebAppTestConfig.class)
@@ -49,13 +54,70 @@ class TenantResourceTest {
         mockMvc.perform(put("/api/tenants/my-tenant")).andExpect(status().isOk());
         mockMvc.perform(put("/api/tenants/test")).andExpect(status().isOk());
 
+        mockMvc.perform(
+                        patch("/api/tenants/test")
+                                .contentType("application/json")
+                                .content("{\"maxTotalResourceUnits\":1}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(
+                        patch("/api/tenants/test")
+                                .contentType("application/json")
+                                .content("{\"maxTotalResourceUnits\":0}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(
+                        patch("/api/tenants/test")
+                                .contentType("application/json")
+                                .content("{\"maxTotalResourceUnits\":8}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(
+                        patch("/api/tenants/test")
+                                .contentType("application/json")
+                                .content("{\"maxTotalResourceUnits\":-111}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(
+                        patch("/api/tenants/test")
+                                .contentType("application/json")
+                                .content("{\"maxTotalResourceUnits\":9}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(
+                        patch("/api/tenants/test2")
+                                .contentType("application/json")
+                                .content("{\"maxTotalResourceUnits\":0}"))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(
+                        post("/api/tenants/test")
+                                .contentType("application/json")
+                                .content("{\"maxTotalResourceUnits\":0}"))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(
+                        post("/api/tenants/test2")
+                                .contentType("application/json")
+                                .content("{\"maxTotalResourceUnits\":1}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(
+                        post("/api/tenants/test3")
+                                .contentType("application/json")
+                                .content("{\"maxTotalResourceUnits\":0}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(
+                        post("/api/tenants/test4")
+                                .contentType("application/json")
+                                .content("{\"maxTotalResourceUnits\":-111}"))
+                .andExpect(status().isBadRequest());
+
         mockMvc.perform(get("/api/tenants/test"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("test"));
 
         mockMvc.perform(get("/api/tenants"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.test.name").value("test"));
+                .andExpect(jsonPath("$.test.name").value("test"))
+                .andExpect(jsonPath("$.test.maxTotalResourceUnits").value(8));
 
         mockMvc.perform(delete("/api/tenants/test")).andExpect(status().isOk());
 

@@ -38,7 +38,6 @@ public class ResourceErrorsHandler {
             log.error("Bad request", exception);
             return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
         }
-
         log.error("Internal error", exception);
         return ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());

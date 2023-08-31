@@ -18,6 +18,7 @@ package ai.langstream.api.storage;
 import java.util.LinkedHashMap;
 
 public interface GlobalMetadataStore extends GenericStore {
+    String TENANT_KEY_PREFIX = "t-";
 
     void put(String key, String value);
 

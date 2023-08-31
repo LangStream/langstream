@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.model;
+package ai.langstream.api.webservice.tenant;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,4 +26,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TenantConfiguration {
     private String name;
+    private int maxTotalResourceUnits;
 }

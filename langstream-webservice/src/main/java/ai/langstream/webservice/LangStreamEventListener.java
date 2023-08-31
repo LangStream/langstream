@@ -15,7 +15,7 @@
  */
 package ai.langstream.webservice;
 
-import ai.langstream.api.model.TenantConfiguration;
+import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.webservice.config.TenantProperties;
 import lombok.AllArgsConstructor;

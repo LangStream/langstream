@@ -27,10 +27,8 @@ import org.springframework.context.annotation.Primary;
 @TestConfiguration
 public class WebAppTestConfig {
 
-    @Bean
-    @Primary
     @SneakyThrows
-    public StorageProperties storageProperties() {
+    public static StorageProperties buildStorageProperties() {
         return new StorageProperties(
                 new StorageProperties.AppsStoreProperties(
                         "kubernetes", Map.of("namespaceprefix", "langstream-")),
@@ -42,5 +40,13 @@ public class WebAppTestConfig {
                                         .toFile()
                                         .getAbsolutePath())),
                 new StorageProperties.CodeStorageProperties());
+
+    }
+
+    @Bean
+    @Primary
+    @SneakyThrows
+    public StorageProperties storageProperties() {
+        return buildStorageProperties();
     }
 }

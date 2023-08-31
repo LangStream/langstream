@@ -15,7 +15,10 @@
  */
 package ai.langstream.webservice.common;
 
-import ai.langstream.api.model.TenantConfiguration;
+import ai.langstream.api.webservice.tenant.CreateTenantRequest;
+import ai.langstream.api.webservice.tenant.TenantConfiguration;
+import ai.langstream.api.webservice.tenant.UpdateTenantRequest;
+import ai.langstream.impl.storage.tenants.TenantException;
 import ai.langstream.webservice.application.ApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,10 +26,14 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -62,6 +69,42 @@ public class TenantResource {
         return configuration;
     }
 
+    @PostMapping(value = "/{tenant}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Create a tenant")
+    void createTenant(
+            @NotBlank @PathVariable("tenant") String tenant,
+            @RequestBody CreateTenantRequest createTenantRequest)
+            throws TenantException {
+        try {
+            globalMetadataService.createTenant(tenant, createTenantRequest);
+        } catch (TenantException e) {
+            switch (e.getType()) {
+                case AlreadyExists:
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "tenant already exists");
+                default:
+                    throw e;
+            }
+        }
+    }
+
+    @PatchMapping(value = "/{tenant}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Update a tenant")
+    void createTenant(
+            @NotBlank @PathVariable("tenant") String tenant,
+            @RequestBody UpdateTenantRequest updateTenantRequest)
+            throws TenantException {
+        try {
+            globalMetadataService.updateTenant(tenant, updateTenantRequest);
+        } catch (TenantException e) {
+            switch (e.getType()) {
+                case NotFound:
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "tenant not found");
+                default:
+                    throw e;
+            }
+        }
+    }
+
     @PutMapping(value = "/{tenant}")
     @Operation(summary = "Create or update a tenant")
     void putTenant(@NotBlank @PathVariable("tenant") String tenant) {
@@ -70,7 +113,7 @@ public class TenantResource {
 
     @DeleteMapping("/{tenant}")
     @Operation(summary = "Delete tenant")
-    void deleteTenant(@NotBlank @PathVariable("tenant") String tenant) {
+    void deleteTenant(@NotBlank @PathVariable("tenant") String tenant) throws TenantException {
         applicationService
                 .getAllApplications(tenant)
                 .keySet()

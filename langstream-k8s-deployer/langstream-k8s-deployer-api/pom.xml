@@ -34,10 +34,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.fabric8</groupId>
-      <artifactId>kubernetes-client</artifactId>
-    </dependency>
-    <dependency>
       <groupId>ai.langstream</groupId>
       <artifactId>langstream-api</artifactId>
       <version>${project.version}</version>

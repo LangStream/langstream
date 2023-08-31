@@ -28,6 +28,7 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
@@ -92,8 +93,12 @@ public class ApplicationService {
     }
 
     void checkResourceUsage(String tenant, String applicationId, ExecutionPlan executionPlan) {
-        final int max = tenantProperties.getDefaultMaxUnitsPerTenant();
-        if (max <= 0) {
+        final TenantConfiguration config = globalMetadataService.getTenant(tenant);
+        int maxTotalResourceUnits = config.getMaxTotalResourceUnits();
+        if (maxTotalResourceUnits <= 0) {
+            maxTotalResourceUnits = tenantProperties.getDefaultMaxTotalResourceUnits();
+        }
+        if (maxTotalResourceUnits <= 0) {
             return;
         }
 
@@ -104,7 +109,7 @@ public class ApplicationService {
                         .filter(e -> !e.getKey().equals(applicationId))
                         .collect(Collectors.summingInt(e -> e.getValue()));
         final int totalUsage = currentUsage + requestedUnits;
-        if (max < totalUsage) {
+        if (maxTotalResourceUnits < totalUsage) {
             throw new IllegalArgumentException(
                     "Not enough resources to deploy application " + applicationId);
         }

@@ -90,6 +90,9 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @Override
+    public void onTenantUpdated(String tenant) {}
+
+    @Override
     public void onTenantDeleted(String tenant) {
         final String namespace = tenantToNamespace(tenant);
         if (client.namespaces().withName(namespace).get() != null) {

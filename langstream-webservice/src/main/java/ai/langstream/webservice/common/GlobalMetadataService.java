@@ -15,12 +15,16 @@
  */
 package ai.langstream.webservice.common;
 
-import ai.langstream.api.model.TenantConfiguration;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.storage.GlobalMetadataStore;
 import ai.langstream.api.storage.GlobalMetadataStoreRegistry;
+import ai.langstream.api.webservice.tenant.CreateTenantRequest;
+import ai.langstream.api.webservice.tenant.TenantConfiguration;
+import ai.langstream.api.webservice.tenant.UpdateTenantRequest;
 import ai.langstream.impl.storage.GlobalMetadataStoreManager;
+import ai.langstream.impl.storage.tenants.TenantException;
 import ai.langstream.webservice.config.StorageProperties;
+import ai.langstream.webservice.config.TenantProperties;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
@@ -29,17 +33,46 @@ import org.springframework.stereotype.Service;
 public class GlobalMetadataService {
 
     private final GlobalMetadataStoreManager store;
+    private final TenantProperties tenantProperties;
 
     public GlobalMetadataService(
-            StorageProperties storageProperties, ApplicationStore applicationStore) {
+            StorageProperties storageProperties, ApplicationStore applicationStore, TenantProperties tenantProperties) {
         final GlobalMetadataStore globalMetadataStore =
                 GlobalMetadataStoreRegistry.loadStore(
                         storageProperties.getGlobal().getType(),
                         storageProperties.getGlobal().getConfiguration());
         store = new GlobalMetadataStoreManager(globalMetadataStore, applicationStore);
+        this.tenantProperties = tenantProperties;
     }
 
-    @SneakyThrows
+    public void createTenant(String tenant, CreateTenantRequest request) throws TenantException {
+        validateCreateTenantRequest(request);
+        store.createTenant(tenant, request);
+    }
+
+    private void validateCreateTenantRequest(CreateTenantRequest request) {
+        validateMaxTotalResourceUnits(request.getMaxTotalResourceUnits());
+    }
+
+    private void validateUpdateTenantRequest(UpdateTenantRequest request) {
+        validateMaxTotalResourceUnits(request.getMaxTotalResourceUnits());
+    }
+
+    private void validateMaxTotalResourceUnits(Integer maxTotalResourceUnits) {
+        if (tenantProperties.getMaxTotalResourceUnitsLimit() > 0
+                && maxTotalResourceUnits != null
+                && maxTotalResourceUnits > 0
+                && maxTotalResourceUnits > tenantProperties.getMaxTotalResourceUnitsLimit()) {
+            throw new IllegalArgumentException(
+                    "Max total resource units limit is " + tenantProperties.getMaxTotalResourceUnitsLimit());
+        }
+    }
+
+    public void updateTenant(String tenant, UpdateTenantRequest request) throws TenantException {
+        validateUpdateTenantRequest(request);
+        store.updateTenant(tenant, request);
+    }
+
     public void putTenant(String tenant, TenantConfiguration tenantConfiguration) {
         store.putTenant(tenant, tenantConfiguration);
     }

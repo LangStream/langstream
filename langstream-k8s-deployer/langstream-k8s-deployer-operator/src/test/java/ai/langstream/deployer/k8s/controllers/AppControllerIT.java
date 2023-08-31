@@ -43,7 +43,8 @@ public class AppControllerIT {
     static final OperatorExtension deployment =
             new OperatorExtension(
                     Map.of(
-                            "DEPLOYER_AGENT_RESOURCES", "{defaultMaxUnitsPerTenant: 3}",
+                            "DEPLOYER_AGENT_RESOURCES",
+                                    "{defaultMaxTotalResourceUnitsPerTenant: 3}",
                             "DEPLOYER_RUNTIME_IMAGE", "busybox",
                             "DEPLOYER_RUNTIME_IMAGE_PULL_POLICY", "IfNotPresent"));
 

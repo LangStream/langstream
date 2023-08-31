@@ -17,6 +17,7 @@ package ai.langstream.agents.webcrawler.crawler;
 
 import java.net.CookieManager;
 import java.net.CookieStore;
+import java.util.Set;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
@@ -51,7 +52,7 @@ public class WebCrawler {
     }
 
     public void crawl(String startUrl) {
-        if (!configuration.isAllowedDomain(startUrl)) {
+        if (!configuration.isAllowedUrl(startUrl)) {
             return;
         }
         status.addUrl(startUrl, true);
@@ -80,7 +81,7 @@ public class WebCrawler {
             if (statusCode >= 300 && statusCode < 400) {
                 String location = response.header("Location");
                 if (!location.equals(current)) {
-                    if (!configuration.isAllowedDomain(location)) {
+                    if (!configuration.isAllowedUrl(location)) {
                         redirectedToForbiddenDomain = true;
                         log.warn(
                                 "A redirection to a forbidden domain happened (from {} to {})",
@@ -143,10 +144,10 @@ public class WebCrawler {
                             element -> {
                                 if (configuration.isAllowedTag(element.tagName())) {
                                     String url = element.absUrl("href");
-                                    if (configuration.isAllowedDomain(url)) {
+                                    if (configuration.isAllowedUrl(url)) {
                                         status.addUrl(url, true);
                                     } else {
-                                        log.info("Ignoring not allowed url: {}", url);
+                                        log.debug("Ignoring not allowed url: {}", url);
                                         status.addUrl(url, false);
                                     }
                                 }
@@ -161,5 +162,14 @@ public class WebCrawler {
         }
 
         return true;
+    }
+
+    public void restartIndexing(Set<String> seedUrls) {
+        status.reset();
+        for (String url : seedUrls) {
+            crawl(url);
+        }
+        status.setLastIndexStartTimestamp(System.currentTimeMillis());
+        status.setLastIndexEndTimestamp(0);
     }
 }

@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class WebCrawlerConfiguration {
     @Builder.Default private Set<String> allowedDomains = Set.of();
+    @Builder.Default private Set<String> forbiddenPaths = Set.of();
     @Builder.Default private String userAgent = null;
     @Builder.Default private int minTimeBetweenRequests = 100;
     @Builder.Default private int httpTimeout = 10000;
@@ -33,28 +34,45 @@ public class WebCrawlerConfiguration {
     @Builder.Default private boolean handleCookies = true;
     @Builder.Default private Set<String> allowedTags = Set.of("a");
 
-    public boolean isAllowedDomain(String url) {
+    public boolean isAllowedUrl(String url) {
         final String domainOnly;
+        final String pathOnly;
         try {
             URI uri = URI.create(url);
             String host = uri.getHost();
+            pathOnly = uri.getPath();
             domainOnly = host;
         } catch (Exception e) {
             log.info("Url {} doesn't have a domain, parsing error: {}", url, e + "");
             return false;
         }
-        return allowedDomains.stream()
-                .anyMatch(
-                        domain -> {
-                            // the domain can be a dns name with the scheme and a part of the uri
-                            // https://domain/something/....
-                            // http://domain/....
-                            if (url.startsWith(domain)) {
-                                return true;
-                            }
-                            // or just the domain
-                            return domain.equalsIgnoreCase(domainOnly);
-                        });
+
+        boolean allowedDomain =
+                allowedDomains.stream()
+                        .anyMatch(
+                                domain -> {
+                                    // the domain can be a dns name with the scheme and a part of
+                                    // the uri
+                                    // https://domain/something/....
+                                    // http://domain/....
+                                    if (url.startsWith(domain)) {
+                                        return true;
+                                    }
+                                    // or just the domain
+                                    return domain.equalsIgnoreCase(domainOnly);
+                                });
+
+        boolean forbiddenPath =
+                !forbiddenPaths.isEmpty()
+                        && forbiddenPaths.stream()
+                                .anyMatch(
+                                        path -> {
+                                            // https://domain/something/....
+                                            // http://domain/....
+                                            return pathOnly.startsWith(path);
+                                        });
+
+        return allowedDomain && !forbiddenPath;
     }
 
     public boolean isAllowedTag(String tagName) {

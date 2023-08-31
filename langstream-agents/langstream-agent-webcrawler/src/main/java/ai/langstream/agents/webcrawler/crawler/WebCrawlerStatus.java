@@ -15,6 +15,8 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
+import static ai.langstream.api.util.ConfigurationUtils.getLong;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -29,6 +31,13 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Slf4j
 public class WebCrawlerStatus {
+
+    /** Timestamp of the last index start. This is used to avoid reprocessing the indexing. */
+    private long lastIndexStartTimestamp = 0;
+
+    /** Timestamp of the last index end. This is used to avoid reprocessing the indexing. */
+    private long lastIndexEndTimestamp = 0;
+
     /**
      * List of all URLs discovered and to be processed. An URL is removed from here on
      * Source.commit()
@@ -78,16 +87,47 @@ public class WebCrawlerStatus {
                 visitedUrls.forEach(u -> log.info("Visited {}", u));
                 this.visitedUrls.addAll(visitedUrls);
             }
+
+            Long lastIndexEndTimestamp = getLong("lastIndexEndTimestamp", null, currentStatus);
+            if (lastIndexEndTimestamp != null) {
+                this.lastIndexEndTimestamp = lastIndexEndTimestamp;
+            }
+            Long lastIndexStartTimestamp = getLong("lastIndexStartTimestamp", null, currentStatus);
+            if (lastIndexStartTimestamp != null) {
+                this.lastIndexStartTimestamp = lastIndexStartTimestamp;
+            }
         } else {
             log.info("No saved status found, starting from scratch");
         }
     }
 
+    public long getLastIndexEndTimestamp() {
+        return lastIndexEndTimestamp;
+    }
+
+    public void setLastIndexEndTimestamp(long lastIndexEndTimestamp) {
+        this.lastIndexEndTimestamp = lastIndexEndTimestamp;
+    }
+
+    public long getLastIndexStartTimestamp() {
+        return lastIndexStartTimestamp;
+    }
+
+    public void setLastIndexStartTimestamp(long lastIndexStartTimestamp) {
+        this.lastIndexStartTimestamp = lastIndexStartTimestamp;
+    }
+
     public void persist(StatusStorage statusStorage) throws Exception {
         statusStorage.storeStatus(
                 Map.of(
-                        "remainingUrls", new ArrayList<>(remainingUrls),
-                        "visitedUrls", new ArrayList<>(visitedUrls)));
+                        "lastIndexEndTimestamp",
+                        lastIndexEndTimestamp,
+                        "lastIndexStartTimestamp",
+                        lastIndexStartTimestamp,
+                        "remainingUrls",
+                        new ArrayList<>(remainingUrls),
+                        "visitedUrls",
+                        new ArrayList<>(visitedUrls)));
     }
 
     public void addUrl(String url, boolean toScan) {
@@ -116,6 +156,7 @@ public class WebCrawlerStatus {
     }
 
     public String nextUrl() {
+        log.info("PendingUrls: {} Uncommitted {}", pendingUrls.size(), remainingUrls.size());
         return pendingUrls.poll();
     }
 
@@ -142,5 +183,12 @@ public class WebCrawlerStatus {
                         return current + 1;
                     }
                 });
+    }
+
+    public void reset() {
+        visitedUrls.clear();
+        errorCount.clear();
+        pendingUrls.clear();
+        remainingUrls.clear();
     }
 }

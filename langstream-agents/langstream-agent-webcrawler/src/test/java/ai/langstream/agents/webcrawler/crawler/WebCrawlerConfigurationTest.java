@@ -32,9 +32,41 @@ class WebCrawlerConfigurationTest {
         assertFalse(verifyDomain("http://domain/something/....", Set.of()));
     }
 
+    @Test
+    void testForbiddenPaths() {
+        // no forbidden paths
+        assertTrue(verifyForbiddenPaths("http://domain/something/something", Set.of()));
+
+        assertTrue(verifyForbiddenPaths("https://domain/something", Set.of("/something/")));
+        assertTrue(
+                verifyForbiddenPaths(
+                        "https://domain/something/secondlevel", Set.of("/something-else")));
+        assertTrue(
+                verifyForbiddenPaths(
+                        "https://domain/something/secondlevel", Set.of("/secondlevel")));
+
+        assertFalse(verifyForbiddenPaths("https://domain/something/", Set.of("/something/")));
+        assertFalse(
+                verifyForbiddenPaths("https://domain/something/secondlevel", Set.of("/something")));
+        assertFalse(
+                verifyForbiddenPaths(
+                        "https://domain/something/secondlevel", Set.of("/something/sec")));
+
+        assertFalse(verifyForbiddenPaths("not-an-url", Set.of("/something")));
+    }
+
     private boolean verifyDomain(String url, Set<String> allowedDomains) {
         WebCrawlerConfiguration configuration =
                 WebCrawlerConfiguration.builder().allowedDomains(allowedDomains).build();
-        return configuration.isAllowedDomain(url);
+        return configuration.isAllowedUrl(url);
+    }
+
+    private boolean verifyForbiddenPaths(String url, Set<String> forbidden) {
+        WebCrawlerConfiguration configuration =
+                WebCrawlerConfiguration.builder()
+                        .allowedDomains(Set.of("domain"))
+                        .forbiddenPaths(forbidden)
+                        .build();
+        return configuration.isAllowedUrl(url);
     }
 }

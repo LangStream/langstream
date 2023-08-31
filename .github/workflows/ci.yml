@@ -34,7 +34,7 @@ jobs:
           - name: Api Gateway
           - name: Control plane
           - name: Other
-          - name: CRDs
+          - name: Style
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
@@ -96,13 +96,13 @@ jobs:
         run: |
           #/bin/bash
           ./mvnw verify -PtestSuiteOthers -PskipPython
-      - name: 'Test: CRDs'
-        if: ${{ matrix.name == 'CRDs' }}
+      - name: 'Test: Style'
+        if: ${{ matrix.name == 'Style' }}
         run: |
-          ./mvnw package -Pdocker -pl :langstream-k8s-deployer-operator -am -DskipTests
+          #!/bin/bash
+          mvn clean install -DskipTests -PskipPython
           if [[ `git status --porcelain` ]]; then
-            echo "Found CRD changed after building, please build the operator and commit the changes. "
-            echo "Also make sure to update the CRDs version."
+            echo "Found changes after building, please re-build the CRDs or run ./mvnw spotless:apply and commit the changes. "
             git status
             git diff
             exit 1

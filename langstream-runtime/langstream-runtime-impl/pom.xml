@@ -317,6 +317,44 @@
       <version>1.7.2</version>
       <scope>test</scope>
     </dependency> -->
+
+
+<!--    Agents: ensure this module is dependant from agents modules-->
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-ai-agents</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agents-text-processing</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agent-s3</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agent-webcrawler</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-vector-agents</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
   </dependencies>
   <build>
     <plugins>

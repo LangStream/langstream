@@ -34,7 +34,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Build CLI
+      - name: Build
         run: |
           chmod +x mvnw
           ./docker/build.sh

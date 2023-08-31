@@ -313,8 +313,6 @@ public class AppControllerIT {
                 .create();
     }
 
-    AtomicInteger counter = new AtomicInteger(0);
-
     private String genAppId() {
         return "app-%s".formatted(counter.incrementAndGet());
     }

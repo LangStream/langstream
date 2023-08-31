@@ -28,8 +28,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import lombok.extern.slf4j.Slf4j;
 
 /** This is a special processor that executes a pipeline of Agents in memory. */
+@Slf4j
 public class CompositeAgentProcessor extends AbstractAgentCode implements AgentProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -142,36 +145,75 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         }
     }
 
+    /**
+     * This method executes the pipeline, starting from a single SourceRecord. It is possible that
+     * each step of the pipeline generates multiple records.
+     *
+     * @param index
+     * @param currentRecords
+     * @param initialSourceRecord
+     * @param finalStep
+     */
     private void invokeProcessor(
-            int index, Record currentRecord, Record initialSourceRecord, RecordSink finalSink) {
+            int index,
+            List<Record> currentRecords,
+            Record initialSourceRecord,
+            RecordSink finalStep) {
         AgentProcessor processor = processors.get(index);
         try {
+            List<SourceRecordAndResult> results = new CopyOnWriteArrayList<>();
             processor.process(
-                    List.of(currentRecord),
+                    currentRecords,
                     (SourceRecordAndResult recordAndResult) -> {
-                        if (recordAndResult.resultRecords().isEmpty()
-                                || index == processors.size() - 1) {
-                            finalSink.emit(
+                        if (recordAndResult.error() != null) {
+                            // some error occurred, early exit
+                            finalStep.emit(
                                     new SourceRecordAndResult(
-                                            initialSourceRecord,
-                                            recordAndResult.resultRecords(),
-                                            recordAndResult.error()));
-                            processed(0, recordAndResult.resultRecords().size());
+                                            initialSourceRecord, null, recordAndResult.error()));
                             return;
                         }
-                        // we know that all the records have been generated starting from the
-                        // "initialSourceRecord"
-                        for (Record record : recordAndResult.resultRecords()) {
-                            invokeProcessor(index + 1, record, initialSourceRecord, finalSink);
+
+                        results.add(recordAndResult);
+
+                        if (results.size() != currentRecords.size()) {
+                            // we have to wait for each record to be processed
+                            return;
+                        }
+
+                        List<Record> finalRecords = new ArrayList<>();
+                        for (SourceRecordAndResult result : results) {
+                            if (result.resultRecords() != null) {
+                                finalRecords.addAll(result.resultRecords());
+                            }
+                        }
+                        if (finalRecords.isEmpty()) {
+                            processed(0, finalRecords.size());
+                            finalStep.emit(
+                                    new SourceRecordAndResult(
+                                            initialSourceRecord, List.of(), null));
+                        } else if (index == processors.size() - 1) {
+                            // no more processors
+                            processed(0, finalRecords.size());
+                            finalStep.emit(
+                                    new SourceRecordAndResult(
+                                            initialSourceRecord, finalRecords, null));
+                        } else {
+                            // next processor
+                            invokeProcessor(
+                                    index + 1, finalRecords, initialSourceRecord, finalStep);
                         }
                     });
         } catch (Throwable error) {
-            finalSink.emit(new SourceRecordAndResult(initialSourceRecord, null, error));
+            log.error("Internal Error processing record: {}", initialSourceRecord, error);
+            finalStep.emit(new SourceRecordAndResult(initialSourceRecord, null, error));
         }
     }
 
     @Override
     public void process(List<Record> records, RecordSink sink) {
+        if (records == null || records.isEmpty()) {
+            throw new IllegalStateException("Records cannot be null or empty");
+        }
         processed(records.size(), 0);
         if (processors.isEmpty()) {
             for (Record r : records) {
@@ -180,7 +222,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
             return;
         }
         for (Record record : records) {
-            invokeProcessor(0, record, record, sink);
+            invokeProcessor(0, List.of(record), record, sink);
         }
     }
 

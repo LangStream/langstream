@@ -579,7 +579,6 @@ public class AgentRunner {
                 (AgentProcessor.SourceRecordAndResult result) -> {
                     Record sourceRecord = result.sourceRecord();
                     try {
-                        log.info("Result for record {}: {}", sourceRecord, result);
                         if (result.error() != null) {
                             Throwable error = result.error();
                             // handle error

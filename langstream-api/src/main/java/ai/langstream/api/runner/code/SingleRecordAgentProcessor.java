@@ -30,6 +30,9 @@ public abstract class SingleRecordAgentProcessor extends AbstractAgentCode
 
     @Override
     public final void process(List<Record> records, RecordSink recordSink) {
+        if (records == null || records.isEmpty()) {
+            throw new IllegalStateException("Records cannot be null or empty");
+        }
         for (Record record : records) {
             try {
                 List<Record> process = processRecord(record);

@@ -162,10 +162,11 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
             }
             int sum = uncommittedOffsets.values().stream().mapToInt(Set::size).sum();
             log.info(
-                    "Closing consumer to {} with {} pending commits and {} uncommitted offsets",
+                    "Closing consumer to {} with {} pending commits and {} uncommitted offsets: {} ",
                     topicName,
                     pendingCommits.get(),
-                    sum);
+                    sum,
+                    uncommittedOffsets);
             consumer.close();
         }
     }

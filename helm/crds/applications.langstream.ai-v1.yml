@@ -48,6 +48,11 @@ spec:
                   reason:
                     type: string
                 type: object
+              resourceLimitStatus:
+                enum:
+                - ACCEPTED
+                - REJECTED
+                type: string
               lastApplied:
                 description: Last spec applied.
                 type: string

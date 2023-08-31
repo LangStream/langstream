@@ -18,19 +18,14 @@ package ai.langstream.impl.storage.k8s.apps;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.ApplicationStatus;
-import ai.langstream.api.model.Gateways;
-import ai.langstream.api.model.Instance;
-import ai.langstream.api.model.Module;
-import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
-import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
+import ai.langstream.deployer.k8s.api.crds.apps.SerializedApplicationInstance;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
@@ -54,8 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
@@ -123,16 +116,16 @@ public class KubernetesApplicationStore implements ApplicationStore {
         }
 
         final String namespace = tenantToNamespace(tenant);
-        final String appJson =
-                mapper.writeValueAsString(
-                        new SerializedApplicationInstance(applicationInstance, executionPlan));
+
         ApplicationCustomResource crd = new ApplicationCustomResource();
         crd.setMetadata(
                 new ObjectMetaBuilder().withName(applicationId).withNamespace(namespace).build());
+        final SerializedApplicationInstance serializedApp =
+                new SerializedApplicationInstance(applicationInstance, executionPlan);
         final ApplicationSpec spec =
                 ApplicationSpec.builder()
                         .tenant(tenant)
-                        .application(appJson)
+                        .application(ApplicationSpec.serializeApplication(serializedApp))
                         .codeArchiveId(codeArchiveId)
                         .build();
         log.info(
@@ -251,7 +244,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
         SerializedApplicationInstance serializedApplicationInstanceFromCr =
                 getSerializedApplicationInstanceFromCr(application);
         final Application instance = serializedApplicationInstanceFromCr.toApplicationInstance();
-        final Map<String, AgentRunnerDefinition> agentNodes =
+        final Map<String, SerializedApplicationInstance.AgentRunnerDefinition> agentNodes =
                 serializedApplicationInstanceFromCr.getAgentRunners();
 
         return StoredApplication.builder()
@@ -262,16 +255,14 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .build();
     }
 
-    @SneakyThrows
     private SerializedApplicationInstance getSerializedApplicationInstanceFromCr(
             ApplicationCustomResource application) {
-        return mapper.readValue(
-                application.getSpec().getApplication(), SerializedApplicationInstance.class);
+        return ApplicationSpec.deserializeApplication(application.getSpec().getApplication());
     }
 
     private ApplicationStatus computeApplicationStatus(
             final String applicationId,
-            Map<String, AgentRunnerDefinition> agentRunners,
+            Map<String, SerializedApplicationInstance.AgentRunnerDefinition> agentRunners,
             ApplicationCustomResource customResource,
             boolean queryPods) {
         log.info(
@@ -309,75 +300,6 @@ public class KubernetesApplicationStore implements ApplicationStore {
                         agentRunnerSpecMap,
                         queryPods));
         return result;
-    }
-
-    @Data
-    public static class AgentRunnerDefinition {
-        private String agentId;
-        private String agentType;
-        private String componentType;
-        private Map<String, Object> configuration;
-        private String inputTopic;
-        private String outputTopic;
-    }
-
-    @Data
-    @NoArgsConstructor
-    public static class SerializedApplicationInstance {
-
-        public SerializedApplicationInstance(
-                Application applicationInstance, ExecutionPlan executionPlan) {
-            this.resources = applicationInstance.getResources();
-            this.modules = applicationInstance.getModules();
-            this.instance = applicationInstance.getInstance();
-            this.gateways = applicationInstance.getGateways();
-            this.agentRunners = new HashMap<>();
-            log.info(
-                    "Serializing application instance {} executionPlan {}",
-                    applicationInstance,
-                    executionPlan);
-            if (executionPlan != null && executionPlan.getAgents() != null) {
-                for (Map.Entry<String, AgentNode> entry : executionPlan.getAgents().entrySet()) {
-                    AgentNode agentNode = entry.getValue();
-                    AgentRunnerDefinition agentRunnerDefinition = new AgentRunnerDefinition();
-                    agentRunnerDefinition.setAgentId(agentNode.getId());
-                    agentRunnerDefinition.setAgentType(agentNode.getAgentType());
-                    agentRunnerDefinition.setComponentType(agentNode.getComponentType() + "");
-                    agentRunnerDefinition.setConfiguration(
-                            agentNode.getConfiguration() != null
-                                    ? agentNode.getConfiguration()
-                                    : Map.of());
-                    agentRunners.put(entry.getKey(), agentRunnerDefinition);
-
-                    if (agentNode.getInputConnectionImplementation() instanceof Topic topic) {
-                        agentRunnerDefinition.setInputTopic(topic.topicName());
-                    }
-
-                    if (agentNode.getOutputConnectionImplementation() instanceof Topic topic) {
-                        agentRunnerDefinition.setOutputTopic(topic.topicName());
-                    }
-                }
-            }
-        }
-
-        private Map<String, Resource> resources = new HashMap<>();
-        private Map<String, Module> modules = new HashMap<>();
-        private Instance instance;
-        private Gateways gateways;
-        private Map<String, AgentRunnerDefinition> agentRunners;
-
-        public Application toApplicationInstance() {
-            final Application app = new Application();
-            app.setInstance(instance);
-            app.setModules(modules);
-            app.setResources(resources);
-            app.setGateways(gateways);
-            return app;
-        }
-
-        public Map<String, AgentRunnerDefinition> getAgentRunners() {
-            return agentRunners;
-        }
     }
 
     static String encodeSecret(String value) {

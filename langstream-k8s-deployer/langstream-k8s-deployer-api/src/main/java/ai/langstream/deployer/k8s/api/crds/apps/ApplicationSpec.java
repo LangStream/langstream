@@ -16,15 +16,39 @@
 package ai.langstream.deployer.k8s.api.crds.apps;
 
 import ai.langstream.deployer.k8s.api.crds.NamespacedSpec;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
 
 @Data
 @NoArgsConstructor
 public class ApplicationSpec extends NamespacedSpec {
+
+    private static final ObjectMapper mapper =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    @SneakyThrows
+    public static String serializeApplication(
+            SerializedApplicationInstance serializedApplicationInstance) {
+        return mapper.writeValueAsString(serializedApplicationInstance);
+    }
+
+    @SneakyThrows
+    public static SerializedApplicationInstance deserializeApplication(
+            String serializedApplicationInstance) {
+        return mapper.readValue(serializedApplicationInstance, SerializedApplicationInstance.class);
+    }
+
     @Deprecated private String image;
     @Deprecated private String imagePullPolicy;
+
+    /**
+     * {@link SerializedApplicationInstance} serialized as json. Field as string to simplify future
+     * changes to the SerializedApplicationInstance schema.
+     */
     private String application;
 
     private String codeArchiveId;

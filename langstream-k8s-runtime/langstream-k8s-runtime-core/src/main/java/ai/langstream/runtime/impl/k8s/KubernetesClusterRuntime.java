@@ -199,8 +199,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         agentSpec.setApplicationId(applicationInstance.getApplicationId());
         agentSpec.setResources(
                 new AgentSpec.Resources(
-                        ((DefaultAgentNode) agent).getResourcesSpec().parallelism(),
-                        ((DefaultAgentNode) agent).getResourcesSpec().size()));
+                        agent.getResources().parallelism(), agent.getResources().size()));
         agentSpec.setAgentConfigSecretRef(secretName);
         agentSpec.setCodeArchiveId(codeStorageArchiveId);
         MessageDigest digest = MessageDigest.getInstance("SHA-256");

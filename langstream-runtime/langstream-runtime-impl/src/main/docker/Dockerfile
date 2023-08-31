@@ -19,27 +19,27 @@ FROM ubuntu:22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Install some utilities
+# Setup apt
 RUN echo 'Acquire::http::Timeout "30";\nAcquire::ftp::Timeout "30";\nAcquire::Retries "3";' > /etc/apt/apt.conf.d/99timeout_and_retries \
+     && mkdir -p /etc/apt/keyrings \
+     && wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc \
+     && echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
      && apt-get update \
-     && apt-get -y dist-upgrade \
-     && apt-get -y install --no-install-recommends vim netcat dnsutils less procps net-tools iputils-ping \
+     && apt-get -y dist-upgrade
+
+# Install some utilities
+RUN apt-get -y install --no-install-recommends vim netcat dnsutils less procps net-tools iputils-ping \
                  curl ca-certificates wget apt-transport-https software-properties-common gpg-agent
 
 # Install Python3.11
-RUN apt-get update && add-apt-repository ppa:deadsnakes/ppa \
+RUN add-apt-repository ppa:deadsnakes/ppa \
      && apt-get -y install --no-install-recommends python3.11-full \
      && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
      && python3 -m ensurepip && python3 -m pip install pipenv
 
 
 # Install Eclipse Temurin Package
-RUN mkdir -p /etc/apt/keyrings \
-     && wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc \
-     && echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
-     && apt-get update \
-     && apt-get -y dist-upgrade \
-     && apt-get -y install temurin-17-jdk \
+RUN apt-get -y install temurin-17-jdk \
      && export ARCH=$(uname -m | sed -r 's/aarch64/arm64/g' |  awk '!/arm64/{$0="amd64"}1') \
      && echo networkaddress.cache.ttl=1 >> /usr/lib/jvm/temurin-17-jdk-$ARCH/conf/security/java.security \
 

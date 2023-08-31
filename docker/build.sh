@@ -37,7 +37,7 @@ build_docker_image() {
 
 if [ "$only_image" == "control-plane" ]; then
   build_docker_image langstream-webservice
-elif [ "$only_image" == "operator" ]; then
+elif [ "$only_image" == "operator" ] || [ "$only_image" == "deployer" ]; then
   build_docker_image langstream-k8s-deployer/langstream-k8s-deployer-operator
 elif [ "$only_image" == "runtime" ]; then
   build_docker_image langstream-runtime/langstream-runtime-impl
@@ -50,7 +50,7 @@ else
   ./mvnw install -DskipTests -T 1C -Ddocker.platforms="$(docker_platforms)" -PskipPython
   # Build docker images
   ./mvnw package -DskipTests -Pdocker -T 1C -Ddocker.platforms="$(docker_platforms)" -PskipPython
-  docker images | head -n 5
+  docker images | head -n 6
 fi
 
 

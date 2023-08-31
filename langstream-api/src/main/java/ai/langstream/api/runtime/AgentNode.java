@@ -15,6 +15,7 @@
  */
 package ai.langstream.api.runtime;
 
+import ai.langstream.api.model.ResourcesSpec;
 import java.util.Map;
 
 public interface AgentNode extends ConnectionImplementation {
@@ -35,4 +36,6 @@ public interface AgentNode extends ConnectionImplementation {
     ConnectionImplementation getInputConnectionImplementation();
 
     ConnectionImplementation getOutputConnectionImplementation();
+
+    ResourcesSpec getResources();
 }

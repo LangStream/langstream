@@ -86,4 +86,9 @@ public class DefaultAgentNode implements AgentNode {
     public ConnectionImplementation getOutputConnectionImplementation() {
         return outputConnectionImplementation;
     }
+
+    @Override
+    public ResourcesSpec getResources() {
+        return resourcesSpec;
+    }
 }

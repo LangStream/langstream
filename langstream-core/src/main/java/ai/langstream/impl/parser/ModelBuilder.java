@@ -334,7 +334,20 @@ public class ModelBuilder {
                 AgentConfiguration agentConfiguration = agent.toAgentConfiguration(pipeline);
                 if (agentConfiguration.getType() == null
                         || agentConfiguration.getType().isBlank()) {
-                    throw new IllegalArgumentException("Agent type is always required");
+                    if (agentConfiguration.getId() != null) {
+                        throw new IllegalArgumentException(
+                                "Agent type is always required (check agent id "
+                                        + agentConfiguration.getId()
+                                        + ")");
+                    } else if (agentConfiguration.getName() != null) {
+                        throw new IllegalArgumentException(
+                                "Agent type is always required (check agent name "
+                                        + agentConfiguration.getName()
+                                        + ")");
+                    } else {
+                        throw new IllegalArgumentException(
+                                "Agent type is always required (there is an agent without type, id or name)");
+                    }
                 }
                 ErrorsSpec errorsSpec = validateErrorsSpec(agentConfiguration.getErrors());
                 if (agentConfiguration.getId() == null) {

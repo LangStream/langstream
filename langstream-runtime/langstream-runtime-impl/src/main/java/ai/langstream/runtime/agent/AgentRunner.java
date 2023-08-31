@@ -110,7 +110,8 @@ public class AgentRunner {
             Path codeDirectory,
             Path agentsDirectory,
             AgentInfo agentInfo,
-            int maxLoops)
+            int maxLoops,
+            Runnable beforeStopSource)
             throws Exception {
         new AgentRunner()
                 .run(
@@ -119,7 +120,8 @@ public class AgentRunner {
                         codeDirectory,
                         agentsDirectory,
                         agentInfo,
-                        maxLoops);
+                        maxLoops,
+                        beforeStopSource);
     }
 
     public void run(
@@ -128,7 +130,8 @@ public class AgentRunner {
             Path codeDirectory,
             Path agentsDirectory,
             AgentInfo agentInfo,
-            int maxLoops)
+            int maxLoops,
+            Runnable beforeStopSource)
             throws Exception {
         log.info("Pod Configuration {}", configuration);
 
@@ -168,7 +171,8 @@ public class AgentRunner {
                                 agentId,
                                 topicConnectionsRuntime,
                                 agentCode,
-                                agentInfo);
+                                agentInfo,
+                                beforeStopSource);
                     }
                 } finally {
                     if (server != null) {
@@ -256,7 +260,8 @@ public class AgentRunner {
             String agentId,
             TopicConnectionsRuntime topicConnectionsRuntime,
             AgentCodeAndLoader agentCodeWithLoader,
-            AgentInfo agentInfo)
+            AgentInfo agentInfo,
+            Runnable beforeStopSource)
             throws Exception {
 
         topicConnectionsRuntime.init(configuration.streamingCluster());
@@ -369,10 +374,21 @@ public class AgentRunner {
 
                 runMainLoop(source, mainProcessor, sink, agentContext, errorsHandler, maxLoops);
                 log.info("Main loop ended");
+
             } finally {
                 mainProcessor.close();
+
+                if (beforeStopSource != null) {
+                    // we want to perform validations after stopping the processors
+                    // but without stopping the source (otherwise we cannot see the status of the
+                    // consumers)
+                    beforeStopSource.run();
+                }
+
                 source.close();
                 sink.close();
+
+                log.info("Agent fully stopped");
             }
         }
     }

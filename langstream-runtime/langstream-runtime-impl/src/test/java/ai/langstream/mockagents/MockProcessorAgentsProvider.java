@@ -18,14 +18,14 @@ package ai.langstream.mockagents;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
-import ai.langstream.impl.common.AbstractAgentProvider;
+import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import java.util.List;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class MockProcessorAgentsProvider extends AbstractAgentProvider {
+public class MockProcessorAgentsProvider extends AbstractComposableAgentProvider {
     public MockProcessorAgentsProvider() {
         super(
                 Set.of("mock-failing-processor", "mock-failing-sink", "mock-async-processor"),

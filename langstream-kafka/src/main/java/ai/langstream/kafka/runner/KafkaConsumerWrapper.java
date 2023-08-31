@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -126,6 +127,25 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         Map<String, Object> result = new HashMap<>();
         KafkaConsumer consumer = getConsumer();
         if (consumer != null) {
+            Map<String, Object> committedOffsetsInfo = new HashMap<>();
+            committed.forEach(
+                    (topicPartition, offsetAndMetadata) -> {
+                        committedOffsetsInfo.put(
+                                topicPartition.topic() + "-" + topicPartition.partition(),
+                                offsetAndMetadata.offset());
+                    });
+            result.put("committedOffsets", committedOffsetsInfo);
+
+            Map<String, Object> uncommittedOffsetsInfo = new HashMap<>();
+
+            uncommittedOffsets.forEach(
+                    (topicPartition, offsets) -> {
+                        uncommittedOffsetsInfo.put(
+                                topicPartition.topic() + "-" + topicPartition.partition(),
+                                offsets.size());
+                    });
+            result.put("uncommittedOffsets", uncommittedOffsetsInfo);
+
             result.put(
                     "kafkaConsumerMetrics",
                     KafkaMetricsUtils.metricsToMap(this.consumer.metrics()));
@@ -140,10 +160,12 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
                 log.info("Committing offsets on {}: {}", topicName, committed);
                 consumer.commitSync(committed);
             }
+            int sum = uncommittedOffsets.values().stream().mapToInt(Set::size).sum();
             log.info(
-                    "Closing consumer to {} with {} pending commits",
+                    "Closing consumer to {} with {} pending commits and {} uncommitted offsets",
                     topicName,
-                    pendingCommits.get());
+                    pendingCommits.get(),
+                    sum);
             consumer.close();
         }
     }
@@ -249,10 +271,10 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
                 (map, e) -> {
                     pendingCommits.decrementAndGet();
                     if (e != null) {
-                        log.error("Error committing offsets", e);
+                        log.error("Error committing offsets on topic {}", topicName, e);
                         commitFailure.compareAndSet(null, e);
                     } else {
-                        log.info("Offsets committed: {}", map);
+                        log.debug("Offsets committed: {}", map);
                     }
                 });
     }

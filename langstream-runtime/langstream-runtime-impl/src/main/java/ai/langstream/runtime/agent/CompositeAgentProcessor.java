@@ -155,7 +155,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
                                     new SourceRecordAndResult(
                                             initialSourceRecord,
                                             recordAndResult.resultRecords(),
-                                            null));
+                                            recordAndResult.error()));
                             processed(0, recordAndResult.resultRecords().size());
                             return;
                         }

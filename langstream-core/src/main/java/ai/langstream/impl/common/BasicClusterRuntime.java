@@ -154,6 +154,13 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
                 ConnectionImplementation agent1OutputConnectionImplementation =
                         agent1.getOutputConnectionImplementation();
+                if (agent1OutputConnectionImplementation == null) {
+                    throw new IllegalStateException(
+                            "Invalid agent configuration for ("
+                                    + agent1.getId()
+                                    + "), missing output");
+                }
+                ;
                 if (agent1OutputConnectionImplementation.equals(
                                 agent2.getInputConnectionImplementation())
                         && agent1OutputConnectionImplementation instanceof Topic topic

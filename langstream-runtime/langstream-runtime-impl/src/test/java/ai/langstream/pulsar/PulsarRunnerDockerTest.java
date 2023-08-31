@@ -142,7 +142,8 @@ class PulsarRunnerDockerTest {
                     null,
                     AbstractApplicationRunner.agentsDirectory,
                     new AgentInfo(),
-                    5);
+                    5,
+                    null);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
             Message<byte[]> record = consumer.receive();

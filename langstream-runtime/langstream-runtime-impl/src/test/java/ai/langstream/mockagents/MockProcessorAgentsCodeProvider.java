@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -69,15 +70,22 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
             for (Record record : records) {
                 int delay = random.nextInt(500);
                 int id = idGenerator.incrementAndGet();
-                executorService.schedule(
-                        () -> {
-                            log.info("EXC{} Processing record {}", id, record.value());
-                            recordSink.emit(
-                                    new SourceRecordAndResult(record, List.of(record), null));
-                            log.info("EXC{} Processed record {}", id, record.value());
-                        },
-                        delay,
-                        TimeUnit.MILLISECONDS);
+                try {
+                    executorService.schedule(
+                            () -> {
+                                log.info("EXC{} Processing record {}", id, record.value());
+                                recordSink.emit(
+                                        new SourceRecordAndResult(record, List.of(record), null));
+                                log.info("EXC{} Processed record {}", id, record.value());
+                            },
+                            delay,
+                            TimeUnit.MILLISECONDS);
+                } catch (RejectedExecutionException rejectedExecutionException) {
+                    log.info("EXC{} Rejected processing record {}", id, record.value());
+                    recordSink.emit(
+                            new SourceRecordAndResult(
+                                    record, List.of(record), rejectedExecutionException));
+                }
             }
         }
 
@@ -113,11 +121,13 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
         public List<Record> processRecord(Record record) {
             log.info("Processing record value {}, failOnContent {}", record.value(), failOnContent);
             if (Objects.equals(record.value(), failOnContent)) {
-                throw new RuntimeException("Failing on content: " + failOnContent);
+                throw new InjectedFailure("Failing on content: " + failOnContent);
             }
             if (record.value() instanceof String s) {
-                if (s.contains(failOnContent)) {
-                    throw new RuntimeException("Failing on content: " + failOnContent);
+                if (failOnContent != null
+                        && !failOnContent.isEmpty()
+                        && s.contains(failOnContent)) {
+                    throw new InjectedFailure("Failing on content: " + s);
                 }
             }
             return List.of(record);
@@ -150,16 +160,22 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
                         record.value(),
                         failOnContent);
                 if (Objects.equals(record.value(), failOnContent)) {
-                    throw new RuntimeException("Failing on content: " + failOnContent);
+                    throw new InjectedFailure("Failing on content: " + failOnContent);
                 }
                 if (record.value() instanceof String s) {
                     if (s.contains(failOnContent)) {
-                        throw new RuntimeException("Failing on content: " + failOnContent);
+                        throw new InjectedFailure("Failing on content: " + failOnContent);
                     }
                 }
                 acceptedRecords.add(record);
                 callback.commit(List.of(record));
             }
+        }
+    }
+
+    public static class InjectedFailure extends RuntimeException {
+        public InjectedFailure(String message) {
+            super(message);
         }
     }
 }

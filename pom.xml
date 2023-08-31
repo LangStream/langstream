@@ -680,7 +680,7 @@
         <configuration>
           <tagNameFormat>v@{project.version}</tagNameFormat>
           <autoVersionSubmodules>true</autoVersionSubmodules>
-          <arguments>-DskipTests -DskipPythonPackage</arguments>
+          <arguments>-DskipTests -DskipPythonPackage -PskipPython</arguments>
         </configuration>
       </plugin>
     </plugins>

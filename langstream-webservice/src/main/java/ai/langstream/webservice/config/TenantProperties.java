@@ -37,4 +37,5 @@ public class TenantProperties {
 
     private DefaultTenantProperties defaultTenant;
     private int defaultMaxUnitsPerTenant;
+    private int maxTotalResourceUnitsLimit;
 }

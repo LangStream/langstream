@@ -30,6 +30,8 @@ public interface ApplicationStore extends GenericStore {
 
     void onTenantCreated(String tenant);
 
+    void onTenantUpdated(String tenant);
+
     void onTenantDeleted(String tenant);
 
     void put(

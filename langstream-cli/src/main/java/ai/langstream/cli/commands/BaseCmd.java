@@ -144,6 +144,10 @@ public abstract class BaseCmd implements Runnable {
         command.commandLine().getOut().println(log);
     }
 
+    protected void logNoNewline(Object log) {
+        command.commandLine().getOut().print(log);
+    }
+
     protected void err(Object log) {
         final String error = log.toString();
         if (error.isBlank()) {

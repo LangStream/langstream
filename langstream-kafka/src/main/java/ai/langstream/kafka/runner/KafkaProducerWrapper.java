@@ -95,18 +95,22 @@ class KafkaProducerWrapper implements TopicProducer {
                         copy.get(VALUE_SERIALIZER_CLASS_CONFIG));
         if (!forcedKeySerializer) {
             log.info(
-                    "The Producer is configured without a key serializer, we will use reflection to find the right one");
+                    "The Producer to {} is configured without a key serializer, we will use reflection to find the right one",
+                    topicName);
         } else {
             log.info(
-                    "The Producer is configured with a key serializer: {}",
+                    "The Producer to {} is configured with a key serializer: {}",
+                    topicName,
                     copy.get(KEY_SERIALIZER_CLASS_CONFIG));
         }
         if (!forcedValueSerializer) {
             log.info(
-                    "The Producer is configured without a value serializer, we will use reflection to find the right one");
+                    "The Producer to {} is configured without a value serializer, we will use reflection to find the right one",
+                    topicName);
         } else {
             log.info(
-                    "The Producer is configured with a value serializer: {}",
+                    "The Producer to {} is configured with a value serializer: {}",
+                    topicName,
                     copy.get(VALUE_SERIALIZER_CLASS_CONFIG));
         }
     }

@@ -15,6 +15,8 @@
  */
 package com.datastax.oss.streaming.ai;
 
+import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.safeClone;
+
 import com.datastax.oss.streaming.ai.model.JsonRecord;
 import com.datastax.oss.streaming.ai.model.TransformSchemaType;
 import com.datastax.oss.streaming.ai.util.AvroUtil;
@@ -29,6 +31,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Data;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Conversions;
 import org.apache.avro.Schema;
@@ -56,6 +59,36 @@ public class TransformContext {
     Map<String, Object> customContext = new HashMap<>();
     // only for fn:filter
     private Object recordObject;
+
+    public TransformContext copy() {
+        TransformContext copy = new TransformContext();
+
+        copy.keyObject = safeClone(keyObject);
+        copy.valueObject = safeClone(valueObject);
+
+        copy.properties =
+                properties != null
+                        ? new HashMap<>(properties)
+                        : null; // no need for deep clone here
+        copy.customContext = new HashMap<>(customContext); // no need for deep clone here
+
+        // immutable data structures, they are safe to copy by reference
+        copy.key = key;
+        copy.keySchemaType = keySchemaType;
+        copy.valueSchemaType = valueSchemaType;
+        copy.keyNativeSchema = keyNativeSchema;
+        copy.valueNativeSchema = valueNativeSchema;
+        copy.inputTopic = inputTopic;
+        copy.outputTopic = outputTopic;
+        copy.eventTime = eventTime;
+        copy.dropCurrentRecord = dropCurrentRecord;
+
+        if (recordObject != null) {
+            throw new UnsupportedOperationException(
+                    "Cannot copy a TransformContext with a recordObject");
+        }
+        return copy;
+    }
 
     public void convertMapToStringOrBytes() throws JsonProcessingException {
         if (valueObject instanceof Map) {
@@ -247,7 +280,8 @@ public class TransformContext {
         }
     }
 
-    public static String toJson(Object object) throws JsonProcessingException {
+    @SneakyThrows
+    public static String toJson(Object object) {
         return OBJECT_MAPPER.writeValueAsString(object);
     }
 

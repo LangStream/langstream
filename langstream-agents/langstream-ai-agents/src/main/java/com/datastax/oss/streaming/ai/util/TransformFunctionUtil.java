@@ -19,6 +19,12 @@ import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.ai.openai.models.NonAzureOpenAIKeyCredential;
 import com.azure.core.credential.AzureKeyCredential;
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.HttpHeaders;
+import com.azure.core.http.HttpPipeline;
+import com.azure.core.http.HttpPipelineBuilder;
+import com.azure.core.http.HttpRequest;
+import com.azure.core.http.HttpResponse;
 import com.datastax.oss.streaming.ai.CastStep;
 import com.datastax.oss.streaming.ai.ChatCompletionsStep;
 import com.datastax.oss.streaming.ai.ComputeAIEmbeddingsStep;
@@ -55,19 +61,33 @@ import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.model.config.UnwrapKeyValueConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 public class TransformFunctionUtil {
@@ -89,7 +109,17 @@ public class TransformFunctionUtil {
         }
         if (openAIConfig.getUrl() != null) {
             openAIClientBuilder.endpoint(openAIConfig.getUrl());
+
+            // this is for testing only
+            if (openAIConfig.getUrl().startsWith("http://localhost")) {
+                HttpPipeline httpPipeline =
+                        new HttpPipelineBuilder()
+                                .httpClient(new MockHttpClient(openAIConfig.getAccessKey()))
+                                .build();
+                openAIClientBuilder.pipeline(httpPipeline);
+            }
         }
+
         return openAIClientBuilder.buildClient();
     }
 
@@ -110,60 +140,57 @@ public class TransformFunctionUtil {
         return dataSource;
     }
 
-    public static List<StepPredicatePair> getTransformSteps(
+    public static StepPredicatePair buildStep(
             TransformStepConfig transformConfig,
             ServiceProvider serviceProvider,
-            QueryStepDataSource dataSource)
+            QueryStepDataSource dataSource,
+            ChatCompletionsStep.StreamingAnswersConsumerFactory streamingAnswersConsumerFactory,
+            StepConfig step)
             throws Exception {
         TransformStep transformStep;
-        List<StepPredicatePair> steps = new ArrayList<>();
-        for (StepConfig step : transformConfig.getSteps()) {
-            switch (step.getType()) {
-                case "drop-fields":
-                    transformStep = newRemoveFieldFunction((DropFieldsConfig) step);
-                    break;
-                case "cast":
-                    transformStep =
-                            newCastFunction(
-                                    (CastConfig) step, transformConfig.isAttemptJsonConversion());
-                    break;
-                case "merge-key-value":
-                    transformStep = new MergeKeyValueStep();
-                    break;
-                case "unwrap-key-value":
-                    transformStep = newUnwrapKeyValueFunction((UnwrapKeyValueConfig) step);
-                    break;
-                case "flatten":
-                    transformStep = newFlattenFunction((FlattenConfig) step);
-                    break;
-                case "drop":
-                    transformStep = new DropStep();
-                    break;
-                case "compute":
-                    transformStep = newComputeFieldFunction((ComputeConfig) step);
-                    break;
-                case "compute-ai-embeddings":
-                    transformStep =
-                            newComputeAIEmbeddings(
-                                    (ComputeAIEmbeddingsConfig) step, serviceProvider);
-                    break;
-                case "ai-chat-completions":
-                    transformStep =
-                            newChatCompletionsFunction(
-                                    (ChatCompletionsConfig) step, serviceProvider);
-                    break;
-                case "query":
-                    transformStep = newQuery((QueryConfig) step, dataSource);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Invalid step type: " + step.getType());
-            }
-            steps.add(
-                    new StepPredicatePair(
-                            transformStep,
-                            step.getWhen() == null ? null : new JstlPredicate(step.getWhen())));
+        switch (step.getType()) {
+            case "drop-fields":
+                transformStep = newRemoveFieldFunction((DropFieldsConfig) step);
+                break;
+            case "cast":
+                transformStep =
+                        newCastFunction(
+                                (CastConfig) step, transformConfig.isAttemptJsonConversion());
+                break;
+            case "merge-key-value":
+                transformStep = new MergeKeyValueStep();
+                break;
+            case "unwrap-key-value":
+                transformStep = newUnwrapKeyValueFunction((UnwrapKeyValueConfig) step);
+                break;
+            case "flatten":
+                transformStep = newFlattenFunction((FlattenConfig) step);
+                break;
+            case "drop":
+                transformStep = new DropStep();
+                break;
+            case "compute":
+                transformStep = newComputeFieldFunction((ComputeConfig) step);
+                break;
+            case "compute-ai-embeddings":
+                transformStep =
+                        newComputeAIEmbeddings((ComputeAIEmbeddingsConfig) step, serviceProvider);
+                break;
+            case "ai-chat-completions":
+                transformStep =
+                        newChatCompletionsFunction(
+                                (ChatCompletionsConfig) step,
+                                serviceProvider,
+                                streamingAnswersConsumerFactory);
+                break;
+            case "query":
+                transformStep = newQuery((QueryConfig) step, dataSource);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid step type: " + step.getType());
         }
-        return steps;
+        return new StepPredicatePair(
+                transformStep, step.getWhen() == null ? null : new JstlPredicate(step.getWhen()));
     }
 
     public static DropFieldStep newRemoveFieldFunction(DropFieldsConfig config) {
@@ -265,11 +292,14 @@ public class TransformFunctionUtil {
         return new ObjectMapper().convertValue(map, type);
     }
 
-    public static TransformStep newChatCompletionsFunction(
-            ChatCompletionsConfig config, ServiceProvider serviceProvider) throws Exception {
+    public static ChatCompletionsStep newChatCompletionsFunction(
+            ChatCompletionsConfig config,
+            ServiceProvider serviceProvider,
+            ChatCompletionsStep.StreamingAnswersConsumerFactory streamingAnswersConsumerFactory)
+            throws Exception {
         CompletionsService completionsService =
                 serviceProvider.getCompletionsService(convertToMap(config));
-        return new ChatCompletionsStep(completionsService, config);
+        return new ChatCompletionsStep(completionsService, streamingAnswersConsumerFactory, config);
     }
 
     public static TransformStep newQuery(QueryConfig config, QueryStepDataSource dataSource) {
@@ -298,11 +328,16 @@ public class TransformFunctionUtil {
             TransformContext transformContext, Collection<StepPredicatePair> steps)
             throws Exception {
         for (StepPredicatePair pair : steps) {
-            TransformStep step = pair.getTransformStep();
-            Predicate<TransformContext> predicate = pair.getPredicate();
-            if (predicate == null || predicate.test(transformContext)) {
-                step.process(transformContext);
-            }
+            processStep(transformContext, pair);
+        }
+    }
+
+    public static void processStep(TransformContext transformContext, StepPredicatePair pair)
+            throws Exception {
+        TransformStep step = pair.getTransformStep();
+        Predicate<TransformContext> predicate = pair.getPredicate();
+        if (predicate == null || predicate.test(transformContext)) {
+            step.process(transformContext);
         }
     }
 
@@ -323,28 +358,6 @@ public class TransformFunctionUtil {
         return value;
     }
 
-    public static Double getDouble(String name, Map<String, Object> options) {
-        Object o = options.get(name);
-        if (o == null) {
-            return null;
-        }
-        if (o instanceof Number) {
-            return ((Number) o).doubleValue();
-        }
-        return Double.parseDouble(o.toString());
-    }
-
-    public static Integer getInteger(String name, Map<String, Object> options) {
-        Object o = options.get(name);
-        if (o == null) {
-            return null;
-        }
-        if (o instanceof Number) {
-            return ((Number) o).intValue();
-        }
-        return Integer.parseInt(o.toString());
-    }
-
     public static byte[] getBytes(ByteBuffer byteBuffer) {
         if (byteBuffer == null) {
             return null;
@@ -358,5 +371,169 @@ public class TransformFunctionUtil {
         byte[] array = new byte[byteBuffer.remaining()];
         byteBuffer.get(array);
         return array;
+    }
+
+    public static Object safeClone(Object object) {
+        if (object == null) {
+            return null;
+        }
+        if (object.getClass().isPrimitive()
+                || object instanceof String
+                || object instanceof Number
+                || object instanceof Boolean) {
+            return object;
+        }
+        if (object instanceof Map map) {
+            HashMap<Object, Object> res = new HashMap<>();
+            map.forEach((k, v) -> res.put(safeClone(k), safeClone(v)));
+            return res;
+        }
+        if (object instanceof List list) {
+            List<Object> res = new ArrayList<>();
+            list.forEach(v -> res.add(safeClone(v)));
+            return res;
+        }
+        if (object instanceof Set set) {
+            Set<Object> res = new HashSet<>();
+            set.forEach(v -> res.add(safeClone(v)));
+            return res;
+        }
+        if (object instanceof GenericRecord genericRecord) {
+            return GenericData.get().deepCopy(genericRecord.getSchema(), genericRecord);
+        }
+        if (object instanceof JsonNode jsonNode) {
+            return jsonNode.deepCopy();
+        }
+        throw new UnsupportedOperationException("Cannot copy a value of " + object.getClass());
+    }
+
+    private static class MockHttpClient implements HttpClient {
+
+        private final java.net.http.HttpClient httpClient;
+        private String apiKey;
+
+        @SneakyThrows
+        public MockHttpClient(String apiKey) {
+            this.apiKey = apiKey;
+            SSLContext mockSslContext = SSLContext.getInstance("TLS");
+            TrustManager[] trustManagerArray = {new NullX509TrustManager()};
+            mockSslContext.init(null, trustManagerArray, new SecureRandom());
+            httpClient =
+                    java.net.http.HttpClient.newBuilder()
+                            .sslParameters(mockSslContext.getDefaultSSLParameters())
+                            .sslContext(mockSslContext)
+                            .build();
+        }
+
+        @Override
+        public Mono<HttpResponse> send(HttpRequest httpRequest) {
+            byte[] body = httpRequest.getBodyAsBinaryData().toBytes();
+
+            try {
+                java.net.http.HttpRequest.Builder builder =
+                        java.net.http.HttpRequest.newBuilder()
+                                .uri(httpRequest.getUrl().toURI())
+                                .method(
+                                        httpRequest.getHttpMethod().name(),
+                                        java.net.http.HttpRequest.BodyPublishers.ofByteArray(body));
+
+                httpRequest
+                        .getHeaders()
+                        .forEach(
+                                (header) -> {
+                                    log.info(
+                                            "Proxy header {}: {}",
+                                            header.getName(),
+                                            header.getValue());
+                                    switch (header.getName()) {
+                                        case "Content-Length":
+                                            break;
+                                        default:
+                                            builder.header(header.getName(), header.getValue());
+                                    }
+                                });
+                if (apiKey != null) {
+                    builder.header("api-key", apiKey);
+                }
+                return Mono.fromFuture(
+                        httpClient
+                                .sendAsync(
+                                        builder.build(),
+                                        java.net.http.HttpResponse.BodyHandlers.ofString())
+                                .thenApply(
+                                        (response) -> {
+                                            log.info("Response: {}", response.body());
+                                            return new MyHttpResponse(httpRequest, response);
+                                        }));
+            } catch (Exception e) {
+                return Mono.fromFuture(CompletableFuture.failedFuture(e));
+            }
+        }
+
+        private static class MyHttpResponse extends HttpResponse {
+
+            private java.net.http.HttpResponse<String> response;
+
+            public MyHttpResponse(
+                    HttpRequest httpRequest, java.net.http.HttpResponse<String> response) {
+                super(httpRequest);
+                this.response = response;
+            }
+
+            @Override
+            public int getStatusCode() {
+                return response.statusCode();
+            }
+
+            @Override
+            public String getHeaderValue(String s) {
+                return response.headers().firstValue(s).orElse(null);
+            }
+
+            @Override
+            public HttpHeaders getHeaders() {
+                HttpHeaders result = new HttpHeaders();
+                response.headers().map().forEach((k, v) -> result.set(k, v));
+                return result;
+            }
+
+            @Override
+            public Flux<ByteBuffer> getBody() {
+                ByteBuffer buffer =
+                        ByteBuffer.wrap(response.body().getBytes(StandardCharsets.UTF_8));
+                return Flux.fromIterable(List.of(buffer));
+            }
+
+            @Override
+            public Mono<byte[]> getBodyAsByteArray() {
+                return Mono.fromFuture(
+                        CompletableFuture.completedFuture(
+                                response.body().getBytes(StandardCharsets.UTF_8)));
+            }
+
+            @Override
+            public Mono<String> getBodyAsString() {
+                return Mono.fromFuture(CompletableFuture.completedFuture(response.body()));
+            }
+
+            @Override
+            public Mono<String> getBodyAsString(Charset charset) {
+                return Mono.fromFuture(CompletableFuture.completedFuture(response.body()));
+            }
+        }
+
+        private static class NullX509TrustManager implements X509TrustManager {
+            public void checkClientTrusted(X509Certificate[] chain, String authType) {
+                // do nothing
+            }
+
+            public void checkServerTrusted(X509Certificate[] chain, String authType) {
+                // do nothing
+            }
+
+            public X509Certificate[] getAcceptedIssuers() {
+                return new X509Certificate[0];
+            }
+        }
     }
 }

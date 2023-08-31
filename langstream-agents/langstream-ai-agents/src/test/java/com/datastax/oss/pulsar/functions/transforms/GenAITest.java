@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
+import com.azure.core.util.IterableStream;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import com.datastax.oss.streaming.ai.services.OpenAIServiceProvider;
@@ -196,13 +197,21 @@ public class GenAITest {
                                 + "      'message': {"
                                 + "        'content': 'result',"
                                 + "        'role': 'user'"
-                                + "      }"
+                                + "      },"
+                                + "      'finish_reason': 'stopped'"
                                 + "    }"
                                 + "  ]"
                                 + "}")
                         .replace("'", "\"");
-        when(client.getChatCompletions(eq("test-model"), any()))
-                .thenReturn(new ObjectMapper().readValue(completion, ChatCompletions.class));
+        when(client.getChatCompletionsStream(eq("test-model"), any()))
+                .thenAnswer(
+                        a ->
+                                IterableStream.of(
+                                        List.of(
+                                                new ObjectMapper()
+                                                        .readValue(
+                                                                completion,
+                                                                ChatCompletions.class))));
         when(transformFunction.buildServiceProvider(any()))
                 .thenReturn(new OpenAIServiceProvider(client));
 
@@ -213,7 +222,7 @@ public class GenAITest {
 
         ArgumentCaptor<ChatCompletionsOptions> captor =
                 ArgumentCaptor.forClass(ChatCompletionsOptions.class);
-        verify(client).getChatCompletions(eq("test-model"), captor.capture());
+        verify(client).getChatCompletionsStream(eq("test-model"), captor.capture());
 
         assertEquals(captor.getValue().getMessages().get(0).getContent(), "value1 key2");
     }
@@ -253,13 +262,21 @@ public class GenAITest {
                                 + "      'message': {"
                                 + "        'content': 'result',"
                                 + "        'role': 'user'"
-                                + "      }"
+                                + "      },"
+                                + "      'finish_reason': 'stopped'"
                                 + "    }"
                                 + "  ]"
                                 + "}")
                         .replace("'", "\"");
-        when(client.getChatCompletions(eq("test-model"), any()))
-                .thenReturn(new ObjectMapper().readValue(completion, ChatCompletions.class));
+        when(client.getChatCompletionsStream(eq("test-model"), any()))
+                .thenAnswer(
+                        a ->
+                                IterableStream.of(
+                                        List.of(
+                                                new ObjectMapper()
+                                                        .readValue(
+                                                                completion,
+                                                                ChatCompletions.class))));
         when(transformFunction.buildServiceProvider(any()))
                 .thenReturn(new OpenAIServiceProvider(client));
 
@@ -275,7 +292,7 @@ public class GenAITest {
         assertEquals("result", valueAvroRecord.get("completion").toString());
         assertEquals(
                 valueAvroRecord.get("log").toString(),
-                "{\"options\":{\"max_tokens\":null,\"temperature\":null,\"top_p\":null,\"logit_bias\":null,\"user\":null,\"n\":null,\"stop\":null,\"presence_penalty\":null,\"frequency_penalty\":null,\"stream\":null,\"model\":\"test-model\"},\"messages\":[{\"role\":\"user\",\"content\":\"value1 key2\"}],\"model\":\"test-model\"}");
+                "{\"options\":{\"max_tokens\":null,\"temperature\":null,\"top_p\":null,\"logit_bias\":null,\"user\":null,\"n\":null,\"stop\":null,\"presence_penalty\":null,\"frequency_penalty\":null,\"stream\":true,\"model\":\"test-model\",\"min-chunks-per-message\":20},\"messages\":[{\"role\":\"user\",\"content\":\"value1 key2\"}],\"model\":\"test-model\"}");
     }
 
     @Test

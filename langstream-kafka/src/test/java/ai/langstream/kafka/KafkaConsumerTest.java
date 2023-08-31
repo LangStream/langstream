@@ -71,13 +71,13 @@ class KafkaConsumerTest {
                                 Map.of(
                                         "module.yaml",
                                         """
-                                module: "module-1"
-                                id: "pipeline-1"
-                                topics:
-                                  - name: %s
-                                    creation-mode: create-if-not-exists
-                                    partitions: %d
-                                """
+                                                module: "module-1"
+                                                id: "pipeline-1"
+                                                topics:
+                                                  - name: %s
+                                                    creation-mode: create-if-not-exists
+                                                    partitions: %d
+                                                """
                                                 .formatted(topicName, numPartitions)),
                                 buildInstanceYaml(),
                                 null)
@@ -194,13 +194,13 @@ class KafkaConsumerTest {
                                 Map.of(
                                         "module.yaml",
                                         """
-                                module: "module-1"
-                                id: "pipeline-1"
-                                topics:
-                                  - name: %s
-                                    creation-mode: create-if-not-exists
-                                    partitions: %d
-                                """
+                                                module: "module-1"
+                                                id: "pipeline-1"
+                                                topics:
+                                                  - name: %s
+                                                    creation-mode: create-if-not-exists
+                                                    partitions: %d
+                                                """
                                                 .formatted(topicName, numPartitions)),
                                 buildInstanceYaml(),
                                 null)
@@ -275,6 +275,94 @@ class KafkaConsumerTest {
                                 log.info("Uncommitted offsets for partition {}: {}", tp, set);
                                 assertEquals(0, set.size());
                             });
+        }
+    }
+
+    @Test
+    public void testRestartConsumer() throws Exception {
+        int numPartitions = 1;
+        final AdminClient admin = kafkaContainer.getAdmin();
+        String topicName = "input-topic-restart";
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
+                                                module: "module-1"
+                                                id: "pipeline-1"
+                                                topics:
+                                                  - name: %s
+                                                    creation-mode: create-if-not-exists
+                                                    partitions: %d
+                                                """
+                                                .formatted(topicName, numPartitions)),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
+
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module, Connection.fromTopic(TopicDefinition.fromName(topicName)))
+                        instanceof KafkaTopic);
+
+        deployer.deploy("tenant", implementation, null);
+
+        Set<String> topics = admin.listTopics().names().get();
+        log.info("Topics {}", topics);
+        assertTrue(topics.contains(topicName));
+
+        Map<String, TopicDescription> stats = admin.describeTopics(Set.of(topicName)).all().get();
+        assertEquals(numPartitions, stats.get(topicName).partitions().size());
+
+        deployer.delete("tenant", implementation, null);
+        topics = admin.listTopics().names().get();
+        log.info("Topics {}", topics);
+        assertFalse(topics.contains(topicName));
+
+        StreamingCluster streamingCluster =
+                implementation.getApplication().getInstance().streamingCluster();
+        KafkaTopicConnectionsRuntime runtime = new KafkaTopicConnectionsRuntime();
+        runtime.init(streamingCluster);
+        String agentId = "agent-1";
+        try (TopicProducer producer =
+                runtime.createProducer(agentId, streamingCluster, Map.of("topic", topicName)); ) {
+            producer.start();
+
+            int numIterations = 5;
+            for (int i = 0; i < numIterations; i++) {
+
+                List<String> expected = new ArrayList<>();
+
+                for (int j = 0; j < 5; j++) {
+                    String text = "record" + i + "_" + j;
+                    expected.add(text);
+                    Record record1 = generateRecord(text);
+                    producer.write(List.of(record1));
+                }
+
+                try (KafkaConsumerWrapper consumer =
+                        (KafkaConsumerWrapper)
+                                runtime.createConsumer(
+                                        agentId, streamingCluster, Map.of("topic", topicName))) {
+
+                    consumer.start();
+                    List<Record> readFromConsumer = consumeRecords(consumer, expected.size());
+                    for (int j = 0; j < expected.size(); j++) {
+                        assertEquals(expected.get(j), readFromConsumer.get(j).value());
+                    }
+                    consumer.commit(readFromConsumer);
+                }
+            }
         }
     }
 

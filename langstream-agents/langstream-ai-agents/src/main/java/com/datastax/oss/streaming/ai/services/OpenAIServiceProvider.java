@@ -15,9 +15,9 @@
  */
 package com.datastax.oss.streaming.ai.services;
 
+import ai.langstream.ai.agents.services.impl.OpenAICompletionService;
 import com.azure.ai.openai.OpenAIClient;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
-import com.datastax.oss.streaming.ai.completions.OpenAICompletionService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.embeddings.OpenAIEmbeddingsService;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;

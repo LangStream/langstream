@@ -31,17 +31,16 @@ secrets:
 ```
 
 ## Produce a message
-Since the application opens a gateway, we can use the gateway API to send and consume messages.
-
-```
-session="$(uuidgen)"
-./bin/langstream gateway produce test produce-input -p sessionId="$session" -v "Barack Obama"
-./bin/langstream gateway consume test consume-output -p sessionId="$session"
-```
-
-Another approach to test values is to use gateway `chat` CLI feature:
+Since the application opens a gateway, we can use the gateway API to send and consume messages using the use gateway `chat` feature:
 ```
 ./bin/langstream gateway chat test -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
+```
+
+Responses are streamed to the output-topic. If you want to inspect the history of the raw answers you can
+consume from the history-topic:
+
+```
+./bin/langstream gateway consume test consume-history
 ```
 
 
@@ -52,11 +51,9 @@ In this case there's no need to create a session since the session will be per-u
 
 ```
 google_token=xxx
-./bin/langstream gateway produce test produce-input-auth -c "$google_token" -v "Barack Obama"
+./bin/langstream gateway produce test produce-input-auth -c "$google_token" -v "Who was the Presitent of the US in 19990 ?"
 ./bin/langstream gateway consume test consume-output-auth -c "$google_token"
 ```
-
-
 
 
 

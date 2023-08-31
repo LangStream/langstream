@@ -35,10 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
@@ -76,12 +78,16 @@ import org.slf4j.LoggerFactory;
 @Slf4j
 public class Utils {
 
-    public static <T> Record<T> process(Record<GenericObject> record, TransformStep step)
-            throws Exception {
+    @SneakyThrows
+    public static <T> Record<T> process(Record<GenericObject> record, TransformStep step) {
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
         TransformContext transformContext =
                 newTransformContext(context, record.getValue().getNativeObject());
-        step.process(transformContext);
+        try {
+            step.processAsync(transformContext).get();
+        } catch (ExecutionException error) {
+            throw error.getCause();
+        }
         return send(context, transformContext);
     }
 
@@ -384,6 +390,7 @@ public class Utils {
             Context context, Object value, boolean attemptJsonConversion) {
         Record<?> currentRecord = context.getCurrentRecord();
         TransformContext transformContext = new TransformContext();
+        transformContext.setProperties(new HashMap<>());
         transformContext.setInputTopic(currentRecord.getTopicName().orElse(null));
         transformContext.setOutputTopic(currentRecord.getDestinationTopic().orElse(null));
         transformContext.setKey(currentRecord.getKey().orElse(null));

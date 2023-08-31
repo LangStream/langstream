@@ -71,7 +71,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final Map<String, String> consumeGatewayOptions = Map.of("position", "earliest");
+        final Map<String, String> consumeGatewayOptions = Map.of("position", "latest");
         final String consumePath =
                 validateGatewayAndGetUrl(
                         applicationId,
@@ -143,14 +143,41 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                     @Override
                     @SneakyThrows
                     public void onMessage(String msg) {
-                        waitingConsumeMessage.set(false);
                         try {
                             final Map response = messageMapper.readValue(msg, Map.class);
                             final Map<String, Object> record =
                                     (Map<String, Object>) response.get("record");
-                            logServer("\n");
-                            logServer("Server:");
-                            log(String.valueOf(record.get("value")));
+                            Map<String, String> headers =
+                                    (Map<String, String>) record.get("headers");
+                            boolean isStreamingOutput = false;
+                            boolean isLastMessage = false;
+                            int streamIndex = -1;
+                            if (headers != null) {
+                                String streamLastMessage = headers.get("stream-last-message");
+                                if (streamLastMessage != null) {
+                                    isStreamingOutput = true;
+                                    isLastMessage = Boolean.parseBoolean(streamLastMessage + "");
+                                    streamIndex =
+                                            Integer.parseInt(
+                                                    headers.getOrDefault("stream-index", "-1"));
+                                }
+                            }
+                            if (isStreamingOutput) {
+                                if (streamIndex == 1) {
+                                    logServer("Server:");
+                                }
+                                logNoNewline(String.valueOf(record.get("value")));
+                                if (isLastMessage) {
+                                    logServer("\n");
+                                    logServer(".");
+                                    waitingConsumeMessage.set(false);
+                                }
+                            } else {
+                                logServer("\n");
+                                logServer("Server:");
+                                log(String.valueOf(record.get("value")));
+                                waitingConsumeMessage.set(false);
+                            }
                         } catch (Throwable e) {
                             err("Error consuming message: %s".formatted(msg));
                         }

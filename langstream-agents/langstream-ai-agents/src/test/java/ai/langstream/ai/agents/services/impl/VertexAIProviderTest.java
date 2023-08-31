@@ -156,8 +156,10 @@ class VertexAIProviderTest {
                                 3.0));
         ChatCompletions chatCompletions =
                 service.getChatCompletions(
-                        List.of(new ChatMessage("user").setContent("What is a car?")),
-                        Map.of("max_tokens", 3));
+                                List.of(new ChatMessage("user").setContent("What is a car?")),
+                                null,
+                                Map.of("max_tokens", 3))
+                        .get();
         log.info("result: {}", chatCompletions);
         assertEquals(
                 "A car is a wheeled, self-propelled motor vehicle used for transportation.",

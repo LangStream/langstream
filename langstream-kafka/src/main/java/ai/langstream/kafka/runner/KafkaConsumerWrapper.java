@@ -42,6 +42,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
     private final String topicName;
     private final AtomicInteger totalOut = new AtomicInteger();
     KafkaConsumer consumer;
+    private boolean commitEverCalled;
 
     final AtomicInteger pendingCommits = new AtomicInteger(0);
     final AtomicReference<Throwable> commitFailure = new AtomicReference();
@@ -68,6 +69,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
     public synchronized void start() {
         consumer = new KafkaConsumer(configuration);
         if (topicName != null) {
+            log.info("Subscribing consumer to {}", topicName);
             consumer.subscribe(List.of(topicName), this);
         }
     }
@@ -133,9 +135,15 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
 
     @Override
     public synchronized void close() {
-        log.info("Closing consumer to {} with {} pending commits", topicName, pendingCommits.get());
-
         if (consumer != null) {
+            if (topicName != null && commitEverCalled) {
+                log.info("Committing offsets on {}: {}", topicName, committed);
+                consumer.commitSync(committed);
+            }
+            log.info(
+                    "Closing consumer to {} with {} pending commits",
+                    topicName,
+                    pendingCommits.get());
             consumer.close();
         }
     }
@@ -149,6 +157,17 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(1));
         List<Record> result = new ArrayList<>(poll.count());
         for (ConsumerRecord<?, ?> record : poll) {
+            TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
+            OffsetAndMetadata offsetAndMetadata = committed.get(topicPartition);
+            if (offsetAndMetadata != null) {
+                if (offsetAndMetadata.offset() >= record.offset()) {
+                    log.warn(
+                            "Skipping message {} on partition {} because it has been already processed",
+                            record,
+                            topicPartition);
+                    continue;
+                }
+            }
             result.add(KafkaRecord.fromKafkaConsumerRecord(record));
         }
         if (!result.isEmpty()) {
@@ -174,6 +193,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
      */
     @Override
     public synchronized void commit(List<Record> records) {
+        commitEverCalled = true;
         for (Record record : records) {
             KafkaRecord.KafkaConsumerOffsetProvider kafkaRecord =
                     (KafkaRecord.KafkaConsumerOffsetProvider) record;
@@ -223,6 +243,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         }
 
         pendingCommits.incrementAndGet();
+
         consumer.commitAsync(
                 committed,
                 (map, e) -> {

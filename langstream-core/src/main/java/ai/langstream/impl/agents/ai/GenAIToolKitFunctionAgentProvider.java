@@ -20,6 +20,7 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.Resource;
+import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -46,7 +47,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                         Map<String, Object> originalConfiguration,
                                         AgentConfiguration agentConfiguration,
                                         DataSourceConfigurationGenerator
-                                                dataSourceConfigurationGenerator) {
+                                                dataSourceConfigurationGenerator,
+                                        TopicConfigurationGenerator topicConfigurationGenerator) {
                                     requiredField(
                                             step,
                                             agentConfiguration,
@@ -69,7 +71,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                         Map<String, Object> originalConfiguration,
                                         AgentConfiguration agentConfiguration,
                                         DataSourceConfigurationGenerator
-                                                dataSourceConfigurationGenerator) {
+                                                dataSourceConfigurationGenerator,
+                                        TopicConfigurationGenerator topicConfigurationGenerator) {
                                     optionalField(
                                             step,
                                             agentConfiguration,
@@ -86,7 +89,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                         Map<String, Object> originalConfiguration,
                                         AgentConfiguration agentConfiguration,
                                         DataSourceConfigurationGenerator
-                                                dataSourceConfigurationGenerator) {
+                                                dataSourceConfigurationGenerator,
+                                        TopicConfigurationGenerator topicConfigurationGenerator) {
                                     requiredField(
                                             step,
                                             agentConfiguration,
@@ -108,7 +112,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                         Map<String, Object> originalConfiguration,
                                         AgentConfiguration agentConfiguration,
                                         DataSourceConfigurationGenerator
-                                                dataSourceConfigurationGenerator) {
+                                                dataSourceConfigurationGenerator,
+                                        TopicConfigurationGenerator topicConfigurationGenerator) {
                                     optionalField(
                                             step,
                                             agentConfiguration,
@@ -132,7 +137,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                         Map<String, Object> originalConfiguration,
                                         AgentConfiguration agentConfiguration,
                                         DataSourceConfigurationGenerator
-                                                dataSourceConfigurationGenerator) {
+                                                dataSourceConfigurationGenerator,
+                                        TopicConfigurationGenerator topicConfigurationGenerator) {
                                     requiredField(
                                             step,
                                             agentConfiguration,
@@ -148,7 +154,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                         Map<String, Object> originalConfiguration,
                                         AgentConfiguration agentConfiguration,
                                         DataSourceConfigurationGenerator
-                                                dataSourceConfigurationGenerator) {
+                                                dataSourceConfigurationGenerator,
+                                        TopicConfigurationGenerator topicConfigurationGenerator) {
                                     optionalField(
                                             step,
                                             agentConfiguration,
@@ -175,7 +182,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                         Map<String, Object> originalConfiguration,
                                         AgentConfiguration agentConfiguration,
                                         DataSourceConfigurationGenerator
-                                                dataSourceConfigurationGenerator) {
+                                                dataSourceConfigurationGenerator,
+                                        TopicConfigurationGenerator topicConfigurationGenerator) {
 
                                     // reference to datasource
                                     String datasource =
@@ -220,26 +228,47 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                 @Override
                                 public void generateSteps(
                                         Map<String, Object> step,
-                                        Map<String, Object> originalConfiguration,
+                                        Map<String, Object> newConfiguration,
                                         AgentConfiguration agentConfiguration,
                                         DataSourceConfigurationGenerator
-                                                dataSourceConfigurationGenerator) {
+                                                dataSourceConfigurationGenerator,
+                                        TopicConfigurationGenerator topicConfigurationGenerator) {
                                     requiredField(
                                             step,
                                             agentConfiguration,
-                                            originalConfiguration,
+                                            newConfiguration,
                                             "completion-field");
                                     optionalField(
                                             step,
                                             agentConfiguration,
-                                            originalConfiguration,
+                                            newConfiguration,
                                             "log-field",
                                             null);
+                                    optionalField(
+                                            step,
+                                            agentConfiguration,
+                                            newConfiguration,
+                                            "min-chunks-per-message",
+                                            null);
+                                    String streamTopic =
+                                            optionalField(
+                                                    step,
+                                                    agentConfiguration,
+                                                    newConfiguration,
+                                                    "stream-to-topic",
+                                                    null);
+                                    if (streamTopic != null) {
+                                        Map<String, Object> topicConfiguration =
+                                                topicConfigurationGenerator
+                                                        .generateTopicConfiguration(streamTopic);
+                                        newConfiguration.put(
+                                                "streamTopicConfiguration", topicConfiguration);
+                                    }
                                     Object messages =
                                             requiredField(
                                                     step,
                                                     agentConfiguration,
-                                                    originalConfiguration,
+                                                    newConfiguration,
                                                     "messages");
                                     if (messages instanceof Collection<?> collection) {
                                         for (Object o : collection) {
@@ -264,56 +293,53 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                                 "messages must be a list of objects: [{role: 'user', content: 'template'}]");
                                     }
                                     requiredField(
-                                            step,
-                                            agentConfiguration,
-                                            originalConfiguration,
-                                            "model");
+                                            step, agentConfiguration, newConfiguration, "model");
                                     optionalField(
                                             step,
                                             agentConfiguration,
-                                            originalConfiguration,
+                                            newConfiguration,
                                             "temperature",
                                             null);
                                     optionalField(
                                             step,
                                             agentConfiguration,
-                                            originalConfiguration,
+                                            newConfiguration,
                                             "top-p",
                                             null);
                                     optionalField(
                                             step,
                                             agentConfiguration,
-                                            originalConfiguration,
+                                            newConfiguration,
                                             "logit-bias",
                                             null);
                                     optionalField(
                                             step,
                                             agentConfiguration,
-                                            originalConfiguration,
+                                            newConfiguration,
                                             "stop",
                                             null);
                                     optionalField(
                                             step,
                                             agentConfiguration,
-                                            originalConfiguration,
+                                            newConfiguration,
                                             "max-tokens",
                                             null);
                                     optionalField(
                                             step,
                                             agentConfiguration,
-                                            originalConfiguration,
+                                            newConfiguration,
                                             "presence-penalty",
                                             null);
                                     optionalField(
                                             step,
                                             agentConfiguration,
-                                            originalConfiguration,
+                                            newConfiguration,
                                             "frequency-penalty",
                                             null);
                                     optionalField(
                                             step,
                                             agentConfiguration,
-                                            originalConfiguration,
+                                            newConfiguration,
                                             "user",
                                             null);
                                 }
@@ -328,15 +354,21 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         return ComponentType.PROCESSOR;
     }
 
+    interface TopicConfigurationGenerator {
+        Map<String, Object> generateTopicConfiguration(String topicName);
+    }
+
     private interface StepConfigurationInitializer {
         default void generateSteps(
                 Map<String, Object> step,
                 Map<String, Object> originalConfiguration,
                 AgentConfiguration agentConfiguration,
-                DataSourceConfigurationGenerator dataSourceConfigurationGenerator) {}
+                DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
+                TopicConfigurationGenerator topicConfigurationGenerator) {}
     }
 
     protected void generateSteps(
+            Module module,
             Map<String, Object> originalConfiguration,
             Map<String, Object> configuration,
             Application application,
@@ -355,13 +387,20 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                 (resourceId) ->
                         generateDataSourceConfiguration(resourceId, application, configuration);
 
+        TopicConfigurationGenerator topicConfigurationGenerator =
+                (topicName) -> {
+                    TopicDefinition topicDefinition = module.resolveTopic(topicName);
+                    return topicDefinition.getConfig();
+                };
+
         STEP_TYPES
                 .get(agentConfiguration.getType())
                 .generateSteps(
                         step,
                         originalConfiguration,
                         agentConfiguration,
-                        dataSourceConfigurationInjector);
+                        dataSourceConfigurationInjector,
+                        topicConfigurationGenerator);
         steps.add(step);
     }
 
@@ -431,6 +470,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         generateAIProvidersConfiguration(executionPlan.getApplication(), configuration);
 
         generateSteps(
+                module,
                 originalConfiguration,
                 configuration,
                 executionPlan.getApplication(),
@@ -441,9 +481,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
     protected static <T> T requiredField(
             Map<String, Object> step,
             AgentConfiguration agentConfiguration,
-            Map<String, Object> originalConfiguration,
+            Map<String, Object> newConfiguration,
             String name) {
-        if (!originalConfiguration.containsKey(name)) {
+        if (!newConfiguration.containsKey(name)) {
             throw new IllegalArgumentException(
                     "Missing required field '"
                             + name
@@ -454,23 +494,25 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                             + ", id="
                             + agentConfiguration.getId());
         }
-        Object value = originalConfiguration.get(name);
+        Object value = newConfiguration.get(name);
         step.put(name, value);
         return (T) value;
     }
 
-    protected static void optionalField(
+    protected static <T> T optionalField(
             Map<String, Object> step,
             AgentConfiguration agentConfiguration,
-            Map<String, Object> originalConfiguration,
+            Map<String, Object> newConfiguration,
             String name,
             Object defaultValue) {
-        if (!originalConfiguration.containsKey(name)) {
+        if (!newConfiguration.containsKey(name)) {
             if (defaultValue != null) {
                 step.put(name, defaultValue);
             }
+            return (T) defaultValue;
         } else {
-            step.put(name, originalConfiguration.get(name));
+            step.put(name, newConfiguration.get(name));
+            return (T) newConfiguration.get(name);
         }
     }
 }

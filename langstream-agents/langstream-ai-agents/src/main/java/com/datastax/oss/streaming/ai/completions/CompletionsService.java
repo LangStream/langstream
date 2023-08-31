@@ -17,7 +17,15 @@ package com.datastax.oss.streaming.ai.completions;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public interface CompletionsService {
-    ChatCompletions getChatCompletions(List<ChatMessage> message, Map<String, Object> options);
+    CompletableFuture<ChatCompletions> getChatCompletions(
+            List<ChatMessage> message,
+            StreamingChunksConsumer streamingChunksConsumer,
+            Map<String, Object> options);
+
+    interface StreamingChunksConsumer {
+        void consumeChunk(String answerId, int index, ChatChoice chunk, boolean last);
+    }
 }

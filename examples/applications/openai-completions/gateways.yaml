@@ -37,6 +37,10 @@ gateways:
           - key: langstream-client-session-id
             valueFromParameters: sessionId
 
+  - id: consume-history
+    type: consume
+    topic: history-topic
+
   - id: produce-input-auth
     type: produce
     topic: input-topic

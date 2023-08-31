@@ -76,9 +76,38 @@ public class ConfigurationUtils {
         }
     }
 
+    public static Integer getInteger(
+            String key, Integer defaultValue, Map<String, Object> configuration) {
+        Object value = configuration.getOrDefault(key, defaultValue);
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Number n) {
+            return n.intValue();
+        } else {
+            return Integer.parseInt(value.toString());
+        }
+    }
+
+    public static Double getDouble(
+            String key, Double defaultValue, Map<String, Object> configuration) {
+        Object value = configuration.getOrDefault(key, defaultValue);
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Number n) {
+            return n.doubleValue();
+        } else {
+            return Double.parseDouble(value.toString());
+        }
+    }
+
     public static boolean getBoolean(
             String key, boolean defaultValue, Map<String, Object> configuration) {
         Object value = configuration.getOrDefault(key, defaultValue);
+        if (value == null) {
+            return defaultValue;
+        }
         if (value instanceof Boolean n) {
             return n.booleanValue();
         } else {

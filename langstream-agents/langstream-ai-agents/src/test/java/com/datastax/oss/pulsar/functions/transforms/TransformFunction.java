@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.pulsar.functions.transforms;
 
-import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.getTransformSteps;
+import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.buildStep;
 
 import com.datastax.oss.streaming.ai.JsonNodeSchema;
 import com.datastax.oss.streaming.ai.TransformContext;
@@ -24,6 +24,7 @@ import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
 import com.datastax.oss.streaming.ai.model.TransformSchemaType;
 import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
+import com.datastax.oss.streaming.ai.model.config.StepConfig;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.services.HuggingFaceServiceProvider;
 import com.datastax.oss.streaming.ai.services.OpenAIServiceProvider;
@@ -41,6 +42,7 @@ import com.networknt.schema.urn.URNFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -222,6 +224,22 @@ public class TransformFunction
         dataSource = buildDataSource(transformConfig.getDatasource());
 
         steps = getTransformSteps(transformConfig, serviceProvider, dataSource);
+
+        for (StepPredicatePair pair : steps) {
+            pair.getTransformStep().start();
+        }
+    }
+
+    public static List<StepPredicatePair> getTransformSteps(
+            TransformStepConfig transformConfig,
+            ServiceProvider serviceProvider,
+            QueryStepDataSource dataSource)
+            throws Exception {
+        List<StepPredicatePair> steps = new ArrayList<>();
+        for (StepConfig step : transformConfig.getSteps()) {
+            steps.add(buildStep(transformConfig, serviceProvider, dataSource, null, step));
+        }
+        return steps;
     }
 
     @Override
@@ -261,6 +279,7 @@ public class TransformFunction
             Context context, Object value, boolean attemptJsonConversion) {
         Record<?> currentRecord = context.getCurrentRecord();
         TransformContext transformContext = new TransformContext();
+        transformContext.setProperties(new HashMap<>());
         transformContext.setInputTopic(currentRecord.getTopicName().orElse(null));
         transformContext.setOutputTopic(currentRecord.getDestinationTopic().orElse(null));
         transformContext.setKey(currentRecord.getKey().orElse(null));

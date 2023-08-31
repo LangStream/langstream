@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
@@ -201,15 +202,16 @@ public class VertexAIProvider implements ServiceProviderProvider {
             return new VertexAIEmbeddingsService(model);
         }
 
-        private <R, T> T executeVertexCall(R requestEmbeddings, Class<T> responseType, String model)
+        private <R, T> CompletableFuture<T> executeVertexCall(
+                R requestEmbeddings, Class<T> responseType, String model)
                 throws IOException, InterruptedException {
             String finalUrl = VERTEX_URL_TEMPLATE.formatted(url, project, region, model);
             String request = MAPPER.writeValueAsString(requestEmbeddings);
             log.info("URL: {}", finalUrl);
             log.info("Request: {}", request);
 
-            HttpResponse<String> response =
-                    httpClient.send(
+            CompletableFuture<HttpResponse<String>> responseHandle =
+                    httpClient.sendAsync(
                             HttpRequest.newBuilder()
                                     .uri(URI.create(finalUrl))
                                     .header("Authorization", "Bearer " + getCurrentToken())
@@ -218,9 +220,10 @@ public class VertexAIProvider implements ServiceProviderProvider {
                                     .build(),
                             HttpResponse.BodyHandlers.ofString());
 
-            String body = response.body();
-            log.info("Response: {}", body);
-            return MAPPER.readValue(body, responseType);
+            return responseHandle.thenApply(
+                    response -> {
+                        return handleResponse(responseType, response);
+                    });
         }
 
         @Override
@@ -235,8 +238,10 @@ public class VertexAIProvider implements ServiceProviderProvider {
 
             @Override
             @SneakyThrows
-            public ChatCompletions getChatCompletions(
-                    List<ChatMessage> list, Map<String, Object> additionalConfiguration) {
+            public CompletableFuture<ChatCompletions> getChatCompletions(
+                    List<ChatMessage> list,
+                    StreamingChunksConsumer streamingChunksConsumer,
+                    Map<String, Object> additionalConfiguration) {
                 // https://cloud.google.com/vertex-ai/docs/generative-ai/chat/chat-prompts
                 CompletionRequest request = new CompletionRequest();
                 CompletionRequest.Instance instance = new CompletionRequest.Instance();
@@ -272,29 +277,40 @@ public class VertexAIProvider implements ServiceProviderProvider {
                                         })
                                 .collect(Collectors.toList());
 
-                Predictions predictions = executeVertexCall(request, Predictions.class, model);
-                ChatCompletions completions = new ChatCompletions();
-                completions.setChoices(
-                        predictions.predictions.stream()
-                                .map(
-                                        p -> {
-                                            if (!p.candidates.isEmpty()) {
-                                                ChatChoice completion = new ChatChoice();
-                                                completion.setMessage(
-                                                        new ChatMessage(p.candidates.get(0).author)
-                                                                .setContent(
-                                                                        p.candidates.get(0)
-                                                                                .content));
-                                                return completion;
-                                            } else {
-                                                ChatChoice completion = new ChatChoice();
-                                                completion.setMessage(
-                                                        new ChatMessage("").setContent(""));
-                                                return completion;
-                                            }
-                                        })
-                                .collect(Collectors.toList()));
-                return completions;
+                CompletableFuture<Predictions> predictionsResult =
+                        executeVertexCall(request, Predictions.class, model);
+                return predictionsResult.thenApply(
+                        predictions -> {
+                            ChatCompletions completions = new ChatCompletions();
+                            completions.setChoices(
+                                    predictions.predictions.stream()
+                                            .map(
+                                                    p -> {
+                                                        if (!p.candidates.isEmpty()) {
+                                                            ChatChoice completion =
+                                                                    new ChatChoice();
+                                                            completion.setMessage(
+                                                                    new ChatMessage(
+                                                                                    p.candidates
+                                                                                            .get(0)
+                                                                                            .author)
+                                                                            .setContent(
+                                                                                    p.candidates
+                                                                                            .get(0)
+                                                                                            .content));
+                                                            return completion;
+                                                        } else {
+                                                            ChatChoice completion =
+                                                                    new ChatChoice();
+                                                            completion.setMessage(
+                                                                    new ChatMessage("")
+                                                                            .setContent(""));
+                                                            return completion;
+                                                        }
+                                                    })
+                                            .collect(Collectors.toList()));
+                            return completions;
+                        });
             }
 
             @Data
@@ -355,7 +371,7 @@ public class VertexAIProvider implements ServiceProviderProvider {
                 // https://cloud.google.com/vertex-ai/docs/generative-ai/embeddings/get-text-embeddings#generative-ai-get-text-embedding-drest
                 RequestEmbeddings requestEmbeddings = new RequestEmbeddings(list);
                 Predictions predictions =
-                        executeVertexCall(requestEmbeddings, Predictions.class, model);
+                        executeVertexCall(requestEmbeddings, Predictions.class, model).get();
                 return predictions.predictions.stream()
                         .map(p -> p.embeddings.values)
                         .collect(Collectors.toList());
@@ -393,5 +409,12 @@ public class VertexAIProvider implements ServiceProviderProvider {
                 }
             }
         }
+    }
+
+    @SneakyThrows
+    private static <T> T handleResponse(Class<T> responseType, HttpResponse<String> response) {
+        String body = response.body();
+        log.info("Response: {}", body);
+        return MAPPER.readValue(body, responseType);
     }
 }

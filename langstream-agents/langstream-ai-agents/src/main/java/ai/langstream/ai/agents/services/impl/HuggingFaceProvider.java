@@ -37,6 +37,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
@@ -162,8 +163,10 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
 
             @Override
             @SneakyThrows
-            public ChatCompletions getChatCompletions(
-                    List<ChatMessage> list, Map<String, Object> map) {
+            public CompletableFuture<ChatCompletions> getChatCompletions(
+                    List<ChatMessage> list,
+                    StreamingChunksConsumer streamingChunksConsumer,
+                    Map<String, Object> map) {
 
                 String model = (String) map.get("model");
                 // https://huggingface.co/docs/api-inference/quicktour
@@ -176,8 +179,8 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                                         .collect(Collectors.toList()));
                 log.info("URL: {}", finalUrl);
                 log.info("Request: {}", request);
-                HttpResponse<String> response =
-                        httpClient.send(
+                CompletableFuture<HttpResponse<String>> responseHandle =
+                        httpClient.sendAsync(
                                 HttpRequest.newBuilder()
                                         .uri(URI.create(finalUrl))
                                         .header("Authorization", "Bearer " + accessKey)
@@ -185,8 +188,19 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                                         .POST(HttpRequest.BodyPublishers.ofString(request))
                                         .build(),
                                 HttpResponse.BodyHandlers.ofString());
+                return responseHandle.thenApply(
+                        response -> {
+                            ChatCompletions result = convertResponse(response);
+                            return result;
+                        });
+            }
+
+            @SneakyThrows
+            private static ChatCompletions convertResponse(HttpResponse<String> response) {
                 String body = response.body();
-                log.info("Response: {}", body);
+                if (log.isDebugEnabled()) {
+                    log.debug("Response: {}", body);
+                }
                 List<ResponseBean> responseBeans = MAPPER.readValue(body, new TypeReference<>() {});
                 ChatCompletions result = new ChatCompletions();
                 result.setChoices(

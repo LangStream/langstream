@@ -17,13 +17,22 @@ package ai.langstream.ai.agents;
 
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.ai.agents.services.ServiceProviderRegistry;
+import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentContext;
+import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
+import ai.langstream.api.runner.code.RecordSink;
+import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runtime.ComponentType;
+import com.datastax.oss.streaming.ai.ChatCompletionsStep;
 import com.datastax.oss.streaming.ai.TransformContext;
+import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
 import com.datastax.oss.streaming.ai.model.TransformSchemaType;
+import com.datastax.oss.streaming.ai.model.config.StepConfig;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
@@ -43,22 +52,56 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.generic.GenericRecord;
 
 @Slf4j
-public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
+public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private List<StepPredicatePair> steps;
+    private StepPredicatePair step;
     private TransformStepConfig config;
     private QueryStepDataSource dataSource;
     private ServiceProvider serviceProvider;
+    private AgentContext agentContext;
+
+    private TopicProducerStreamingAnswersConsumerFactory streamingAnswersConsumerFactory;
 
     @Override
-    public List<Record> processRecord(Record record) throws Exception {
+    public ComponentType componentType() {
+        return ComponentType.PROCESSOR;
+    }
+
+    @Override
+    public void setContext(AgentContext context) {
+        this.agentContext = context;
+    }
+
+    @Override
+    public void process(List<Record> records, RecordSink recordSink) {
+        for (Record record : records) {
+            processed(1, 0);
+            CompletableFuture<List<Record>> process = processRecord(record);
+            process.whenComplete(
+                    (resultRecords, e) -> {
+                        if (e != null) {
+                            log.error("Error processing record: {}", record, e);
+                            recordSink.emit(new SourceRecordAndResult(record, null, e));
+                        } else {
+                            processed(1, records.size());
+                            recordSink.emit(new SourceRecordAndResult(record, resultRecords, null));
+                        }
+                    });
+        }
+    }
+
+    public CompletableFuture<List<Record>> processRecord(Record record) {
+
         log.info("Processing {}", record);
         if (log.isDebugEnabled()) {
             log.debug("Processing {}", record);
@@ -66,11 +109,30 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         TransformContext context =
                 recordToTransformContext(record, config.isAttemptJsonConversion());
 
-        TransformFunctionUtil.processTransformSteps(context, steps);
-        context.convertMapToStringOrBytes();
-        Optional<Record> recordResult = transformContextToRecord(context, record.headers());
-        log.info("Result {}", recordResult);
-        return recordResult.map(List::of).orElseGet(List::of);
+        CompletableFuture<?> handle = processStep(context, step);
+        return handle.thenApply(
+                ___ -> {
+                    try {
+                        context.convertMapToStringOrBytes();
+                        Optional<Record> recordResult = transformContextToRecord(context);
+                        log.info("Result {}", recordResult);
+                        return recordResult.map(List::of).orElseGet(List::of);
+                    } catch (Exception e) {
+                        log.error("Error processing record: {}", record, e);
+                        throw new CompletionException(e);
+                    }
+                });
+    }
+
+    private static CompletableFuture<?> processStep(
+            TransformContext transformContext, StepPredicatePair pair) {
+        TransformStep step = pair.getTransformStep();
+        Predicate<TransformContext> predicate = pair.getPredicate();
+        if (predicate == null || predicate.test(transformContext)) {
+            return step.processAsync(transformContext);
+        } else {
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     @Override
@@ -86,7 +148,24 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         configuration.remove("vertex");
         config = MAPPER.convertValue(configuration, TransformStepConfig.class);
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
-        steps = TransformFunctionUtil.getTransformSteps(config, serviceProvider, dataSource);
+        streamingAnswersConsumerFactory = new TopicProducerStreamingAnswersConsumerFactory();
+        List<StepConfig> stepsConfig = config.getSteps();
+        if (stepsConfig.size() != 1) {
+            throw new IllegalArgumentException("Only one step is supported");
+        }
+        step =
+                TransformFunctionUtil.buildStep(
+                        config,
+                        serviceProvider,
+                        dataSource,
+                        streamingAnswersConsumerFactory,
+                        stepsConfig.get(0));
+    }
+
+    @Override
+    public void start() throws Exception {
+        streamingAnswersConsumerFactory.setAgentContext(agentContext);
+        step.getTransformStep().start();
     }
 
     @Override
@@ -94,8 +173,8 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         if (dataSource != null) {
             dataSource.close();
         }
-        for (StepPredicatePair pair : steps) {
-            pair.getTransformStep().close();
+        if (step != null) {
+            step.getTransformStep().close();
         }
         if (serviceProvider != null) {
             serviceProvider.close();
@@ -148,11 +227,18 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
         return context;
     }
 
-    public static Optional<Record> transformContextToRecord(
-            TransformContext context, Collection<Header> headers) {
+    public static Optional<Record> transformContextToRecord(TransformContext context) {
         if (context.isDropCurrentRecord()) {
             return Optional.empty();
         }
+        List<Header> headers = new ArrayList<>();
+        context.getProperties()
+                .forEach(
+                        (key, value) -> {
+                            SimpleRecord.SimpleHeader header =
+                                    new SimpleRecord.SimpleHeader(key, value);
+                            headers.add(header);
+                        });
         return Optional.of(new TransformRecord(context, headers));
     }
 
@@ -242,5 +328,56 @@ public class GenAIToolKitAgent extends SingleRecordAgentProcessor {
             return TransformSchemaType.JSON;
         }
         throw new IllegalArgumentException("Unsupported data type: " + javaType);
+    }
+
+    private static class TopicProducerStreamingAnswersConsumerFactory
+            implements ChatCompletionsStep.StreamingAnswersConsumerFactory {
+        private AgentContext agentContext;
+
+        public TopicProducerStreamingAnswersConsumerFactory() {}
+
+        @Override
+        public ChatCompletionsStep.StreamingAnswersConsumer create(String topicName) {
+            TopicProducer topicProducer =
+                    agentContext
+                            .getTopicConnectionProvider()
+                            .createProducer(
+                                    agentContext.getGlobalAgentId(), Map.of("topic", topicName));
+            topicProducer.start();
+            return new TopicStreamingAnswersConsumer(topicProducer);
+        }
+
+        public void setAgentContext(AgentContext agentContext) {
+            this.agentContext = agentContext;
+        }
+    }
+
+    private static class TopicStreamingAnswersConsumer
+            implements ChatCompletionsStep.StreamingAnswersConsumer {
+        private TopicProducer topicProducer;
+
+        public TopicStreamingAnswersConsumer(TopicProducer topicProducer) {
+            this.topicProducer = topicProducer;
+        }
+
+        @Override
+        public void streamAnswerChunk(
+                int index, String message, boolean last, TransformContext outputMessage) {
+            Optional<Record> record = transformContextToRecord(outputMessage);
+            if (record.isPresent()) {
+                log.info(
+                        "index: {}, message: {}, last: {}: record {}",
+                        index,
+                        message,
+                        last,
+                        record);
+                topicProducer.write(List.of(record.get()));
+            }
+        }
+
+        @Override
+        public void close() {
+            topicProducer.close();
+        }
     }
 }

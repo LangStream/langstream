@@ -147,7 +147,7 @@ public class WebCrawler {
                                     if (configuration.isAllowedUrl(url)) {
                                         status.addUrl(url, true);
                                     } else {
-                                        log.info("Ignoring not allowed url: {}", url);
+                                        log.debug("Ignoring not allowed url: {}", url);
                                         status.addUrl(url, false);
                                     }
                                 }

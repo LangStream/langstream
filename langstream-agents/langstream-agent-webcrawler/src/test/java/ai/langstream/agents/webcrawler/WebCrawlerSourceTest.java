@@ -79,26 +79,31 @@ public class WebCrawlerSourceTest {
         String url = "https://docs.langstream.ai/";
         String allowed = "https://docs.langstream.ai/";
 
-        // perform multiple iterations, in order to see the recovery mechanism in action
-        for (int i = 0; i < 3; i++) {
-            log.info("ITERATION #{}", i);
-            WebCrawlerSource agentSource =
-                    buildAgentSource(bucket, allowed, Set.of(), Set.of(), url, Map.of());
-            List<Record> read = agentSource.read();
-            Set<String> urls = new HashSet<>();
-            int count = 0;
-            while (!read.isEmpty() && count < 30) {
-                log.info("read: {}", read);
-                for (Record r : read) {
-                    String docUrl = r.key().toString();
-                    assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
-                }
-                count += read.size();
-                agentSource.commit(read);
-                read = agentSource.read();
+        WebCrawlerSource agentSource =
+                buildAgentSource(
+                        bucket,
+                        allowed,
+                        Set.of("/pipeline-agents", "/building-applications"),
+                        url,
+                        Map.of("reindex-interval-seconds", "30"));
+        List<Record> read = agentSource.read();
+        Set<String> urls = new HashSet<>();
+        agentSource.setOnReindexStart(
+                () -> {
+                    urls.clear();
+                });
+        int count = 0;
+        while (count < 30000) {
+            log.info("read: {}", read);
+            for (Record r : read) {
+                String docUrl = r.key().toString();
+                assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
             }
-            agentSource.close();
+            count += read.size();
+            agentSource.commit(read);
+            read = agentSource.read();
         }
+        agentSource.close();
     }
 
     @Test
@@ -123,7 +128,7 @@ public class WebCrawlerSourceTest {
 
             int count = 1000;
             WebCrawlerSource agentSource =
-                    buildAgentSource(bucket, allowed, allowedPaths, forbidden, url, Map.of());
+                    buildAgentSource(bucket, allowed, forbidden, url, Map.of());
             List<Record> read = agentSource.read();
             Set<String> urls = new HashSet<>();
             while (count-- > 0) {
@@ -176,7 +181,7 @@ public class WebCrawlerSourceTest {
         String allowed = wmRuntimeInfo.getHttpBaseUrl();
         Map<String, Object> additionalConfig = Map.of("reindex-interval-seconds", "4");
         WebCrawlerSource agentSource =
-                buildAgentSource(bucket, allowed, Set.of(), Set.of(), url, additionalConfig);
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);
         List<Record> read = agentSource.read();
         Set<String> urls = new HashSet<>();
         AtomicInteger reindexCount = new AtomicInteger();
@@ -232,7 +237,6 @@ public class WebCrawlerSourceTest {
     private WebCrawlerSource buildAgentSource(
             String bucket,
             String domain,
-            Set<String> allowed,
             Set<String> forbidden,
             String seedUrl,
             Map<String, Object> additionalConfig)
@@ -245,7 +249,6 @@ public class WebCrawlerSourceTest {
         configs.put("bucketName", bucket);
         configs.put("seed-urls", seedUrl);
         configs.put("allowed-domains", domain);
-        configs.put("allowed-paths", allowed);
         configs.put("forbidden-paths", forbidden);
         configs.put("max-unflushed-pages", 5);
         configs.put("min-time-between-requests", 500);

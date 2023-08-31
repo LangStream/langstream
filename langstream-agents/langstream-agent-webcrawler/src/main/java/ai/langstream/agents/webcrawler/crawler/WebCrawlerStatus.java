@@ -88,9 +88,13 @@ public class WebCrawlerStatus {
                 this.visitedUrls.addAll(visitedUrls);
             }
 
-            Long lastIndexStartTimestamp = getLong("lastIndexEndTimestamp", null, currentStatus);
+            Long lastIndexEndTimestamp = getLong("lastIndexEndTimestamp", null, currentStatus);
+            if (lastIndexEndTimestamp != null) {
+                this.lastIndexEndTimestamp = lastIndexEndTimestamp;
+            }
+            Long lastIndexStartTimestamp = getLong("lastIndexStartTimestamp", null, currentStatus);
             if (lastIndexStartTimestamp != null) {
-                this.lastIndexEndTimestamp = lastIndexStartTimestamp;
+                this.lastIndexStartTimestamp = lastIndexStartTimestamp;
             }
         } else {
             log.info("No saved status found, starting from scratch");
@@ -130,12 +134,12 @@ public class WebCrawlerStatus {
 
         // the '#' character is used to identify a fragment in a URL
         // we have to remove it to avoid duplicates
-        String urlNoFragment = removeFragment(url);
+        url = removeFragment(url);
 
-        if (visitedUrls.contains(urlNoFragment)) {
+        if (visitedUrls.contains(url)) {
             return;
         }
-        visitedUrls.add(urlNoFragment);
+        visitedUrls.add(url);
         if (toScan) {
             log.info("adding url {} to list", url);
             pendingUrls.add(url);
@@ -152,6 +156,7 @@ public class WebCrawlerStatus {
     }
 
     public String nextUrl() {
+        log.info("PendingUrls: {} Uncommitted {}", pendingUrls.size(), remainingUrls.size());
         return pendingUrls.poll();
     }
 
@@ -167,8 +172,8 @@ public class WebCrawlerStatus {
     }
 
     public int temporaryErrorOnUrl(String url) {
-        String urlNoFragment = removeFragment(url);
-        visitedUrls.remove(urlNoFragment);
+        url = removeFragment(url);
+        visitedUrls.remove(url);
         return errorCount.compute(
                 url,
                 (u, current) -> {

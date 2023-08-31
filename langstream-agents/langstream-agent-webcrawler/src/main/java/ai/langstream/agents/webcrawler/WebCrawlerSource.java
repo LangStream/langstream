@@ -150,6 +150,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                         .build();
 
         WebCrawlerStatus status = new WebCrawlerStatus();
+        // this can be overwritten when the status is reloaded
+        status.setLastIndexStartTimestamp(System.currentTimeMillis());
         crawler = new WebCrawler(webCrawlerConfiguration, status, foundDocuments::add);
     }
 
@@ -207,6 +209,15 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 finished = true;
                 log.info("No more documents found.");
                 crawler.getStatus().setLastIndexEndTimestamp(System.currentTimeMillis());
+                if (reindexIntervalSeconds > 0) {
+                    Instant next =
+                            Instant.ofEpochMilli(crawler.getStatus().getLastIndexEndTimestamp())
+                                    .plusSeconds(reindexIntervalSeconds);
+                    log.info(
+                            "Next re-index will happen in {} seconds, at {}",
+                            reindexIntervalSeconds,
+                            next);
+                }
                 flushStatus();
             } else {
                 // we did something but no new documents were found (for instance a redirection has
@@ -238,24 +249,24 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             log.debug("Reindexing is not needed, indexing is not finished yet");
             return;
         }
-        long lastIndexStartTimestamp = crawler.getStatus().getLastIndexStartTimestamp();
         long now = System.currentTimeMillis();
-        long elapsedSeconds = (now - lastIndexStartTimestamp) / 1000;
+        long elapsedSeconds = (now - lastIndexEndTimestamp) / 1000;
         if (elapsedSeconds >= reindexIntervalSeconds) {
             if (onReindexStart != null) {
+                // for tests
                 onReindexStart.run();
             }
             log.info(
-                    "Reindexing is needed, last index start timestamp is {}, {} seconds ago",
-                    Instant.ofEpochMilli(lastIndexStartTimestamp),
+                    "Reindexing is needed, last index end timestamp is {}, {} seconds ago",
+                    Instant.ofEpochMilli(lastIndexEndTimestamp),
                     elapsedSeconds);
             crawler.restartIndexing(seedUrls);
             finished = false;
             flushStatus();
         } else {
             log.debug(
-                    "Reindexing is not needed, last index start timestamp is {}, {} seconds ago",
-                    Instant.ofEpochMilli(lastIndexStartTimestamp),
+                    "Reindexing is not needed, last end start timestamp is {}, {} seconds ago",
+                    Instant.ofEpochMilli(lastIndexEndTimestamp),
                     elapsedSeconds);
         }
     }

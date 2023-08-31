@@ -47,8 +47,8 @@ public class AppControllerIT {
                             "DEPLOYER_RUNTIME_IMAGE", "busybox",
                             "DEPLOYER_RUNTIME_IMAGE_PULL_POLICY", "IfNotPresent"));
 
-
     static AtomicInteger counter = new AtomicInteger(0);
+
     static String genTenant() {
         return "tenant-" + counter.incrementAndGet();
     }
@@ -70,7 +70,7 @@ public class AppControllerIT {
                 spec:
                     image: busybox
                     imagePullPolicy: IfNotPresent
-                    application: "{app: true}"
+                    application: '{"modules": {}}'
                     tenant: %s
                 """
                                 .formatted(applicationId, namespace, tenant));

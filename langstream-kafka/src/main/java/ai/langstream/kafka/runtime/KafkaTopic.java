@@ -23,6 +23,7 @@ import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_
 import ai.langstream.api.model.SchemaDefinition;
 import ai.langstream.api.runtime.ConnectionImplementation;
 import ai.langstream.api.runtime.Topic;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,22 @@ public record KafkaTopic(
         Map<String, Object> config,
         Map<String, Object> options)
         implements ConnectionImplementation, Topic {
+
+    public KafkaTopic {
+        // options must be a mutable map, because we can dynamically add options
+        // for instance the deadLetter configuration
+        if (options == null) {
+            options = new HashMap<>();
+        } else {
+            options = new HashMap<>();
+        }
+    }
+
+    @Override
+    public Map<String, Object> options() {
+        return Collections.unmodifiableMap(options);
+    }
+
     public Map<String, Object> createConsumerConfiguration() {
         Map<String, Object> configuration = new HashMap<>();
 

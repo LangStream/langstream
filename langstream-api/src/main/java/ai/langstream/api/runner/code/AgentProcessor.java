@@ -25,9 +25,10 @@ public interface AgentProcessor extends AgentCode {
     /**
      * The agent processes records and returns a list of records. The transactionality of the
      * function is guaranteed by the runtime. This method should not throw any exceptions, but
-     * report errors to the RecordSink.
+     * report errors to the RecordSink. It is expected that the agent will emit the same number of
+     * records as it received.
      *
-     * @param records the list of input records
+     * @param records the list of input records, this is never empty
      * @return the list of output records
      */
     void process(List<Record> records, RecordSink recordSink);

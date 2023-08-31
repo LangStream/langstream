@@ -24,6 +24,7 @@ import ai.langstream.runtime.agent.AgentRunner;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -35,6 +36,8 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
 
     @Test
     public void testDiscardErrors() throws Exception {
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
         String tenant = "tenant";
         String[] expectedAgents = {"app-step"};
 
@@ -45,12 +48,12 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                     options:
                                       # we want to read more than one record at a time
                                       consumer.max.poll.records: 10
-                                  - name: "output-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                 errors:
                                     on-failure: fail
@@ -59,22 +62,23 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                   - name: "some agent"
                                     id: "step"
                                     type: "mock-failing-processor"
-                                    input: "input-topic"
-                                    output: "output-topic"
+                                    input: "%s"
+                                    output: "%s"
                                     errors:
                                         on-failure: skip
                                         retries: 3
                                     configuration:
                                       fail-on-content: "fail-me"
-                                """);
+                                """
+                                .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
         try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                    KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
+                    KafkaConsumer<String, String> consumer = createConsumer(outputTopic)) {
 
-                sendMessage("input-topic", "fail-me", producer);
-                sendMessage("input-topic", "keep-me", producer);
+                sendMessage(inputTopic, "fail-me", producer);
+                sendMessage(inputTopic, "keep-me", producer);
 
                 executeAgentRunners(applicationRuntime);
 
@@ -87,6 +91,8 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
     public void testDeadLetter() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
 
         Map<String, String> application =
                 Map.of(
@@ -95,34 +101,35 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
-                                  - name: "output-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "some agent"
                                     id: "step1"
                                     type: "mock-failing-processor"
-                                    input: "input-topic"
-                                    output: "output-topic"
+                                    input: "%s"
+                                    output: "%s"
                                     errors:
                                         on-failure: dead-letter
                                     configuration:
                                       fail-on-content: "fail-me"
-                                """);
+                                """
+                                .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
         try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                    KafkaConsumer<String, String> consumer = createConsumer("output-topic");
+                    KafkaConsumer<String, String> consumer = createConsumer(outputTopic);
                     KafkaConsumer<String, String> consumerDeadletter =
-                            createConsumer("input-topic-deadletter")) {
+                            createConsumer(inputTopic + "-deadletter")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
                 List<Object> expectedMessagesDeadletter = new ArrayList<>();
                 for (int i = 0; i < 10; i++) {
-                    sendMessage("input-topic", "fail-me-" + i, producer);
-                    sendMessage("input-topic", "keep-me-" + i, producer);
+                    sendMessage(inputTopic, "fail-me-" + i, producer);
+                    sendMessage(inputTopic, "keep-me-" + i, producer);
                     expectedMessages.add("keep-me-" + i);
                     expectedMessagesDeadletter.add("fail-me-" + i);
                 }
@@ -139,6 +146,8 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
     public void testFailOnErrors() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
 
         Map<String, String> application =
                 Map.of(
@@ -147,12 +156,12 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                     options:
                                       # we want to read more than one record at a time
                                       consumer.max.poll.records: 10
-                                  - name: "output-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                 errors:
                                     on-failure: fail
@@ -161,35 +170,42 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                   - name: "some agent"
                                     id: "step"
                                     type: "mock-failing-processor"
-                                    input: "input-topic"
-                                    output: "output-topic"
+                                    input: "%s"
+                                    output: "%s"
                                     configuration:
                                       fail-on-content: "fail-me"
-                                """);
+                                """
+                                .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
         try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
 
-                sendMessage("input-topic", "fail-me", producer);
-                sendMessage("input-topic", "keep-me", producer);
+                sendMessage(inputTopic, "fail-me", producer);
+                sendMessage(inputTopic, "keep-me", producer);
 
                 try {
+                    setValidateConsumerOffsets(false);
                     executeAgentRunners(applicationRuntime);
                     fail("Expected an exception");
                 } catch (AgentRunner.PermanentFailureException e) {
                     // expected
                     assertEquals("Failing on content: fail-me", e.getCause().getMessage());
+                } finally {
+                    setValidateConsumerOffsets(true);
                 }
 
                 // the pipeline is stuck, always failing on the first message
 
                 try {
+                    setValidateConsumerOffsets(false);
                     executeAgentRunners(applicationRuntime);
                     fail("Expected an exception");
                 } catch (AgentRunner.PermanentFailureException e) {
                     // expected
                     assertEquals("Failing on content: fail-me", e.getCause().getMessage());
+                } finally {
+                    setValidateConsumerOffsets(true);
                 }
             }
         }
@@ -199,6 +215,8 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
     public void testDiscardErrorsOnSink() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
 
         Map<String, String> application =
                 Map.of(
@@ -207,13 +225,11 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                     options:
                                       # we want to read more than one record at a time
                                       consumer.max.poll.records: 10
-                                  - name: "output-topic"
-                                    creation-mode: create-if-not-exists
                                 errors:
                                     on-failure: fail
                                     retries: 5
@@ -221,20 +237,21 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                   - name: "some agent"
                                     id: "step"
                                     type: "mock-failing-sink"
-                                    input: "input-topic"
+                                    input: "%s"
                                     errors:
                                         on-failure: skip
                                         retries: 3
                                     configuration:
                                       fail-on-content: "fail-me"
-                                """);
+                                """
+                                .formatted(inputTopic, inputTopic));
         try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer(); ) {
 
-                sendMessage("input-topic", "fail-me", producer);
-                sendMessage("input-topic", "keep-me", producer);
+                sendMessage(inputTopic, "fail-me", producer);
+                sendMessage(inputTopic, "keep-me", producer);
 
                 executeAgentRunners(applicationRuntime);
 
@@ -255,6 +272,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
     public void testFailOnErrorsOnSink() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
 
         Map<String, String> application =
                 Map.of(
@@ -263,7 +281,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                     options:
                                       # we want to read more than one record at a time
@@ -275,20 +293,21 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                   - name: "some agent"
                                     id: "step"
                                     type: "mock-failing-sink"
-                                    input: "input-topic"
+                                    input: "%s"
                                     errors:
                                         on-failure: fail
                                         retries: 3
                                     configuration:
                                       fail-on-content: "fail-me"
-                                """);
+                                """
+                                .formatted(inputTopic, inputTopic));
         try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
 
-                sendMessage("input-topic", "fail-me", producer);
-                sendMessage("input-topic", "keep-me", producer);
+                sendMessage(inputTopic, "fail-me", producer);
+                sendMessage(inputTopic, "keep-me", producer);
 
                 try {
                     executeAgentRunners(applicationRuntime);
@@ -315,6 +334,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
     public void testDeadLetterOnSink() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
 
         Map<String, String> application =
                 Map.of(
@@ -323,31 +343,32 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "some agent"
                                     id: "step1"
                                     type: "mock-failing-sink"
-                                    input: "input-topic"
+                                    input: "%s"
                                     errors:
                                         on-failure: dead-letter
                                         retries: 3
                                     configuration:
                                       fail-on-content: "fail-me"
-                                """);
+                                """
+                                .formatted(inputTopic, inputTopic));
         try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
                     KafkaConsumer<String, String> consumerDeadletter =
-                            createConsumer("input-topic-deadletter")) {
+                            createConsumer(inputTopic + "-deadletter")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
                 List<Object> expectedMessagesDeadletter = new ArrayList<>();
                 for (int i = 0; i < 10; i++) {
-                    sendMessage("input-topic", "fail-me-" + i, producer);
-                    sendMessage("input-topic", "keep-me-" + i, producer);
+                    sendMessage(inputTopic, "fail-me-" + i, producer);
+                    sendMessage(inputTopic, "keep-me-" + i, producer);
                     expectedMessages.add("keep-me-" + i);
                     expectedMessagesDeadletter.add("fail-me-" + i);
                 }

@@ -89,6 +89,18 @@ public class ConfigurationUtils {
         }
     }
 
+    public static Long getLong(String key, Long defaultValue, Map<String, Object> configuration) {
+        Object value = configuration.getOrDefault(key, defaultValue);
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Number n) {
+            return n.longValue();
+        } else {
+            return Long.parseLong(value.toString());
+        }
+    }
+
     public static Double getDouble(
             String key, Double defaultValue, Map<String, Object> configuration) {
         Object value = configuration.getOrDefault(key, defaultValue);

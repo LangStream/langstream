@@ -18,6 +18,7 @@ package ai.langstream;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
@@ -36,12 +37,12 @@ import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -244,7 +245,7 @@ public abstract class AbstractApplicationRunner {
                 "{} Starting Agent Runners. Running {} pods",
                 runnerExecutionId,
                 runtime.secrets.size());
-        Map<String, AgentInfo> allAgentsInfo = new HashMap<>();
+        Map<String, AgentInfo> allAgentsInfo = new ConcurrentHashMap<>();
         try {
             List<RuntimePodConfiguration> pods = new ArrayList<>();
             runtime.secrets()
@@ -287,7 +288,8 @@ public abstract class AbstractApplicationRunner {
                                         null,
                                         agentsDirectory,
                                         agentInfo,
-                                        10);
+                                        10,
+                                        () -> validateAgentInfoBeforeStop(agentInfo));
                                 List<?> infos = agentInfo.serveWorkerStatus();
                                 log.info(
                                         "{} AgentPod {} AgentInfo {}",
@@ -314,8 +316,11 @@ public abstract class AbstractApplicationRunner {
             try {
                 CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
             } catch (ExecutionException executionException) {
+                log.error(
+                        "Some error occurred while executing the agent",
+                        executionException.getCause());
                 // unwrap the exception in order to easily perform assertions
-                if (executionException instanceof Exception) {
+                if (executionException.getCause() instanceof Exception) {
                     throw (Exception) executionException.getCause();
                 } else {
                     throw executionException;
@@ -329,6 +334,63 @@ public abstract class AbstractApplicationRunner {
             log.info("{} Agent Runners Stopped", runnerExecutionId);
         }
         return new AgentRunResult(allAgentsInfo);
+    }
+
+    private volatile boolean validateConsumerOffsets = true;
+
+    public boolean isValidateConsumerOffsets() {
+        return validateConsumerOffsets;
+    }
+
+    public void setValidateConsumerOffsets(boolean validateConsumerOffsets) {
+        this.validateConsumerOffsets = validateConsumerOffsets;
+    }
+
+    private void validateAgentInfoBeforeStop(AgentInfo agentInfo) {
+        if (!validateConsumerOffsets) {
+            return;
+        }
+        agentInfo
+                .serveWorkerStatus()
+                .forEach(
+                        workerStatus -> {
+                            String agentType = workerStatus.getAgentType();
+                            log.info("Checking Agent type {}", agentType);
+                            switch (agentType) {
+                                case "topic-source":
+                                    Map<String, Object> info = workerStatus.getInfo();
+                                    log.info("Topic source info {}", info);
+                                    Map<String, Object> consumerInfo =
+                                            (Map<String, Object>) info.get("consumer");
+                                    if (consumerInfo != null) {
+                                        Map<String, Object> committedOffsets =
+                                                (Map<String, Object>)
+                                                        consumerInfo.get("committedOffsets");
+                                        log.info("Committed offsets {}", committedOffsets);
+                                        committedOffsets.forEach(
+                                                (topic, offset) -> {
+                                                    assertNotNull(offset);
+                                                    assertTrue(((Number) offset).intValue() >= 0);
+                                                });
+                                        Map<String, Object> uncommittedOffsets =
+                                                (Map<String, Object>)
+                                                        consumerInfo.get("uncommittedOffsets");
+                                        log.info("Uncommitted offsets {}", uncommittedOffsets);
+                                        uncommittedOffsets.forEach(
+                                                (topic, number) -> {
+                                                    assertNotNull(number);
+                                                    assertTrue(
+                                                            ((Number) number).intValue() <= 0,
+                                                            "for topic "
+                                                                    + topic
+                                                                    + " we have some uncommitted offsets: "
+                                                                    + number);
+                                                });
+                                    }
+                                default:
+                                    // ignore
+                            }
+                        });
     }
 
     protected KafkaConsumer<String, String> createConsumer(String topic) {

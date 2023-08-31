@@ -84,6 +84,9 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
 
     @Override
     public void process(List<Record> records, RecordSink recordSink) {
+        if (records == null || records.isEmpty()) {
+            throw new IllegalStateException("Records cannot be null or empty");
+        }
         for (Record record : records) {
             processed(1, 0);
             CompletableFuture<List<Record>> process = processRecord(record);

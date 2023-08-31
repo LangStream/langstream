@@ -101,7 +101,7 @@ public class WebCrawlerSourceTest {
     }
 
     @Test
-    // @Disabled("This test is disabled because it connects to a real live website")
+    @Disabled("This test is disabled because it connects to a real live website")
     void testReadLangStreamGithubRepo() throws Exception {
         try {
             String bucket = "langstream-test-" + UUID.randomUUID();

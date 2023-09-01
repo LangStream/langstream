@@ -19,7 +19,6 @@ import ai.langstream.AbstractApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -97,17 +96,19 @@ class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
     @ValueSource(booleans = {false, true})
     public void testSplitThenJson(boolean useIntermediateTopic) throws Exception {
         String tenant = "tenant";
-        String[] expectedAgents = useIntermediateTopic ?
-                new String[] {"app-step1", "app-step2"} : new String[] {"app-step1"};
-        String inputTopic = "input-topic-"+ UUID.randomUUID();
-        String outputTopic = "output-topic-"+ UUID.randomUUID();
-        String intermediateTopic = "intermediate-topic-"+ UUID.randomUUID();
+        String[] expectedAgents =
+                useIntermediateTopic
+                        ? new String[] {"app-step1", "app-step2"}
+                        : new String[] {"app-step1"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
+        String intermediateTopic = "intermediate-topic-" + UUID.randomUUID();
 
         Map<String, String> application =
                 Map.of(
                         "module.yaml",
-                        useIntermediateTopic ?
-                                """
+                        useIntermediateTopic
+                                ? """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -136,8 +137,16 @@ class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
                                     configuration:
                                         text-field: text
                                         copy-properties: true
-                                """.formatted(inputTopic, outputTopic, intermediateTopic, inputTopic, intermediateTopic, intermediateTopic, outputTopic)
-                        : """
+                                """
+                                        .formatted(
+                                                inputTopic,
+                                                outputTopic,
+                                                intermediateTopic,
+                                                inputTopic,
+                                                intermediateTopic,
+                                                intermediateTopic,
+                                                outputTopic)
+                                : """
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
@@ -161,13 +170,15 @@ class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
                                     configuration:
                                         text-field: text
                                         copy-properties: true
-                                """.formatted(inputTopic, outputTopic, inputTopic, outputTopic));
+                                """
+                                        .formatted(
+                                                inputTopic, outputTopic, inputTopic, outputTopic));
 
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumer = createConsumer(outputTopic)) {
+                    KafkaConsumer<String, String> consumer = createConsumer(outputTopic)) {
 
                 sendMessage(
                         inputTopic,

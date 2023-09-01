@@ -68,8 +68,13 @@ public class DocumentToJsonTest {
                         .key("filename.txt")
                         .value(text.getBytes(StandardCharsets.UTF_8))
                         .origin("origin")
-                        .headers(List.of(new SimpleRecord.SimpleHeader("detected-language", "en"),
-                                new SimpleRecord.SimpleHeader("other-header", "bytearray-value".getBytes(StandardCharsets.UTF_8))))
+                        .headers(
+                                List.of(
+                                        new SimpleRecord.SimpleHeader("detected-language", "en"),
+                                        new SimpleRecord.SimpleHeader(
+                                                "other-header",
+                                                "bytearray-value"
+                                                        .getBytes(StandardCharsets.UTF_8))))
                         .timestamp(System.currentTimeMillis())
                         .build();
 

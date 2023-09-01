@@ -33,7 +33,6 @@ import org.apache.tika.parser.ParsingReader;
 
 @Slf4j
 public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
-
     @Override
     public List<Record> processRecord(Record record) throws Exception {
         if (record == null) {
@@ -44,15 +43,19 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
         final InputStream stream = Utils.toStream(value);
         Metadata metadata = new Metadata();
         ParseContext parseContext = new ParseContext();
+        StringWriter valueAsString;
+
+        // ParsingReader starts new threads, so we need to make sure they are cleaned up
         try (Reader reader = new ParsingReader(parser, stream, metadata, parseContext)) {
-            StringWriter valueAsString = new StringWriter();
-            String[] names = metadata.names();
-            log.info(
-                    "Document type: {} Content {}",
-                    Stream.of(names).collect(Collectors.toMap(Function.identity(), metadata::get)),
-                    valueAsString);
+            valueAsString = new StringWriter();
             reader.transferTo(valueAsString);
-            return List.of(SimpleRecord.copyFrom(record).value(valueAsString.toString()).build());
         }
+
+        String[] names = metadata.names();
+        log.info(
+                "Document type: {} Content {}",
+                Stream.of(names).collect(Collectors.toMap(Function.identity(), metadata::get)),
+                valueAsString);
+        return List.of(SimpleRecord.copyFrom(record).value(valueAsString.toString()).build());
     }
 }

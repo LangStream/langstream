@@ -15,6 +15,8 @@
  */
 package ai.langstream.runtime.agent;
 
+import static org.mockito.ArgumentMatchers.eq;
+
 import ai.langstream.runtime.api.agent.AgentRunnerConstants;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,8 +26,6 @@ import java.util.Map;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import static org.mockito.ArgumentMatchers.eq;
 
 class AgentRunnerStarterTest {
 

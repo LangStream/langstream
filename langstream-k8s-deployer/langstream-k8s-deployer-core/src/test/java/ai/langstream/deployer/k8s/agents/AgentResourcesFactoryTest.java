@@ -111,6 +111,9 @@ class AgentResourcesFactoryTest {
                                   name: http
                                   protocol: TCP
                                 resources:
+                                  limits:
+                                    cpu: 0.500000
+                                    memory: 256M
                                   requests:
                                     cpu: 0.500000
                                     memory: 256M

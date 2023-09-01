@@ -184,6 +184,9 @@ public class KubeUtil {
             if (state.getTerminated().getMessage() != null) {
                 return new PodStatus(
                         PodStatus.State.ERROR, state.getTerminated().getMessage(), null);
+            } else if (state.getTerminated().getReason() != null) {
+                return new PodStatus(
+                        PodStatus.State.ERROR, state.getTerminated().getReason(), null);
             } else {
                 return new PodStatus(PodStatus.State.ERROR, "Unknown error", null);
             }

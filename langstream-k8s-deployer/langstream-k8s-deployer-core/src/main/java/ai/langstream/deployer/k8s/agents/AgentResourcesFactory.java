@@ -425,15 +425,15 @@ public class AgentResourcesFactory {
                                     agentResourceUnitConfiguration.getMaxInstanceUnits()));
         }
 
-        final Map<String, Quantity> requests = new HashMap<>();
-        requests.put(
+        final Map<String, Quantity> quantities = new HashMap<>();
+        quantities.put(
                 "cpu",
                 Quantity.parse(
                         "%f"
                                 .formatted(
                                         memCpuUnits
                                                 * agentResourceUnitConfiguration.getCpuPerUnit())));
-        requests.put(
+        quantities.put(
                 "memory",
                 Quantity.parse(
                         "%dM"
@@ -441,7 +441,10 @@ public class AgentResourcesFactory {
                                         memCpuUnits
                                                 * agentResourceUnitConfiguration.getMemPerUnit())));
 
-        return new ResourceRequirementsBuilder().withRequests(requests).build();
+        return new ResourceRequirementsBuilder()
+                .withRequests(quantities)
+                .withLimits(quantities)
+                .build();
     }
 
     public static Map<String, String> getAgentLabels(String agentId, String applicationId) {

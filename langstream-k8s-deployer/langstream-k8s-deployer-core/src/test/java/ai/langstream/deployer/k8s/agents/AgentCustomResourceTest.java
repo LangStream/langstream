@@ -23,13 +23,16 @@ import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
+import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -37,7 +40,8 @@ import org.mockito.Mockito;
 
 class AgentCustomResourceTest {
 
-    @RegisterExtension static final KubeK3sServer k3s = new KubeK3sServer(true);
+    @RegisterExtension
+    static final KubeK3sServer k3s = new KubeK3sServer(true);
 
     @Test
     void testAggregatePodStatus() {

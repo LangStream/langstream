@@ -17,7 +17,6 @@ package ai.langstream.admin.client;
 
 import ai.langstream.admin.client.http.HttpClientProperties;
 import ai.langstream.admin.client.http.Retry;
-import ai.langstream.admin.client.http.RetryPolicy;
 import ai.langstream.admin.client.model.Applications;
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import java.io.IOException;
@@ -48,7 +47,9 @@ public class AdminClient implements AutoCloseable {
     }
 
     public AdminClient(
-            AdminClientConfiguration adminClientConfiguration, AdminClientLogger logger, HttpClientProperties httpClientProperties) {
+            AdminClientConfiguration adminClientConfiguration,
+            AdminClientLogger logger,
+            HttpClientProperties httpClientProperties) {
         this.configuration = adminClientConfiguration;
         this.logger = logger;
         this.httpClientProperties = httpClientProperties;
@@ -81,7 +82,6 @@ public class AdminClient implements AutoCloseable {
         return http(httpRequest, bodyHandler, httpClientProperties.getRetry().get());
     }
 
-
     public <T> HttpResponse<T> http(
             HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler, Retry retry) {
 
@@ -109,19 +109,17 @@ public class AdminClient implements AutoCloseable {
             if (shouldRetry(httpRequest, null, retry, error)) {
                 return http(httpRequest, bodyHandler, retry);
             }
-            throw new RuntimeException(
-                    "Cannot connect to " + httpRequest.uri(), error);
+            throw new RuntimeException("Cannot connect to " + httpRequest.uri(), error);
         } catch (IOException error) {
             if (shouldRetry(httpRequest, null, retry, error)) {
                 return http(httpRequest, bodyHandler, retry);
             }
             throw new RuntimeException("Unexpected network error " + error, error);
         }
-
     }
 
-    private <T> boolean shouldRetry(HttpRequest httpRequest, HttpResponse response, Retry retry,
-                                  Exception error) {
+    private <T> boolean shouldRetry(
+            HttpRequest httpRequest, HttpResponse response, Retry retry, Exception error) {
         final Optional<Long> next = retry.shouldRetryAfter(error, httpRequest, response);
         if (next.isPresent()) {
             try {

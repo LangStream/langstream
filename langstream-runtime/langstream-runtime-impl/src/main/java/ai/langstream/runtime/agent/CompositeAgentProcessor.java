@@ -125,10 +125,10 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
     }
 
     @Override
-    public void setContext(AgentContext context) {
-        // we are not setting the Context on wrapped Agents
-        // the context would allow them to access the Consumers and the Producers
-        // and this functionality is not supported in this processor
+    public void setContext(AgentContext context) throws Exception {
+        for (AgentProcessor agent : processors) {
+            agent.setContext(context);
+        }
     }
 
     @Override

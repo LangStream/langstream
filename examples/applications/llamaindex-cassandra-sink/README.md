@@ -1,17 +1,28 @@
 # Using LlamaIndex in a Python agent
 
 This sample application shows how to use LlamaIndex in a Python agent.
-The application is a Sink that uses LlamaIndex to compute embeddings from the messages it receives and stores them in a DataStax Astra DB Database.
+The application is a Sink that uses LlamaIndex to compute embeddings from the messages it receives and stores them in a DataStax Astra DB Vector Database.
 
 ## Prerequisites
 
-Create a DataStax Astra DB Database.
+Create a DataStax Astra DB Vector Database.
 Get an API key for OpenAI.
 
 ## Configure the pipeline
 
-Update the same file and set the username, password, OpenAI API key and the other parameters.
-Download the [Secure Connect Bundle](https://awesome-astra.github.io/docs/pages/astra/download-scb/#c-procedure) for your database, rename it `secure-connect-bundle.zip` and place it in the `examples/applications/llamaindex-cassandra-sink/python` directory.
+Get the credentials to access your AstraDB Vector Database:
+- username
+- password
+- [Secure Connect Bundle](https://awesome-astra.github.io/docs/pages/astra/download-scb/#c-procedure)
+
+Encode the Secure Connect Bundle in base64.
+```
+cat secure-connect-<your database>.zip | base64
+```
+
+Update the secrets.yaml file with those values.
+
+Update the secrets.yaml with the OpenAI API key.
 
 ## Deploy the LangStream application
 

@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+import base64
+import io
 from typing import List, Optional, Dict, Any
 
 import openai
@@ -34,12 +36,16 @@ class LlamaIndexCassandraSink(Sink):
 
     def init(self, config: Dict[str, Any]):
         self.config = config
-        openai.api_key = config['openai-key']
+        openai.api_key = config['openaiKey']
 
     def start(self):
+        secure_bundle = self.config["cassandra"]["secureBundle"]
+        secure_bundle = secure_bundle.removeprefix("base64:")
+        secure_bundle = base64.b64decode(secure_bundle)
         cluster = Cluster(
             cloud={
-                "secure_connect_bundle": "/app-code-download/python/secure-connect-bundle.zip",
+                "secure_connect_bundle": io.BytesIO(secure_bundle),
+                "use_default_tempdir": True
             },
             auth_provider=PlainTextAuthProvider(
                 self.config["cassandra"]["username"],
@@ -69,5 +75,3 @@ class LlamaIndexCassandraSink(Sink):
     def close(self):
         if self.session:
             self.session.shutdown()
-
-

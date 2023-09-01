@@ -1,6 +1,7 @@
 package ai.langstream.deployer.k8s.util;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import io.fabric8.kubernetes.api.model.Pod;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,8 @@ class KubeUtilTest {
 
     @Test
     public void testOOMKilled() {
-        String podYaml = """
+        String podYaml =
+                """
                 apiVersion: v1
                 kind: Pod
                 metadata:
@@ -70,9 +72,9 @@ class KubeUtilTest {
 
         final Pod pod = SerializationUtil.readYaml(podYaml, Pod.class);
         final KubeUtil.PodStatus status = KubeUtil.getPodsStatuses(List.of(pod)).get("pod1");
-        assertEquals("http://pod1.pod1-s.langstream-default.svc.cluster.local:8080", status.getUrl());
+        assertEquals(
+                "http://pod1.pod1-s.langstream-default.svc.cluster.local:8080", status.getUrl());
         assertEquals(KubeUtil.PodStatus.State.ERROR, status.getState());
         assertEquals("OOMKilled", status.getMessage());
     }
-
 }

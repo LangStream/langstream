@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.Nullable;
+
 
 @Slf4j
 public class LocalKubernetesJwksUriSigningKeyResolver {
@@ -108,7 +108,6 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
         return kubeOpenIDUrl;
     }
 
-    @Nullable
     private JwksUriSigningKeyResolver.JwksUri getJwksUri(String kubeOpenIDUrl) {
         try {
             final Map<String, ?> response =

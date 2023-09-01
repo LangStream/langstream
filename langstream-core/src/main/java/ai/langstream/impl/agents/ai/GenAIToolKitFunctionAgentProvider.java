@@ -250,6 +250,12 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                             newConfiguration,
                                             "min-chunks-per-message",
                                             null);
+                                    optionalField(
+                                            step,
+                                            agentConfiguration,
+                                            newConfiguration,
+                                            "stream-response-completion-field",
+                                            null);
                                     String streamTopic =
                                             optionalField(
                                                     step,

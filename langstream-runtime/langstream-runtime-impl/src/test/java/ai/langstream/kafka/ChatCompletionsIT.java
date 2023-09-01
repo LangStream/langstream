@@ -18,6 +18,8 @@ package ai.langstream.kafka;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.AbstractApplicationRunner;
@@ -29,13 +31,16 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.kafka.runtime.KafkaTopic;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -119,7 +124,9 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                     configuration:
                                       model: "%s"
                                       stream-to-topic: "%s"
-                                      completion-field: "value"
+                                      stream-response-completion-field: "value"
+                                      completion-field: "value.answer"
+                                      log-field: "value.prompt"
                                       stream-to-topic: "%s"
                                       min-chunks-per-message: 3
                                       stream: true
@@ -136,7 +143,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                         model,
                                         streamTopic,
                                         streamTopic,
-                                        "What can you tell me about {{% value}} ?"));
+                                        "What can you tell me about {{% value.question}} ?"));
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
@@ -161,13 +168,71 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                     KafkaConsumer<String, String> streamConsumer = createConsumer(streamTopic)) {
 
                 // produce one message to the input-topic
-                sendMessage(inputTopic, "the car", producer);
+                // simulate a session-id header
+                sendMessage(
+                        inputTopic,
+                        "{\"question\": \"the car\"}",
+                        List.of(
+                                new RecordHeader(
+                                        "session-id",
+                                        "2139847128764192".getBytes(StandardCharsets.UTF_8))),
+                        producer);
 
                 executeAgentRunners(applicationRuntime);
 
-                waitForMessages(consumer, List.of("A car is a vehicle"));
+                List<ConsumerRecord> mainOutputRecords =
+                        waitForMessages(
+                                consumer,
+                                List.of(
+                                        "{\"question\":\"the car\",\"answer\":\"A car is a vehicle\",\"prompt\":\"{\\\"options\\\":{\\\"max_tokens\\\":null,\\\"temperature\\\":null,\\\"top_p\\\":null,\\\"logit_bias\\\":null,\\\"user\\\":null,\\\"n\\\":null,\\\"stop\\\":null,\\\"presence_penalty\\\":null,\\\"frequency_penalty\\\":null,\\\"stream\\\":true,\\\"model\\\":\\\"gpt-35-turbo\\\",\\\"min-chunks-per-message\\\":3},\\\"messages\\\":[{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"What can you tell me about the car ?\\\"}],\\\"model\\\":\\\"gpt-35-turbo\\\"}\"}"));
+                ConsumerRecord record = mainOutputRecords.get(0);
 
-                waitForMessages(streamConsumer, List.of("A", " car is", " a vehicle"));
+                assertNull(record.headers().lastHeader("stream-id"));
+                assertNull(record.headers().lastHeader("stream-last-message"));
+                assertNull(record.headers().lastHeader("stream-index"));
+                // verify that session id is copied
+                assertEquals(
+                        "2139847128764192",
+                        new String(record.headers().lastHeader("session-id").value()));
+
+                List<ConsumerRecord> streamingAnswers =
+                        waitForMessages(streamConsumer, List.of("A", " car is", " a vehicle"));
+                record = streamingAnswers.get(0);
+                assertEquals(
+                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u",
+                        new String(record.headers().lastHeader("stream-id").value()));
+                assertEquals(
+                        "false",
+                        new String(record.headers().lastHeader("stream-last-message").value()));
+                assertEquals("1", new String(record.headers().lastHeader("stream-index").value()));
+                // verify that session id is copied
+                assertEquals(
+                        "2139847128764192",
+                        new String(record.headers().lastHeader("session-id").value()));
+
+                record = streamingAnswers.get(1);
+                assertEquals(
+                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u",
+                        new String(record.headers().lastHeader("stream-id").value()));
+                assertEquals(
+                        "false",
+                        new String(record.headers().lastHeader("stream-last-message").value()));
+                assertEquals("2", new String(record.headers().lastHeader("stream-index").value()));
+                assertEquals(
+                        "2139847128764192",
+                        new String(record.headers().lastHeader("session-id").value()));
+
+                record = streamingAnswers.get(2);
+                assertEquals(
+                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u",
+                        new String(record.headers().lastHeader("stream-id").value()));
+                assertEquals(
+                        "true",
+                        new String(record.headers().lastHeader("stream-last-message").value()));
+                assertEquals("3", new String(record.headers().lastHeader("stream-index").value()));
+                assertEquals(
+                        "2139847128764192",
+                        new String(record.headers().lastHeader("session-id").value()));
             }
         }
     }

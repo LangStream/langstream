@@ -76,7 +76,8 @@
     <json-schema-validator.version>1.0.72</json-schema-validator.version>
     <tomcat-embed-el.version>10.1.4</tomcat-embed-el.version>
     <commons-collections4.version>4.4</commons-collections4.version>
-    <okhttp.version>3.12.13</okhttp.version>
+<!--    minio requires okhttp3 v4-->
+    <okhttp.version>4.11.0</okhttp.version>
   </properties>
 
   <scm>

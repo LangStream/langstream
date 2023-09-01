@@ -44,3 +44,11 @@ Since the application opens a gateway, we can use the gateway API to send and co
 ```
 ./bin/langstream gateway chat test -cg bot-output -pg user-input -p sessionId=$(uuidgen)
 ```
+
+Responses are streamed to the output-topic. If you want to inspect the history of the raw answers you can
+consume from the log-topic using the llm-debug gateway:
+
+```
+./bin/langstream gateway consume test llm-debug
+```
+

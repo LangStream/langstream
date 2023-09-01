@@ -36,3 +36,8 @@ gateways:
         headers:
           - key: langstream-client-session-id
             valueFromParameters: sessionId
+
+
+  - id: "llm-debug"
+    type: consume
+    topic: "log-topic"

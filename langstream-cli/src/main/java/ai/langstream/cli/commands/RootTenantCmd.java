@@ -15,10 +15,12 @@
  */
 package ai.langstream.cli.commands;
 
+import ai.langstream.cli.commands.tenants.CreateTenantCmd;
 import ai.langstream.cli.commands.tenants.DeleteTenantCmd;
 import ai.langstream.cli.commands.tenants.GetTenantCmd;
 import ai.langstream.cli.commands.tenants.ListTenantCmd;
 import ai.langstream.cli.commands.tenants.PutTenantCmd;
+import ai.langstream.cli.commands.tenants.UpdateTenantCmd;
 import lombok.Getter;
 import picocli.CommandLine;
 
@@ -30,7 +32,9 @@ import picocli.CommandLine;
             PutTenantCmd.class,
             DeleteTenantCmd.class,
             ListTenantCmd.class,
-            GetTenantCmd.class
+            GetTenantCmd.class,
+            CreateTenantCmd.class,
+            UpdateTenantCmd.class
         })
 @Getter
 public class RootTenantCmd {

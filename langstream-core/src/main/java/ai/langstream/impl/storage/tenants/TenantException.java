@@ -13,18 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.storage;
+package ai.langstream.impl.storage.tenants;
 
-import java.util.LinkedHashMap;
+import lombok.Getter;
 
-public interface GlobalMetadataStore extends GenericStore {
-    String TENANT_KEY_PREFIX = "t-";
+public class TenantException extends Exception {
 
-    void put(String key, String value);
+    public enum Type {
+        NotFound,
+        AlreadyExists;
+    }
 
-    void delete(String key);
+    @Getter private final Type type;
 
-    String get(String key);
-
-    LinkedHashMap<String, String> list();
+    public TenantException(String message, Type type) {
+        super(message);
+        this.type = type;
+    }
 }

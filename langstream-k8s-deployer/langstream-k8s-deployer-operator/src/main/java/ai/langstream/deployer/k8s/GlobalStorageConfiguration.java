@@ -13,18 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.storage;
+package ai.langstream.deployer.k8s;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public interface GlobalMetadataStore extends GenericStore {
-    String TENANT_KEY_PREFIX = "t-";
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GlobalStorageConfiguration {
 
-    void put(String key, String value);
-
-    void delete(String key);
-
-    String get(String key);
-
-    LinkedHashMap<String, String> list();
+    private String type;
+    private Map<String, Object> configuration = new HashMap<>();
 }

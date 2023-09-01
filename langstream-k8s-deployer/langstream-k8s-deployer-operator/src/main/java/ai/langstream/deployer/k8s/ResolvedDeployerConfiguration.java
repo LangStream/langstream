@@ -22,12 +22,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
-import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Singleton;
 import java.util.Map;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
-@ApplicationScoped
+@Singleton
 public class ResolvedDeployerConfiguration {
 
     private static final ObjectMapper yamlMapper =
@@ -62,6 +62,9 @@ public class ResolvedDeployerConfiguration {
 
         this.runtimeImage = configuration.runtimeImage().orElse(null);
         this.runtimeImagePullPolicy = configuration.runtimeImagePullPolicy().orElse(null);
+        this.globalStorageConfiguration =
+                yamlMapper.readValue(
+                        configuration.globalStorage(), GlobalStorageConfiguration.class);
     }
 
     @Getter private Map<String, Object> clusterRuntime;
@@ -75,4 +78,6 @@ public class ResolvedDeployerConfiguration {
     @Getter private String runtimeImage;
 
     @Getter private String runtimeImagePullPolicy;
+
+    @Getter private GlobalStorageConfiguration globalStorageConfiguration;
 }

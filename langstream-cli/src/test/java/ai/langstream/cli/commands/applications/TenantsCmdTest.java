@@ -15,6 +15,8 @@
  */
 package ai.langstream.cli.commands.applications;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+
 import com.github.tomakehurst.wiremock.client.WireMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,44 @@ class TenantsCmdTest extends CommandTestBase {
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("tenant newt created/updated", result.out());
+    }
+
+    @Test
+    public void testCreate() {
+        wireMock.register(
+                WireMock.post("/api/tenants/%s".formatted("newt"))
+                        .withRequestBody(WireMock.equalToJson("{\"maxTotalResourceUnits\":null}"))
+                        .willReturn(WireMock.ok("")));
+        CommandResult result = executeCommand("tenants", "create", "newt");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertEquals("tenant newt created", result.out());
+    }
+
+    @Test
+    public void testCreatemaxTotalResourceUnits() {
+        wireMock.register(
+                WireMock.post("/api/tenants/%s".formatted("newt"))
+                        .withRequestBody(WireMock.equalToJson("{\"maxTotalResourceUnits\":10}"))
+                        .willReturn(WireMock.ok("")));
+        CommandResult result =
+                executeCommand("tenants", "create", "newt", "--max-total-resource-units", "10");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertEquals("tenant newt created", result.out());
+    }
+
+    @Test
+    public void testUpdatemaxTotalResourceUnits() {
+        wireMock.register(
+                WireMock.patch(urlEqualTo("/api/tenants/%s".formatted("newt")))
+                        .withRequestBody(WireMock.equalToJson("{\"maxTotalResourceUnits\":10}"))
+                        .willReturn(WireMock.ok("")));
+        CommandResult result =
+                executeCommand("tenants", "update", "newt", "--max-total-resource-units", "10");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertEquals("tenant newt updated", result.out());
     }
 
     @Test

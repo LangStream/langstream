@@ -33,6 +33,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.fabric8</groupId>
+      <artifactId>kubernetes-client</artifactId>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>langstream-k8s-deployer-api</artifactId>
       <version>${project.version}</version>

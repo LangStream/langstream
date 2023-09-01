@@ -495,7 +495,7 @@
                   <type>nar</type>
                   <classifier>nar</classifier>
                   <overWrite>false</overWrite>
-                  <outputDirectory>${build.directory}/agents</outputDirectory>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
                 </artifactItem>
 
                 <artifactItem>
@@ -505,7 +505,7 @@
                     <type>nar</type>
                     <classifier>nar</classifier>
                     <overWrite>false</overWrite>
-                    <outputDirectory>${build.directory}/agents</outputDirectory>
+                    <outputDirectory>${project.build.directory}/agents</outputDirectory>
                 </artifactItem>
 
                 <artifactItem>
@@ -515,7 +515,7 @@
                   <type>nar</type>
                   <classifier>nar</classifier>
                   <overWrite>false</overWrite>
-                  <outputDirectory>${build.directory}/agents</outputDirectory>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
                 </artifactItem>
 
                 <artifactItem>
@@ -525,7 +525,7 @@
                   <type>nar</type>
                   <classifier>nar</classifier>
                   <overWrite>false</overWrite>
-                  <outputDirectory>${build.directory}/agents</outputDirectory>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
                 </artifactItem>
 
                 <artifactItem>
@@ -535,7 +535,7 @@
                   <type>nar</type>
                   <classifier>nar</classifier>
                   <overWrite>false</overWrite>
-                  <outputDirectory>${build.directory}/agents</outputDirectory>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
                 </artifactItem>
 
               </artifactItems>

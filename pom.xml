@@ -76,6 +76,8 @@
     <json-schema-validator.version>1.0.72</json-schema-validator.version>
     <tomcat-embed-el.version>10.1.4</tomcat-embed-el.version>
     <commons-collections4.version>4.4</commons-collections4.version>
+<!--    minio requires okhttp3 v4-->
+    <okhttp.version>4.11.0</okhttp.version>
   </properties>
 
   <scm>
@@ -395,6 +397,21 @@
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-servlet</artifactId>
         <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp</artifactId>
+        <version>${okhttp.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>logging-interceptor</artifactId>
+        <version>${okhttp.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>mockwebserver</artifactId>
+        <version>${okhttp.version}</version>
       </dependency>
     </dependencies>
 

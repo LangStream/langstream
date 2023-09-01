@@ -21,6 +21,7 @@ import ai.langstream.admin.client.AdminClientLogger;
 import ai.langstream.cli.LangStreamCLIConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
@@ -52,6 +53,8 @@ public abstract class BaseCmd implements Runnable {
             new ObjectMapper(new YAMLFactory())
                     .enable(SerializationFeature.INDENT_OUTPUT)
                     .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+
+    protected static final ObjectWriter jsonBodyWriter = new ObjectMapper().writer();
 
     @CommandLine.Spec protected CommandLine.Model.CommandSpec command;
     private AdminClient client;

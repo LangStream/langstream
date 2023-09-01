@@ -52,7 +52,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class KubernetesApplicationStore implements ApplicationStore {
@@ -88,6 +87,9 @@ public class KubernetesApplicationStore implements ApplicationStore {
         final String namespace = tenantToNamespace(tenant);
         new TenantResources(properties, client, tenant, namespace).ensureTenantResources();
     }
+
+    @Override
+    public void onTenantUpdated(String tenant) {}
 
     @Override
     public void onTenantDeleted(String tenant) {
@@ -203,7 +205,6 @@ public class KubernetesApplicationStore implements ApplicationStore {
         return null;
     }
 
-    @Nullable
     private ApplicationCustomResource getApplicationCustomResource(
             String tenant, String applicationId) {
         final String namespace = tenantToNamespace(tenant);

@@ -21,9 +21,14 @@ import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.webservice.tenant.TenantConfiguration;
+import ai.langstream.api.webservice.tenant.UpdateTenantRequest;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.webservice.WebAppTestConfig;
+import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.webservice.config.ApplicationDeployProperties;
+import ai.langstream.webservice.config.StorageProperties;
 import ai.langstream.webservice.config.TenantProperties;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +44,15 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 class ApplicationServiceResourceLimitTest {
 
     @RegisterExtension static final KubeTestServer k3s = new KubeTestServer();
+    protected static final StorageProperties STORAGE_PROPERTIES =
+            WebAppTestConfig.buildStorageProperties();
 
     @Test
     void test() {
+        new GlobalMetadataService(STORAGE_PROPERTIES, new TestApplicationStore(Map.of()), null)
+                .putTenant("tenant", TenantConfiguration.builder().build());
+
+        putTenantLimit(0);
         validate("app1", filesWithTwoAgents(100, 100), Map.of(), 0, true);
         validate("app1", filesWithTwoAgents(1, 2), Map.of(), 1, false);
         validate("app1", filesWithTwoAgents(1, 2), Map.of(), 2, true);
@@ -55,6 +66,12 @@ class ApplicationServiceResourceLimitTest {
         validate("app1", filesWithTwoAgents(1, 2), Map.of("app1", 2), 2, true);
 
         validate("app1", filesWithTwoAgents(1, 2), Map.of("app1", 2, "app2", 2), 4, true);
+        validate("app3", filesWithTwoAgents(1, 2), Map.of("app1", 2, "app2", 2), 4, false);
+        putTenantLimit(6);
+        validate("app3", filesWithTwoAgents(1, 2), Map.of("app1", 2, "app2", 2), 4, true);
+        putTenantLimit(4);
+        validate("app3", filesWithTwoAgents(1, 2), Map.of("app1", 2, "app2", 2), 4, false);
+        putTenantLimit(0);
         validate("app3", filesWithTwoAgents(1, 2), Map.of("app1", 2, "app2", 2), 4, false);
     }
 
@@ -95,12 +112,12 @@ class ApplicationServiceResourceLimitTest {
                 ModelBuilder.buildApplicationInstance(
                                 files,
                                 """
-                        instance:
-                          streamingCluster:
-                            type: "noop"
-                          computeCluster:
-                            type: "kubernetes"
-                        """,
+                                        instance:
+                                          streamingCluster:
+                                            type: "noop"
+                                          computeCluster:
+                                            type: "kubernetes"
+                                        """,
                                 null)
                         .getApplication();
 
@@ -134,14 +151,26 @@ class ApplicationServiceResourceLimitTest {
         }
     }
 
+    @SneakyThrows
+    private void putTenantLimit(int limit) {
+        new GlobalMetadataService(
+                        STORAGE_PROPERTIES,
+                        new TestApplicationStore(Map.of()),
+                        new TenantProperties())
+                .updateTenant(
+                        "tenant",
+                        UpdateTenantRequest.builder().maxTotalResourceUnits(limit).build());
+    }
+
     @NotNull
     private static ApplicationService getApplicationService(
             Map<String, Integer> currentUsage, int max) {
         final TenantProperties props = new TenantProperties();
-        props.setDefaultMaxUnitsPerTenant(max);
+        props.setDefaultMaxTotalResourceUnits(max);
+        final TestApplicationStore applicationStore = new TestApplicationStore(currentUsage);
         return new ApplicationService(
-                null,
-                new TestApplicationStore(currentUsage),
+                new GlobalMetadataService(STORAGE_PROPERTIES, applicationStore, props),
+                applicationStore,
                 new ApplicationDeployProperties(
                         new ApplicationDeployProperties.GatewayProperties(false)),
                 props);
@@ -152,14 +181,13 @@ class ApplicationServiceResourceLimitTest {
         private final Map<String, Integer> currentUsage;
 
         @Override
-        public void onTenantCreated(String tenant) {
-            throw new UnsupportedOperationException();
-        }
+        public void onTenantCreated(String tenant) {}
 
         @Override
-        public void onTenantDeleted(String tenant) {
-            throw new UnsupportedOperationException();
-        }
+        public void onTenantDeleted(String tenant) {}
+
+        @Override
+        public void onTenantUpdated(String tenant) {}
 
         @Override
         public void put(

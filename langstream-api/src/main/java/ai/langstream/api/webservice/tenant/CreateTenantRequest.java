@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.storage;
+package ai.langstream.api.webservice.tenant;
 
-import java.util.LinkedHashMap;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public interface GlobalMetadataStore extends GenericStore {
-    String TENANT_KEY_PREFIX = "t-";
+@Builder
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateTenantRequest {
 
-    void put(String key, String value);
-
-    void delete(String key);
-
-    String get(String key);
-
-    LinkedHashMap<String, String> list();
+    private Integer maxTotalResourceUnits;
 }

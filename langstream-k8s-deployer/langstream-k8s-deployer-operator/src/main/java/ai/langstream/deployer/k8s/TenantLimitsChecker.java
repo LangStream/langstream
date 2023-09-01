@@ -15,6 +15,7 @@
  */
 package ai.langstream.deployer.k8s;
 
+import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.limits.ApplicationResourceLimitsChecker;
 import ai.langstream.deployer.k8s.util.KeyedLockHandler;
@@ -27,27 +28,42 @@ import lombok.AllArgsConstructor;
 public class TenantLimitsChecker {
 
     private final ApplicationResourceLimitsChecker resourceLimitsEnforcer;
+    private final LimitsSupplier limitsSupplier;
 
     public TenantLimitsChecker(
             ResolvedDeployerConfiguration resolvedDeployerConfiguration,
-            KubernetesClient kubernetesClient) {
+            KubernetesClient kubernetesClient,
+            TenantsConfigurationReader tenantsConfigurationReader) {
+        this.limitsSupplier =
+                new LimitsSupplier(
+                        resolvedDeployerConfiguration
+                                .getAgentResources()
+                                .getDefaultMaxTotalResourceUnitsPerTenant(),
+                        tenantsConfigurationReader);
         this.resourceLimitsEnforcer =
                 new ApplicationResourceLimitsChecker(
-                        kubernetesClient,
-                        new KeyedLockHandler(),
-                        new LimitsSupplier(
-                                resolvedDeployerConfiguration
-                                        .getAgentResources()
-                                        .getDefaultMaxUnitsPerTenant()));
+                        kubernetesClient, new KeyedLockHandler(), limitsSupplier);
+    }
+
+    LimitsSupplier getLimitsSupplier() {
+        return limitsSupplier;
     }
 
     @AllArgsConstructor
     static class LimitsSupplier implements Function<String, Integer> {
         private final int defaultLimit;
+        private final TenantsConfigurationReader tenantsConfigurationReader;
 
         @Override
         public Integer apply(String s) {
-            return defaultLimit;
+            final TenantConfiguration config = tenantsConfigurationReader.getTenantConfiguration(s);
+            if (config == null) {
+                return defaultLimit;
+            }
+            if (config.getMaxTotalResourceUnits() <= 0) {
+                return defaultLimit;
+            }
+            return config.getMaxTotalResourceUnits();
         }
     }
 

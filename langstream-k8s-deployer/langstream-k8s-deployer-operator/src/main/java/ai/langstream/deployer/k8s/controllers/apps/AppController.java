@@ -17,6 +17,7 @@ package ai.langstream.deployer.k8s.controllers.apps;
 
 import ai.langstream.api.model.ApplicationLifecycleStatus;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationStatus;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.controllers.BaseController;
 import ai.langstream.deployer.k8s.controllers.InfiniteRetry;
@@ -31,7 +32,7 @@ import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import lombok.SneakyThrows;
 import lombok.extern.jbosslog.JBossLog;
 
@@ -42,6 +43,8 @@ import lombok.extern.jbosslog.JBossLog;
 @JBossLog
 public class AppController extends BaseController<ApplicationCustomResource>
         implements ErrorStatusHandler<ApplicationCustomResource> {
+
+    protected static final Duration DEFAULT_RESCHEDULE_DURATION = Duration.ofSeconds(5);
 
     @Override
     public ErrorStatusUpdateControl<ApplicationCustomResource> updateErrorStatus(
@@ -66,45 +69,63 @@ public class AppController extends BaseController<ApplicationCustomResource>
     @Override
     protected UpdateControl<ApplicationCustomResource> patchResources(
             ApplicationCustomResource resource, Context<ApplicationCustomResource> context) {
-        final boolean reschedule = handleJob(resource, false);
-        return reschedule
-                ? UpdateControl.updateStatus(resource).rescheduleAfter(5, TimeUnit.SECONDS)
+        final Duration rescheduleDuration = handleJob(resource, false);
+        return rescheduleDuration != null
+                ? UpdateControl.updateStatus(resource).rescheduleAfter(rescheduleDuration)
                 : UpdateControl.updateStatus(resource);
     }
 
     @Override
     protected DeleteControl cleanupResources(
             ApplicationCustomResource resource, Context<ApplicationCustomResource> context) {
-        final boolean reschedule = handleJob(resource, true);
-        return reschedule
-                ? DeleteControl.noFinalizerRemoval().rescheduleAfter(5, TimeUnit.SECONDS)
+        appResourcesLimiter.onAppBeingDeleted(resource);
+        final Duration rescheduleDuration = handleJob(resource, true);
+        return rescheduleDuration != null
+                ? DeleteControl.noFinalizerRemoval().rescheduleAfter(rescheduleDuration)
                 : DeleteControl.defaultDelete();
     }
 
-    private boolean handleJob(ApplicationCustomResource application, boolean delete) {
-        final String jobName =
-                AppResourcesFactory.getJobName(application.getMetadata().getName(), delete);
+    private Duration handleJob(ApplicationCustomResource application, boolean delete) {
+        final String applicationId = application.getMetadata().getName();
+        final String jobName = AppResourcesFactory.getJobName(applicationId, delete);
+        final String namespace = application.getMetadata().getNamespace();
         final Job currentJob =
-                client.batch()
-                        .v1()
-                        .jobs()
-                        .inNamespace(application.getMetadata().getNamespace())
-                        .withName(jobName)
-                        .get();
+                client.batch().v1().jobs().inNamespace(namespace).withName(jobName).get();
         if (currentJob == null || areSpecChanged(application)) {
+            if (!delete) {
+                final boolean isDeployable = appResourcesLimiter.checkLimitsForTenant(application);
+                if (!isDeployable) {
+                    log.infof(
+                            "Application %s for tenant %s is not deployable, waiting for resources to be available or limit to be increased.",
+                            applicationId, application.getSpec().getTenant());
+                    application
+                            .getStatus()
+                            .setStatus(
+                                    ApplicationLifecycleStatus.errorDeploying(
+                                            "Not enough resources to deploy application"));
+                    application
+                            .getStatus()
+                            .setResourceLimitStatus(ApplicationStatus.ResourceLimitStatus.REJECTED);
+                    return Duration.ofSeconds(30);
+                } else {
+                    application
+                            .getStatus()
+                            .setResourceLimitStatus(ApplicationStatus.ResourceLimitStatus.ACCEPTED);
+                }
+            }
             createJob(application, delete);
             if (!delete) {
                 application.getStatus().setStatus(ApplicationLifecycleStatus.DEPLOYING);
             }
-            return true;
+            return DEFAULT_RESCHEDULE_DURATION;
         } else {
             if (KubeUtil.isJobCompleted(currentJob)) {
                 if (!delete) {
                     application.getStatus().setStatus(ApplicationLifecycleStatus.DEPLOYED);
                 }
-                return false;
+                return null;
             } else {
-                return true;
+                return DEFAULT_RESCHEDULE_DURATION;
             }
         }
     }

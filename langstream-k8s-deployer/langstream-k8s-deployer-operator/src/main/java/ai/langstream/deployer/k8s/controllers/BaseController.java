@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s.controllers;
 
 import ai.langstream.deployer.k8s.ResolvedDeployerConfiguration;
+import ai.langstream.deployer.k8s.TenantLimitsChecker;
 import ai.langstream.deployer.k8s.api.crds.BaseStatus;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.client.CustomResource;
@@ -36,6 +37,8 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
     @Inject protected KubernetesClient client;
 
     @Inject protected ResolvedDeployerConfiguration configuration;
+
+    @Inject protected TenantLimitsChecker appResourcesLimiter;
 
     protected abstract UpdateControl<T> patchResources(T resource, Context<T> context);
 

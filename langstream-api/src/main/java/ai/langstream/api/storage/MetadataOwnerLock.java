@@ -13,20 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.deployer.k8s.api.crds.apps;
+package ai.langstream.api.storage;
 
-import ai.langstream.api.model.ApplicationLifecycleStatus;
-import ai.langstream.deployer.k8s.api.crds.BaseStatus;
-import lombok.Data;
-
-@Data
-public class ApplicationStatus extends BaseStatus {
-
-    public enum ResourceLimitStatus {
-        ACCEPTED,
-        REJECTED
-    }
-
-    ApplicationLifecycleStatus status;
-    ResourceLimitStatus resourceLimitStatus;
-}
+public interface MetadataOwnerLock {}

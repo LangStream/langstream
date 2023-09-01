@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -43,6 +44,15 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
     GenericContainer<?> container;
     K3sContainer k3s;
     KubernetesClient client;
+    private final Map<String, String> env;
+
+    public OperatorExtension(Map<String, String> env) {
+        this.env = env;
+    }
+
+    public OperatorExtension() {
+        this(Map.of());
+    }
 
     @Override
     public void afterAll(ExtensionContext extensionContext) {
@@ -67,6 +77,14 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
         k3s.start();
         applyCRDs();
         Testcontainers.exposeHostPorts(k3s.getFirstMappedPort());
+        startDeployerOperator();
+        client =
+                new KubernetesClientBuilder()
+                        .withConfig(Config.fromKubeconfig(k3s.getKubeconfig()))
+                        .build();
+    }
+
+    private void startDeployerOperator() throws IOException {
         final Path kubeconfigFile = writeKubeConfigForOperatorContainer();
         container =
                 new GenericContainer<>(
@@ -75,16 +93,19 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
                 kubeconfigFile.toFile().getAbsolutePath(), "/tmp/kubeconfig.yaml");
         container.withEnv("KUBECONFIG", "/tmp/kubeconfig.yaml");
         container.withEnv("QUARKUS_KUBERNETES_CLIENT_TRUST_CERTS", "true");
+        env.forEach(container::withEnv);
         container.withExposedPorts(8080);
         container.withAccessToHost(true);
         container.setWaitStrategy(new HttpWaitStrategy().forPort(8080).forPath("/q/health/ready"));
         container.withLogConsumer(
                 outputFrame -> System.out.print("operator>" + outputFrame.getUtf8String()));
         container.start();
-        client =
-                new KubernetesClientBuilder()
-                        .withConfig(Config.fromKubeconfig(k3s.getKubeconfig()))
-                        .build();
+    }
+
+    @SneakyThrows
+    public void restartDeployerOperator() {
+        container.stop();
+        startDeployerOperator();
     }
 
     public KubernetesClient getClient() {

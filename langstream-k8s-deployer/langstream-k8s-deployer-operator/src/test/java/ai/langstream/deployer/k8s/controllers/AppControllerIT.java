@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import ai.langstream.api.model.ApplicationLifecycleStatus;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationStatus;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -28,6 +29,8 @@ import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobSpec;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -36,7 +39,19 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 @Testcontainers
 public class AppControllerIT {
 
-    @RegisterExtension static final OperatorExtension deployment = new OperatorExtension();
+    @RegisterExtension
+    static final OperatorExtension deployment =
+            new OperatorExtension(
+                    Map.of(
+                            "DEPLOYER_AGENT_RESOURCES", "{defaultMaxUnitsPerTenant: 3}",
+                            "DEPLOYER_RUNTIME_IMAGE", "busybox",
+                            "DEPLOYER_RUNTIME_IMAGE_PULL_POLICY", "IfNotPresent"));
+
+    static AtomicInteger counter = new AtomicInteger(0);
+
+    static String genTenant() {
+        return "tenant-" + counter.incrementAndGet();
+    }
 
     @Test
     void testAppController() {
@@ -55,7 +70,7 @@ public class AppControllerIT {
                 spec:
                     image: busybox
                     imagePullPolicy: IfNotPresent
-                    application: "{app: true}"
+                    application: '{"modules": {}}'
                     tenant: %s
                 """
                                 .formatted(applicationId, namespace, tenant));
@@ -120,6 +135,70 @@ public class AppControllerIT {
 
         // it has to wait for the cleanup job to complete before actually deleting the application
         assertNotNull(client.resource(resource).inNamespace(namespace).get());
+    }
+
+    @Test
+    void testAppResources() {
+
+        final String tenant = genTenant();
+        setupTenant(tenant);
+        final ApplicationCustomResource app1 = createAppWithResources(tenant, 1, 1);
+        awaitApplicationDeployingStatus(app1);
+
+        final ApplicationCustomResource app2 = createAppWithResources(tenant, 1, 1);
+        awaitApplicationDeployingStatus(app2);
+
+        final ApplicationCustomResource app3 = createAppWithResources(tenant, 2, 1);
+        awaitApplicationErrorForResources(app3);
+
+        deployment.getClient().resource(app2).delete();
+        awaitApplicationDeployingStatus(app3);
+
+        final ApplicationCustomResource app4 = createAppWithResources(tenant, 2, 1);
+        awaitApplicationErrorForResources(app4);
+
+        deployment.restartDeployerOperator();
+        deployment.getClient().resource(app3).delete();
+        awaitApplicationDeployingStatus(app4);
+    }
+
+    private void awaitApplicationErrorForResources(ApplicationCustomResource original) {
+        org.awaitility.Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            final ApplicationCustomResource resource =
+                                    deployment.getClient().resource(original).get();
+                            assertEquals(
+                                    ApplicationLifecycleStatus.Status.ERROR_DEPLOYING,
+                                    resource.getStatus().getStatus().getStatus());
+                            assertEquals(
+                                    "Not enough resources to deploy application",
+                                    resource.getStatus().getStatus().getReason());
+                            assertEquals(
+                                    ApplicationStatus.ResourceLimitStatus.REJECTED,
+                                    resource.getStatus().getResourceLimitStatus());
+                        });
+    }
+
+    private void awaitApplicationDeployingStatus(ApplicationCustomResource resource) {
+        Awaitility.await()
+                .atMost(1, java.util.concurrent.TimeUnit.MINUTES)
+                .untilAsserted(
+                        () -> {
+                            final ApplicationCustomResource applicationCustomResource =
+                                    deployment
+                                            .getClient()
+                                            .resource(resource)
+                                            .inNamespace(resource.getMetadata().getNamespace())
+                                            .get();
+                            assertNotNull(applicationCustomResource);
+                            assertEquals(
+                                    ApplicationLifecycleStatus.Status.DEPLOYING,
+                                    applicationCustomResource.getStatus().getStatus().getStatus());
+                            assertEquals(
+                                    ApplicationStatus.ResourceLimitStatus.ACCEPTED,
+                                    applicationCustomResource.getStatus().getResourceLimitStatus());
+                        });
     }
 
     private void checkJob(Job job, boolean cleanup) {
@@ -191,12 +270,51 @@ public class AppControllerIT {
         assertEquals("bash", initContainer.getCommand().get(0));
         assertEquals("-c", initContainer.getCommand().get(1));
         assertEquals(
-                "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{app: true}\","
-                        + "\"codeStorageArchiveId\":null}' > /app-config/config && echo '{}' > /cluster-runtime-config/config",
+                "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": "
+                        + "{}}\",\"codeStorageArchiveId\":null}' > /app-config/config && echo '{}' > "
+                        + "/cluster-runtime-config/config",
                 initContainer.getArgs().get(0));
     }
 
     private ApplicationCustomResource getCr(String yaml) {
         return SerializationUtil.readYaml(yaml, ApplicationCustomResource.class);
+    }
+
+    private void setupTenant(String tenant) {
+        deployment
+                .getClient()
+                .resource(
+                        new NamespaceBuilder()
+                                .withNewMetadata()
+                                .withName("langstream-" + tenant)
+                                .endMetadata()
+                                .build())
+                .create();
+    }
+
+    private ApplicationCustomResource createAppWithResources(
+            String tenant, int size, int parallelism) {
+        final String appId = genAppId();
+        ApplicationCustomResource resource =
+                getCr(
+                        """
+                                apiVersion: langstream.ai/v1alpha1
+                                kind: Application
+                                metadata:
+                                  name: %s
+                                spec:
+                                    application: '{"agentRunners": {"agent1": {"resources": {"size": %d, "parallelism": %d}}}}'
+                                    tenant: %s
+                                """
+                                .formatted(appId, size, parallelism, tenant));
+        return deployment
+                .getClient()
+                .resource(resource)
+                .inNamespace("langstream-" + tenant)
+                .create();
+    }
+
+    private String genAppId() {
+        return "app-%s".formatted(counter.incrementAndGet());
     }
 }

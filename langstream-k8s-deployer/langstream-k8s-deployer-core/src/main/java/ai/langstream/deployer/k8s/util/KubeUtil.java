@@ -101,10 +101,12 @@ public class KubeUtil {
     public static class PodStatus {
         public static final PodStatus RUNNING = new PodStatus(State.RUNNING, null, null);
         public static final PodStatus WAITING = new PodStatus(State.WAITING, null, null);
+        public static final PodStatus COMPLETED = new PodStatus(State.COMPLETED, null, null);
 
         public enum State {
             RUNNING,
             WAITING,
+            COMPLETED,
             ERROR
         }
 
@@ -131,13 +133,13 @@ public class KubeUtil {
                     pod.getStatus().getInitContainerStatuses();
             if (initContainerStatuses != null && !initContainerStatuses.isEmpty()) {
                 for (ContainerStatus containerStatus : initContainerStatuses) {
-                    status = getStatusFromContainerState(containerStatus.getLastState(), true);
+                    status = getStatusFromContainerState(containerStatus.getLastState());
                     if (status == null) {
-                        status = getStatusFromContainerState(containerStatus.getState(), true);
+                        status = getStatusFromContainerState(containerStatus.getState());
                     }
                 }
             }
-            if (status == null) {
+            if (status == null || status == PodStatus.COMPLETED) {
                 final List<ContainerStatus> containerStatuses =
                         pod.getStatus().getContainerStatuses();
 
@@ -146,9 +148,9 @@ public class KubeUtil {
                 } else {
                     // only one container per pod
                     final ContainerStatus containerStatus = containerStatuses.get(0);
-                    status = getStatusFromContainerState(containerStatus.getLastState(), false);
+                    status = getStatusFromContainerState(containerStatus.getLastState());
                     if (status == null) {
-                        status = getStatusFromContainerState(containerStatus.getState(), false);
+                        status = getStatusFromContainerState(containerStatus.getState());
                     }
                     if (status == null) {
                         status = PodStatus.RUNNING;
@@ -173,13 +175,14 @@ public class KubeUtil {
         return podStatuses;
     }
 
-    private static PodStatus getStatusFromContainerState(ContainerState state, boolean isInit) {
+    private static PodStatus getStatusFromContainerState(ContainerState state) {
         if (state == null) {
             return null;
         }
         if (state.getTerminated() != null) {
-            if (isInit && state.getTerminated().getReason().equals("Completed")) {
-                return null;
+            log.info("Found terminated container state {}", state.getTerminated());
+            if ("Completed".equals(state.getTerminated().getReason())) {
+                return PodStatus.COMPLETED;
             }
             if (state.getTerminated().getMessage() != null) {
                 return new PodStatus(

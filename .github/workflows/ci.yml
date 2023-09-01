@@ -30,6 +30,7 @@ jobs:
       matrix:
         include:
           - name: Runtime
+          - name: Runtime IT
           - name: Deployer
           - name: Api Gateway
           - name: Control plane
@@ -68,13 +69,19 @@ jobs:
       - name: 'Test: Runtime'
         if: ${{ matrix.name == 'Runtime' }}
         run: |
-          ./mvnw verify -pl ":langstream-runtime-impl" -Pdocker
+          ./mvnw package -pl ":langstream-runtime-impl"
           if [[ `git status --porcelain` ]]; then
             echo "Found runtime impl changed after building, please build the runtime impl and commit the changes. "
             git status
             git diff
             exit 1
           fi
+
+      - name: 'Test: Runtime (Integration Tests)'
+        if: ${{ matrix.name == 'Runtime IT' }}
+        run: |
+          ./mvnw package -pl ":langstream-runtime-impl" -Pdocker -DskipTests -PskipPython
+          ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython
 
       - name: 'Test: Api Gateway'
         if: ${{ matrix.name == 'Api Gateway' }}

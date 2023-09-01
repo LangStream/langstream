@@ -21,6 +21,7 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.webservice.config.ApplicationDeployProperties;
+import ai.langstream.webservice.config.TenantProperties;
 import java.util.Map;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -145,6 +146,7 @@ class ApplicationServiceValidateAppTest {
                 null,
                 null,
                 new ApplicationDeployProperties(
-                        new ApplicationDeployProperties.GatewayProperties(false)));
+                        new ApplicationDeployProperties.GatewayProperties(false)),
+                new TenantProperties());
     }
 }

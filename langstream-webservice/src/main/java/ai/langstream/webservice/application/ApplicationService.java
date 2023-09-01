@@ -18,6 +18,7 @@ package ai.langstream.webservice.application;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Gateway;
+import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.model.TopicDefinition;
@@ -32,9 +33,11 @@ import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.webservice.config.ApplicationDeployProperties;
+import ai.langstream.webservice.config.TenantProperties;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +58,7 @@ public class ApplicationService {
     private final GlobalMetadataService globalMetadataService;
     private final ApplicationStore applicationStore;
     private final ApplicationDeployProperties applicationDeployProperties;
+    private final TenantProperties tenantProperties;
 
     @SneakyThrows
     public Map<String, StoredApplication> getAllApplications(String tenant) {
@@ -76,12 +80,44 @@ public class ApplicationService {
         validateApplicationModel(applicationInstance.getApplication());
         ExecutionPlan executionPlan =
                 validateExecutionPlan(applicationId, applicationInstance.getApplication());
+
+        checkResourceUsage(tenant, applicationId, executionPlan);
+
         applicationStore.put(
                 tenant,
                 applicationId,
                 applicationInstance.getApplication(),
                 codeArchiveReference,
                 executionPlan);
+    }
+
+    void checkResourceUsage(String tenant, String applicationId, ExecutionPlan executionPlan) {
+        final int max = tenantProperties.getDefaultMaxUnitsPerTenant();
+        if (max <= 0) {
+            return;
+        }
+
+        final int requestedUnits = countRequestedUnits(executionPlan);
+        final Map<String, Integer> appUsage = applicationStore.getResourceUsage(tenant);
+        final Integer currentUsage =
+                appUsage.entrySet().stream()
+                        .filter(e -> !e.getKey().equals(applicationId))
+                        .collect(Collectors.summingInt(e -> e.getValue()));
+        final int totalUsage = currentUsage + requestedUnits;
+        if (max < totalUsage) {
+            throw new IllegalArgumentException(
+                    "Not enough resources to deploy application " + applicationId);
+        }
+    }
+
+    private int countRequestedUnits(ExecutionPlan executionPlan) {
+        int requestedUnits = 0;
+
+        for (Map.Entry<String, AgentNode> agent : executionPlan.getAgents().entrySet()) {
+            final ResourcesSpec resources = agent.getValue().getResources();
+            requestedUnits += resources.size() * resources.parallelism();
+        }
+        return requestedUnits;
     }
 
     private void validateApplicationModel(Application application) {

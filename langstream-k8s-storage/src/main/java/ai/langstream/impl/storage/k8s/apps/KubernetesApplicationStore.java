@@ -27,6 +27,7 @@ import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
 import ai.langstream.deployer.k8s.api.crds.apps.SerializedApplicationInstance;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
+import ai.langstream.deployer.k8s.limits.ApplicationResourceLimitsChecker;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -236,6 +237,12 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .map(a -> getApplicationStatus(a.getMetadata().getName(), a, false))
                 .collect(
                         Collectors.toMap(StoredApplication::getApplicationId, Function.identity()));
+    }
+
+    @Override
+    public Map<String, Integer> getResourceUsage(String tenant) {
+        final String namespace = tenantToNamespace(tenant);
+        return ApplicationResourceLimitsChecker.loadUsage(client, namespace);
     }
 
     @SneakyThrows

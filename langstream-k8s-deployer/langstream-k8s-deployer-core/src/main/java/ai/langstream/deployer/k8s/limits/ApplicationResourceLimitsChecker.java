@@ -63,7 +63,7 @@ public class ApplicationResourceLimitsChecker {
             }
 
             final Map<String, Integer> actualTenantUsageByApp =
-                    tenantUsage.computeIfAbsent(tenant, loadUsage(namespace));
+                    tenantUsage.computeIfAbsent(tenant, ignore -> loadUsage(namespace));
 
             final Integer currentUsage =
                     actualTenantUsageByApp.entrySet().stream()
@@ -104,49 +104,54 @@ public class ApplicationResourceLimitsChecker {
 
         try (KeyedLockHandler.LockHolder lock = lockHandler.lock(tenant)) {
             final Map<String, Integer> actualTenantUsageByApp =
-                    tenantUsage.computeIfAbsent(tenant, loadUsage(namespace));
+                    tenantUsage.computeIfAbsent(tenant, ignore -> loadUsage(namespace));
             if (actualTenantUsageByApp != null) {
                 actualTenantUsageByApp.remove(applicationId);
             }
         }
     }
 
-    private Function<String, Map<String, Integer>> loadUsage(String namespace) {
-        return t -> {
-            final List<ApplicationCustomResource> applications =
-                    client.resources(ApplicationCustomResource.class)
-                            .inNamespace(namespace)
-                            .list()
-                            .getItems();
-            if (applications.isEmpty()) {
-                return new HashMap<>();
-            }
-            Map<String, Integer> appUsage = new HashMap<>();
-            for (ApplicationCustomResource application : applications) {
-                if (application.getStatus() != null) {
-                    final ApplicationStatus.ResourceLimitStatus resourceLimitStatus =
-                            application.getStatus().getResourceLimitStatus();
-                    if (resourceLimitStatus != null
-                            && resourceLimitStatus
-                                    == ApplicationStatus.ResourceLimitStatus.REJECTED) {
-                        continue;
-                    }
-                }
-                final int usage = computeRequestedUnits(application);
-                if (usage <= 0) {
-                    log.warn(
-                            "Unknown resource requests for application {}/{}. This app won't be counted for tenant resource usage.",
-                            application.getSpec().getTenant(),
-                            application.getMetadata().getName());
-                    continue;
-                }
-                appUsage.put(application.getMetadata().getName(), usage);
-            }
-            return appUsage;
-        };
+    private Map<String, Integer> loadUsage(String namespace) {
+        return loadUsage(client, namespace);
     }
 
-    private static int computeRequestedUnits(ApplicationCustomResource applicationCustomResource) {
+    public static Map<String, Integer> loadUsage(KubernetesClient client, String namespace) {
+        final List<ApplicationCustomResource> applications =
+                client.resources(ApplicationCustomResource.class)
+                        .inNamespace(namespace)
+                        .list()
+                        .getItems();
+        if (applications.isEmpty()) {
+            return new HashMap<>();
+        }
+        Map<String, Integer> appUsage = new HashMap<>();
+        for (ApplicationCustomResource application : applications) {
+            if (application.isMarkedForDeletion()) {
+                continue;
+            }
+            if (application.getStatus() != null) {
+                final ApplicationStatus.ResourceLimitStatus resourceLimitStatus =
+                        application.getStatus().getResourceLimitStatus();
+                if (resourceLimitStatus != null
+                        && resourceLimitStatus == ApplicationStatus.ResourceLimitStatus.REJECTED) {
+                    continue;
+                }
+            }
+            final int usage = computeRequestedUnits(application);
+            if (usage <= 0) {
+                log.warn(
+                        "Unknown resource requests for application {}/{}. This app won't be counted for tenant "
+                                + "resource usage.",
+                        application.getSpec().getTenant(),
+                        application.getMetadata().getName());
+                continue;
+            }
+            appUsage.put(application.getMetadata().getName(), usage);
+        }
+        return appUsage;
+    }
+
+    public static int computeRequestedUnits(ApplicationCustomResource applicationCustomResource) {
 
         final SerializedApplicationInstance serializedApplicationInstance =
                 ApplicationSpec.deserializeApplication(

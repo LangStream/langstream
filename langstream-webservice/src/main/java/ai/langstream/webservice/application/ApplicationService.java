@@ -91,8 +91,7 @@ public class ApplicationService {
                 executionPlan);
     }
 
-    void checkResourceUsage(
-            String tenant, String applicationId, ExecutionPlan executionPlan) {
+    void checkResourceUsage(String tenant, String applicationId, ExecutionPlan executionPlan) {
         final int max = tenantProperties.getDefaultMaxUnitsPerTenant();
         if (max <= 0) {
             return;

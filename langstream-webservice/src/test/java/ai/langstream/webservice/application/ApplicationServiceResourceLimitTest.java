@@ -38,6 +38,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 @Slf4j
 class ApplicationServiceResourceLimitTest {
 
+    @RegisterExtension static final KubeTestServer k3s = new KubeTestServer();
+
     @Test
     void test() {
         validate("app1", filesWithTwoAgents(100, 100), Map.of(), 0, true);
@@ -48,7 +50,6 @@ class ApplicationServiceResourceLimitTest {
         validate("app1", filesWithTwoAgents(2, 1), Map.of(), 1, false);
         validate("app1", filesWithTwoAgents(2, 1), Map.of(), 2, true);
         validate("app1", filesWithTwoAgents(2, 1), Map.of(), 3, true);
-
 
         validate("app1", filesWithTwoAgents(1, 2), Map.of("app1", 1), 1, false);
         validate("app1", filesWithTwoAgents(1, 2), Map.of("app1", 2), 2, true);
@@ -84,7 +85,11 @@ class ApplicationServiceResourceLimitTest {
 
     @SneakyThrows
     private static void validate(
-            String applicationId, Map<String, String> files, Map<String, Integer> currentUsage, int max, boolean expectValid) {
+            String applicationId,
+            Map<String, String> files,
+            Map<String, Integer> currentUsage,
+            int max,
+            boolean expectValid) {
         final ApplicationService service = getApplicationService(currentUsage, max);
         final Application application =
                 ModelBuilder.buildApplicationInstance(
@@ -99,10 +104,10 @@ class ApplicationServiceResourceLimitTest {
                                 null)
                         .getApplication();
 
-
         boolean ok = false;
         Throwable exception = null;
-        final ExecutionPlan executionPlan = service.validateExecutionPlan(applicationId, application);
+        final ExecutionPlan executionPlan =
+                service.validateExecutionPlan(applicationId, application);
         try {
             service.checkResourceUsage("tenant", applicationId, executionPlan);
             if (expectValid) {
@@ -113,7 +118,9 @@ class ApplicationServiceResourceLimitTest {
             if (!expectValid) {
                 ok = true;
                 log.info("Got expected exception", e);
-                Assertions.assertEquals("Not enough resources to deploy application " + applicationId, e.getMessage());
+                Assertions.assertEquals(
+                        "Not enough resources to deploy application " + applicationId,
+                        e.getMessage());
             }
             exception = e;
         }
@@ -128,7 +135,8 @@ class ApplicationServiceResourceLimitTest {
     }
 
     @NotNull
-    private static ApplicationService getApplicationService(Map<String, Integer> currentUsage, int max) {
+    private static ApplicationService getApplicationService(
+            Map<String, Integer> currentUsage, int max) {
         final TenantProperties props = new TenantProperties();
         props.setDefaultMaxUnitsPerTenant(max);
         return new ApplicationService(
@@ -136,15 +144,12 @@ class ApplicationServiceResourceLimitTest {
                 new TestApplicationStore(currentUsage),
                 new ApplicationDeployProperties(
                         new ApplicationDeployProperties.GatewayProperties(false)),
-                props
-                );
+                props);
     }
-
 
     @AllArgsConstructor
     private static class TestApplicationStore implements ApplicationStore {
         private final Map<String, Integer> currentUsage;
-
 
         @Override
         public void onTenantCreated(String tenant) {
@@ -154,14 +159,16 @@ class ApplicationServiceResourceLimitTest {
         @Override
         public void onTenantDeleted(String tenant) {
             throw new UnsupportedOperationException();
-
         }
 
         @Override
-        public void put(String tenant, String applicationId, Application applicationInstance,
-                        String codeArchiveReference, ExecutionPlan executionPlan) {
+        public void put(
+                String tenant,
+                String applicationId,
+                Application applicationInstance,
+                String codeArchiveReference,
+                ExecutionPlan executionPlan) {
             throw new UnsupportedOperationException();
-
         }
 
         @Override
@@ -195,7 +202,8 @@ class ApplicationServiceResourceLimitTest {
         }
 
         @Override
-        public List<PodLogHandler> logs(String tenant, String applicationId, LogOptions logOptions) {
+        public List<PodLogHandler> logs(
+                String tenant, String applicationId, LogOptions logOptions) {
             throw new UnsupportedOperationException();
         }
 

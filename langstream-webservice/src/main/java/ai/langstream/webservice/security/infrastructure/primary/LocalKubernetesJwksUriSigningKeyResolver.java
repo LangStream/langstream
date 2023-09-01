@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 public class LocalKubernetesJwksUriSigningKeyResolver {
 

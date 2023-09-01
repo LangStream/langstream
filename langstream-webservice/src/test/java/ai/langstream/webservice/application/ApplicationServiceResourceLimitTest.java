@@ -157,6 +157,11 @@ class ApplicationServiceResourceLimitTest {
         }
 
         @Override
+        public void onTenantUpdated(String tenant) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public void onTenantDeleted(String tenant) {
             throw new UnsupportedOperationException();
         }

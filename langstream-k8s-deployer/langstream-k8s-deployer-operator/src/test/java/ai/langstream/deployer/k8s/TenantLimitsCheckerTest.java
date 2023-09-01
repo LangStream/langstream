@@ -25,7 +25,8 @@ class TenantLimitsCheckerTest {
         @Override
         public Map<String, String> getConfigOverrides() {
             return Map.of(
-                    "deployer.agent-resources", "{\"defaultMaxTotalResourceUnitsPerTenant\":10}",
+                    "deployer.agent-resources",
+                    "{\"defaultMaxTotalResourceUnitsPerTenant\":10}",
                     "deployer.global-storage",
                     "{\"type\":\"kubernetes\",\"configuration\":{\"namespace\":\"default\"}}");
         }
@@ -35,23 +36,29 @@ class TenantLimitsCheckerTest {
 
     @BeforeEach
     public void before() {
-        mockServer.getKubernetesMockServer()
+        mockServer
+                .getKubernetesMockServer()
                 .expect()
                 .get()
                 .withPath("/api/v1/namespaces/default/configmaps/langstream-t-my-tenant")
-                .andReturn(200, new ConfigMapBuilder()
-                        .withData(Map.of("value", "{\"maxTotalResourceUnits\":20}"))
-                        .build()
-                ).always();
+                .andReturn(
+                        200,
+                        new ConfigMapBuilder()
+                                .withData(Map.of("value", "{\"maxTotalResourceUnits\":20}"))
+                                .build())
+                .always();
 
-        mockServer.getKubernetesMockServer()
+        mockServer
+                .getKubernetesMockServer()
                 .expect()
                 .get()
                 .withPath("/api/v1/namespaces/default/configmaps/langstream-t-my-tenant3")
-                .andReturn(200, new ConfigMapBuilder()
-                        .withData(Map.of("value", "{\"maxTotalResourceUnits\":0}"))
-                        .build()
-                ).always();
+                .andReturn(
+                        200,
+                        new ConfigMapBuilder()
+                                .withData(Map.of("value", "{\"maxTotalResourceUnits\":0}"))
+                                .build())
+                .always();
     }
 
     @Test

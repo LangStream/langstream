@@ -35,10 +35,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(
-        properties = {
-                "application.tenants.max-total-resource-units-limit=8"
-        })
+@SpringBootTest(properties = {"application.tenants.max-total-resource-units-limit=8"})
 @AutoConfigureMockMvc
 @Slf4j
 @Import(WebAppTestConfig.class)

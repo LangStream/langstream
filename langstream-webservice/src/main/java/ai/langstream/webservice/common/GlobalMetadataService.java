@@ -36,7 +36,9 @@ public class GlobalMetadataService {
     private final TenantProperties tenantProperties;
 
     public GlobalMetadataService(
-            StorageProperties storageProperties, ApplicationStore applicationStore, TenantProperties tenantProperties) {
+            StorageProperties storageProperties,
+            ApplicationStore applicationStore,
+            TenantProperties tenantProperties) {
         final GlobalMetadataStore globalMetadataStore =
                 GlobalMetadataStoreRegistry.loadStore(
                         storageProperties.getGlobal().getType(),
@@ -64,7 +66,8 @@ public class GlobalMetadataService {
                 && maxTotalResourceUnits > 0
                 && maxTotalResourceUnits > tenantProperties.getMaxTotalResourceUnitsLimit()) {
             throw new IllegalArgumentException(
-                    "Max total resource units limit is " + tenantProperties.getMaxTotalResourceUnitsLimit());
+                    "Max total resource units limit is "
+                            + tenantProperties.getMaxTotalResourceUnitsLimit());
         }
     }
 

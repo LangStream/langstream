@@ -40,7 +40,6 @@ public class WebAppTestConfig {
                                         .toFile()
                                         .getAbsolutePath())),
                 new StorageProperties.CodeStorageProperties());
-
     }
 
     @Bean

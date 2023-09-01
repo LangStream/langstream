@@ -21,7 +21,6 @@ import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
-import ai.langstream.api.webservice.tenant.CreateTenantRequest;
 import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.api.webservice.tenant.UpdateTenantRequest;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
@@ -44,9 +43,9 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 @Slf4j
 class ApplicationServiceResourceLimitTest {
 
-    @RegisterExtension
-    static final KubeTestServer k3s = new KubeTestServer();
-    protected static final StorageProperties STORAGE_PROPERTIES = WebAppTestConfig.buildStorageProperties();
+    @RegisterExtension static final KubeTestServer k3s = new KubeTestServer();
+    protected static final StorageProperties STORAGE_PROPERTIES =
+            WebAppTestConfig.buildStorageProperties();
 
     @Test
     void test() {
@@ -154,8 +153,13 @@ class ApplicationServiceResourceLimitTest {
 
     @SneakyThrows
     private void putTenantLimit(int limit) {
-        new GlobalMetadataService(STORAGE_PROPERTIES, new TestApplicationStore(Map.of()), new TenantProperties())
-                .updateTenant("tenant", UpdateTenantRequest.builder().maxTotalResourceUnits(limit).build());
+        new GlobalMetadataService(
+                        STORAGE_PROPERTIES,
+                        new TestApplicationStore(Map.of()),
+                        new TenantProperties())
+                .updateTenant(
+                        "tenant",
+                        UpdateTenantRequest.builder().maxTotalResourceUnits(limit).build());
     }
 
     @NotNull
@@ -177,18 +181,13 @@ class ApplicationServiceResourceLimitTest {
         private final Map<String, Integer> currentUsage;
 
         @Override
-        public void onTenantCreated(String tenant) {
-
-        }
+        public void onTenantCreated(String tenant) {}
 
         @Override
-        public void onTenantDeleted(String tenant) {
-
-        }
+        public void onTenantDeleted(String tenant) {}
 
         @Override
-        public void onTenantUpdated(String tenant) {
-        }
+        public void onTenantUpdated(String tenant) {}
 
         @Override
         public void put(

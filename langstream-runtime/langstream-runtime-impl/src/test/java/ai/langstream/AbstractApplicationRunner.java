@@ -289,7 +289,8 @@ public abstract class AbstractApplicationRunner {
                                         agentsDirectory,
                                         agentInfo,
                                         10,
-                                        () -> validateAgentInfoBeforeStop(agentInfo));
+                                        () -> validateAgentInfoBeforeStop(agentInfo),
+                                        false);
                                 List<?> infos = agentInfo.serveWorkerStatus();
                                 log.info(
                                         "{} AgentPod {} AgentInfo {}",

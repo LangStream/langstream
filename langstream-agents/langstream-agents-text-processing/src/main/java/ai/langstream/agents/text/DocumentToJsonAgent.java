@@ -19,6 +19,7 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,18 @@ public class DocumentToJsonAgent extends SingleRecordAgentProcessor {
         Map<String, Object> asJson = new HashMap<>();
         asJson.put(textField, stream);
         if (copyProperties) {
-            record.headers().forEach(h -> asJson.put(h.key(), h.value()));
+            record.headers()
+                    .forEach(
+                            h -> {
+                                Object headerValue = h.value();
+                                // JSON doesn't deal well with byte arrays
+                                if (headerValue instanceof byte[]) {
+                                    headerValue =
+                                            new String(
+                                                    (byte[]) headerValue, StandardCharsets.UTF_8);
+                                }
+                                asJson.put(h.key(), headerValue);
+                            });
         }
 
         return List.of(

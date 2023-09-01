@@ -105,6 +105,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
                 agentsDirectory,
                 new AgentInfo(),
                 -1,
-                null);
+                null,
+                true);
     }
 }

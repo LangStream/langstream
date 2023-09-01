@@ -15,6 +15,7 @@
  */
 package ai.langstream.api.runner.code;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Set;
 import lombok.AllArgsConstructor;
@@ -79,12 +80,12 @@ public final class SimpleRecord implements Record {
     @AllArgsConstructor
     public static class SimpleHeader implements Header {
 
-        public static SimpleHeader of(String key, String value) {
+        public static SimpleHeader of(String key, Object value) {
             return new SimpleHeader(key, value);
         }
 
         final String key;
-        final String value;
+        final Object value;
 
         @Override
         public String key() {
@@ -92,13 +93,19 @@ public final class SimpleRecord implements Record {
         }
 
         @Override
-        public String value() {
+        public Object value() {
             return value;
         }
 
         @Override
         public String valueAsString() {
-            return value;
+            if (value == null) {
+                return null;
+            } else if (value instanceof byte[] b) {
+                return new String(b, StandardCharsets.UTF_8);
+            } else {
+                return value.toString();
+            }
         }
     }
 }

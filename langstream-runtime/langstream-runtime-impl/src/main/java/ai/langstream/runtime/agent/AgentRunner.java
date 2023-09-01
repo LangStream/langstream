@@ -111,7 +111,8 @@ public class AgentRunner {
             Path agentsDirectory,
             AgentInfo agentInfo,
             int maxLoops,
-            Runnable beforeStopSource)
+            Runnable beforeStopSource,
+            boolean startHttpServer)
             throws Exception {
         new AgentRunner()
                 .run(
@@ -121,7 +122,8 @@ public class AgentRunner {
                         agentsDirectory,
                         agentInfo,
                         maxLoops,
-                        beforeStopSource);
+                        beforeStopSource,
+                        startHttpServer);
     }
 
     public void run(
@@ -131,7 +133,8 @@ public class AgentRunner {
             Path agentsDirectory,
             AgentInfo agentInfo,
             int maxLoops,
-            Runnable beforeStopSource)
+            Runnable beforeStopSource,
+            boolean startHttpServer)
             throws Exception {
         log.info("Pod Configuration {}", configuration);
 
@@ -161,10 +164,10 @@ public class AgentRunner {
                 Server server = null;
                 try {
                     if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
-                        server = bootstrapHttpServer(null);
+                        server = startHttpServer ? bootstrapHttpServer(null) : null;
                         runPythonAgent(podRuntimeConfiguration, codeDirectory);
                     } else {
-                        server = bootstrapHttpServer(agentInfo);
+                        server = startHttpServer ? bootstrapHttpServer(agentInfo) : null;
                         runJavaAgent(
                                 configuration,
                                 maxLoops,

@@ -15,6 +15,8 @@
  */
 package ai.langstream.runtime.agent;
 
+import static org.mockito.ArgumentMatchers.eq;
+
 import ai.langstream.runtime.api.agent.AgentRunnerConstants;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -87,7 +89,8 @@ class AgentRunnerStarterTest {
                         Mockito.any(),
                         Mockito.any(),
                         Mockito.anyInt(),
-                        Mockito.any());
+                        Mockito.any(),
+                        eq(true));
     }
 
     static class TestDeployer extends AgentRunnerStarter {

@@ -36,7 +36,23 @@ public class DocumentToJsonTest {
         instance.init(Map.of("text-field", "document", "copy-properties", "true"));
 
         assertEquals(
-                "{\"detected-language\":\"en\",\"document\":\"This is a English\"}",
+                "{\"detected-language\":\"en\",\"document\":\"This is a English\",\"other-header\":\"bytearray-value\"}",
+                convertToJson(instance, "This is a English"));
+
+        instance.init(Map.of("text-field", "document", "copy-properties", "false"));
+        assertEquals(
+                "{\"document\":\"This is a English\"}",
+                convertToJson(instance, "This is a English"));
+    }
+
+    @Test
+    public void textConvertToJsonWithRawHeaders() throws Exception {
+        TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
+        SingleRecordAgentProcessor instance = provider.createInstance("document-to-json");
+        instance.init(Map.of("text-field", "document", "copy-properties", "true"));
+
+        assertEquals(
+                "{\"detected-language\":\"en\",\"document\":\"This is a English\",\"other-header\":\"bytearray-value\"}",
                 convertToJson(instance, "This is a English"));
 
         instance.init(Map.of("text-field", "document", "copy-properties", "false"));
@@ -52,7 +68,13 @@ public class DocumentToJsonTest {
                         .key("filename.txt")
                         .value(text.getBytes(StandardCharsets.UTF_8))
                         .origin("origin")
-                        .headers(List.of(new SimpleRecord.SimpleHeader("detected-language", "en")))
+                        .headers(
+                                List.of(
+                                        new SimpleRecord.SimpleHeader("detected-language", "en"),
+                                        new SimpleRecord.SimpleHeader(
+                                                "other-header",
+                                                "bytearray-value"
+                                                        .getBytes(StandardCharsets.UTF_8))))
                         .timestamp(System.currentTimeMillis())
                         .build();
 

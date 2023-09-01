@@ -19,7 +19,7 @@ public class TenantsConfigurationReader {
     public TenantsConfigurationReader(ResolvedDeployerConfiguration resolvedDeployerConfiguration) {
         final GlobalStorageConfiguration configuration =
                 resolvedDeployerConfiguration.getGlobalStorageConfiguration();
-        if (configuration == null) {
+        if (configuration == null || configuration.getType() == null) {
             log.warnf("No global storage configuration found. Tenants metadata won't be used.");
             this.globalMetadataStore = null;
         } else {

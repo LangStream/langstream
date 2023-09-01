@@ -25,6 +25,8 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import static org.mockito.ArgumentMatchers.eq;
+
 class AgentRunnerStarterTest {
 
     static ObjectMapper mapper = new ObjectMapper();
@@ -87,7 +89,8 @@ class AgentRunnerStarterTest {
                         Mockito.any(),
                         Mockito.any(),
                         Mockito.anyInt(),
-                        Mockito.any());
+                        Mockito.any(),
+                        eq(true));
     }
 
     static class TestDeployer extends AgentRunnerStarter {

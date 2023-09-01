@@ -162,7 +162,7 @@ public class ChatCompletionsStep implements TransformStep {
                                 copy.getProperties().put("stream-index", index + "");
                                 copy.getProperties().put("stream-last-message", last + "");
 
-                                applyResultFieldToContext(copy, chunk);
+                                applyResultFieldToContext(copy, chunk, true);
                                 streamingAnswersConsumer.streamAnswerChunk(
                                         index, chunk.getMessage().getContent(), last, copy);
                             }
@@ -172,7 +172,7 @@ public class ChatCompletionsStep implements TransformStep {
         return chatCompletionsHandle.thenApply(
                 chatCompletions -> {
                     ChatChoice chatChoice = chatCompletions.getChoices().get(0);
-                    applyResultFieldToContext(transformContext, chatChoice);
+                    applyResultFieldToContext(transformContext, chatChoice, false);
 
                     String logField = config.getLogField();
                     if (logField != null && !logField.isEmpty()) {
@@ -192,9 +192,17 @@ public class ChatCompletionsStep implements TransformStep {
     }
 
     private void applyResultFieldToContext(
-            TransformContext transformContext, ChatChoice chatChoice) {
+            TransformContext transformContext, ChatChoice chatChoice, boolean streamingAnswer) {
         String content = chatChoice.getMessage().getContent();
         String fieldName = config.getFieldName();
+
+        // maybe we want a different field in the streaming answer
+        // typically you want to directly stream the answer as the whole "value"
+        if (streamingAnswer
+                && config.getStreamResponseCompletionField() != null
+                && !config.getStreamResponseCompletionField().isEmpty()) {
+            fieldName = config.getStreamResponseCompletionField();
+        }
         transformContext.setResultField(
                 content,
                 fieldName,

@@ -22,16 +22,33 @@ topics:
   - name: "history-topic"
     creation-mode: create-if-not-exists
 pipeline:
+  - name: "convert-to-json"
+    type: "document-to-json"
+    input: "input-topic"
+    configuration:
+      text-field: "question"
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
-    input: "input-topic"
     output: "history-topic"
     configuration:
       model: "gpt-35-turbo" # This needs to be set to the model deployment name, not the base name
-      completion-field: "value"
-      stream-to-topic: "output-topic"
-      min-chunks-per-message: 5
+      # on the log-topic we add a field with the answer
+      completion-field: "value.answer"
+      # we are also logging the prompt we sent to the LLM
+      log-field: "value.prompt"
+      # here we configure the streaming behavior
+      # as soon as the LLM answers with a chunk we send it to the answers-topic
+      stream-to-topic: "answers-topic"
+      # on the streaming answer we send the answer as whole message
+      # the 'value' syntax is used to refer to the whole value of the message
+      stream-response-completion-field: "value"
+      # we want to stream the answer as soon as we have 20 chunks
+      # in order to reduce latency for the first message the agent sends the first message
+      # with 1 chunk, then with 2 chunks....up to the min-chunks-per-message value
+      # eventually we want to send bigger messages to reduce the overhead of each message on the topic
+      min-chunks-per-message: 20
+      # you can turn off the streaming behavior by setting this to false
       stream: true
       messages:
         - role: user
-          content: "You are an helpful assistant. Below you can fine a question from the user. Please try to help them the best way you can.\n\n{{% value}}"
+          content: "You are an helpful assistant. Below you can fine a question from the user. Please try to help them the best way you can.\n\n{{% value.question}}"

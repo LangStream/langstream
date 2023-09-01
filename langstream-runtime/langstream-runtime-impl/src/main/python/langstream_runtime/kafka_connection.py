@@ -159,6 +159,8 @@ class KafkaTopicConsumer(TopicConsumer):
         return [KafkaRecord(message)]
 
     def commit(self, records: List[KafkaRecord]):
+        if len(records) == 0:
+            return
         for record in records:
             topic_partition = record.topic_partition()
             offset = record.offset()

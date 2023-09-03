@@ -68,7 +68,7 @@ class PythonCodeAgentsTest {
                                       config2: value2
                                   - name: "process1"
                                     id: "process1"
-                                    type: "python-function"
+                                    type: "python-processor"
                                     configuration:
                                       agent.class: my.python.module.MyClass
                                       config1: value1

@@ -22,7 +22,7 @@ topics:
     creation-mode: create-if-not-exists
 pipeline:
   - name: "OpenAI Embeddings"
-    type: "python-function"
+    type: "python-processor"
     input: "input-topic"
     output: "output-topic"
     configuration:

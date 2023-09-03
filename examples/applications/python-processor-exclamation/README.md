@@ -6,7 +6,7 @@ The code in `example.py` adds an exclamation mark to the end of a string message
 ## Deploy the LangStream application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/python-function-exclamation -i examples/instances/kafka-kubernetes.yaml
+./bin/langstream apps deploy test -app examples/applications/python-processor-exclamation -i examples/instances/kafka-kubernetes.yaml
 ```
 
 ## Start a Producer

@@ -42,7 +42,7 @@ public class PythonFunctionIT extends BaseEndToEndTest {
         String testSecretBaseDir = "src/test/resources/secrets";
         final String applicationId = "my-test-app";
         copyFileToClientContainer(
-                Paths.get(testAppsBaseDir, "python-function").toFile(), "/tmp/python-function");
+                Paths.get(testAppsBaseDir, "python-processor").toFile(), "/tmp/python-processor");
         copyFileToClientContainer(
                 Paths.get(testInstanceBaseDir, "kafka-kubernetes.yaml").toFile(),
                 "/tmp/instance.yaml");
@@ -50,13 +50,13 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                 Paths.get(testSecretBaseDir, "secret1.yaml").toFile(), "/tmp/secrets.yaml");
 
         executeCommandOnClient(
-                "bin/langstream apps deploy %s -app /tmp/python-function -i /tmp/instance.yaml -s /tmp/secrets.yaml"
+                "bin/langstream apps deploy %s -app /tmp/python-processor -i /tmp/instance.yaml -s /tmp/secrets.yaml"
                         .formatted(applicationId)
                         .split(" "));
         client.apps()
                 .statefulSets()
                 .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)
-                .withName(applicationId + "-module-1-pipeline-1-python-function-1")
+                .withName(applicationId + "-test-python-processor")
                 .waitUntilReady(4, TimeUnit.MINUTES);
 
         executeCommandOnClient(

@@ -9,7 +9,7 @@ that is a Cassandra database with Vector Search support.
 Get the credentials to access your AstraDB Database:
 - username
 - password
-- Secure connect Bundle
+- [Secure Connect Bundle](https://awesome-astra.github.io/docs/pages/astra/download-scb/#c-procedure)
 
 Encode the Secure connect Bundle in base64.
 

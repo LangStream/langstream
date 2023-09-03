@@ -51,7 +51,7 @@ class KubeUtilTest {
                     started: false
                     state:
                       waiting:
-                        message: back-off 5m0s restarting failed container=runtime pod=test-pipeline-python-function-1-0_langstream-default(a8333379-efc3-406f-a6e4-d2faeadf56bd)
+                        message: back-off 5m0s restarting failed container=runtime pod=test-pipeline-python-processor-1-0_langstream-default(a8333379-efc3-406f-a6e4-d2faeadf56bd)
                         reason: CrashLoopBackOff
                   initContainerStatuses:
                   - containerID: docker://efd511fb2a9f17e39dde67fb34e38fc2fba28b973acad74509ae212d804e54f0

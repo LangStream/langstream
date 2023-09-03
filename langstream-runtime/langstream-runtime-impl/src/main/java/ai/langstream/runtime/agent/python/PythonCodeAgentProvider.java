@@ -19,14 +19,15 @@ import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
 import ai.langstream.api.runtime.ComponentType;
+import java.util.Set;
 
 public class PythonCodeAgentProvider implements AgentCodeProvider {
+    private static final Set<String> AGENT_TYPES =
+            Set.of("python-source", "python-sink", "python-processor", "python-function");
+
     @Override
     public boolean supports(String agentType) {
-        return switch (agentType) {
-            case "python-source", "python-sink", "python-function" -> true;
-            default -> false;
-        };
+        return AGENT_TYPES.contains(agentType);
     }
 
     @Override
@@ -46,7 +47,7 @@ public class PythonCodeAgentProvider implements AgentCodeProvider {
             return switch (type) {
                 case "python-source" -> ComponentType.SOURCE;
                 case "python-sink" -> ComponentType.SINK;
-                case "python-function" -> ComponentType.PROCESSOR;
+                case "python-processor", "python-function" -> ComponentType.PROCESSOR;
                 default -> throw new IllegalArgumentException("Unknown agent type: " + type);
             };
         }

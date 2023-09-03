@@ -29,7 +29,7 @@ public class PythonCodeAgentProvider extends AbstractAgentProvider {
 
     public PythonCodeAgentProvider() {
         super(
-                Set.of("python-source", "python-sink", "python-function"),
+                Set.of("python-source", "python-sink", "python-processor", "python-function"),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
@@ -38,7 +38,7 @@ public class PythonCodeAgentProvider extends AbstractAgentProvider {
         return switch (agentConfiguration.getType()) {
             case "python-source" -> ComponentType.SOURCE;
             case "python-sink" -> ComponentType.SINK;
-            case "python-function" -> ComponentType.PROCESSOR;
+            case "python-processor", "python-function" -> ComponentType.PROCESSOR;
             default -> throw new IllegalArgumentException(
                     "Unsupported agent type: " + agentConfiguration.getType());
         };

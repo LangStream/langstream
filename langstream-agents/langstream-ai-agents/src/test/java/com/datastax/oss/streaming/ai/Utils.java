@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -82,7 +83,11 @@ public class Utils {
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
         TransformContext transformContext =
                 newTransformContext(context, record.getValue().getNativeObject());
-        step.processAsync(transformContext).join();
+        try {
+            step.processAsync(transformContext).get();
+        } catch (ExecutionException error) {
+            throw error.getCause();
+        }
         return send(context, transformContext);
     }
 

@@ -16,11 +16,10 @@
 package com.datastax.oss.streaming.ai.embeddings;
 
 import java.util.List;
-import junit.framework.TestCase;
 import org.junit.jupiter.api.Disabled;
 
 // disabled, just for experiments/usage demo
-public class HuggingFaceEmbeddingServiceTest extends TestCase {
+public class HuggingFaceEmbeddingServiceTest {
 
     @Disabled
     public void testMain() throws Exception {

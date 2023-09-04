@@ -27,19 +27,19 @@ import picocli.CommandLine;
 @CommandLine.Command(
         name = "apps",
         header = "Manage LangStream applications",
-        //        description =
-        //                """
-        //                # Deploy an application
-        //                langstream apps deploy myapp -app myapp-dir -i instance-file.yaml -s
-        // secret-file.yaml
-        //
-        //                # Get the application status
-        //                langstream apps get myapp
-        //                langstream apps get myapp -o yaml
-        //
-        //                # Delete the application
-        //                langstream apps delete myapp
-        //                """,
+                description =
+                        """
+                        # Deploy an application
+                        langstream apps deploy myapp -app myapp-dir -i instance-file.yaml -s
+         secret-file.yaml
+
+                        # Get the application status
+                        langstream apps get myapp
+                        langstream apps get myapp -o yaml
+
+                        # Delete the application
+                        langstream apps delete myapp
+                        """,
         subcommands = {
             AbstractDeployApplicationCmd.DeployApplicationCmd.class,
             AbstractDeployApplicationCmd.UpdateApplicationCmd.class,

@@ -27,8 +27,8 @@ import picocli.CommandLine;
 @CommandLine.Command(
         name = "apps",
         header = "Manage LangStream applications",
-                description =
-                        """
+        description =
+                """
                         # Deploy an application
                         langstream apps deploy myapp -app myapp-dir -i instance-file.yaml -s
          secret-file.yaml

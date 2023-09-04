@@ -162,6 +162,12 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                             originalConfiguration,
                                             "model",
                                             "text-embedding-ada-002");
+                                    optionalField(
+                                            step,
+                                            agentConfiguration,
+                                            originalConfiguration,
+                                            "batch-size",
+                                            null);
                                     requiredField(
                                             step,
                                             agentConfiguration,

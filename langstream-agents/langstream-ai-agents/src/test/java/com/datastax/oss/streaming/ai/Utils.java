@@ -83,10 +83,30 @@ public class Utils {
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
         TransformContext transformContext =
                 newTransformContext(context, record.getValue().getNativeObject());
-        try {
-            step.processAsync(transformContext).get();
-        } catch (ExecutionException error) {
-            throw error.getCause();
+        if (step.supportsBatch()) {
+            try {
+                CompletableFuture<?> handle = new CompletableFuture<>();
+                step.processAsync(
+                        List.of(
+                                new TransformStep.ContextWithOriginalRecord(
+                                        transformContext, null)),
+                        (r, err) -> {
+                            if (err != null) {
+                                handle.completeExceptionally(err);
+                            } else {
+                                handle.complete(null);
+                            }
+                        });
+                handle.get();
+            } catch (ExecutionException error) {
+                throw error.getCause();
+            }
+        } else {
+            try {
+                step.processAsync(transformContext).get();
+            } catch (ExecutionException error) {
+                throw error.getCause();
+            }
         }
         return send(context, transformContext);
     }

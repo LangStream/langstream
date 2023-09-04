@@ -35,7 +35,6 @@ import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class ComputeAIEmbeddingsTest {
@@ -65,6 +64,7 @@ public class ComputeAIEmbeddingsTest {
                 new ComputeAIEmbeddingsStep(
                         "{{ value.firstName }} {{ value.lastName }}",
                         "value.newField",
+                        1,
                         mockService);
 
         Record<?> outputRecord = Utils.process(record, step);
@@ -82,7 +82,8 @@ public class ComputeAIEmbeddingsTest {
         final List<Double> expectedEmbeddings = Arrays.asList(1.0d, 2.0d, 3.0d);
         mockService.setEmbeddingsForText("key1", expectedEmbeddings);
         ComputeAIEmbeddingsStep step =
-                new ComputeAIEmbeddingsStep("{{ key.keyField1 }}", "value.newField", mockService);
+                new ComputeAIEmbeddingsStep(
+                        "{{ key.keyField1 }}", "value.newField", 1, mockService);
 
         Record<?> outputRecord = Utils.process(Utils.createTestAvroKeyValueRecord(), step);
         KeyValueSchema<?, ?> messageSchema = (KeyValueSchema<?, ?>) outputRecord.getSchema();
@@ -95,7 +96,6 @@ public class ComputeAIEmbeddingsTest {
     }
 
     @Test
-    @Disabled("JSON not supported at the moment")
     void testJson() throws Exception {
         RecordSchemaBuilder recordSchemaBuilder = SchemaBuilder.record("record");
         recordSchemaBuilder.field("firstName").type(SchemaType.STRING);
@@ -120,6 +120,7 @@ public class ComputeAIEmbeddingsTest {
                 new ComputeAIEmbeddingsStep(
                         "{{ value.firstName }} {{ value.lastName }}",
                         "value.newField",
+                        1,
                         mockService);
 
         Record<?> outputRecord = Utils.process(record, step);

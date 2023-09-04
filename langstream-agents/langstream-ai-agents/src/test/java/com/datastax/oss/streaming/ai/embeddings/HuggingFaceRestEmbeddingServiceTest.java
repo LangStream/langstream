@@ -20,7 +20,7 @@ import java.util.Map;
 import junit.framework.TestCase;
 
 // disabled, just for experiments/usage demo
-public abstract class HuggingFaceRestEmbeddingServiceTest extends TestCase {
+public class HuggingFaceRestEmbeddingServiceTest extends TestCase {
 
     public void testMain() throws Exception {
         HuggingFaceRestEmbeddingService.HuggingFaceApiConfig conf =
@@ -31,7 +31,7 @@ public abstract class HuggingFaceRestEmbeddingServiceTest extends TestCase {
                         .build();
         try (EmbeddingsService service = new HuggingFaceRestEmbeddingService(conf)) {
             List<List<Double>> result =
-                    service.computeEmbeddings(List.of("hello world", "stranger things"));
+                    service.computeEmbeddings(List.of("hello world", "stranger things")).get();
             result.forEach(System.out::println);
         }
     }

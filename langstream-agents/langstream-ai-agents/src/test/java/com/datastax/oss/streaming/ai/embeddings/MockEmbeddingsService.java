@@ -18,6 +18,7 @@ package com.datastax.oss.streaming.ai.embeddings;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class MockEmbeddingsService implements EmbeddingsService {
 
@@ -28,9 +29,10 @@ public class MockEmbeddingsService implements EmbeddingsService {
     }
 
     @Override
-    public List<List<Double>> computeEmbeddings(List<String> texts) {
-        return texts.stream()
-                .map(text -> embeddingsMapping.get(text))
-                .collect(java.util.stream.Collectors.toList());
+    public CompletableFuture<List<List<Double>>> computeEmbeddings(List<String> texts) {
+        return CompletableFuture.completedFuture(
+                texts.stream()
+                        .map(text -> embeddingsMapping.get(text))
+                        .collect(java.util.stream.Collectors.toList()));
     }
 }

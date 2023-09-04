@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface EmbeddingsService extends AutoCloseable {
 
@@ -32,5 +33,5 @@ public interface EmbeddingsService extends AutoCloseable {
 
     default void close() throws Exception {}
 
-    List<List<Double>> computeEmbeddings(List<String> texts);
+    CompletableFuture<List<List<Double>>> computeEmbeddings(List<String> texts);
 }

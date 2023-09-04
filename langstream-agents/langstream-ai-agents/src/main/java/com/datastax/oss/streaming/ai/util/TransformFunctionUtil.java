@@ -78,6 +78,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -277,7 +278,10 @@ public class TransformFunctionUtil {
             ComputeAIEmbeddingsConfig config, ServiceProvider provider) {
         EmbeddingsService embeddingsService = provider.getEmbeddingsService(convertToMap(config));
         return new ComputeAIEmbeddingsStep(
-                config.getText(), config.getEmbeddingsFieldName(), embeddingsService);
+                config.getText(),
+                config.getEmbeddingsFieldName(),
+                config.getBatchSize(),
+                embeddingsService);
     }
 
     public static UnwrapKeyValueStep newUnwrapKeyValueFunction(UnwrapKeyValueConfig config) {
@@ -534,6 +538,23 @@ public class TransformFunctionUtil {
             public X509Certificate[] getAcceptedIssuers() {
                 return new X509Certificate[0];
             }
+        }
+    }
+
+    public static <T> void executeInBatches(
+            List<T> records, Consumer<List<T>> processSingleBatch, int batchSize) {
+        if (records.size() <= batchSize) {
+            // this case also covers calling the callback with an empty list
+            processSingleBatch.accept(records);
+            return;
+        }
+
+        int start = 0;
+        while (start < records.size()) {
+            int endBatch = Math.min(start + batchSize, records.size());
+            List<T> part1 = records.subList(start, endBatch);
+            processSingleBatch.accept(part1);
+            start = endBatch;
         }
     }
 }

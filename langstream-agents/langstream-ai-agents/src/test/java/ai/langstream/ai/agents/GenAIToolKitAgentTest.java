@@ -17,11 +17,13 @@ package ai.langstream.ai.agents;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 
 class GenAIToolKitAgentTest {
@@ -74,7 +76,9 @@ class GenAIToolKitAgentTest {
                                                         expression))))));
         agent.start();
         SimpleRecord record = SimpleRecord.builder().value(value).build();
-        Record result = agent.processRecord(record).get().get(0);
+        CompletableFuture<AgentProcessor.SourceRecordAndResult> holder = new CompletableFuture<>();
+        agent.processRecord(record, holder::complete);
+        Record result = holder.get().resultRecords().get(0);
         Map<String, Object> resultValueParsed =
                 MAPPER.readValue(result.value().toString(), Map.class);
         agent.close();

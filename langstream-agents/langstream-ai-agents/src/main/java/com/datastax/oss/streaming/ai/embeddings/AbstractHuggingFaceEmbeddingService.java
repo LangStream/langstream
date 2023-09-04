@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import lombok.Builder;
 import lombok.Data;
@@ -169,13 +170,14 @@ public abstract class AbstractHuggingFaceEmbeddingService<IN, OUT>
     abstract List<List<Double>> convertOutput(List<OUT> result);
 
     @Override
-    public List<List<Double>> computeEmbeddings(List<String> texts) {
+    public CompletableFuture<List<List<Double>>> computeEmbeddings(List<String> texts) {
         try {
             List<OUT> results = compute(convertInput(texts));
-            return convertOutput(results);
+            return CompletableFuture.completedFuture(convertOutput(results));
         } catch (TranslateException e) {
             log.error("failed to run compute", e);
-            throw new RuntimeException("failed to run compute", e);
+            return CompletableFuture.failedFuture(
+                    new RuntimeException("failed to compute embeddings", e));
         }
     }
 }

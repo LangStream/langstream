@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -128,41 +129,60 @@ public class HuggingFaceRestEmbeddingService implements EmbeddingsService {
     }
 
     @Override
-    public List<List<Double>> computeEmbeddings(List<String> texts) {
+    public CompletableFuture<List<List<Double>>> computeEmbeddings(List<String> texts) {
         HuggingPojo pojo = HuggingPojo.builder().inputs(texts).options(conf.options).build();
 
         try {
             String jsonContent = om.writeValueAsString(pojo);
 
-            String body = query(jsonContent);
-
-            Object result = om.readValue(body, Object.class);
-            return (List<List<Double>>) result;
+            CompletableFuture<String> bodyHandle = query(jsonContent);
+            return bodyHandle.thenApply(
+                    body -> {
+                        try {
+                            Object result = om.readValue(body, Object.class);
+                            return (List<List<Double>>) result;
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            return CompletableFuture.failedFuture(e);
         }
     }
 
-    private String query(String jsonPayload) throws Exception {
+    private CompletableFuture<String> query(String jsonPayload) throws Exception {
         HttpRequest request =
                 HttpRequest.newBuilder()
                         .uri(modelUrl.toURI())
                         .header("Authorization", "Bearer " + token)
                         .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                         .build();
-        HttpResponse<String> response =
-                httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        CompletableFuture<HttpResponse<String>> responseHandle =
+                httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        return responseHandle.thenApply(
+                response -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug(
+                                "Model {} query response is {} {}",
+                                model,
+                                response,
+                                response.body());
+                    }
 
-        if (log.isDebugEnabled()) {
-            log.debug("Model {} query response is {} {}", model, response, response.body());
-        }
+                    if (response.statusCode() != 200) {
+                        log.warn(
+                                "Model {} query failed with {} {}",
+                                model,
+                                response,
+                                response.body());
+                        throw new RuntimeException(
+                                "Model "
+                                        + model
+                                        + " query failed with status "
+                                        + response.statusCode());
+                    }
 
-        if (response.statusCode() != 200) {
-            log.warn("Model {} query failed with {} {}", model, response, response.body());
-            throw new RuntimeException(
-                    "Model " + model + " query failed with status " + response.statusCode());
-        }
-
-        return response.body();
+                    return response.body();
+                });
     }
 }

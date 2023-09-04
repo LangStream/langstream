@@ -19,6 +19,7 @@ import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public interface ServiceProvider extends AutoCloseable {
     CompletionsService getCompletionsService(Map<String, Object> additionalConfiguration)
@@ -40,8 +41,8 @@ public interface ServiceProvider extends AutoCloseable {
         public EmbeddingsService getEmbeddingsService(Map<String, Object> additionalConfiguration) {
             return new EmbeddingsService() {
                 @Override
-                public List<List<Double>> computeEmbeddings(List<String> texts) {
-                    return List.of();
+                public CompletableFuture<List<List<Double>>> computeEmbeddings(List<String> texts) {
+                    return CompletableFuture.completedFuture(List.of());
                 }
             };
         }

@@ -1139,15 +1139,13 @@ class AppsCmdTest extends CommandTestBase {
             Assertions.assertEquals(0, result.exitCode());
             Assertions.assertEquals("", result.err());
             Assertions.assertEquals(
-                    "Downloaded application code to "
-                            + expectedFile.getAbsolutePath(),
+                    "Downloaded application code to " + expectedFile.getAbsolutePath(),
                     result.out());
         } finally {
             try {
                 Files.deleteIfExists(expectedFile.toPath());
             } catch (IOException e) {
             }
-
         }
     }
 

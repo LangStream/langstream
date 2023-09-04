@@ -22,7 +22,7 @@ public class AgentResourceUnitConfiguration {
 
     private float cpuPerUnit = 0.5f;
     // MB
-    private long memPerUnit = 256;
+    private long memPerUnit = 512;
     private int instancePerUnit = 1;
 
     private int defaultCpuMemUnits = 1;

@@ -113,10 +113,10 @@ class AgentResourcesFactoryTest {
                                 resources:
                                   limits:
                                     cpu: 0.500000
-                                    memory: 256M
+                                    memory: 512M
                                   requests:
                                     cpu: 0.500000
-                                    memory: 256M
+                                    memory: 512M
                                 terminationMessagePolicy: FallbackToLogsOnError
                                 volumeMounts:
                                 - mountPath: /app-config

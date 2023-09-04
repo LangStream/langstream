@@ -22,10 +22,7 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "configure",
-        mixinStandardHelpOptions = true,
-        description = "Configure LangStream tenant and authentication")
+@CommandLine.Command(name = "configure", header = "Configure LangStream tenant and authentication")
 @Getter
 public class ConfigureCmd extends BaseCmd {
 

@@ -19,7 +19,7 @@ import java.net.http.HttpRequest;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "put", mixinStandardHelpOptions = true, description = "Put a tenant")
+@CommandLine.Command(name = "put", header = "Put a tenant")
 public class PutTenantCmd extends BaseTenantCmd {
 
     @CommandLine.Parameters(description = "Name of the tenant")

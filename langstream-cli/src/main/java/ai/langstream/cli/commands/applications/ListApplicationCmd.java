@@ -22,10 +22,7 @@ import java.util.function.BiFunction;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "list",
-        mixinStandardHelpOptions = true,
-        description = "List all LangStream applications")
+@CommandLine.Command(name = "list", header = "List all LangStream applications")
 public class ListApplicationCmd extends BaseApplicationCmd {
 
     protected static final String[] COLUMNS_FOR_RAW = {

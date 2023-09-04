@@ -78,6 +78,7 @@
     <commons-collections4.version>4.4</commons-collections4.version>
 <!--    minio requires okhttp3 v4-->
     <okhttp.version>4.11.0</okhttp.version>
+    <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
   </properties>
 
   <scm>
@@ -530,7 +531,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.3.0</version>
+          <version>${maven-jar-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

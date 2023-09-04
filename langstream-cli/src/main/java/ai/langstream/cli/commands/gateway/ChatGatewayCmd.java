@@ -33,8 +33,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
         name = "chat",
-        mixinStandardHelpOptions = true,
-        description = "Produce and consume messages from gateway in a chat-like fashion")
+        header = "Produce and consume messages from gateway in a chat-like fashion")
 public class ChatGatewayCmd extends BaseGatewayCmd {
 
     @CommandLine.Parameters(description = "Application ID")

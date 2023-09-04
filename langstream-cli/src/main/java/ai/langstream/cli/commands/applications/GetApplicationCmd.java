@@ -18,10 +18,7 @@ package ai.langstream.cli.commands.applications;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "get",
-        mixinStandardHelpOptions = true,
-        description = "Get LangStream application status")
+@CommandLine.Command(name = "get", header = "Get LangStream application status")
 public class GetApplicationCmd extends BaseApplicationCmd {
 
     @CommandLine.Parameters(description = "ID of the application")

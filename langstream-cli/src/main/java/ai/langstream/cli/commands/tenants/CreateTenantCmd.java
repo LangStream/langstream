@@ -20,10 +20,7 @@ import java.net.http.HttpRequest;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "create",
-        mixinStandardHelpOptions = true,
-        description = "Create a new tenant")
+@CommandLine.Command(name = "create", header = "Create a new tenant")
 public class CreateTenantCmd extends BaseTenantCmd {
 
     @CommandLine.Parameters(description = "Name of the tenant")

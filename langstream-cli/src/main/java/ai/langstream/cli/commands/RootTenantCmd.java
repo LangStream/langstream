@@ -26,8 +26,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
         name = "tenants",
-        mixinStandardHelpOptions = true,
-        description = "Manage LangStream tenants",
+        header = "Manage LangStream tenants",
         subcommands = {
             PutTenantCmd.class,
             DeleteTenantCmd.class,

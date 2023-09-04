@@ -23,7 +23,9 @@ import picocli.CommandLine;
 @CommandLine.Command(
         name = "langstream",
         mixinStandardHelpOptions = true,
-        description = "Manage LangStream",
+        versionProvider = VersionProvider.class,
+        scope = CommandLine.ScopeType.INHERIT,
+        header = "LangStream CLI",
         subcommands = {
             RootAppCmd.class,
             ConfigureCmd.class,

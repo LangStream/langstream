@@ -26,10 +26,7 @@ import java.util.concurrent.CountDownLatch;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "consume",
-        mixinStandardHelpOptions = true,
-        description = "Consume messages from a gateway")
+@CommandLine.Command(name = "consume", header = "Consume messages from a gateway")
 public class ConsumeGatewayCmd extends BaseGatewayCmd {
 
     @CommandLine.Parameters(description = "Application ID")

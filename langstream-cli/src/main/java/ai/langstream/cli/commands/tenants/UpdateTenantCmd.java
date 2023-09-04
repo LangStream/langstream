@@ -20,10 +20,7 @@ import java.net.http.HttpRequest;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "update",
-        mixinStandardHelpOptions = true,
-        description = "Update an existing tenant")
+@CommandLine.Command(name = "update", header = "Update an existing tenant")
 public class UpdateTenantCmd extends BaseTenantCmd {
 
     @CommandLine.Parameters(description = "Name of the tenant")

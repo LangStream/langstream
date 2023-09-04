@@ -40,10 +40,7 @@ import picocli.CommandLine;
 
 public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
-    @CommandLine.Command(
-            name = "deploy",
-            mixinStandardHelpOptions = true,
-            description = "Deploy a LangStream application")
+    @CommandLine.Command(name = "deploy", header = "Deploy a LangStream application")
     public static class DeployApplicationCmd extends AbstractDeployApplicationCmd {
 
         @CommandLine.Parameters(description = "Name of the application")
@@ -92,10 +89,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
     }
 
-    @CommandLine.Command(
-            name = "update",
-            mixinStandardHelpOptions = true,
-            description = "Update an existing LangStream application")
+    @CommandLine.Command(name = "update", header = "Update an existing LangStream application")
     public static class UpdateApplicationCmd extends AbstractDeployApplicationCmd {
 
         @CommandLine.Parameters(description = "Name of the application")

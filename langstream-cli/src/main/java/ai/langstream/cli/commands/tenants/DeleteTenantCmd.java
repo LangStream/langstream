@@ -18,10 +18,7 @@ package ai.langstream.cli.commands.tenants;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "delete",
-        mixinStandardHelpOptions = true,
-        description = "Delete a tenant")
+@CommandLine.Command(name = "delete", header = "Delete a tenant")
 public class DeleteTenantCmd extends BaseTenantCmd {
 
     @CommandLine.Parameters(description = "Name of the tenant")

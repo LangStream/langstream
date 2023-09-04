@@ -25,10 +25,7 @@ import java.util.concurrent.CountDownLatch;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "produce",
-        mixinStandardHelpOptions = true,
-        description = "Produce messages to a gateway")
+@CommandLine.Command(name = "produce", header = "Produce messages to a gateway")
 public class ProduceGatewayCmd extends BaseGatewayCmd {
 
     record ProduceRequest(Object key, Object value, Map<String, String> headers) {}

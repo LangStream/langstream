@@ -16,7 +16,8 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>ai.langstream</groupId>
     <artifactId>langstream-ai</artifactId>
@@ -30,6 +31,8 @@
     <build.dir>${project.build.directory}</build.dir>
     <wiremock.version>3.0.0-beta-10</wiremock.version>
     <docker.platforms>linux/amd64</docker.platforms>
+    <appassembler-maven-plugin.version>1.10</appassembler-maven-plugin.version>
+    <buildnumber-maven-plugin.version>1.4</buildnumber-maven-plugin.version>
   </properties>
   <dependencies>
     <dependency>
@@ -81,8 +84,44 @@
     <plugins>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <version>${buildnumber-maven-plugin.version}</version>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>create</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
+          <shortRevisionLength>8</shortRevisionLength>
+          <attach>true</attach>
+          <addOutputDirectoryToResources>true</addOutputDirectoryToResources>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              <mainClass>ai.langstream.cli.LangStreamCLI</mainClass>
+              <addClasspath>true</addClasspath>
+            </manifest>
+            <manifestEntries>
+              <Implementation-Title>langstream-cli</Implementation-Title>
+              <Implementation-Git-Revision>${buildNumber}</Implementation-Git-Revision>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
         <artifactId>appassembler-maven-plugin</artifactId>
-        <version>1.10</version>
+        <version>${appassembler-maven-plugin.version}</version>
         <configuration>
           <configurationSourceDirectory>../conf</configurationSourceDirectory>
           <configurationDirectory>conf</configurationDirectory>

@@ -18,10 +18,12 @@ package com.datastax.oss.streaming.ai.embeddings;
 import java.util.List;
 import java.util.Map;
 import junit.framework.TestCase;
+import org.junit.jupiter.api.Disabled;
 
 // disabled, just for experiments/usage demo
 public class HuggingFaceRestEmbeddingServiceTest extends TestCase {
 
+    @Disabled
     public void testMain() throws Exception {
         HuggingFaceRestEmbeddingService.HuggingFaceApiConfig conf =
                 HuggingFaceRestEmbeddingService.HuggingFaceApiConfig.builder()

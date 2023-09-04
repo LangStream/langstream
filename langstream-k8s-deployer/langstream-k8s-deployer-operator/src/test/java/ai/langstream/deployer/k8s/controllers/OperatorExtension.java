@@ -93,6 +93,7 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
                 kubeconfigFile.toFile().getAbsolutePath(), "/tmp/kubeconfig.yaml");
         container.withEnv("KUBECONFIG", "/tmp/kubeconfig.yaml");
         container.withEnv("QUARKUS_KUBERNETES_CLIENT_TRUST_CERTS", "true");
+        container.withEnv("KUBERNETES_NAMESPACE", "default");
         env.forEach(container::withEnv);
         container.withExposedPorts(8080);
         container.withAccessToHost(true);

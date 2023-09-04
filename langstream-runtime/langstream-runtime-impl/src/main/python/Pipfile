@@ -1,6 +1,7 @@
 [packages]
 pyYaml = "*"
 confluent-kafka = "*"
+sortedcontainers = "*"
 
 [full]
 "openai[embeddings]" = "*"

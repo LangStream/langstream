@@ -16,10 +16,12 @@
 
 import logging
 import re
+import threading
 from typing import List, Dict, Optional, Any
 
 from confluent_kafka import Consumer, Producer, Message, TopicPartition, KafkaException
 from confluent_kafka.serialization import StringDeserializer
+from sortedcontainers import SortedSet
 
 from langstream import Record, CommitCallback, SimpleRecord
 from .kafka_serialization import (
@@ -131,8 +133,10 @@ class KafkaTopicConsumer(TopicConsumer):
         self.value_deserializer = self.configs.pop("value.deserializer")
         self.consumer: Optional[Consumer] = None
         self.committed: Dict[TopicPartition, int] = {}
+        self.uncommitted: Dict[TopicPartition, SortedSet[int]] = {}
         self.pending_commits = 0
         self.commit_failure = None
+        self.lock = threading.Lock()
 
     def start(self):
         self.consumer = Consumer(self.configs)
@@ -159,33 +163,66 @@ class KafkaTopicConsumer(TopicConsumer):
         return [KafkaRecord(message)]
 
     def commit(self, records: List[KafkaRecord]):
+        """Commit the offsets of the records.
+        This method is thread-safe.
+        Per each partition we must keep track of the offsets that have been committed.
+        But we can commit only offsets sequentially, without gaps.
+        It is possible that in case of out-of-order processing we have to commit only a
+        subset of the records.
+        In case of rebalance or failure, messages will be re-delivered.
+
+        :param records: the records to commit, it is not strictly required from them to
+        be in some order.
+        """
+
         if len(records) == 0:
             return
-        for record in records:
-            topic_partition = record.topic_partition()
-            offset = record.offset()
-            logging.info(
-                f"Committing offset {offset} on partition {topic_partition} "
-                f"(record: {record})"
-            )
-            if (
-                topic_partition in self.committed
-                and offset != self.committed[topic_partition] + 1
-            ):
-                raise RuntimeError(
-                    f"There is an hole in the commit sequence for partition {record}"
+
+        with self.lock:
+            for record in records:
+                topic_partition = record.topic_partition()
+                offset = record.offset()
+                offsets_for_partition = self.uncommitted.setdefault(
+                    topic_partition, SortedSet()
                 )
-            self.committed[topic_partition] = offset
-        offsets = [
-            TopicPartition(
-                topic_partition.topic,
-                partition=topic_partition.partition,
-                offset=offset,
-            )
-            for topic_partition, offset in self.committed.items()
-        ]
-        self.pending_commits += 1
-        self.consumer.commit(offsets=offsets, asynchronous=True)
+                offsets_for_partition.add(offset)
+
+                current_offset = self.committed.get(topic_partition)
+                if current_offset is None:
+                    committed_tp_offset = self.consumer.committed([topic_partition])[0]
+                    if committed_tp_offset.error:
+                        raise KafkaException(committed_tp_offset.error)
+                    current_offset = committed_tp_offset.offset
+                    logging.info(
+                        f"Current position on partition {topic_partition} is "
+                        f"{current_offset}"
+                    )
+                    if current_offset >= 0:
+                        self.committed[topic_partition] = current_offset
+                    else:
+                        current_offset = -1
+
+                # advance the offset up to the first gap
+                least = offsets_for_partition[0]
+                while least == current_offset + 1:
+                    current_offset = offsets_for_partition.pop(0)
+                    if len(offsets_for_partition) == 0:
+                        break
+                    least = offsets_for_partition[0]
+
+                if current_offset != -1:
+                    self.committed[topic_partition] = current_offset
+
+            offsets = [
+                TopicPartition(
+                    topic_partition.topic,
+                    partition=topic_partition.partition,
+                    offset=offset,
+                )
+                for topic_partition, offset in self.committed.items()
+            ]
+            self.pending_commits += 1
+            self.consumer.commit(offsets=offsets, asynchronous=True)
 
     def on_commit(self, error, partitions):
         self.pending_commits -= 1

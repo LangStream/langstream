@@ -181,6 +181,10 @@ class ApplicationServiceResourceLimitTest {
         private final Map<String, Integer> currentUsage;
 
         @Override
+        public void validateTenant(String tenant, boolean failIfNotExists)
+                throws IllegalStateException {}
+
+        @Override
         public void onTenantCreated(String tenant) {}
 
         @Override

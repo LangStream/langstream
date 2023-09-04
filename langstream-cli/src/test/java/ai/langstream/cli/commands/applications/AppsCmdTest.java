@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Assertions;
@@ -1132,13 +1133,20 @@ class AppsCmdTest extends CommandTestBase {
                 WireMock.get("/api/applications/%s/my-app/code".formatted(TENANT))
                         .willReturn(WireMock.ok()));
 
-        CommandResult result = executeCommand("apps", "download", "my-app");
-        Assertions.assertEquals(0, result.exitCode());
-        Assertions.assertEquals("", result.err());
-        Assertions.assertEquals(
-                "Downloaded application code to "
-                        + new File("%s-my-app.zip".formatted(TENANT)).getAbsolutePath(),
-                result.out());
+        final File expectedFile = new File("%s-my-app.zip".formatted(TENANT));
+        try {
+            CommandResult result = executeCommand("apps", "download", "my-app");
+            Assertions.assertEquals(0, result.exitCode());
+            Assertions.assertEquals("", result.err());
+            Assertions.assertEquals(
+                    "Downloaded application code to " + expectedFile.getAbsolutePath(),
+                    result.out());
+        } finally {
+            try {
+                Files.deleteIfExists(expectedFile.toPath());
+            } catch (IOException e) {
+            }
+        }
     }
 
     @Test

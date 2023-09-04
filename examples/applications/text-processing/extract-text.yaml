@@ -79,3 +79,4 @@ pipeline:
       embeddings-field: "value.embeddings_vector"
       text: "{{% value.text }}"
       batch-size: 10
+      flush-interval: 500

@@ -222,6 +222,7 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                       model: "%s"
                                       embeddings-field: "value.embeddings"
                                       text: "something to embed"
+                                      flush-interval: 0
                                 """
                                 .formatted(
                                         inputTopic,
@@ -355,6 +356,7 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                       embeddings-field: "value.embeddings"
                                       text: "something to embed"
                                       batch-size: 3
+                                      flush-interval: 10000
                                 """
                                 .formatted(
                                         inputTopic, outputTopic, inputTopic, outputTopic, model));

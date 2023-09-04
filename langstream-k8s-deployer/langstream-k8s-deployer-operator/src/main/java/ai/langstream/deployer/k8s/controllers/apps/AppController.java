@@ -116,6 +116,8 @@ public class AppController extends BaseController<ApplicationCustomResource>
             createJob(application, delete);
             if (!delete) {
                 application.getStatus().setStatus(ApplicationLifecycleStatus.DEPLOYING);
+            } else {
+                application.getStatus().setStatus(ApplicationLifecycleStatus.DELETING);
             }
             return DEFAULT_RESCHEDULE_DURATION;
         } else {

@@ -673,6 +673,11 @@ public class AgentResourcesFactory {
                                                 .INITIALIZING();
                                         case ERROR -> ApplicationStatus.AgentWorkerStatus.ERROR(
                                                 podStatus.getUrl(), podStatus.getMessage());
+                                        default -> throw new RuntimeException(
+                                                "Unexpected pod state: "
+                                                        + podStatus.getState()
+                                                        + " "
+                                                        + e.getKey());
                                     };
                             if (agentRunnerSpec != null) {
                                 status =

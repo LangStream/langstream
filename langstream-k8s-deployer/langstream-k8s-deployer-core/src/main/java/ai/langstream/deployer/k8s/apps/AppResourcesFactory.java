@@ -269,7 +269,7 @@ public class AppResourcesFactory {
                 KubeUtil.getPodsStatuses(pods).values().iterator().next();
 
         return switch (podStatus.getState()) {
-            case RUNNING, WAITING -> customResource.getStatus().getStatus();
+            case RUNNING, WAITING, COMPLETED -> customResource.getStatus().getStatus();
             case ERROR -> delete
                     ? ApplicationLifecycleStatus.errorDeleting(podStatus.getMessage())
                     : ApplicationLifecycleStatus.errorDeploying(podStatus.getMessage());

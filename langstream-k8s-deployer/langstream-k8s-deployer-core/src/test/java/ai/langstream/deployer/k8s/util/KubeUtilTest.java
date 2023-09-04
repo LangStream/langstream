@@ -92,4 +92,162 @@ class KubeUtilTest {
         assertEquals(KubeUtil.PodStatus.State.ERROR, status.getState());
         assertEquals("OOMKilled", status.getMessage());
     }
+
+    @Test
+    public void testDeployerJobCompleted() {
+        String podYaml =
+                """
+                apiVersion: v1
+                kind: Pod
+                metadata:
+                  name: pod1
+                  namespace: langstream-default
+                spec: {}
+                status:
+                  containerStatuses:
+                  - containerID: docker://ab5142a1750327f815212b5af5d49b3c6ffa24d10e76b3eacb4b05d781dfda80
+                    image: ghcr.io/langstream/langstream-runtime:0.0.8
+                    imageID: docker-pullable://ghcr.io/langstream/langstream-runtime@sha256:8e82f1dfb02afe9137adf4a5dff4770705ff5b6607b70206288d164b116ba10d
+                    lastState: {}
+                    name: deployer
+                    ready: false
+                    restartCount: 0
+                    started: false
+                    state:
+                      terminated:
+                        containerID: docker://ab5142a1750327f815212b5af5d49b3c6ffa24d10e76b3eacb4b05d781dfda80
+                        exitCode: 0
+                        finishedAt: "2023-09-01T17:32:05Z"
+                        reason: Completed
+                        startedAt: "2023-09-01T17:32:02Z"
+                  initContainerStatuses:
+                  - containerID: docker://973604d477c3b301a5ac716eb4d41a4294b92560d8b3adb94f47976b28f0f5f0
+                    image: ghcr.io/langstream/langstream-runtime:0.0.8
+                    imageID: docker-pullable://ghcr.io/langstream/langstream-runtime@sha256:8e82f1dfb02afe9137adf4a5dff4770705ff5b6607b70206288d164b116ba10d
+                    lastState: {}
+                    name: deployer-init-config
+                    ready: true
+                    restartCount: 0
+                    state:
+                      terminated:
+                        containerID: docker://973604d477c3b301a5ac716eb4d41a4294b92560d8b3adb94f47976b28f0f5f0
+                        exitCode: 0
+                        finishedAt: "2023-09-01T17:32:01Z"
+                        reason: Completed
+                        startedAt: "2023-09-01T17:32:01Z"
+                  phase: Succeeded
+                  startTime: "2023-09-01T17:29:19Z"
+                """;
+
+        final Pod pod = SerializationUtil.readYaml(podYaml, Pod.class);
+        final KubeUtil.PodStatus status = KubeUtil.getPodsStatuses(List.of(pod)).get("pod1");
+        assertEquals(KubeUtil.PodStatus.State.COMPLETED, status.getState());
+        assertNull(status.getMessage());
+    }
+
+    @Test
+    public void testDeployerJobRunning() {
+        String podYaml =
+                """
+                        apiVersion: v1
+                        kind: Pod
+                        metadata:
+                          name: pod1
+                          namespace: langstream-default
+                        spec: {}
+                        status:
+                          containerStatuses:
+                          - containerID: docker://b6f25d48eae76c2a03c9b5b56e020543eaf444c415124cc07b0952c9ae84bc77
+                            image: ghcr.io/langstream/langstream-runtime:0.0.8
+                            imageID: docker-pullable://ghcr.io/langstream/langstream-runtime@sha256:8e82f1dfb02afe9137adf4a5dff4770705ff5b6607b70206288d164b116ba10d
+                            lastState: {}
+                            name: deployer
+                            ready: true
+                            restartCount: 0
+                            started: true
+                            state:
+                              running:
+                                startedAt: "2023-09-01T21:09:38Z"
+                          hostIP: 192.168.49.2
+                          initContainerStatuses:
+                          - containerID: docker://a36105bd1d2f17ba799b7c24098ccfb6e64f2026b2b11f02b6446bf64b3e94a5
+                            image: ghcr.io/langstream/langstream-runtime:0.0.8
+                            imageID: docker-pullable://ghcr.io/langstream/langstream-runtime@sha256:8e82f1dfb02afe9137adf4a5dff4770705ff5b6607b70206288d164b116ba10d
+                            lastState: {}
+                            name: deployer-init-config
+                            ready: true
+                            restartCount: 0
+                            state:
+                              terminated:
+                                containerID: docker://a36105bd1d2f17ba799b7c24098ccfb6e64f2026b2b11f02b6446bf64b3e94a5
+                                exitCode: 0
+                                finishedAt: "2023-09-01T21:09:37Z"
+                                reason: Completed
+                                startedAt: "2023-09-01T21:09:37Z"
+                          phase: Running
+                          podIP: 10.244.0.55
+                          podIPs:
+                          - ip: 10.244.0.55
+                          qosClass: Burstable
+                          startTime: "2023-09-01T21:09:36Z"
+                        """;
+
+        final Pod pod = SerializationUtil.readYaml(podYaml, Pod.class);
+        final KubeUtil.PodStatus status = KubeUtil.getPodsStatuses(List.of(pod)).get("pod1");
+        assertEquals(KubeUtil.PodStatus.State.RUNNING, status.getState());
+        assertNull(status.getMessage());
+    }
+
+    @Test
+    public void testDeployerJobInitializing() {
+        String podYaml =
+                """
+                        apiVersion: v1
+                        kind: Pod
+                        metadata:
+                          name: pod1
+                          namespace: langstream-default
+                        spec: {}
+                        status:
+                          containerStatuses:
+                          - containerID: docker://b6f25d48eae76c2a03c9b5b56e020543eaf444c415124cc07b0952c9ae84bc77
+                            image: ghcr.io/langstream/langstream-runtime:0.0.8
+                            imageID: docker-pullable://ghcr.io/langstream/langstream-runtime@sha256:8e82f1dfb02afe9137adf4a5dff4770705ff5b6607b70206288d164b116ba10d
+                            lastState: {}
+                            name: deployer
+                            ready: true
+                            restartCount: 0
+                            started: true
+                            state:
+                              running:
+                                startedAt: "2023-09-01T21:09:38Z"
+                          hostIP: 192.168.49.2
+                          initContainerStatuses:
+                          - containerID: docker://a36105bd1d2f17ba799b7c24098ccfb6e64f2026b2b11f02b6446bf64b3e94a5
+                            image: ghcr.io/langstream/langstream-runtime:0.0.8
+                            imageID: docker-pullable://ghcr.io/langstream/langstream-runtime@sha256:8e82f1dfb02afe9137adf4a5dff4770705ff5b6607b70206288d164b116ba10d
+                            lastState: {}
+                            name: deployer-init-config
+                            ready: true
+                            restartCount: 0
+                            state:
+                              terminated:
+                                containerID: docker://a36105bd1d2f17ba799b7c24098ccfb6e64f2026b2b11f02b6446bf64b3e94a5
+                                exitCode: 0
+                                finishedAt: "2023-09-01T21:09:37Z"
+                                reason: Completed
+                                startedAt: "2023-09-01T21:09:37Z"
+                          phase: Running
+                          podIP: 10.244.0.55
+                          podIPs:
+                          - ip: 10.244.0.55
+                          qosClass: Burstable
+                          startTime: "2023-09-01T21:09:36Z"
+                        """;
+
+        final Pod pod = SerializationUtil.readYaml(podYaml, Pod.class);
+        final KubeUtil.PodStatus status = KubeUtil.getPodsStatuses(List.of(pod)).get("pod1");
+        assertEquals(KubeUtil.PodStatus.State.RUNNING, status.getState());
+        assertNull(status.getMessage());
+    }
 }

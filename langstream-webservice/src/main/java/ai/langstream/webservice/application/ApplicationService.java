@@ -32,6 +32,7 @@ import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.impl.storage.GlobalMetadataStoreManager;
 import ai.langstream.webservice.common.GlobalMetadataService;
 import ai.langstream.webservice.config.ApplicationDeployProperties;
 import ai.langstream.webservice.config.TenantProperties;
@@ -350,8 +351,10 @@ public class ApplicationService {
     }
 
     private void checkTenant(String tenant) {
-        if (globalMetadataService.getTenant(tenant) == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "tenant not found");
+        try {
+            globalMetadataService.validateTenant(tenant, true);
+        } catch (GlobalMetadataStoreManager.TenantNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 

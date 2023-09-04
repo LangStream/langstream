@@ -190,4 +190,79 @@ class ApplicationResourceTest {
                                     result.getResponse().getContentAsString());
                         });
     }
+
+    @Test
+    void testTenantInDeletion() throws Exception {
+        mockMvc.perform(put("/api/tenants/my-tenant3")).andExpect(status().isOk());
+        AppTestHelper.deployApp(
+                mockMvc,
+                "my-tenant3",
+                "test",
+                """
+                        id: app1
+                        name: test
+                        topics: []
+                        pipeline: []
+                        """,
+                """
+                        instance:
+                          streamingCluster:
+                            type: pulsar
+                          computeCluster:
+                            type: none
+                        """,
+                null);
+        k3s.getClient().namespaces().withName("langstream-my-tenant3").delete();
+        AppTestHelper.deployApp(
+                        mockMvc,
+                        "my-tenant3",
+                        "test1",
+                        """
+                        id: app1
+                        name: test
+                        topics: []
+                        pipeline: []
+                        """,
+                        """
+                        instance:
+                          streamingCluster:
+                            type: pulsar
+                          computeCluster:
+                            type: none
+                        """,
+                        null,
+                        false)
+                .andExpect(status().isInternalServerError());
+
+        AppTestHelper.updateApp(
+                        mockMvc,
+                        true,
+                        "my-tenant3",
+                        "test1",
+                        """
+                                id: app1
+                                name: test
+                                topics: []
+                                pipeline: []
+                                """,
+                        """
+                                instance:
+                                  streamingCluster:
+                                    type: pulsar
+                                  computeCluster:
+                                    type: none
+                                """,
+                        null,
+                        false)
+                .andExpect(status().isInternalServerError());
+
+        mockMvc.perform(get("/api/applications/my-tenant3"))
+                .andExpect(status().isInternalServerError());
+
+        mockMvc.perform(delete("/api/applications/my-tenant3/test"))
+                .andExpect(status().isInternalServerError());
+
+        mockMvc.perform(get("/api/applications/my-tenant3/test"))
+                .andExpect(status().isInternalServerError());
+    }
 }

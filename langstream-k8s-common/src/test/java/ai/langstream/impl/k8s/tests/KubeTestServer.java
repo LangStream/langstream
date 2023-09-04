@@ -22,6 +22,7 @@ import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
@@ -217,6 +218,20 @@ public class KubeTestServer
                 .withPath("/api/v1/namespaces/%s?fieldManager=fabric8".formatted(namespace))
                 .andReply(HttpURLConnection.HTTP_OK, recordedRequest -> null)
                 .always();
+
+        server.expect()
+                .get()
+                .withPath("/api/v1/namespaces/%s".formatted(namespace))
+                .andReply(
+                        HttpURLConnection.HTTP_OK,
+                        recordedRequest ->
+                                new NamespaceBuilder()
+                                        .withNewMetadata()
+                                        .withName(namespace)
+                                        .endMetadata()
+                                        .build())
+                .always();
+
         server.expect()
                 .patch()
                 .withPath(

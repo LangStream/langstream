@@ -27,7 +27,9 @@ import ai.langstream.webservice.config.StorageProperties;
 import ai.langstream.webservice.config.TenantProperties;
 import java.util.Map;
 import lombok.SneakyThrows;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class GlobalMetadataService {
@@ -48,6 +50,7 @@ public class GlobalMetadataService {
     }
 
     public void createTenant(String tenant, CreateTenantRequest request) throws TenantException {
+        checkTenant(tenant);
         validateCreateTenantRequest(request);
         store.createTenant(tenant, request);
     }
@@ -72,20 +75,38 @@ public class GlobalMetadataService {
     }
 
     public void updateTenant(String tenant, UpdateTenantRequest request) throws TenantException {
+        checkTenant(tenant);
         validateUpdateTenantRequest(request);
         store.updateTenant(tenant, request);
     }
 
+    public void validateTenant(String tenant, boolean failIfNotExists)
+            throws GlobalMetadataStoreManager.TenantNotFoundException {
+        store.validateTenant(tenant, failIfNotExists);
+    }
+
+    @SneakyThrows
     public void putTenant(String tenant, TenantConfiguration tenantConfiguration) {
+        checkTenant(tenant);
         store.putTenant(tenant, tenantConfiguration);
     }
 
+    private void checkTenant(String tenant) {
+        try {
+            validateTenant(tenant, false);
+        } catch (GlobalMetadataStoreManager.TenantNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
     public TenantConfiguration getTenant(String tenant) {
+        checkTenant(tenant);
         return store.getTenant(tenant);
     }
 
     @SneakyThrows
     public void deleteTenant(String tenant) {
+        checkTenant(tenant);
         store.deleteTenant(tenant);
     }
 

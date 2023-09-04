@@ -32,6 +32,7 @@ import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
@@ -82,6 +83,20 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @Override
+    public void validateTenant(String tenant, boolean failIfNotExists) {
+        final String namespace = tenantToNamespace(tenant);
+        final Namespace ns = client.namespaces().withName(namespace).get();
+        if (ns == null) {
+            if (failIfNotExists) {
+                log.warn("Namespace {} not found for tenant {}", namespace, tenant);
+                throw new IllegalStateException("Tenant " + tenant + " does not exist");
+            }
+        } else if (ns.isMarkedForDeletion()) {
+            throw new IllegalStateException("Tenant " + tenant + " is marked for deletion.");
+        }
+    }
+
+    @Override
     @SneakyThrows
     public void onTenantCreated(String tenant) {
         final String namespace = tenantToNamespace(tenant);
@@ -112,9 +127,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
         if (existing != null) {
             if (existing.isMarkedForDeletion()) {
                 throw new IllegalArgumentException(
-                        "Application "
-                                + applicationId
-                                + " is marked for deletion. Please retry once the application is deleted.");
+                        "Application " + applicationId + " is marked for deletion.");
             }
         }
 

@@ -147,9 +147,7 @@ class KubernetesApplicationStoreTest {
             store.put(tenant, "myapp", app, "code-1", null);
             fail();
         } catch (IllegalArgumentException aie) {
-            assertEquals(
-                    "Application myapp is marked for deletion. Please retry once the application is deleted.",
-                    aie.getMessage());
+            assertEquals("Application myapp is marked for deletion.", aie.getMessage());
         }
         createdCr = k3s.getClient().resource(createdCr).get();
         createdCr.getMetadata().setFinalizers(List.of());

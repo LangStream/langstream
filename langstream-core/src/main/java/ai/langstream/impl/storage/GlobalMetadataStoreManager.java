@@ -36,6 +36,14 @@ public class GlobalMetadataStoreManager {
     private static final ObjectMapper mapper =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
+    public static class TenantNotFoundException extends Exception {
+
+        public TenantNotFoundException(String message) {
+            super(message);
+        }
+    }
+
+    protected static final String TENANT_KEY_PREFIX = "t-";
     private final GlobalMetadataStore globalMetadataStore;
     private final ApplicationStore applicationStore;
 
@@ -45,6 +53,15 @@ public class GlobalMetadataStoreManager {
 
     public void syncTenantConfiguration(String tenant) {
         applicationStore.onTenantCreated(tenant);
+    }
+
+    public void validateTenant(String tenant, boolean failIfNotExists)
+            throws TenantNotFoundException {
+        final TenantConfiguration config = getTenant(tenant);
+        if (config == null && failIfNotExists) {
+            throw new TenantNotFoundException("Tenant " + tenant + " not found");
+        }
+        applicationStore.validateTenant(tenant, failIfNotExists);
     }
 
     @SneakyThrows

@@ -28,6 +28,8 @@ import lombok.NoArgsConstructor;
 
 public interface ApplicationStore extends GenericStore {
 
+    void validateTenant(String tenant, boolean failIfNotExists) throws IllegalStateException;
+
     void onTenantCreated(String tenant);
 
     void onTenantUpdated(String tenant);

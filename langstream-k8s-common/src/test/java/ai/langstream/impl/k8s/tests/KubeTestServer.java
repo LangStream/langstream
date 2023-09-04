@@ -222,7 +222,14 @@ public class KubeTestServer
         server.expect()
                 .get()
                 .withPath("/api/v1/namespaces/%s".formatted(namespace))
-                .andReply(HttpURLConnection.HTTP_OK, recordedRequest -> new NamespaceBuilder().withNewMetadata().withName(namespace).endMetadata().build())
+                .andReply(
+                        HttpURLConnection.HTTP_OK,
+                        recordedRequest ->
+                                new NamespaceBuilder()
+                                        .withNewMetadata()
+                                        .withName(namespace)
+                                        .endMetadata()
+                                        .build())
                 .always();
 
         server.expect()

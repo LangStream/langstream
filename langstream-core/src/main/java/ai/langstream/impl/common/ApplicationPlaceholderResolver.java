@@ -18,6 +18,7 @@ package ai.langstream.impl.common;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ComputeCluster;
+import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Gateways;
 import ai.langstream.api.model.Instance;
@@ -25,6 +26,7 @@ import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.model.TopicDefinition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.samskivert.mustache.Mustache;
@@ -88,11 +90,24 @@ public class ApplicationPlaceholderResolver {
         Map<String, Module> newModules = new LinkedHashMap<>();
         for (Map.Entry<String, Module> moduleEntry : instance.getModules().entrySet()) {
             final Module module = moduleEntry.getValue();
+            Map<String, TopicDefinition> newTopics = new HashMap<>();
+            module.getTopics()
+                    .entrySet()
+                    .forEach(
+                            (Map.Entry<String, TopicDefinition> entry) -> {
+                                String topicName = entry.getKey();
+                                TopicDefinition definition = entry.getValue().copy();
+                                definition.setName(resolveValue(context, definition.getName()));
+                                newTopics.put(resolveValue(context, topicName), definition);
+                            });
+            module.replaceTopics(newTopics);
             for (Map.Entry<String, Pipeline> pipelineEntry : module.getPipelines().entrySet()) {
                 final Pipeline pipeline = pipelineEntry.getValue();
                 List<AgentConfiguration> newAgents = new ArrayList<>();
                 for (AgentConfiguration value : pipeline.getAgents()) {
                     value.setConfiguration(resolveMap(context, value.getConfiguration()));
+                    value.setInput(resolveConnection(context, value.getInput()));
+                    value.setOutput(resolveConnection(context, value.getOutput()));
                     newAgents.add(value);
                 }
                 pipeline.setAgents(newAgents);
@@ -182,6 +197,16 @@ public class ApplicationPlaceholderResolver {
             resolvedConfig.put(entry.getKey(), resolveValue(context, entry.getValue()));
         }
         return resolvedConfig;
+    }
+
+    static Connection resolveConnection(Map<String, Object> context, Connection connection) {
+        if (connection == null) {
+            return null;
+        }
+        return new Connection(
+                connection.connectionType(),
+                resolveValue(context, connection.definition()),
+                connection.enableDeadletterQueue());
     }
 
     static Collection<?> resolveCollection(Map<String, Object> context, Collection<?> config) {

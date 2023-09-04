@@ -84,6 +84,11 @@ public abstract class AbstractApplicationRunner {
             ExecutionPlan implementation,
             Map<String, Secret> secrets)
             implements AutoCloseable {
+
+        public <T> T getGlobal(String key) {
+            return (T) implementation.getApplication().getInstance().globals().get(key);
+        }
+
         public void close() {
             applicationDeployer.delete(tenant, implementation, null);
             Awaitility.await()
@@ -121,8 +126,15 @@ public abstract class AbstractApplicationRunner {
     }
 
     protected String buildInstanceYaml() {
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
+        String streamTopic = "stream-topic-" + UUID.randomUUID();
         return """
                 instance:
+                  globals:
+                    input-topic: %s
+                    output-topic: %s
+                    stream-topic: %s
                   streamingCluster:
                     type: "kafka"
                     configuration:
@@ -131,7 +143,8 @@ public abstract class AbstractApplicationRunner {
                   computeCluster:
                      type: "kubernetes"
                 """
-                .formatted(kafkaContainer.getBootstrapServers());
+                .formatted(
+                        inputTopic, outputTopic, streamTopic, kafkaContainer.getBootstrapServers());
     }
 
     @BeforeAll

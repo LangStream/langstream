@@ -73,4 +73,9 @@ public class Module {
         }
         return topicDefinition;
     }
+
+    public void replaceTopics(Map<String, TopicDefinition> newTopics) {
+        this.topics.clear();
+        this.topics.putAll(newTopics);
+    }
 }

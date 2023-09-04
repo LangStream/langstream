@@ -83,9 +83,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                       """)));
 
         final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
-        String inputTopic = "input-topic-" + UUID.randomUUID();
-        String outputTopic = "output-topic-" + UUID.randomUUID();
-        String streamTopic = "stream-topic-" + UUID.randomUUID();
+
         String tenant = "tenant";
 
         String[] expectedAgents = new String[] {appId + "-step1"};
@@ -109,29 +107,28 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "%s"
+                                  - name: "{{{globals.input-topic}}}"
                                     creation-mode: create-if-not-exists
-                                  - name: "%s"
+                                  - name: "{{{globals.output-topic}}}"
                                     creation-mode: create-if-not-exists
-                                  - name: "%s"
+                                  - name: "{{{globals.stream-topic}}}"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "convert-to-json"
                                     id: "step1"
                                     type: "document-to-json"
-                                    input: "%s"
+                                    input: "{{{globals.input-topic}}}"
                                     configuration:
                                       text-field: "question"
                                   - name: "chat-completions"
                                     type: "ai-chat-completions"
-                                    output: "%s"
+                                    output: "{{{globals.output-topic}}}"
                                     configuration:
                                       model: "%s"
-                                      stream-to-topic: "%s"
+                                      stream-to-topic: "{{{globals.stream-topic}}}"
                                       stream-response-completion-field: "value"
                                       completion-field: "value.answer"
                                       log-field: "value.prompt"
-                                      stream-to-topic: "%s"
                                       min-chunks-per-message: 3
                                       stream: true
                                       messages:
@@ -139,14 +136,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                           content: "%s"
                                 """
                                 .formatted(
-                                        inputTopic,
-                                        outputTopic,
-                                        streamTopic,
-                                        inputTopic,
-                                        outputTopic,
                                         model,
-                                        streamTopic,
-                                        streamTopic,
                                         "What can you tell me about {{% value.question}} ?"));
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
@@ -158,23 +148,27 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
             assertTrue(
                     implementation.getConnectionImplementation(
                                     module,
-                                    Connection.fromTopic(TopicDefinition.fromName(inputTopic)))
+                                    Connection.fromTopic(
+                                            TopicDefinition.fromName(
+                                                    applicationRuntime.getGlobal("input-topic"))))
                             instanceof KafkaTopic);
 
             Set<String> topics = getKafkaAdmin().listTopics().names().get();
             log.info("Topics {}", topics);
-            assertTrue(topics.contains(inputTopic));
-            assertTrue(topics.contains(outputTopic));
-            assertTrue(topics.contains(streamTopic));
+            assertTrue(topics.contains(applicationRuntime.getGlobal("input-topic")));
+            assertTrue(topics.contains(applicationRuntime.getGlobal("output-topic")));
+            assertTrue(topics.contains(applicationRuntime.getGlobal("stream-topic")));
 
             try (KafkaProducer<String, String> producer = createProducer();
-                    KafkaConsumer<String, String> consumer = createConsumer(outputTopic);
-                    KafkaConsumer<String, String> streamConsumer = createConsumer(streamTopic)) {
+                    KafkaConsumer<String, String> consumer =
+                            createConsumer(applicationRuntime.getGlobal("output-topic"));
+                    KafkaConsumer<String, String> streamConsumer =
+                            createConsumer(applicationRuntime.getGlobal("stream-topic"))) {
 
                 // produce one message to the input-topic
                 // simulate a session-id header
                 sendMessage(
-                        inputTopic,
+                        applicationRuntime.getGlobal("input-topic"),
                         "the car",
                         List.of(
                                 new RecordHeader(

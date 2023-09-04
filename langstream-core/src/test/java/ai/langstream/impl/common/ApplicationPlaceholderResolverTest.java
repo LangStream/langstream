@@ -117,17 +117,27 @@ class ApplicationPlaceholderResolverTest {
                                         module: "module-1"
                                         id: "pipeline-1"
                                         topics:
-                                            - name: "input-topic"
+                                            - name: "{{{globals.input-topic}}}"
+                                            - name: "{{{globals.output-topic}}}"
+                                            - name: "{{{globals.stream-response-topic}}}"
                                         pipeline:
-                                          - name: "sink1"
-                                            id: "sink1"
-                                            type: "sink"
-                                            input: "input-topic"
+                                          - name: "agent1"
+                                            id: "agent1"
+                                            type: "ai-chat-completions"
+                                            input: "{{{globals.input-topic}}}"
+                                            output: "{{{globals.output-topic}}}"
                                             configuration:
+                                              stream-to-topic: "{{{globals.stream-response-topic}}}"
                                               sinkType: "some-sink-type-on-your-cluster"
                                               access-key: "{{ secrets.ak.value }}"
                                         """),
-                                null,
+                                """
+                                instance:
+                                    globals:
+                                        input-topic: my-input-topic
+                                        output-topic: my-output-topic
+                                        stream-response-topic: my-stream-topic
+                                """,
                                 """
                                 secrets:
                                     - name: "OpenAI Azure credentials"
@@ -149,11 +159,65 @@ class ApplicationPlaceholderResolverTest {
                         .next()
                         .getAgents()
                         .stream()
-                        .filter(agent -> agent.getId().equals("sink1"))
+                        .filter(agent -> agent.getId().equals("agent1"))
                         .findFirst()
                         .orElseThrow()
                         .getConfiguration()
                         .get("access-key"));
+        Assertions.assertEquals(
+                "my-input-topic",
+                resolved
+                        .getModule("module-1")
+                        .getPipelines()
+                        .values()
+                        .iterator()
+                        .next()
+                        .getAgents()
+                        .stream()
+                        .filter(agent -> agent.getId().equals("agent1"))
+                        .findFirst()
+                        .orElseThrow()
+                        .getInput()
+                        .definition());
+        Assertions.assertEquals(
+                "my-output-topic",
+                resolved
+                        .getModule("module-1")
+                        .getPipelines()
+                        .values()
+                        .iterator()
+                        .next()
+                        .getAgents()
+                        .stream()
+                        .filter(agent -> agent.getId().equals("agent1"))
+                        .findFirst()
+                        .orElseThrow()
+                        .getOutput()
+                        .definition());
+        Assertions.assertEquals(
+                "my-stream-topic",
+                resolved
+                        .getModule("module-1")
+                        .getPipelines()
+                        .values()
+                        .iterator()
+                        .next()
+                        .getAgents()
+                        .stream()
+                        .filter(agent -> agent.getId().equals("agent1"))
+                        .findFirst()
+                        .orElseThrow()
+                        .getConfiguration()
+                        .get("stream-to-topic"));
+        Assertions.assertEquals(
+                "my-stream-topic",
+                resolved.getModule("module-1").getTopics().get("my-stream-topic").getName());
+        Assertions.assertEquals(
+                "my-input-topic",
+                resolved.getModule("module-1").getTopics().get("my-input-topic").getName());
+        Assertions.assertEquals(
+                "my-output-topic",
+                resolved.getModule("module-1").getTopics().get("my-output-topic").getName());
     }
 
     @Test

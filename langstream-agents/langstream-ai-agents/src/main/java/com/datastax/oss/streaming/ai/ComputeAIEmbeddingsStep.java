@@ -57,7 +57,8 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
         this.template = Mustache.compiler().compile(text);
         this.embeddingsFieldName = embeddingsFieldName;
         this.embeddingsService = embeddingsService;
-        this.executorService = Executors.newSingleThreadScheduledExecutor();
+        this.executorService =
+                flushInterval > 0 ? Executors.newSingleThreadScheduledExecutor() : null;
         this.batchExecutor =
                 new TransformFunctionUtil.BatchExecutor<>(
                         batchSize, this::processBatch, flushInterval, executorService);
@@ -109,6 +110,9 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
 
     @Override
     public void close() throws Exception {
+        if (executorService != null) {
+            executorService.shutdown();
+        }
         batchExecutor.stop();
         if (embeddingsService != null) {
             embeddingsService.close();

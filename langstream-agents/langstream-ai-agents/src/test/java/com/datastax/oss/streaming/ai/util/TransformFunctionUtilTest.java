@@ -42,8 +42,8 @@ class TransformFunctionUtilTest {
 
     @ParameterizedTest
     @MethodSource("batchSizes")
-    void executeInBatchesTest(int numRecords, int batchSize) {
-        long maxIdleTime = 1000;
+    void executeInBatchesTestWithFlushInterval(int numRecords, int batchSize) {
+        long flushInterval = 1000;
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         List<String> records = new ArrayList<>();
         for (int i = 0; i < numRecords; i++) {
@@ -56,7 +56,34 @@ class TransformFunctionUtilTest {
                         (batch) -> {
                             result.addAll(batch);
                         },
-                        maxIdleTime,
+                        flushInterval,
+                        executorService);
+        executor.start();
+        records.forEach(executor::add);
+        // this may happen after some time
+        Awaitility.await().untilAsserted(() -> assertEquals(records, result));
+        executor.stop();
+        executorService.shutdown();
+    }
+
+    @ParameterizedTest
+    @MethodSource("batchSizes")
+    void executeInBatchesTestWithNoFlushInterval(int numRecords, int batchSize) {
+        long flushInterval = 0;
+        // this is not needed
+        ScheduledExecutorService executorService = null;
+        List<String> records = new ArrayList<>();
+        for (int i = 0; i < numRecords; i++) {
+            records.add("text " + i);
+        }
+        List<String> result = new CopyOnWriteArrayList<>();
+        TransformFunctionUtil.BatchExecutor<String> executor =
+                new TransformFunctionUtil.BatchExecutor<>(
+                        batchSize,
+                        (batch) -> {
+                            result.addAll(batch);
+                        },
+                        flushInterval,
                         executorService);
         executor.start();
         records.forEach(executor::add);

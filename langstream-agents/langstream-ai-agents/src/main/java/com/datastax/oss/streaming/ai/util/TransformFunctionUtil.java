@@ -553,7 +553,7 @@ public class TransformFunctionUtil {
     public static class BatchExecutor<T> {
         private final int batchSize;
         private List<T> batch;
-        private long maxIdleTime;
+        private long flushInterval;
         private ScheduledExecutorService scheduledExecutorService;
 
         private ScheduledFuture<?> scheduledFuture;
@@ -568,15 +568,15 @@ public class TransformFunctionUtil {
             this.batchSize = batchSize;
             this.batch = new ArrayList<>(batchSize);
             this.processor = processor;
-            this.maxIdleTime = maxIdleTime;
+            this.flushInterval = maxIdleTime;
             this.scheduledExecutorService = scheduledExecutorService;
         }
 
         public void start() {
-            if (maxIdleTime > 0) {
+            if (flushInterval > 0) {
                 scheduledFuture =
                         scheduledExecutorService.scheduleWithFixedDelay(
-                                this::flush, maxIdleTime, maxIdleTime, TimeUnit.MILLISECONDS);
+                                this::flush, flushInterval, flushInterval, TimeUnit.MILLISECONDS);
             }
         }
 
@@ -606,7 +606,7 @@ public class TransformFunctionUtil {
             List<T> batchToProcess = null;
             synchronized (this) {
                 batch.add(t);
-                if (batch.size() >= batchSize) {
+                if (batch.size() >= batchSize || flushInterval <= 0) {
                     batchToProcess = batch;
                     batch = new ArrayList<>(batchSize);
                 }

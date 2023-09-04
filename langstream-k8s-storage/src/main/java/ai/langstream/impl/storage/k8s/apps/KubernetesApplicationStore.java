@@ -88,6 +88,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
         final Namespace ns = client.namespaces().withName(namespace).get();
         if (ns == null) {
             if (failIfNotExists) {
+                log.warn("Namespace {} not found for tenant {}", namespace, tenant);
                 throw new IllegalStateException("Tenant " + tenant + " does not exist");
             }
         } else if (ns.isMarkedForDeletion()) {

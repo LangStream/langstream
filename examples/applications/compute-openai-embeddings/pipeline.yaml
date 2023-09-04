@@ -35,3 +35,7 @@ pipeline:
       embeddings-field: "value.embeddings"
       text: "{{% value.name }} {{% value.description }}"
       batch-size: 10
+      # this is in milliseconds. It is important to take this value into consideration when using this agent in the chat response pipeline
+      # in fact this value impacts the latency of the response
+      # for latency sensitive applications, consider to set batch-size to 1 or flush-interval to 0
+      flush-interval: 500

@@ -168,6 +168,12 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                             originalConfiguration,
                                             "batch-size",
                                             null);
+                                    optionalField(
+                                            step,
+                                            agentConfiguration,
+                                            originalConfiguration,
+                                            "flush-interval",
+                                            null);
                                     requiredField(
                                             step,
                                             agentConfiguration,

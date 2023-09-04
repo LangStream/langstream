@@ -15,10 +15,8 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.function.BiConsumer;
 
 public interface TransformStep extends AutoCloseable {
     default void close() throws Exception {}
@@ -37,10 +35,6 @@ public interface TransformStep extends AutoCloseable {
         }
     }
 
-    default boolean supportsBatch() {
-        return false;
-    }
-
     default CompletableFuture<?> processAsync(TransformContext transformContext) {
         try {
             process(transformContext);
@@ -49,10 +43,4 @@ public interface TransformStep extends AutoCloseable {
             return CompletableFuture.failedFuture(error);
         }
     }
-
-    record ContextWithOriginalRecord(TransformContext context, Object originalRecord) {}
-
-    default void processAsync(
-            List<ContextWithOriginalRecord> records,
-            BiConsumer<ContextWithOriginalRecord, Throwable> whenComplete) {}
 }

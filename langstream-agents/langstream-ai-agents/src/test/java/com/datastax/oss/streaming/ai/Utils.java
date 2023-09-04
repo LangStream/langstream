@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -83,31 +82,7 @@ public class Utils {
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
         TransformContext transformContext =
                 newTransformContext(context, record.getValue().getNativeObject());
-        if (step.supportsBatch()) {
-            try {
-                CompletableFuture<?> handle = new CompletableFuture<>();
-                step.processAsync(
-                        List.of(
-                                new TransformStep.ContextWithOriginalRecord(
-                                        transformContext, null)),
-                        (r, err) -> {
-                            if (err != null) {
-                                handle.completeExceptionally(err);
-                            } else {
-                                handle.complete(null);
-                            }
-                        });
-                handle.get();
-            } catch (ExecutionException error) {
-                throw error.getCause();
-            }
-        } else {
-            try {
-                step.processAsync(transformContext).get();
-            } catch (ExecutionException error) {
-                throw error.getCause();
-            }
-        }
+        step.processAsync(transformContext).join();
         return send(context, transformContext);
     }
 

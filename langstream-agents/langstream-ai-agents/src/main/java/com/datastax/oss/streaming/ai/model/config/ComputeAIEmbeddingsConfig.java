@@ -22,11 +22,6 @@ import lombok.Getter;
 @Getter
 public class ComputeAIEmbeddingsConfig extends StepConfig {
 
-    public enum SupportedServices {
-        OPENAI,
-        HUGGINGFACE
-    }
-
     @JsonProperty(required = true)
     private String model;
 
@@ -38,6 +33,9 @@ public class ComputeAIEmbeddingsConfig extends StepConfig {
 
     @JsonProperty("batch-size")
     private int batchSize = 10;
+
+    @JsonProperty("flush-interval")
+    private int flushInterval = 100;
 
     @Deprecated
     @JsonProperty(value = "compute-service")

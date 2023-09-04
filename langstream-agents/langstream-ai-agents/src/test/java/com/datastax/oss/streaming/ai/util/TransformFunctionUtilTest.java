@@ -15,11 +15,14 @@
  */
 package com.datastax.oss.streaming.ai.util;
 
-import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.executeInBatches;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -40,18 +43,25 @@ class TransformFunctionUtilTest {
     @ParameterizedTest
     @MethodSource("batchSizes")
     void executeInBatchesTest(int numRecords, int batchSize) {
+        long maxIdleTime = 1000;
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         List<String> records = new ArrayList<>();
         for (int i = 0; i < numRecords; i++) {
             records.add("text " + i);
         }
-        List<String> result = new ArrayList<>();
-
-        executeInBatches(
-                records,
-                (batch) -> {
-                    result.addAll(batch);
-                },
-                batchSize);
-        assertEquals(result, records);
+        List<String> result = new CopyOnWriteArrayList<>();
+        TransformFunctionUtil.BatchExecutor<String> executor =
+                new TransformFunctionUtil.BatchExecutor<>(
+                        batchSize,
+                        (batch) -> {
+                            result.addAll(batch);
+                        },
+                        maxIdleTime,
+                        executorService);
+        executor.start();
+        records.forEach(executor::add);
+        // this may happen after some time
+        Awaitility.await().untilAsserted(() -> assertEquals(records, result));
+        executor.stop();
     }
 }

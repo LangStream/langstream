@@ -65,6 +65,7 @@ public class ComputeAIEmbeddingsTest {
                         "{{ value.firstName }} {{ value.lastName }}",
                         "value.newField",
                         1,
+                        500,
                         mockService);
 
         Record<?> outputRecord = Utils.process(record, step);
@@ -83,7 +84,7 @@ public class ComputeAIEmbeddingsTest {
         mockService.setEmbeddingsForText("key1", expectedEmbeddings);
         ComputeAIEmbeddingsStep step =
                 new ComputeAIEmbeddingsStep(
-                        "{{ key.keyField1 }}", "value.newField", 1, mockService);
+                        "{{ key.keyField1 }}", "value.newField", 1, 500, mockService);
 
         Record<?> outputRecord = Utils.process(Utils.createTestAvroKeyValueRecord(), step);
         KeyValueSchema<?, ?> messageSchema = (KeyValueSchema<?, ?>) outputRecord.getSchema();
@@ -121,6 +122,7 @@ public class ComputeAIEmbeddingsTest {
                         "{{ value.firstName }} {{ value.lastName }}",
                         "value.newField",
                         1,
+                        500,
                         mockService);
 
         Record<?> outputRecord = Utils.process(record, step);

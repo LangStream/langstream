@@ -87,19 +87,23 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         if (records == null || records.isEmpty()) {
             throw new IllegalStateException("Records cannot be null or empty");
         }
-
-        if (step.getTransformStep().supportsBatch()) {
-            processed(records.size(), 0);
-            processRecords(records, recordSink);
-        } else {
-            for (Record record : records) {
-                processRecord(record, recordSink);
-            }
+        for (Record record : records) {
+            processed(1, 0);
+            CompletableFuture<List<Record>> process = processRecord(record);
+            process.whenComplete(
+                    (resultRecords, e) -> {
+                        if (e != null) {
+                            log.error("Error processing record: {}", record, e);
+                            recordSink.emit(new SourceRecordAndResult(record, null, e));
+                        } else {
+                            processed(1, records.size());
+                            recordSink.emit(new SourceRecordAndResult(record, resultRecords, null));
+                        }
+                    });
         }
     }
 
-    public void processRecord(Record record, RecordSink recordSink) {
-        processed(1, 0);
+    public CompletableFuture<List<Record>> processRecord(Record record) {
 
         log.info("Processing {}", record);
         if (log.isDebugEnabled()) {
@@ -109,76 +113,18 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                 recordToTransformContext(record, config.isAttemptJsonConversion());
 
         CompletableFuture<?> handle = processStep(context, step);
-        handle.thenApply(
-                        ___ -> {
-                            try {
-                                context.convertMapToStringOrBytes();
-                                Optional<Record> recordResult = transformContextToRecord(context);
-                                log.info("Result {}", recordResult);
-                                return recordResult.map(List::of).orElseGet(List::of);
-                            } catch (Exception e) {
-                                log.error("Error processing record: {}", record, e);
-                                throw new CompletionException(e);
-                            }
-                        })
-                .whenComplete(
-                        (resultRecords, e) -> {
-                            if (e != null) {
-                                log.error("Error processing record: {}", record, e);
-                                recordSink.emit(new SourceRecordAndResult(record, null, e));
-                            } else {
-                                processed(0, 1);
-                                recordSink.emit(
-                                        new SourceRecordAndResult(record, resultRecords, null));
-                            }
-                        });
-    }
-
-    private void processRecords(List<Record> records, RecordSink recordSink) {
-        log.info("Processing a batch of {} records ({})", records.size(), records);
-        if (log.isDebugEnabled()) {
-            log.debug("Processing {}", records);
-        }
-        processed(records.size(), 0);
-        List<TransformStep.ContextWithOriginalRecord> contexts = new ArrayList<>();
-        for (Record record : records) {
-            TransformContext transformContext =
-                    recordToTransformContext(record, config.isAttemptJsonConversion());
-            Predicate<TransformContext> predicate = step.getPredicate();
-            if (predicate != null && !predicate.test(transformContext)) {
-                // this is to be handled downstream in the TransformStep
-                transformContext.setDropCurrentRecord(true);
-            }
-            contexts.add(new TransformStep.ContextWithOriginalRecord(transformContext, record));
-        }
-
-        step.getTransformStep()
-                .processAsync(
-                        contexts,
-                        (contextAndRecord, e) -> {
-                            TransformContext context = contextAndRecord.context();
-                            Record record = (Record) contextAndRecord.originalRecord();
-                            List<Record> resultRecords = null;
-                            try {
-                                context.convertMapToStringOrBytes();
-                                Optional<Record> recordResult = transformContextToRecord(context);
-                                log.info("Result {}", recordResult);
-                                resultRecords = recordResult.map(List::of).orElseGet(List::of);
-                            } catch (Exception errorConverting) {
-                                if (e == null) {
-                                    e = errorConverting;
-                                }
-                                log.error("Error converting record:", e);
-                            }
-                            if (e != null) {
-                                log.error("Error processing record: {}", record, e);
-                                recordSink.emit(new SourceRecordAndResult(record, null, e));
-                            } else {
-                                processed(0, resultRecords.size());
-                                recordSink.emit(
-                                        new SourceRecordAndResult(record, resultRecords, null));
-                            }
-                        });
+        return handle.thenApply(
+                ___ -> {
+                    try {
+                        context.convertMapToStringOrBytes();
+                        Optional<Record> recordResult = transformContextToRecord(context);
+                        log.info("Result {}", recordResult);
+                        return recordResult.map(List::of).orElseGet(List::of);
+                    } catch (Exception e) {
+                        log.error("Error processing record: {}", record, e);
+                        throw new CompletionException(e);
+                    }
+                });
     }
 
     private static CompletableFuture<?> processStep(

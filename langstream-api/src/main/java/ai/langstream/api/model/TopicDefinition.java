@@ -86,4 +86,17 @@ public class TopicDefinition {
                 throw new IllegalArgumentException("Invalid creation mode: " + creationMode);
         }
     }
+
+    public TopicDefinition copy() {
+        TopicDefinition copy = new TopicDefinition();
+        copy.setName(name);
+        copy.setCreationMode(creationMode);
+        copy.setImplicit(implicit);
+        copy.setPartitions(partitions);
+        copy.setKeySchema(keySchema);
+        copy.setValueSchema(valueSchema);
+        copy.setOptions(options);
+        copy.setConfig(config);
+        return copy;
+    }
 }

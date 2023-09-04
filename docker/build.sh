@@ -49,7 +49,7 @@ else
   # Build all artifacts
   ./mvnw install -DskipTests -T 1C -Ddocker.platforms="$(docker_platforms)" -PskipPython
   # Build docker images
-  ./mvnw package -DskipTests -Pdocker  -Ddocker.platforms="$(docker_platforms)" -PskipPython
+  ./mvnw package -DskipTests -Pdocker -Ddocker.platforms="$(docker_platforms)" -PskipPython
   docker images | head -n 6
 fi
 

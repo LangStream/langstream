@@ -18,9 +18,11 @@ package ai.langstream.runtime.impl.k8s;
 import ai.langstream.api.model.ErrorsSpec;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runtime.AgentNode;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.ExecutionPlanOptimiser;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentSpec;
@@ -37,10 +39,12 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,6 +58,16 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
 
     static final List<ExecutionPlanOptimiser> OPTIMISERS =
             List.of(new ComposableAgentExecutionPlanOptimiser());
+
+    private static final MessageDigest DIGEST;
+
+    static {
+        try {
+            DIGEST = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private KubernetesClusterRuntimeConfiguration configuration;
     private KubernetesClient client;
@@ -77,7 +91,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             String tenant,
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId) {
+            String codeStorageArchiveId,
+            DeployContext deployContext) {
         streamingClusterRuntime.deploy(applicationInstance);
         List<AgentCustomResource> agentCustomResources = new ArrayList<>();
         List<Secret> secrets = new ArrayList<>();
@@ -96,12 +111,109 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         }
 
         for (AgentCustomResource agentCustomResource : agentCustomResources) {
+            final AgentCustomResource existing =
+                    client.resource(agentCustomResource).inNamespace(namespace).get();
+            if (existing != null) {
+                final String codeArchiveId =
+                        tryKeepPreviousCodeArchiveId(
+                                tenant,
+                                applicationInstance.getApplicationId(),
+                                codeStorageArchiveId,
+                                existing.getSpec().getCodeArchiveId(),
+                                deployContext);
+                agentCustomResource.getSpec().setCodeArchiveId(codeArchiveId);
+            }
             client.resource(agentCustomResource).inNamespace(namespace).serverSideApply();
             log.info(
-                    "Created custom resource for agent {}",
+                    "Patched custom resource for agent {}",
                     agentCustomResource.getMetadata().getName());
         }
         return null;
+    }
+
+    static String tryKeepPreviousCodeArchiveId(
+            String tenant,
+            String applicationId,
+            String newCodeStorageArchiveId,
+            String currentCodeStorageArchiveId,
+            DeployContext deployContext) {
+        final Map<String, ApplicationCodeInfo> archiveInfoLocalCache = new HashMap<>();
+        final boolean digestChanged =
+                isDigestChanged(
+                        tenant,
+                        applicationId,
+                        newCodeStorageArchiveId,
+                        deployContext,
+                        currentCodeStorageArchiveId,
+                        archiveInfoLocalCache);
+        if (!digestChanged) {
+            log.info(
+                    "Digest for agent {} is the same (current code archive id {}, new archive id {}).",
+                    applicationId,
+                    currentCodeStorageArchiveId,
+                    newCodeStorageArchiveId);
+            return currentCodeStorageArchiveId;
+        } else {
+            log.info(
+                    "Digest for agent {} changed (current code archive id {}, new archive id {}).",
+                    applicationId,
+                    currentCodeStorageArchiveId,
+                    newCodeStorageArchiveId);
+            return newCodeStorageArchiveId;
+        }
+    }
+
+    private static boolean isDigestChanged(
+            String tenant,
+            String applicationId,
+            String newCodeArchiveId,
+            DeployContext deployContext,
+            String currentCodeArchiveId,
+            Map<String, ApplicationCodeInfo> cache) {
+        final ApplicationCodeInfo currentCodeInfo =
+                getCodeInfo(cache, currentCodeArchiveId, deployContext, tenant, applicationId);
+        if (currentCodeInfo == null) {
+            log.warn(
+                    "No code info for {} {}. Will update agents archive id anyway.",
+                    tenant,
+                    currentCodeArchiveId);
+            return true;
+        }
+        final ApplicationCodeInfo newCodeInfo =
+                getCodeInfo(cache, newCodeArchiveId, deployContext, tenant, applicationId);
+        if (newCodeInfo == null) {
+            log.warn(
+                    "No code info for {} {}. Will update agents archive id anyway.",
+                    tenant,
+                    newCodeArchiveId);
+            return true;
+        }
+        final ApplicationCodeInfo.Digests newDigests = newCodeInfo.getDigests();
+        final ApplicationCodeInfo.Digests currentDigests = currentCodeInfo.getDigests();
+        if (newDigests == null && currentDigests == null) {
+            return false;
+        }
+        if (newDigests == null || currentDigests == null) {
+            return true;
+        }
+        if (!Objects.equals(newDigests.getPython(), currentDigests.getPython())) {
+            return true;
+        }
+        if (!Objects.equals(newDigests.getJava(), currentDigests.getJava())) {
+            return true;
+        }
+        return false;
+    }
+
+    private static ApplicationCodeInfo getCodeInfo(
+            Map<String, ApplicationCodeInfo> cache,
+            String currentCodeArchiveId,
+            DeployContext deployContext,
+            String tenant,
+            String applicationId) {
+        return cache.computeIfAbsent(
+                currentCodeArchiveId,
+                id -> deployContext.getApplicationCodeInfo(tenant, applicationId, id));
     }
 
     private void collectAgentCustomResourcesAndSecrets(
@@ -202,8 +314,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                         agent.getResources().parallelism(), agent.getResources().size()));
         agentSpec.setAgentConfigSecretRef(secretName);
         agentSpec.setCodeArchiveId(codeStorageArchiveId);
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] hash = digest.digest(SerializationUtil.writeAsJsonBytes(secret.getData()));
+        byte[] hash = DIGEST.digest(SerializationUtil.writeAsJsonBytes(secret.getData()));
         agentSpec.setAgentConfigSecretRefChecksum(bytesToHex(hash));
 
         final AgentCustomResource agentCustomResource =
@@ -243,7 +354,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             String tenant,
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId) {
+            String codeStorageArchiveId,
+            DeployContext deployContext) {
         List<AgentCustomResource> agentCustomResources = new ArrayList<>();
         List<Secret> secrets = new ArrayList<>();
         collectAgentCustomResourcesAndSecrets(

@@ -31,4 +31,18 @@ public interface UploadableCodeArchive {
      * @return the input stream to read the data from
      */
     InputStream getData() throws IOException, CodeStorageException;
+
+    /**
+     * Sha256 hex digest of the application Python binaries data.
+     *
+     * @return
+     */
+    String getPyBinariesDigest();
+
+    /**
+     * Sha256 hex digest of the application Java binaries data.
+     *
+     * @return
+     */
+    String getJavaBinariesDigest();
 }

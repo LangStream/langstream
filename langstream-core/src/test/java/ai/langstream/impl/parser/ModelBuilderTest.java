@@ -16,14 +16,18 @@
 package ai.langstream.impl.parser;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+@Slf4j
 class ModelBuilderTest {
+
 
     @Test
     void resolveFileReferencesInSecrets() throws Exception {
@@ -122,27 +126,68 @@ class ModelBuilderTest {
     void testResolveBinaryAndTextFiles(@TempDir Path tempDir) throws Exception {
         String content =
                 """
-                secrets:
-                  - "<file:some-text-file.txt>"
-                  - "<file:some-binary-file.bin>"
-                """;
+                        secrets:
+                          - "<file:some-text-file.txt>"
+                          - "<file:some-binary-file.bin>"
+                        """;
 
         Path file = tempDir.resolve("instance.yaml");
         Files.write(file, content.getBytes(StandardCharsets.UTF_8));
         Files.write(
                 tempDir.resolve("some-text-file.txt"),
                 "some text".getBytes(StandardCharsets.UTF_8));
-        Files.write(tempDir.resolve("some-binary-file.bin"), new byte[] {0x01, 0x02, 0x03});
+        Files.write(tempDir.resolve("some-binary-file.bin"), new byte[]{0x01, 0x02, 0x03});
 
         String result = ModelBuilder.resolveFileReferencesInYAMLFile(file);
 
         assertEquals(
                 result,
                 """
-                      ---
-                      secrets:
-                      - "some text"
-                      - "base64:AQID"
-                      """);
+                        ---
+                        secrets:
+                        - "some text"
+                        - "base64:AQID"
+                        """);
+    }
+
+    @Test
+    void testPyChecksum() throws Exception {
+        final Path path = Files.createTempDirectory("langstream");
+        final Path python = Files.createDirectories(path.resolve("python"));
+        Files.writeString(python.resolve("script.py"), "print('hello world')");
+        Files.writeString(python.resolve("script2.py"), "print('hello world2')");
+        final Path pythonSubdir = Files.createDirectories(python.resolve("subdir"));
+        Files.writeString(pythonSubdir.resolve("script2.py"), "print('hello world3')");
+        final ModelBuilder.ApplicationWithPackageInfo applicationWithPackageInfo =
+                ModelBuilder.buildApplicationInstance(
+                        List.of(path),
+                        null,
+                        null,
+                        bytes -> new String(bytes, StandardCharsets.UTF_8));
+        Assertions.assertEquals(
+                "{\"script.py\":\"print('hello world')\",\"script2.py\":\"print"
+                        + "('hello world2')\",\"subdir/script2.py\":\"print('hello world3')\"}",
+                applicationWithPackageInfo.getPyBinariesDigest());
+        Assertions.assertNull(applicationWithPackageInfo.getJavaBinariesDigest());
+    }
+
+    @Test
+    void testJavaLibChecksum() throws Exception {
+        final Path path = Files.createTempDirectory("langstream");
+        final Path java = Files.createDirectories(path.resolve("java"));
+        final Path lib = Files.createDirectories(java.resolve("lib"));
+        Files.writeString(lib.resolve("my-jar-1.jar"), "some bin content");
+        Files.writeString(lib.resolve("my-jar-2.jar"), "some bin content2");
+
+        final ModelBuilder.ApplicationWithPackageInfo applicationWithPackageInfo =
+                ModelBuilder.buildApplicationInstance(
+                        List.of(path),
+                        null,
+                        null,
+                        bytes -> new String(bytes, StandardCharsets.UTF_8));
+        Assertions.assertEquals(
+                "{\"my-jar-1.jar\":\"some bin content\",\"my-jar-2.jar\":\"some bin content2\"}",
+                applicationWithPackageInfo.getJavaBinariesDigest());
+        Assertions.assertNull(applicationWithPackageInfo.getPyBinariesDigest());
     }
 }

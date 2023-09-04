@@ -43,9 +43,14 @@ public class NoopCodeStorageProvider implements CodeStorageProvider {
                     String applicationId,
                     String version,
                     UploadableCodeArchive codeArchive) {
-                final String code = "%s-%s".formatted(tenant, applicationId);
+                final String codeArchiveId = computeCodeArchiveId(tenant, applicationId);
                 CodeArchiveMetadata archiveMetadata =
-                        new CodeArchiveMetadata(tenant, code, applicationId);
+                        new CodeArchiveMetadata(
+                                tenant,
+                                codeArchiveId,
+                                applicationId,
+                                codeArchive.getPyBinariesDigest(),
+                                codeArchive.getJavaBinariesDigest());
                 archives.put(archiveMetadata.codeStoreId(), archiveMetadata);
                 return archiveMetadata;
             }
@@ -94,6 +99,10 @@ public class NoopCodeStorageProvider implements CodeStorageProvider {
             @Override
             public void close() {}
         };
+    }
+
+    public static String computeCodeArchiveId(String tenant, String applicationId) {
+        return "%s-%s".formatted(tenant, applicationId);
     }
 
     @Override

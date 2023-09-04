@@ -149,6 +149,17 @@ public class KubeTestServer
                     .always();
 
             server.expect()
+                    .get()
+                    .withPath(fullPath)
+                    .andReply(
+                            HttpURLConnection.HTTP_OK,
+                            recordedRequest -> {
+                                log.info("received get request for agent {}", agentId);
+                                return currentAgents.get(agentId);
+                            })
+                    .always();
+
+            server.expect()
                     .delete()
                     .withPath(fullPath)
                     .andReply(

@@ -13,20 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.codestorage;
+package ai.langstream.api.runtime;
 
-import java.util.Objects;
+import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 
-public record CodeArchiveMetadata(
-        String tenant,
-        String codeStoreId,
-        String applicationId,
-        String pyBinariesDigest,
-        String javaBinariesDigest) {
+public interface DeployContext extends AutoCloseable {
 
-    public CodeArchiveMetadata {
-        Objects.requireNonNull(tenant);
-        Objects.requireNonNull(codeStoreId);
-        Objects.requireNonNull(applicationId);
-    }
+    ApplicationCodeInfo getApplicationCodeInfo(
+            String tenant, String applicationId, String codeArchiveId);
 }

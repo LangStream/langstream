@@ -27,8 +27,10 @@ public class RuntimeDeployerConstants {
 
     public static final String APP_SECRETS_ENV = "LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS";
 
-    /*
-    "/cluster-runtime-config/config", "/app-config/config",
-                        "/app-secrets/secrets"
-     */
+    public static final String CLUSTER_CONFIG_ENV =
+            "LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_CONFIGURATION";
+    public static final String CLUSTER_CONFIG_ENV_DEFAULT = "/cluster-config/config";
+    public static final String TOKEN_ENV = "LANGSTREAM_RUNTIME_DEPLOYER_TOKEN";
+    public static final String TOKEN_ENV_DEFAULT =
+            "/var/run/secrets/kubernetes.io/serviceaccount/token";
 }

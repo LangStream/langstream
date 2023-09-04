@@ -25,6 +25,7 @@ import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.AgentNodeProvider;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ConnectionImplementation;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.ExecutionPlanOptimiser;
 import ai.langstream.api.runtime.PluginsRegistry;
@@ -368,7 +369,8 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             String tenant,
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId) {
+            String codeStorageArchiveId,
+            DeployContext deployContext) {
         streamingClusterRuntime.deploy(applicationInstance);
         log.warn(
                 "ClusterType "
@@ -382,7 +384,8 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             String tenant,
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId) {
+            String codeStorageArchiveId,
+            DeployContext deployContext) {
         streamingClusterRuntime.delete(applicationInstance);
         log.warn(
                 "ClusterType "

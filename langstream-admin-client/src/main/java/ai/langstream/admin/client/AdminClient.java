@@ -270,21 +270,28 @@ public class AdminClient implements AutoCloseable {
         @Override
         public <T> HttpResponse<T> download(
                 String application,
-                String codeStorageId,
+                String codeArchiveId,
                 HttpResponse.BodyHandler<T> responseBodyHandler) {
 
             final String uri =
-                    codeStorageId == null
+                    codeArchiveId == null
                             ? tenantAppPath("/" + application + "/code")
-                            : tenantAppPath("/" + application + "/code/" + codeStorageId);
+                            : tenantAppPath("/" + application + "/code/" + codeArchiveId);
             return http(newGet(uri), responseBodyHandler);
+        }
+
+        @Override
+        public String getCodeInfo(String application, String codeArchiveId) {
+            final String path =
+                    tenantAppPath("/" + application + "/code/" + codeArchiveId + "/info");
+            return http(newGet(path)).body();
         }
     }
 
     @Override
     public void close() throws Exception {
         if (executorService != null) {
-            executorService.shutdown();
+            executorService.shutdownNow();
         }
     }
 }

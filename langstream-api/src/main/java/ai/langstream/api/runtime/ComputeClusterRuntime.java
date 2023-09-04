@@ -65,13 +65,15 @@ public interface ComputeClusterRuntime extends AutoCloseable {
             String tenant,
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId);
+            String codeStorageArchiveId,
+            DeployContext deployContext);
 
     void delete(
             String tenant,
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId);
+            String codeStorageArchiveId,
+            DeployContext deployContext);
 
     List<ExecutionPlanOptimiser> getExecutionPlanOptimisers();
 

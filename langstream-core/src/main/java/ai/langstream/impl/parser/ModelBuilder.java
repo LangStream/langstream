@@ -39,6 +39,7 @@ import ai.langstream.api.model.TopicDefinition;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -52,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -61,12 +63,15 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class ModelBuilder {
 
     static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    static final ObjectMapper binariesDigestMapper =
+            new ObjectMapper().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 
     @Getter
     public static class ApplicationWithPackageInfo {
@@ -78,6 +83,8 @@ public class ModelBuilder {
         private boolean hasInstanceDefinition;
         private boolean hasSecretDefinition;
         private boolean hasAppDefinition;
+        private String pyBinariesDigest;
+        private String javaBinariesDigest;
     }
 
     /**
@@ -94,7 +101,23 @@ public class ModelBuilder {
     public static ApplicationWithPackageInfo buildApplicationInstance(
             List<Path> applicationDirectories, String instanceContent, String secretsContent)
             throws Exception {
+        return buildApplicationInstance(
+                applicationDirectories,
+                instanceContent,
+                secretsContent,
+                bytes -> DigestUtils.sha256Hex(bytes));
+    }
+
+    static ApplicationWithPackageInfo buildApplicationInstance(
+            List<Path> applicationDirectories,
+            String instanceContent,
+            String secretsContent,
+            Function<byte[], String> checksumFunction)
+            throws Exception {
         Map<String, String> applicationContents = new HashMap<>();
+
+        TreeMap<String, String> sortedPyBinaries = new TreeMap<>();
+        TreeMap<String, String> sortedJavaBinaries = new TreeMap<>();
 
         for (Path directory : applicationDirectories) {
             log.info("Parsing directory: {}", directory.toAbsolutePath());
@@ -126,18 +149,62 @@ public class ModelBuilder {
                                         e);
                             }
                         }
+                    } else {
+                        if (Files.isDirectory(path)) {
+                            String filename = path.getFileName().toString();
+                            if (filename.equals("python")) {
+                                recursiveAppendFiles(sortedPyBinaries, path, path);
+                            } else {
+                                if (filename.equals("java")) {
+                                    final Path lib = path.resolve("lib");
+                                    if (Files.exists(lib) && Files.isDirectory(lib)) {
+                                        recursiveAppendFiles(sortedJavaBinaries, lib, lib);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+        final ApplicationWithPackageInfo applicationWithPackageInfo =
+                buildApplicationInstance(applicationContents, instanceContent, secretsContent);
+        if (!sortedJavaBinaries.isEmpty()) {
+            final byte[] data = binariesDigestMapper.writeValueAsBytes(sortedJavaBinaries);
+            applicationWithPackageInfo.javaBinariesDigest = checksumFunction.apply(data);
+        }
+        if (!sortedPyBinaries.isEmpty()) {
+            final byte[] data = binariesDigestMapper.writeValueAsBytes(sortedPyBinaries);
+            applicationWithPackageInfo.pyBinariesDigest = checksumFunction.apply(data);
+        }
+        return applicationWithPackageInfo;
+    }
 
-        return buildApplicationInstance(applicationContents, instanceContent, secretsContent);
+    private static void recursiveAppendFiles(
+            TreeMap<String, String> sortedPyBinaries, Path current, Path rootPath)
+            throws IOException {
+
+        if (Files.isRegularFile(current)) {
+            try {
+                final Path relativeCurrent = rootPath.relativize(current);
+                sortedPyBinaries.put(
+                        relativeCurrent.toString(),
+                        Files.readString(current, StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                throw new IllegalArgumentException(e);
+            }
+        } else {
+            try (DirectoryStream<Path> paths = Files.newDirectoryStream(current); ) {
+                for (Path path : paths) {
+                    recursiveAppendFiles(sortedPyBinaries, path, rootPath);
+                }
+            }
+        }
     }
 
     public static ApplicationWithPackageInfo buildApplicationInstance(
             Map<String, String> files, String instanceContent, String secretsContent)
             throws Exception {
-
         final ApplicationWithPackageInfo applicationWithPackageInfo =
                 new ApplicationWithPackageInfo(new Application());
         for (Map.Entry<String, String> entry : files.entrySet()) {
@@ -158,7 +225,7 @@ public class ModelBuilder {
     private static void parseApplicationFile(
             String fileName, String content, ApplicationWithPackageInfo applicationWithPackageInfo)
             throws IOException {
-        if (!fileName.endsWith(".yaml")) {
+        if (!isPipelineFile(fileName)) {
             // skip
             log.info("Skipping {}", fileName);
             return;
@@ -184,6 +251,10 @@ public class ModelBuilder {
                 parsePipelineFile(fileName, content, applicationWithPackageInfo.getApplication());
                 break;
         }
+    }
+
+    private static boolean isPipelineFile(String fileName) {
+        return fileName.endsWith(".yaml");
     }
 
     private static void parseConfiguration(String content, Application application)

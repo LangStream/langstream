@@ -277,6 +277,18 @@ public class ApplicationResource {
                 app.getApplicationId(), app.getInstance(), app.getStatus());
     }
 
+    @GetMapping("/{tenant}/{applicationId}/describe")
+    @Operation(summary = "Describe an application by id, without retrieving its status")
+    ApplicationDescription describeApplication(
+            Authentication authentication,
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("applicationId") String applicationId) {
+        performAuthorization(authentication, tenant);
+        final StoredApplication app = getAppWithStatusOrThrow(tenant, applicationId, false);
+        return new ApplicationDescription(
+                app.getApplicationId(), app.getInstance(), app.getStatus());
+    }
+
     @GetMapping(
             value = "/{tenant}/{applicationId}/logs",
             produces = MediaType.APPLICATION_NDJSON_VALUE)

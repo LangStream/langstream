@@ -247,6 +247,11 @@ public class AdminClient implements AutoCloseable {
         }
 
         @Override
+        public String describe(String application) {
+            return http(newGet(tenantAppPath("/" + application + "/describe"))).body();
+        }
+
+        @Override
         public String list() {
             return http(newGet(tenantAppPath(""))).body();
         }

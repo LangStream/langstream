@@ -27,6 +27,8 @@ public interface Applications {
 
     String get(String application);
 
+    String describe(String application);
+
     String list();
 
     HttpResponse<byte[]> download(String application);

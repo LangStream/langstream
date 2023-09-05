@@ -17,7 +17,11 @@ package ai.langstream.impl.parser;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class ModelBuilderTest {
 
@@ -112,5 +116,33 @@ class ModelBuilderTest {
                         });
 
         assertEquals(result, content);
+    }
+
+    @Test
+    void testResolveBinaryAndTextFiles(@TempDir Path tempDir) throws Exception {
+        String content =
+                """
+                secrets:
+                  - "<file:some-text-file.txt>"
+                  - "<file:some-binary-file.bin>"
+                """;
+
+        Path file = tempDir.resolve("instance.yaml");
+        Files.write(file, content.getBytes(StandardCharsets.UTF_8));
+        Files.write(
+                tempDir.resolve("some-text-file.txt"),
+                "some text".getBytes(StandardCharsets.UTF_8));
+        Files.write(tempDir.resolve("some-binary-file.bin"), new byte[] {0x01, 0x02, 0x03});
+
+        String result = ModelBuilder.resolveFileReferencesInYAMLFile(file);
+
+        assertEquals(
+                result,
+                """
+                      ---
+                      secrets:
+                      - "some text"
+                      - "base64:AQID"
+                      """);
     }
 }

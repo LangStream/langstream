@@ -16,11 +16,12 @@
 package com.datastax.oss.streaming.ai.embeddings;
 
 import java.util.List;
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Disabled;
 
 // disabled, just for experiments/usage demo
-public abstract class HuggingFaceEmbeddingServiceTest extends TestCase {
+public class HuggingFaceEmbeddingServiceTest {
 
+    @Disabled
     public void testMain() throws Exception {
         AbstractHuggingFaceEmbeddingService.HuggingFaceConfig conf =
                 AbstractHuggingFaceEmbeddingService.HuggingFaceConfig.builder()
@@ -31,7 +32,7 @@ public abstract class HuggingFaceEmbeddingServiceTest extends TestCase {
 
         try (EmbeddingsService service = new HuggingFaceEmbeddingService(conf)) {
             List<List<Double>> result =
-                    service.computeEmbeddings(List.of("hello world", "stranger things"));
+                    service.computeEmbeddings(List.of("hello world", "stranger things")).get();
             result.forEach(System.out::println);
         }
     }

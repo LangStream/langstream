@@ -367,14 +367,16 @@ public class VertexAIProvider implements ServiceProviderProvider {
 
             @Override
             @SneakyThrows
-            public List<List<Double>> computeEmbeddings(List<String> list) {
+            public CompletableFuture<List<List<Double>>> computeEmbeddings(List<String> list) {
                 // https://cloud.google.com/vertex-ai/docs/generative-ai/embeddings/get-text-embeddings#generative-ai-get-text-embedding-drest
                 RequestEmbeddings requestEmbeddings = new RequestEmbeddings(list);
-                Predictions predictions =
-                        executeVertexCall(requestEmbeddings, Predictions.class, model).get();
-                return predictions.predictions.stream()
-                        .map(p -> p.embeddings.values)
-                        .collect(Collectors.toList());
+                CompletableFuture<Predictions> predictionsHandle =
+                        executeVertexCall(requestEmbeddings, Predictions.class, model);
+                return predictionsHandle.thenApply(
+                        predictions ->
+                                predictions.predictions.stream()
+                                        .map(p -> p.embeddings.values)
+                                        .collect(Collectors.toList()));
             }
         }
 

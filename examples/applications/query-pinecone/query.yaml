@@ -30,6 +30,7 @@ pipeline:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings"
       text: "{{% value.question }}"
+      flush-interval: 0
   - name: "Execute Query"
     type: "query-vector-db"
     configuration:

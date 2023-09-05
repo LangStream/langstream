@@ -76,7 +76,8 @@ class VertexAIProviderTest {
 
         EmbeddingsService embeddingsService =
                 implementation.getEmbeddingsService(Map.of("model", "textembedding-gecko"));
-        List<List<Double>> result = embeddingsService.computeEmbeddings(List.of("hello world"));
+        List<List<Double>> result =
+                embeddingsService.computeEmbeddings(List.of("hello world")).get();
         log.info("result: {}", result);
         assertEquals(1, result.size());
         assertEquals(List.of(1.d, 5.4d, 8.7d), result.get(0));
@@ -186,7 +187,8 @@ class VertexAIProviderTest {
 
         EmbeddingsService embeddingsService =
                 implementation.getEmbeddingsService(Map.of("model", "textembedding-gecko"));
-        List<List<Double>> result = embeddingsService.computeEmbeddings(List.of("hello world"));
+        List<List<Double>> result =
+                embeddingsService.computeEmbeddings(List.of("hello world")).get();
         log.info("result: {}", result);
         assertEquals(1, result.size());
     }

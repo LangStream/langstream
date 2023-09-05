@@ -47,6 +47,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -182,7 +183,7 @@ public abstract class AbstractApplicationRunner {
         producer.flush();
     }
 
-    protected List<ConsumerRecord> waitForMessages(KafkaConsumer consumer, List<Object> expected) {
+    protected List<ConsumerRecord> waitForMessages(KafkaConsumer consumer, List<?> expected) {
         List<ConsumerRecord> result = new ArrayList<>();
         List<Object> received = new ArrayList<>();
 
@@ -204,7 +205,9 @@ public abstract class AbstractApplicationRunner {
                             for (int i = 0; i < expected.size(); i++) {
                                 Object expectedValue = expected.get(i);
                                 Object actualValue = received.get(i);
-                                if (expectedValue instanceof byte[]) {
+                                if (expectedValue instanceof Consumer fn) {
+                                    fn.accept(actualValue);
+                                } else if (expectedValue instanceof byte[]) {
                                     assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
                                 } else {
                                     assertEquals(expectedValue, actualValue);

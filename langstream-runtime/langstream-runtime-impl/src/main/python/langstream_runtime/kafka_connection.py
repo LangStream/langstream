@@ -136,21 +136,35 @@ class KafkaTopicConsumer(TopicConsumer):
         self.uncommitted: Dict[TopicPartition, SortedSet[int]] = {}
         self.pending_commits = 0
         self.commit_failure = None
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
+        self.commit_ever_called = False
 
     def start(self):
         self.consumer = Consumer(self.configs)
+        logging.info(f"Subscribing consumer to {self.topic}")
         self.consumer.subscribe(
             [self.topic], on_assign=self.on_assign, on_revoke=self.on_revoke
         )
 
     def close(self):
-        logging.info(
-            f"Closing consumer to {self.topic} with {self.pending_commits} pending "
-            f"commits"
-        )
-        if self.consumer:
-            self.consumer.close()
+        with self.lock:
+            if self.consumer:
+                logging.info(
+                    f"Closing consumer to {self.topic} with {self.pending_commits} "
+                    f"pending commits and {len(self.uncommitted)} uncommitted "
+                    f"offsets: {self.uncommitted} "
+                )
+                if self.commit_ever_called:
+                    offsets = [
+                        TopicPartition(
+                            topic_partition.topic,
+                            partition=topic_partition.partition,
+                            offset=offset,
+                        )
+                        for topic_partition, offset in self.committed.items()
+                    ]
+                    self.consumer.commit(offsets=offsets, asynchronous=False)
+                self.consumer.close()
 
     def read(self) -> List[KafkaRecord]:
         if self.commit_failure:
@@ -161,7 +175,10 @@ class KafkaTopicConsumer(TopicConsumer):
         if message.error():
             logging.error(f"Consumer error: {message.error()}")
             return []
-        logging.info(f"Received message from Kafka {message}")
+        logging.debug(
+            f"Received message from Kafka topics {self.consumer.assignment()}:"
+            f" {message}"
+        )
         return [KafkaRecord(message)]
 
     def commit(self, records: List[KafkaRecord]):
@@ -181,6 +198,7 @@ class KafkaTopicConsumer(TopicConsumer):
             return
 
         with self.lock:
+            self.commit_ever_called = True
             for record in records:
                 topic_partition = record.topic_partition()
 
@@ -236,11 +254,11 @@ class KafkaTopicConsumer(TopicConsumer):
         with self.lock:
             self.pending_commits -= 1
         if error:
-            logging.error(f"Error committing offsets: {error}")
+            logging.error(f"Error committing offsets on topic {self.topic}: {error}")
             if not self.commit_failure:
                 self.commit_failure = KafkaException(error)
         else:
-            logging.info(f"Offsets committed: {partitions}")
+            logging.debug(f"Offsets committed: {partitions}")
 
     def on_assign(self, consumer: Consumer, partitions: List[TopicPartition]):
         with self.lock:

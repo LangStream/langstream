@@ -17,6 +17,7 @@
 import time
 from typing import List
 
+import pytest
 import waiting
 import yaml
 from confluent_kafka import Consumer, Producer, TopicPartition
@@ -170,6 +171,10 @@ def test_kafka_commit():
             timeout_seconds=5,
             sleep_seconds=0.1,
         )
+
+        # Re-committing records fails
+        with pytest.raises(RuntimeError):
+            source.commit(records)
 
         committed_later = source.read()
         source.commit(source.read())

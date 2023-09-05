@@ -183,11 +183,6 @@ class KafkaTopicConsumer(TopicConsumer):
         with self.lock:
             for record in records:
                 topic_partition = record.topic_partition()
-                offset = record.offset() + 1
-                offsets_for_partition = self.uncommitted.setdefault(
-                    topic_partition, SortedSet()
-                )
-                offsets_for_partition.add(offset)
 
                 current_offset = self.committed.get(topic_partition)
                 if current_offset is None:
@@ -202,8 +197,21 @@ class KafkaTopicConsumer(TopicConsumer):
                     if current_offset < 0:
                         current_offset = 0
 
-                # advance the offset up to the first gap
+                offset = record.offset() + 1
+
+                if offset <= current_offset:
+                    raise RuntimeError(
+                        f"Commit called with offset {offset} less than the currently "
+                        f"committed offset{current_offset}."
+                    )
+
+                offsets_for_partition = self.uncommitted.setdefault(
+                    topic_partition, SortedSet()
+                )
+                offsets_for_partition.add(offset)
+
                 least = offsets_for_partition[0]
+                # advance the offset up to the first gap
                 while least == current_offset + 1:
                     current_offset = offsets_for_partition.pop(0)
                     if len(offsets_for_partition) == 0:

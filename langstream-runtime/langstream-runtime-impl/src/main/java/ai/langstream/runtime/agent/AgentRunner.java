@@ -458,7 +458,8 @@ public class AgentRunner {
                             }
 
                             if (sourceRecordAndResult.resultRecords().isEmpty()) {
-                                log.info("No records to send to the Sink for {}",
+                                log.info(
+                                        "No records to send to the Sink for {}",
                                         sourceRecordAndResult.sourceRecord());
                                 // no records, we have to commit the source record to the source
                                 // no need to call the Sink with an empty list

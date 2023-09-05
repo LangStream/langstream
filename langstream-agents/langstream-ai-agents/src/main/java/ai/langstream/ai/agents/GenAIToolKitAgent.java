@@ -96,6 +96,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                             log.error("Error processing record: {}", record, e);
                             recordSink.emit(new SourceRecordAndResult(record, null, e));
                         } else {
+                            log.info("Processed record {}, results {}", record, resultRecords);
                             processed(1, records.size());
                             recordSink.emit(new SourceRecordAndResult(record, resultRecords, null));
                         }

@@ -70,7 +70,6 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
     @Override
     @SneakyThrows
     public void run() {
-        log("Initializing...");
         final Map<String, String> consumeGatewayOptions = Map.of("position", "latest");
         final String consumePath =
                 validateGatewayAndGetUrl(

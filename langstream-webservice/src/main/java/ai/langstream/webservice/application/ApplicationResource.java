@@ -270,21 +270,10 @@ public class ApplicationResource {
     ApplicationDescription getApplication(
             Authentication authentication,
             @NotBlank @PathVariable("tenant") String tenant,
-            @NotBlank @PathVariable("applicationId") String applicationId) {
+            @NotBlank @PathVariable("applicationId") String applicationId,
+            @RequestParam("stats") boolean stats) {
         performAuthorization(authentication, tenant);
-        final StoredApplication app = getAppWithStatusOrThrow(tenant, applicationId, true);
-        return new ApplicationDescription(
-                app.getApplicationId(), app.getInstance(), app.getStatus());
-    }
-
-    @GetMapping("/{tenant}/{applicationId}/describe")
-    @Operation(summary = "Describe an application by id, without retrieving its status")
-    ApplicationDescription describeApplication(
-            Authentication authentication,
-            @NotBlank @PathVariable("tenant") String tenant,
-            @NotBlank @PathVariable("applicationId") String applicationId) {
-        performAuthorization(authentication, tenant);
-        final StoredApplication app = getAppWithStatusOrThrow(tenant, applicationId, false);
+        final StoredApplication app = getAppWithStatusOrThrow(tenant, applicationId, stats);
         return new ApplicationDescription(
                 app.getApplicationId(), app.getInstance(), app.getStatus());
     }

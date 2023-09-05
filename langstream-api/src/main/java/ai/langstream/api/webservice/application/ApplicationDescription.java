@@ -26,6 +26,7 @@ import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.TopicDefinition;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -39,6 +40,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApplicationDescription {
 
     @JsonProperty("application-id")
@@ -59,6 +61,7 @@ public class ApplicationDescription {
 
     @Data
     @NoArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ApplicationDefinition {
 
         private ApplicationDefinition(Application application) {
@@ -77,6 +80,7 @@ public class ApplicationDescription {
 
     @Data
     @NoArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ModuleDefinition {
         private String id;
         private List<Pipeline> pipelines;
@@ -92,6 +96,7 @@ public class ApplicationDescription {
 
     @Data
     @NoArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AgentStatusDescription {
         private ApplicationLifecycleStatus status;
         private List<ExecutorDescription> executors;
@@ -108,6 +113,7 @@ public class ApplicationDescription {
 
     @Data
     @NoArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ExecutorDescription {
         private String id;
         private AgentLifecycleStatus status;
@@ -127,6 +133,7 @@ public class ApplicationDescription {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ReplicaStatus {
 
         private String id;
@@ -152,6 +159,7 @@ public class ApplicationDescription {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AgentStatus {
         @JsonProperty("agent-id")
         private String agentId;
@@ -172,7 +180,10 @@ public class ApplicationDescription {
             this.agentId = agentNodeStatus.getAgentId();
             this.agentType = agentNodeStatus.getAgentType();
             this.componentType = agentNodeStatus.getComponentType();
-            this.metrics = new Metrics(agentNodeStatus.getMetrics());
+            this.metrics =
+                    agentNodeStatus.getMetrics() != null
+                            ? new Metrics(agentNodeStatus.getMetrics())
+                            : null;
             this.info = agentNodeStatus.getInfo();
         }
     }

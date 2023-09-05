@@ -106,12 +106,12 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             Map<String, String> params,
             Map<String, String> options,
             String credentials) {
-        log("Validating gateway %s of type %s".formatted(gatewayId, type));
+
         final AdminClient client = getClient();
 
         final String applicationContent =
                 applicationDescriptions.computeIfAbsent(
-                        application, app -> client.applications().describe(application));
+                        application, app -> client.applications().get(application, false));
 
         final ApplicationDescription applicationDescription =
                 messageMapper.readValue(applicationContent, ApplicationDescription.class);

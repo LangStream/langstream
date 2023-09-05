@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 
+import time
 from typing import List
 
-import pytest
 import waiting
 import yaml
 from confluent_kafka import Consumer, Producer, TopicPartition
@@ -171,10 +171,25 @@ def test_kafka_commit():
             sleep_seconds=0.1,
         )
 
-        # Commit unordered fails
-        source.read()
-        with pytest.raises(Exception):
-            source.commit([source.read()[0]])
+        committed_later = source.read()
+        source.commit(source.read())
+        time.sleep(1)
+        assert (
+            source.consumer.committed([TopicPartition(input_topic, partition=0)])[
+                0
+            ].offset
+            == 1
+        )
+        source.commit(committed_later)
+
+        waiting.wait(
+            lambda: source.consumer.committed(
+                [TopicPartition(input_topic, partition=0)]
+            )[0].offset
+            == 3,
+            timeout_seconds=5,
+            sleep_seconds=0.1,
+        )
 
 
 def test_kafka_dlq():

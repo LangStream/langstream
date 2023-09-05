@@ -19,6 +19,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
 import static com.github.tomakehurst.wiremock.client.WireMock.binaryEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -1160,5 +1162,71 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals("Downloaded application code to /tmp/download.zip", result.out());
+    }
+
+    @Test
+    public void testDeployWithFilePlaceholders() throws Exception {
+        Path langstream = Files.createTempDirectory("langstream");
+        final String instance = createTempFile("instance: {}");
+        final String jsonFileRelative =
+                Paths.get(createTempFile("{\"client-id\":\"xxx\"}")).getFileName().toString();
+        assertFalse(jsonFileRelative.contains("/"));
+
+        final String secrets =
+                createTempFile(
+                        """
+                                             secrets:
+                                                  - name: vertex-ai
+                                                    id: vertex-ai
+                                                    data:
+                                                      url: https://us-central1-aiplatform.googleapis.com
+                                                      token: xxx
+                                                      serviceAccountJson: "<file:%s>"
+                                                      region: us-central1
+                                                      project: myproject
+                                             """
+                                .formatted(jsonFileRelative));
+
+        final Path zipFile =
+                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+
+        wireMock.register(
+                WireMock.post("/api/applications/%s/my-app".formatted(TENANT))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .withMultipartRequestBody(
+                                aMultipart("instance").withBody(equalTo("instance: {}")))
+                        .withMultipartRequestBody(
+                                aMultipart("secrets")
+                                        .withBody(
+                                                equalTo(
+                                                        """
+                                       ---
+                                       secrets:
+                                       - name: "vertex-ai"
+                                         id: "vertex-ai"
+                                         data:
+                                           url: "https://us-central1-aiplatform.googleapis.com"
+                                           token: "xxx"
+                                           serviceAccountJson: "{\\"client-id\\":\\"xxx\\"}"
+                                           region: "us-central1"
+                                           project: "myproject"
+                                        """)))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "deploy",
+                        "my-app",
+                        "-s",
+                        secrets,
+                        "-app",
+                        langstream.toAbsolutePath().toString(),
+                        "-i",
+                        instance);
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
     }
 }

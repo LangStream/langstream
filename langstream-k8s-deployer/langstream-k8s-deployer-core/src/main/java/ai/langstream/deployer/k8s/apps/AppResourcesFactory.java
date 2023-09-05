@@ -118,6 +118,8 @@ public class AppResourcesFactory {
                         .build();
         final String command = isDeleteJob ? "delete" : "deploy";
 
+        final String clusterConfigVolume = "cluster-config";
+
         final Container container =
                 new ContainerBuilder()
                         .withName("deployer")
@@ -136,6 +138,15 @@ public class AppResourcesFactory {
                                 new EnvVarBuilder()
                                         .withName(RuntimeDeployerConstants.APP_SECRETS_ENV)
                                         .withValue("/app-secrets/secrets")
+                                        .build(),
+                                new EnvVarBuilder()
+                                        .withName(RuntimeDeployerConstants.CLUSTER_CONFIG_ENV)
+                                        .withValue("/cluster-config/config")
+                                        .build(),
+                                new EnvVarBuilder()
+                                        .withName(RuntimeDeployerConstants.TOKEN_ENV)
+                                        .withValue(
+                                                "/var/run/secrets/kubernetes.io/serviceaccount/token")
                                         .build())
                         // keep args for backward compatibility
                         .withArgs(
@@ -156,6 +167,10 @@ public class AppResourcesFactory {
                                 new VolumeMountBuilder()
                                         .withName("cluster-runtime-config")
                                         .withMountPath("/cluster-runtime-config")
+                                        .build(),
+                                new VolumeMountBuilder()
+                                        .withName(clusterConfigVolume)
+                                        .withMountPath("/cluster-config")
                                         .build())
                         .withNewResources()
                         .withRequests(
@@ -203,6 +218,19 @@ public class AppResourcesFactory {
                         new VolumeBuilder()
                                 .withName("cluster-runtime-config")
                                 .withEmptyDir(new EmptyDirVolumeSource())
+                                .build(),
+                        new VolumeBuilder()
+                                .withName(clusterConfigVolume)
+                                .withNewSecret()
+                                .withSecretName(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET)
+                                .withItems(
+                                        new io.fabric8.kubernetes.api.model.KeyToPathBuilder()
+                                                .withKey(
+                                                        CRDConstants
+                                                                .TENANT_CLUSTER_CONFIG_SECRET_KEY)
+                                                .withPath("config")
+                                                .build())
+                                .endSecret()
                                 .build())
                 .withInitContainers(List.of(initContainer))
                 .withContainers(List.of(container))

@@ -18,6 +18,7 @@ package ai.langstream.deployer.k8s.apps;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.api.model.ApplicationLifecycleStatus;
+import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationStatus;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
@@ -155,6 +156,25 @@ class ApplicationCustomResourceTest {
                                 .withData(
                                         Map.of(
                                                 "secrets",
+                                                Base64.getEncoder()
+                                                        .encodeToString(
+                                                                "{}"
+                                                                        .getBytes(
+                                                                                StandardCharsets
+                                                                                        .UTF_8))))
+                                .build())
+                .inNamespace(namespace)
+                .serverSideApply();
+
+        k3s.getClient()
+                .resource(
+                        new SecretBuilder()
+                                .withNewMetadata()
+                                .withName(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET)
+                                .endMetadata()
+                                .withData(
+                                        Map.of(
+                                                CRDConstants.TENANT_CLUSTER_CONFIG_SECRET_KEY,
                                                 Base64.getEncoder()
                                                         .encodeToString(
                                                                 "{}"

@@ -19,12 +19,17 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKN
 
 import ai.langstream.api.model.Secrets;
 import ai.langstream.runtime.RuntimeStarter;
+import ai.langstream.runtime.api.ClusterConfiguration;
+import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConstants;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 
 /** This is the main entry point for the deployer runtime. */
 @Slf4j
@@ -116,13 +121,50 @@ public class RuntimeDeployerStarter extends RuntimeStarter {
         } else {
             log.info("No secrets file provided");
         }
+        final ClusterConfiguration clusterConfiguration = getClusterConfiguration();
+        final String token = getToken();
 
         switch (arg0) {
             case "delete" -> runtimeDeployer.delete(
                     clusterRuntimeConfiguration, configuration, secrets);
             case "deploy" -> runtimeDeployer.deploy(
-                    clusterRuntimeConfiguration, configuration, secrets);
+                    clusterRuntimeConfiguration,
+                    configuration,
+                    secrets,
+                    clusterConfiguration,
+                    token);
             default -> throw new IllegalArgumentException("Unknown command " + arg0);
         }
+    }
+
+    @Nullable
+    private ClusterConfiguration getClusterConfiguration() throws IOException {
+        final Path clusterConfigPath =
+                getOptionalPathFromEnv(
+                        RuntimeDeployerConstants.CLUSTER_CONFIG_ENV,
+                        RuntimeDeployerConstants.CLUSTER_CONFIG_ENV_DEFAULT);
+        final ClusterConfiguration clusterConfiguration;
+        if (clusterConfigPath == null || !Files.exists(clusterConfigPath)) {
+            clusterConfiguration = null;
+        } else {
+            clusterConfiguration =
+                    MAPPER.readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
+        }
+        return clusterConfiguration;
+    }
+
+    private String getToken() throws IOException {
+        final Path tokenPath =
+                getOptionalPathFromEnv(
+                        AgentCodeDownloaderConstants.TOKEN_ENV,
+                        AgentCodeDownloaderConstants.TOKEN_ENV_DEFAULT);
+
+        final String token;
+        if (tokenPath != null) {
+            token = Files.readString(tokenPath);
+        } else {
+            token = null;
+        }
+        return token;
     }
 }

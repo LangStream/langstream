@@ -27,14 +27,17 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.kafka.runtime.KafkaTopic;
 import ai.langstream.runtime.api.agent.AgentSpec;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
@@ -42,27 +45,27 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 class KubernetesClusterRuntimeDockerTest {
 
-    private static KafkaContainer kafkaContainer;
     @RegisterExtension static final KubeTestServer kubeServer = new KubeTestServer();
 
+    @RegisterExtension
+    static KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
+
     private ApplicationDeployer getDeployer() {
+        return getDeployer(null);
+    }
+
+    private ApplicationDeployer getDeployer(DeployContext deployContext) {
         final KubernetesClusterRuntimeConfiguration config =
                 new KubernetesClusterRuntimeConfiguration();
         config.setNamespacePrefix("langstream-");
 
-        @Cleanup
         ApplicationDeployer deployer =
                 ApplicationDeployer.builder()
                         .registry(
@@ -72,6 +75,7 @@ class KubernetesClusterRuntimeDockerTest {
                                                 new ObjectMapper()
                                                         .convertValue(config, Map.class))))
                         .pluginsRegistry(new PluginsRegistry())
+                        .deployContext(deployContext)
                         .build();
         return deployer;
     }
@@ -121,7 +125,7 @@ class KubernetesClusterRuntimeDockerTest {
                                 null)
                         .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = getDeployer();
+        ApplicationDeployer deployer = getDeployer();
 
         Module module = applicationInstance.getModule("module-1");
 
@@ -226,7 +230,10 @@ class KubernetesClusterRuntimeDockerTest {
                                 Map.of(
                                         "bootstrap.servers",
                                         "PLAINTEXT://localhost:%d"
-                                                .formatted(kafkaContainer.getFirstMappedPort())))),
+                                                .formatted(
+                                                        kafkaContainer
+                                                                .getKafkaContainer()
+                                                                .getFirstMappedPort())))),
                 runtimePodConfiguration.streamingCluster());
     }
 
@@ -244,21 +251,96 @@ class KubernetesClusterRuntimeDockerTest {
                 .formatted(kafkaContainer.getBootstrapServers());
     }
 
-    @BeforeAll
-    public static void setup() {
-        kafkaContainer =
-                new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
-                        .withLogConsumer(
-                                outputFrame ->
-                                        log.info("kafka> {}", outputFrame.getUtf8String().trim()));
-        // start Pulsar and wait for it to be ready to accept requests
-        kafkaContainer.start();
-    }
+    @Test
+    public void testCodeArchiveId() throws Exception {
+        final String tenant = "tenant2";
+        final Map<String, AgentCustomResource> agentsCRs =
+                kubeServer.spyAgentCustomResources("langstream-" + tenant, "app-step1");
+        final Map<String, io.fabric8.kubernetes.api.model.Secret> secrets =
+                kubeServer.spyAgentCustomResourcesSecrets("langstream-" + tenant, "app-step1");
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
+                                configuration:
+                                  resources:
+                                    - name: open-ai
+                                      type: open-ai-configuration
+                                      configuration:
+                                        url: "http://something"
+                                        access-key: "xxcxcxc"
+                                        provider: "azure"
+                                  """,
+                                        "module.yaml",
+                                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "compute-embeddings"
+                                    id: "step1"
+                                    type: "compute-ai-embeddings"
+                                    input: "input-topic"
+                                    output: "output-topic"
+                                    configuration:
+                                      model: "text-embedding-ada-002"
+                                      embeddings-field: "value.embeddings"
+                                      text: "{{% value.name }} {{% value.description }}"
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
 
-    @AfterAll
-    public static void teardown() {
-        if (kafkaContainer != null) {
-            kafkaContainer.close();
-        }
+        ApplicationDeployer deployer =
+                getDeployer(
+                        new DeployContext() {
+                            @Override
+                            public ApplicationCodeInfo getApplicationCodeInfo(
+                                    String tenant, String applicationId, String codeArchiveId) {
+                                final String last =
+                                        switch (codeArchiveId) {
+                                            case "archive1", "archive1eq" -> "1";
+                                            default -> "2";
+                                        };
+                                final ApplicationCodeInfo.Digests digests =
+                                        new ApplicationCodeInfo.Digests();
+                                digests.setPython(
+                                        "py-%s-%s-%s".formatted(tenant, applicationId, last));
+                                digests.setJava(
+                                        "java-%s-%s-%s".formatted(tenant, applicationId, last));
+                                return new ApplicationCodeInfo(digests);
+                            }
+
+                            @Override
+                            public void close() throws Exception {}
+                        });
+
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+        deployer.deploy(tenant, implementation, "archive0");
+
+        assertEquals(1, agentsCRs.size());
+        AgentCustomResource agent = agentsCRs.values().iterator().next();
+        assertEquals(agent.getSpec().getCodeArchiveId(), "archive0");
+
+        deployer.deploy(tenant, implementation, "archive1");
+        assertEquals(1, agentsCRs.size());
+        agent = agentsCRs.values().iterator().next();
+        assertEquals(agent.getSpec().getCodeArchiveId(), "archive1");
+
+        deployer.deploy(tenant, implementation, "archive1eq");
+        assertEquals(1, agentsCRs.size());
+        agent = agentsCRs.values().iterator().next();
+        assertEquals(agent.getSpec().getCodeArchiveId(), "archive1");
+
+        deployer.deploy(tenant, implementation, "archive0");
+
+        assertEquals(1, agentsCRs.size());
+        agent = agentsCRs.values().iterator().next();
+        assertEquals(agent.getSpec().getCodeArchiveId(), "archive0");
     }
 }

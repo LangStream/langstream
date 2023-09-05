@@ -40,12 +40,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -61,6 +66,8 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
@@ -78,6 +85,8 @@ public class ModelBuilder {
         private boolean hasInstanceDefinition;
         private boolean hasSecretDefinition;
         private boolean hasAppDefinition;
+        private String pyBinariesDigest;
+        private String javaBinariesDigest;
     }
 
     /**
@@ -93,6 +102,54 @@ public class ModelBuilder {
      */
     public static ApplicationWithPackageInfo buildApplicationInstance(
             List<Path> applicationDirectories, String instanceContent, String secretsContent)
+            throws Exception {
+        return buildApplicationInstance(
+                applicationDirectories,
+                instanceContent,
+                secretsContent,
+                new MessageDigestFunction(DigestUtils::getSha256Digest),
+                new MessageDigestFunction(DigestUtils::getSha256Digest));
+    }
+
+    static class MessageDigestFunction implements ChecksumFunction {
+
+        private final Supplier<MessageDigest> messageDigestSupplier;
+        private MessageDigest messageDigest;
+
+        public MessageDigestFunction(Supplier<MessageDigest> messageDigestSupplier) {
+            this.messageDigestSupplier = messageDigestSupplier;
+        }
+
+        @Override
+        public void appendFile(String filename, byte[] data) {
+            if (messageDigest == null) {
+                messageDigest = messageDigestSupplier.get();
+            }
+            messageDigest.update(filename.getBytes(StandardCharsets.UTF_8));
+            messageDigest.update(data);
+        }
+
+        @Override
+        public String digest() {
+            if (messageDigest == null) {
+                return null;
+            }
+            return Hex.encodeHexString(messageDigest.digest());
+        }
+    }
+
+    interface ChecksumFunction {
+        void appendFile(String filename, byte[] data);
+
+        String digest();
+    }
+
+    static ApplicationWithPackageInfo buildApplicationInstance(
+            List<Path> applicationDirectories,
+            String instanceContent,
+            String secretsContent,
+            ChecksumFunction pyChecksumFunction,
+            ChecksumFunction javaChecksumFunction)
             throws Exception {
         Map<String, String> applicationContents = new HashMap<>();
 
@@ -126,18 +183,57 @@ public class ModelBuilder {
                                         e);
                             }
                         }
+                    } else {
+                        if (Files.isDirectory(path)) {
+                            String filename = path.getFileName().toString();
+                            if (filename.equals("python")) {
+                                recursiveAppendFiles(pyChecksumFunction, path, path);
+                            } else {
+                                if (filename.equals("java")) {
+                                    final Path lib = path.resolve("lib");
+                                    if (Files.exists(lib) && Files.isDirectory(lib)) {
+                                        recursiveAppendFiles(javaChecksumFunction, lib, lib);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+        final ApplicationWithPackageInfo applicationWithPackageInfo =
+                buildApplicationInstance(applicationContents, instanceContent, secretsContent);
 
-        return buildApplicationInstance(applicationContents, instanceContent, secretsContent);
+        applicationWithPackageInfo.javaBinariesDigest = javaChecksumFunction.digest();
+        applicationWithPackageInfo.pyBinariesDigest = pyChecksumFunction.digest();
+        return applicationWithPackageInfo;
+    }
+
+    private static void recursiveAppendFiles(
+            ChecksumFunction checksumFunction, Path current, Path rootPath) {
+
+        if (Files.isRegularFile(current)) {
+            try {
+                final Path relativeCurrent = rootPath.relativize(current);
+                final byte[] bytes = Files.readAllBytes(current);
+                checksumFunction.appendFile(relativeCurrent.toString(), bytes);
+            } catch (IOException e) {
+                throw new IllegalArgumentException(e);
+            }
+        } else {
+            final File[] files = current.toFile().listFiles();
+            if (files != null) {
+                Arrays.sort(files, Comparator.comparing(File::getName));
+                for (File file : files) {
+                    recursiveAppendFiles(checksumFunction, file.toPath(), rootPath);
+                }
+            }
+        }
     }
 
     public static ApplicationWithPackageInfo buildApplicationInstance(
             Map<String, String> files, String instanceContent, String secretsContent)
             throws Exception {
-
         final ApplicationWithPackageInfo applicationWithPackageInfo =
                 new ApplicationWithPackageInfo(new Application());
         for (Map.Entry<String, String> entry : files.entrySet()) {
@@ -158,7 +254,7 @@ public class ModelBuilder {
     private static void parseApplicationFile(
             String fileName, String content, ApplicationWithPackageInfo applicationWithPackageInfo)
             throws IOException {
-        if (!fileName.endsWith(".yaml")) {
+        if (!isPipelineFile(fileName)) {
             // skip
             log.info("Skipping {}", fileName);
             return;
@@ -184,6 +280,10 @@ public class ModelBuilder {
                 parsePipelineFile(fileName, content, applicationWithPackageInfo.getApplication());
                 break;
         }
+    }
+
+    private static boolean isPipelineFile(String fileName) {
+        return fileName.endsWith(".yaml");
     }
 
     private static void parseConfiguration(String content, Application application)

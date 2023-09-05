@@ -20,6 +20,7 @@ import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.codestorage.CodeStorageRegistry;
 import ai.langstream.api.codestorage.DownloadedCodeArchive;
+import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.impl.codestorage.LocalFileUploadableCodeArchive;
 import ai.langstream.webservice.config.StorageProperties;
 import java.nio.file.Path;
@@ -44,50 +45,43 @@ public class CodeStorageService {
                         storageProperties.getCode().getConfiguration());
     }
 
-    public String deployApplicationCodeStorage(String tenant, String application, Path zipFile)
+    public String deployApplicationCodeStorage(
+            String tenant,
+            String applicationId,
+            Path zipFile,
+            String pyBinariesDigest,
+            String javaBinariesDigest)
             throws CodeStorageException {
         String uuid = UUID.randomUUID().toString();
         CodeArchiveMetadata archiveMetadata =
                 codeStorage.storeApplicationCode(
-                        tenant, application, uuid, new LocalFileUploadableCodeArchive(zipFile));
+                        tenant,
+                        applicationId,
+                        uuid,
+                        new LocalFileUploadableCodeArchive(
+                                zipFile, pyBinariesDigest, javaBinariesDigest));
         if (!Objects.equals(tenant, archiveMetadata.tenant())
-                || !Objects.equals(application, archiveMetadata.applicationId())) {
+                || !Objects.equals(applicationId, archiveMetadata.applicationId())) {
             throw new CodeStorageException(
                     "Invalid archive metadata "
                             + archiveMetadata
                             + " for tenant "
                             + tenant
                             + " and application "
-                            + application);
+                            + applicationId);
         }
         return archiveMetadata.codeStoreId();
     }
 
-    public byte[] downloadApplicationCode(String tenant, String applicationId, String codeStoreId)
+    public byte[] downloadApplicationCode(String tenant, String applicationId, String codeArchiveId)
             throws CodeStorageException {
         final CodeArchiveMetadata codeArchiveMetadata =
-                codeStorage.describeApplicationCode(tenant, codeStoreId);
-        if (codeArchiveMetadata == null) {
-            throw new IllegalArgumentException(
-                    "Invalid code archive "
-                            + codeStoreId
-                            + " for tenant "
-                            + tenant
-                            + " and application "
-                            + applicationId);
-        }
-        if (!Objects.equals(codeArchiveMetadata.tenant(), tenant)) {
-            throw new IllegalArgumentException(
-                    "Invalid tenant " + tenant + " for code archive " + codeStoreId);
-        }
-        if (!Objects.equals(codeArchiveMetadata.applicationId(), applicationId)) {
-            throw new IllegalArgumentException(
-                    "Invalid application id " + tenant + " for code archive " + codeStoreId);
-        }
+                codeStorage.describeApplicationCode(tenant, codeArchiveId);
+        checkCodeArchiveMetadata(tenant, applicationId, codeArchiveId, codeArchiveMetadata);
         AtomicReference<byte[]> result = new AtomicReference<>();
         codeStorage.downloadApplicationCode(
                 tenant,
-                codeStoreId,
+                codeArchiveId,
                 new CodeStorage.DownloadedCodeHandled() {
                     @Override
                     @SneakyThrows
@@ -96,5 +90,45 @@ public class CodeStorageService {
                     }
                 });
         return result.get();
+    }
+
+    private void checkCodeArchiveMetadata(
+            String tenant,
+            String applicationId,
+            String codeArchiveId,
+            CodeArchiveMetadata codeArchiveMetadata) {
+        if (codeArchiveMetadata == null) {
+            throw new IllegalArgumentException(
+                    "Invalid code archive "
+                            + codeArchiveId
+                            + " for tenant "
+                            + tenant
+                            + " and application "
+                            + applicationId);
+        }
+        if (!Objects.equals(codeArchiveMetadata.tenant(), tenant)) {
+            throw new IllegalArgumentException(
+                    "Invalid tenant " + tenant + " for code archive " + codeArchiveId);
+        }
+        if (!Objects.equals(codeArchiveMetadata.applicationId(), applicationId)) {
+            throw new IllegalArgumentException(
+                    "Invalid application id " + tenant + " for code archive " + codeArchiveId);
+        }
+    }
+
+    public ApplicationCodeInfo getApplicationCodeInfo(
+            String tenant, String applicationId, String codeArchiveId) throws CodeStorageException {
+        final CodeArchiveMetadata codeArchiveMetadata =
+                codeStorage.describeApplicationCode(tenant, codeArchiveId);
+        checkCodeArchiveMetadata(tenant, applicationId, codeArchiveId, codeArchiveMetadata);
+
+        final ApplicationCodeInfo.Digests digests = new ApplicationCodeInfo.Digests();
+        if (codeArchiveMetadata.javaBinariesDigest() != null) {
+            digests.setJava(codeArchiveMetadata.javaBinariesDigest());
+        }
+        if (codeArchiveMetadata.pyBinariesDigest() != null) {
+            digests.setPython(codeArchiveMetadata.pyBinariesDigest());
+        }
+        return new ApplicationCodeInfo(digests);
     }
 }

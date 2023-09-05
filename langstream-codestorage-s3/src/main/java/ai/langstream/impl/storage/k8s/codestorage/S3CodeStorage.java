@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -54,6 +55,10 @@ public class S3CodeStorage implements CodeStorage {
     protected static final String OBJECT_METADATA_KEY_TENANT = "langstream-tenant";
     protected static final String OBJECT_METADATA_KEY_APPLICATION = "langstream-application";
     protected static final String OBJECT_METADATA_KEY_VERSION = "langstream-version";
+    protected static final String OBJECT_METADATA_KEY_PY_BINARIES_DIGEST =
+            "langstream-py-binaries-digest";
+    protected static final String OBJECT_METADATA_KEY_JAVA_BINARIES_DIGEST =
+            "langstream-java-binaries-digest";
     private final String bucketName;
     private final OkHttpClient httpClient;
     private final MinioClient minioClient;
@@ -108,19 +113,29 @@ public class S3CodeStorage implements CodeStorage {
                         applicationId,
                         version);
 
+                final String javaBinariesDigest = codeArchive.getJavaBinariesDigest();
+                final String pyBinariesDigest = codeArchive.getPyBinariesDigest();
+
+                final Map<String, String> userMetadata = new HashMap<>();
+                userMetadata.put(OBJECT_METADATA_KEY_TENANT, tenant);
+                userMetadata.put(OBJECT_METADATA_KEY_APPLICATION, applicationId);
+                userMetadata.put(OBJECT_METADATA_KEY_VERSION, version);
+                if (javaBinariesDigest != null) {
+                    userMetadata.put(OBJECT_METADATA_KEY_JAVA_BINARIES_DIGEST, javaBinariesDigest);
+                }
+                if (pyBinariesDigest != null) {
+                    userMetadata.put(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST, pyBinariesDigest);
+                }
                 minioClient.uploadObject(
                         UploadObjectArgs.builder()
-                                .userMetadata(
-                                        Map.of(
-                                                OBJECT_METADATA_KEY_TENANT, tenant,
-                                                OBJECT_METADATA_KEY_APPLICATION, applicationId,
-                                                OBJECT_METADATA_KEY_VERSION, version))
+                                .userMetadata(userMetadata)
                                 .bucket(bucketName)
                                 .object(tenant + "/" + codeStoreId)
                                 .contentType("application/zip")
                                 .filename(tempFile.toAbsolutePath().toString())
                                 .build());
-                return new CodeArchiveMetadata(tenant, codeStoreId, applicationId);
+                return new CodeArchiveMetadata(
+                        tenant, codeStoreId, applicationId, pyBinariesDigest, javaBinariesDigest);
             } catch (MinioException | NoSuchAlgorithmException | InvalidKeyException e) {
                 throw new CodeStorageException(e);
             } finally {
@@ -180,7 +195,13 @@ public class S3CodeStorage implements CodeStorage {
             final String applicationId = metadata.get(OBJECT_METADATA_KEY_APPLICATION);
             Objects.requireNonNull(
                     applicationId, "S3 object " + objectName + " contains empty application");
-            return new CodeArchiveMetadata(tenant, codeStoreId, applicationId);
+
+            final String pyBinariesDigest = metadata.get(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST);
+            final String javaBinariesDigest =
+                    metadata.get(OBJECT_METADATA_KEY_JAVA_BINARIES_DIGEST);
+
+            return new CodeArchiveMetadata(
+                    tenant, codeStoreId, applicationId, pyBinariesDigest, javaBinariesDigest);
         } catch (ErrorResponseException errorResponseException) {
             // https://github.com/minio/minio-java/blob/7ca9500165ee13d39f293691943b93c19c31ebc2/api/src/main/java/io/minio/S3Base.java#L682-L692
             if ("NoSuchKey".equals(errorResponseException.errorResponse().code())) {

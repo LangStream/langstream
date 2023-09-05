@@ -91,6 +91,10 @@ class AppResourcesFactoryTest {
                                   value: /cluster-runtime-config/config
                                 - name: LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS
                                   value: /app-secrets/secrets
+                                - name: LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_CONFIGURATION
+                                  value: /cluster-config/config
+                                - name: LANGSTREAM_RUNTIME_DEPLOYER_TOKEN
+                                  value: /var/run/secrets/kubernetes.io/serviceaccount/token
                                 image: ubuntu
                                 imagePullPolicy: Always
                                 name: deployer
@@ -106,6 +110,8 @@ class AppResourcesFactoryTest {
                                   name: app-secrets
                                 - mountPath: /cluster-runtime-config
                                   name: cluster-runtime-config
+                                - mountPath: /cluster-config
+                                  name: cluster-config
                               initContainers:
                               - args:
                                 - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
@@ -130,6 +136,12 @@ class AppResourcesFactoryTest {
                                   secretName: test-'app
                               - emptyDir: {}
                                 name: cluster-runtime-config
+                              - name: cluster-config
+                                secret:
+                                  items:
+                                  - key: cluster-config
+                                    path: config
+                                  secretName: langstream-cluster-config
                         """,
                 SerializationUtil.writeAsYaml(
                         AppResourcesFactory.generateJob(
@@ -178,6 +190,10 @@ class AppResourcesFactoryTest {
                                   value: /cluster-runtime-config/config
                                 - name: LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS
                                   value: /app-secrets/secrets
+                                - name: LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_CONFIGURATION
+                                  value: /cluster-config/config
+                                - name: LANGSTREAM_RUNTIME_DEPLOYER_TOKEN
+                                  value: /var/run/secrets/kubernetes.io/serviceaccount/token
                                 image: ubuntu
                                 imagePullPolicy: Always
                                 name: deployer
@@ -193,6 +209,8 @@ class AppResourcesFactoryTest {
                                   name: app-secrets
                                 - mountPath: /cluster-runtime-config
                                   name: cluster-runtime-config
+                                - mountPath: /cluster-config
+                                  name: cluster-config
                               initContainers:
                               - args:
                                 - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
@@ -217,6 +235,12 @@ class AppResourcesFactoryTest {
                                   secretName: test-'app
                               - emptyDir: {}
                                 name: cluster-runtime-config
+                              - name: cluster-config
+                                secret:
+                                  items:
+                                  - key: cluster-config
+                                    path: config
+                                  secretName: langstream-cluster-config
                         """,
                 SerializationUtil.writeAsYaml(
                         AppResourcesFactory.generateJob(

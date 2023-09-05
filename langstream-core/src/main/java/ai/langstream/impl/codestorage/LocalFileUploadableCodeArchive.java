@@ -20,16 +20,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import lombok.AllArgsConstructor;
 
+@AllArgsConstructor
 public class LocalFileUploadableCodeArchive implements UploadableCodeArchive {
     private final Path zipFile;
-
-    public LocalFileUploadableCodeArchive(Path zipFile) {
-        this.zipFile = zipFile;
-    }
+    private final String pyBinariesDigest;
+    private final String javaBinariesDigest;
 
     @Override
     public InputStream getData() throws IOException {
         return Files.newInputStream(zipFile);
+    }
+
+    @Override
+    public String getPyBinariesDigest() {
+        return pyBinariesDigest;
+    }
+
+    @Override
+    public String getJavaBinariesDigest() {
+        return javaBinariesDigest;
     }
 }

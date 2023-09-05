@@ -93,7 +93,12 @@ public class LocalDiskCodeStorage implements CodeStorage {
             Path resolve = rootPath.resolve(uniqueId);
             Files.copy(codeArchive.getData(), resolve);
             CodeArchiveMetadata archiveMetadata =
-                    new CodeArchiveMetadata(tenant, uniqueId, applicationId);
+                    new CodeArchiveMetadata(
+                            tenant,
+                            uniqueId,
+                            applicationId,
+                            codeArchive.getPyBinariesDigest(),
+                            codeArchive.getJavaBinariesDigest());
             archives.add(archiveMetadata);
             persistMetadata();
             return archiveMetadata;

@@ -19,6 +19,7 @@ import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.api.webservice.application.ApplicationDescription;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.webservice.security.infrastructure.primary.TokenAuthFilter;
@@ -201,7 +202,11 @@ public class ApplicationResource {
                         } else {
                             codeArchiveReference =
                                     codeStorageService.deployApplicationCodeStorage(
-                                            tenant, name, zip);
+                                            tenant,
+                                            name,
+                                            zip,
+                                            app.getPyBinariesDigest(),
+                                            app.getJavaBinariesDigest());
                         }
                         log.info(
                                 "Parsed application {} {} with code archive {}",
@@ -379,6 +384,23 @@ public class ApplicationResource {
         performAuthorization(authentication, tenant);
         getAppOrThrow(tenant, applicationId);
         return downloadCode(tenant, applicationId, response, codeArchiveReference);
+    }
+
+    @GetMapping(
+            value = "/{tenant}/{applicationId}/code/{codeArchiveReference}/info",
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Get info about the code of an application by id and code archive reference")
+    ApplicationCodeInfo getApplicationCodeInfo(
+            Authentication authentication,
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("applicationId") String applicationId,
+            @NotBlank @PathVariable("codeArchiveReference") String codeArchiveReference)
+            throws Exception {
+        performAuthorization(authentication, tenant);
+        getAppOrThrow(tenant, applicationId);
+        return codeStorageService.getApplicationCodeInfo(
+                tenant, applicationId, codeArchiveReference);
     }
 
     private Resource downloadCode(

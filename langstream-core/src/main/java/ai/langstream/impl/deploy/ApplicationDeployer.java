@@ -18,6 +18,7 @@ package ai.langstream.impl.deploy;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
@@ -31,6 +32,7 @@ public final class ApplicationDeployer implements AutoCloseable {
 
     private ClusterRuntimeRegistry registry;
     private PluginsRegistry pluginsRegistry;
+    private DeployContext deployContext;
 
     /**
      * Create a new implementation of the application instance.
@@ -71,7 +73,11 @@ public final class ApplicationDeployer implements AutoCloseable {
                 registry.getStreamingClusterRuntime(
                         applicationInstance.getInstance().streamingCluster());
         return clusterRuntime.deploy(
-                tenant, physicalApplicationInstance, streamingClusterRuntime, codeStorageArchiveId);
+                tenant,
+                physicalApplicationInstance,
+                streamingClusterRuntime,
+                codeStorageArchiveId,
+                deployContext);
     }
 
     /**
@@ -89,7 +95,11 @@ public final class ApplicationDeployer implements AutoCloseable {
                 registry.getStreamingClusterRuntime(
                         applicationInstance.getInstance().streamingCluster());
         clusterRuntime.delete(
-                tenant, physicalApplicationInstance, streamingClusterRuntime, codeStorageArchiveId);
+                tenant,
+                physicalApplicationInstance,
+                streamingClusterRuntime,
+                codeStorageArchiveId,
+                deployContext);
     }
 
     /**

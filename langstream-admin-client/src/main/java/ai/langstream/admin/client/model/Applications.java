@@ -40,4 +40,6 @@ public interface Applications {
             String application,
             String codeStorageId,
             HttpResponse.BodyHandler<T> responseBodyHandler);
+
+    String getCodeInfo(String application, String codeArchiveId);
 }

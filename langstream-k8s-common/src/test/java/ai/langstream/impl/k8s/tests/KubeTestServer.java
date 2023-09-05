@@ -66,7 +66,6 @@ public class KubeTestServer
         @Override
         public void destroy() {
             super.destroy();
-            System.out.println("stop mock");
             if (mocked != null) {
                 mocked.close();
             }
@@ -145,6 +144,17 @@ public class KubeTestServer
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
                                 }
+                            })
+                    .always();
+
+            server.expect()
+                    .get()
+                    .withPath(fullPath)
+                    .andReply(
+                            HttpURLConnection.HTTP_OK,
+                            recordedRequest -> {
+                                log.info("received get request for agent {}", agentId);
+                                return currentAgents.get(agentId);
                             })
                     .always();
 

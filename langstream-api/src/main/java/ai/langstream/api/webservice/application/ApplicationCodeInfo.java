@@ -13,20 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.codestorage;
+package ai.langstream.api.webservice.application;
 
-import java.util.Objects;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public record CodeArchiveMetadata(
-        String tenant,
-        String codeStoreId,
-        String applicationId,
-        String pyBinariesDigest,
-        String javaBinariesDigest) {
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class ApplicationCodeInfo {
 
-    public CodeArchiveMetadata {
-        Objects.requireNonNull(tenant);
-        Objects.requireNonNull(codeStoreId);
-        Objects.requireNonNull(applicationId);
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Digests {
+
+        private String python;
+        private String java;
     }
+
+    private Digests digests;
 }

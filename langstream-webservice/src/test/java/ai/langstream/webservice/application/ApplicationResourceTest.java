@@ -23,6 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ai.langstream.impl.codestorage.NoopCodeStorageProvider;
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.webservice.WebAppTestConfig;
 import java.nio.file.Path;
@@ -189,6 +190,31 @@ class ApplicationResourceTest {
                                     "content-of-the-code-archive-my-tenant2-my-tenant2-test",
                                     result.getResponse().getContentAsString());
                         });
+
+        final String archiveId = NoopCodeStorageProvider.computeCodeArchiveId("my-tenant2", "test");
+
+        mockMvc.perform(
+                        multipart(
+                                HttpMethod.GET,
+                                "/api/applications/my-tenant2/test/code/" + archiveId))
+                .andExpect(status().isOk())
+                .andExpect(
+                        result -> {
+                            assertEquals(
+                                    "attachment; filename=\"my-tenant2-test.zip\"",
+                                    result.getResponse().getHeader("Content-Disposition"));
+                            assertEquals(
+                                    "application/zip",
+                                    result.getResponse().getHeader("Content-Type"));
+                            assertEquals(
+                                    "content-of-the-code-archive-my-tenant2-my-tenant2-test",
+                                    result.getResponse().getContentAsString());
+                        });
+
+        mockMvc.perform(get("/api/applications/my-tenant2/test/code/" + archiveId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.digests.java").doesNotExist())
+                .andExpect(jsonPath("$.digests.python").doesNotExist());
     }
 
     @Test

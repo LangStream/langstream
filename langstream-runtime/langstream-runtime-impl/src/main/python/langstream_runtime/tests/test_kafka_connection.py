@@ -34,6 +34,9 @@ SECURITY_PROTOCOL = "SASL_PLAINTEXT"
 SASL_MECHANISM = "PLAIN"
 USERNAME = "admin"
 PASSWORD = "admin-secret"
+KAFKA_IMAGE = "confluentinc/cp-kafka:7.4.0"
+INPUT_TOPIC = "input-topic"
+OUTPUT_TOPIC = "output-topic"
 
 
 def test_kafka_topic_connection():
@@ -56,8 +59,6 @@ def test_kafka_topic_connection():
         + f'username="{USERNAME}" '
         + f'password="{PASSWORD}";',
     ) as container:
-        input_topic = "input-topic"
-        output_topic = "output-topic"
         bootstrap_server = container.get_bootstrap_server()
 
         config_yaml = f"""
@@ -70,10 +71,10 @@ def test_kafka_topic_connection():
                         sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username='{USERNAME}' password='{PASSWORD}';"
                         sasl.mechanism: {SASL_MECHANISM}
             input:
-                topic: {input_topic}
+                topic: {INPUT_TOPIC}
 
             output:
-                topic: {output_topic}
+                topic: {OUTPUT_TOPIC}
 
             agent:
                 applicationId: testApplicationId
@@ -94,7 +95,7 @@ def test_kafka_topic_connection():
             }
         )
         producer.produce(
-            input_topic,
+            INPUT_TOPIC,
             StringSerializer()("verification message"),
             headers=[("prop-key", b"prop-value")],
         )
@@ -113,7 +114,7 @@ def test_kafka_topic_connection():
         )
 
         try:
-            consumer.subscribe([output_topic])
+            consumer.subscribe([OUTPUT_TOPIC])
 
             msg = None
             for i in range(10):
@@ -137,8 +138,7 @@ def test_kafka_topic_connection():
 
 
 def test_kafka_commit():
-    with KafkaContainer(image="confluentinc/cp-kafka:7.4.0") as container:
-        input_topic = "input-topic"
+    with KafkaContainer(image=KAFKA_IMAGE) as container:
         bootstrap_server = container.get_bootstrap_server()
 
         config_yaml = f"""
@@ -151,51 +151,65 @@ def test_kafka_commit():
 
         config = yaml.safe_load(config_yaml)
         source = kafka_connection.create_topic_consumer(
-            "id", config["streamingCluster"], {"topic": input_topic}
+            "id", config["streamingCluster"], {"topic": INPUT_TOPIC}
         )
         source.start()
 
         producer = Producer({"bootstrap.servers": bootstrap_server})
-        for _ in range(4):
-            producer.produce(input_topic, b"message")
+        for i in range(10):
+            producer.produce(INPUT_TOPIC, f"message {i}".encode())
         producer.flush()
 
         records = [source.read()[0], source.read()[0]]
         source.commit(records)
+
+        topic_partition = TopicPartition(INPUT_TOPIC, partition=0)
+
         waiting.wait(
-            lambda: source.consumer.committed(
-                [TopicPartition(input_topic, partition=0)]
-            )[0].offset
-            == 1,
+            lambda: source.consumer.committed([topic_partition])[0].offset == 2,
             timeout_seconds=5,
             sleep_seconds=0.1,
         )
 
         committed_later = source.read()
         source.commit(source.read())
+
+        # There's a hole in the offsets so the last commit offset is recorded in
+        # the uncommitted offsets
+        assert source.uncommitted[topic_partition] == {4}
+
         time.sleep(1)
-        assert (
-            source.consumer.committed([TopicPartition(input_topic, partition=0)])[
-                0
-            ].offset
-            == 1
-        )
+        assert source.consumer.committed([topic_partition])[0].offset == 2
         source.commit(committed_later)
 
         waiting.wait(
-            lambda: source.consumer.committed(
-                [TopicPartition(input_topic, partition=0)]
-            )[0].offset
-            == 3,
+            lambda: source.consumer.committed([topic_partition])[0].offset == 4,
             timeout_seconds=5,
             sleep_seconds=0.1,
         )
 
+        source.close()
+
+        # Create a new source with the same id, resuming from the committed offset
+        source = kafka_connection.create_topic_consumer(
+            "id", config["streamingCluster"], {"topic": INPUT_TOPIC}
+        )
+        source.start()
+
+        # Check that we resume on the correct message
+        assert source.read()[0].value() == "message 4"
+
+        # on_assign should have been called
+        assert source.committed[topic_partition] == 4
+
+        source.close()
+
+        # on_revoke should have been called
+        assert topic_partition not in source.committed
+
 
 def test_kafka_dlq():
-    with KafkaContainer(image="confluentinc/cp-kafka:7.4.0") as container:
-        input_topic = "input-topic"
-        output_topic = "output-topic"
+    with KafkaContainer(image=KAFKA_IMAGE) as container:
         dlq_topic = "dlq-topic"
         bootstrap_server = container.get_bootstrap_server()
 
@@ -207,12 +221,12 @@ def test_kafka_dlq():
                     bootstrap.servers: {bootstrap_server}
 
         input:
-            topic: {input_topic}
+            topic: {INPUT_TOPIC}
             deadLetterTopicProducer:
                 topic: {dlq_topic}
 
         output:
-            topic: {output_topic}
+            topic: {OUTPUT_TOPIC}
 
         agent:
             applicationId: testApplicationId
@@ -227,7 +241,7 @@ def test_kafka_dlq():
         config = yaml.safe_load(config_yaml)
 
         producer = Producer({"bootstrap.servers": bootstrap_server})
-        producer.produce(input_topic, StringSerializer()("verification message"))
+        producer.produce(INPUT_TOPIC, StringSerializer()("verification message"))
         producer.flush()
 
         consumer = Consumer(
@@ -274,7 +288,7 @@ class SaslKafkaContainer(KafkaContainer):
     """ "KafkaContainer with support for SASL in the waiting probe"""
 
     def __init__(self, **kwargs):
-        super().__init__("confluentinc/cp-kafka:7.4.0", **kwargs)
+        super().__init__(KAFKA_IMAGE, **kwargs)
 
     @wait_container_is_ready(
         UnrecognizedBrokerVersion, NoBrokersAvailable, KafkaError, ValueError

@@ -140,7 +140,9 @@ class KafkaTopicConsumer(TopicConsumer):
 
     def start(self):
         self.consumer = Consumer(self.configs)
-        self.consumer.subscribe([self.topic])
+        self.consumer.subscribe(
+            [self.topic], on_assign=self.on_assign, on_revoke=self.on_revoke
+        )
 
     def close(self):
         logging.info(
@@ -181,7 +183,7 @@ class KafkaTopicConsumer(TopicConsumer):
         with self.lock:
             for record in records:
                 topic_partition = record.topic_partition()
-                offset = record.offset()
+                offset = record.offset() + 1
                 offsets_for_partition = self.uncommitted.setdefault(
                     topic_partition, SortedSet()
                 )
@@ -197,10 +199,8 @@ class KafkaTopicConsumer(TopicConsumer):
                         f"Current position on partition {topic_partition} is "
                         f"{current_offset}"
                     )
-                    if current_offset >= 0:
-                        self.committed[topic_partition] = current_offset
-                    else:
-                        current_offset = -1
+                    if current_offset < 0:
+                        current_offset = 0
 
                 # advance the offset up to the first gap
                 least = offsets_for_partition[0]
@@ -210,7 +210,7 @@ class KafkaTopicConsumer(TopicConsumer):
                         break
                     least = offsets_for_partition[0]
 
-                if current_offset != -1:
+                if current_offset > 0:
                     self.committed[topic_partition] = current_offset
 
             offsets = [
@@ -225,13 +225,41 @@ class KafkaTopicConsumer(TopicConsumer):
             self.consumer.commit(offsets=offsets, asynchronous=True)
 
     def on_commit(self, error, partitions):
-        self.pending_commits -= 1
+        with self.lock:
+            self.pending_commits -= 1
         if error:
             logging.error(f"Error committing offsets: {error}")
             if not self.commit_failure:
                 self.commit_failure = KafkaException(error)
         else:
             logging.info(f"Offsets committed: {partitions}")
+
+    def on_assign(self, consumer: Consumer, partitions: List[TopicPartition]):
+        with self.lock:
+            logging.info(f"Partitions assigned: {partitions}")
+            for partition in partitions:
+                offset = consumer.committed([partition])[0].offset
+                logging.info(f"Last committed offset for {partition} is {offset}")
+                if offset >= 0:
+                    self.committed[partition] = offset
+
+    def on_revoke(self, _, partitions: List[TopicPartition]):
+        with self.lock:
+            logging.info(f"Partitions revoked: {partitions}")
+            for partition in partitions:
+                if partition in self.committed:
+                    offset = self.committed.pop(partition)
+                    logging.info(
+                        f"Current offset {offset} on partition {partition} (revoked)"
+                    )
+                if partition in self.uncommitted:
+                    offsets = self.uncommitted.pop(partition)
+                    if len(offsets) > 0:
+                        logging.warning(
+                            f"There are uncommitted offsets {offsets} on partition "
+                            f"{partition} (revoked), these messages will be "
+                            f"re-delivered"
+                        )
 
     def get_native_consumer(self) -> Any:
         return self.consumer

@@ -144,7 +144,7 @@ public class RuntimeDeployerStarter extends RuntimeStarter {
                         RuntimeDeployerConstants.CLUSTER_CONFIG_ENV,
                         RuntimeDeployerConstants.CLUSTER_CONFIG_ENV_DEFAULT);
         final ClusterConfiguration clusterConfiguration;
-        if (!Files.exists(clusterConfigPath)) {
+        if (clusterConfigPath == null || !Files.exists(clusterConfigPath)) {
             clusterConfiguration = null;
         } else {
             clusterConfiguration =

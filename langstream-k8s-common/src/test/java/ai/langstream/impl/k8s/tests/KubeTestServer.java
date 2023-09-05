@@ -66,7 +66,6 @@ public class KubeTestServer
         @Override
         public void destroy() {
             super.destroy();
-            System.out.println("stop mock");
             if (mocked != null) {
                 mocked.close();
             }

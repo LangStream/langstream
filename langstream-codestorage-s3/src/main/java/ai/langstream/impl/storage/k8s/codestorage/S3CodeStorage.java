@@ -122,13 +122,9 @@ public class S3CodeStorage implements CodeStorage {
                 userMetadata.put(OBJECT_METADATA_KEY_VERSION, version);
                 if (javaBinariesDigest != null) {
                     userMetadata.put(OBJECT_METADATA_KEY_JAVA_BINARIES_DIGEST, javaBinariesDigest);
-                } else {
-                    userMetadata.put(OBJECT_METADATA_KEY_JAVA_BINARIES_DIGEST, "");
                 }
                 if (pyBinariesDigest != null) {
                     userMetadata.put(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST, pyBinariesDigest);
-                } else {
-                    userMetadata.put(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST, "");
                 }
                 minioClient.uploadObject(
                         UploadObjectArgs.builder()
@@ -201,16 +197,16 @@ public class S3CodeStorage implements CodeStorage {
                     applicationId, "S3 object " + objectName + " contains empty application");
 
             final String pyBinariesDigest =
-                    metadata.getOrDefault(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST, "");
+                    metadata.get(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST);
             final String javaBinariesDigest =
-                    metadata.getOrDefault(OBJECT_METADATA_KEY_JAVA_BINARIES_DIGEST, "");
+                    metadata.get(OBJECT_METADATA_KEY_JAVA_BINARIES_DIGEST);
 
             return new CodeArchiveMetadata(
                     tenant,
                     codeStoreId,
                     applicationId,
-                    pyBinariesDigest.isEmpty() ? null : pyBinariesDigest,
-                    javaBinariesDigest.isEmpty() ? null : javaBinariesDigest);
+                    pyBinariesDigest,
+                    javaBinariesDigest);
         } catch (ErrorResponseException errorResponseException) {
             // https://github.com/minio/minio-java/blob/7ca9500165ee13d39f293691943b93c19c31ebc2/api/src/main/java/io/minio/S3Base.java#L682-L692
             if ("NoSuchKey".equals(errorResponseException.errorResponse().code())) {

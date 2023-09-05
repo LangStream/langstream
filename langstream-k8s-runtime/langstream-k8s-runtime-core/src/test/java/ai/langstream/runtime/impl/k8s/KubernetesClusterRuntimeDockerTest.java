@@ -126,7 +126,7 @@ class KubernetesClusterRuntimeDockerTest {
                                 null)
                         .getApplication();
 
-        @Cleanup ApplicationDeployer deployer = getDeployer();
+        ApplicationDeployer deployer = getDeployer();
 
         Module module = applicationInstance.getModule("module-1");
 
@@ -297,7 +297,6 @@ class KubernetesClusterRuntimeDockerTest {
                                 null)
                         .getApplication();
 
-        @Cleanup
         ApplicationDeployer deployer =
                 getDeployer(
                         new DeployContext() {

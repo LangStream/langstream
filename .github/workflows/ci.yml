@@ -46,6 +46,7 @@ jobs:
           java-version: '17.x'
       - name: 'Setup: Python 3.11'
         uses: actions/setup-python@v4
+        if: ${{ matrix.name == 'Runtime' }}
         with:
           python-version: '3.11'
           cache: 'pip'

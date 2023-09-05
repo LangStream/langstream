@@ -15,15 +15,20 @@
  */
 package ai.langstream.kafka;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.AbstractApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.config.TopicConfig;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -68,6 +73,66 @@ class KafkaRunnerDockerTest extends AbstractApplicationRunner {
 
                 waitForMessages(consumer, List.of("value"));
             }
+        }
+    }
+
+    @Test
+    public void testApplyRetention() throws Exception {
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                                 module: "module-1"
+                                 id: "pipeline-1"
+                                 topics:
+                                   - name: "input-topic-with-retention"
+                                     creation-mode: create-if-not-exists
+                                     config:
+                                       retention.ms: 300000
+                                 pipeline:
+                                   - id: "step1"
+                                     type: "identity"
+                                     input: "input-topic-with-retention"
+                                """);
+
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            Set<String> topics = getKafkaAdmin().listTopics().names().get();
+            log.info("Topics {}", topics);
+            assertTrue(topics.contains("input-topic-with-retention"));
+
+            Map<ConfigResource, Config> configResourceConfigMap =
+                    getKafkaAdmin()
+                            .describeConfigs(
+                                    Set.of(
+                                            new ConfigResource(
+                                                    ConfigResource.Type.TOPIC,
+                                                    "input-topic-with-retention")))
+                            .all()
+                            .get();
+            AtomicBoolean found = new AtomicBoolean();
+            configResourceConfigMap.forEach(
+                    (configResource, config) -> {
+                        log.info("Config for {}: {}", configResource, config);
+                        config.entries()
+                                .forEach(
+                                        configEntry -> {
+                                            log.info(
+                                                    "Config entry {}: {}",
+                                                    configEntry.name(),
+                                                    configEntry.value());
+                                            if (configEntry
+                                                    .name()
+                                                    .equals(TopicConfig.RETENTION_MS_CONFIG)) {
+                                                assertEquals("300000", configEntry.value());
+                                                found.set(true);
+                                            }
+                                        });
+                    });
+            assertTrue(found.get());
         }
     }
 }

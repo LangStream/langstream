@@ -22,6 +22,8 @@ pipeline:
   - name: "Write to AstraDB"
     type: "sink"
     input: "chunks-topic"
+    resources:
+      size: 2
     configuration:
       connector.class: com.datastax.oss.kafka.sink.CassandraSinkConnector
       key.converter: org.apache.kafka.connect.storage.StringConverter

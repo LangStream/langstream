@@ -214,7 +214,7 @@ class AgentResourcesFactoryTest {
         final Container container =
                 statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0);
         assertEquals(Quantity.parse("2"), container.getResources().getRequests().get("cpu"));
-        assertEquals(Quantity.parse("1024M"), container.getResources().getRequests().get("memory"));
+        assertEquals(Quantity.parse("2048M"), container.getResources().getRequests().get("memory"));
     }
 
     @Test

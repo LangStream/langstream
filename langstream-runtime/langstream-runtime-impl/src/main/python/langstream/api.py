@@ -84,6 +84,10 @@ class TopicConsumer(ABC):
         """Return the native wrapped consumer"""
         pass
 
+    def get_info(self) -> Dict[str, Any]:
+        """Return the consumer info"""
+        return {}
+
 
 class TopicProducer(ABC):
     """The topic producer interface"""
@@ -103,6 +107,10 @@ class TopicProducer(ABC):
     def get_native_producer(self) -> Any:
         """Return the native wrapped producer"""
         pass
+
+    def get_info(self) -> Dict[str, Any]:
+        """Return the producer info"""
+        return {}
 
 
 @dataclass

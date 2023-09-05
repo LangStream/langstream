@@ -1047,7 +1047,7 @@ class AppsCmdTest extends CommandTestBase {
                 }
                 """;
         wireMock.register(
-                WireMock.get("/api/applications/%s/my-app".formatted(TENANT))
+                WireMock.get("/api/applications/%s/my-app?stats=false".formatted(TENANT))
                         .willReturn(WireMock.ok(jsonValue)));
 
         CommandResult result = executeCommand("apps", "get", "my-app");

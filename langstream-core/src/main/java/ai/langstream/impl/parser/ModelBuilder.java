@@ -39,7 +39,6 @@ import ai.langstream.api.model.TopicDefinition;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
 import java.io.IOException;
@@ -57,18 +56,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -115,7 +111,6 @@ public class ModelBuilder {
                 new MessageDigestFunction(DigestUtils::getSha256Digest));
     }
 
-
     static class MessageDigestFunction implements ChecksumFunction {
 
         private final Supplier<MessageDigest> messageDigestSupplier;
@@ -143,12 +138,11 @@ public class ModelBuilder {
         }
     }
 
-
     interface ChecksumFunction {
         void appendFile(String filename, byte[] data);
+
         String digest();
     }
-
 
     static ApplicationWithPackageInfo buildApplicationInstance(
             List<Path> applicationDirectories,
@@ -215,7 +209,8 @@ public class ModelBuilder {
         return applicationWithPackageInfo;
     }
 
-    private static void recursiveAppendFiles(ChecksumFunction checksumFunction, Path current, Path rootPath) {
+    private static void recursiveAppendFiles(
+            ChecksumFunction checksumFunction, Path current, Path rootPath) {
 
         if (Files.isRegularFile(current)) {
             try {

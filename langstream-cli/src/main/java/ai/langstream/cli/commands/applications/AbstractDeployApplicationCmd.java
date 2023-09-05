@@ -15,6 +15,8 @@
  */
 package ai.langstream.cli.commands.applications;
 
+import static ai.langstream.impl.parser.ModelBuilder.resolveFileReferencesInYAMLFile;
+
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Dependency;
@@ -179,10 +181,10 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         final Map<String, Object> contents = new HashMap<>();
         contents.put("app", tempZip);
         if (instanceFile != null) {
-            contents.put("instance", Files.readString(instanceFile.toPath()));
+            contents.put("instance", resolveFileReferencesInYAMLFile(instanceFile.toPath()));
         }
         if (secretsFile != null) {
-            contents.put("secrets", Files.readString(secretsFile.toPath()));
+            contents.put("secrets", resolveFileReferencesInYAMLFile(secretsFile.toPath()));
         }
         final MultiPartBodyPublisher bodyPublisher = buildMultipartContentForAppZip(contents);
 

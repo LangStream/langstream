@@ -25,7 +25,7 @@ public interface Applications {
 
     void delete(String application);
 
-    String get(String application);
+    String get(String application, boolean stats);
 
     String list();
 

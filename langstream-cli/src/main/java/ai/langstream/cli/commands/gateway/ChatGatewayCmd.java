@@ -99,6 +99,12 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
 
         final WebSocketClient.Handler produceHandler =
                 new WebSocketClient.Handler() {
+
+                    @Override
+                    public void onOpen() {
+                        log("Connected to %s".formatted(producePath));
+                    }
+
                     @Override
                     @SneakyThrows
                     public void onMessage(String msg) {
@@ -136,6 +142,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
 
                     @Override
                     public void onOpen() {
+                        log("Connected to %s".formatted(consumePath));
                         consumerReady.countDown();
                     }
 
@@ -204,12 +211,11 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
         try (final WebSocketClient ignored =
                 new WebSocketClient(consumeHandler)
                         .connect(URI.create(consumePath), connectTimeout)) {
-            consumerReady.await();
-            log("Connected to %s".formatted(consumePath));
             try (final WebSocketClient produceClient =
                     new WebSocketClient(produceHandler)
                             .connect(URI.create(producePath), connectTimeout)) {
-                log("Connected to %s".formatted(producePath));
+
+                consumerReady.await();
 
                 final CompletableFuture<Void> future =
                         CompletableFuture.runAsync(
@@ -219,7 +225,10 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                                         while (true) {
                                             logUser("\nYou:");
                                             logUserNoNewLine("> ");
-                                            String line = scanner.nextLine();
+                                            String line = scanner.nextLine().trim();
+                                            if (line.isBlank()) {
+                                                continue;
+                                            }
                                             produceClient.send(
                                                     messageMapper.writeValueAsString(
                                                             new ProduceGatewayCmd.ProduceRequest(

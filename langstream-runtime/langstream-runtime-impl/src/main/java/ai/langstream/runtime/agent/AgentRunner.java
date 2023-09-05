@@ -451,12 +451,16 @@ public class AgentRunner {
                         source,
                         (AgentProcessor.SourceRecordAndResult sourceRecordAndResult) -> {
                             if (sourceRecordAndResult.error() != null) {
+                                log.error("Fatal error", sourceRecordAndResult.error());
                                 // handle error
                                 setFatalError(sourceRecordAndResult.error(), fatalError);
                                 return;
                             }
 
                             if (sourceRecordAndResult.resultRecords().isEmpty()) {
+                                log.info(
+                                        "No records to send to the Sink for {}",
+                                        sourceRecordAndResult.sourceRecord());
                                 // no records, we have to commit the source record to the source
                                 // no need to call the Sink with an empty list
                                 try {
@@ -643,6 +647,7 @@ public class AgentRunner {
                                 }
                             }
                         } else {
+                            log.info("Passing {} to the Sink", result);
                             finalSink.emit(result);
                         }
                     } catch (Throwable error) {

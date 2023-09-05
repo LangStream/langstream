@@ -25,6 +25,7 @@ import ai.langstream.cli.commands.RootGatewayCmd;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -95,6 +96,8 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                         computeQueryString(credentials, params, options));
     }
 
+    private Map<String, String> applicationDescriptions = new HashMap<>();
+
     @SneakyThrows
     protected void validateGateway(
             String application,
@@ -106,7 +109,9 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
         final AdminClient client = getClient();
 
-        final String applicationContent = client.applications().get(application);
+        final String applicationContent =
+                applicationDescriptions.computeIfAbsent(
+                        application, app -> client.applications().get(application, false));
 
         final ApplicationDescription applicationDescription =
                 messageMapper.readValue(applicationContent, ApplicationDescription.class);

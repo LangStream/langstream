@@ -275,9 +275,10 @@ public class ApplicationResource {
     ApplicationDescription getApplication(
             Authentication authentication,
             @NotBlank @PathVariable("tenant") String tenant,
-            @NotBlank @PathVariable("applicationId") String applicationId) {
+            @NotBlank @PathVariable("applicationId") String applicationId,
+            @RequestParam(value = "stats", required = false) boolean stats) {
         performAuthorization(authentication, tenant);
-        final StoredApplication app = getAppWithStatusOrThrow(tenant, applicationId, true);
+        final StoredApplication app = getAppWithStatusOrThrow(tenant, applicationId, stats);
         return new ApplicationDescription(
                 app.getApplicationId(), app.getInstance(), app.getStatus());
     }

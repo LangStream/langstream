@@ -29,10 +29,15 @@ public class GetApplicationCmd extends BaseApplicationCmd {
             description = "Output format")
     private Formats format = Formats.raw;
 
+    @CommandLine.Option(
+            names = {"-s", "--stats"},
+            description = "Include detailed information about the application and metrics")
+    private boolean stats = false;
+
     @Override
     @SneakyThrows
     public void run() {
-        final String body = getClient().applications().get(applicationId);
+        final String body = getClient().applications().get(applicationId, stats);
         print(
                 format,
                 body,

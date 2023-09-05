@@ -30,14 +30,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.TopicPartition;
 
 @Slf4j
 public class CassandraWriter implements VectorDatabaseWriterProvider {
@@ -58,7 +54,6 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
     private static class CassandraVectorDatabaseWriter implements VectorDatabaseWriter {
 
         private final Map<String, Object> datasourceConfig;
-        private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
         private final AbstractSinkTask processor = new SinkTaskProcessorImpl();
 
         public CassandraVectorDatabaseWriter(Map<String, Object> datasourceConfig) {
@@ -66,7 +61,6 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                     "CassandraSinkTask starting with DataSource configuration: {}",
                     datasourceConfig);
             this.datasourceConfig = datasourceConfig;
-            failureOffsets = new ConcurrentHashMap<>();
         }
 
         @Override
@@ -140,21 +134,13 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                 new AtomicReference<>();
 
         @Override
-        public void upsert(Record record, Map<String, Object> context) throws Exception {
+        public CompletableFuture<?> upsert(Record record, Map<String, Object> context) {
             // we must handle one record at a time
             // so we block until the record is processed
             CompletableFuture<?> handle = new CompletableFuture();
             currentRecordStatus.set(handle);
             processor.put(List.of(new LangStreamSinkRecordAdapter(record)));
-            try {
-                handle.join();
-            } catch (CompletionException error) {
-                if (error.getCause() instanceof Exception e) {
-                    throw e;
-                } else {
-                    throw error;
-                }
-            }
+            return handle;
         }
 
         @Override
@@ -219,18 +205,6 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                 }
 
                 failCounter.run();
-            }
-
-            @Override
-            protected void beforeProcessingBatch() {
-                super.beforeProcessingBatch();
-                failureOffsets.clear();
-            }
-
-            @Override
-            public void start(Map<String, String> props) {
-                failureOffsets = new ConcurrentHashMap<>();
-                super.start(props);
             }
         }
 

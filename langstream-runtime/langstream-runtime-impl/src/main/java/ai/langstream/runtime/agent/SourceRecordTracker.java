@@ -16,7 +16,6 @@
 package ai.langstream.runtime.agent;
 
 import ai.langstream.api.runner.code.AgentProcessor;
-import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Record;
 import java.util.ArrayList;
@@ -30,7 +29,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class SourceRecordTracker implements AgentSink.CommitCallback {
+class SourceRecordTracker {
     final Map<Record, Record> sinkToSourceMapping = new ConcurrentHashMap<>();
     final Map<Record, AtomicInteger> remainingSinkRecordsForSourceRecord =
             new ConcurrentHashMap<>();
@@ -42,7 +41,6 @@ class SourceRecordTracker implements AgentSink.CommitCallback {
         this.source = source;
     }
 
-    @Override
     @SneakyThrows
     public synchronized void commit(List<Record> sinkRecords) {
         List<Record> sourceRecordsToCommit = new ArrayList<>();

@@ -20,13 +20,14 @@ import ai.langstream.api.database.VectorDatabaseWriterProviderRegistry;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class VectorDBSinkAgent extends AbstractAgentCode implements AgentSink {
 
     private VectorDatabaseWriter writer;
-    private CommitCallback callback;
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
@@ -47,18 +48,9 @@ public class VectorDBSinkAgent extends AbstractAgentCode implements AgentSink {
     }
 
     @Override
-    public void write(List<Record> records) throws Exception {
-
+    public CompletableFuture<?> write(Record record) {
         // naive implementation, no batching
         Map<String, Object> context = Map.of();
-        for (Record record : records) {
-            writer.upsert(record, context);
-            callback.commit(List.of(record));
-        }
-    }
-
-    @Override
-    public void setCommitCallback(CommitCallback callback) {
-        this.callback = callback;
+        return writer.upsert(record, context);
     }
 }

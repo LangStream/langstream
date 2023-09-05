@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -405,7 +406,7 @@ public class AgentRunner {
             brh =
                     (record, t, cleanup) -> {
                         log.info("Sending record to dead letter queue {}", record, t);
-                        deadLetterProducer.write(List.of(record));
+                        deadLetterProducer.write(record).join();
                     };
         } else {
             brh =
@@ -436,8 +437,6 @@ public class AgentRunner {
         function.start();
 
         SourceRecordTracker sourceRecordTracker = new SourceRecordTracker(source);
-        sink.setCommitCallback(sourceRecordTracker);
-
         AtomicReference<Exception> fatalError = new AtomicReference<>();
 
         List<Record> records = source.read();
@@ -526,52 +525,105 @@ public class AgentRunner {
             ErrorsHandler errorsHandler,
             SourceRecordTracker sourceRecordTracker,
             AgentSource source,
-            AtomicReference<Exception> fatalError)
-            throws Exception {
+            AtomicReference<Exception> fatalError) {
         Record sourceRecord = sourceRecordAndResult.sourceRecord();
-        List<Record> forTheSink = new ArrayList<>(sourceRecordAndResult.resultRecords());
-        while (true) {
-            try {
-                sink.write(forTheSink);
-                return;
-            } catch (Throwable error) {
-                // handle error
-                ErrorsHandler.ErrorsProcessingOutcome action =
-                        errorsHandler.handleErrors(sourceRecord, error);
-                switch (action) {
-                    case SKIP -> {
-                        // skip (the whole batch)
-                        log.error(
-                                "Unrecoverable error while processing the records, skipping",
-                                error);
-                        sourceRecordTracker.commit(forTheSink);
-                        return;
-                    }
-                    case RETRY -> {
-                        log.error("Retryable error while processing the records, retrying", error);
-                        // retry (the whole batch)
-                    }
-                    case FAIL -> {
-                        log.error(
-                                "Unrecoverable error while processing some the records, failing",
-                                error);
-                        PermanentFailureException permanentFailureException =
-                                new PermanentFailureException(error);
-                        source.permanentFailure(sourceRecord, permanentFailureException);
-                        if (errorsHandler.failProcessingOnPermanentErrors()) {
-                            log.error("Failing processing on permanent error");
-                            setFatalError(permanentFailureException, fatalError);
-                        } else {
-                            // in case the source does not throw an exception we mark the record as
-                            // "skipped"
-                            sourceRecordTracker.commit(forTheSink);
-                        }
-                        return;
-                    }
-                    default -> throw new IllegalStateException("Unexpected value: " + action);
-                }
-            }
+        List<Record> toWrite = new ArrayList<>(sourceRecordAndResult.resultRecords());
+        for (Record record : toWrite) {
+            writeRecordToTheSink(
+                    sink,
+                    errorsHandler,
+                    sourceRecordTracker,
+                    source,
+                    fatalError,
+                    sourceRecord,
+                    record);
         }
+    }
+
+    private static void writeRecordToTheSink(
+            AgentSink sink,
+            ErrorsHandler errorsHandler,
+            SourceRecordTracker sourceRecordTracker,
+            AgentSource source,
+            AtomicReference<Exception> fatalError,
+            Record sourceRecord,
+            Record record) {
+        CompletableFuture<?> writeResult = sink.write(record);
+
+        if (sink.handlesCommit()) {
+            // it is the sink that handles the commit
+            // we should not commit the source record or handle failures
+            writeResult.exceptionally(
+                    error -> {
+                        log.error(
+                                "Error while writing record {} on a Sink that handles commits by itself",
+                                record,
+                                error);
+                        setFatalError(error, fatalError);
+                        return null;
+                    });
+            return;
+        }
+
+        writeResult.whenComplete(
+                (___, error) -> {
+                    if (error == null) {
+                        sourceRecordTracker.commit(List.of(record));
+                    } else {
+                        // handle error
+                        ErrorsHandler.ErrorsProcessingOutcome action =
+                                errorsHandler.handleErrors(sourceRecord, error);
+                        switch (action) {
+                            case SKIP -> {
+                                // skip (the whole batch)
+                                log.error(
+                                        "Unrecoverable error while processing the records, skipping",
+                                        error);
+                                sourceRecordTracker.commit(List.of(record));
+                            }
+                            case RETRY -> {
+                                log.error(
+                                        "Retryable error while processing the records, retrying",
+                                        error);
+                                writeRecordToTheSink(
+                                        sink,
+                                        errorsHandler,
+                                        sourceRecordTracker,
+                                        source,
+                                        fatalError,
+                                        sourceRecord,
+                                        record);
+                            }
+                            case FAIL -> {
+                                log.error(
+                                        "Unrecoverable error while processing some the records, failing",
+                                        error);
+                                PermanentFailureException permanentFailureException =
+                                        new PermanentFailureException(error);
+                                try {
+                                    source.permanentFailure(
+                                            sourceRecord, permanentFailureException);
+                                } catch (Exception err) {
+                                    err.addSuppressed(permanentFailureException);
+                                    log.error("Cannot send permanent failure to the source", err);
+                                    setFatalError(err, fatalError);
+                                }
+                                if (errorsHandler.failProcessingOnPermanentErrors()) {
+                                    log.error("Failing processing on permanent error");
+                                    setFatalError(permanentFailureException, fatalError);
+                                } else {
+                                    // in case the source does not throw an exception we mark the
+                                    // record as
+                                    // "skipped"
+                                    sourceRecordTracker.commit(List.of(record));
+                                }
+                                return;
+                            }
+                            default -> throw new IllegalStateException(
+                                    "Unexpected value: " + action);
+                        }
+                    }
+                });
     }
 
     private static void runProcessorAgent(

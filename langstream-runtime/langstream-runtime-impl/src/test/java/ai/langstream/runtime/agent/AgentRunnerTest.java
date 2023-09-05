@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -151,17 +152,9 @@ class AgentRunnerTest {
     }
 
     private static class SimpleSink extends AbstractAgentCode implements AgentSink {
-
-        CommitCallback callback;
-
         @Override
-        public void write(List<Record> records) {
-            callback.commit(records);
-        }
-
-        @Override
-        public void setCommitCallback(CommitCallback callback) {
-            this.callback = callback;
+        public CompletableFuture<?> write(Record record) {
+            return CompletableFuture.completedFuture(null);
         }
     }
 

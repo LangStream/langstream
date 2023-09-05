@@ -132,7 +132,7 @@ class KafkaConsumerTest {
 
                 for (int j = 0; j < 2; j++) {
                     Record record1 = generateRecord("record" + i + "_" + j);
-                    producer.write(List.of(record1));
+                    producer.write(record1).join();
                 }
 
                 List<Record> readFromConsumer = consumeRecords(consumer, 2);
@@ -150,7 +150,7 @@ class KafkaConsumerTest {
             // partial acks, this is not an error
             for (int j = 0; j < numMessagesHere; j++) {
                 Record record1 = generateRecord("record_" + j);
-                producer.write(List.of(record1));
+                producer.write(record1).get();
             }
             log.info("Producer metrics: {}", producer.getInfo());
 
@@ -258,7 +258,7 @@ class KafkaConsumerTest {
 
                     for (int j = 0; j < 5; j++) {
                         Record record1 = generateRecord("record" + i + "_" + j);
-                        producer.write(List.of(record1));
+                        producer.write(record1).join();
                     }
 
                     List<Record> readFromConsumer = consumeRecords(consumer, 2);
@@ -347,7 +347,7 @@ class KafkaConsumerTest {
                     String text = "record" + i + "_" + j;
                     expected.add(text);
                     Record record1 = generateRecord(text);
-                    producer.write(List.of(record1));
+                    producer.write(record1).join();
                 }
 
                 try (KafkaConsumerWrapper consumer =

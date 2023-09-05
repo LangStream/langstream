@@ -19,21 +19,15 @@ import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class TopicProducerSink extends AbstractAgentCode implements AgentSink {
 
     private final TopicProducer producer;
-    private CommitCallback callback;
 
     public TopicProducerSink(TopicProducer producer) {
         this.producer = producer;
-    }
-
-    @Override
-    public void setCommitCallback(CommitCallback callback) {
-        this.callback = callback;
     }
 
     @Override
@@ -52,10 +46,9 @@ public class TopicProducerSink extends AbstractAgentCode implements AgentSink {
     }
 
     @Override
-    public void write(List<Record> records) throws Exception {
-        processed(records.size(), 0);
-        producer.write(records);
-        callback.commit(records);
+    public CompletableFuture<?> write(Record records) {
+        processed(1, 0);
+        return producer.write(records);
     }
 
     @Override

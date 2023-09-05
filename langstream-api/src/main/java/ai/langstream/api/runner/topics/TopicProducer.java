@@ -16,8 +16,8 @@
 package ai.langstream.api.runner.topics;
 
 import ai.langstream.api.runner.code.Record;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public interface TopicProducer extends AutoCloseable {
 
@@ -25,7 +25,9 @@ public interface TopicProducer extends AutoCloseable {
 
     default void close() {}
 
-    default void write(List<Record> records) {}
+    default CompletableFuture<?> write(Record record) {
+        return CompletableFuture.completedFuture(null);
+    }
 
     default Object getNativeProducer() {
         return null;

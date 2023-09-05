@@ -375,7 +375,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                         message,
                         last,
                         record);
-                topicProducer.write(List.of(record.get()));
+                topicProducer.write(record.get()).join();
             }
         }
 

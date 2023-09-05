@@ -28,9 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -147,9 +147,9 @@ class KafkaProducerWrapper implements TopicProducer {
     }
 
     @Override
-    @SneakyThrows
-    public void write(List<Record> records) {
-        for (Record r : records) {
+    public CompletableFuture<?> write(Record r) {
+        CompletableFuture<?> handle = new CompletableFuture<>();
+        try {
             List<org.apache.kafka.common.header.Header> headers = new ArrayList<>();
             Object key = null;
             if (r.key() != null) {
@@ -191,10 +191,21 @@ class KafkaProducerWrapper implements TopicProducer {
             ProducerRecord<Object, Object> record =
                     new ProducerRecord<>(topicName, null, null, key, value, headers);
             log.info("Sending record {}", record);
-            producer.send(record).get();
-        }
 
-        totalIn.addAndGet(records.size());
+            producer.send(
+                    record,
+                    (metadata, exception) -> {
+                        if (exception != null) {
+                            handle.completeExceptionally(exception);
+                        } else {
+                            totalIn.addAndGet(1);
+                            handle.complete(null);
+                        }
+                    });
+        } catch (Exception e) {
+            handle.completeExceptionally(e);
+        }
+        return handle;
     }
 
     private Serializer<?> getSerializer(

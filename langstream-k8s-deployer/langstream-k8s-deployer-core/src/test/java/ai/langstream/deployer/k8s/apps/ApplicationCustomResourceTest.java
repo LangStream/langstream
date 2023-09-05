@@ -156,8 +156,12 @@ class ApplicationCustomResourceTest {
                                 .withData(
                                         Map.of(
                                                 "secrets",
-                                                Base64.getEncoder().encodeToString("{}".getBytes(StandardCharsets.UTF_8))
-                                        ))
+                                                Base64.getEncoder()
+                                                        .encodeToString(
+                                                                "{}"
+                                                                        .getBytes(
+                                                                                StandardCharsets
+                                                                                        .UTF_8))))
                                 .build())
                 .inNamespace(namespace)
                 .serverSideApply();
@@ -168,8 +172,15 @@ class ApplicationCustomResourceTest {
                                 .withNewMetadata()
                                 .withName(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET)
                                 .endMetadata()
-                                .withData(Map.of(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET_KEY,
-                                        Base64.getEncoder().encodeToString("{}".getBytes(StandardCharsets.UTF_8))))
+                                .withData(
+                                        Map.of(
+                                                CRDConstants.TENANT_CLUSTER_CONFIG_SECRET_KEY,
+                                                Base64.getEncoder()
+                                                        .encodeToString(
+                                                                "{}"
+                                                                        .getBytes(
+                                                                                StandardCharsets
+                                                                                        .UTF_8))))
                                 .build())
                 .inNamespace(namespace)
                 .serverSideApply();

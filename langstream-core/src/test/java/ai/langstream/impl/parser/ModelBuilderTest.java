@@ -16,6 +16,7 @@
 package ai.langstream.impl.parser;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,7 +28,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 @Slf4j
 class ModelBuilderTest {
-
 
     @Test
     void resolveFileReferencesInSecrets() throws Exception {
@@ -136,7 +136,7 @@ class ModelBuilderTest {
         Files.write(
                 tempDir.resolve("some-text-file.txt"),
                 "some text".getBytes(StandardCharsets.UTF_8));
-        Files.write(tempDir.resolve("some-binary-file.bin"), new byte[]{0x01, 0x02, 0x03});
+        Files.write(tempDir.resolve("some-binary-file.bin"), new byte[] {0x01, 0x02, 0x03});
 
         String result = ModelBuilder.resolveFileReferencesInYAMLFile(file);
 

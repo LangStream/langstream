@@ -15,7 +15,7 @@
 #
 
 import logging
-from typing import List
+from typing import List, Dict, Any
 
 from langstream import (
     Source,
@@ -44,6 +44,9 @@ class TopicConsumerSource(Source):
     def close(self):
         logging.info(f"Closing consumer {self.consumer}")
         self.consumer.close()
+
+    def agent_info(self) -> Dict[str, Any]:
+        return self.consumer.get_info()
 
     def __str__(self):
         return f"TopicConsumerSource{{consumer={self.consumer}}}"
@@ -86,6 +89,9 @@ class TopicProducerSink(Sink):
 
     def set_commit_callback(self, commit_callback: CommitCallback):
         self.commit_callback = commit_callback
+
+    def agent_info(self) -> Dict[str, Any]:
+        return self.producer.get_info()
 
     def __str__(self):
         return f"TopicProducerSink{{producer={self.producer}}}"

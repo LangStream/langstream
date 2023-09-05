@@ -236,6 +236,19 @@ class KafkaTopicConsumer(TopicConsumer):
     def get_native_consumer(self) -> Any:
         return self.consumer
 
+    def get_info(self) -> Dict[str, Any]:
+        with self.lock:
+            return {
+                "committedOffsets": {
+                    f"{tp.topic}-{tp.partition}": offset
+                    for tp, offset in self.committed.items()
+                },
+                "uncommittedOffsets": {
+                    f"{tp.topic}-{tp.partition}": len(offsets)
+                    for tp, offsets in self.uncommitted.items()
+                },
+            }
+
 
 class KafkaTopicProducer(TopicProducer):
     def __init__(self, configs):

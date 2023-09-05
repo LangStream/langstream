@@ -59,6 +59,7 @@ public class TextNormaliserAgent extends SingleRecordAgentProcessor {
         return stream.replaceAll("\t+", " ") // convert tabs to spaces
                 .replaceAll(" +", " ") // remove multiple spaces
                 .replaceAll("\n\n\n", "\n\n") // remove repeated newlines (3 or more)
+                .replaceAll("( \n)+", " \n") // remove repeated sequences of space + newlines
                 .trim();
     }
 }

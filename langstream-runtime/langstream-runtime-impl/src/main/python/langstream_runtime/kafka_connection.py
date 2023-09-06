@@ -20,7 +20,6 @@ import threading
 from typing import List, Dict, Optional, Any
 
 from confluent_kafka import Consumer, Producer, Message, TopicPartition, KafkaException
-from confluent_kafka.serialization import StringDeserializer
 from sortedcontainers import SortedSet
 
 from langstream import Record, CommitCallback, SimpleRecord
@@ -33,11 +32,18 @@ from .kafka_serialization import (
     FLOAT_SERIALIZER,
     DOUBLE_SERIALIZER,
     BYTEARRAY_SERIALIZER,
+    STRING_DESERIALIZER,
+    BOOLEAN_DESERIALIZER,
+    SHORT_DESERIALIZER,
+    INTEGER_DESERIALIZER,
+    LONG_DESERIALIZER,
+    FLOAT_DESERIALIZER,
+    DOUBLE_DESERIALIZER,
+    BYTEARRAY_DESERIALIZER,
 )
 from .topic_connector import TopicConsumer, TopicProducer
 
 LOG = logging.getLogger(__name__)
-STRING_DESERIALIZER = StringDeserializer()
 
 STRING_DESERIALIZER_NAME = "org.apache.kafka.common.serialization.StringDeserializer"
 STRING_SERIALIZER_NAME = "org.apache.kafka.common.serialization.StringSerializer"
@@ -50,6 +56,17 @@ SERIALIZERS = {
     "org.apache.kafka.common.serialization.FloatSerializer": FLOAT_SERIALIZER,
     "org.apache.kafka.common.serialization.DoubleSerializer": DOUBLE_SERIALIZER,
     "org.apache.kafka.common.serialization.ByteArraySerializer": BYTEARRAY_SERIALIZER,
+}
+
+DESERIALIZERS = {
+    "org.apache.kafka.common.serialization.StringDeserializer": STRING_DESERIALIZER,
+    "org.apache.kafka.common.serialization.BooleanDeserializer": BOOLEAN_DESERIALIZER,
+    "org.apache.kafka.common.serialization.ShortDeserializer": SHORT_DESERIALIZER,
+    "org.apache.kafka.common.serialization.IntegerDeserializer": INTEGER_DESERIALIZER,
+    "org.apache.kafka.common.serialization.LongDeserializer": LONG_DESERIALIZER,
+    "org.apache.kafka.common.serialization.FloatDeserializer": FLOAT_DESERIALIZER,
+    "org.apache.kafka.common.serialization.DoubleDeserializer": DOUBLE_DESERIALIZER,
+    "org.apache.kafka.common.serialization.ByteArrayDeserializer": BYTEARRAY_DESERIALIZER,  # noqa: E501
 }
 
 
@@ -129,10 +146,10 @@ def get_serializer(value):
 
 
 class KafkaRecord(SimpleRecord):
-    def __init__(self, message: Message):
+    def __init__(self, message: Message, value, key):
         super().__init__(
-            STRING_DESERIALIZER(message.value()),
-            key=STRING_DESERIALIZER(message.key()),
+            value=value,
+            key=key,
             origin=message.topic(),
             timestamp=message.timestamp()[1],
             headers=message.headers(),
@@ -154,8 +171,8 @@ class KafkaTopicConsumer(TopicConsumer):
         self.configs = configs.copy()
         self.configs["on_commit"] = self.on_commit
         self.topic = self.configs.pop("topic")
-        self.key_deserializer = self.configs.pop("key.deserializer")
-        self.value_deserializer = self.configs.pop("value.deserializer")
+        self.key_deserializer = DESERIALIZERS[self.configs.pop("key.deserializer")]
+        self.value_deserializer = DESERIALIZERS[self.configs.pop("value.deserializer")]
         self.consumer: Optional[Consumer] = None
         self.committed: Dict[TopicPartition, int] = {}
         self.uncommitted: Dict[TopicPartition, SortedSet[int]] = {}
@@ -191,10 +208,10 @@ class KafkaTopicConsumer(TopicConsumer):
                     self.consumer.commit(offsets=offsets, asynchronous=False)
                 self.consumer.close()
 
-    def read(self) -> List[KafkaRecord]:
+    def read(self, timeout=1.0) -> List[KafkaRecord]:
         if self.commit_failure:
             raise self.commit_failure
-        message = self.consumer.poll(1.0)
+        message = self.consumer.poll(timeout)
         if message is None:
             return []
         if message.error():
@@ -204,7 +221,13 @@ class KafkaTopicConsumer(TopicConsumer):
             f"Received message from Kafka topics {self.consumer.assignment()}:"
             f" {message}"
         )
-        return [KafkaRecord(message)]
+        return [
+            KafkaRecord(
+                message,
+                value=self.value_deserializer(message.value()),
+                key=self.key_deserializer(message.key()),
+            )
+        ]
 
     def commit(self, records: List[KafkaRecord]):
         """Commit the offsets of the records.

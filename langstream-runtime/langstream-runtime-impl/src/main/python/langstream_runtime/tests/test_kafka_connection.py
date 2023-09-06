@@ -355,6 +355,55 @@ def test_serializers():
             sink.close()
 
 
+def test_consumer_deserializers():
+    with KafkaContainer(image=KAFKA_IMAGE) as container:
+        bootstrap_server = container.get_bootstrap_server()
+
+        producer = Producer({"bootstrap.servers": bootstrap_server})
+
+        config_yaml = f"""
+                streamingCluster:
+                    type: kafka
+                    configuration:
+                        admin:
+                            bootstrap.servers: {bootstrap_server}
+                """
+
+        config = yaml.safe_load(config_yaml)
+
+        for deserializer, record_value, message_value in [
+            ("StringDeserializer", "test", b"test"),
+            ("BooleanDeserializer", True, b"\x01"),
+            ("ShortDeserializer", 42, b"\x00\x2A"),
+            ("IntegerDeserializer", 42, b"\x00\x00\x00\x2A"),
+            ("LongDeserializer", 42, b"\x00\x00\x00\x00\x00\x00\x00\x2A"),
+            ("FloatDeserializer", 42.0, b"\x42\x28\x00\x00"),
+            ("DoubleDeserializer", 42.0, b"\x40\x45\x00\x00\x00\x00\x00\x00"),
+            ("ByteArrayDeserializer", b"test", b"test"),
+        ]:
+            producer.produce(INPUT_TOPIC, message_value, key=message_value)
+            producer.flush()
+            source = kafka_connection.create_topic_consumer(
+                "id",
+                config["streamingCluster"],
+                {
+                    "topic": INPUT_TOPIC,
+                    "key.deserializer": "org.apache.kafka.common.serialization."
+                    + deserializer,
+                    "value.deserializer": "org.apache.kafka.common.serialization."
+                    + deserializer,
+                },
+            )
+            source.start()
+            record = source.read(timeout=5)[0]
+            source.commit([record])
+
+            assert record.value() == record_value
+            assert record.key() == record_value
+
+            source.close()
+
+
 class TestSuccessProcessor(SingleRecordProcessor):
     def process_record(self, record: Record) -> List[Record]:
         headers = record.headers().copy()

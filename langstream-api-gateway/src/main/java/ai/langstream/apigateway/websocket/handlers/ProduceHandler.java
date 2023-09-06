@@ -154,12 +154,12 @@ public class ProduceHandler extends AbstractHandler {
             }
         }
         try {
-            final SimpleRecord record = SimpleRecord
-                    .builder()
-                    .key(produceRequest.key())
-                    .value(produceRequest.value())
-                    .headers(headers)
-                    .build();
+            final SimpleRecord record =
+                    SimpleRecord.builder()
+                            .key(produceRequest.key())
+                            .value(produceRequest.value())
+                            .headers(headers)
+                            .build();
             topicProducer.write(record).get();
             log.info("[{}] Produced record {}", webSocketSession.getId(), record);
         } catch (Throwable tt) {

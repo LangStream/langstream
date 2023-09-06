@@ -62,7 +62,8 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
             final Map<String, String> vars =
                     antPathMatcher.extractUriTemplateVariables(handler.path(), path);
             final GatewayRequestContext gatewayRequestContext =
-                    handler.validateRequest(vars, querystring, request.getHeaders().toSingleValueMap());
+                    handler.validateRequest(
+                            vars, querystring, request.getHeaders().toSingleValueMap());
 
             final Map<String, String> principalValues;
             try {

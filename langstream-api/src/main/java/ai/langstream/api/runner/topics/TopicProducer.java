@@ -17,6 +17,7 @@ package ai.langstream.api.runner.topics;
 
 import ai.langstream.api.runner.code.Record;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public interface TopicProducer extends AutoCloseable {
 

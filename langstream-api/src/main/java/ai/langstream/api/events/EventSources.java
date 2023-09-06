@@ -13,33 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.runner.topics.events;
+package ai.langstream.api.events;
 
-import java.util.Map;
+import ai.langstream.api.model.Gateway;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class EventRecord {
+public class EventSources {
 
-    public enum Categories {
-        Gateway
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ApplicationSource {
+        private String tenant;
+        private String applicationId;
     }
 
-    public enum Types {
-        // gateway
-        ClientConnected,
-        ClientDisconnected;
-    }
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GatewaySource extends ApplicationSource {
+        private Gateway gateway;
 
-    private Categories category;
-    private String type;
-    private long timestamp;
-    private Map<String, Object> source;
-    private Map<String, Object> data;
+        @Builder
+        public GatewaySource(String tenant, String applicationId, Gateway gateway) {
+            super(tenant, applicationId);
+            this.gateway = gateway;
+        }
+    }
 }

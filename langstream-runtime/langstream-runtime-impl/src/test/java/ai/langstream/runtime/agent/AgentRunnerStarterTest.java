@@ -38,7 +38,8 @@ class AgentRunnerStarterTest {
         String podRuntimeFile =
                 Files.createTempFile("langstream", ".json").toFile().getAbsolutePath();
         mapper.writeValue(
-                new File(podRuntimeFile), new RuntimePodConfiguration(null, null, null, null));
+                new File(podRuntimeFile),
+                new RuntimePodConfiguration(null, null, null, null, null));
         String codeDir =
                 Files.createTempDirectory("langstream-cli-test").toFile().getAbsolutePath();
         String agentsDir =

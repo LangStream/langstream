@@ -126,9 +126,6 @@ class KubernetesClusterRuntimeTest {
                         }
                         return mapped;
                     }
-
-                    @Override
-                    public void close() throws Exception {}
                 };
 
         final String result =

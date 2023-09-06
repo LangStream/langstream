@@ -101,6 +101,14 @@ public class ApplicationPlaceholderResolver {
                                 newTopics.put(resolveValue(context, topicName), definition);
                             });
             module.replaceTopics(newTopics);
+            if (module.getAssets() != null) {
+                module.getAssets()
+                        .forEach(
+                                asset -> {
+                                    asset.setConfig(resolveMap(context, asset.getConfig()));
+                                });
+            }
+
             for (Map.Entry<String, Pipeline> pipelineEntry : module.getPipelines().entrySet()) {
                 final Pipeline pipeline = pipelineEntry.getValue();
                 List<AgentConfiguration> newAgents = new ArrayList<>();

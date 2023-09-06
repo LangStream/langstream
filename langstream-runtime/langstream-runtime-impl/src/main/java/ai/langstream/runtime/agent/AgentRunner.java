@@ -19,6 +19,10 @@ import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
 import static ai.langstream.api.model.ErrorsSpec.FAIL;
 import static ai.langstream.api.model.ErrorsSpec.SKIP;
 
+import ai.langstream.api.model.AssetDefinition;
+import ai.langstream.api.runner.assets.AssetManager;
+import ai.langstream.api.runner.assets.AssetManagerAndLoader;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeAndLoader;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
@@ -158,6 +162,12 @@ public class AgentRunner {
         try (NarFileHandler narFileHandler =
                 new NarFileHandler(agentsDirectory, customLibClassloader)) {
             narFileHandler.scan();
+
+            AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
+            assetManagerRegistry.setAssetManagerPackageLoader(narFileHandler);
+
+            deployAssets(configuration, assetManagerRegistry);
+
             AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
             agentCodeRegistry.setAgentPackageLoader(narFileHandler);
 
@@ -165,7 +175,6 @@ public class AgentRunner {
                     TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(
                             configuration.streamingCluster());
 
-            log.info("TopicConnectionsRuntime {}", topicConnectionsRuntime);
             try {
                 AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
                 Server server = null;
@@ -967,6 +976,50 @@ public class AgentRunner {
         @Override
         public TopicConnectionProvider getTopicConnectionProvider() {
             return topicConnectionProvider;
+        }
+    }
+
+    private void deployAssets(
+            RuntimePodConfiguration configuration, AssetManagerRegistry assetManagerRegistry)
+            throws Exception {
+        if (configuration.assets() != null) {
+            for (Map<String, Object> assetDefinition : configuration.assets()) {
+                AssetDefinition asset = MAPPER.convertValue(assetDefinition, AssetDefinition.class);
+                deployAsset(asset, assetManagerRegistry);
+            }
+        }
+    }
+
+    private void deployAsset(AssetDefinition asset, AssetManagerRegistry assetManagerRegistry)
+            throws Exception {
+        log.info("Deploying asset {}", asset);
+        AssetManagerAndLoader assetManager =
+                assetManagerRegistry.getAssetManager(asset.getAssetType());
+        if (assetManager == null) {
+            throw new RuntimeException(
+                    "No asset manager found for asset type " + asset.getAssetType());
+        }
+        try {
+            String creationMode = asset.getCreationMode();
+            switch (creationMode) {
+                case AssetDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
+                    AssetManager assetManagerImpl = assetManager.asAssetManager();
+                    boolean exists = assetManagerImpl.assetExists(asset);
+
+                    if (!exists) {
+                        log.info(
+                                "Asset {}  of type {} needs to be created",
+                                asset.getName(),
+                                asset.getAssetType());
+                        assetManagerImpl.deployAsset(asset);
+                    }
+                }
+                case AssetDefinition.CREATE_MODE_NONE -> {
+                    return;
+                }
+            }
+        } finally {
+            assetManager.close();
         }
     }
 }

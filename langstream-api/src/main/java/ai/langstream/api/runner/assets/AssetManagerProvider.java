@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.runtime.api.agent;
+package ai.langstream.api.runner.assets;
 
-import ai.langstream.api.model.StreamingCluster;
-import java.util.List;
-import java.util.Map;
+/** Factory */
+public interface AssetManagerProvider {
 
-public record RuntimePodConfiguration(
-        Map<String, Object> input,
-        Map<String, Object> output,
-        AgentSpec agent,
-        StreamingCluster streamingCluster,
-        List<Map<String, Object>> assets) {}
+    boolean supports(String assetType);
+
+    /**
+     * Create a new AssetManager for the given asset type
+     *
+     * @return the new AssetManager
+     */
+    AssetManager createInstance(String assetType);
+}

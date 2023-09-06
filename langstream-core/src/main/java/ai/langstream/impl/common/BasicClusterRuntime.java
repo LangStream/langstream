@@ -17,6 +17,7 @@ package ai.langstream.impl.common;
 
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
@@ -56,6 +57,8 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
         detectTopics(result, streamingClusterRuntime);
 
+        detectAssets(result);
+
         detectAgents(result, streamingClusterRuntime, pluginsRegistry);
 
         validateExecutionPlan(result, streamingClusterRuntime);
@@ -81,6 +84,19 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                 Topic topicImplementation =
                         streamingClusterRuntime.createTopicImplementation(topic, result);
                 result.registerTopic(topic, topicImplementation);
+            }
+        }
+    }
+
+    /** Detects assets that are explicitly defined in the application instance. */
+    protected void detectAssets(ExecutionPlan result) {
+        Application applicationInstance = result.getApplication();
+        for (Module module : applicationInstance.getModules().values()) {
+            if (module.getAssets() != null) {
+                // the order is important, there may be some dependencies between them
+                for (AssetDefinition asset : module.getAssets()) {
+                    result.registerAsset(asset);
+                }
             }
         }
     }

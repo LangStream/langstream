@@ -15,8 +15,11 @@
  */
 package ai.langstream.api.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -29,6 +32,8 @@ public class Module {
     private final Map<String, Pipeline> pipelines = new HashMap<>();
 
     private final Map<String, TopicDefinition> topics = new HashMap<>();
+    // the order of assets is important, there may be some dependencies between them
+    private final List<AssetDefinition> assets = new ArrayList<>();
 
     public Module(String id) {
         this.id = id;
@@ -44,6 +49,25 @@ public class Module {
         return p;
     }
 
+    public AssetDefinition addAsset(AssetDefinition assetDefinition) {
+        final String assetId = assetDefinition.getId();
+        AssetDefinition existing =
+                assets.stream()
+                        .filter(a -> Objects.equals(a.getId(), assetId))
+                        .findFirst()
+                        .orElse(null);
+
+        if (existing != null) {
+            if (!existing.equals(assetDefinition)) {
+                throw new IllegalArgumentException(
+                        "Asset " + assetId + " already exists in module " + id);
+            }
+            return existing;
+        }
+        assets.add(assetDefinition);
+        return assetDefinition;
+    }
+
     public TopicDefinition addTopic(TopicDefinition topicDefinition) {
         final String topicName = topicDefinition.getName();
         TopicDefinition existing = topics.get(topicName);
@@ -52,7 +76,7 @@ public class Module {
             // but only if the definition is the same
             if (!existing.equals(topicDefinition)) {
                 throw new IllegalArgumentException(
-                        "Pipeline " + topicName + " already exists in module " + id);
+                        "Topic " + topicName + " already exists in module " + id);
             }
             return existing;
         }

@@ -21,6 +21,7 @@ import static ai.langstream.api.model.ErrorsSpec.SKIP;
 
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.ComputeCluster;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Dependency;
@@ -430,6 +431,28 @@ public class ModelBuilder {
             }
         }
 
+        if (pipelineConfiguration.getAssets() != null) {
+            for (AssetDefinitionModel assetDefinition : pipelineConfiguration.getAssets()) {
+                String assetId =
+                        Objects.requireNonNullElse(
+                                assetDefinition.getId(), assetDefinition.getName());
+                if (assetId == null || assetId.isEmpty()) {
+                    throw new IllegalArgumentException("Asset id or name are required");
+                }
+                String name = assetDefinition.getName();
+                if (assetDefinition.getName() == null) {
+                    name = assetDefinition.getId();
+                }
+                module.addAsset(
+                        new AssetDefinition(
+                                assetId,
+                                name,
+                                assetDefinition.getCreationMode(),
+                                assetDefinition.getAssetType(),
+                                assetDefinition.getConfig()));
+            }
+        }
+
         int autoId = 1;
         if (pipelineConfiguration.getPipeline() != null) {
             for (AgentModel agent : pipelineConfiguration.getPipeline()) {
@@ -560,6 +583,8 @@ public class ModelBuilder {
 
         private List<TopicDefinitionModel> topics = new ArrayList<>();
 
+        private List<AssetDefinitionModel> assets = new ArrayList<>();
+
         private ResourcesSpec resources;
         private ErrorsSpec errors;
     }
@@ -579,6 +604,22 @@ public class ModelBuilder {
 
         private SchemaDefinition keySchema;
         private Map<String, Object> options;
+        private Map<String, Object> config;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class AssetDefinitionModel {
+        private String id;
+        private String name;
+
+        @JsonProperty("creation-mode")
+        private String creationMode;
+
+        @JsonProperty("asset-type")
+        private String assetType;
+
         private Map<String, Object> config;
     }
 

@@ -17,6 +17,7 @@ package ai.langstream.runtime.agent.nar;
 
 import ai.langstream.api.codestorage.GenericZipFileArchiveFile;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -39,7 +40,10 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPackageLoader {
+public class NarFileHandler
+        implements AutoCloseable,
+                AgentCodeRegistry.AgentPackageLoader,
+                AssetManagerRegistry.AgentPackageLoader {
 
     private final Path packagesDirectory;
     private final Path temporaryDirectory;
@@ -93,14 +97,17 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
     final class PackageMetadata {
         private final Path nar;
         private final String name;
-        private final Set<String> agents;
+        private final Set<String> agentTypes;
+        private final Set<String> assetTypes;
         private Path directory;
         private URLClassLoader classLoader;
 
-        public PackageMetadata(Path nar, String name, Set<String> agents) {
+        public PackageMetadata(
+                Path nar, String name, Set<String> agentTypes, Set<String> assetTypes) {
             this.nar = nar;
             this.name = name;
-            this.agents = agents;
+            this.agentTypes = agentTypes;
+            this.assetTypes = assetTypes;
         }
 
         public void unpack() throws Exception {
@@ -131,38 +138,89 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
 
         // first of all we look for an index file
         try (ZipFile zipFile = new ZipFile(narFile.toFile())) {
-            ZipEntry entry = zipFile.getEntry("META-INF/ai.langstream.agents.index");
-            if (entry != null) {
-                InputStream inputStream = zipFile.getInputStream(entry);
+
+            List<String> agents = List.of();
+            List<String> assetTypes = List.of();
+
+            ZipEntry entryAgentsIndex = zipFile.getEntry("META-INF/ai.langstream.agents.index");
+            if (entryAgentsIndex != null) {
+                InputStream inputStream = zipFile.getInputStream(entryAgentsIndex);
                 byte[] bytes = inputStream.readAllBytes();
                 String string = new String(bytes, StandardCharsets.UTF_8);
                 BufferedReader reader = new BufferedReader(new StringReader(string));
-                List<String> agents =
-                        reader.lines().filter(s -> !s.isBlank() && !s.startsWith("#")).toList();
+                agents = reader.lines().filter(s -> !s.isBlank() && !s.startsWith("#")).toList();
                 log.info(
-                        "The file {} contains a static index, skipping the unpacking. It is expected that handles these agents: {}",
+                        "The file {} contains a static agents index, skipping the unpacking. It is expected that handles these agents: {}",
                         narFile,
                         agents);
+            }
+
+            ZipEntry entryAssetsIndex = zipFile.getEntry("META-INF/ai.langstream.assets.index");
+            if (entryAssetsIndex != null) {
+                InputStream inputStream = zipFile.getInputStream(entryAssetsIndex);
+                byte[] bytes = inputStream.readAllBytes();
+                String string = new String(bytes, StandardCharsets.UTF_8);
+                BufferedReader reader = new BufferedReader(new StringReader(string));
+                assetTypes =
+                        reader.lines().filter(s -> !s.isBlank() && !s.startsWith("#")).toList();
+                log.info(
+                        "The file {} contains a static assetTypes index, skipping the unpacking. It is expected that handles these assetTypes: {}",
+                        narFile,
+                        assetTypes);
+            }
+
+            if (!agents.isEmpty() || !assetTypes.isEmpty()) {
                 PackageMetadata metadata =
-                        new PackageMetadata(narFile, filename, Set.copyOf(agents));
+                        new PackageMetadata(
+                                narFile, filename, Set.copyOf(agents), Set.copyOf(assetTypes));
                 packages.put(filename, metadata);
                 return;
             }
 
-            ZipEntry serviceProvider =
+            ZipEntry serviceProviderForAgents =
                     zipFile.getEntry(
                             "META-INF/services/ai.langstream.api.runner.code.AgentCodeProvider");
-            if (serviceProvider == null) {
+            ZipEntry serviceProviderForAssets =
+                    zipFile.getEntry(
+                            "META-INF/services/ai.langstream.api.runner.assets.AssetManagerProvider");
+            if (serviceProviderForAgents == null && serviceProviderForAssets == null) {
                 log.info(
-                        "The file {} does not contain any AgentCodeProvider, skipping the file",
+                        "The file {} does not contain any AgentCodeProvider/AssetManagerProvider, skipping the file",
                         narFile);
                 return;
             }
         }
 
-        log.info("The file {} does not contain an index, still adding the file", narFile);
-        PackageMetadata metadata = new PackageMetadata(narFile, filename, null);
+        log.info("The file {} does not contain any index, still adding the file", narFile);
+        PackageMetadata metadata = new PackageMetadata(narFile, filename, null, null);
         packages.put(filename, metadata);
+    }
+
+    @Override
+    public AssetManagerRegistry.AssetPackage loadPackageForAsset(String assetType)
+            throws Exception {
+        PackageMetadata packageForAssetType = getPackageForAssetType(assetType);
+        if (packageForAssetType == null) {
+            return null;
+        }
+        URLClassLoader classLoader =
+                createClassloaderForPackage(customCodeClassloader, packageForAssetType);
+        log.info(
+                "For package {}, classloader {}, parent {}",
+                packageForAssetType.getName(),
+                classLoader,
+                classLoader.getParent());
+        return new AssetManagerRegistry.AssetPackage() {
+            @Override
+            public ClassLoader getClassloader() {
+                return classLoader;
+            }
+
+            @Override
+            public String getName() {
+                return packageForAssetType.getName();
+            }
+        };
     }
 
     @Override
@@ -194,7 +252,14 @@ public class NarFileHandler implements AutoCloseable, AgentCodeRegistry.AgentPac
 
     public PackageMetadata getPackageForAgentType(String name) {
         return packages.values().stream()
-                .filter(p -> p.agents != null && p.agents.contains(name))
+                .filter(p -> p.agentTypes != null && p.agentTypes.contains(name))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public PackageMetadata getPackageForAssetType(String name) {
+        return packages.values().stream()
+                .filter(p -> p.assetTypes != null && p.assetTypes.contains(name))
                 .findFirst()
                 .orElse(null);
     }

@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public interface QueryStepDataSource {
+public interface QueryStepDataSource extends AutoCloseable {
 
     default void initialize(DataSourceConfig config) {}
 

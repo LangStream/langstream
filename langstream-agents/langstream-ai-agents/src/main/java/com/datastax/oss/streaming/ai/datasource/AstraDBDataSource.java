@@ -143,6 +143,47 @@ public class AstraDBDataSource implements QueryStepDataSource {
                 .collect(Collectors.toList());
     }
 
+    public void executeStatement(String query, List<Object> params) {
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Executing query {} with params {} ({})",
+                    query,
+                    params,
+                    params.stream()
+                            .map(v -> v == null ? "null" : v.getClass().toString())
+                            .collect(Collectors.joining(",")));
+        }
+        PreparedStatement preparedStatement =
+                statements.computeIfAbsent(query, q -> session.prepare(q));
+
+        ColumnDefinitions variableDefinitions = preparedStatement.getVariableDefinitions();
+        List<Object> adaptedParameters = new ArrayList<>();
+        for (int i = 0; i < variableDefinitions.size(); i++) {
+            Object value = params.get(i);
+            ColumnDefinition columnDefinition = variableDefinitions.get(i);
+            if (columnDefinition.getType() instanceof CqlVectorType && value instanceof List) {
+                CqlVectorType vectorType = (CqlVectorType) columnDefinition.getType();
+                if (vectorType.getSubtype() != DataTypes.FLOAT) {
+                    throw new IllegalArgumentException("Only VECTOR<FLOAT,x> is supported");
+                }
+                CqlVector.Builder<Float> builder = CqlVector.builder();
+                for (Object v : (List<Object>) value) {
+                    if (v instanceof Number) {
+                        builder.add(((Number) v).floatValue());
+                    } else {
+                        builder.add(Float.parseFloat(v + ""));
+                    }
+                }
+                value = builder.build();
+            }
+            adaptedParameters.add(value);
+        }
+
+        BoundStatement bind = preparedStatement.bind(adaptedParameters.toArray(new Object[0]));
+
+        session.execute(bind);
+    }
+
     public CqlSession buildCqlSession(String username, String password, String secureBundle) {
 
         // Remove the base64: prefix if present

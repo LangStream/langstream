@@ -16,119 +16,60 @@
 package ai.langstream.model.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.Module;
-import ai.langstream.api.model.Pipeline;
 import ai.langstream.impl.parser.ModelBuilder;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-public class ResourcesSpecsTest {
+public class AssetsTest {
 
     @Test
-    public void testConfigureResourceSpecs() throws Exception {
+    public void testConfigureAssets() throws Exception {
         Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
                                         "module.yaml",
-                                                """
+                                        """
                                 module: "module-1"
                                 id: "pipeline-1"
-                                resources:
-                                   parallelism: 7
-                                   size: 7
-                                topics:
-                                  - name: "input-topic"
+                                assets:
+                                  - name: "Cassandra table"
+                                    asset-type: "cassandra-table"
                                     creation-mode: create-if-not-exists
+                                    config:
+                                      table-name: "products"
+                                      key-space: "my_keyspace"
+                                      statements:
+                                         - "CREATE TABLE my_keyspace.products (id text PRIMARY KEY, name text, price int)"
+                                         - "CREATE INDEX ON my_keyspace.products (name, price)"
                                 pipeline:
                                   - name: "step1"
                                     type: "noop"
-                                    input: "input-topic"
-                                  - name: "step2"
-                                    type: "noop"
-                                    resources:
-                                       parallelism: 2
-                                  - name: "step3"
-                                    type: "noop"
-                                    resources:
-                                       size: 3
-                                  - name: "step3"
-                                    type: "noop"
-                                    resources:
-                                       size: 3
-                                       parallelism: 5
-                                """,
-                                        "module2.yaml",
-                                                """
-                                module: "module-2"
-                                id: "pipeline-2"
-                                topics:
-                                  - name: "input-topic"
-                                    creation-mode: create-if-not-exists
-                                pipeline:
-                                  - name: "step1"
-                                    type: "noop"
-                                    input: "input-topic"
-                                  - name: "step2"
-                                    type: "noop"
-                                    resources:
-                                       parallelism: 2
-                                  - name: "step3"
-                                    type: "noop"
-                                    resources:
-                                       size: 3
-                                  - name: "step3"
-                                    type: "noop"
-                                    resources:
-                                       size: 3
-                                       parallelism: 5
                                 """),
                                 buildInstanceYaml(),
                                 null)
                         .getApplication();
-
-        {
-            Module module = applicationInstance.getModule("module-1");
-            Pipeline pipeline = module.getPipelines().get("pipeline-1");
-
-            AgentConfiguration agent1 = pipeline.getAgents().get(0);
-            assertNotNull(agent1.getResources());
-            assertEquals(7, agent1.getResources().parallelism());
-            assertEquals(7, agent1.getResources().size());
-
-            AgentConfiguration agent2 = pipeline.getAgents().get(1);
-            assertNotNull(agent2.getResources());
-            assertEquals(2, agent2.getResources().parallelism());
-            assertEquals(7, agent2.getResources().size());
-
-            AgentConfiguration agent3 = pipeline.getAgents().get(2);
-            assertNotNull(agent3.getResources());
-            assertEquals(7, agent3.getResources().parallelism());
-            assertEquals(3, agent3.getResources().size());
-        }
-
-        {
-            Module module = applicationInstance.getModule("module-2");
-            Pipeline pipeline = module.getPipelines().get("pipeline-2");
-
-            AgentConfiguration agent1 = pipeline.getAgents().get(0);
-            assertNotNull(agent1.getResources());
-            assertEquals(1, agent1.getResources().parallelism());
-            assertEquals(1, agent1.getResources().size());
-
-            AgentConfiguration agent2 = pipeline.getAgents().get(1);
-            assertNotNull(agent2.getResources());
-            assertEquals(2, agent2.getResources().parallelism());
-            assertEquals(1, agent2.getResources().size());
-
-            AgentConfiguration agent3 = pipeline.getAgents().get(2);
-            assertNotNull(agent3.getResources());
-            assertEquals(1, agent3.getResources().parallelism());
-            assertEquals(3, agent3.getResources().size());
-        }
+        Module module = applicationInstance.getModule("module-1");
+        assertEquals(1, module.getAssets().size());
+        AssetDefinition asset = module.getAssets().get(0);
+        assertEquals("Cassandra table", asset.getName());
+        assertEquals("create-if-not-exists", asset.getCreationMode());
+        assertEquals("cassandra-table", asset.getAssetType());
+        assertEquals(
+                Map.of(
+                        "table-name",
+                        "products",
+                        "key-space",
+                        "my_keyspace",
+                        "statements",
+                        List.of(
+                                "CREATE TABLE my_keyspace.products (id text PRIMARY KEY, name text, price int)",
+                                "CREATE INDEX ON my_keyspace.products (name, price)")),
+                asset.getConfig());
     }
 
     private static String buildInstanceYaml() {

@@ -16,13 +16,12 @@
 package ai.langstream.api.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
+import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-
-import java.util.Map;
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -59,6 +58,7 @@ public class AssetDefinition {
     private String creationMode;
 
     private Map<String, Object> config;
+
     @JsonProperty("asset-type")
     private String assetType;
 
@@ -71,5 +71,4 @@ public class AssetDefinition {
                 throw new IllegalArgumentException("Invalid creation mode: " + creationMode);
         }
     }
-
 }

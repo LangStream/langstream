@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -49,18 +50,21 @@ public class Module {
     }
 
     public AssetDefinition addAsset(AssetDefinition assetDefinition) {
-        final String topicName = assetDefinition.getName();
-        TopicDefinition existing = topics.get(topicName);
+        final String assetId = assetDefinition.getId();
+        AssetDefinition existing =
+                assets.stream()
+                        .filter(a -> Objects.equals(a.getId(), assetId))
+                        .findFirst()
+                        .orElse(null);
+
         if (existing != null) {
-            // allow to declare the same topic in multiple pipelines of the same module
-            // but only if the definition is the same
             if (!existing.equals(assetDefinition)) {
                 throw new IllegalArgumentException(
-                        "Pipeline " + topicName + " already exists in module " + id);
+                        "Asset " + assetId + " already exists in module " + id);
             }
             return existing;
         }
-        topics.put(topicName, assetDefinition);
+        assets.add(assetDefinition);
         return assetDefinition;
     }
 
@@ -72,7 +76,7 @@ public class Module {
             // but only if the definition is the same
             if (!existing.equals(topicDefinition)) {
                 throw new IllegalArgumentException(
-                        "Pipeline " + topicName + " already exists in module " + id);
+                        "Topic " + topicName + " already exists in module " + id);
             }
             return existing;
         }

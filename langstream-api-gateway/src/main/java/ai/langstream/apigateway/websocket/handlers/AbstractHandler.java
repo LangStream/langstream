@@ -20,7 +20,14 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Gateways;
+import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runner.topics.events.EventRecord;
+import ai.langstream.api.runner.topics.events.EventSources;
+import ai.langstream.api.runner.topics.events.GatewayEventData;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
@@ -33,7 +40,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.socket.CloseStatus;
@@ -61,8 +70,9 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     abstract String gatewayFromPath(
             Map<String, String> parsedPath, Map<String, String> queryString);
 
-    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext gatewayRequestContext)
-            throws Exception {}
+    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext gatewayRequestContext, Map<String, Object> attributes)
+            throws Exception {
+    }
 
     abstract void onOpen(
             WebSocketSession webSocketSession,
@@ -131,6 +141,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             log.error("[{}] error while closing websocket", session.getId(), throwable);
         }
         closeCloseableResources(session);
+        sendClientDisconnectedEvent(getContext(session));
     }
 
     @Override
@@ -265,15 +276,15 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     }
 
     protected void recordCloseableResource(
-            WebSocketSession webSocketSession, AutoCloseable... closeables) {
+            Map<String, Object> attributes, AutoCloseable... closeables) {
         List<AutoCloseable> currentCloseable =
-                (List<AutoCloseable>) webSocketSession.getAttributes().get("closeables");
+                (List<AutoCloseable>) attributes.get("closeables");
 
         if (currentCloseable == null) {
             currentCloseable = new ArrayList<>();
         }
         Collections.addAll(currentCloseable, closeables);
-        webSocketSession.getAttributes().put("closeables", currentCloseable);
+        attributes.put("closeables", currentCloseable);
     }
 
     private void closeCloseableResources(WebSocketSession webSocketSession) {
@@ -290,4 +301,65 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             }
         }
     }
+
+    protected void sendClientConnectedEvent(AuthenticatedGatewayRequestContext context) {
+        sendEvent(EventRecord.Types.ClientConnected, context);
+    }
+
+    protected void sendClientDisconnectedEvent(AuthenticatedGatewayRequestContext context) {
+        try {
+            sendEvent(EventRecord.Types.ClientDisconnected, context);
+        } catch (Throwable e) {
+            log.error("error while sending client disconnected event", e);
+        }
+    }
+
+    @SneakyThrows
+    protected void sendEvent(EventRecord.Types type, AuthenticatedGatewayRequestContext context) {
+        final Gateway gateway = context.gateway();
+        if (gateway.eventsTopic() == null) {
+            return;
+        }
+        final StreamingCluster streamingCluster = context.application().getInstance().streamingCluster();
+        final TopicConnectionsRuntime topicConnectionsRuntime =
+                TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
+
+        try (final TopicProducer producer = topicConnectionsRuntime.createProducer("langstream-events",
+                streamingCluster, Map.of("topic", gateway.eventsTopic()));) {
+            producer.start();
+
+            final EventSources.GatewaySource source = EventSources.GatewaySource.builder()
+                    .tenant(context.tenant())
+                    .applicationId(context.applicationId())
+                    .gateway(gateway)
+                    .build();
+
+
+            final GatewayEventData data = GatewayEventData
+                    .builder()
+                    .userParameters(context.userParameters())
+                    .options(context.options())
+                    // TODO: http headers
+                    .build();
+
+
+            final EventRecord event = EventRecord.builder()
+                    .category(EventRecord.Categories.Gateway)
+                    .type(type.toString())
+                    .timestamp(System.currentTimeMillis())
+                    .source(mapper.convertValue(source, Map.class))
+                    .data(mapper.convertValue(data, Map.class))
+                    .build();
+
+            final String recordValue = mapper.writeValueAsString(event);
+
+            final SimpleRecord record = SimpleRecord
+                    .builder()
+                    .value(recordValue)
+                    .build();
+            producer.write(record).get();
+            log.info("sent event {}", recordValue);
+        }
+    }
+
 }

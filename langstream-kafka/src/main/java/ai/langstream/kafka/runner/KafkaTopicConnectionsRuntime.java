@@ -56,19 +56,14 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
             String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
 
         Map<String, Object> copy = new HashMap<>(configuration);
-        applyDefaultConfiguration(agentId, streamingCluster, copy);
+        applyDefaultConfiguration(streamingCluster, copy);
+        applyConsumerConfiguration(agentId, copy);
         String topicName = (String) copy.remove("topic");
 
         return new KafkaConsumerWrapper(copy, topicName);
     }
 
-    private static void applyDefaultConfiguration(
-            String agentId, StreamingCluster streamingCluster, Map<String, Object> copy) {
-        KafkaClusterRuntimeConfiguration configuration =
-                KafkaStreamingClusterRuntime.getKafkaClusterRuntimeConfiguration(streamingCluster);
-        copy.putAll(configuration.getAdmin());
-
-        // consumer
+    private void applyConsumerConfiguration(String agentId, Map<String, Object> copy) {
         copy.putIfAbsent(
                 "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         copy.putIfAbsent(
@@ -77,8 +72,15 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.putIfAbsent("enable.auto.commit", "false");
         copy.putIfAbsent("group.id", "langstream-" + agentId);
         copy.putIfAbsent("auto.offset.reset", "earliest");
+    }
 
-        // producer
+    private static void applyDefaultConfiguration(StreamingCluster streamingCluster, Map<String, Object> copy) {
+        KafkaClusterRuntimeConfiguration configuration =
+                KafkaStreamingClusterRuntime.getKafkaClusterRuntimeConfiguration(streamingCluster);
+        copy.putAll(configuration.getAdmin());
+    }
+
+    private static void applyProducerConfiguration(Map<String, Object> copy) {
         copy.putIfAbsent(
                 "key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
         copy.putIfAbsent(
@@ -89,7 +91,8 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
     public TopicProducer createProducer(
             String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
         Map<String, Object> copy = new HashMap<>(configuration);
-        applyDefaultConfiguration(agentId, streamingCluster, copy);
+        applyDefaultConfiguration(streamingCluster, copy);
+        applyProducerConfiguration(copy);
         String topicName = (String) copy.remove("topic");
 
         return new KafkaProducerWrapper(copy, topicName);
@@ -114,7 +117,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
     public TopicAdmin createTopicAdmin(
             String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
         Map<String, Object> copy = new HashMap<>(configuration);
-        applyDefaultConfiguration(agentId, streamingCluster, copy);
+        applyDefaultConfiguration(streamingCluster, copy);
         return new TopicAdmin() {
 
             org.apache.kafka.connect.util.TopicAdmin topicAdmin;

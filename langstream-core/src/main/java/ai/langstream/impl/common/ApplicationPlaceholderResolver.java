@@ -183,15 +183,20 @@ public class ApplicationPlaceholderResolver {
                                 authentication.provider(),
                                 resolveMap(context, gateway.authentication().configuration()));
             }
+
+
+            final String topic = resolveValue(context, gateway.topic());
+            final String eventsTopic = gateway.eventsTopic() == null ? null : resolveValue(context, gateway.eventsTopic());
             newGateways.add(
                     new Gateway(
                             gateway.id(),
                             gateway.type(),
-                            gateway.topic(),
+                            topic,
                             authentication,
                             gateway.parameters(),
                             gateway.produceOptions(),
-                            gateway.consumeOptions()));
+                            gateway.consumeOptions(),
+                            eventsTopic));
         }
         return new Gateways(newGateways);
     }

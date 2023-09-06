@@ -82,7 +82,7 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
                     getAuthenticatedGatewayRequestContext(
                             gatewayRequestContext, principalValues, attributes);
             attributes.put("context", authenticatedGatewayRequestContext);
-            handler.onBeforeHandshakeCompleted(authenticatedGatewayRequestContext);
+            handler.onBeforeHandshakeCompleted(authenticatedGatewayRequestContext, attributes);
             return true;
         } catch (Throwable error) {
             log.info("Internal error {}", error.getMessage(), error);

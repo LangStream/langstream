@@ -22,11 +22,16 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.topics.events.EventRecord;
 import ai.langstream.api.runner.topics.OffsetPerPartition;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicOffsetPosition;
+import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
+import ai.langstream.api.runner.topics.events.EventSources;
+import ai.langstream.api.runner.topics.events.GatewayEventData;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
@@ -84,7 +89,7 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext context)
+    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext context, Map<String, Object> attributes)
             throws Exception {
         final Gateway gateway = context.gateway();
         final Application application = context.application();
@@ -115,6 +120,7 @@ public class ConsumeHandler extends AbstractHandler {
                         streamingCluster, Map.of("topic", topicName), position);
         reader.start();
         context.attributes().put("topicReader", reader);
+        sendClientConnectedEvent(context);
     }
 
     @Override
@@ -156,7 +162,8 @@ public class ConsumeHandler extends AbstractHandler {
     public void onMessage(
             WebSocketSession webSocketSession,
             AuthenticatedGatewayRequestContext context,
-            TextMessage message) {}
+            TextMessage message) {
+    }
 
     @Override
     public void onClose(

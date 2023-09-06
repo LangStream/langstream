@@ -25,12 +25,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.connect.avro.AvroData;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -141,57 +141,53 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
     }
 
     @Override
-    public void write(List<Record> records) {
-        processed(records.size(), 0);
+    public CompletableFuture<?> write(Record rec) {
+        processed(1, 0);
         if (!isRunning) {
             log.warn("Sink is stopped. Cannot send the records");
             throw new IllegalStateException("Sink is stopped. Cannot send the records");
         }
 
-        List<SinkRecord> sinkRecords = new ArrayList<>(records.size());
-        List<KafkaRecord.KafkaConsumerOffsetProvider> recordsWithOffset =
-                new ArrayList<>(records.size());
-        for (Record rec : records) {
-            try {
-                if (errorsToInject > 0) {
-                    errorsToInject--;
-                    // otherwise have to muck with schema mismatch and so on
-                    throw new RuntimeException("Injected record conversion error");
-                }
-                final KafkaRecord kr = KafkaConnectSinkAgent.getKafkaRecord(rec);
-                final KafkaRecord.KafkaConsumerOffsetProvider op =
-                        (KafkaRecord.KafkaConsumerOffsetProvider) kr;
-                sinkRecords.add(toSinkRecord(kr));
-                recordsWithOffset.add(op);
-            } catch (Throwable t) {
-                // can throw RuntimeException, let it bubble up
-                context.getBadRecordHandler()
-                        .handle(
-                                rec,
-                                t,
-                                () -> {
-                                    log.error("Error handling bad record {}", rec, t);
-                                    this.close();
-                                });
+        SinkRecord sinkRecord;
+        KafkaRecord.KafkaConsumerOffsetProvider op;
+
+        try {
+            if (errorsToInject > 0) {
+                errorsToInject--;
+                // otherwise have to muck with schema mismatch and so on
+                throw new RuntimeException("Injected record conversion error");
             }
+            final KafkaRecord kr = KafkaConnectSinkAgent.getKafkaRecord(rec);
+            sinkRecord = toSinkRecord(kr);
+            op = (KafkaRecord.KafkaConsumerOffsetProvider) kr;
+        } catch (Throwable t) {
+            // can throw RuntimeException, let it bubble up
+            context.getBadRecordHandler()
+                    .handle(
+                            rec,
+                            t,
+                            () -> {
+                                log.error("Error handling bad record {}", rec, t);
+                                this.close();
+                            });
+            return CompletableFuture.failedFuture(t);
         }
 
         try {
-            task.put(sinkRecords);
-
-            recordsWithOffset.forEach(
-                    op -> {
-                        currentBatchSize.addAndGet(getRecordSize(op));
-                        taskContext.updateOffset(op.getTopicPartition(), op.offset());
-                        pendingFlushQueue.add((KafkaRecord) op);
-                    });
+            task.put(List.of(sinkRecord));
+            currentBatchSize.addAndGet(getRecordSize(op));
+            taskContext.updateOffset(op.getTopicPartition(), op.offset());
+            pendingFlushQueue.add((KafkaRecord) op);
 
         } catch (Exception ex) {
-            log.error("Error sending the records {}", records, ex);
+            log.error("Error sending the record {}", rec, ex);
             this.close();
-            throw new IllegalStateException("Error sending the records", ex);
+            return CompletableFuture.failedFuture(ex);
         }
         flushIfNeeded(false);
+
+        // this is meaningless for this sink, as the sink is handling commits itself
+        return CompletableFuture.completedFuture(null);
     }
 
     private static int getRecordSize(KafkaRecord.KafkaConsumerOffsetProvider r) {
@@ -519,11 +515,6 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         }
 
         log.info("Kafka sink stopped.");
-    }
-
-    @Override
-    public void setCommitCallback(CommitCallback callback) {
-        // useless
     }
 
     @Override

@@ -26,6 +26,7 @@ import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.AgentStatusResponse;
 import ai.langstream.api.runner.code.BadRecordHandler;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
@@ -35,6 +36,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.agent.api.AgentInfoServlet;
 import ai.langstream.runtime.agent.api.GetFromUriServlet;
@@ -58,8 +60,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import lombok.SneakyThrows;
@@ -110,7 +117,7 @@ public class AgentRunner {
             Path codeDirectory,
             Path agentsDirectory,
             AgentInfo agentInfo,
-            int maxLoops,
+            Supplier<Boolean> continueLoop,
             Runnable beforeStopSource,
             boolean startHttpServer)
             throws Exception {
@@ -121,7 +128,7 @@ public class AgentRunner {
                         codeDirectory,
                         agentsDirectory,
                         agentInfo,
-                        maxLoops,
+                        continueLoop,
                         beforeStopSource,
                         startHttpServer);
     }
@@ -132,7 +139,7 @@ public class AgentRunner {
             Path codeDirectory,
             Path agentsDirectory,
             AgentInfo agentInfo,
-            int maxLoops,
+            Supplier<Boolean> continueLoop,
             Runnable beforeStopSource,
             boolean startHttpServer)
             throws Exception {
@@ -170,7 +177,7 @@ public class AgentRunner {
                         server = startHttpServer ? bootstrapHttpServer(agentInfo) : null;
                         runJavaAgent(
                                 configuration,
-                                maxLoops,
+                                continueLoop,
                                 agentId,
                                 topicConnectionsRuntime,
                                 agentCode,
@@ -259,7 +266,7 @@ public class AgentRunner {
 
     private static void runJavaAgent(
             RuntimePodConfiguration configuration,
-            int maxLoops,
+            Supplier<Boolean> continueLoop,
             String agentId,
             TopicConnectionsRuntime topicConnectionsRuntime,
             AgentCodeAndLoader agentCodeWithLoader,
@@ -374,8 +381,18 @@ public class AgentRunner {
                 log.info("Source: {}", source);
                 log.info("Processor: {}", mainProcessor);
                 log.info("Sink: {}", sink);
+                PendingRecordsCounterSource pendingRecordsCounterSource =
+                        new PendingRecordsCounterSource(source);
+                runMainLoop(
+                        pendingRecordsCounterSource,
+                        mainProcessor,
+                        sink,
+                        agentContext,
+                        errorsHandler,
+                        continueLoop);
 
-                runMainLoop(source, mainProcessor, sink, agentContext, errorsHandler, maxLoops);
+                pendingRecordsCounterSource.waitForNoPendingRecords();
+
                 log.info("Main loop ended");
 
             } finally {
@@ -396,6 +413,125 @@ public class AgentRunner {
         }
     }
 
+    private static final class PendingRecordsCounterSource implements AgentSource {
+        private final AgentSource wrapped;
+        private final Set<Record> pendingRecords = ConcurrentHashMap.newKeySet();
+
+        public PendingRecordsCounterSource(AgentSource wrapped) {
+            this.wrapped = wrapped;
+        }
+
+        @Override
+        public String agentId() {
+            return wrapped.agentId();
+        }
+
+        @Override
+        public String agentType() {
+            return wrapped.agentType();
+        }
+
+        @Override
+        public void setMetadata(String id, String agentType, long startedAt) throws Exception {
+            wrapped.setMetadata(id, agentType, startedAt);
+        }
+
+        @Override
+        public void init(Map<String, Object> configuration) throws Exception {
+            wrapped.init(configuration);
+        }
+
+        @Override
+        public void setContext(AgentContext context) throws Exception {
+            wrapped.setContext(context);
+        }
+
+        @Override
+        public void start() throws Exception {
+            wrapped.start();
+        }
+
+        @Override
+        public void close() throws Exception {
+            wrapped.close();
+        }
+
+        @Override
+        public List<AgentStatusResponse> getAgentStatus() {
+            return wrapped.getAgentStatus();
+        }
+
+        @Override
+        public List<Record> read() throws Exception {
+            List<Record> read = wrapped.read();
+            if (read != null) {
+                pendingRecords.addAll(read);
+            }
+            return read;
+        }
+
+        @Override
+        public void commit(List<Record> records) throws Exception {
+            pendingRecords.removeAll(records);
+            wrapped.commit(records);
+        }
+
+        @Override
+        public ComponentType componentType() {
+            return wrapped.componentType();
+        }
+
+        @Override
+        public void permanentFailure(Record record, Exception error) throws Exception {
+            wrapped.permanentFailure(record, error);
+        }
+
+        @Override
+        public String toString() {
+            return wrapped.toString();
+        }
+
+        public void waitForNoPendingRecords() {
+            long start = System.currentTimeMillis();
+            try {
+                while (!pendingRecords.isEmpty()) {
+                    int size = pendingRecords.size();
+                    if (size <= 10) {
+                        log.info(
+                                "Waiting for {} pending records: {}",
+                                pendingRecords.size(),
+                                pendingRecords);
+                    } else {
+                        Record first = null;
+                        try {
+                            first = pendingRecords.iterator().next();
+                        } catch (NoSuchElementException e) {
+                            // ignore
+                        }
+                        log.info(
+                                "Waiting for {} pending records, one of them is {}",
+                                pendingRecords.size(),
+                                first);
+                    }
+
+                    long now = System.currentTimeMillis();
+                    long delta = now - start;
+                    if (delta > 60000) {
+                        log.error(
+                                "Waited for {} pending records for more than 60 seconds, existing anyway",
+                                pendingRecords.size());
+                        return;
+                    }
+
+                    Thread.sleep(1000);
+                }
+            } catch (InterruptedException interruptedException) {
+                // exist the loop on IE
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
     private static BadRecordHandler getBadRecordHandler(
             String onBadRecord, final TopicProducer deadLetterProducer) {
         final BadRecordHandler brh;
@@ -405,7 +541,7 @@ public class AgentRunner {
             brh =
                     (record, t, cleanup) -> {
                         log.info("Sending record to dead letter queue {}", record, t);
-                        deadLetterProducer.write(List.of(record));
+                        deadLetterProducer.write(record).join();
                     };
         } else {
             brh =
@@ -426,7 +562,7 @@ public class AgentRunner {
             AgentSink sink,
             AgentContext agentContext,
             ErrorsHandler errorsHandler,
-            int maxLoops)
+            Supplier<Boolean> continueLoop)
             throws Exception {
         source.setContext(agentContext);
         sink.setContext(agentContext);
@@ -436,12 +572,10 @@ public class AgentRunner {
         function.start();
 
         SourceRecordTracker sourceRecordTracker = new SourceRecordTracker(source);
-        sink.setCommitCallback(sourceRecordTracker);
-
         AtomicReference<Exception> fatalError = new AtomicReference<>();
 
-        List<Record> records = source.read();
-        while ((maxLoops < 0) || (maxLoops-- > 0)) {
+        while (continueLoop.get()) {
+            List<Record> records = source.read();
             if (records != null && !records.isEmpty()) {
                 // in case of permanent FAIL this method will throw an exception
                 runProcessorAgent(
@@ -498,7 +632,6 @@ public class AgentRunner {
                 // and so we bypass the commit
                 sink.commit();
             }
-            records = source.read();
         }
     }
 
@@ -526,52 +659,105 @@ public class AgentRunner {
             ErrorsHandler errorsHandler,
             SourceRecordTracker sourceRecordTracker,
             AgentSource source,
-            AtomicReference<Exception> fatalError)
-            throws Exception {
+            AtomicReference<Exception> fatalError) {
         Record sourceRecord = sourceRecordAndResult.sourceRecord();
-        List<Record> forTheSink = new ArrayList<>(sourceRecordAndResult.resultRecords());
-        while (true) {
-            try {
-                sink.write(forTheSink);
-                return;
-            } catch (Throwable error) {
-                // handle error
-                ErrorsHandler.ErrorsProcessingOutcome action =
-                        errorsHandler.handleErrors(sourceRecord, error);
-                switch (action) {
-                    case SKIP -> {
-                        // skip (the whole batch)
-                        log.error(
-                                "Unrecoverable error while processing the records, skipping",
-                                error);
-                        sourceRecordTracker.commit(forTheSink);
-                        return;
-                    }
-                    case RETRY -> {
-                        log.error("Retryable error while processing the records, retrying", error);
-                        // retry (the whole batch)
-                    }
-                    case FAIL -> {
-                        log.error(
-                                "Unrecoverable error while processing some the records, failing",
-                                error);
-                        PermanentFailureException permanentFailureException =
-                                new PermanentFailureException(error);
-                        source.permanentFailure(sourceRecord, permanentFailureException);
-                        if (errorsHandler.failProcessingOnPermanentErrors()) {
-                            log.error("Failing processing on permanent error");
-                            setFatalError(permanentFailureException, fatalError);
-                        } else {
-                            // in case the source does not throw an exception we mark the record as
-                            // "skipped"
-                            sourceRecordTracker.commit(forTheSink);
-                        }
-                        return;
-                    }
-                    default -> throw new IllegalStateException("Unexpected value: " + action);
-                }
-            }
+        List<Record> toWrite = new ArrayList<>(sourceRecordAndResult.resultRecords());
+        for (Record record : toWrite) {
+            writeRecordToTheSink(
+                    sink,
+                    errorsHandler,
+                    sourceRecordTracker,
+                    source,
+                    fatalError,
+                    sourceRecord,
+                    record);
         }
+    }
+
+    private static void writeRecordToTheSink(
+            AgentSink sink,
+            ErrorsHandler errorsHandler,
+            SourceRecordTracker sourceRecordTracker,
+            AgentSource source,
+            AtomicReference<Exception> fatalError,
+            Record sourceRecord,
+            Record record) {
+        CompletableFuture<?> writeResult = sink.write(record);
+
+        if (sink.handlesCommit()) {
+            // it is the sink that handles the commit
+            // we should not commit the source record or handle failures
+            writeResult.exceptionally(
+                    error -> {
+                        log.error(
+                                "Error while writing record {} on a Sink that handles commits by itself",
+                                record,
+                                error);
+                        setFatalError(error, fatalError);
+                        return null;
+                    });
+            return;
+        }
+
+        writeResult.whenComplete(
+                (___, error) -> {
+                    if (error == null) {
+                        sourceRecordTracker.commit(List.of(record));
+                    } else {
+                        // handle error
+                        ErrorsHandler.ErrorsProcessingOutcome action =
+                                errorsHandler.handleErrors(sourceRecord, error);
+                        switch (action) {
+                            case SKIP -> {
+                                // skip (the whole batch)
+                                log.error(
+                                        "Unrecoverable error while processing the records, skipping",
+                                        error);
+                                sourceRecordTracker.commit(List.of(record));
+                            }
+                            case RETRY -> {
+                                log.error(
+                                        "Retryable error while processing the records, retrying",
+                                        error);
+                                writeRecordToTheSink(
+                                        sink,
+                                        errorsHandler,
+                                        sourceRecordTracker,
+                                        source,
+                                        fatalError,
+                                        sourceRecord,
+                                        record);
+                            }
+                            case FAIL -> {
+                                log.error(
+                                        "Unrecoverable error while processing some the records, failing",
+                                        error);
+                                PermanentFailureException permanentFailureException =
+                                        new PermanentFailureException(error);
+                                try {
+                                    source.permanentFailure(
+                                            sourceRecord, permanentFailureException);
+                                } catch (Exception err) {
+                                    err.addSuppressed(permanentFailureException);
+                                    log.error("Cannot send permanent failure to the source", err);
+                                    setFatalError(err, fatalError);
+                                }
+                                if (errorsHandler.failProcessingOnPermanentErrors()) {
+                                    log.error("Failing processing on permanent error");
+                                    setFatalError(permanentFailureException, fatalError);
+                                } else {
+                                    // in case the source does not throw an exception we mark the
+                                    // record as
+                                    // "skipped"
+                                    sourceRecordTracker.commit(List.of(record));
+                                }
+                                return;
+                            }
+                            default -> throw new IllegalStateException(
+                                    "Unexpected value: " + action);
+                        }
+                    }
+                });
     }
 
     private static void runProcessorAgent(
@@ -647,7 +833,9 @@ public class AgentRunner {
                                 }
                             }
                         } else {
-                            log.info("Passing {} to the Sink", result);
+                            if (log.isDebugEnabled()) {
+                                log.debug("Passing {} to the Sink", result);
+                            }
                             finalSink.emit(result);
                         }
                     } catch (Throwable error) {

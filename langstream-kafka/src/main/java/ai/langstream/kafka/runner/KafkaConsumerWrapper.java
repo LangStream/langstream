@@ -251,11 +251,13 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
             }
             if (offsetAndMetadata != null) {
                 committed.put(topicPartition, offsetAndMetadata);
-                log.info(
-                        "Committing offset {} on partition {} (record: {})",
-                        offset,
-                        topicPartition,
-                        kafkaRecord);
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                            "Committing offset {} on partition {} (record: {})",
+                            offset,
+                            topicPartition,
+                            kafkaRecord);
+                }
             }
             if (!offsetsForPartition.isEmpty()) {
                 log.info(

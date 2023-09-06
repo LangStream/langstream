@@ -17,6 +17,7 @@ package ai.langstream.api.database;
 
 import ai.langstream.api.runner.code.Record;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * This is the interface for writing to a vector database. this interface is really simple by
@@ -31,9 +32,8 @@ public interface VectorDatabaseWriter {
      *
      * @param record the record
      * @param context additional context
-     * @throws Exception if an error occurs
      */
-    void upsert(Record record, Map<String, Object> context) throws Exception;
+    CompletableFuture<?> upsert(Record record, Map<String, Object> context);
 
     default void close() throws Exception {}
 }

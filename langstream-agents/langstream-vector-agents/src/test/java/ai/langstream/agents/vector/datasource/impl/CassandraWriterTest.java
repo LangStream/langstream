@@ -24,10 +24,10 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.CassandraContainer;
@@ -76,13 +76,12 @@ public class CassandraWriterTest {
 
         agent.init(configuration);
         agent.start();
-        List<Record> committed = new ArrayList<>();
-        agent.setCommitCallback(committed::addAll);
+        List<Record> committed = new CopyOnWriteArrayList<>();
 
         Map<String, Object> value =
                 Map.of("id", "1", "description", "test-description", "name", "test-name");
         SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
-        agent.write(List.of(record));
+        agent.write(record).thenRun(() -> committed.add(record)).get();
 
         assertEquals(committed.get(0), record);
         agent.close();
@@ -117,13 +116,12 @@ public class CassandraWriterTest {
 
         agent.init(configuration);
         agent.start();
-        List<Record> committed = new ArrayList<>();
-        agent.setCommitCallback(committed::addAll);
+        List<Record> committed = new CopyOnWriteArrayList<>();
 
         Map<String, Object> value =
                 Map.of("id", "1", "description", "test-description", "name", "test-name");
         SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
-        agent.write(List.of(record));
+        agent.write(record).thenRun(() -> committed.add(record)).get();
 
         assertEquals(committed.get(0), record);
         agent.close();

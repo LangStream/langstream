@@ -18,6 +18,7 @@ package ai.langstream.api.runner.code;
 import ai.langstream.api.runtime.ComponentType;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
 public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
@@ -145,14 +146,9 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
         return new AgentSink() {
 
             @Override
-            public void write(List<Record> records) throws Exception {
-                executeWithContextClassloader(agentCode -> ((AgentSink) agentCode).write(records));
-            }
-
-            @Override
-            public void setCommitCallback(CommitCallback callback) {
-                executeNoExceptionWithContextClassloader(
-                        agentCode -> ((AgentSink) agentCode).setCommitCallback(callback));
+            public CompletableFuture<?> write(Record record) {
+                return callNoExceptionWithContextClassloader(
+                        agentCode -> ((AgentSink) agentCode).write(record));
             }
 
             @Override

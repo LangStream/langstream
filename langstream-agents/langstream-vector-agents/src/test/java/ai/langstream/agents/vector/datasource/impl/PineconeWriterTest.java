@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -65,8 +66,7 @@ class PineconeWriterTest {
 
         agent.init(configuration);
         agent.start();
-        List<Record> committed = new ArrayList<>();
-        agent.setCommitCallback(committed::addAll);
+        List<Record> committed = new CopyOnWriteArrayList<>();
         String genre = "random" + UUID.randomUUID();
         List<Float> vector = new ArrayList<>();
         for (int i = 0; i < 1536; i++) {
@@ -74,7 +74,7 @@ class PineconeWriterTest {
         }
         Map<String, Object> value = Map.of("id", "1", "vector", vector, "genre", genre);
         SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
-        agent.write(List.of(record));
+        agent.write(record).thenRun(() -> committed.add(record)).get();
 
         assertEquals(committed.get(0), record);
         agent.close();

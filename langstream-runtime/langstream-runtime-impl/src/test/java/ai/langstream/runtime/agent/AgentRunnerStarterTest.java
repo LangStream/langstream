@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.function.Supplier;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -88,7 +89,7 @@ class AgentRunnerStarterTest {
                         Mockito.any(),
                         Mockito.any(),
                         Mockito.any(),
-                        Mockito.anyInt(),
+                        Mockito.any(Supplier.class),
                         Mockito.any(),
                         eq(true));
     }

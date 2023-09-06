@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +45,8 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
         AgentContext context = mock(AgentContext.class);
-        AgentRunner.runMainLoop(source, processor, sink, context, errorHandler, 5);
+        AgentRunner.runMainLoop(
+                source, processor, sink, context, errorHandler, source::hasMoreRecords);
         processor.expectExecutions(1);
         source.expectUncommitted(0);
     }
@@ -59,7 +61,14 @@ class AgentRunnerTest {
         AgentContext context = mock(AgentContext.class);
         assertThrows(
                 AgentRunner.PermanentFailureException.class,
-                () -> AgentRunner.runMainLoop(source, processor, sink, context, errorHandler, 5));
+                () ->
+                        AgentRunner.runMainLoop(
+                                source,
+                                processor,
+                                sink,
+                                context,
+                                errorHandler,
+                                source::hasMoreRecords));
         processor.expectExecutions(3);
         source.expectUncommitted(1);
     }
@@ -74,7 +83,14 @@ class AgentRunnerTest {
         AgentContext context = mock(AgentContext.class);
         assertThrows(
                 AgentRunner.PermanentFailureException.class,
-                () -> AgentRunner.runMainLoop(source, processor, sink, context, errorHandler, 5));
+                () ->
+                        AgentRunner.runMainLoop(
+                                source,
+                                processor,
+                                sink,
+                                context,
+                                errorHandler,
+                                source::hasMoreRecords));
         processor.expectExecutions(1);
         source.expectUncommitted(1);
     }
@@ -91,7 +107,8 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
         AgentContext context = mock(AgentContext.class);
-        AgentRunner.runMainLoop(source, processor, sink, context, errorHandler, 5);
+        AgentRunner.runMainLoop(
+                source, processor, sink, context, errorHandler, source::hasMoreRecords);
         processor.expectExecutions(2);
         source.expectUncommitted(0);
     }
@@ -108,7 +125,8 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
         AgentContext context = mock(AgentContext.class);
-        AgentRunner.runMainLoop(source, processor, sink, context, errorHandler, 5);
+        AgentRunner.runMainLoop(
+                source, processor, sink, context, errorHandler, source::hasMoreRecords);
         processor.expectExecutions(2);
         source.expectUncommitted(0);
     }
@@ -126,7 +144,8 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
         AgentContext context = mock(AgentContext.class);
-        AgentRunner.runMainLoop(source, processor, sink, context, errorHandler, 5);
+        AgentRunner.runMainLoop(
+                source, processor, sink, context, errorHandler, source::hasMoreRecords);
         processor.expectExecutions(2);
         source.expectUncommitted(0);
     }
@@ -144,24 +163,17 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
         AgentContext context = mock(AgentContext.class);
-        AgentRunner.runMainLoop(source, processor, sink, context, errorHandler, 5);
+        AgentRunner.runMainLoop(
+                source, processor, sink, context, errorHandler, source::hasMoreRecords);
         // all the records are processed in one batch
         processor.expectExecutions(2);
         source.expectUncommitted(0);
     }
 
     private static class SimpleSink extends AbstractAgentCode implements AgentSink {
-
-        CommitCallback callback;
-
         @Override
-        public void write(List<Record> records) {
-            callback.commit(records);
-        }
-
-        @Override
-        public void setCommitCallback(CommitCallback callback) {
-            this.callback = callback;
+        public CompletableFuture<?> write(Record record) {
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -181,8 +193,12 @@ class AgentRunnerTest {
             this(1, records);
         }
 
+        synchronized boolean hasMoreRecords() {
+            return !records.isEmpty();
+        }
+
         @Override
-        public List<Record> read() {
+        public synchronized List<Record> read() {
             if (records.isEmpty()) {
                 return List.of();
             }
@@ -199,11 +215,11 @@ class AgentRunnerTest {
         }
 
         @Override
-        public void commit(List<Record> records) {
+        public synchronized void commit(List<Record> records) {
             uncommitted.removeAll(records);
         }
 
-        void expectUncommitted(int count) {
+        synchronized void expectUncommitted(int count) {
             assertEquals(count, uncommitted.size());
         }
     }

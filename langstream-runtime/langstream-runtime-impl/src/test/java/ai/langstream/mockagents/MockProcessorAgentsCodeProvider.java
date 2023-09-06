@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -137,7 +138,6 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
         public static final List<Record> acceptedRecords = new CopyOnWriteArrayList<>();
 
         String failOnContent;
-        CommitCallback callback;
 
         @Override
         public void init(Map<String, Object> configuration) {
@@ -146,13 +146,8 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
         }
 
         @Override
-        public void setCommitCallback(CommitCallback callback) {
-            this.callback = callback;
-        }
-
-        @Override
-        public void write(List<Record> records) {
-            for (Record record : records) {
+        public CompletableFuture<?> write(Record record) {
+            try {
                 log.info(
                         "Processing record value {}, failOnContent {}",
                         record.value(),
@@ -166,7 +161,9 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
                     }
                 }
                 acceptedRecords.add(record);
-                callback.commit(List.of(record));
+                return CompletableFuture.completedFuture(null);
+            } catch (Throwable error) {
+                return CompletableFuture.failedFuture(error);
             }
         }
     }

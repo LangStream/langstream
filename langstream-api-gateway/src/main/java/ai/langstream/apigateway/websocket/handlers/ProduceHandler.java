@@ -157,7 +157,7 @@ public class ProduceHandler extends AbstractHandler {
         try {
             final ProduceHandlerRecord record =
                     new ProduceHandlerRecord(produceRequest.key(), produceRequest.value(), headers);
-            topicProducer.write(List.of(record));
+            topicProducer.write(record).get();
             log.info("[{}] Produced record {}", webSocketSession.getId(), record);
         } catch (Throwable tt) {
             sendResponse(webSocketSession, ProduceResponse.Status.PRODUCER_ERROR, tt.getMessage());

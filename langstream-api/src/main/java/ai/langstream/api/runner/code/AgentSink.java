@@ -16,7 +16,7 @@
 package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runtime.ComponentType;
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /** Body of the agent */
 public interface AgentSink extends AgentCode {
@@ -24,21 +24,16 @@ public interface AgentSink extends AgentCode {
     /**
      * The agent processes records and typically writes then to an external service.
      *
-     * @param records the list of input records
+     * @param record the record to write
      * @throws Exception if the agent fails to process the records
+     * @return an handle to the asynchronous write
      */
-    void write(List<Record> records) throws Exception;
+    CompletableFuture<?> write(Record record);
 
     @Override
     default ComponentType componentType() {
         return ComponentType.SINK;
     }
-
-    interface CommitCallback {
-        void commit(List<Record> records);
-    }
-
-    void setCommitCallback(CommitCallback callback);
 
     /**
      * @return true if the agent handles commit of consumed record (e.g. in case of batching)

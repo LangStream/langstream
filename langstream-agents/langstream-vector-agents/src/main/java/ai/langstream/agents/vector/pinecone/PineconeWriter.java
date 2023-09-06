@@ -34,6 +34,7 @@ import io.pinecone.proto.Vector;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
@@ -98,73 +99,81 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
         }
 
         @Override
-        public void upsert(Record record, Map<String, Object> context) {
+        public CompletableFuture<?> upsert(Record record, Map<String, Object> context) {
+            CompletableFuture<?> handle = new CompletableFuture<>();
+            try {
+                TransformContext transformContext =
+                        GenAIToolKitAgent.recordToTransformContext(record, true);
+                String id =
+                        idFunction != null ? (String) idFunction.evaluate(transformContext) : null;
+                String namespace =
+                        namespaceFunction != null
+                                ? (String) namespaceFunction.evaluate(transformContext)
+                                : null;
+                List<Object> vector =
+                        vectorFunction != null
+                                ? (List<Object>) vectorFunction.evaluate(transformContext)
+                                : null;
+                Map<String, Object> metadata =
+                        metadataFunctions.entrySet().stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                Map.Entry::getKey,
+                                                e -> e.getValue().evaluate(transformContext)));
+                Struct metadataStruct =
+                        Struct.newBuilder()
+                                .putAllFields(
+                                        metadata.entrySet().stream()
+                                                .collect(
+                                                        Collectors.toMap(
+                                                                Map.Entry::getKey,
+                                                                e ->
+                                                                        PineconeDataSource
+                                                                                .convertToValue(
+                                                                                        e
+                                                                                                .getValue()))))
+                                .build();
 
-            TransformContext transformContext =
-                    GenAIToolKitAgent.recordToTransformContext(record, true);
-            String id = idFunction != null ? (String) idFunction.evaluate(transformContext) : null;
-            String namespace =
-                    namespaceFunction != null
-                            ? (String) namespaceFunction.evaluate(transformContext)
-                            : null;
-            List<Object> vector =
-                    vectorFunction != null
-                            ? (List<Object>) vectorFunction.evaluate(transformContext)
-                            : null;
-            Map<String, Object> metadata =
-                    metadataFunctions.entrySet().stream()
-                            .collect(
-                                    Collectors.toMap(
-                                            Map.Entry::getKey,
-                                            e -> e.getValue().evaluate(transformContext)));
-            Struct metadataStruct =
-                    Struct.newBuilder()
-                            .putAllFields(
-                                    metadata.entrySet().stream()
-                                            .collect(
-                                                    Collectors.toMap(
-                                                            Map.Entry::getKey,
-                                                            e ->
-                                                                    PineconeDataSource
-                                                                            .convertToValue(
-                                                                                    e.getValue()))))
-                            .build();
+                List<Float> vectorFloat = null;
+                if (vector != null) {
+                    vectorFloat =
+                            vector.stream()
+                                    .map(
+                                            n -> {
+                                                if (n instanceof String s) {
+                                                    return Float.parseFloat(s);
+                                                } else if (n instanceof Number u) {
+                                                    return u.floatValue();
+                                                } else {
+                                                    throw new IllegalArgumentException(
+                                                            "only vectors of floats are supported");
+                                                }
+                                            })
+                                    .collect(Collectors.toList());
+                }
 
-            List<Float> vectorFloat = null;
-            if (vector != null) {
-                vectorFloat =
-                        vector.stream()
-                                .map(
-                                        n -> {
-                                            if (n instanceof String s) {
-                                                return Float.parseFloat(s);
-                                            } else if (n instanceof Number u) {
-                                                return u.floatValue();
-                                            } else {
-                                                throw new IllegalArgumentException(
-                                                        "only vectors of floats are supported");
-                                            }
-                                        })
-                                .collect(Collectors.toList());
+                Vector v1 =
+                        Vector.newBuilder()
+                                .setId(id)
+                                .addAllValues(vectorFloat)
+                                .setMetadata(metadataStruct)
+                                .build();
+
+                UpsertRequest.Builder builder = UpsertRequest.newBuilder().addVectors(v1);
+
+                if (namespace != null) {
+                    builder.setNamespace(namespace);
+                }
+                UpsertRequest upsertRequest = builder.build();
+
+                UpsertResponse upsertResponse = connection.getBlockingStub().upsert(upsertRequest);
+
+                log.info("Result {}", upsertResponse);
+                handle.complete(null);
+            } catch (Exception e) {
+                handle.completeExceptionally(e);
             }
-
-            Vector v1 =
-                    Vector.newBuilder()
-                            .setId(id)
-                            .addAllValues(vectorFloat)
-                            .setMetadata(metadataStruct)
-                            .build();
-
-            UpsertRequest.Builder builder = UpsertRequest.newBuilder().addVectors(v1);
-
-            if (namespace != null) {
-                builder.setNamespace(namespace);
-            }
-            UpsertRequest upsertRequest = builder.build();
-
-            UpsertResponse upsertResponse = connection.getBlockingStub().upsert(upsertRequest);
-
-            log.info("Result {}", upsertResponse);
+            return handle;
         }
     }
 

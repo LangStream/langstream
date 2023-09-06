@@ -29,7 +29,6 @@ import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.pulsar.PulsarClientUtils;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -313,29 +312,25 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             }
 
             @Override
-            public void write(List<Record> records) {
-                totalIn.addAndGet(records.size());
-                List<CompletableFuture<?>> handles = new ArrayList<>();
-                for (Record r : records) {
-                    log.info("Writing message {}", r);
-                    // TODO: handle KV
-                    handles.add(
-                            producer.newMessage()
-                                    .key(r.key() != null ? r.key().toString() : null)
-                                    .value(convertValue(r))
-                                    .properties(
-                                            r.headers().stream()
-                                                    .collect(
-                                                            Collectors.toMap(
-                                                                    Header::key,
-                                                                    h ->
-                                                                            h.value() != null
-                                                                                    ? h.value()
-                                                                                            .toString()
-                                                                                    : null)))
-                                    .sendAsync());
-                }
-                CompletableFuture.allOf(handles.toArray(new CompletableFuture[0])).join();
+            public CompletableFuture<?> write(Record r) {
+                totalIn.addAndGet(1);
+
+                log.info("Writing message {}", r);
+                // TODO: handle KV
+
+                return producer.newMessage()
+                        .key(r.key() != null ? r.key().toString() : null)
+                        .value(convertValue(r))
+                        .properties(
+                                r.headers().stream()
+                                        .collect(
+                                                Collectors.toMap(
+                                                        Header::key,
+                                                        h ->
+                                                                h.value() != null
+                                                                        ? h.value().toString()
+                                                                        : null)))
+                        .sendAsync();
             }
 
             private K convertValue(Record r) {

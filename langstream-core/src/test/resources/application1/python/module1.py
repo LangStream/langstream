@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+
 class MyFunction:
-  def process(records):
-    return records
+    def process(records):
+        return records

@@ -1168,46 +1168,46 @@ class ProduceConsumeHandlerTest {
         CountDownLatch countDownLatch = new CountDownLatch(5);
         List<String> messages = new ArrayList<>();
         try (final TestWebSocketClient consumerClient =
-                     new TestWebSocketClient(
-                             new TestWebSocketClient.Handler() {
-                                 @Override
-                                 public void onMessage(String msg) {
-                                     messages.add(msg);
-                                     countDownLatch.countDown();
-                                 }
+                new TestWebSocketClient(
+                                new TestWebSocketClient.Handler() {
+                                    @Override
+                                    public void onMessage(String msg) {
+                                        messages.add(msg);
+                                        countDownLatch.countDown();
+                                    }
 
-                                 @Override
-                                 public void onOpen(Session session) {
-                                     consumerReady.countDown();
-                                 }
+                                    @Override
+                                    public void onOpen(Session session) {
+                                        consumerReady.countDown();
+                                    }
 
-                                 @Override
-                                 public void onClose(CloseReason closeReason) {
-                                     countDownLatch.countDown();
-                                 }
+                                    @Override
+                                    public void onClose(CloseReason closeReason) {
+                                        countDownLatch.countDown();
+                                    }
 
-                                 @Override
-                                 public void onError(Throwable throwable) {
-                                     countDownLatch.countDown();
-                                 }
-                             })
-                             .connect(
-                                     URI.create(
-                                             "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:p=consumer"
-                                                     .formatted(port)))) {
+                                    @Override
+                                    public void onError(Throwable throwable) {
+                                        countDownLatch.countDown();
+                                    }
+                                })
+                        .connect(
+                                URI.create(
+                                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:p=consumer"
+                                                .formatted(port)))) {
             consumerReady.await();
 
             try (final TestWebSocketClient producer =
-                         new TestWebSocketClient(TestWebSocketClient.NOOP)
-                                 .connect(
-                                         URI.create(
-                                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:p=producer"
-                                                         .formatted(port)))) {
+                    new TestWebSocketClient(TestWebSocketClient.NOOP)
+                            .connect(
+                                    URI.create(
+                                            "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:p=producer"
+                                                    .formatted(port)))) {
                 final ProduceRequest produceRequest =
                         new ProduceRequest(null, "this is a message", null);
                 produce(produceRequest, producer);
             }
-            new TestWebSocketClient(new TestWebSocketClient.Handler(){})
+            new TestWebSocketClient(new TestWebSocketClient.Handler() {})
                     .connect(
                             URI.create(
                                     "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:p=consumer1"
@@ -1220,7 +1220,7 @@ class ProduceConsumeHandlerTest {
             ConsumePushMessage msg = MAPPER.readValue(messages.get(0), ConsumePushMessage.class);
             EventRecord event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
             assertEquals(EventRecord.Categories.Gateway, event.getCategory());
-            assertEquals(EventRecord.Types.ClientConnected +"", event.getType());
+            assertEquals(EventRecord.Types.ClientConnected + "", event.getType());
             EventSources.GatewaySource source =
                     MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
             assertEquals("tenant1", source.getTenant());
@@ -1235,8 +1235,7 @@ class ProduceConsumeHandlerTest {
             event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
             assertEquals(EventRecord.Categories.Gateway, event.getCategory());
             assertEquals(EventRecord.Types.ClientConnected + "", event.getType());
-            source =
-                    MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
             assertEquals("tenant1", source.getTenant());
             assertEquals("application1", source.getApplicationId());
             assertEquals("produce", source.getGateway().id());
@@ -1249,8 +1248,7 @@ class ProduceConsumeHandlerTest {
             event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
             assertEquals(EventRecord.Categories.Gateway, event.getCategory());
             assertEquals(EventRecord.Types.ClientDisconnected + "", event.getType());
-            source =
-                    MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
             assertEquals("tenant1", source.getTenant());
             assertEquals("application1", source.getApplicationId());
             assertEquals("produce", source.getGateway().id());
@@ -1259,13 +1257,11 @@ class ProduceConsumeHandlerTest {
             assertEquals(0, data.getOptions().size());
             assertTrue(event.getTimestamp() > 0);
 
-
             msg = MAPPER.readValue(messages.get(3), ConsumePushMessage.class);
             event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
             assertEquals(EventRecord.Categories.Gateway, event.getCategory());
             assertEquals(EventRecord.Types.ClientConnected + "", event.getType());
-            source =
-                    MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
             assertEquals("tenant1", source.getTenant());
             assertEquals("application1", source.getApplicationId());
             assertEquals("consume", source.getGateway().id());
@@ -1273,14 +1269,12 @@ class ProduceConsumeHandlerTest {
             assertEquals("consumer1", data.getUserParameters().get("p"));
             assertEquals(0, data.getOptions().size());
             assertTrue(event.getTimestamp() > 0);
-
 
             msg = MAPPER.readValue(messages.get(4), ConsumePushMessage.class);
             event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
             assertEquals(EventRecord.Categories.Gateway, event.getCategory());
             assertEquals(EventRecord.Types.ClientDisconnected + "", event.getType());
-            source =
-                    MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
             assertEquals("tenant1", source.getTenant());
             assertEquals("application1", source.getApplicationId());
             assertEquals("consume", source.getGateway().id());
@@ -1288,7 +1282,6 @@ class ProduceConsumeHandlerTest {
             assertEquals("consumer1", data.getUserParameters().get("p"));
             assertEquals(0, data.getOptions().size());
             assertTrue(event.getTimestamp() > 0);
-
         }
     }
 }

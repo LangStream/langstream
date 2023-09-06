@@ -50,9 +50,11 @@ public class TestWebSocketClient implements AutoCloseable {
             log.info("onOpen client: {}", session.getId());
         }
 
-        default void onMessage(String msg) {};
+        default void onMessage(String msg) {}
+        ;
 
-        default void onClose(CloseReason closeReason) {};
+        default void onClose(CloseReason closeReason) {}
+        ;
 
         default void onError(Throwable throwable) {
             throw new RuntimeException(throwable);

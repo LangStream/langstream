@@ -16,6 +16,7 @@
 package ai.langstream.impl.common;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Resource;
 import ai.langstream.impl.parser.ModelBuilder;
@@ -104,8 +105,7 @@ class ApplicationPlaceholderResolverTest {
                 ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
         final Resource resource = resolved.getResources().get("openai-azure");
         assertEquals("my-access-key", resource.configuration().get("credentials"));
-        assertEquals(
-                "http://myurl.localhost:8080/endpoint", resource.configuration().get("url"));
+        assertEquals("http://myurl.localhost:8080/endpoint", resource.configuration().get("url"));
     }
 
     @Test

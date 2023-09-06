@@ -40,7 +40,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -70,9 +69,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     abstract String gatewayFromPath(
             Map<String, String> parsedPath, Map<String, String> queryString);
 
-    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext gatewayRequestContext, Map<String, Object> attributes)
-            throws Exception {
-    }
+    public void onBeforeHandshakeCompleted(
+            AuthenticatedGatewayRequestContext gatewayRequestContext,
+            Map<String, Object> attributes)
+            throws Exception {}
 
     abstract void onOpen(
             WebSocketSession webSocketSession,
@@ -277,8 +277,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
     protected void recordCloseableResource(
             Map<String, Object> attributes, AutoCloseable... closeables) {
-        List<AutoCloseable> currentCloseable =
-                (List<AutoCloseable>) attributes.get("closeables");
+        List<AutoCloseable> currentCloseable = (List<AutoCloseable>) attributes.get("closeables");
 
         if (currentCloseable == null) {
             currentCloseable = new ArrayList<>();
@@ -320,36 +319,40 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         if (gateway.eventsTopic() == null) {
             return;
         }
-        final StreamingCluster streamingCluster = context.application().getInstance().streamingCluster();
+        final StreamingCluster streamingCluster =
+                context.application().getInstance().streamingCluster();
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
 
-        try (final TopicProducer producer = topicConnectionsRuntime.createProducer("langstream-events",
-                streamingCluster, Map.of("topic", gateway.eventsTopic()));) {
+        try (final TopicProducer producer =
+                topicConnectionsRuntime.createProducer(
+                        "langstream-events",
+                        streamingCluster,
+                        Map.of("topic", gateway.eventsTopic())); ) {
             producer.start();
 
-            final EventSources.GatewaySource source = EventSources.GatewaySource.builder()
-                    .tenant(context.tenant())
-                    .applicationId(context.applicationId())
-                    .gateway(gateway)
-                    .build();
+            final EventSources.GatewaySource source =
+                    EventSources.GatewaySource.builder()
+                            .tenant(context.tenant())
+                            .applicationId(context.applicationId())
+                            .gateway(gateway)
+                            .build();
 
+            final GatewayEventData data =
+                    GatewayEventData.builder()
+                            .userParameters(context.userParameters())
+                            .options(context.options())
+                            // TODO: http headers
+                            .build();
 
-            final GatewayEventData data = GatewayEventData
-                    .builder()
-                    .userParameters(context.userParameters())
-                    .options(context.options())
-                    // TODO: http headers
-                    .build();
-
-
-            final EventRecord event = EventRecord.builder()
-                    .category(EventRecord.Categories.Gateway)
-                    .type(type.toString())
-                    .timestamp(System.currentTimeMillis())
-                    .source(mapper.convertValue(source, Map.class))
-                    .data(mapper.convertValue(data, Map.class))
-                    .build();
+            final EventRecord event =
+                    EventRecord.builder()
+                            .category(EventRecord.Categories.Gateway)
+                            .type(type.toString())
+                            .timestamp(System.currentTimeMillis())
+                            .source(mapper.convertValue(source, Map.class))
+                            .data(mapper.convertValue(data, Map.class))
+                            .build();
 
             final String recordValue = mapper.writeValueAsString(event);
 
@@ -358,8 +361,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                     .value(recordValue)
                     .build();
             producer.write(record).get();
-            log.info("sent event {}", recordValue);
+            log.info("sent event {}", recordValue);AbstractHandler.
         }
     }
-
 }

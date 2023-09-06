@@ -20,7 +20,6 @@ import static ai.langstream.apigateway.websocket.WebSocketConfig.PRODUCE_PATH;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.Header;
-import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicProducer;
@@ -37,8 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -77,12 +74,13 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
-    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext context, Map<String, Object> attributes) throws Exception {
+    public void onBeforeHandshakeCompleted(
+            AuthenticatedGatewayRequestContext context, Map<String, Object> attributes)
+            throws Exception {
         Gateway gateway = context.gateway();
 
         final List<Header> headers =
-                getCommonHeaders(
-                        gateway, context.userParameters(), context.principalValues());
+                getCommonHeaders(gateway, context.userParameters(), context.principalValues());
         final StreamingCluster streamingCluster =
                 context.application().getInstance().streamingCluster();
 
@@ -92,9 +90,7 @@ public class ProduceHandler extends AbstractHandler {
         final String topicName = gateway.topic();
         final TopicProducer producer =
                 topicConnectionsRuntime.createProducer(
-                        null,
-                        streamingCluster,
-                        Map.of("topic", topicName));
+                        null, streamingCluster, Map.of("topic", topicName));
         recordCloseableResource(attributes, producer);
         producer.start();
 
@@ -110,8 +106,8 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
-    public void onOpen(WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) {
-    }
+    public void onOpen(
+            WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) {}
 
     @Override
     public void onMessage(

@@ -26,12 +26,9 @@ public record Gateway(
         String topic,
         Authentication authentication,
         List<String> parameters,
-        @JsonAlias({"produce-options"})
-        ProduceOptions produceOptions,
-        @JsonAlias({"consume-options"})
-        ConsumeOptions consumeOptions,
-        @JsonProperty("events-topic")
-        String eventsTopic) {
+        @JsonAlias({"produce-options"}) ProduceOptions produceOptions,
+        @JsonAlias({"consume-options"}) ConsumeOptions consumeOptions,
+        @JsonProperty("events-topic") String eventsTopic) {
     public enum GatewayType {
         produce,
         consume

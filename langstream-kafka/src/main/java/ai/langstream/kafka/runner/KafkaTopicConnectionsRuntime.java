@@ -74,7 +74,8 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         copy.putIfAbsent("auto.offset.reset", "earliest");
     }
 
-    private static void applyDefaultConfiguration(StreamingCluster streamingCluster, Map<String, Object> copy) {
+    private static void applyDefaultConfiguration(
+            StreamingCluster streamingCluster, Map<String, Object> copy) {
         KafkaClusterRuntimeConfiguration configuration =
                 KafkaStreamingClusterRuntime.getKafkaClusterRuntimeConfiguration(streamingCluster);
         copy.putAll(configuration.getAdmin());

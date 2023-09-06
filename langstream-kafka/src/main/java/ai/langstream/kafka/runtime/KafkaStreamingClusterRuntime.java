@@ -68,6 +68,10 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
             adminConfig = new HashMap<>();
         }
         log.info("SchemaRegistry client configuration: {}", adminConfig);
+        if (!adminConfig.containsKey("schema.registry.url")) {
+            throw new IllegalArgumentException(
+                    "Missing 'schema.registry.url' property in streaming cluster configuration admin section");
+        }
         return new CachedSchemaRegistryClient(
                 adminConfig.get("schema.registry.url").toString(), 1000);
     }

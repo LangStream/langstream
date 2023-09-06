@@ -26,13 +26,28 @@ from sortedcontainers import SortedSet
 from langstream import Record, CommitCallback, SimpleRecord
 from .kafka_serialization import (
     STRING_SERIALIZER,
-    DOUBLE_SERIALIZER,
-    LONG_SERIALIZER,
     BOOLEAN_SERIALIZER,
+    SHORT_SERIALIZER,
+    INTEGER_SERIALIZER,
+    LONG_SERIALIZER,
+    FLOAT_SERIALIZER,
+    DOUBLE_SERIALIZER,
+    BYTEARRAY_SERIALIZER,
 )
 from .topic_connector import TopicConsumer, TopicProducer
 
 STRING_DESERIALIZER = StringDeserializer()
+
+SERIALIZERS = {
+    "org.apache.kafka.common.serialization.StringSerializer": STRING_SERIALIZER,
+    "org.apache.kafka.common.serialization.BooleanSerializer": BOOLEAN_SERIALIZER,
+    "org.apache.kafka.common.serialization.ShortSerializer": SHORT_SERIALIZER,
+    "org.apache.kafka.common.serialization.IntegerSerializer": INTEGER_SERIALIZER,
+    "org.apache.kafka.common.serialization.LongSerializer": LONG_SERIALIZER,
+    "org.apache.kafka.common.serialization.FloatSerializer": FLOAT_SERIALIZER,
+    "org.apache.kafka.common.serialization.DoubleSerializer": DOUBLE_SERIALIZER,
+    "org.apache.kafka.common.serialization.ByteArraySerializer": BYTEARRAY_SERIALIZER,
+}
 
 
 def apply_default_configuration(streaming_cluster, configs):
@@ -308,8 +323,8 @@ class KafkaTopicProducer(TopicProducer):
     def __init__(self, configs):
         self.configs = configs.copy()
         self.topic = self.configs.pop("topic")
-        self.key_serializer = self.configs.pop("key.serializer")
-        self.value_serializer = self.configs.pop("value.serializer")
+        self.key_serializer = SERIALIZERS[self.configs.pop("key.serializer")]
+        self.value_serializer = SERIALIZERS[self.configs.pop("value.serializer")]
         self.producer: Optional[Producer] = None
         self.commit_callback: Optional[CommitCallback] = None
         self.delivery_failure: Optional[Exception] = None
@@ -342,8 +357,8 @@ class KafkaTopicProducer(TopicProducer):
                         )
             self.producer.produce(
                 self.topic,
-                value=STRING_SERIALIZER(record.value()),
-                key=STRING_SERIALIZER(record.key()),
+                value=self.value_serializer(record.value()),
+                key=self.key_serializer(record.key()),
                 headers=headers,
                 on_delivery=self.on_delivery,
             )

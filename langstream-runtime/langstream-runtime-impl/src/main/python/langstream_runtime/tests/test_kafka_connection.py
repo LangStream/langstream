@@ -82,7 +82,7 @@ def test_kafka_topic_connection():
                 agentId: testAgentId
                 configuration:
                     className: langstream_runtime.tests.test_kafka_connection.TestSuccessProcessor
-            """  # noqa
+            """  # noqa: E501
 
         config = yaml.safe_load(config_yaml)
 
@@ -241,7 +241,7 @@ def test_kafka_dlq():
             errorHandlerConfiguration:
                 retries: 5
                 onFailure: dead-letter
-        """  # noqa
+        """  # noqa: E501
 
         config = yaml.safe_load(config_yaml)
 
@@ -291,6 +291,60 @@ def test_producer_error():
     sink.start()
     with pytest.raises(KafkaException):
         sink.write([SimpleRecord("will fail")])
+
+
+def test_producer_serializers():
+    with KafkaContainer(image=KAFKA_IMAGE) as container:
+        bootstrap_server = container.get_bootstrap_server()
+
+        consumer = Consumer(
+            {
+                "bootstrap.servers": bootstrap_server,
+                "group.id": "foo",
+                "auto.offset.reset": "earliest",
+            }
+        )
+        consumer.subscribe([OUTPUT_TOPIC])
+
+        config_yaml = f"""
+                streamingCluster:
+                    type: kafka
+                    configuration:
+                        admin:
+                            bootstrap.servers: {bootstrap_server}
+                """
+
+        config = yaml.safe_load(config_yaml)
+
+        for serializer, record_value, message_value in [
+            ("StringSerializer", "test", b"test"),
+            ("BooleanSerializer", True, b"\x01"),
+            ("ShortSerializer", 42, b"\x00\x2A"),
+            ("IntegerSerializer", 42, b"\x00\x00\x00\x2A"),
+            ("LongSerializer", 42, b"\x00\x00\x00\x00\x00\x00\x00\x2A"),
+            ("FloatSerializer", 42.0, b"\x42\x28\x00\x00"),
+            ("DoubleSerializer", 42.0, b"\x40\x45\x00\x00\x00\x00\x00\x00"),
+            ("ByteArraySerializer", b"test", b"test"),
+        ]:
+            sink = kafka_connection.create_topic_producer(
+                "id",
+                config["streamingCluster"],
+                {
+                    "topic": OUTPUT_TOPIC,
+                    "key.serializer": "org.apache.kafka.common.serialization."
+                    + serializer,
+                    "value.serializer": "org.apache.kafka.common.serialization."
+                    + serializer,
+                },
+            )
+            sink.start()
+            sink.write([SimpleRecord(record_value, key=record_value)])
+
+            message = consumer.poll(5)
+            assert message.value() == message_value
+            assert message.key() == message_value
+
+            sink.close()
 
 
 class TestSuccessProcessor(SingleRecordProcessor):

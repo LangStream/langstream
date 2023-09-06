@@ -312,13 +312,15 @@ class KafkaTopicProducer(TopicProducer):
         self.value_serializer = self.configs.pop("value.serializer")
         self.producer: Optional[Producer] = None
         self.commit_callback: Optional[CommitCallback] = None
+        self.delivery_failure: Optional[Exception] = None
 
     def start(self):
         self.producer = Producer(self.configs)
 
     def write(self, records: List[Record]):
         for record in records:
-            # TODO: handle send errors
+            if self.delivery_failure:
+                raise self.delivery_failure
             logging.info(f"Sending record {record}")
             headers = []
             if record.headers():
@@ -343,8 +345,15 @@ class KafkaTopicProducer(TopicProducer):
                 value=STRING_SERIALIZER(record.value()),
                 key=STRING_SERIALIZER(record.key()),
                 headers=headers,
+                on_delivery=self.on_delivery,
             )
         self.producer.flush()
+        if self.delivery_failure:
+            raise self.delivery_failure
 
     def get_native_producer(self) -> Any:
         return self.producer
+
+    def on_delivery(self, error, _):
+        if error and not self.delivery_failure:
+            self.delivery_failure = KafkaException(error)

@@ -20,7 +20,7 @@ from typing import List
 import pytest
 import waiting
 import yaml
-from confluent_kafka import Consumer, Producer, TopicPartition
+from confluent_kafka import Consumer, Producer, TopicPartition, KafkaException
 from confluent_kafka.serialization import StringDeserializer, StringSerializer
 from kafka import KafkaConsumer
 from kafka.errors import KafkaError, UnrecognizedBrokerVersion, NoBrokersAvailable
@@ -271,6 +271,26 @@ def test_kafka_dlq():
             assert StringDeserializer()(msg.value()) == "verification message"
         finally:
             consumer.close()
+
+
+def test_producer_error():
+    config_yaml = """
+            streamingCluster:
+                type: kafka
+                configuration:
+                    admin:
+                        bootstrap.servers: 127.0.0.1:1234
+            """
+
+    config = yaml.safe_load(config_yaml)
+    sink = kafka_connection.create_topic_producer(
+        "id",
+        config["streamingCluster"],
+        {"topic": OUTPUT_TOPIC, "delivery.timeout.ms": 1},
+    )
+    sink.start()
+    with pytest.raises(KafkaException):
+        sink.write([SimpleRecord("will fail")])
 
 
 class TestSuccessProcessor(SingleRecordProcessor):

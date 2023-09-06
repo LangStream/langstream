@@ -15,7 +15,9 @@
  */
 package ai.langstream.api.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,6 +31,8 @@ public class Module {
     private final Map<String, Pipeline> pipelines = new HashMap<>();
 
     private final Map<String, TopicDefinition> topics = new HashMap<>();
+    // the order of assets is important, there may be some dependencies between them
+    private final List<AssetDefinition> assets = new ArrayList<>();
 
     public Module(String id) {
         this.id = id;
@@ -42,6 +46,22 @@ public class Module {
         Pipeline p = new Pipeline(pipelineId, id);
         pipelines.put(pipelineId, p);
         return p;
+    }
+
+    public AssetDefinition addAsset(AssetDefinition assetDefinition) {
+        final String topicName = assetDefinition.getName();
+        TopicDefinition existing = topics.get(topicName);
+        if (existing != null) {
+            // allow to declare the same topic in multiple pipelines of the same module
+            // but only if the definition is the same
+            if (!existing.equals(assetDefinition)) {
+                throw new IllegalArgumentException(
+                        "Pipeline " + topicName + " already exists in module " + id);
+            }
+            return existing;
+        }
+        topics.put(topicName, assetDefinition);
+        return assetDefinition;
     }
 
     public TopicDefinition addTopic(TopicDefinition topicDefinition) {

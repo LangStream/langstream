@@ -315,9 +315,6 @@ class KubernetesClusterRuntimeDockerTest {
                                         "java-%s-%s-%s".formatted(tenant, applicationId, last));
                                 return new ApplicationCodeInfo(digests);
                             }
-
-                            @Override
-                            public void close() throws Exception {}
                         });
 
         ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);

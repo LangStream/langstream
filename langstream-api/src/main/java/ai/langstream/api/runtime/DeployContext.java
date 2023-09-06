@@ -15,10 +15,20 @@
  */
 package ai.langstream.api.runtime;
 
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 
 public interface DeployContext extends AutoCloseable {
 
-    ApplicationCodeInfo getApplicationCodeInfo(
-            String tenant, String applicationId, String codeArchiveId);
+    default ApplicationCodeInfo getApplicationCodeInfo(
+            String tenant, String applicationId, String codeArchiveId) {
+        throw new UnsupportedOperationException();
+    }
+
+    default AssetManagerRegistry getAssetManagerRegistry() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default void close() {}
 }

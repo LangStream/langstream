@@ -13,15 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.runtime.api.agent;
+package ai.langstream.api.runner.assets;
 
-import ai.langstream.api.model.StreamingCluster;
-import java.util.List;
-import java.util.Map;
+import ai.langstream.api.model.AssetDefinition;
 
-public record RuntimePodConfiguration(
-        Map<String, Object> input,
-        Map<String, Object> output,
-        AgentSpec agent,
-        StreamingCluster streamingCluster,
-        List<Map<String, Object>> assets) {}
+/** Body of the agent */
+public interface AssetManager {
+
+    boolean assetExists(AssetDefinition assetDefinition) throws Exception;
+
+    void deployAsset(AssetDefinition assetDefinition) throws Exception;
+
+    default void close() throws Exception {}
+}

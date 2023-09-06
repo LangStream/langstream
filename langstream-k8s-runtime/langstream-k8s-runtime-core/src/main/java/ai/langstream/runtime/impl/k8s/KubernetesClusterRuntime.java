@@ -15,7 +15,10 @@
  */
 package ai.langstream.runtime.impl.k8s;
 
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.ErrorsSpec;
+import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.DeployContext;
@@ -89,20 +92,30 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
     @SneakyThrows
     public Object deploy(
             String tenant,
-            ExecutionPlan applicationInstance,
+            ExecutionPlan executionPlan,
             StreamingClusterRuntime streamingClusterRuntime,
             String codeStorageArchiveId,
             DeployContext deployContext) {
-        streamingClusterRuntime.deploy(applicationInstance);
+
+        // this code is executed in the application setup job, that is a process with admin
+        // privileges
+        // this code must never run custom code imported from the application (like Jars or Py).
+
+        // deploy topics
+        streamingClusterRuntime.deploy(executionPlan);
+
+        List<Map<String, Object>> assets = collectAssets(executionPlan);
+
         List<AgentCustomResource> agentCustomResources = new ArrayList<>();
         List<Secret> secrets = new ArrayList<>();
         collectAgentCustomResourcesAndSecrets(
                 tenant,
                 agentCustomResources,
                 secrets,
-                applicationInstance,
+                executionPlan,
                 streamingClusterRuntime,
-                codeStorageArchiveId);
+                codeStorageArchiveId,
+                assets);
         final String namespace = computeNamespace(tenant);
 
         for (Secret secret : secrets) {
@@ -117,7 +130,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 final String codeArchiveId =
                         tryKeepPreviousCodeArchiveId(
                                 tenant,
-                                applicationInstance.getApplicationId(),
+                                executionPlan.getApplicationId(),
                                 codeStorageArchiveId,
                                 existing.getSpec().getCodeArchiveId(),
                                 deployContext);
@@ -129,6 +142,50 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     agentCustomResource.getMetadata().getName());
         }
         return null;
+    }
+
+    private static Map<String, Object> planAsset(
+            AssetDefinition assetDefinition, Application application) {
+        Map<String, Resource> resources = application.getResources();
+        Map<String, Object> asset = new HashMap<>();
+        asset.put("id", assetDefinition.getId());
+        asset.put("name", assetDefinition.getName());
+        asset.put("asset-type", assetDefinition.getAssetType());
+        asset.put("creation-mode", assetDefinition.getCreationMode());
+        Map<String, Object> configuration = new HashMap<>();
+        if (assetDefinition.getConfig() != null) {
+            assetDefinition
+                    .getConfig()
+                    .forEach(
+                            (key, value) -> {
+
+                                // automatically resolve resource references
+                                // should we do it depending on the asset type ?
+                                if (value instanceof String resourceId) {
+                                    Resource resource = resources.get(resourceId);
+                                    if (resource != null) {
+                                        value = resource;
+                                    }
+                                }
+                                configuration.put(key, value);
+                            });
+        }
+        return asset;
+    }
+
+    private List<Map<String, Object>> collectAssets(ExecutionPlan executionPlan) {
+        List<Map<String, Object>> assets = new ArrayList<>();
+        if (executionPlan.getAssets() != null) {
+            executionPlan
+                    .getAssets()
+                    .forEach(
+                            (assetDefinition) -> {
+                                Map<String, Object> asset =
+                                        planAsset(assetDefinition, executionPlan.getApplication());
+                                assets.add(asset);
+                            });
+        }
+        return assets;
     }
 
     static String tryKeepPreviousCodeArchiveId(
@@ -222,7 +279,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             List<Secret> secrets,
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId) {
+            String codeStorageArchiveId,
+            List<Map<String, Object>> assets) {
         for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
             collectAgentCustomResourceAndSecret(
                     tenant,
@@ -231,7 +289,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     agentImplementation,
                     streamingClusterRuntime,
                     applicationInstance,
-                    codeStorageArchiveId);
+                    codeStorageArchiveId,
+                    assets);
         }
     }
 
@@ -243,7 +302,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             AgentNode agent,
             StreamingClusterRuntime streamingClusterRuntime,
             ExecutionPlan applicationInstance,
-            String codeStorageArchiveId) {
+            String codeStorageArchiveId,
+            List<Map<String, Object>> assets) {
         log.info(
                 "Building configuration for Agent {}, codeStorageArchiveId {}",
                 agent,
@@ -298,7 +358,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                                 defaultAgentImplementation.getAgentType(),
                                 defaultAgentImplementation.getConfiguration(),
                                 errorsConfiguration),
-                        streamingCluster);
+                        streamingCluster,
+                        assets);
 
         final Secret secret =
                 AgentResourcesFactory.generateAgentSecret(
@@ -364,7 +425,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 secrets,
                 applicationInstance,
                 streamingClusterRuntime,
-                codeStorageArchiveId);
+                codeStorageArchiveId,
+                List.of()); // no assets here
         final String namespace = computeNamespace(tenant);
 
         for (Secret secret : secrets) {

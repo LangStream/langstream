@@ -138,7 +138,7 @@ public class RuntimeDeployer {
         }
 
         @Override
-        public void close() throws Exception {
+        public void close() {
             if (adminClient != null) {
                 adminClient.close();
             }

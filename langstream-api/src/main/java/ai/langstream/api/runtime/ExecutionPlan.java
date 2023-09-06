@@ -16,6 +16,7 @@
 package ai.langstream.api.runtime;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
@@ -32,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 public final class ExecutionPlan {
 
     private final Map<TopicDefinition, Topic> topics = new HashMap<>();
+    private final List<AssetDefinition> assets = new ArrayList<>();
     private final Map<String, AgentNode> agents = new HashMap<>();
     private final String applicationId;
     private final Application application;
@@ -144,5 +146,13 @@ public final class ExecutionPlan {
                 .findFirst()
                 .map(Map.Entry::getKey)
                 .orElse(null);
+    }
+
+    public List<AssetDefinition> getAssets() {
+        return assets;
+    }
+
+    public void registerAsset(AssetDefinition asset) {
+        assets.add(asset);
     }
 }

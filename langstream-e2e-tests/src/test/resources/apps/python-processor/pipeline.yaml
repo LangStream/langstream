@@ -21,8 +21,16 @@ name: "Exclamation processor"
 topics:
   - name: TEST_TOPIC_0
     creation-mode: create-if-not-exists
+    schema:
+      type: string
+    keySchema:
+      type: string
   - name: TEST_TOPIC_1
     creation-mode: create-if-not-exists
+    schema:
+      type: string
+    keySchema:
+      type: string
 pipeline:
   - name: "Process using Python"
     id: "test-python-processor"

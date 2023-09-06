@@ -39,8 +39,10 @@ from .topic_connector import TopicConsumer, TopicProducer
 LOG = logging.getLogger(__name__)
 STRING_DESERIALIZER = StringDeserializer()
 
+STRING_DESERIALIZER_NAME = "org.apache.kafka.common.serialization.StringDeserializer"
+STRING_SERIALIZER_NAME = "org.apache.kafka.common.serialization.StringSerializer"
 SERIALIZERS = {
-    "org.apache.kafka.common.serialization.StringSerializer": STRING_SERIALIZER,
+    STRING_SERIALIZER_NAME: STRING_SERIALIZER,
     "org.apache.kafka.common.serialization.BooleanSerializer": BOOLEAN_SERIALIZER,
     "org.apache.kafka.common.serialization.ShortSerializer": SHORT_SERIALIZER,
     "org.apache.kafka.common.serialization.IntegerSerializer": INTEGER_SERIALIZER,
@@ -75,13 +77,9 @@ def create_topic_consumer(agent_id, streaming_cluster, configuration):
     if "auto.offset.reset" not in configs:
         configs["auto.offset.reset"] = "earliest"
     if "key.deserializer" not in configs:
-        configs[
-            "key.deserializer"
-        ] = "org.apache.kafka.common.serialization.StringDeserializer"
+        configs["key.deserializer"] = STRING_DESERIALIZER_NAME
     if "value.deserializer" not in configs:
-        configs[
-            "value.deserializer"
-        ] = "org.apache.kafka.common.serialization.StringDeserializer"
+        configs["value.deserializer"] = STRING_DESERIALIZER_NAME
     return KafkaTopicConsumer(configs)
 
 
@@ -89,13 +87,9 @@ def create_topic_producer(_, streaming_cluster, configuration):
     configs = configuration.copy()
     apply_default_configuration(streaming_cluster, configs)
     if "key.serializer" not in configs:
-        configs[
-            "key.serializer"
-        ] = "org.apache.kafka.common.serialization.StringSerializer"
+        configs["key.serializer"] = STRING_SERIALIZER_NAME
     if "value.serializer" not in configs:
-        configs[
-            "value.serializer"
-        ] = "org.apache.kafka.common.serialization.StringSerializer"
+        configs["value.serializer"] = STRING_SERIALIZER_NAME
     return KafkaTopicProducer(configs)
 
 
@@ -117,6 +111,21 @@ def extract_jaas_property(prop, jaas_entry):
         return re_match.group(1) or re_match.group(2) or re_match.group(3)
     else:
         return None
+
+
+def get_serializer(value):
+    if isinstance(value, bytes):
+        return BYTEARRAY_SERIALIZER
+    elif isinstance(value, str):
+        return STRING_SERIALIZER
+    elif isinstance(value, bool):
+        return BOOLEAN_SERIALIZER
+    elif isinstance(value, int):
+        return LONG_SERIALIZER
+    elif isinstance(value, float):
+        return DOUBLE_SERIALIZER
+    else:
+        raise TypeError(f"No serializer for type {type(value)}")
 
 
 class KafkaRecord(SimpleRecord):
@@ -324,8 +333,17 @@ class KafkaTopicProducer(TopicProducer):
     def __init__(self, configs):
         self.configs = configs.copy()
         self.topic = self.configs.pop("topic")
-        self.key_serializer = SERIALIZERS[self.configs.pop("key.serializer")]
-        self.value_serializer = SERIALIZERS[self.configs.pop("value.serializer")]
+        key_serializer = SERIALIZERS[self.configs.pop("key.serializer")]
+        if key_serializer != BYTEARRAY_SERIALIZER:
+            self.key_serializer = key_serializer
+        else:
+            self.key_serializer = None
+        value_serializer = SERIALIZERS[self.configs.pop("value.serializer")]
+        if value_serializer != BYTEARRAY_SERIALIZER:
+            self.value_serializer = key_serializer
+        else:
+            self.value_serializer = None
+        self.header_serializer = None
         self.producer: Optional[Producer] = None
         self.commit_callback: Optional[CommitCallback] = None
         self.delivery_failure: Optional[Exception] = None
@@ -341,25 +359,31 @@ class KafkaTopicProducer(TopicProducer):
             headers = []
             if record.headers():
                 for key, value in record.headers():
-                    if isinstance(value, bytes):
-                        headers.append((key, value))
-                    elif isinstance(value, str):
-                        headers.append((key, STRING_SERIALIZER(value)))
-                    elif isinstance(value, bool):
-                        headers.append((key, BOOLEAN_SERIALIZER(value)))
-                    elif isinstance(value, int):
-                        headers.append((key, LONG_SERIALIZER(value)))
-                    elif isinstance(value, float):
-                        headers.append((key, DOUBLE_SERIALIZER(value)))
+                    if value is not None:
+                        if self.header_serializer is None:
+                            self.header_serializer = get_serializer(value)
+                        headers.append((key, self.header_serializer(value)))
                     else:
-                        raise ValueError(
-                            f"Unsupported header type {type(value)} for header "
-                            f"{(key, value)}"
-                        )
+                        headers.append((key, None))
+
+            if record.value() is not None:
+                if self.value_serializer is None:
+                    self.value_serializer = get_serializer(record.value())
+                value = self.value_serializer(record.value())
+            else:
+                value = None
+
+            if record.key() is not None:
+                if self.key_serializer is None:
+                    self.key_serializer = get_serializer(record.key())
+                key = self.key_serializer(record.key())
+            else:
+                key = None
+
             self.producer.produce(
                 self.topic,
-                value=self.value_serializer(record.value()),
-                key=self.key_serializer(record.key()),
+                value=value,
+                key=key,
                 headers=headers,
                 on_delivery=self.on_delivery,
             )

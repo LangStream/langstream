@@ -44,12 +44,13 @@ public class MockAssetManagerCodeProvider implements AssetManagerProvider {
                 new CopyOnWriteArrayList<>();
 
         @Override
-        public boolean assetExists(AssetDefinition assetDefinition) throws Exception {
-            return false;
+        public synchronized boolean assetExists(AssetDefinition assetDefinition) throws Exception {
+            return DEPLOYED_ASSETS.stream()
+                    .anyMatch(a -> a.getId().equals(assetDefinition.getId()));
         }
 
         @Override
-        public void deployAsset(AssetDefinition assetDefinition) throws Exception {
+        public synchronized void deployAsset(AssetDefinition assetDefinition) throws Exception {
             log.info("Deploying asset {}", assetDefinition);
             DEPLOYED_ASSETS.add(assetDefinition);
         }

@@ -158,10 +158,10 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     .getConfig()
                     .forEach(
                             (key, value) -> {
-
                                 // automatically resolve resource references
                                 // should we do it depending on the asset type ?
-                                if (value instanceof String resourceId) {
+                                if ("datasource".equals(key)
+                                        && value instanceof String resourceId) {
                                     Resource resource = resources.get(resourceId);
                                     if (resource != null) {
                                         value = resource;
@@ -170,6 +170,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                                 configuration.put(key, value);
                             });
         }
+        asset.put("config", configuration);
         return asset;
     }
 

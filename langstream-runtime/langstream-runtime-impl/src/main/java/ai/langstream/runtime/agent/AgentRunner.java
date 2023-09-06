@@ -1005,7 +1005,12 @@ public class AgentRunner {
                 case AssetDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
                     AssetManager assetManagerImpl = assetManager.asAssetManager();
                     boolean exists = assetManagerImpl.assetExists(asset);
+
                     if (!exists) {
+                        log.info(
+                                "Asset {}  of type {} needs to be created",
+                                asset.getName(),
+                                asset.getAssetType());
                         assetManagerImpl.deployAsset(asset);
                     }
                 }

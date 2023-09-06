@@ -88,11 +88,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
         }
     }
 
-    /**
-     * Detects assets that are explicitly defined in the application instance.
-     *
-     * @param result the execution plan
-     */
+    /** Detects assets that are explicitly defined in the application instance. */
     protected void detectAssets(ExecutionPlan result) {
         Application applicationInstance = result.getApplication();
         for (Module module : applicationInstance.getModules().values()) {

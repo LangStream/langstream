@@ -36,27 +36,34 @@ class DeployAssetsTest extends AbstractApplicationRunner {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
+        String secrets =
+                """
+                            secrets:
+                              - id: "the-secret"
+                                data:
+                                   password: "bar"
+                            """;
         Map<String, String> application =
                 Map.of(
                         "configuration.yaml",
                         """
-                configuration:
-                   resources:
-                        - name: "the-resource"
-                          type: "datasource"
-                          configuration:
-                              foo: bar
-                """);
-        Map.of(
-                "module.yaml",
-                """
+                            configuration:
+                               resources:
+                                    - type: "datasource"
+                                      name: "the-resource"
+                                      configuration:
+                                         foo: "{{{secrets.the-secret.password}}}"
+                            """,
+                        "module.yaml",
+                        """
                         module: "module-1"
                         id: "pipeline-1"
                         assets:
                           - name: "my-table"
+                            creation-mode: create-if-not-exists
                             asset-type: "mock-database-resource"
                             config:
-                                table: "my-table"
+                                table: "{{{globals.table-name}}}"
                                 datasource: "the-resource"
                         topics:
                           - name: "input-topic"
@@ -71,8 +78,8 @@ class DeployAssetsTest extends AbstractApplicationRunner {
                             output: "output-topic"
                         """);
         try (ApplicationRuntime applicationRuntime =
-                deployApplication(
-                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+                deployApplicationWithSecrets(
+                        tenant, "app", application, buildInstanceYaml(), secrets, expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
                     KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
                 sendMessage("input-topic", "test", producer);
@@ -84,9 +91,12 @@ class DeployAssetsTest extends AbstractApplicationRunner {
                     MockAssetManagerCodeProvider.MockDatabaseResourceAssetManager.DEPLOYED_ASSETS;
             assertEquals(1, deployedAssets.size());
             AssetDefinition deployedAsset = deployedAssets.get(0);
+            assertEquals("my-table", deployedAsset.getConfig().get("table"));
             Map<String, Object> datasource =
                     (Map<String, Object>) deployedAsset.getConfig().get("datasource");
-            assertEquals("bar", datasource.get("foo"));
+            Map<String, Object> datasourceConfiguration =
+                    (Map<String, Object>) datasource.get("configuration");
+            assertEquals("bar", datasourceConfiguration.get("foo"));
         }
     }
 
@@ -94,6 +104,8 @@ class DeployAssetsTest extends AbstractApplicationRunner {
     protected String buildInstanceYaml() {
         return """
                 instance:
+                  globals:
+                     table-name: "my-table"
                   streamingCluster:
                     type: "kafka"
                     configuration:

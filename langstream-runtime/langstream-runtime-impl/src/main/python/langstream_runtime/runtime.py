@@ -44,6 +44,8 @@ from .topic_connector import (
     TopicConsumerWithDLQSource,
 )
 
+LOG = logging.getLogger(__name__)
+
 
 def current_time_millis():
     return int(time.time_ns() / 1000_000)
@@ -64,7 +66,7 @@ class ErrorsHandler(object):
 
     def handle_errors(self, source_record: Record, error) -> ErrorsProcessingOutcome:
         self.failures += 1
-        logging.info(
+        LOG.info(
             f"Handling error {error} for source record {source_record}, "
             f"errors count {self.failures} (max retries {self.retries})"
         )
@@ -264,7 +266,7 @@ def run_with_server(
 
 
 def run(configuration, agent=None, agent_info: AgentInfo = AgentInfo(), max_loops=-1):
-    logging.info(f"Pod Configuration {configuration}")
+    LOG.info(f"Pod Configuration {configuration}")
 
     if "streamingCluster" not in configuration:
         raise ValueError("streamingCluster cannot be null")
@@ -405,7 +407,7 @@ def run_main_loop(
                                         source,
                                     )
                     except Exception as e:
-                        logging.exception("Error while processing records")
+                        LOG.exception("Error while processing records")
                         # raise the error
                         # this way the consumer will not commit the records
                         raise e
@@ -426,7 +428,7 @@ def run_processor_agent(
     trial_number = 0
     while len(records_to_process) > 0:
         trial_number += 1
-        logging.info(
+        LOG.info(
             f"run processor on {len(records_to_process)} records "
             f"(trial #{trial_number})"
         )
@@ -439,26 +441,26 @@ def run_processor_agent(
             if isinstance(processor_result, Exception):
                 action = errors_handler.handle_errors(source_record, processor_result)
                 if action == ErrorsProcessingOutcome.SKIP:
-                    logging.error(
+                    LOG.error(
                         f"Unrecoverable error {processor_result} while processing the "
                         f"records, skipping"
                     )
                     results_by_record[source_record] = (source_record, processor_result)
                 elif action == ErrorsProcessingOutcome.RETRY:
-                    logging.error(
+                    LOG.error(
                         f"Retryable error {processor_result} while processing the "
                         f"records, retrying"
                     )
                     records_to_process.append(source_record)
                 elif action == ErrorsProcessingOutcome.FAIL:
-                    logging.error(
+                    LOG.error(
                         f"Unrecoverable error {processor_result} while processing some "
                         f"records, failing"
                     )
                     # TODO: replace with custom exception ?
                     source.permanent_failure(source_record, processor_result)
                     if errors_handler.fail_processing_on_permanent_errors():
-                        logging.error("Failing processing on permanent error")
+                        LOG.error("Failing processing on permanent error")
                         raise processor_result
                     # in case the source does not throw an exception we mark the record
                     # as "skipped"
@@ -496,7 +498,7 @@ def write_records_to_the_sink(
             action = errors_handler.handle_errors(source_record, error)
             if action == ErrorsProcessingOutcome.SKIP:
                 # skip (the whole batch)
-                logging.error(
+                LOG.error(
                     f"Unrecoverable error {error} while processing the records, "
                     f"skipping"
                 )
@@ -504,18 +506,18 @@ def write_records_to_the_sink(
                 return
             elif action == ErrorsProcessingOutcome.RETRY:
                 # retry (the whole batch)
-                logging.error(
+                LOG.error(
                     f"Retryable error {error} while processing the records, retrying"
                 )
             elif action == ErrorsProcessingOutcome.FAIL:
-                logging.error(
+                LOG.error(
                     f"Unrecoverable error {error} while processing some records, "
                     f"failing"
                 )
                 # TODO: replace with custom exception ?
                 source.permanent_failure(source_record, error)
                 if errors_handler.fail_processing_on_permanent_errors():
-                    logging.error("Failing processing on permanent error")
+                    LOG.error("Failing processing on permanent error")
                     raise error
                 # in case the source does not throw an exception we mark the record as
                 # "skipped"
@@ -526,7 +528,7 @@ def write_records_to_the_sink(
 
 class NoopTopicConsumer(TopicConsumer):
     def read(self):
-        logging.info("Sleeping for 1 second, no records...")
+        LOG.info("Sleeping for 1 second, no records...")
         time.sleep(1)
         return []
 

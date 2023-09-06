@@ -24,16 +24,18 @@ class TextNormaliserAgentTest {
     @Test
     void testTrimSpaces() {
         String text =
-                "  some text with \t \tspaces \n\n\n this is a new line. \n \n \n     \n then two new lines. \n\n end";
+                "  some  \n\n text with \t \tspaces \n\n\n this is a new line. \n \n \n     \n then two new lines. \n\n  \n\n  \n\n  \n\n end";
         String result = TextNormaliserAgent.trimSpaces(text);
         assertEquals(
                 """
-                        some text with spaces\s
+                        some
 
-                         this is a new line.\s
-                         then two new lines.\s
+                        text with spaces
 
-                         end""",
+                        this is a new line.
+                        then two new lines.
+
+                        end""",
                 result);
     }
 }

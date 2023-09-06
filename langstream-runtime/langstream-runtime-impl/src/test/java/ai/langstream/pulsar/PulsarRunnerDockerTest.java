@@ -37,6 +37,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -136,13 +137,14 @@ class PulsarRunnerDockerTest {
                     .send();
             producer.flush();
 
+            AtomicInteger numLoops = new AtomicInteger();
             AgentRunner.runAgent(
                     runtimePodConfiguration,
                     null,
                     null,
                     AbstractApplicationRunner.agentsDirectory,
                     new AgentInfo(),
-                    5,
+                    () -> numLoops.incrementAndGet() <= 5,
                     null,
                     false);
 

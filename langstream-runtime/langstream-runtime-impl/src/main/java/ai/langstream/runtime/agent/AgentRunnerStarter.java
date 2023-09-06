@@ -28,6 +28,7 @@ import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -92,11 +93,20 @@ public class AgentRunnerStarter extends RuntimeStarter {
         }
 
         log.info("Loading pod configuration from {}", podRuntimeConfiguration);
+        log.info("Loading code from {}", codeDirectory);
+        log.info("Loading agents from {}", agentsDirectory);
+
         RuntimePodConfiguration configuration =
                 MAPPER.readValue(podRuntimeConfiguration.toFile(), RuntimePodConfiguration.class);
 
-        log.info("Loading code from {}", codeDirectory);
-        log.info("Loading agents from {}", agentsDirectory);
+        AtomicBoolean continueLoop = new AtomicBoolean(true);
+        Runtime.getRuntime()
+                .addShutdownHook(
+                        new Thread(
+                                () -> {
+                                    log.info("Beginning clean shutdown");
+                                    continueLoop.set(false);
+                                }));
 
         agentRunner.run(
                 configuration,
@@ -104,7 +114,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
                 codeDirectory,
                 agentsDirectory,
                 new AgentInfo(),
-                -1,
+                continueLoop::get,
                 null,
                 true);
     }

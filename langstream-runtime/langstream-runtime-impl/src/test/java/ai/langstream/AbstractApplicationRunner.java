@@ -47,6 +47,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -298,13 +299,17 @@ public abstract class AbstractApplicationRunner {
                                         podConfiguration.agent().agentId());
                                 AgentInfo agentInfo = new AgentInfo();
                                 allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
+                                AtomicInteger numLoops = new AtomicInteger();
                                 AgentRunner.runAgent(
                                         podConfiguration,
                                         null,
                                         null,
                                         agentsDirectory,
                                         agentInfo,
-                                        10,
+                                        () -> {
+                                            log.info("Num loops {}", numLoops.get());
+                                            return numLoops.incrementAndGet() <= 10;
+                                        },
                                         () -> validateAgentInfoBeforeStop(agentInfo),
                                         false);
                                 List<?> infos = agentInfo.serveWorkerStatus();

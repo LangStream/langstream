@@ -119,10 +119,7 @@ class KafkaReaderWrapper implements TopicReader {
         }
         final Set assignment = consumer.assignment();
         if (!records.isEmpty()) {
-            log.info(
-                    "Received {} records from Kafka topics {}",
-                    records.size(),
-                    assignment);
+            log.info("Received {} records from Kafka topics {}", records.size(), assignment);
         }
         Map<TopicPartition, Long> offsets = consumer.endOffsets(assignment);
 

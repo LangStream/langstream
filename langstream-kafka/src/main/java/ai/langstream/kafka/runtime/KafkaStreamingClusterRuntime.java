@@ -140,7 +140,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
             return;
         }
         // there is no close() method in this client
-        CachedSchemaRegistryClient client = buildSchemaRegistryClient(streamingCluster);
+        CachedSchemaRegistryClient client = null;
 
         // here we are using TopicNameStrategy
         // https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/index.html#sr-schemas-subject-name-strategy
@@ -148,6 +148,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
         if (keySchema != null && keySchema.type().equals("avro") && keySchema.schema() != null) {
             ParsedSchema parsedSchema = new AvroSchema(keySchema.schema());
             String subjectName = topicNameStrategy.subjectName(newTopic.name(), true, parsedSchema);
+            client = buildSchemaRegistryClient(streamingCluster);
             client.register(subjectName, parsedSchema);
         }
 
@@ -157,6 +158,9 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
             ParsedSchema parsedSchema = new AvroSchema(valueSchema.schema());
             String subjectName =
                     topicNameStrategy.subjectName(newTopic.name(), false, parsedSchema);
+            if (client == null) {
+                client = buildSchemaRegistryClient(streamingCluster);
+            }
             client.register(subjectName, parsedSchema);
         }
     }

@@ -96,8 +96,10 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                             log.error("Error processing record: {}", record, e);
                             recordSink.emit(new SourceRecordAndResult(record, null, e));
                         } else {
-                            log.info("Processed record {}, results {}", record, resultRecords);
-                            processed(1, records.size());
+                            if (log.isDebugEnabled()) {
+                                log.debug("Processed record {}, results {}", record, resultRecords);
+                            }
+                            processed(0, 1);
                             recordSink.emit(new SourceRecordAndResult(record, resultRecords, null));
                         }
                     });
@@ -105,8 +107,6 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     }
 
     public CompletableFuture<List<Record>> processRecord(Record record) {
-
-        log.info("Processing {}", record);
         if (log.isDebugEnabled()) {
             log.debug("Processing {}", record);
         }
@@ -119,7 +119,9 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                     try {
                         context.convertMapToStringOrBytes();
                         Optional<Record> recordResult = transformContextToRecord(context);
-                        log.info("Result {}", recordResult);
+                        if (log.isDebugEnabled()) {
+                            log.debug("Result {}", recordResult);
+                        }
                         return recordResult.map(List::of).orElseGet(List::of);
                     } catch (Exception e) {
                         log.error("Error processing record: {}", record, e);
@@ -369,12 +371,14 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                 int index, String message, boolean last, TransformContext outputMessage) {
             Optional<Record> record = transformContextToRecord(outputMessage);
             if (record.isPresent()) {
-                log.info(
-                        "index: {}, message: {}, last: {}: record {}",
-                        index,
-                        message,
-                        last,
-                        record);
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                            "index: {}, message: {}, last: {}: record {}",
+                            index,
+                            message,
+                            last,
+                            record);
+                }
                 topicProducer.write(record.get()).join();
             }
         }

@@ -234,6 +234,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
 
         Document document = foundDocuments.remove();
+        processed(0, 1);
         return List.of(
                 new WebCrawlerSourceRecord(
                         document.content().getBytes(StandardCharsets.UTF_8), document.url()));

@@ -34,4 +34,6 @@ public interface GatewayRequestContext {
     Map<String, String> userParameters();
 
     Map<String, String> options();
+
+    Map<String, String> httpHeaders();
 }

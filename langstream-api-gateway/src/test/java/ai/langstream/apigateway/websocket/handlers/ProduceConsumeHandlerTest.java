@@ -16,6 +16,7 @@
 package ai.langstream.apigateway.websocket.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1229,6 +1230,7 @@ class ProduceConsumeHandlerTest {
             GatewayEventData data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
             assertEquals("consumer", data.getUserParameters().get("p"));
             assertEquals(0, data.getOptions().size());
+            assertNotNull(data.getHttpRequestHeaders().get("host"));
             assertTrue(event.getTimestamp() > 0);
 
             msg = MAPPER.readValue(messages.get(1), ConsumePushMessage.class);
@@ -1241,6 +1243,7 @@ class ProduceConsumeHandlerTest {
             assertEquals("produce", source.getGateway().id());
             data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
             assertEquals("producer", data.getUserParameters().get("p"));
+            assertNotNull(data.getHttpRequestHeaders().get("host"));
             assertEquals(0, data.getOptions().size());
             assertTrue(event.getTimestamp() > 0);
 
@@ -1254,6 +1257,7 @@ class ProduceConsumeHandlerTest {
             assertEquals("produce", source.getGateway().id());
             data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
             assertEquals("producer", data.getUserParameters().get("p"));
+            assertNotNull(data.getHttpRequestHeaders().get("host"));
             assertEquals(0, data.getOptions().size());
             assertTrue(event.getTimestamp() > 0);
 
@@ -1267,6 +1271,7 @@ class ProduceConsumeHandlerTest {
             assertEquals("consume", source.getGateway().id());
             data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
             assertEquals("consumer1", data.getUserParameters().get("p"));
+            assertNotNull(data.getHttpRequestHeaders().get("host"));
             assertEquals(0, data.getOptions().size());
             assertTrue(event.getTimestamp() > 0);
 
@@ -1280,6 +1285,7 @@ class ProduceConsumeHandlerTest {
             assertEquals("consume", source.getGateway().id());
             data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
             assertEquals("consumer1", data.getUserParameters().get("p"));
+            assertNotNull(data.getHttpRequestHeaders().get("host"));
             assertEquals(0, data.getOptions().size());
             assertTrue(event.getTimestamp() > 0);
         }

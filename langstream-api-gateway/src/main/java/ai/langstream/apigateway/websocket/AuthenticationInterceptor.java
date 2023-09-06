@@ -62,7 +62,7 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
             final Map<String, String> vars =
                     antPathMatcher.extractUriTemplateVariables(handler.path(), path);
             final GatewayRequestContext gatewayRequestContext =
-                    handler.validateRequest(vars, querystring);
+                    handler.validateRequest(vars, querystring, request.getHeaders().toSingleValueMap());
 
             final Map<String, String> principalValues;
             try {
@@ -173,6 +173,11 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
             @Override
             public Map<String, String> options() {
                 return gatewayRequestContext.options();
+            }
+
+            @Override
+            public Map<String, String> httpHeaders() {
+                return gatewayRequestContext.httpHeaders();
             }
         };
     }

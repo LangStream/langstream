@@ -43,6 +43,7 @@ import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.util.StringUtils;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -190,7 +191,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     }
 
     public GatewayRequestContext validateRequest(
-            Map<String, String> pathVars, Map<String, String> queryString) {
+            Map<String, String> pathVars, Map<String, String> queryString, Map<String, String> httpHeaders) {
         Map<String, String> options = new HashMap<>();
         Map<String, String> userParameters = new HashMap<>();
 
@@ -272,6 +273,11 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             public Map<String, String> options() {
                 return options;
             }
+
+            @Override
+            public Map<String, String> httpHeaders() {
+                return httpHeaders;
+            }
         };
     }
 
@@ -342,7 +348,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                     GatewayEventData.builder()
                             .userParameters(context.userParameters())
                             .options(context.options())
-                            // TODO: http headers
+                            .httpRequestHeaders(context.httpHeaders())
                             .build();
 
             final EventRecord event =

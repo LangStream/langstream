@@ -126,14 +126,7 @@ def test_kafka_topic_connection():
 
             assert msg is not None
             assert StringDeserializer()(msg.value()) == "verification message"
-            assert msg.headers() == [
-                ("prop-key", b"prop-value"),
-                ("string", b"header-string"),
-                ("bytes", b"header-bytes"),
-                ("int", b"\x00\x00\x00\x00\x00\x00\x00\x2A"),
-                ("float", b"\x40\x45\x00\x00\x00\x00\x00\x00"),
-                ("boolean", b"\x01"),
-            ]
+            assert msg.headers() == [("prop-key", b"prop-value")]
         finally:
             consumer.close()
 
@@ -293,7 +286,7 @@ def test_producer_error():
         sink.write([SimpleRecord("will fail")])
 
 
-def test_producer_serializers():
+def test_serializers():
     with KafkaContainer(image=KAFKA_IMAGE) as container:
         bootstrap_server = container.get_bootstrap_server()
 
@@ -325,6 +318,10 @@ def test_producer_serializers():
             ("FloatSerializer", 42.0, b"\x42\x28\x00\x00"),
             ("DoubleSerializer", 42.0, b"\x40\x45\x00\x00\x00\x00\x00\x00"),
             ("ByteArraySerializer", b"test", b"test"),
+            ("ByteArraySerializer", "test", b"test"),
+            ("ByteArraySerializer", True, b"\x01"),
+            ("ByteArraySerializer", 42, b"\x00\x00\x00\x00\x00\x00\x00\x2A"),
+            ("ByteArraySerializer", 42.0, b"\x40\x45\x00\x00\x00\x00\x00\x00"),
         ]:
             sink = kafka_connection.create_topic_producer(
                 "id",
@@ -338,11 +335,22 @@ def test_producer_serializers():
                 },
             )
             sink.start()
-            sink.write([SimpleRecord(record_value, key=record_value)])
+            sink.write(
+                [
+                    SimpleRecord(
+                        record_value,
+                        key=record_value,
+                        headers=[("test-header", record_value)],
+                    )
+                ]
+            )
 
             message = consumer.poll(5)
             assert message.value() == message_value
             assert message.key() == message_value
+            assert message.headers()[0][0] == "test-header"
+            if serializer == "ByteArraySerializer":
+                assert message.headers()[0][1] == message_value
 
             sink.close()
 
@@ -350,11 +358,6 @@ def test_producer_serializers():
 class TestSuccessProcessor(SingleRecordProcessor):
     def process_record(self, record: Record) -> List[Record]:
         headers = record.headers().copy()
-        headers.append(("string", "header-string"))
-        headers.append(("bytes", b"header-bytes"))
-        headers.append(("int", 42))
-        headers.append(("float", 42.0))
-        headers.append(("boolean", True))
         return [SimpleRecord(record.value(), headers=headers)]
 
 

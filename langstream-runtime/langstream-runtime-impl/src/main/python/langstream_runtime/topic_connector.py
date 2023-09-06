@@ -26,6 +26,8 @@ from langstream import (
     TopicConsumer,
 )
 
+LOG = logging.getLogger(__name__)
+
 
 class TopicConsumerSource(Source):
     def __init__(self, consumer: TopicConsumer):
@@ -38,11 +40,11 @@ class TopicConsumerSource(Source):
         self.consumer.commit(records)
 
     def start(self):
-        logging.info(f"Starting consumer {self.consumer}")
+        LOG.info(f"Starting consumer {self.consumer}")
         self.consumer.start()
 
     def close(self):
-        logging.info(f"Closing consumer {self.consumer}")
+        LOG.info(f"Closing consumer {self.consumer}")
         self.consumer.close()
 
     def agent_info(self) -> Dict[str, Any]:
@@ -66,7 +68,7 @@ class TopicConsumerWithDLQSource(TopicConsumerSource):
         self.dlq_producer.close()
 
     def permanent_failure(self, record: Record, error: Exception):
-        logging.error(f"Sending record to DLQ: {record}")
+        LOG.error(f"Sending record to DLQ: {record}")
         self.dlq_producer.write([record])
 
 
@@ -76,11 +78,11 @@ class TopicProducerSink(Sink):
         self.commit_callback = None
 
     def start(self):
-        logging.info(f"Starting producer {self.producer}")
+        LOG.info(f"Starting producer {self.producer}")
         self.producer.start()
 
     def close(self):
-        logging.info(f"Closing producer {self.producer}")
+        LOG.info(f"Closing producer {self.producer}")
         self.producer.close()
 
     def write(self, records: List[Record]):

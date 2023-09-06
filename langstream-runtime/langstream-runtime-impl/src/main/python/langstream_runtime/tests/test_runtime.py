@@ -50,7 +50,6 @@ def test_simple_agent(_):
     agent = runtime.init_agent(config)
     agent_info = runtime.AgentInfo()
     runtime.run(config, agent=agent, agent_info=agent_info, max_loops=2)
-    print(json.dumps(agent_info.worker_status(), indent=2))
     assert (
         json.dumps(agent_info.worker_status(), indent=2)
         == """[

@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import logging
 import sys
 
 import yaml
@@ -22,6 +23,13 @@ import yaml
 from . import runtime
 
 if __name__ == "__main__":
+    logging.addLevelName(logging.WARNING, "WARN")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s.%(msecs)03d [%(threadName)s] %(levelname)-5s %(name).36s -- %(message)s",  # noqa: E501
+        datefmt="%H:%M:%S",
+    )
+
     print(sys.argv)
     if len(sys.argv) != 2:
         print("Missing pod configuration file argument")

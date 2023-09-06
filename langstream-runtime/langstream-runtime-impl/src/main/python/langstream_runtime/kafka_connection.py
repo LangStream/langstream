@@ -36,6 +36,7 @@ from .kafka_serialization import (
 )
 from .topic_connector import TopicConsumer, TopicProducer
 
+LOG = logging.getLogger(__name__)
 STRING_DESERIALIZER = StringDeserializer()
 
 SERIALIZERS = {
@@ -102,7 +103,7 @@ def create_dlq_producer(agent_id, streaming_cluster, configuration):
     dlq_conf = configuration.get("deadLetterTopicProducer")
     if not dlq_conf:
         return None
-    logging.info(
+    LOG.info(
         f"Creating dead-letter topic producer for agent {agent_id} using configuration "
         f"{configuration}"
     )
@@ -155,8 +156,8 @@ class KafkaTopicConsumer(TopicConsumer):
         self.commit_ever_called = False
 
     def start(self):
-        self.consumer = Consumer(self.configs)
-        logging.info(f"Subscribing consumer to {self.topic}")
+        self.consumer = Consumer(self.configs, logger=LOG)
+        LOG.info(f"Subscribing consumer to {self.topic}")
         self.consumer.subscribe(
             [self.topic], on_assign=self.on_assign, on_revoke=self.on_revoke
         )
@@ -164,7 +165,7 @@ class KafkaTopicConsumer(TopicConsumer):
     def close(self):
         with self.lock:
             if self.consumer:
-                logging.info(
+                LOG.info(
                     f"Closing consumer to {self.topic} with {self.pending_commits} "
                     f"pending commits and {len(self.uncommitted)} uncommitted "
                     f"offsets: {self.uncommitted} "
@@ -188,9 +189,9 @@ class KafkaTopicConsumer(TopicConsumer):
         if message is None:
             return []
         if message.error():
-            logging.error(f"Consumer error: {message.error()}")
+            LOG.error(f"Consumer error: {message.error()}")
             return []
-        logging.debug(
+        LOG.debug(
             f"Received message from Kafka topics {self.consumer.assignment()}:"
             f" {message}"
         )
@@ -223,7 +224,7 @@ class KafkaTopicConsumer(TopicConsumer):
                     if committed_tp_offset.error:
                         raise KafkaException(committed_tp_offset.error)
                     current_offset = committed_tp_offset.offset
-                    logging.info(
+                    LOG.info(
                         f"Current position on partition {topic_partition} is "
                         f"{current_offset}"
                     )
@@ -269,34 +270,34 @@ class KafkaTopicConsumer(TopicConsumer):
         with self.lock:
             self.pending_commits -= 1
         if error:
-            logging.error(f"Error committing offsets on topic {self.topic}: {error}")
+            LOG.error(f"Error committing offsets on topic {self.topic}: {error}")
             if not self.commit_failure:
                 self.commit_failure = KafkaException(error)
         else:
-            logging.debug(f"Offsets committed: {partitions}")
+            LOG.debug(f"Offsets committed: {partitions}")
 
     def on_assign(self, consumer: Consumer, partitions: List[TopicPartition]):
         with self.lock:
-            logging.info(f"Partitions assigned: {partitions}")
+            LOG.info(f"Partitions assigned: {partitions}")
             for partition in partitions:
                 offset = consumer.committed([partition])[0].offset
-                logging.info(f"Last committed offset for {partition} is {offset}")
+                LOG.info(f"Last committed offset for {partition} is {offset}")
                 if offset >= 0:
                     self.committed[partition] = offset
 
     def on_revoke(self, _, partitions: List[TopicPartition]):
         with self.lock:
-            logging.info(f"Partitions revoked: {partitions}")
+            LOG.info(f"Partitions revoked: {partitions}")
             for partition in partitions:
                 if partition in self.committed:
                     offset = self.committed.pop(partition)
-                    logging.info(
+                    LOG.info(
                         f"Current offset {offset} on partition {partition} (revoked)"
                     )
                 if partition in self.uncommitted:
                     offsets = self.uncommitted.pop(partition)
                     if len(offsets) > 0:
-                        logging.warning(
+                        LOG.warning(
                             f"There are uncommitted offsets {offsets} on partition "
                             f"{partition} (revoked), these messages will be "
                             f"re-delivered"
@@ -330,13 +331,13 @@ class KafkaTopicProducer(TopicProducer):
         self.delivery_failure: Optional[Exception] = None
 
     def start(self):
-        self.producer = Producer(self.configs)
+        self.producer = Producer(self.configs, logger=LOG)
 
     def write(self, records: List[Record]):
         for record in records:
             if self.delivery_failure:
                 raise self.delivery_failure
-            logging.info(f"Sending record {record}")
+            LOG.info(f"Sending record {record}")
             headers = []
             if record.headers():
                 for key, value in record.headers():

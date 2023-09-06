@@ -833,7 +833,9 @@ public class AgentRunner {
                                 }
                             }
                         } else {
-                            log.info("Passing {} to the Sink", result);
+                            if (log.isDebugEnabled()) {
+                                log.debug("Passing {} to the Sink", result);
+                            }
                             finalSink.emit(result);
                         }
                     } catch (Throwable error) {

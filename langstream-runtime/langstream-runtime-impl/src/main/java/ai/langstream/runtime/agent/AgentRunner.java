@@ -492,6 +492,7 @@ public class AgentRunner {
         }
 
         public void waitForNoPendingRecords() {
+            long start = System.currentTimeMillis();
             try {
                 while (!pendingRecords.isEmpty()) {
                     int size = pendingRecords.size();
@@ -512,6 +513,16 @@ public class AgentRunner {
                                 pendingRecords.size(),
                                 first);
                     }
+
+                    long now = System.currentTimeMillis();
+                    long delta = now - start;
+                    if (delta > 60000) {
+                        log.error(
+                                "Waited for {} pending records for more than 60 seconds, existing anyway",
+                                pendingRecords.size());
+                        return;
+                    }
+
                     Thread.sleep(1000);
                 }
             } catch (InterruptedException interruptedException) {

@@ -28,6 +28,6 @@ public class DeleteTenantCmd extends BaseTenantCmd {
     @SneakyThrows
     public void run() {
         getClient().http(getClient().newDelete(pathForTenant(name)));
-        log("Tenant %s deleted".formatted(name));
+        log(String.format("Tenant %s deleted", name));
     }
 }

@@ -15,7 +15,7 @@
  */
 package ai.langstream.cli.commands.gateway;
 
-import ai.langstream.api.model.Gateway;
+import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.websocket.WebSocketClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.websocket.CloseReason;
@@ -75,7 +75,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                 validateGatewayAndGetUrl(
                         applicationId,
                         consumeFromGatewayId,
-                        Gateway.GatewayType.consume,
+                        Gateways.Gateway.TYPE_CONSUME,
                         params,
                         consumeGatewayOptions,
                         credentials);
@@ -83,7 +83,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                 validateGatewayAndGetUrl(
                         applicationId,
                         produceToGatewayId,
-                        Gateway.GatewayType.produce,
+                        Gateways.Gateway.TYPE_PRODUCE,
                         params,
                         Map.of(),
                         credentials);
@@ -102,7 +102,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
 
                     @Override
                     public void onOpen() {
-                        log("Connected to %s".formatted(producePath));
+                        log(String.format("Connected to %s", producePath));
                     }
 
                     @Override
@@ -111,7 +111,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                         final Map response = messageMapper.readValue(msg, Map.class);
                         final String status = (String) response.getOrDefault("status", "OK");
                         if (!"OK".equals(status)) {
-                            err("Error sending message: %s".formatted(msg));
+                            err(String.format("Error sending message: %s", msg));
                         } else {
                             logUser("✅");
                         }
@@ -122,10 +122,10 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                     public void onClose(CloseReason closeReason) {
                         if (closeReason.getCloseCode() != CloseReason.CloseCodes.NORMAL_CLOSURE) {
                             err(
-                                    "Server closed connection with unexpected code: %s %s"
-                                            .formatted(
-                                                    closeReason.getCloseCode(),
-                                                    closeReason.getReasonPhrase()));
+                                    String.format(
+                                            "Server closed connection with unexpected code: %s %s",
+                                            closeReason.getCloseCode(),
+                                            closeReason.getReasonPhrase()));
                         }
                         final CompletableFuture<Void> future = loop.get();
                         future.cancel(true);
@@ -133,7 +133,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
 
                     @Override
                     public void onError(Throwable throwable) {
-                        err("Connection error: %s".formatted(throwable.getMessage()));
+                        err(String.format("Connection error: %s", throwable.getMessage()));
                     }
                 };
 
@@ -142,7 +142,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
 
                     @Override
                     public void onOpen() {
-                        log("Connected to %s".formatted(consumePath));
+                        log(String.format("Connected to %s", consumePath));
                         consumerReady.countDown();
                     }
 
@@ -185,7 +185,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                                 waitingConsumeMessage.set(false);
                             }
                         } catch (Throwable e) {
-                            err("Error consuming message: %s".formatted(msg));
+                            err(String.format("Error consuming message: %s", msg));
                         }
                     }
 
@@ -194,10 +194,10 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                     public void onClose(CloseReason closeReason) {
                         if (closeReason.getCloseCode() != CloseReason.CloseCodes.NORMAL_CLOSURE) {
                             err(
-                                    "Server closed connection with unexpected code: %s %s"
-                                            .formatted(
-                                                    closeReason.getCloseCode(),
-                                                    closeReason.getReasonPhrase()));
+                                    String.format(
+                                            "Server closed connection with unexpected code: %s %s",
+                                            closeReason.getCloseCode(),
+                                            closeReason.getReasonPhrase()));
                         }
                         final CompletableFuture<Void> future = loop.get();
                         future.cancel(true);
@@ -205,7 +205,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
 
                     @Override
                     public void onError(Throwable throwable) {
-                        err("Connection error: %s".formatted(throwable.getMessage()));
+                        err(String.format("Connection error: %s", throwable.getMessage()));
                     }
                 };
         try (final WebSocketClient ignored =

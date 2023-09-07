@@ -144,7 +144,10 @@ public class AdminClient implements AutoCloseable {
     public HttpRequest newGet(String uri) {
         return withAuth(
                         HttpRequest.newBuilder()
-                                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                                .uri(
+                                        URI.create(
+                                                String.format(
+                                                        "%s/api%s", getBaseWebServiceUrl(), uri)))
                                 .version(HttpClient.Version.HTTP_1_1)
                                 .GET())
                 .build();
@@ -162,7 +165,10 @@ public class AdminClient implements AutoCloseable {
     public HttpRequest newDelete(String uri) {
         return withAuth(
                         HttpRequest.newBuilder()
-                                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                                .uri(
+                                        URI.create(
+                                                String.format(
+                                                        "%s/api%s", getBaseWebServiceUrl(), uri)))
                                 .version(HttpClient.Version.HTTP_1_1)
                                 .DELETE())
                 .build();
@@ -172,7 +178,10 @@ public class AdminClient implements AutoCloseable {
             String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
         return withAuth(
                         HttpRequest.newBuilder()
-                                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                                .uri(
+                                        URI.create(
+                                                String.format(
+                                                        "%s/api%s", getBaseWebServiceUrl(), uri)))
                                 .header("Content-Type", contentType)
                                 .version(HttpClient.Version.HTTP_1_1)
                                 .PUT(bodyPublisher))
@@ -183,7 +192,10 @@ public class AdminClient implements AutoCloseable {
             String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
         return withAuth(
                         HttpRequest.newBuilder()
-                                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                                .uri(
+                                        URI.create(
+                                                String.format(
+                                                        "%s/api%s", getBaseWebServiceUrl(), uri)))
                                 .header("Content-Type", contentType)
                                 .version(HttpClient.Version.HTTP_1_1)
                                 .method("PATCH", bodyPublisher))
@@ -194,7 +206,10 @@ public class AdminClient implements AutoCloseable {
             String uri, String contentType, HttpRequest.BodyPublisher bodyPublisher) {
         return withAuth(
                         HttpRequest.newBuilder()
-                                .uri(URI.create("%s/api%s".formatted(getBaseWebServiceUrl(), uri)))
+                                .uri(
+                                        URI.create(
+                                                String.format(
+                                                        "%s/api%s", getBaseWebServiceUrl(), uri)))
                                 .header("Content-Type", contentType)
                                 .version(HttpClient.Version.HTTP_1_1)
                                 .POST(bodyPublisher))
@@ -207,8 +222,8 @@ public class AdminClient implements AutoCloseable {
             throw new IllegalStateException(
                     "Tenant not set. Please set the tenant in the configuration.");
         }
-        logger.debug("Using tenant: %s".formatted(tenant));
-        return "/applications/%s%s".formatted(tenant, uri);
+        logger.debug(String.format("Using tenant: %s", tenant));
+        return String.format("/applications/%s%s", tenant, uri);
     }
 
     public Applications applications() {
@@ -220,8 +235,9 @@ public class AdminClient implements AutoCloseable {
         public void deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
             final String path = tenantAppPath("/" + application);
             final String contentType =
-                    "multipart/form-data; boundary=%s"
-                            .formatted(multiPartBodyPublisher.getBoundary());
+                    String.format(
+                            "multipart/form-data; boundary=%s",
+                            multiPartBodyPublisher.getBoundary());
             final HttpRequest request = newPost(path, contentType, multiPartBodyPublisher.build());
             http(request);
         }
@@ -230,8 +246,9 @@ public class AdminClient implements AutoCloseable {
         public void update(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
             final String path = tenantAppPath("/" + application);
             final String contentType =
-                    "multipart/form-data; boundary=%s"
-                            .formatted(multiPartBodyPublisher.getBoundary());
+                    String.format(
+                            "multipart/form-data; boundary=%s",
+                            multiPartBodyPublisher.getBoundary());
             final HttpRequest request = newPatch(path, contentType, multiPartBodyPublisher.build());
             http(request);
         }

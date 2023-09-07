@@ -36,10 +36,10 @@ public class VersionProvider implements CommandLine.IVersionProvider {
             Manifest manifest = getManifest();
             final String version = getVersionFromManifest(manifest);
             final String gitRevision = getGitRevisionFromManifest(manifest);
-            return "LangStream CLI %s (%s)".formatted(version, gitRevision);
+            return String.format("LangStream CLI %s (%s)", version, gitRevision);
         } catch (Throwable t) {
             // never ever let this exception bubble up otherwise any command will fail
-            return "Error: %s".formatted(t.getMessage());
+            return String.format("Error: %s", t.getMessage());
         }
     }
 

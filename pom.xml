@@ -79,6 +79,8 @@
 <!--    minio requires okhttp3 v4-->
     <okhttp.version>4.11.0</okhttp.version>
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
+    <cli-jdk-target-version>11</cli-jdk-target-version>
+    <extra-enforcer-rules.version>1.6.1</extra-enforcer-rules.version>
   </properties>
 
   <scm>

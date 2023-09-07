@@ -28,6 +28,6 @@ public class DeleteApplicationCmd extends BaseApplicationCmd {
     @SneakyThrows
     public void run() {
         getClient().applications().delete(applicationId);
-        log("Application %s deleted".formatted(applicationId));
+        log(String.format("Application %s deleted", applicationId));
     }
 }

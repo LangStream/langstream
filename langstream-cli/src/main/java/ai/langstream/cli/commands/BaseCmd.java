@@ -119,7 +119,7 @@ public abstract class BaseCmd implements Runnable {
         final NamedProfile result = getConfig().getProfiles().get(profile);
         if (result == null) {
             throw new IllegalStateException(
-                    "No profile '%s' defined in configuration".formatted(profile));
+                    String.format("No profile '%s' defined in configuration", profile));
         }
         return result;
     }
@@ -128,7 +128,7 @@ public abstract class BaseCmd implements Runnable {
         final NamedProfile profile = getCurrentProfile();
         if (profile.getWebServiceUrl() == null) {
             throw new IllegalStateException(
-                    "No webServiceUrl defined for profile '%s'".formatted(profile.getName()));
+                    String.format("No webServiceUrl defined for profile '%s'", profile.getName()));
         }
         return AdminClientConfiguration.builder()
                 .webServiceUrl(profile.getWebServiceUrl())
@@ -174,7 +174,7 @@ public abstract class BaseCmd implements Runnable {
             final String name = field.getName();
             final String newValue = System.getenv("LANGSTREAM_" + name);
             if (newValue != null) {
-                log("Using env variable: %s=%s".formatted(name, newValue));
+                log(String.format("Using env variable: %s=%s", name, newValue));
                 field.trySetAccessible();
                 field.set(config, newValue);
             }
@@ -267,7 +267,8 @@ public abstract class BaseCmd implements Runnable {
             String strColumn;
 
             final Object appliedValue = valueSupplier.apply(readValue, column);
-            if (appliedValue instanceof final JsonNode columnValue) {
+            if (appliedValue instanceof JsonNode) {
+                final JsonNode columnValue = (JsonNode) appliedValue;
                 if (columnValue.isNull()) {
                     strColumn = "";
                 } else {

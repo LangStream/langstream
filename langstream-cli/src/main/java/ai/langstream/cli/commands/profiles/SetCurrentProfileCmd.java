@@ -32,7 +32,7 @@ public class SetCurrentProfileCmd extends BaseProfileCmd {
         updateConfig(
                 langStreamCLIConfig -> {
                     langStreamCLIConfig.setCurrentProfile(name);
-                    log("profile %s set as current".formatted(name));
+                    log(String.format("profile %s set as current", name));
                 });
     }
 }

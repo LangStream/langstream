@@ -16,9 +16,7 @@
 package ai.langstream.cli.commands.gateway;
 
 import ai.langstream.admin.client.AdminClient;
-import ai.langstream.api.model.Gateway;
-import ai.langstream.api.model.Gateways;
-import ai.langstream.api.webservice.application.ApplicationDescription;
+import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.commands.BaseCmd;
 import ai.langstream.cli.commands.RootCmd;
 import ai.langstream.cli.commands.RootGatewayCmd;
@@ -75,25 +73,26 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
     @SneakyThrows
     private static String encodeParam(String key, String value, String prefix) {
-        return "%s=%s".formatted(prefix + key, URLEncoder.encode(value, StandardCharsets.UTF_8));
+        return String.format(
+                "%s=%s", prefix + key, URLEncoder.encode(value, StandardCharsets.UTF_8));
     }
 
     protected String validateGatewayAndGetUrl(
             String applicationId,
             String gatewayId,
-            Gateway.GatewayType type,
+            String type,
             Map<String, String> params,
             Map<String, String> options,
             String credentials) {
         validateGateway(applicationId, gatewayId, type, params, options, credentials);
-        return "%s/v1/%s/%s/%s/%s?%s"
-                .formatted(
-                        getApiGatewayUrl(),
-                        type.toString(),
-                        getTenant(),
-                        applicationId,
-                        gatewayId,
-                        computeQueryString(credentials, params, options));
+        return String.format(
+                "%s/v1/%s/%s/%s/%s?%s",
+                getApiGatewayUrl(),
+                type,
+                getTenant(),
+                applicationId,
+                gatewayId,
+                computeQueryString(credentials, params, options));
     }
 
     private String getTenant() {
@@ -110,7 +109,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     protected void validateGateway(
             String application,
             String gatewayId,
-            Gateway.GatewayType type,
+            String type,
             Map<String, String> params,
             Map<String, String> options,
             String credentials) {
@@ -120,19 +119,16 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         final String applicationContent =
                 applicationDescriptions.computeIfAbsent(
                         application, app -> client.applications().get(application, false));
+        final List<Gateways.Gateway> gateways =
+                Gateways.readFromApplicationDescription(applicationContent);
 
-        final ApplicationDescription applicationDescription =
-                messageMapper.readValue(applicationContent, ApplicationDescription.class);
-        final Gateways gatewaysWrapper = applicationDescription.getApplication().getGateways();
-        if (gatewaysWrapper == null
-                || gatewaysWrapper.gateways() == null
-                || gatewaysWrapper.gateways().isEmpty()) {
+        if (gateways.isEmpty()) {
             throw new IllegalArgumentException("No gateway defined for application " + application);
         }
 
-        Gateway selectedGateway = null;
-        for (Gateway gateway : gatewaysWrapper.gateways()) {
-            if (gateway.id().equals(gatewayId) && type == gateway.type()) {
+        Gateways.Gateway selectedGateway = null;
+        for (Gateways.Gateway gateway : gateways) {
+            if (gateway.getId().equals(gatewayId) && type == gateway.getType()) {
                 selectedGateway = gateway;
                 break;
             }
@@ -145,7 +141,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                             + type
                             + " is not defined in the application");
         }
-        final List<String> requiredParameters = selectedGateway.parameters();
+        final List<String> requiredParameters = selectedGateway.getParameters();
         if (requiredParameters != null) {
             for (String requiredParameter : requiredParameters) {
                 if (params == null || !params.containsKey(requiredParameter)) {
@@ -159,7 +155,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                 }
             }
         }
-        if (selectedGateway.authentication() != null) {
+        if (selectedGateway.getAuthentication() != null) {
             if (credentials == null) {
                 throw new IllegalArgumentException(
                         "gateway " + gatewayId + " of type " + type + " requires credentials");

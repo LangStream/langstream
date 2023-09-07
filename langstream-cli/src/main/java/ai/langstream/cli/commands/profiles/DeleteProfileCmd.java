@@ -37,7 +37,7 @@ public class DeleteProfileCmd extends BaseProfileCmd {
                     }
 
                     langStreamCLIConfig.getProfiles().remove(name);
-                    log("profile %s deleted".formatted(name));
+                    log(String.format("profile %s deleted", name));
                 });
     }
 }

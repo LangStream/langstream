@@ -70,36 +70,34 @@ class ProfilesCmdTest extends CommandTestBase {
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
         assertEquals(
-                """
-                        PROFILE                   WEBSERVICEURL             TENANT                    TOKEN                     CURRENT                \s
-                        new                       http://my.localhost:8080  t                         ******** """,
+                "PROFILE                   WEBSERVICEURL             TENANT                    TOKEN                 "
+                        + "    CURRENT                 \n"
+                        + "new                       http://my.localhost:8080  t                         ********",
                 result.out());
 
         result = executeCommand("profiles", "get", "new", "-o", "json");
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
         assertEquals(
-                """
-                {
-                  "webServiceUrl" : "http://my.localhost:8080",
-                  "apiGatewayUrl" : "http://my.localhost:8091",
-                  "tenant" : "t",
-                  "token" : "tok2",
-                  "name" : "new"
-                }""",
+                "{\n"
+                        + "  \"webServiceUrl\" : \"http://my.localhost:8080\",\n"
+                        + "  \"apiGatewayUrl\" : \"http://my.localhost:8091\",\n"
+                        + "  \"tenant\" : \"t\",\n"
+                        + "  \"token\" : \"tok2\",\n"
+                        + "  \"name\" : \"new\"\n"
+                        + "}",
                 result.out());
 
         result = executeCommand("profiles", "get", "new", "-o", "yaml");
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
         assertEquals(
-                """
-                ---
-                webServiceUrl: "http://my.localhost:8080"
-                apiGatewayUrl: "http://my.localhost:8091"
-                tenant: "t"
-                token: "tok2"
-                name: "new" """,
+                "---\n"
+                        + "webServiceUrl: \"http://my.localhost:8080\"\n"
+                        + "apiGatewayUrl: \"http://my.localhost:8091\"\n"
+                        + "tenant: \"t\"\n"
+                        + "token: \"tok2\"\n"
+                        + "name: \"new\"",
                 result.out());
 
         result = executeCommand("profiles", "get", "notexists");
@@ -113,11 +111,15 @@ class ProfilesCmdTest extends CommandTestBase {
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
         assertEquals(
-                """
-                        PROFILE                   WEBSERVICEURL             TENANT                    TOKEN                     CURRENT                \s
-                        default                   %s    my-tenant                                           *                      \s
-                        new                       http://my.localhost:8080  t                         ********"""
-                        .formatted(getConfig().getWebServiceUrl()),
+                String.format(
+                        ("PROFILE                   WEBSERVICEURL             TENANT                    TOKEN        "
+                                + "        "
+                                + "     CURRENT                 \n"
+                                + "default                   %s    my-tenant                                           *      "
+                                + "        "
+                                + "         \n"
+                                + "new                       http://my.localhost:8080  t                         ********"),
+                        getConfig().getWebServiceUrl()),
                 result.out());
 
         result = executeCommand("profiles", "get-current");
@@ -163,11 +165,7 @@ class ProfilesCmdTest extends CommandTestBase {
                         "--set-current");
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
-        assertEquals(
-                """
-                profile new created
-                profile new set as current""",
-                result.out());
+        assertEquals("profile new created\n" + "profile new set as current", result.out());
         assertEquals("new", getConfig().getCurrentProfile());
 
         result =
@@ -192,11 +190,7 @@ class ProfilesCmdTest extends CommandTestBase {
                         "--set-current");
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
-        assertEquals(
-                """
-                profile new1 updated
-                profile new1 set as current""",
-                result.out());
+        assertEquals("profile new1 updated\n" + "profile new1 set as current", result.out());
         assertEquals("new1", getConfig().getCurrentProfile());
     }
 
@@ -205,34 +199,45 @@ class ProfilesCmdTest extends CommandTestBase {
     public void testImport(String input) throws IOException {
 
         final String json =
-                "{\"webServiceUrl\":\"http://my.localhost:8080\",\"apiGatewayUrl\":\"http://my.localhost:8091\",\"tenant\":\"t\",\"token\":\"tok\"}";
-        String paramName =
-                switch (input) {
-                    case "file" -> "--file";
-                    case "json", "base64" -> "--inline";
-                    default -> throw new IllegalArgumentException("Unexpected value: " + input);
-                };
+                "{\"webServiceUrl\":\"http://my.localhost:8080\",\"apiGatewayUrl\":\"http://my.localhost:8091\","
+                        + "\"tenant\":\"t\",\"token\":\"tok\"}";
+        final String paramName;
+
+        switch (input) {
+            case "file":
+                paramName = "--file";
+                break;
+            case "json":
+            case "base64":
+                paramName = "--inline";
+                break;
+            default:
+                throw new IllegalArgumentException("Unexpected value: " + input);
+        }
 
         final File file = Files.createTempFile("test", ".json").toFile();
         Files.writeString(file.toPath(), json);
-        String paramValue =
-                switch (input) {
-                    case "file" -> file.getAbsolutePath();
-                    case "json" -> json;
-                    case "base64" -> "base64:"
-                            + Base64.getEncoder().encodeToString(json.getBytes());
-                    default -> throw new IllegalArgumentException("Unexpected value: " + input);
-                };
+        final String paramValue;
+        switch (input) {
+            case "file":
+                paramValue = file.getAbsolutePath();
+                break;
+            case "json":
+                paramValue = json;
+                break;
+            case "base64":
+                paramValue = "base64:" + Base64.getEncoder().encodeToString(json.getBytes());
+                break;
+            default:
+                throw new IllegalArgumentException("Unexpected value: " + input);
+        }
+        ;
 
         CommandResult result =
                 executeCommand("profiles", "import", "new", paramName, paramValue, "--set-current");
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
-        assertEquals(
-                """
-                profile new created
-                profile new set as current""",
-                result.out());
+        assertEquals("profile new created\n" + "profile new set as current", result.out());
         assertEquals("new", getConfig().getCurrentProfile());
 
         NamedProfile newProfile = getConfig().getProfiles().get("new");
@@ -253,11 +258,7 @@ class ProfilesCmdTest extends CommandTestBase {
                         "profiles", "import", "new", paramName, paramValue, "--set-current", "-u");
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
-        assertEquals(
-                """
-                profile new updated
-                profile new set as current""",
-                result.out());
+        assertEquals("profile new updated\n" + "profile new set as current", result.out());
     }
 
     @Test
@@ -267,10 +268,12 @@ class ProfilesCmdTest extends CommandTestBase {
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
         assertEquals(
-                """
-                        PROFILE                 WEBSERVICEURL           TENANT                  TOKEN                   CURRENT              \s
-                        default                 %s  my-tenant                                       *"""
-                        .formatted(getConfig().getWebServiceUrl()),
+                String.format(
+                        ("PROFILE                 WEBSERVICEURL           TENANT                  TOKEN              "
+                                + "     "
+                                + "CURRENT               \n"
+                                + "default                 %s  my-tenant                                       *"),
+                        getConfig().getWebServiceUrl()),
                 result.out());
 
         result = executeCommand("profiles", "get-current");

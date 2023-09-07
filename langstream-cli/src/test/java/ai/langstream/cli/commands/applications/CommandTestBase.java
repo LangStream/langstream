@@ -16,6 +16,9 @@
 package ai.langstream.cli.commands.applications;
 
 import ai.langstream.cli.LangStreamCLI;
+import ai.langstream.cli.LangStreamCLIConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -25,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Stream;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
@@ -104,5 +108,11 @@ public class CommandTestBase {
         log.info("COMMAND OUTPUT:\n");
         log.info(outRes);
         return new CommandResult(exitCode, outRes, errRes);
+    }
+
+    @SneakyThrows
+    protected LangStreamCLIConfig getConfig() {
+        return new ObjectMapper(new YAMLFactory())
+                .readValue(cliYaml.toFile(), LangStreamCLIConfig.class);
     }
 }

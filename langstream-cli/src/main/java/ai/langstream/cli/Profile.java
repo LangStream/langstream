@@ -15,16 +15,18 @@
  */
 package ai.langstream.cli;
 
-import java.util.Map;
-import java.util.TreeMap;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class LangStreamCLIConfig extends Profile {
+public class Profile {
 
-    private Map<String, NamedProfile> profiles = new TreeMap<>();
+    @JsonProperty(required = true)
+    private String webServiceUrl;
 
-    private String currentProfile = "default";
+    private String apiGatewayUrl;
+    private String tenant;
+    private String token;
 }

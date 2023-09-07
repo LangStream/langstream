@@ -17,12 +17,16 @@ package ai.langstream.cli.commands.configure;
 
 import ai.langstream.cli.commands.BaseCmd;
 import ai.langstream.cli.commands.RootCmd;
+import ai.langstream.cli.commands.profiles.BaseProfileCmd;
 import java.util.Arrays;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "configure", header = "Configure LangStream tenant and authentication")
+@CommandLine.Command(
+        name = "configure",
+        header =
+                "Configure LangStream tenant and authentication. DEPRECATED. Use 'langstream profiles' instead.")
 @Getter
 public class ConfigureCmd extends BaseCmd {
 
@@ -44,6 +48,9 @@ public class ConfigureCmd extends BaseCmd {
     @Override
     @SneakyThrows
     public void run() {
+        if (getRootCmd().getProfile() != null) {
+            throw new IllegalArgumentException("Global profile flag is not allowed here");
+        }
         updateConfig(
                 clientConfig -> {
                     switch (configKey) {
@@ -56,6 +63,8 @@ public class ConfigureCmd extends BaseCmd {
                                         .formatted(configKey, Arrays.toString(ConfigKey.values())));
                     }
                 });
-        log("Config updated: %s=%s".formatted(configKey, newValue));
+        log(
+                "profile %s updated: %s=%s"
+                        .formatted(BaseProfileCmd.DEFAULT_PROFILE_NAME, configKey, newValue));
     }
 }

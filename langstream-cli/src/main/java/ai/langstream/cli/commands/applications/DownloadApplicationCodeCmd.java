@@ -57,7 +57,7 @@ public class DownloadApplicationCodeCmd extends BaseApplicationCmd {
                 }
             }
             if (filename == null) {
-                filename = "%s-%s.zip".formatted(getConfig().getTenant(), applicationId);
+                filename = "%s-%s.zip".formatted(getCurrentProfile().getTenant(), applicationId);
             }
             path = Path.of(filename);
         }

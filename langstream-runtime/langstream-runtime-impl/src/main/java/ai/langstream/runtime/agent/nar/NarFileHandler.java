@@ -43,7 +43,7 @@ import lombok.extern.slf4j.Slf4j;
 public class NarFileHandler
         implements AutoCloseable,
                 AgentCodeRegistry.AgentPackageLoader,
-                AssetManagerRegistry.AgentPackageLoader {
+                AssetManagerRegistry.AssetManagerPackageLoader {
 
     private final Path packagesDirectory;
     private final Path temporaryDirectory;

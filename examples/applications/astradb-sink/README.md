@@ -9,7 +9,7 @@ Install Cassandra or create a DataStax Astra DB Database
 
 ## Table creation
 
-The sample application creates a keyspace named "products" and a table named "products" with the following schema:
+The sample application creates a table named "products" inside a keyspace named 'products' with the following schema:
 
 ```
 CREATE TABLE IF NOT EXISTS products (
@@ -19,8 +19,7 @@ CREATE TABLE IF NOT EXISTS products (
 );
 ```
 
-This is handled by the 'cassandra-table' and the 'cassandra-keyspace' assets in the pipeline.yaml file.
-
+This is handled by the 'cassandra-table' assets in the pipeline.yaml file.
 
 ## Configure the pipeline
 

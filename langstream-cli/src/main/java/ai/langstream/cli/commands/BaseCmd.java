@@ -37,7 +37,6 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.commons.lang3.StringUtils;
 import picocli.CommandLine;
 
 public abstract class BaseCmd implements Runnable {
@@ -169,7 +168,7 @@ public abstract class BaseCmd implements Runnable {
     @SneakyThrows
     private File computeRootConfigFile() {
         final String userHome = System.getProperty("user.home");
-        if (!StringUtils.isBlank(userHome) && !"?".equals(userHome)) {
+        if (!userHome.isBlank() && !"?".equals(userHome)) {
             final Path langstreamDir = Path.of(userHome, ".langstream");
             Files.createDirectories(langstreamDir);
             final Path configFile = langstreamDir.resolve("config");

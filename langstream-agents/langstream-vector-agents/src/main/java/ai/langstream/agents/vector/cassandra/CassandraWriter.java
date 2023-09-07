@@ -106,10 +106,18 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
 
                                     configuration.put(
                                             "auth.username",
-                                            datasource.getOrDefault("username", "").toString());
+                                            datasource
+                                                    .getOrDefault(
+                                                            "username",
+                                                            datasource.getOrDefault("clientId", ""))
+                                                    .toString());
                                     configuration.put(
                                             "auth.password",
-                                            datasource.getOrDefault("password", "").toString());
+                                            datasource
+                                                    .getOrDefault(
+                                                            "password",
+                                                            datasource.getOrDefault("secret", ""))
+                                                    .toString());
 
                                     break;
                                 default:

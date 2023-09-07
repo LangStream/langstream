@@ -26,25 +26,46 @@ import lombok.extern.slf4j.Slf4j;
 public class CassandraAssetsProvider extends AbstractAssetProvider {
 
     public CassandraAssetsProvider() {
-        super(Set.of("cassandra-table", "cassandra-keyspace"));
+        super(Set.of("cassandra-table", "cassandra-keyspace", "astra-keyspace"));
     }
 
     @Override
     protected void validateAsset(AssetDefinition assetDefinition, Map<String, Object> asset) {
         Map<String, Object> configuration = ConfigurationUtils.getMap("config", null, asset);
+        requiredField(assetDefinition, configuration, "datasource");
+        final Map<String, Object> datasource =
+                ConfigurationUtils.getMap("datasource", Map.of(), configuration);
+        final Map<String, Object> datasourceConfiguration =
+                ConfigurationUtils.getMap("configuration", Map.of(), datasource);
         switch (assetDefinition.getAssetType()) {
             case "cassandra-table" -> {
                 requiredNonEmptyField(assetDefinition, configuration, "table-name");
                 requiredNonEmptyField(assetDefinition, configuration, "keyspace");
                 requiredListField(assetDefinition, configuration, "create-statements");
-                requiredField(assetDefinition, configuration, "datasource");
             }
             case "cassandra-keyspace" -> {
                 requiredNonEmptyField(assetDefinition, configuration, "keyspace");
                 requiredListField(assetDefinition, configuration, "create-statements");
-                requiredField(assetDefinition, configuration, "datasource");
+                if (datasourceConfiguration.containsKey("secureBundle")) {
+                    throw new IllegalArgumentException(
+                            "Use astra-keyspace for AstraDB services (not expecting a secureBundle in a Cassandra datasource).");
+                }
             }
-            default -> throw new IllegalStateException();
+            case "astra-keyspace" -> {
+                requiredNonEmptyField(assetDefinition, configuration, "keyspace");
+                if (!datasourceConfiguration.containsKey("secureBundle")) {
+                    throw new IllegalArgumentException(
+                            "Use cassandra-keyspace for a standard Cassandra service (expecting a secureBundle, but found only "
+                                    + datasourceConfiguration.keySet()
+                                    + " .");
+                }
+                // are we are using the AstraDB SDK we need also the AstraCS token and
+                // the name of the database
+                requiredNonEmptyField(assetDefinition, datasourceConfiguration, "token");
+                requiredNonEmptyField(assetDefinition, datasourceConfiguration, "database");
+            }
+            default -> throw new IllegalStateException(
+                    "Unexpected value: " + assetDefinition.getAssetType());
         }
     }
 

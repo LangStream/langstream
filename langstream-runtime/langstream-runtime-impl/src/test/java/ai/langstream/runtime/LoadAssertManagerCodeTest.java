@@ -37,7 +37,9 @@ class LoadAssertManagerCodeTest {
         AssetManager assetManager =
                 registry.getAssetManager(assetDefinition.getAssetType()).agentCode();
 
-        assertFalse(assetManager.assetExists(assetDefinition));
-        assetManager.deployAsset(assetDefinition);
+        assetManager.initialize(assetDefinition);
+        assertFalse(assetManager.assetExists());
+        assetManager.deployAsset();
+        assetManager.close();
     }
 }

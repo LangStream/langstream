@@ -20,9 +20,11 @@ import ai.langstream.api.model.AssetDefinition;
 /** Body of the agent */
 public interface AssetManager {
 
-    boolean assetExists(AssetDefinition assetDefinition) throws Exception;
+    void initialize(AssetDefinition assetDefinition) throws Exception;
 
-    void deployAsset(AssetDefinition assetDefinition) throws Exception;
+    boolean assetExists() throws Exception;
+
+    void deployAsset() throws Exception;
 
     default void close() throws Exception {}
 }

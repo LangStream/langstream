@@ -19,29 +19,27 @@ topics:
   - name: "input-topic"
     creation-mode: create-if-not-exists
 assets:
-  - name: "vsearch-keyspace"
-    asset-type: "cassandra-keyspace"
+  - name: "lagstream-keyspace"
+    asset-type: "astra-keyspace"
     creation-mode: create-if-not-exists
     config:
-      keyspace: "products"
-      datasource: "CassandraDatasource"
-      create-statements:
-        - "CREATE KEYSPACE products WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};"
+      keyspace: "langstream"
+      datasource: "AstraDatasource"
   - name: "products-table"
     asset-type: "cassandra-table"
     creation-mode: create-if-not-exists
     config:
       table-name: "products"
-      keyspace: "products"
-      datasource: "CassandraDatasource"
+      keyspace: "langstream"
+      datasource: "AstraDatasource"
       create-statements:
-        - "CREATE TABLE IF NOT EXISTS products.products (id int PRIMARY KEY,name TEXT,description TEXT);"
+        - "CREATE TABLE IF NOT EXISTS langstream.products (id int PRIMARY KEY,name TEXT,description TEXT);"
 pipeline:
-  - name: "Write to Cassandra"
+  - name: "Write to Astra"
     type: "vector-db-sink"
     input: "input-topic"
     configuration:
       datasource: "AstraDatasource"
       table-name: "products"
-      keyspace: "vsearch"
+      keyspace: "langstream"
       mapping: "id=value.id,description=value.description,name=value.name"

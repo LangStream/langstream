@@ -46,6 +46,11 @@
       <artifactId>java-driver-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.datastax.astra</groupId>
+      <artifactId>astra-sdk-devops</artifactId>
+      <version>0.6.8</version>
+    </dependency>
+    <dependency>
       <!-- Transform Function -->
       <groupId>org.apache.pulsar</groupId>
       <artifactId>pulsar-client-original</artifactId>

@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AssetManagerRegistry {
 
-    private AgentPackageLoader assetManagerPackageLoader;
+    private AssetManagerPackageLoader assetManagerPackageLoader;
 
     public AssetManagerRegistry() {}
 
@@ -40,7 +40,7 @@ public class AssetManagerRegistry {
         ClassLoader getClassloader();
     }
 
-    public interface AgentPackageLoader {
+    public interface AssetManagerPackageLoader {
         AssetPackage loadPackageForAsset(String assetType) throws Exception;
 
         List<? extends ClassLoader> getAllClassloaders() throws Exception;
@@ -57,58 +57,59 @@ public class AssetManagerRegistry {
                 assetManagerPackageLoader != null
                         ? assetManagerPackageLoader.getCustomCodeClassloader()
                         : AssetManagerRegistry.class.getClassLoader();
-        // always allow to find the system agents
-        AssetManagerAndLoader agentCodeProviderProviderFromSystem =
+        // always allow to find the system assets
+        AssetManagerAndLoader assetCodeProviderProviderFromSystem =
                 loadFromClassloader(assetType, customCodeClassloader);
-        if (agentCodeProviderProviderFromSystem != null) {
-            log.info("The agent {} is loaded from the system classpath", assetType);
-            return agentCodeProviderProviderFromSystem;
+        if (assetCodeProviderProviderFromSystem != null) {
+            log.info("The asset manager {} is loaded from the system classpath", assetType);
+            return assetCodeProviderProviderFromSystem;
         }
 
         if (assetManagerPackageLoader != null) {
             AssetPackage assetPackage = assetManagerPackageLoader.loadPackageForAsset(assetType);
 
             if (assetPackage != null) {
-                log.info("Found the package the agent belongs to: {}", assetPackage.getName());
-                AssetManagerAndLoader agentCodeProviderProvider =
+                log.info("Found the package the asset belongs to: {}", assetPackage.getName());
+                AssetManagerAndLoader assetCodeProviderProvider =
                         loadFromClassloader(assetType, assetPackage.getClassloader());
-                if (agentCodeProviderProvider == null) {
+                if (assetCodeProviderProvider == null) {
                     throw new RuntimeException(
                             "Package "
                                     + assetPackage.getName()
-                                    + " declared to support agent type "
+                                    + " declared to support asset type "
                                     + assetType
-                                    + " but no agent found");
+                                    + " but no asset manager found");
                 }
-                return agentCodeProviderProvider;
+                return assetCodeProviderProvider;
             }
 
-            log.info("No agent found in the package, let's try to find it among all the packages");
+            log.info(
+                    "No asset manager found in the package, let's try to find it among all the packages");
 
-            // we are not lucky, let's try to find the agent in all the packages
+            // we are not lucky, let's try to find the asset in all the packages
             List<ClassLoader> candidateClassloaders =
                     new ArrayList<>(assetManagerPackageLoader.getAllClassloaders());
 
             for (ClassLoader classLoader : candidateClassloaders) {
-                AssetManagerAndLoader agentCodeProviderProvider =
+                AssetManagerAndLoader assetManagerCodeProviderProvider =
                         loadFromClassloader(assetType, classLoader);
-                if (agentCodeProviderProvider != null) {
-                    return agentCodeProviderProvider;
+                if (assetManagerCodeProviderProvider != null) {
+                    return assetManagerCodeProviderProvider;
                 }
             }
         }
 
-        throw new RuntimeException("No AgentCodeProvider found for type " + assetType);
+        throw new RuntimeException("No AssetManagerProvider found for type " + assetType);
     }
 
     private static AssetManagerAndLoader loadFromClassloader(
             String assetType, ClassLoader classLoader) {
         ServiceLoader<AssetManagerProvider> loader =
                 ServiceLoader.load(AssetManagerProvider.class, classLoader);
-        Optional<ServiceLoader.Provider<AssetManagerProvider>> agentCodeProviderProvider =
+        Optional<ServiceLoader.Provider<AssetManagerProvider>> assetManagerCodeProviderProvider =
                 loader.stream().filter(p -> p.get().supports(assetType)).findFirst();
 
-        return agentCodeProviderProvider
+        return assetManagerCodeProviderProvider
                 .map(
                         provider ->
                                 new AssetManagerAndLoader(
@@ -116,7 +117,7 @@ public class AssetManagerRegistry {
                 .orElse(null);
     }
 
-    public void setAssetManagerPackageLoader(AgentPackageLoader loader) {
+    public void setAssetManagerPackageLoader(AssetManagerPackageLoader loader) {
         this.assetManagerPackageLoader = loader;
     }
 }

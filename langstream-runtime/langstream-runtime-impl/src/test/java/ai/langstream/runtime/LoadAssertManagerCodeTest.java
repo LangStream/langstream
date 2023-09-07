@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.assets.AssetManager;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -27,9 +28,11 @@ import org.junit.jupiter.api.Test;
 class LoadAssertManagerCodeTest {
 
     @Test
-    public void testLoadNoop() throws Exception {
+    public void testLoadMockAsset() throws Exception {
         AssetManagerRegistry registry = new AssetManagerRegistry();
         AssetDefinition assetDefinition = new AssetDefinition();
+        assetDefinition.setConfig(
+                Map.of("datasource", Map.of("configuration", Map.of("foo", "bar"))));
         assetDefinition.setAssetType("mock-database-resource");
         AssetManager assetManager =
                 registry.getAssetManager(assetDefinition.getAssetType()).agentCode();

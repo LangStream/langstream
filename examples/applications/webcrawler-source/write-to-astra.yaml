@@ -28,7 +28,7 @@ assets:
       datasource: "AstraDatasource"
       create-statements:
         - |
-          CREATE TABLE IF NOT EXISTS documents (
+          CREATE TABLE IF NOT EXISTS documents.documents (
           filename TEXT,
           chunk_id int,
           num_tokens int,
@@ -37,19 +37,15 @@ assets:
           embeddings_vector VECTOR<FLOAT, 1536>,
           PRIMARY KEY (filename, chunk_id));
         - |
-          CREATE CUSTOM INDEX IF NOT EXISTS documents_ann_index ON documents(embeddings_vector) USING 'StorageAttachedIndex';
+          CREATE CUSTOM INDEX IF NOT EXISTS documents_ann_index ON documents.documents(embeddings_vector) USING 'StorageAttachedIndex';
 pipeline:
-  - name: "Write to AstraDB"
-    type: "sink"
+  - name: "Write to Astra"
+    type: "vector-db-sink"
     input: "chunks-topic"
     resources:
-       size: 2
+      size: 2
     configuration:
-      connector.class: com.datastax.oss.kafka.sink.CassandraSinkConnector
-      key.converter: org.apache.kafka.connect.storage.StringConverter
-      value.converter: org.apache.kafka.connect.storage.StringConverter
-      cloud.secureConnectBundle: "{{{ secrets.cassandra.secure-connect-bundle }}}"
-      auth.username: "{{{ secrets.cassandra.username }}}"
-      auth.password: "{{{ secrets.cassandra.password }}}"
-      topic.chunks-topic.documents.documents.mapping: "filename=value.filename, chunk_id=value.chunk_id, language=value.language, text=value.text, embeddings_vector=value.embeddings_vector, num_tokens=value.chunk_num_tokens"
-      name: cassandra-sink
+      datasource: "AstraDatasource"
+      table-name: "documents"
+      keyspace: "documents"
+      mapping: "filename=value.filename, chunk_id=value.chunk_id, language=value.language, text=value.text, embeddings_vector=value.embeddings_vector, num_tokens=value.chunk_num_tokens"

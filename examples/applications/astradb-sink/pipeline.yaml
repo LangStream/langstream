@@ -35,7 +35,7 @@ assets:
       create-statements:
         - "CREATE TABLE IF NOT EXISTS products.products (id int PRIMARY KEY,name TEXT,description TEXT);"
 pipeline:
-  - name: "Write to Cassandra"
+  - name: "Write to Astra"
     type: "vector-db-sink"
     input: "input-topic"
     configuration:

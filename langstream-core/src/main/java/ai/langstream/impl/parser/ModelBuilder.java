@@ -59,8 +59,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -691,5 +689,4 @@ public class ModelBuilder {
         }
         return errorsSpec;
     }
-
 }

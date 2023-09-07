@@ -128,7 +128,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
         Gateways.Gateway selectedGateway = null;
         for (Gateways.Gateway gateway : gateways) {
-            if (gateway.getId().equals(gatewayId) && type == gateway.getType()) {
+            if (gateway.getId().equals(gatewayId) && type.equals(gateway.getType())) {
                 selectedGateway = gateway;
                 break;
             }

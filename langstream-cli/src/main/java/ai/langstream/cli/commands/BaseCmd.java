@@ -233,7 +233,11 @@ public abstract class BaseCmd implements Runnable {
                                 .elements()
                                 .forEachRemaining(
                                         element ->
-                                                rows.add(prepareRawRow(element, columnsForRaw, valueSupplier)));
+                                                rows.add(
+                                                        prepareRawRow(
+                                                                element,
+                                                                columnsForRaw,
+                                                                valueSupplier)));
                     } else {
                         rows.add(prepareRawRow(readValue, columnsForRaw, valueSupplier));
                     }
@@ -256,7 +260,6 @@ public abstract class BaseCmd implements Runnable {
             String[] columnsForRaw,
             BiFunction<JsonNode, String, Object> valueSupplier) {
         final int numColumns = columnsForRaw.length;
-
 
         String[] row = new String[numColumns];
         for (int i = 0; i < numColumns; i++) {

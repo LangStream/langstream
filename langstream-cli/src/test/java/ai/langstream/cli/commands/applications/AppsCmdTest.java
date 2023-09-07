@@ -1105,8 +1105,7 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals(
-                "ID         STREAMING  COMPUTE    STATUS     EXECUTORS  REPLICAS",
-                result.out());
+                "ID         STREAMING  COMPUTE    STATUS     EXECUTORS  REPLICAS", result.out());
         result = executeCommand("apps", "list", "-o", "json");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());

@@ -65,7 +65,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
             String keySpace =
                     ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
             log.info("Checking is table {} exists in keyspace {}", tableName, keySpace);
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition);) {
+            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
                 CqlSession session = datasource.getSession();
                 log.info("Getting keyspace {} metadata", keySpace);
                 Optional<KeyspaceMetadata> keyspace = session.getMetadata().getKeyspace(keySpace);
@@ -95,7 +95,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
         public void deployAsset(AssetDefinition assetDefinition) throws Exception {
             String keySpace =
                     ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition);) {
+            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
                 List<String> statements =
                         ConfigurationUtils.getList(
                                 "create-statements", assetDefinition.getConfig());
@@ -122,7 +122,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
             String keySpace =
                     ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
             log.info("Checking if keyspace {} exists", keySpace);
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition);) {
+            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
                 CqlSession session = datasource.getSession();
                 Optional<KeyspaceMetadata> keyspace = session.getMetadata().getKeyspace(keySpace);
                 keyspace.ifPresent(
@@ -137,7 +137,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
 
         @Override
         public void deployAsset(AssetDefinition assetDefinition) throws Exception {
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition);) {
+            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
                 List<String> statements =
                         ConfigurationUtils.getList(
                                 "create-statements", assetDefinition.getConfig());
@@ -162,7 +162,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
             String keySpace =
                     ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
             log.info("Checking if keyspace {} exists", keySpace);
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition);) {
+            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
                 CqlSession session = datasource.getSession();
                 Optional<KeyspaceMetadata> keyspace = session.getMetadata().getKeyspace(keySpace);
                 keyspace.ifPresent(
@@ -179,7 +179,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
         public void deployAsset(AssetDefinition assetDefinition) throws Exception {
             String keySpace =
                     ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition);) {
+            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
                 DatabaseClient astraDbClient = datasource.buildAstraClient();
                 try {
                     astraDbClient.keyspaces().create(keySpace);

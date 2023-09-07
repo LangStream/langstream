@@ -241,5 +241,4 @@ public class CassandraDataSource implements QueryStepDataSource {
         }
         return new AstraDbClient(astraToken).databaseByName(astraDatabase);
     }
-
 }

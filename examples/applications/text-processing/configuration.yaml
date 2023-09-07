@@ -22,7 +22,7 @@ configuration:
     configuration:
       url: "{{ secrets.open-ai.url }}"
       access-key: "{{ secrets.open-ai.access-key }}"
-      provider: "azure"
+      provider: "{{ secrets.open-ai.provider }}"
   dependencies:
     - name: "Kafka Connect Sink for Apache Cassandra from DataStax"
       url: "https://github.com/datastax/kafka-sink/releases/download/1.5.0/kafka-connect-cassandra-sink-1.5.0.jar"

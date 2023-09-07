@@ -1,13 +1,15 @@
 # Writing to a Cassandra or Datastax Astra DB Database 
 
-This sample application shows how to use the DataStax Cassandra Sink Connector
+This sample application shows how to write to Astra DB using the 'vector-db-sink' agent.
 https://github.com/datastax/kafka-sink
 
 ## Prerequisites
 
 Install Cassandra or create a DataStax Astra DB Database
 
-## Create a "products" table
+## Table creation
+
+The sample application creates a keyspace named "products" and a table named "products" with the following schema:
 
 ```
 CREATE TABLE IF NOT EXISTS products (
@@ -17,15 +19,8 @@ CREATE TABLE IF NOT EXISTS products (
 );
 ```
 
-Insert some data:
-```
-INSERT INTO products (id, name, description) 
-VALUES (
-   1,
-   'Coded Cleats',
-   'ChatGPT integrated sneakers that talk to you'
-   )
-```
+This is handled by the 'cassandra-table' and the 'cassandra-keyspace' assets in the pipeline.yaml file.
+
 
 ## Configure the pipeline
 
@@ -36,23 +31,17 @@ Update the same file and set username, password and the other parameters.
 ./bin/langstream apps deploy test -app examples/applications/astradb-sink -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 
 
-## Start a Producer
-```
-kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic
-```
-
-Insert a JSON with "id", "name" and "description":
+## Produce a message
 
 ```
-{"id": 10, "name": "test", "description": "test"}
+./bin/langstream gateway produce test produce-input -v '{"id": 10, "name": "test", "description": "test"}'
 ```
-
 
 ## Verify the data on Cassandra
 
 Query Cassandra to see the results
 
 ```
-SELECT * FROM products;
+SELECT * FROM products.products;
 ```
 

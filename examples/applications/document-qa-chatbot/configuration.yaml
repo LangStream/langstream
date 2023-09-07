@@ -22,7 +22,7 @@ configuration:
       configuration:
         url: "{{ secrets.open-ai.url }}"
         access-key: "{{ secrets.open-ai.access-key }}"
-        provider: "azure"
+        provider: "{{ secrets.open-ai.provider }}"
     - type: "datasource"
       name: "AstraDatasource"
       configuration:

@@ -27,7 +27,6 @@ from llama_index.vector_stores import CassandraVectorStore
 
 
 class LlamaIndexCassandraSink(Sink):
-
     def __init__(self):
         self.commit_cb: Optional[CommitCallback] = None
         self.config = None
@@ -36,7 +35,7 @@ class LlamaIndexCassandraSink(Sink):
 
     def init(self, config: Dict[str, Any]):
         self.config = config
-        openai.api_key = config['openaiKey']
+        openai.api_key = config["openaiKey"]
 
     def start(self):
         secure_bundle = self.config["cassandra"]["secureBundle"]
@@ -45,7 +44,7 @@ class LlamaIndexCassandraSink(Sink):
         cluster = Cluster(
             cloud={
                 "secure_connect_bundle": io.BytesIO(secure_bundle),
-                "use_default_tempdir": True
+                "use_default_tempdir": True,
             },
             auth_provider=PlainTextAuthProvider(
                 self.config["cassandra"]["username"],

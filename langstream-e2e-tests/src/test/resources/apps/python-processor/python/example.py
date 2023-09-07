@@ -16,10 +16,11 @@
 
 from langstream import SimpleRecord, SingleRecordProcessor
 
-class Exclamation(SingleRecordProcessor):
-  def init(self, config):
-      print('init', config)
-      self.secret_value = config["secret_value"]
 
-  def process_record(self, record):
-      return [SimpleRecord(record.value() + "!!" + self.secret_value)]
+class Exclamation(SingleRecordProcessor):
+    def init(self, config):
+        print("init", config)
+        self.secret_value = config["secret_value"]
+
+    def process_record(self, record):
+        return [SimpleRecord(record.value() + "!!" + self.secret_value)]

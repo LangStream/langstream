@@ -19,6 +19,8 @@ import ai.langstream.admin.client.AdminClient;
 import ai.langstream.admin.client.AdminClientConfiguration;
 import ai.langstream.admin.client.AdminClientLogger;
 import ai.langstream.cli.LangStreamCLIConfig;
+import ai.langstream.cli.NamedProfile;
+import ai.langstream.cli.commands.profiles.BaseProfileCmd;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -28,7 +30,8 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -44,7 +47,8 @@ public abstract class BaseCmd implements Runnable {
         yaml
     }
 
-    private static final ObjectMapper yamlConfigReader = new ObjectMapper(new YAMLFactory());
+    protected static final ObjectMapper yamlConfigReader = new ObjectMapper(new YAMLFactory());
+    protected static final ObjectMapper jsonConfigReader = new ObjectMapper();
     protected static final ObjectMapper jsonPrinter =
             new ObjectMapper()
                     .enable(SerializationFeature.INDENT_OUTPUT)
@@ -81,7 +85,7 @@ public abstract class BaseCmd implements Runnable {
                             BaseCmd.this.debug(message);
                         }
                     };
-            client = new AdminClient(toAdminConfiguration(getConfig()), logger);
+            client = new AdminClient(toAdminConfiguration(), logger);
         }
         return client;
     }
@@ -91,11 +95,45 @@ public abstract class BaseCmd implements Runnable {
         return config;
     }
 
-    private static AdminClientConfiguration toAdminConfiguration(LangStreamCLIConfig config) {
+    protected NamedProfile getDefaultProfile() {
+        final LangStreamCLIConfig config = getConfig();
+        final NamedProfile defaultProfile = new NamedProfile();
+        defaultProfile.setName(BaseProfileCmd.DEFAULT_PROFILE_NAME);
+        defaultProfile.setTenant(config.getTenant());
+        defaultProfile.setToken(config.getToken());
+        defaultProfile.setWebServiceUrl(config.getWebServiceUrl());
+        defaultProfile.setApiGatewayUrl(config.getApiGatewayUrl());
+        return defaultProfile;
+    }
+
+    protected NamedProfile getCurrentProfile() {
+        final String profile;
+        if (getRootCmd().getProfile() != null) {
+            profile = getRootCmd().getProfile();
+        } else {
+            profile = getConfig().getCurrentProfile();
+        }
+        if (BaseProfileCmd.DEFAULT_PROFILE_NAME.equals(profile)) {
+            return getDefaultProfile();
+        }
+        final NamedProfile result = getConfig().getProfiles().get(profile);
+        if (result == null) {
+            throw new IllegalStateException(
+                    "No profile '%s' defined in configuration".formatted(profile));
+        }
+        return result;
+    }
+
+    private AdminClientConfiguration toAdminConfiguration() {
+        final NamedProfile profile = getCurrentProfile();
+        if (profile.getWebServiceUrl() == null) {
+            throw new IllegalStateException(
+                    "No webServiceUrl defined for profile '%s'".formatted(profile.getName()));
+        }
         return AdminClientConfiguration.builder()
-                .webServiceUrl(config.getWebServiceUrl())
-                .token(config.getToken())
-                .tenant(config.getTenant())
+                .webServiceUrl(profile.getWebServiceUrl())
+                .token(profile.getToken())
+                .tenant(profile.getTenant())
                 .build();
     }
 
@@ -187,34 +225,41 @@ public abstract class BaseCmd implements Runnable {
             case raw:
             default:
                 {
-                    printRawHeader(columnsForRaw);
+                    List<String[]> rows = new ArrayList<>();
+
+                    rows.add(prepareHeaderRow(columnsForRaw));
                     if (readValue.isArray()) {
                         readValue
                                 .elements()
                                 .forEachRemaining(
                                         element ->
-                                                printRawRow(element, columnsForRaw, valueSupplier));
+                                                rows.add(
+                                                        prepareRawRow(
+                                                                element,
+                                                                columnsForRaw,
+                                                                valueSupplier)));
                     } else {
-                        printRawRow(readValue, columnsForRaw, valueSupplier);
+                        rows.add(prepareRawRow(readValue, columnsForRaw, valueSupplier));
                     }
+                    printRows(rows);
                     break;
                 }
         }
     }
 
-    private void printRawHeader(String[] columnsForRaw) {
-        final String template = computeFormatTemplate(columnsForRaw.length);
-        final Object[] columns = Arrays.stream(columnsForRaw).map(String::toUpperCase).toArray();
-        final String header = String.format(template, columns);
-        log(header);
+    private String[] prepareHeaderRow(String[] columnsForRaw) {
+        String[] result = new String[columnsForRaw.length];
+        for (int i = 0; i < columnsForRaw.length; i++) {
+            result[i] = columnsForRaw[i].toUpperCase();
+        }
+        return result;
     }
 
-    private void printRawRow(
+    private String[] prepareRawRow(
             JsonNode readValue,
             String[] columnsForRaw,
             BiFunction<JsonNode, String, Object> valueSupplier) {
         final int numColumns = columnsForRaw.length;
-        String formatTemplate = computeFormatTemplate(numColumns);
 
         String[] row = new String[numColumns];
         for (int i = 0; i < numColumns; i++) {
@@ -237,17 +282,33 @@ public abstract class BaseCmd implements Runnable {
             }
             row[i] = strColumn;
         }
-        final String result = String.format(formatTemplate, row);
-        log(result);
+        return row;
     }
 
-    private String computeFormatTemplate(int numColumns) {
+    private void printRows(List<String[]> rows) {
+
+        int countMax = 0;
+
+        for (String[] row : rows) {
+            for (int i = 0; i < row.length; i++) {
+                countMax = Math.max(countMax, row[i].length());
+            }
+        }
+        String formatTemplate = computeFormatTemplate(rows.get(0).length, countMax);
+
+        for (String[] row : rows) {
+            final String result = String.format(formatTemplate, row);
+            log(result);
+        }
+    }
+
+    private String computeFormatTemplate(int numColumns, int width) {
         StringBuilder formatTemplate = new StringBuilder();
         for (int i = 0; i < numColumns; i++) {
             if (i > 0) {
                 formatTemplate.append("  ");
             }
-            formatTemplate.append("%-15.15s");
+            formatTemplate.append("%-" + width + "." + width + "s");
         }
         return formatTemplate.toString();
     }

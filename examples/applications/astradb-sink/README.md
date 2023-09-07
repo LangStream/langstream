@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS products (
 
 This is handled by the 'cassandra-table' assets in the pipeline.yaml file.
 
-
 ## Configure the pipeline
 
 Update the same file and set username, password and the other parameters.

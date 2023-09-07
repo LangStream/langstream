@@ -15,16 +15,12 @@
  */
 package ai.langstream.cli;
 
-import java.util.Map;
-import java.util.TreeMap;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class LangStreamCLIConfig extends Profile {
+public class NamedProfile extends Profile {
 
-    private Map<String, NamedProfile> profiles = new TreeMap<>();
-
-    private String currentProfile = "default";
+    private String name;
 }

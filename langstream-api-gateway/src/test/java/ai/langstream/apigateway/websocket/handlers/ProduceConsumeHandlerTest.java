@@ -16,12 +16,17 @@
 package ai.langstream.apigateway.websocket.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 
+import ai.langstream.api.events.EventRecord;
+import ai.langstream.api.events.EventSources;
+import ai.langstream.api.events.GatewayEventData;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Gateway;
@@ -1131,5 +1136,158 @@ class ProduceConsumeHandlerTest {
                 client.close();
             }
         };
+    }
+
+    @Test
+    void testSendEvents() throws Exception {
+        final String topic = genTopic();
+        final String eventsTopic = genTopic();
+        prepareTopicsForTest(topic, eventsTopic);
+        testGateways =
+                new Gateways(
+                        List.of(
+                                new Gateway(
+                                        "produce",
+                                        Gateway.GatewayType.produce,
+                                        topic,
+                                        null,
+                                        List.of("p"),
+                                        null,
+                                        null,
+                                        eventsTopic),
+                                new Gateway(
+                                        "consume",
+                                        Gateway.GatewayType.consume,
+                                        eventsTopic,
+                                        null,
+                                        List.of("p"),
+                                        null,
+                                        null,
+                                        eventsTopic)));
+
+        CountDownLatch consumerReady = new CountDownLatch(1);
+        CountDownLatch countDownLatch = new CountDownLatch(5);
+        List<String> messages = new ArrayList<>();
+        try (final TestWebSocketClient consumerClient =
+                new TestWebSocketClient(
+                                new TestWebSocketClient.Handler() {
+                                    @Override
+                                    public void onMessage(String msg) {
+                                        messages.add(msg);
+                                        countDownLatch.countDown();
+                                    }
+
+                                    @Override
+                                    public void onOpen(Session session) {
+                                        consumerReady.countDown();
+                                    }
+
+                                    @Override
+                                    public void onClose(CloseReason closeReason) {
+                                        countDownLatch.countDown();
+                                    }
+
+                                    @Override
+                                    public void onError(Throwable throwable) {
+                                        countDownLatch.countDown();
+                                    }
+                                })
+                        .connect(
+                                URI.create(
+                                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:p=consumer"
+                                                .formatted(port)))) {
+            consumerReady.await();
+
+            try (final TestWebSocketClient producer =
+                    new TestWebSocketClient(TestWebSocketClient.NOOP)
+                            .connect(
+                                    URI.create(
+                                            "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:p=producer"
+                                                    .formatted(port)))) {
+                final ProduceRequest produceRequest =
+                        new ProduceRequest(null, "this is a message", null);
+                produce(produceRequest, producer);
+            }
+            new TestWebSocketClient(new TestWebSocketClient.Handler() {})
+                    .connect(
+                            URI.create(
+                                    "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:p=consumer1"
+                                            .formatted(port)))
+                    .close();
+
+            countDownLatch.await();
+            System.out.println("got messages: " + messages);
+
+            ConsumePushMessage msg = MAPPER.readValue(messages.get(0), ConsumePushMessage.class);
+            EventRecord event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
+            assertEquals(EventRecord.Categories.Gateway, event.getCategory());
+            assertEquals(EventRecord.Types.ClientConnected + "", event.getType());
+            EventSources.GatewaySource source =
+                    MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+            assertEquals("tenant1", source.getTenant());
+            assertEquals("application1", source.getApplicationId());
+            assertEquals("consume", source.getGateway().id());
+            GatewayEventData data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
+            assertEquals("consumer", data.getUserParameters().get("p"));
+            assertEquals(0, data.getOptions().size());
+            assertNotNull(data.getHttpRequestHeaders().get("host"));
+            assertTrue(event.getTimestamp() > 0);
+
+            msg = MAPPER.readValue(messages.get(1), ConsumePushMessage.class);
+            event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
+            assertEquals(EventRecord.Categories.Gateway, event.getCategory());
+            assertEquals(EventRecord.Types.ClientConnected + "", event.getType());
+            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+            assertEquals("tenant1", source.getTenant());
+            assertEquals("application1", source.getApplicationId());
+            assertEquals("produce", source.getGateway().id());
+            data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
+            assertEquals("producer", data.getUserParameters().get("p"));
+            assertNotNull(data.getHttpRequestHeaders().get("host"));
+            assertEquals(0, data.getOptions().size());
+            assertTrue(event.getTimestamp() > 0);
+
+            msg = MAPPER.readValue(messages.get(2), ConsumePushMessage.class);
+            event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
+            assertEquals(EventRecord.Categories.Gateway, event.getCategory());
+            assertEquals(EventRecord.Types.ClientDisconnected + "", event.getType());
+            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+            assertEquals("tenant1", source.getTenant());
+            assertEquals("application1", source.getApplicationId());
+            assertEquals("produce", source.getGateway().id());
+            data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
+            assertEquals("producer", data.getUserParameters().get("p"));
+            assertNotNull(data.getHttpRequestHeaders().get("host"));
+            assertEquals(0, data.getOptions().size());
+            assertTrue(event.getTimestamp() > 0);
+
+            msg = MAPPER.readValue(messages.get(3), ConsumePushMessage.class);
+            event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
+            assertEquals(EventRecord.Categories.Gateway, event.getCategory());
+            assertEquals(EventRecord.Types.ClientConnected + "", event.getType());
+            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+            assertEquals("tenant1", source.getTenant());
+            assertEquals("application1", source.getApplicationId());
+            assertEquals("consume", source.getGateway().id());
+            data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
+            assertEquals("consumer1", data.getUserParameters().get("p"));
+            assertNotNull(data.getHttpRequestHeaders().get("host"));
+            assertEquals(0, data.getOptions().size());
+            assertTrue(event.getTimestamp() > 0);
+
+            msg = MAPPER.readValue(messages.get(4), ConsumePushMessage.class);
+            event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
+            assertEquals(EventRecord.Categories.Gateway, event.getCategory());
+            assertEquals(EventRecord.Types.ClientDisconnected + "", event.getType());
+            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+            assertEquals("tenant1", source.getTenant());
+            assertEquals("application1", source.getApplicationId());
+            assertEquals("consume", source.getGateway().id());
+            data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
+            assertEquals("consumer1", data.getUserParameters().get("p"));
+            assertNotNull(data.getHttpRequestHeaders().get("host"));
+            assertEquals(0, data.getOptions().size());
+            assertTrue(event.getTimestamp() > 0);
+        }
     }
 }

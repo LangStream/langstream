@@ -13,18 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.cli;
+package ai.langstream.api.events;
 
 import java.util.Map;
-import java.util.TreeMap;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
-public class LangStreamCLIConfig extends Profile {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class GatewayEventData {
 
-    private Map<String, NamedProfile> profiles = new TreeMap<>();
-
-    private String currentProfile = "default";
+    private Map<String, String> userParameters;
+    private Map<String, String> options;
+    private Map<String, String> httpRequestHeaders;
 }

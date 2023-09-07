@@ -211,7 +211,6 @@ public class CassandraDataSource implements QueryStepDataSource {
         if (username != null && password != null) {
             builder.withAuthCredentials(username, password);
         }
-
         if (secureBundleDecoded != null) {
             builder.withCloudSecureConnectBundle(new ByteArrayInputStream(secureBundleDecoded));
         }
@@ -242,4 +241,5 @@ public class CassandraDataSource implements QueryStepDataSource {
         }
         return new AstraDbClient(astraToken).databaseByName(astraDatabase);
     }
+
 }

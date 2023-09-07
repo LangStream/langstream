@@ -15,6 +15,8 @@
  */
 package ai.langstream.impl.common;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Resource;
 import ai.langstream.impl.parser.ModelBuilder;
@@ -54,15 +56,15 @@ class ApplicationPlaceholderResolverTest {
 
         final Map<String, Object> context =
                 ApplicationPlaceholderResolver.createContext(applicationInstance);
-        Assertions.assertEquals(
+        assertEquals(
                 "my-access-key",
                 ApplicationPlaceholderResolver.resolveValue(
                         context, "{{secrets.openai-credentials.accessKey}}"));
-        Assertions.assertEquals(
+        assertEquals(
                 "http://mypulsar.localhost:8080",
                 ApplicationPlaceholderResolver.resolveValue(
                         context, "{{cluster.configuration.admin.serviceUrl}}"));
-        Assertions.assertEquals(
+        assertEquals(
                 "http://myurl.localhost:8080/endpoint",
                 ApplicationPlaceholderResolver.resolveValue(context, "{{globals.open-api-url}}"));
     }
@@ -102,9 +104,8 @@ class ApplicationPlaceholderResolverTest {
         final Application resolved =
                 ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
         final Resource resource = resolved.getResources().get("openai-azure");
-        Assertions.assertEquals("my-access-key", resource.configuration().get("credentials"));
-        Assertions.assertEquals(
-                "http://myurl.localhost:8080/endpoint", resource.configuration().get("url"));
+        assertEquals("my-access-key", resource.configuration().get("credentials"));
+        assertEquals("http://myurl.localhost:8080/endpoint", resource.configuration().get("url"));
     }
 
     @Test
@@ -149,7 +150,7 @@ class ApplicationPlaceholderResolverTest {
 
         final Application resolved =
                 ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
-        Assertions.assertEquals(
+        assertEquals(
                 "my-access-key",
                 resolved
                         .getModule("module-1")
@@ -164,7 +165,7 @@ class ApplicationPlaceholderResolverTest {
                         .orElseThrow()
                         .getConfiguration()
                         .get("access-key"));
-        Assertions.assertEquals(
+        assertEquals(
                 "my-input-topic",
                 resolved
                         .getModule("module-1")
@@ -179,7 +180,7 @@ class ApplicationPlaceholderResolverTest {
                         .orElseThrow()
                         .getInput()
                         .definition());
-        Assertions.assertEquals(
+        assertEquals(
                 "my-output-topic",
                 resolved
                         .getModule("module-1")
@@ -194,7 +195,7 @@ class ApplicationPlaceholderResolverTest {
                         .orElseThrow()
                         .getOutput()
                         .definition());
-        Assertions.assertEquals(
+        assertEquals(
                 "my-stream-topic",
                 resolved
                         .getModule("module-1")
@@ -209,13 +210,13 @@ class ApplicationPlaceholderResolverTest {
                         .orElseThrow()
                         .getConfiguration()
                         .get("stream-to-topic"));
-        Assertions.assertEquals(
+        assertEquals(
                 "my-stream-topic",
                 resolved.getModule("module-1").getTopics().get("my-stream-topic").getName());
-        Assertions.assertEquals(
+        assertEquals(
                 "my-input-topic",
                 resolved.getModule("module-1").getTopics().get("my-input-topic").getName());
-        Assertions.assertEquals(
+        assertEquals(
                 "my-output-topic",
                 resolved.getModule("module-1").getTopics().get("my-output-topic").getName());
     }
@@ -275,7 +276,7 @@ class ApplicationPlaceholderResolverTest {
 
     @Test
     void testEscapeMustache() {
-        Assertions.assertEquals(
+        assertEquals(
                 """
                 {{ do not resolve }} resolved
                 {{# value.related_documents}}
@@ -288,5 +289,57 @@ class ApplicationPlaceholderResolverTest {
                         {{%# value.related_documents}}
                         {{% text}}
                         {{%/ value.related_documents}}"""));
+    }
+
+    @Test
+    void testResolveTopicsInGateway() throws Exception {
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module1.yaml",
+                                        """
+                                        module: "module-1"
+                                        id: "pipeline-1"
+                                        topics:
+                                            - name: "{{{globals.input-topic}}}"
+                                            - name: "{{{globals.output-topic}}}"
+                                            - name: "{{{globals.stream-response-topic}}}"
+                                        pipeline:
+                                          - name: "agent1"
+                                            id: "agent1"
+                                            type: "ai-chat-completions"
+                                            input: "{{{globals.input-topic}}}"
+                                            output: "{{{globals.output-topic}}}"
+                                        """,
+                                        "gateways.yaml",
+                                        """
+                                        gateways:
+                                          - id: produce
+                                            type: produce
+                                            topic: "{{{globals.input-topic}}}"
+                                            events-topic: "{{{globals.stream-response-topic}}}"
+                                            produce-options: {}
+                                          - id: consume
+                                            type: consume
+                                            topic: "{{{globals.input-topic}}}"
+                                            events-topic: "{{{globals.stream-response-topic}}}"
+                                            consume-options: {}
+                                        """),
+                                """
+                                instance:
+                                    globals:
+                                        input-topic: my-input-topic
+                                        output-topic: my-output-topic
+                                        stream-response-topic: my-stream-topic
+                                """,
+                                null)
+                        .getApplication();
+
+        final Application resolved =
+                ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
+        assertEquals("my-input-topic", resolved.getGateways().gateways().get(0).topic());
+        assertEquals("my-stream-topic", resolved.getGateways().gateways().get(0).eventsTopic());
+        assertEquals("my-input-topic", resolved.getGateways().gateways().get(1).topic());
+        assertEquals("my-stream-topic", resolved.getGateways().gateways().get(1).eventsTopic());
     }
 }

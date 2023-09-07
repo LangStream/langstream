@@ -205,7 +205,7 @@ public class AdminClient implements AutoCloseable {
         final String tenant = configuration.getTenant();
         if (tenant == null) {
             throw new IllegalStateException(
-                    "Tenant not set. Run 'langstream configure tenant <tenant>' to set it.");
+                    "Tenant not set. Please set the tenant in the configuration.");
         }
         logger.debug("Using tenant: %s".formatted(tenant));
         return "/applications/%s%s".formatted(tenant, uri);

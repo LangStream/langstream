@@ -19,12 +19,6 @@ topics:
   - name: "input-topic"
     creation-mode: create-if-not-exists
 assets:
-  - name: "products-keyspace"
-    asset-type: "astradb-keyspace"
-    creation-mode: create-if-not-exists
-    config:
-      keyspace: "products"
-      datasource: "AstraDatasource"
   - name: "products-table"
     asset-type: "cassandra-table"
     creation-mode: create-if-not-exists
@@ -41,5 +35,5 @@ pipeline:
     configuration:
       datasource: "AstraDatasource"
       table-name: "products"
-      keyspace: "vsearch"
+      keyspace: "products"
       mapping: "id=value.id,description=value.description,name=value.name"

@@ -23,7 +23,13 @@ This is handled by the 'cassandra-table' assets in the pipeline.yaml file.
 
 ## Configure the pipeline
 
-Update the same file and set username, password and the other parameters.
+Update the secrets.yaml file and set the Astra credentials and the database name:
+- clientId
+- secret
+- token
+- database
+
+You can find the credentials in the Astra DB console when you create a Token.
 
 ## Deploy the LangStream application
 
@@ -38,7 +44,7 @@ Update the same file and set username, password and the other parameters.
 
 ## Verify the data on Cassandra
 
-Query Cassandra to see the results
+Query Cassandra to see the results using the Astra DB console or the cqlsh tool:
 
 ```
 SELECT * FROM products.products;

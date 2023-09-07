@@ -46,16 +46,17 @@ from .topic_connector import TopicConsumer, TopicProducer
 LOG = logging.getLogger(__name__)
 
 STRING_DESERIALIZER_NAME = "org.apache.kafka.common.serialization.StringDeserializer"
-STRING_SERIALIZER_NAME = "org.apache.kafka.common.serialization.StringSerializer"
+BYTEARRAY_SERIALIZER_NAME = "org.apache.kafka.common.serialization.ByteArraySerializer"
+
 SERIALIZERS = {
-    STRING_SERIALIZER_NAME: STRING_SERIALIZER,
+    BYTEARRAY_SERIALIZER_NAME: None,
+    "org.apache.kafka.common.serialization.StringSerializer": STRING_SERIALIZER,
     "org.apache.kafka.common.serialization.BooleanSerializer": BOOLEAN_SERIALIZER,
     "org.apache.kafka.common.serialization.ShortSerializer": SHORT_SERIALIZER,
     "org.apache.kafka.common.serialization.IntegerSerializer": INTEGER_SERIALIZER,
     "org.apache.kafka.common.serialization.LongSerializer": LONG_SERIALIZER,
     "org.apache.kafka.common.serialization.FloatSerializer": FLOAT_SERIALIZER,
     "org.apache.kafka.common.serialization.DoubleSerializer": DOUBLE_SERIALIZER,
-    "org.apache.kafka.common.serialization.ByteArraySerializer": BYTEARRAY_SERIALIZER,
 }
 
 DESERIALIZERS = {
@@ -104,9 +105,9 @@ def create_topic_producer(_, streaming_cluster, configuration):
     configs = configuration.copy()
     apply_default_configuration(streaming_cluster, configs)
     if "key.serializer" not in configs:
-        configs["key.serializer"] = STRING_SERIALIZER_NAME
+        configs["key.serializer"] = BYTEARRAY_SERIALIZER_NAME
     if "value.serializer" not in configs:
-        configs["value.serializer"] = STRING_SERIALIZER_NAME
+        configs["value.serializer"] = BYTEARRAY_SERIALIZER_NAME
     return KafkaTopicProducer(configs)
 
 
@@ -356,16 +357,8 @@ class KafkaTopicProducer(TopicProducer):
     def __init__(self, configs):
         self.configs = configs.copy()
         self.topic = self.configs.pop("topic")
-        key_serializer = SERIALIZERS[self.configs.pop("key.serializer")]
-        if key_serializer != BYTEARRAY_SERIALIZER:
-            self.key_serializer = key_serializer
-        else:
-            self.key_serializer = None
-        value_serializer = SERIALIZERS[self.configs.pop("value.serializer")]
-        if value_serializer != BYTEARRAY_SERIALIZER:
-            self.value_serializer = key_serializer
-        else:
-            self.value_serializer = None
+        self.key_serializer = SERIALIZERS[self.configs.pop("key.serializer")]
+        self.value_serializer = SERIALIZERS[self.configs.pop("value.serializer")]
         self.header_serializer = None
         self.producer: Optional[Producer] = None
         self.commit_callback: Optional[CommitCallback] = None

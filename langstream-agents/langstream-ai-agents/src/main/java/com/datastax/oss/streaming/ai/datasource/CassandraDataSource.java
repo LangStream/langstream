@@ -75,11 +75,11 @@ public class CassandraDataSource implements QueryStepDataSource {
     @Override
     public void initialize(Map<String, Object> dataSourceConfig) {
         log.info("Initializing AstraDBDataSource with config {}", dataSourceConfig);
-        this.session = buildCqlSession(dataSourceConfig);
-        this.astraToken = ConfigurationUtils.getString("token", null, dataSourceConfig);
+        this.astraToken = ConfigurationUtils.getString("token", "", dataSourceConfig);
         this.astraEnvironment =
                 ConfigurationUtils.getString("environment", "PROD", dataSourceConfig);
-        this.astraDatabase = ConfigurationUtils.getString("database", null, dataSourceConfig);
+        this.astraDatabase = ConfigurationUtils.getString("database", "", dataSourceConfig);
+        this.session = buildCqlSession(dataSourceConfig);
     }
 
     @Override
@@ -192,10 +192,17 @@ public class CassandraDataSource implements QueryStepDataSource {
         session.execute(bind);
     }
 
-    public static CqlSession buildCqlSession(Map<String, Object> dataSourceConfig) {
+    private CqlSession buildCqlSession(Map<String, Object> dataSourceConfig) {
 
         String username = ConfigurationUtils.getString("username", null, dataSourceConfig);
         String password = ConfigurationUtils.getString("password", null, dataSourceConfig);
+        // these are the values used by the Astra UI
+        if (username == null) {
+            username = ConfigurationUtils.getString("clientId", null, dataSourceConfig);
+        }
+        if (password == null) {
+            password = ConfigurationUtils.getString("secret", null, dataSourceConfig);
+        }
         String secureBundle = ConfigurationUtils.getString("secureBundle", null, dataSourceConfig);
         List<String> contactPoints = ConfigurationUtils.getList("contact-points", dataSourceConfig);
         String loadBalancingLocalDc =
@@ -204,18 +211,17 @@ public class CassandraDataSource implements QueryStepDataSource {
 
         byte[] secureBundleDecoded = null;
         if (secureBundle != null && !secureBundle.isEmpty()) {
-            // these are the values used by the Astra UI
-            if (username == null) {
-                username = ConfigurationUtils.getString("clientId", null, dataSourceConfig);
-            }
-            if (password == null) {
-                password = ConfigurationUtils.getString("secret", null, dataSourceConfig);
-            }
             // Remove the base64: prefix if present
             if (secureBundle.startsWith("base64:")) {
                 secureBundle = secureBundle.substring("base64:".length());
             }
             secureBundleDecoded = Base64.getDecoder().decode(secureBundle);
+        } else if (!astraDatabase.isEmpty() && !astraToken.isEmpty()) {
+            log.info(
+                    "Automatically downloading the secure bundle for database {} from AstraDB",
+                    astraDatabase);
+            DatabaseClient databaseClient = this.buildAstraClient();
+            secureBundleDecoded = downloadSecureBundle(databaseClient);
         }
         CqlSessionBuilder builder = new CqlSessionBuilder().withCodecRegistry(CODEC_REGISTRY);
 
@@ -246,11 +252,24 @@ public class CassandraDataSource implements QueryStepDataSource {
     }
 
     public DatabaseClient buildAstraClient() {
-        if (astraToken == null || astraDatabase == null) {
+        return buildAstraClient(astraToken, astraDatabase, astraEnvironment);
+    }
+
+    public static DatabaseClient buildAstraClient(
+            String astraToken, String astraDatabase, String astraEnvironment) {
+        if (astraToken.isEmpty() || astraDatabase.isEmpty()) {
             throw new IllegalArgumentException(
                     "You must configure both astra-token and astra-database");
         }
         return new AstraDbClient(astraToken, ApiLocator.AstraEnvironment.valueOf(astraEnvironment))
                 .databaseByName(astraDatabase);
+    }
+
+    public static byte[] downloadSecureBundle(DatabaseClient databaseClient) {
+        long start = System.currentTimeMillis();
+        byte[] secureBundleDecoded = databaseClient.downloadDefaultSecureConnectBundle();
+        long delta = System.currentTimeMillis() - start;
+        log.info("Downloaded {} bytes in {} ms", secureBundleDecoded.length, delta);
+        return secureBundleDecoded;
     }
 }

@@ -18,6 +18,7 @@ package ai.langstream.agents.vector.cassandra;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.util.ConfigurationUtils;
 import com.datastax.oss.common.sink.AbstractField;
 import com.datastax.oss.common.sink.AbstractSchema;
 import com.datastax.oss.common.sink.AbstractSinkRecord;
@@ -25,7 +26,10 @@ import com.datastax.oss.common.sink.AbstractSinkRecordHeader;
 import com.datastax.oss.common.sink.AbstractSinkTask;
 import com.datastax.oss.common.sink.config.CassandraSinkConfig;
 import com.datastax.oss.common.sink.util.SinkUtil;
+import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
+import com.dtsx.astra.sdk.db.DatabaseClient;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +106,32 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                                                 datasource
                                                         .getOrDefault("secureBundle", "")
                                                         .toString());
+                                    } else {
+                                        String token =
+                                                ConfigurationUtils.getString(
+                                                        "token", "", datasource);
+                                        String database =
+                                                ConfigurationUtils.getString(
+                                                        "database", "", datasource);
+                                        String environment =
+                                                ConfigurationUtils.getString(
+                                                        "environment", "DEV", datasource);
+                                        if (!token.isEmpty() && !database.isEmpty()) {
+                                            DatabaseClient databaseClient =
+                                                    CassandraDataSource.buildAstraClient(
+                                                            token, database, environment);
+                                            log.info(
+                                                    "Automatically downloading the secure bundle for database {} from AstraDB",
+                                                    database);
+                                            byte[] secureBundle =
+                                                    CassandraDataSource.downloadSecureBundle(
+                                                            databaseClient);
+                                            configuration.put(
+                                                    "cloud.secureConnectBundle",
+                                                    "base64:"
+                                                            + Base64.getEncoder()
+                                                                    .encodeToString(secureBundle));
+                                        }
                                     }
 
                                     configuration.put(

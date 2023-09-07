@@ -82,6 +82,14 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
                                     Resource resource = resources.get(resourceId);
                                     if (resource != null) {
                                         value = Map.of("configuration", resource.configuration());
+                                    } else {
+                                        throw new IllegalArgumentException(
+                                                "Resource with name="
+                                                        + resourceId
+                                                        + " not found, declared as "
+                                                        + key
+                                                        + " in asset "
+                                                        + assetDefinition.getId());
                                     }
                                 }
                                 configuration.put(key, value);

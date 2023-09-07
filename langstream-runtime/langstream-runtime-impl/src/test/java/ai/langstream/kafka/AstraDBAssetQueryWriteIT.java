@@ -15,16 +15,11 @@
  */
 package ai.langstream.kafka;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import ai.langstream.AbstractApplicationRunner;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -35,11 +30,14 @@ import org.junit.jupiter.api.Test;
 @Disabled
 class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
 
+    static final String SECRETS_PATH = "";
+
     @Test
-    @Disabled
     public void testAstra() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1", "app-step2"};
+
+        String secrets = Files.readString(Paths.get(SECRETS_PATH));
 
         Map<String, String> application =
                 Map.of(
@@ -51,12 +49,12 @@ class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
                                       name: "AstraDBDatasource"
                                       configuration:
                                         service: "astra"
-                                        secret: "xxx"
-                                        clientId: "xxx"
-                                        secureBundle: "base64:xxx"
-                                        token: "AstraCS:xxx"
-                                        database: "xxx"
-                                        environment: "DEV"
+                                        clientId: "{{{ secrets.astra.clientId }}}"
+                                        secret: "{{{ secrets.astra.secret }}}"
+                                        # These are optional, but if you want to use the astra-keyspace asset you need them
+                                        token: "{{{ secrets.astra.token }}}"
+                                        database: "{{{ secrets.astra.database }}}"
+                                        environment: "{{{ secrets.astra.environment }}}"
                                 """,
                         "pipeline.yaml",
                         """
@@ -117,8 +115,8 @@ class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
                                 """);
 
         try (ApplicationRuntime applicationRuntime =
-                deployApplication(
-                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+                deployApplicationWithSecrets(
+                        tenant, "app", application, buildInstanceYaml(), secrets, expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
                     KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
@@ -129,35 +127,6 @@ class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
                         consumer,
                         List.of(
                                 "{\"documentId\":2,\"queryresult\":{\"name\":\"A\",\"description\":\"A description\",\"id\":\"1\"},\"name\":\"A\",\"description\":\"A description\"}"));
-
-                try (CassandraDataSource cassandraDataSource = new CassandraDataSource()) {
-                    cassandraDataSource.initialize(
-                            Map.of(
-                                    "service",
-                                    "astra",
-                                    "secret",
-                                    "xxxx",
-                                    "clientId",
-                                    "xxx",
-                                    "secureBundle",
-                                    "base64:xxx",
-                                    "token",
-                                    "AstraCS:xxx",
-                                    "database",
-                                    "xxxx",
-                                    "environment",
-                                    "DEV"));
-                    ResultSet execute =
-                            cassandraDataSource
-                                    .getSession()
-                                    .execute("SELECT * FROM vsearch.documents");
-                    List<Row> all = execute.all();
-                    Set<Integer> documentIds =
-                            all.stream().map(row -> row.getInt("id")).collect(Collectors.toSet());
-                    all.forEach(row -> log.info("row id {}", row.get("id", Integer.class)));
-                    assertEquals(2, all.size());
-                    assertEquals(Set.of(1, 2), documentIds);
-                }
             }
         }
     }

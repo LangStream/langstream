@@ -88,12 +88,20 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         validateGateway(applicationId, gatewayId, type, params, options, credentials);
         return "%s/v1/%s/%s/%s/%s?%s"
                 .formatted(
-                        getConfig().getApiGatewayUrl(),
+                        getApiGatewayUrl(),
                         type.toString(),
-                        getConfig().getTenant(),
+                        getTenant(),
                         applicationId,
                         gatewayId,
                         computeQueryString(credentials, params, options));
+    }
+
+    private String getTenant() {
+        return getCurrentProfile().getTenant();
+    }
+
+    private String getApiGatewayUrl() {
+        return getCurrentProfile().getApiGatewayUrl();
     }
 
     private Map<String, String> applicationDescriptions = new HashMap<>();

@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.cli;
+package ai.langstream.cli.commands.profiles;
 
-import java.util.Map;
-import java.util.TreeMap;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.SneakyThrows;
+import picocli.CommandLine;
 
-@Getter
-@Setter
-public class LangStreamCLIConfig extends Profile {
+@CommandLine.Command(name = "get-current", header = "Get current profile")
+public class GetCurrentProfileCmd extends BaseProfileCmd {
 
-    private Map<String, NamedProfile> profiles = new TreeMap<>();
-
-    private String currentProfile = "default";
+    @Override
+    @SneakyThrows
+    public void run() {
+        checkGlobalFlags();
+        log(getConfig().getCurrentProfile());
+    }
 }

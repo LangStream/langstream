@@ -31,6 +31,7 @@ import picocli.CommandLine;
             ConfigureCmd.class,
             RootTenantCmd.class,
             RootGatewayCmd.class,
+            RootProfileCmd.class,
             AutoComplete.GenerateCompletion.class
         })
 public class RootCmd {
@@ -40,6 +41,12 @@ public class RootCmd {
             description = "LangStream CLI configuration file.")
     @Getter
     private String configPath;
+
+    @CommandLine.Option(
+            names = {"-p", "--profile"},
+            description = "Profile to use with the command.")
+    @Getter
+    private String profile;
 
     @CommandLine.Option(
             names = {"-v", "--verbose"},

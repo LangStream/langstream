@@ -37,6 +37,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.lang3.StringUtils;
 import picocli.CommandLine;
 
 public abstract class BaseCmd implements Runnable {
@@ -99,10 +100,22 @@ public abstract class BaseCmd implements Runnable {
         final LangStreamCLIConfig config = getConfig();
         final NamedProfile defaultProfile = new NamedProfile();
         defaultProfile.setName(BaseProfileCmd.DEFAULT_PROFILE_NAME);
-        defaultProfile.setTenant(config.getTenant());
+        if (config.getWebServiceUrl() == null) {
+            defaultProfile.setWebServiceUrl("http://localhost:8090");
+        } else {
+            defaultProfile.setWebServiceUrl(config.getWebServiceUrl());
+        }
+        if (config.getApiGatewayUrl() == null) {
+            defaultProfile.setApiGatewayUrl("ws://localhost:8091");
+        } else {
+            defaultProfile.setApiGatewayUrl(config.getWebServiceUrl());
+        }
+        if (config.getTenant() == null) {
+            defaultProfile.setTenant("default");
+        } else {
+            defaultProfile.setTenant(config.getTenant());
+        }
         defaultProfile.setToken(config.getToken());
-        defaultProfile.setWebServiceUrl(config.getWebServiceUrl());
-        defaultProfile.setApiGatewayUrl(config.getApiGatewayUrl());
         return defaultProfile;
     }
 
@@ -153,15 +166,42 @@ public abstract class BaseCmd implements Runnable {
         Files.write(configFile.toPath(), yamlConfigReader.writeValueAsBytes(config));
     }
 
+    @SneakyThrows
+    private File computeRootConfigFile() {
+        final String userHome = System.getProperty("user.home");
+        if (!StringUtils.isBlank(userHome) && !"?".equals(userHome)) {
+            final Path langstreamDir = Path.of(userHome, ".langstream");
+            Files.createDirectories(langstreamDir);
+            final Path configFile = langstreamDir.resolve("config");
+            debug("Using config file %s".formatted(configFile));
+            if (!Files.exists(configFile)) {
+                debug("Init config file %s".formatted(configFile));
+                Files.write(
+                        configFile, yamlConfigReader.writeValueAsBytes(new LangStreamCLIConfig()));
+            }
+            return configFile.toFile();
+        }
+        String configBaseDir = System.getProperty("basedir");
+        if (configBaseDir == null) {
+            configBaseDir = System.getProperty("user.dir");
+        }
+        final Path dir = Path.of(configBaseDir, "conf");
+        Files.createDirectories(dir);
+
+        final Path cliYaml = dir.resolve("cli.yaml");
+        debug("Using config file %s".formatted(cliYaml));
+        if (!Files.exists(cliYaml)) {
+            debug("Init config file %s".formatted(cliYaml));
+            Files.write(cliYaml, yamlConfigReader.writeValueAsBytes(new LangStreamCLIConfig()));
+        }
+        return cliYaml.toFile();
+    }
+
     private File computeConfigFile() {
         File configFile;
         final String configPath = getRootCmd().getConfigPath();
         if (configPath == null) {
-            String configBaseDir = System.getProperty("basedir");
-            if (configBaseDir == null) {
-                configBaseDir = System.getProperty("user.dir");
-            }
-            configFile = Path.of(configBaseDir, "conf", "cli.yaml").toFile();
+            configFile = computeRootConfigFile();
         } else {
             configFile = new File(configPath);
         }

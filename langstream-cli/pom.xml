@@ -122,10 +122,6 @@
         <artifactId>appassembler-maven-plugin</artifactId>
         <version>${appassembler-maven-plugin.version}</version>
         <configuration>
-          <configurationSourceDirectory>../conf</configurationSourceDirectory>
-          <configurationDirectory>conf</configurationDirectory>
-          <copyConfigurationDirectory>true</copyConfigurationDirectory>
-          <includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath>
           <assembleDirectory>${project.build.directory}/cli</assembleDirectory>
           <platforms>
             <platform>windows</platform>

@@ -19,21 +19,19 @@ topics:
   - name: "input-topic"
     creation-mode: create-if-not-exists
 assets:
-  - name: "vsearch-keyspace"
-    asset-type: "cassandra-keyspace"
+  - name: "products-keyspace"
+    asset-type: "astradb-keyspace"
     creation-mode: create-if-not-exists
     config:
       keyspace: "products"
-      datasource: "CassandraDatasource"
-      create-statements:
-        - "CREATE KEYSPACE products WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};"
+      datasource: "AstraDatasource"
   - name: "products-table"
     asset-type: "cassandra-table"
     creation-mode: create-if-not-exists
     config:
       table-name: "products"
       keyspace: "products"
-      datasource: "CassandraDatasource"
+      datasource: "AstraDatasource"
       create-statements:
         - "CREATE TABLE IF NOT EXISTS products.products (id int PRIMARY KEY,name TEXT,description TEXT);"
 pipeline:

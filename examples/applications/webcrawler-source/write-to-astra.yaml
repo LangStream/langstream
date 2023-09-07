@@ -18,6 +18,26 @@ name: "Write to AstraDB"
 topics:
   - name: "chunks-topic"
     creation-mode: create-if-not-exists
+assets:
+  - name: "documents-table"
+    asset-type: "cassandra-table"
+    creation-mode: create-if-not-exists
+    config:
+      table-name: "documents"
+      keyspace: "documents"
+      datasource: "AstraDatasource"
+      create-statements:
+        - |
+          CREATE TABLE IF NOT EXISTS documents (
+          filename TEXT,
+          chunk_id int,
+          num_tokens int,
+          language TEXT,
+          text TEXT,
+          embeddings_vector VECTOR<FLOAT, 1536>,
+          PRIMARY KEY (filename, chunk_id));
+        - |
+          CREATE CUSTOM INDEX IF NOT EXISTS documents_ann_index ON documents(embeddings_vector) USING 'StorageAttachedIndex';
 pipeline:
   - name: "Write to AstraDB"
     type: "sink"

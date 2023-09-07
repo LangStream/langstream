@@ -26,23 +26,35 @@ import lombok.extern.slf4j.Slf4j;
 public class CassandraAssetsProvider extends AbstractAssetProvider {
 
     public CassandraAssetsProvider() {
-        super(Set.of("cassandra-table", "cassandra-keyspace"));
+        super(Set.of("cassandra-table", "cassandra-keyspace", "astra-keyspace"));
     }
 
     @Override
     protected void validateAsset(AssetDefinition assetDefinition, Map<String, Object> asset) {
         Map<String, Object> configuration = ConfigurationUtils.getMap("config", null, asset);
+        requiredField(assetDefinition, configuration, "datasource");
+        final Map<String, Object> datasource =
+                ConfigurationUtils.getMap("datasource", null, configuration);
         switch (assetDefinition.getAssetType()) {
             case "cassandra-table" -> {
                 requiredNonEmptyField(assetDefinition, configuration, "table-name");
                 requiredNonEmptyField(assetDefinition, configuration, "keyspace");
                 requiredListField(assetDefinition, configuration, "create-statements");
-                requiredField(assetDefinition, configuration, "datasource");
             }
             case "cassandra-keyspace" -> {
                 requiredNonEmptyField(assetDefinition, configuration, "keyspace");
                 requiredListField(assetDefinition, configuration, "create-statements");
-                requiredField(assetDefinition, configuration, "datasource");
+                if (datasource.containsKey("secureBundle")) {
+                    throw new IllegalArgumentException(
+                            "Use astradb-keyspace for AstraDB services.");
+                }
+            }
+            case "astradb-keyspace" -> {
+                requiredNonEmptyField(assetDefinition, configuration, "keyspace");
+                if (!datasource.containsKey("secureBundle")) {
+                    throw new IllegalArgumentException(
+                            "Use cassandra-keyspace for a standard Cassandra service.");
+                }
             }
             default -> throw new IllegalStateException();
         }

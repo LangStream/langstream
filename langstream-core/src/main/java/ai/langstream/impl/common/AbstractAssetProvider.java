@@ -81,7 +81,7 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
                                                     key);
                                     Resource resource = resources.get(resourceId);
                                     if (resource != null) {
-                                        value = resource;
+                                        value = Map.of("configuration", resource.configuration());
                                     }
                                 }
                                 configuration.put(key, value);
@@ -98,7 +98,7 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
         return supportedType.contains(type);
     }
 
-    protected static void requiredField(
+    protected static <T> T requiredField(
             AssetDefinition assetDefinition, Map<String, Object> configuration, String name) {
         Object value = configuration.get(name);
         if (value == null) {
@@ -112,6 +112,7 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
                             + ", id="
                             + assetDefinition.getId());
         }
+        return (T) value;
     }
 
     protected static String requiredNonEmptyField(

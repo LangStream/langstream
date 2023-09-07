@@ -7,10 +7,11 @@ This sample application shows how to use the WebCrawler Source Connector
 Create a S3 bucket, it will contain only a metadata file for the WebCrawler.
 
 Create a table in Astra DB with the following schema.
-This example assumes that you have a KEYSPACE named `documents` and a TABLE named `documents`.
+This example assumes that you have a KEYSPACE named `documents`.
+
+The LangStream application will create for you a table named "documents" with the following schema and index:
 
 ```
-USE documents;
 CREATE TABLE IF NOT EXISTS documents (  
   filename TEXT,
   chunk_id int,

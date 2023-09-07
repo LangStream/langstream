@@ -84,8 +84,8 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                                        keyspace: "vsearch"
                                        datasource: "CassandraDatasource"
                                        create-statements:
-                                          - "CREATE TABLE IF NOT EXISTS vsearch.documents (id int PRIMARY KEY, name text, description text);"
-                                          - "INSERT INTO vsearch.documents (id, name, description) VALUES (1, 'A', 'A description');"
+                                          - "CREATE TABLE IF NOT EXISTS documents (id int PRIMARY KEY, name text, description text);"
+                                          - "INSERT INTO documents (id, name, description) VALUES (1, 'A', 'A description');"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists

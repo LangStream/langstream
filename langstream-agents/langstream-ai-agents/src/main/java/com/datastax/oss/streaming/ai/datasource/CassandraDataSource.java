@@ -31,6 +31,8 @@ import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.codec.CqlVectorCodec;
 import com.datastax.oss.driver.internal.core.type.codec.registry.DefaultCodecRegistry;
+import com.dtsx.astra.sdk.db.AstraDbClient;
+import com.dtsx.astra.sdk.db.DatabaseClient;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.ByteArrayInputStream;
 import java.net.InetSocketAddress;
@@ -47,6 +49,9 @@ import lombok.extern.slf4j.Slf4j;
 public class CassandraDataSource implements QueryStepDataSource {
 
     CqlSession session;
+    String astraToken;
+
+    String astraDatabase;
     Map<String, PreparedStatement> statements = new ConcurrentHashMap<>();
 
     private static final DefaultCodecRegistry CODEC_REGISTRY =
@@ -69,6 +74,8 @@ public class CassandraDataSource implements QueryStepDataSource {
     public void initialize(Map<String, Object> dataSourceConfig) {
         log.info("Initializing AstraDBDataSource with config {}", dataSourceConfig);
         this.session = buildCqlSession(dataSourceConfig);
+        this.astraToken = ConfigurationUtils.getString("astra-token", null, dataSourceConfig);
+        this.astraDatabase = ConfigurationUtils.getString("astra-database", null, dataSourceConfig);
     }
 
     @Override
@@ -226,5 +233,13 @@ public class CassandraDataSource implements QueryStepDataSource {
 
     public CqlSession getSession() {
         return session;
+    }
+
+    public DatabaseClient buildAstraClient() {
+        if (astraToken == null || astraDatabase == null) {
+            throw new IllegalArgumentException(
+                    "You must configure both astra-token and astra-database");
+        }
+        return new AstraDbClient(astraToken).databaseByName(astraDatabase);
     }
 }

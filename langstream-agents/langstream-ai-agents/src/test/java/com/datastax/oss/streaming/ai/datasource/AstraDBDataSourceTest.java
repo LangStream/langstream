@@ -15,7 +15,6 @@
  */
 package com.datastax.oss.streaming.ai.datasource;
 
-import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,7 +29,7 @@ public class AstraDBDataSourceTest {
     @Disabled
     void testQueryWithParameters() throws Exception {
         AstraDBDataSource source = new AstraDBDataSource();
-        DataSourceConfig dataSourceConfig = buildDataSourceConfig();
+        Map<String, Object> dataSourceConfig = buildDataSourceConfig();
         source.initialize(dataSourceConfig);
 
         String query = "select * from vsearch.products where id=?";
@@ -43,7 +42,7 @@ public class AstraDBDataSourceTest {
     @Disabled
     void testQueryWithVectorSearch() throws Exception {
         AstraDBDataSource source = new AstraDBDataSource();
-        DataSourceConfig dataSourceConfig = buildDataSourceConfig();
+        Map<String, Object> dataSourceConfig = buildDataSourceConfig();
         source.initialize(dataSourceConfig);
 
         String query = "SELECT * FROM vsearch.products ORDER BY item_vector ANN OF ? LIMIT 1;";
@@ -53,12 +52,10 @@ public class AstraDBDataSourceTest {
         log.info("maps {}", maps);
     }
 
-    private static DataSourceConfig buildDataSourceConfig() {
-        DataSourceConfig dataSourceConfig = new DataSourceConfig();
-        dataSourceConfig.setService("astra");
-        dataSourceConfig.setUsername("set-your-client-id");
-        dataSourceConfig.setPassword("set-your-secret");
-        dataSourceConfig.setSecureBundle("xxx-set-base64-encoded-bundle-xxx");
-        return dataSourceConfig;
+    private static Map<String, Object> buildDataSourceConfig() {
+        return Map.of("service", "astra",
+        "username", "set-your-client-id",
+        "password", "set-your-secret",
+                "seecureBundle", "xxx-set-base64-encoded-bundle-xxx");
     }
 }

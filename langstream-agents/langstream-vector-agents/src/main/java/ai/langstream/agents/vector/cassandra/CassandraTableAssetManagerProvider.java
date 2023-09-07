@@ -19,7 +19,6 @@ import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.assets.AssetManager;
 import ai.langstream.api.runner.assets.AssetManagerProvider;
 import com.datastax.oss.streaming.ai.datasource.AstraDBDataSource;
-import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -61,8 +60,7 @@ public class CassandraTableAssetManagerProvider implements AssetManagerProvider 
             AstraDBDataSource dataSource = new AstraDBDataSource();
             Map<String, Object> datasourceConfiguration =
                     (Map<String, Object>) assetDefinition.getConfig().get("datasource");
-            dataSource.initialize(
-                    MAPPER.convertValue(datasourceConfiguration, DataSourceConfig.class));
+            dataSource.initialize(datasourceConfiguration);
             return dataSource;
         }
 

@@ -17,6 +17,8 @@ package com.datastax.oss.streaming.ai.model.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import java.util.Map;
+
 import lombok.Getter;
 
 @Getter
@@ -28,7 +30,7 @@ public class TransformStepConfig {
 
     @JsonProperty private HuggingFaceConfig huggingface;
 
-    @JsonProperty private DataSourceConfig datasource;
+    @JsonProperty private Map<String, Object> datasource;
 
     @JsonProperty private boolean attemptJsonConversion = true;
 }

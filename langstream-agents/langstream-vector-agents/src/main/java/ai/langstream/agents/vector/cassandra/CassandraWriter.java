@@ -127,7 +127,7 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                             agentConfiguration.getOrDefault(
                                     "table", agentConfiguration.get("table-name"));
             String keyspace = (String) agentConfiguration.get("keyspace");
-            if (keyspace != null || !keyspace.isEmpty()) {
+            if (keyspace != null && !keyspace.isEmpty()) {
                 table = keyspace + "." + table;
             }
             String mapping = (String) agentConfiguration.get("mapping");

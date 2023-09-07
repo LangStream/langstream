@@ -37,16 +37,7 @@ if [ ! -d langstream-cli/target/cli ]; then
 fi
 popd > /dev/null
 LANGSTREAM_CLI_CONFIG=${LANGSTREAM_CLI_CONFIG:-"conf/cli.yaml"}
-if [ -n "$LANGSTREAM_CLI_CONFIG" ]; then
-  if [ ! -f "$LANGSTREAM_CLI_CONFIG" ]; then
-    echo "ERROR: CLI config file not found: $LANGSTREAM_CLI_CONFIG"
-    exit 1
-  fi
-  if [ $LANGSTREAM_CLI_CONFIG != "conf/cli.yaml" ]; then
-    echo "Using CLI config file from ENV variable LANGSTREAM_CLI_CONFIG: $LANGSTREAM_CLI_CONFIG"
-  fi
-  LANGSTREAM_CLI_CONFIG="--conf $LANGSTREAM_CLI_CONFIG"
-fi
+echo "Using development CLI config file $(realpath $LANGSTREAM_CLI_CONFIG). To use the global config file, set LANGSTREAM_CLI_CONFIG=\$HOME/.langstream/config"
 
 "$ROOT_DIR/langstream-cli/target/cli/bin/langstream" $LANGSTREAM_CLI_CONFIG "$@"
 

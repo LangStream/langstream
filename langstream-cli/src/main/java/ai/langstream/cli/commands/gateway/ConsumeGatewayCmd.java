@@ -15,7 +15,7 @@
  */
 package ai.langstream.cli.commands.gateway;
 
-import ai.langstream.api.model.Gateway;
+import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.websocket.WebSocketClient;
 import jakarta.websocket.CloseReason;
 import java.net.URI;
@@ -74,7 +74,7 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
                 validateGatewayAndGetUrl(
                         applicationId,
                         gatewayId,
-                        Gateway.GatewayType.consume,
+                        Gateways.Gateway.TYPE_CONSUME,
                         params,
                         options,
                         credentials);
@@ -116,13 +116,14 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
                                     @Override
                                     public void onError(Throwable throwable) {
                                         log(
-                                                "Connection error: %s"
-                                                        .formatted(throwable.getMessage()));
+                                                String.format(
+                                                        "Connection error: %s",
+                                                        throwable.getMessage()));
                                         exit();
                                     }
                                 })
                         .connect(URI.create(consumePath), connectTimeout)) {
-            log("Connected to %s".formatted(consumePath));
+            log(String.format("Connected to %s", consumePath));
             latch.await();
         }
     }

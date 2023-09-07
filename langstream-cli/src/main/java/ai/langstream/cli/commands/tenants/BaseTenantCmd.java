@@ -30,6 +30,6 @@ public abstract class BaseTenantCmd extends BaseCmd {
     }
 
     protected String pathForTenant(String tenant) {
-        return "/tenants/%s".formatted(tenant);
+        return String.format("/tenants/%s", tenant);
     }
 }

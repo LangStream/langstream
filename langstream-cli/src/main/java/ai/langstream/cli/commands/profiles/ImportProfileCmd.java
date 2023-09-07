@@ -69,7 +69,8 @@ public class ImportProfileCmd extends BaseProfileCmd {
 
             final File file = new File(fromFile);
             if (!Files.isRegularFile(file.toPath())) {
-                throw new IllegalArgumentException("File %s does not exist".formatted(fromFile));
+                throw new IllegalArgumentException(
+                        String.format("File %s does not exist", fromFile));
             }
             profile = yamlConfigReader.readValue(new File(fromFile), Profile.class);
         } else if (inline != null) {
@@ -100,19 +101,19 @@ public class ImportProfileCmd extends BaseProfileCmd {
                     final NamedProfile existing = langStreamCLIConfig.getProfiles().get(name);
                     if (!allowUpdate && existing != null) {
                         throw new IllegalArgumentException(
-                                "Profile %s already exists".formatted(name));
+                                String.format("Profile %s already exists", name));
                     }
 
                     langStreamCLIConfig.getProfiles().put(name, newProfile);
                     if (existing == null) {
-                        log("profile %s created".formatted(name));
+                        log(String.format("profile %s created", name));
                     } else {
-                        log("profile %s updated".formatted(name));
+                        log(String.format("profile %s updated", name));
                     }
 
                     if (setAsCurrent) {
                         langStreamCLIConfig.setCurrentProfile(name);
-                        log("profile %s set as current".formatted(name));
+                        log(String.format("profile %s set as current", name));
                     }
                 });
     }

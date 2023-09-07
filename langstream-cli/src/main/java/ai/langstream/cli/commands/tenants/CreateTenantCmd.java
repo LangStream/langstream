@@ -15,8 +15,9 @@
  */
 package ai.langstream.cli.commands.tenants;
 
-import ai.langstream.api.webservice.tenant.CreateTenantRequest;
 import java.net.http.HttpRequest;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
@@ -34,8 +35,8 @@ public class CreateTenantCmd extends BaseTenantCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final CreateTenantRequest request =
-                CreateTenantRequest.builder().maxTotalResourceUnits(maxUnits).build();
+        Map<String, Object> request = new HashMap<>();
+        request.put("maxTotalResourceUnits", maxUnits);
         final String body = jsonBodyWriter.writeValueAsString(request);
 
         final HttpRequest httpRequest =
@@ -45,6 +46,6 @@ public class CreateTenantCmd extends BaseTenantCmd {
                                 "application/json",
                                 HttpRequest.BodyPublishers.ofString(body));
         getClient().http(httpRequest);
-        log("tenant %s created".formatted(name));
+        log(String.format("tenant %s created", name));
     }
 }

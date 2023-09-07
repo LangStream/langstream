@@ -54,17 +54,28 @@ public class ConfigureCmd extends BaseCmd {
         updateConfig(
                 clientConfig -> {
                     switch (configKey) {
-                        case tenant -> clientConfig.setTenant(newValue);
-                        case webServiceUrl -> clientConfig.setWebServiceUrl(newValue);
-                        case apiGatewayUrl -> clientConfig.setApiGatewayUrl(newValue);
-                        case token -> clientConfig.setToken(newValue);
-                        default -> throw new IllegalArgumentException(
-                                "Unknown config key: %s. Only: %s"
-                                        .formatted(configKey, Arrays.toString(ConfigKey.values())));
+                        case tenant:
+                            clientConfig.setTenant(newValue);
+                            break;
+                        case webServiceUrl:
+                            clientConfig.setWebServiceUrl(newValue);
+                            break;
+                        case apiGatewayUrl:
+                            clientConfig.setApiGatewayUrl(newValue);
+                            break;
+                        case token:
+                            clientConfig.setToken(newValue);
+                            break;
+                        default:
+                            throw new IllegalArgumentException(
+                                    String.format(
+                                            "Unknown config key: %s. Only: %s",
+                                            configKey, Arrays.toString(ConfigKey.values())));
                     }
                 });
         log(
-                "profile %s updated: %s=%s"
-                        .formatted(BaseProfileCmd.DEFAULT_PROFILE_NAME, configKey, newValue));
+                String.format(
+                        "profile %s updated: %s=%s",
+                        BaseProfileCmd.DEFAULT_PROFILE_NAME, configKey, newValue));
     }
 }

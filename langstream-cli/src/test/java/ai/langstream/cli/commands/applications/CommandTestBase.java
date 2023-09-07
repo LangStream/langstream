@@ -28,7 +28,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Stream;
+import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
@@ -50,11 +52,9 @@ public class CommandTestBase {
 
         cliYaml = Path.of(tempDir.toFile().getAbsolutePath(), "cli.yaml");
         final String config =
-                """
-                webServiceUrl: http://localhost:%d
-                tenant: %s
-                """
-                        .formatted(wmRuntimeInfo.getHttpPort(), TENANT);
+                String.format(
+                        "webServiceUrl: http://localhost:%d\ntenant: %s",
+                        wmRuntimeInfo.getHttpPort(), TENANT);
         Files.writeString(cliYaml, config);
         wireMock = wmRuntimeInfo.getWireMock();
         wireMockBaseUrl = wmRuntimeInfo.getHttpBaseUrl();
@@ -74,7 +74,25 @@ public class CommandTestBase {
         }
     }
 
-    public record CommandResult(int exitCode, String out, String err) {}
+    @AllArgsConstructor
+    @ToString
+    public static class CommandResult {
+        private int exitCode;
+        private String out;
+        private String err;
+
+        public int exitCode() {
+            return exitCode;
+        }
+
+        public String out() {
+            return out;
+        }
+
+        public String err() {
+            return err;
+        }
+    }
 
     protected CommandResult executeCommand(String... args) {
         final String[] fullArgs =

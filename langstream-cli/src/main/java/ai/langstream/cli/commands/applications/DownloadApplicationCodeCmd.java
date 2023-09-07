@@ -57,11 +57,12 @@ public class DownloadApplicationCodeCmd extends BaseApplicationCmd {
                 }
             }
             if (filename == null) {
-                filename = "%s-%s.zip".formatted(getCurrentProfile().getTenant(), applicationId);
+                filename =
+                        String.format("%s-%s.zip", getCurrentProfile().getTenant(), applicationId);
             }
             path = Path.of(filename);
         }
         Files.write(path, response.body());
-        log("Downloaded application code to %s".formatted(path.toAbsolutePath()));
+        log(String.format("Downloaded application code to %s", path.toAbsolutePath()));
     }
 }

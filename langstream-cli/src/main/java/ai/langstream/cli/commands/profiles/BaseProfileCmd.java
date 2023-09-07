@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import picocli.CommandLine;
 
 public abstract class BaseProfileCmd extends BaseCmd {
@@ -46,7 +45,7 @@ public abstract class BaseProfileCmd extends BaseCmd {
     }
 
     protected void validateProfile(Profile profile) {
-        if (StringUtils.isBlank(profile.getWebServiceUrl())) {
+        if (profile.getWebServiceUrl() == null || profile.getWebServiceUrl().isBlank()) {
             throw new IllegalArgumentException("webServiceUrl is required");
         }
     }
@@ -73,17 +72,17 @@ public abstract class BaseProfileCmd extends BaseCmd {
     }
 
     protected String getProfileNotFoundMessage(String name) {
-        return "Profile %s not found, maybe you meant one of these: %s"
-                .formatted(
-                        name,
-                        listAllProfiles().stream()
-                                .map(NamedProfile::getName)
-                                .collect(Collectors.joining(", ")));
+        return String.format(
+                "Profile %s not found, maybe you meant one of these: %s",
+                name,
+                listAllProfiles().stream()
+                        .map(NamedProfile::getName)
+                        .collect(Collectors.joining(", ")));
     }
 
     protected void checkProfileName(String name) {
         if (DEFAULT_PROFILE_NAME.equals(name)) {
-            throw new IllegalArgumentException("Profile name %s is reserved".formatted(name));
+            throw new IllegalArgumentException(String.format("Profile name %s is reserved", name));
         }
     }
 }

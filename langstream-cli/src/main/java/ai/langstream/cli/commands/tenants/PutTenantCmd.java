@@ -35,6 +35,6 @@ public class PutTenantCmd extends BaseTenantCmd {
                                         pathForTenant(name),
                                         "application/json",
                                         HttpRequest.BodyPublishers.ofString("{}")));
-        log("tenant %s created/updated".formatted(name));
+        log(String.format("tenant %s created/updated", name));
     }
 }

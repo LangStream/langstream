@@ -1055,8 +1055,8 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals(
                 """
-                        ID               STREAMING        COMPUTE          STATUS           EXECUTORS        REPLICAS      \s
-                        test             kafka            kubernetes       DEPLOYED         2/2              2/2""",
+                        ID          STREAMING   COMPUTE     STATUS      EXECUTORS   REPLICAS \s
+                        test        kafka       kubernetes  DEPLOYED    2/2         2/2""",
                 result.out());
         ObjectMapper jsonPrinter =
                 new ObjectMapper()
@@ -1105,7 +1105,7 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals(
-                "ID               STREAMING        COMPUTE          STATUS           EXECUTORS        REPLICAS",
+                "ID         STREAMING  COMPUTE    STATUS     EXECUTORS  REPLICAS",
                 result.out());
         result = executeCommand("apps", "list", "-o", "json");
         Assertions.assertEquals(0, result.exitCode());

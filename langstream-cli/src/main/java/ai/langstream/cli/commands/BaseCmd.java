@@ -30,7 +30,8 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -224,34 +225,38 @@ public abstract class BaseCmd implements Runnable {
             case raw:
             default:
                 {
-                    printRawHeader(columnsForRaw);
+                    List<String[]> rows = new ArrayList<>();
+
+                    rows.add(prepareHeaderRow(columnsForRaw));
                     if (readValue.isArray()) {
                         readValue
                                 .elements()
                                 .forEachRemaining(
                                         element ->
-                                                printRawRow(element, columnsForRaw, valueSupplier));
+                                                rows.add(prepareRawRow(element, columnsForRaw, valueSupplier)));
                     } else {
-                        printRawRow(readValue, columnsForRaw, valueSupplier);
+                        rows.add(prepareRawRow(readValue, columnsForRaw, valueSupplier));
                     }
+                    printRows(rows);
                     break;
                 }
         }
     }
 
-    private void printRawHeader(String[] columnsForRaw) {
-        final String template = computeFormatTemplate(columnsForRaw.length);
-        final Object[] columns = Arrays.stream(columnsForRaw).map(String::toUpperCase).toArray();
-        final String header = String.format(template, columns);
-        log(header);
+    private String[] prepareHeaderRow(String[] columnsForRaw) {
+        String[] result = new String[columnsForRaw.length];
+        for (int i = 0; i < columnsForRaw.length; i++) {
+            result[i] = columnsForRaw[i].toUpperCase();
+        }
+        return result;
     }
 
-    private void printRawRow(
+    private String[] prepareRawRow(
             JsonNode readValue,
             String[] columnsForRaw,
             BiFunction<JsonNode, String, Object> valueSupplier) {
         final int numColumns = columnsForRaw.length;
-        String formatTemplate = computeFormatTemplate(numColumns);
+
 
         String[] row = new String[numColumns];
         for (int i = 0; i < numColumns; i++) {
@@ -274,17 +279,33 @@ public abstract class BaseCmd implements Runnable {
             }
             row[i] = strColumn;
         }
-        final String result = String.format(formatTemplate, row);
-        log(result);
+        return row;
     }
 
-    private String computeFormatTemplate(int numColumns) {
+    private void printRows(List<String[]> rows) {
+
+        int countMax = 0;
+
+        for (String[] row : rows) {
+            for (int i = 0; i < row.length; i++) {
+                countMax = Math.max(countMax, row[i].length());
+            }
+        }
+        String formatTemplate = computeFormatTemplate(rows.get(0).length, countMax);
+
+        for (String[] row : rows) {
+            final String result = String.format(formatTemplate, row);
+            log(result);
+        }
+    }
+
+    private String computeFormatTemplate(int numColumns, int width) {
         StringBuilder formatTemplate = new StringBuilder();
         for (int i = 0; i < numColumns; i++) {
             if (i > 0) {
                 formatTemplate.append("  ");
             }
-            formatTemplate.append("%-25.25s");
+            formatTemplate.append("%-" + width + "." + width + "s");
         }
         return formatTemplate.toString();
     }

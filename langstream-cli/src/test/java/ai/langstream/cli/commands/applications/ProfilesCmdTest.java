@@ -16,6 +16,7 @@
 package ai.langstream.cli.commands.applications;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import ai.langstream.cli.NamedProfile;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -70,8 +71,8 @@ class ProfilesCmdTest extends CommandTestBase {
         assertEquals("", result.err());
         assertEquals(
                 """
-                PROFILE                    WEBSERVICEURL              TENANT                     TOKEN                      CURRENT                 \s
-                new                        http://my.localhost:8080   t                          ********                """,
+                        PROFILE                   WEBSERVICEURL             TENANT                    TOKEN                     CURRENT                \s
+                        new                       http://my.localhost:8080  t                         ******** """,
                 result.out());
 
         result = executeCommand("profiles", "get", "new", "-o", "json");
@@ -113,9 +114,9 @@ class ProfilesCmdTest extends CommandTestBase {
         assertEquals("", result.err());
         assertEquals(
                 """
-                PROFILE                    WEBSERVICEURL              TENANT                     TOKEN                      CURRENT                 \s
-                default                    %s     my-tenant                                             *                       \s
-                new                        http://my.localhost:8080   t                          ********                """
+                        PROFILE                   WEBSERVICEURL             TENANT                    TOKEN                     CURRENT                \s
+                        default                   %s    my-tenant                                           *                      \s
+                        new                       http://my.localhost:8080  t                         ********"""
                         .formatted(getConfig().getWebServiceUrl()),
                 result.out());
 
@@ -140,13 +141,14 @@ class ProfilesCmdTest extends CommandTestBase {
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
         assertEquals("profile default set as current", result.out());
-        assertEquals("new", getConfig().getCurrentProfile());
+        assertEquals("default", getConfig().getCurrentProfile());
 
         result = executeCommand("profiles", "delete", "new");
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
         assertEquals("profile new deleted", result.out());
         assertEquals("default", getConfig().getCurrentProfile());
+        assertNull(getConfig().getProfiles().get("new"));
     }
 
     @Test
@@ -266,8 +268,8 @@ class ProfilesCmdTest extends CommandTestBase {
         assertEquals("", result.err());
         assertEquals(
                 """
-                PROFILE                    WEBSERVICEURL              TENANT                     TOKEN                      CURRENT                 \s
-                default                    %s     my-tenant                                             *                """
+                        PROFILE                 WEBSERVICEURL           TENANT                  TOKEN                   CURRENT              \s
+                        default                 %s  my-tenant                                       *"""
                         .formatted(getConfig().getWebServiceUrl()),
                 result.out());
 

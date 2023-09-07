@@ -18,6 +18,9 @@ package ai.langstream.mockagents;
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.assets.AssetManager;
 import ai.langstream.api.runner.assets.AssetManagerProvider;
+import ai.langstream.api.util.ConfigurationUtils;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,6 +55,20 @@ public class MockAssetManagerCodeProvider implements AssetManagerProvider {
         @Override
         public synchronized void deployAsset(AssetDefinition assetDefinition) throws Exception {
             log.info("Deploying asset {}", assetDefinition);
+            Map<String, Object> datasource =
+                    ConfigurationUtils.getMap("datasource", null, assetDefinition.getConfig());
+            if (datasource == null) {
+                throw new IllegalStateException("Datasource is required");
+            }
+            Map<String, Object> configuration =
+                    (Map<String, Object>) datasource.get("configuration");
+            if (configuration == null) {
+                throw new IllegalStateException("Datasource configuration is required");
+            }
+            String foo = (String) configuration.get("foo");
+            if (!Objects.equals(foo, "bar")) {
+                throw new IllegalStateException("Datasource configuration is not configured well");
+            }
             DEPLOYED_ASSETS.add(assetDefinition);
         }
     }

@@ -15,10 +15,7 @@
  */
 package ai.langstream.runtime.impl.k8s;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.ErrorsSpec;
-import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.DeployContext;
@@ -144,46 +141,14 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         return null;
     }
 
-    private static Map<String, Object> planAsset(
-            AssetDefinition assetDefinition, Application application) {
-        Map<String, Resource> resources = application.getResources();
-        Map<String, Object> asset = new HashMap<>();
-        asset.put("id", assetDefinition.getId());
-        asset.put("name", assetDefinition.getName());
-        asset.put("asset-type", assetDefinition.getAssetType());
-        asset.put("creation-mode", assetDefinition.getCreationMode());
-        Map<String, Object> configuration = new HashMap<>();
-        if (assetDefinition.getConfig() != null) {
-            assetDefinition
-                    .getConfig()
-                    .forEach(
-                            (key, value) -> {
-                                // automatically resolve resource references
-                                // should we do it depending on the asset type ?
-                                if ("datasource".equals(key)
-                                        && value instanceof String resourceId) {
-                                    Resource resource = resources.get(resourceId);
-                                    if (resource != null) {
-                                        value = resource;
-                                    }
-                                }
-                                configuration.put(key, value);
-                            });
-        }
-        asset.put("config", configuration);
-        return asset;
-    }
-
     private List<Map<String, Object>> collectAssets(ExecutionPlan executionPlan) {
         List<Map<String, Object>> assets = new ArrayList<>();
         if (executionPlan.getAssets() != null) {
             executionPlan
                     .getAssets()
                     .forEach(
-                            (assetDefinition) -> {
-                                Map<String, Object> asset =
-                                        planAsset(assetDefinition, executionPlan.getApplication());
-                                assets.add(asset);
+                            (asset) -> {
+                                assets.add(asset.config());
                             });
         }
         return assets;

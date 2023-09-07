@@ -13,19 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.datasource;
+package ai.langstream.mockagents;
 
-import java.util.Collections;
-import java.util.List;
+import ai.langstream.api.model.AssetDefinition;
+import ai.langstream.impl.common.AbstractAssetProvider;
 import java.util.Map;
+import java.util.Set;
 
-public interface QueryStepDataSource extends AutoCloseable {
-
-    default void initialize(Map<String, Object> config) {}
-
-    default List<Map<String, String>> fetchData(String query, List<Object> params) {
-        return Collections.emptyList();
+public class MockAssetNodeProvider extends AbstractAssetProvider {
+    public MockAssetNodeProvider() {
+        super(Set.of("mock-database-resource"));
     }
 
-    default void close() {}
+    @Override
+    protected void validateAsset(AssetDefinition assetDefinition, Map<String, Object> asset) {}
+
+    @Override
+    protected boolean lookupResource(String fieldName) {
+        return "datasource".equals(fieldName);
+    }
 }

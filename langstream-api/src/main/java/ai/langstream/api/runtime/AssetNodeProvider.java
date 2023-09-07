@@ -15,34 +15,30 @@
  */
 package ai.langstream.api.runtime;
 
-import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.Module;
-import ai.langstream.api.model.Pipeline;
 
-public interface AgentNodeProvider {
+public interface AssetNodeProvider {
 
     /**
-     * Create an Implementation of an Agent that can be deployed on the give runtimes.
+     * Create an Implementation of an Asset that can be deployed on the give runtimes. This is also
+     * useful to perform validation of the configuration.
      *
-     * @param agentConfiguration the configuration of the agent
      * @param module the module
      * @param executionPlan the physical application instance
      * @param clusterRuntime the cluster runtime
      * @param pluginsRegistry the plugins registry
-     * @param streamingClusterRuntime the streaming cluster runtime
      * @return the Agent
      */
-    AgentNode createImplementation(
-            AgentConfiguration agentConfiguration,
+    AssetNode createImplementation(
+            AssetDefinition assetDefinition,
             Module module,
-            Pipeline pipeline,
             ExecutionPlan executionPlan,
             ComputeClusterRuntime clusterRuntime,
-            PluginsRegistry pluginsRegistry,
-            StreamingClusterRuntime streamingClusterRuntime);
+            PluginsRegistry pluginsRegistry);
 
     /**
-     * Returns the ability of an Agent to be deployed on the give runtimes.
+     * Returns the ability of an Asset to be deployed on the give runtimes.
      *
      * @param type the type of implementation
      * @param clusterRuntime the compute cluster runtime

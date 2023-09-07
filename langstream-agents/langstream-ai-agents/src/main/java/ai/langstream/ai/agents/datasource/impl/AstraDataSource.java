@@ -16,28 +16,23 @@
 package ai.langstream.ai.agents.datasource.impl;
 
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
-import com.datastax.oss.streaming.ai.datasource.AstraDBDataSource;
+import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import java.util.Map;
 
 public class AstraDataSource implements DataSourceProvider {
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
-        return "astra".equals(dataSourceConfig.get("service"));
+        String service = (String) dataSourceConfig.get("service");
+        return "astra".equals(service) || "cassandra".equals(service);
     }
 
     @Override
     public QueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
-        AstraDBDataSource result = new AstraDBDataSource();
-        DataSourceConfig implConfig = new DataSourceConfig();
-        implConfig.setPassword((String) dataSourceConfig.get("password"));
-        implConfig.setService("astra");
-        implConfig.setUsername((String) dataSourceConfig.get("username"));
-        implConfig.setSecureBundle((String) dataSourceConfig.get("secureBundle"));
-        result.initialize(implConfig);
+        CassandraDataSource result = new CassandraDataSource();
+        result.initialize(dataSourceConfig);
         return result;
     }
 }

@@ -13,19 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.datasource;
+package ai.langstream.api.runtime;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
-public interface QueryStepDataSource extends AutoCloseable {
-
-    default void initialize(Map<String, Object> config) {}
-
-    default List<Map<String, String>> fetchData(String query, List<Object> params) {
-        return Collections.emptyList();
-    }
-
-    default void close() {}
-}
+public record AssetNode(Map<String, Object> config) {}

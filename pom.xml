@@ -261,6 +261,18 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>cassandra</artifactId>
+        <version>${testcontainers.version}</version>
+        <exclusions>
+          <exclusion>
+            <!-- exclude the Cassandra driver -->
+            <groupId>com.datastax.cassandra</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-dependencies</artifactId>
         <version>${spring-boot.version}</version>

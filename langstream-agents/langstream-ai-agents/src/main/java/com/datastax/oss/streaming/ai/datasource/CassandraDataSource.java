@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.streaming.ai.datasource;
 
+import ai.langstream.api.util.ConfigurationUtils;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -30,9 +31,9 @@ import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.codec.CqlVectorCodec;
 import com.datastax.oss.driver.internal.core.type.codec.registry.DefaultCodecRegistry;
-import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.ByteArrayInputStream;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -43,7 +44,7 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class AstraDBDataSource implements QueryStepDataSource {
+public class CassandraDataSource implements QueryStepDataSource {
 
     CqlSession session;
     Map<String, PreparedStatement> statements = new ConcurrentHashMap<>();
@@ -65,13 +66,9 @@ public class AstraDBDataSource implements QueryStepDataSource {
             };
 
     @Override
-    public void initialize(DataSourceConfig dataSourceConfig) {
+    public void initialize(Map<String, Object> dataSourceConfig) {
         log.info("Initializing AstraDBDataSource with config {}", dataSourceConfig);
-        this.session =
-                buildCqlSession(
-                        dataSourceConfig.getUsername(),
-                        dataSourceConfig.getPassword(),
-                        dataSourceConfig.getSecureBundle());
+        this.session = buildCqlSession(dataSourceConfig);
     }
 
     @Override
@@ -143,19 +140,91 @@ public class AstraDBDataSource implements QueryStepDataSource {
                 .collect(Collectors.toList());
     }
 
-    public CqlSession buildCqlSession(String username, String password, String secureBundle) {
+    public void executeStatement(String query, List<Object> params) {
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Executing query {} with params {} ({})",
+                    query,
+                    params,
+                    params.stream()
+                            .map(v -> v == null ? "null" : v.getClass().toString())
+                            .collect(Collectors.joining(",")));
+        }
+        PreparedStatement preparedStatement =
+                statements.computeIfAbsent(query, q -> session.prepare(q));
 
-        // Remove the base64: prefix if present
-        if (secureBundle.startsWith("base64:")) {
-            secureBundle = secureBundle.substring("base64:".length());
+        ColumnDefinitions variableDefinitions = preparedStatement.getVariableDefinitions();
+        List<Object> adaptedParameters = new ArrayList<>();
+        for (int i = 0; i < variableDefinitions.size(); i++) {
+            Object value = params.get(i);
+            ColumnDefinition columnDefinition = variableDefinitions.get(i);
+            if (columnDefinition.getType() instanceof CqlVectorType && value instanceof List) {
+                CqlVectorType vectorType = (CqlVectorType) columnDefinition.getType();
+                if (vectorType.getSubtype() != DataTypes.FLOAT) {
+                    throw new IllegalArgumentException("Only VECTOR<FLOAT,x> is supported");
+                }
+                CqlVector.Builder<Float> builder = CqlVector.builder();
+                for (Object v : (List<Object>) value) {
+                    if (v instanceof Number) {
+                        builder.add(((Number) v).floatValue());
+                    } else {
+                        builder.add(Float.parseFloat(v + ""));
+                    }
+                }
+                value = builder.build();
+            }
+            adaptedParameters.add(value);
         }
 
-        byte[] secureBundleDecoded = Base64.getDecoder().decode(secureBundle);
-        CqlSessionBuilder builder =
-                new CqlSessionBuilder()
-                        .withCodecRegistry(CODEC_REGISTRY)
-                        .withCloudSecureConnectBundle(new ByteArrayInputStream(secureBundleDecoded))
-                        .withAuthCredentials(username, password);
+        BoundStatement bind = preparedStatement.bind(adaptedParameters.toArray(new Object[0]));
+
+        session.execute(bind);
+    }
+
+    public static CqlSession buildCqlSession(Map<String, Object> dataSourceConfig) {
+
+        String username = ConfigurationUtils.getString("username", null, dataSourceConfig);
+        String password = ConfigurationUtils.getString("password", null, dataSourceConfig);
+        String secureBundle = ConfigurationUtils.getString("secureBundle", null, dataSourceConfig);
+        List<String> contactPoints = ConfigurationUtils.getList("contact-points", dataSourceConfig);
+        String loadBalancingLocalDc =
+                ConfigurationUtils.getString("loadBalancing-localDc", "", dataSourceConfig);
+        int port = ConfigurationUtils.getInteger("port", 9042, dataSourceConfig);
+
+        byte[] secureBundleDecoded = null;
+        if (secureBundle != null && !secureBundle.isEmpty()) {
+            // Remove the base64: prefix if present
+            if (secureBundle.startsWith("base64:")) {
+                secureBundle = secureBundle.substring("base64:".length());
+            }
+            secureBundleDecoded = Base64.getDecoder().decode(secureBundle);
+        }
+        CqlSessionBuilder builder = new CqlSessionBuilder().withCodecRegistry(CODEC_REGISTRY);
+
+        if (username != null && password != null) {
+            builder.withAuthCredentials(username, password);
+        }
+
+        if (secureBundleDecoded != null) {
+            builder.withCloudSecureConnectBundle(new ByteArrayInputStream(secureBundleDecoded));
+        }
+        if (!contactPoints.isEmpty()) {
+            builder.addContactPoints(
+                    contactPoints.stream()
+                            .map(cp -> new InetSocketAddress(cp, port))
+                            .collect(Collectors.toList()));
+        }
+        if (!loadBalancingLocalDc.isEmpty()) {
+            builder.withLocalDatacenter(loadBalancingLocalDc);
+        }
         return builder.build();
+    }
+
+    public static String escapeCQLString(String value) {
+        return value.replace("'", "''");
+    }
+
+    public CqlSession getSession() {
+        return session;
     }
 }

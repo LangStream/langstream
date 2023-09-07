@@ -30,7 +30,6 @@ import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
 import com.azure.core.util.IterableStream;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import com.datastax.oss.streaming.ai.services.OpenAIServiceProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
@@ -310,11 +309,11 @@ public class GenAITest {
                 new TransformFunction() {
                     @Override
                     protected QueryStepDataSource buildDataSource(
-                            DataSourceConfig dataSourceConfig) {
-                        assertEquals(dataSourceConfig.getService(), "mock");
-                        assertEquals(dataSourceConfig.getUsername(), "test");
-                        assertEquals(dataSourceConfig.getPassword(), "testpwd");
-                        assertEquals(dataSourceConfig.getSecureBundle(), "xx");
+                            Map<String, Object> dataSourceConfig) {
+                        assertEquals(dataSourceConfig.get("service"), "mock");
+                        assertEquals(dataSourceConfig.get("username"), "test");
+                        assertEquals(dataSourceConfig.get("password"), "testpwd");
+                        assertEquals(dataSourceConfig.get("secureBundle"), "xx");
 
                         return new QueryStepDataSource() {
                             @Override

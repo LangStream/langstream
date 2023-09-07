@@ -23,7 +23,6 @@ import com.datastax.oss.streaming.ai.QueryStep;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
-import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import com.datastax.oss.streaming.ai.model.config.QueryConfig;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -51,9 +50,7 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
         Map<String, Object> datasourceConfiguration =
                 (Map<String, Object>) configuration.get("datasource");
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
-        DataSourceConfig dataSourceConfig =
-                MAPPER.convertValue(datasourceConfiguration, DataSourceConfig.class);
-        dataSource.initialize(dataSourceConfig);
+        dataSource.initialize(datasourceConfiguration);
 
         configuration.put("type", "query");
         QueryConfig queryConfig = MAPPER.convertValue(configuration, QueryConfig.class);

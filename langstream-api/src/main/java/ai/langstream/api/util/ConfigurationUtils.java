@@ -139,4 +139,20 @@ public class ConfigurationUtils {
             return value.toString();
         }
     }
+
+    public static Map<String, Object> getMap(
+            String key, Map<String, Object> defaultValue, Map<String, Object> configuration) {
+        Object value = configuration.get(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Map map) {
+            return (Map<String, Object>) Collections.unmodifiableMap(map);
+        }
+        throw new IllegalArgumentException(
+                "Unsupported type for "
+                        + key
+                        + ", expecting a Map, got got a "
+                        + value.getClass().getName());
+    }
 }

@@ -17,7 +17,6 @@ package ai.langstream.agents.vector.pinecone;
 
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -99,7 +98,7 @@ public class PineconeDataSource implements DataSourceProvider {
         }
 
         @Override
-        public void initialize(DataSourceConfig config) {
+        public void initialize(Map<String, Object> config) {
             PineconeClientConfig pineconeClientConfig =
                     new PineconeClientConfig()
                             .withApiKey(clientConfig.getApiKey())

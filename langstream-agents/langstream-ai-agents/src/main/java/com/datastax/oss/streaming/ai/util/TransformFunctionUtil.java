@@ -38,7 +38,7 @@ import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.UnwrapKeyValueStep;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
-import com.datastax.oss.streaming.ai.datasource.AstraDBDataSource;
+import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.jstl.predicate.JstlPredicate;
@@ -50,7 +50,6 @@ import com.datastax.oss.streaming.ai.model.config.CastConfig;
 import com.datastax.oss.streaming.ai.model.config.ChatCompletionsConfig;
 import com.datastax.oss.streaming.ai.model.config.ComputeAIEmbeddingsConfig;
 import com.datastax.oss.streaming.ai.model.config.ComputeConfig;
-import com.datastax.oss.streaming.ai.model.config.DataSourceConfig;
 import com.datastax.oss.streaming.ai.model.config.DropFieldsConfig;
 import com.datastax.oss.streaming.ai.model.config.FlattenConfig;
 import com.datastax.oss.streaming.ai.model.config.OpenAIConfig;
@@ -127,18 +126,18 @@ public class TransformFunctionUtil {
         return openAIClientBuilder.buildClient();
     }
 
-    public static QueryStepDataSource buildDataSource(DataSourceConfig dataSourceConfig) {
+    public static QueryStepDataSource buildDataSource(Map<String, Object> dataSourceConfig) {
         if (dataSourceConfig == null) {
             return new QueryStepDataSource() {};
         }
         QueryStepDataSource dataSource;
-        switch (dataSourceConfig.getService() + "") {
+        String service = (String) dataSourceConfig.get("service");
+        switch (service) {
             case "astra":
-                dataSource = new AstraDBDataSource();
+                dataSource = new CassandraDataSource();
                 break;
             default:
-                throw new IllegalArgumentException(
-                        "Invalid service type " + dataSourceConfig.getService());
+                throw new IllegalArgumentException("Invalid service type " + service);
         }
         dataSource.initialize(dataSourceConfig);
         return dataSource;

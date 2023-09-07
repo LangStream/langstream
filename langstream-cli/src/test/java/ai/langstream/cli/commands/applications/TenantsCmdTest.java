@@ -26,7 +26,7 @@ class TenantsCmdTest extends CommandTestBase {
     @Test
     public void testPut() {
         wireMock.register(
-                WireMock.put("/api/tenants/%s".formatted("newt"))
+                WireMock.put(String.format("/api/tenants/%s", "newt"))
                         .willReturn(WireMock.ok("{ \"name\": \"newt\" }")));
         CommandResult result = executeCommand("tenants", "put", "newt");
         Assertions.assertEquals(0, result.exitCode());
@@ -37,7 +37,7 @@ class TenantsCmdTest extends CommandTestBase {
     @Test
     public void testCreate() {
         wireMock.register(
-                WireMock.post("/api/tenants/%s".formatted("newt"))
+                WireMock.post(String.format("/api/tenants/%s", "newt"))
                         .withRequestBody(WireMock.equalToJson("{\"maxTotalResourceUnits\":null}"))
                         .willReturn(WireMock.ok("")));
         CommandResult result = executeCommand("tenants", "create", "newt");
@@ -49,7 +49,7 @@ class TenantsCmdTest extends CommandTestBase {
     @Test
     public void testCreatemaxTotalResourceUnits() {
         wireMock.register(
-                WireMock.post("/api/tenants/%s".formatted("newt"))
+                WireMock.post(String.format("/api/tenants/%s", "newt"))
                         .withRequestBody(WireMock.equalToJson("{\"maxTotalResourceUnits\":10}"))
                         .willReturn(WireMock.ok("")));
         CommandResult result =
@@ -62,7 +62,7 @@ class TenantsCmdTest extends CommandTestBase {
     @Test
     public void testUpdatemaxTotalResourceUnits() {
         wireMock.register(
-                WireMock.patch(urlEqualTo("/api/tenants/%s".formatted("newt")))
+                WireMock.patch(urlEqualTo(String.format("/api/tenants/%s", "newt")))
                         .withRequestBody(WireMock.equalToJson("{\"maxTotalResourceUnits\":10}"))
                         .willReturn(WireMock.ok("")));
         CommandResult result =
@@ -75,7 +75,7 @@ class TenantsCmdTest extends CommandTestBase {
     @Test
     public void testGet() {
         wireMock.register(
-                WireMock.get("/api/tenants/%s".formatted("newt"))
+                WireMock.get(String.format("/api/tenants/%s", "newt"))
                         .willReturn(WireMock.ok("{ \"name\": \"newt\" }")));
         CommandResult result = executeCommand("tenants", "get", "newt");
         Assertions.assertEquals(0, result.exitCode());
@@ -86,7 +86,8 @@ class TenantsCmdTest extends CommandTestBase {
     @Test
     public void testDelete() {
         wireMock.register(
-                WireMock.delete("/api/tenants/%s".formatted("newt")).willReturn(WireMock.ok()));
+                WireMock.delete(String.format("/api/tenants/%s", "newt"))
+                        .willReturn(WireMock.ok()));
 
         CommandResult result = executeCommand("tenants", "delete", "newt");
         Assertions.assertEquals(0, result.exitCode());

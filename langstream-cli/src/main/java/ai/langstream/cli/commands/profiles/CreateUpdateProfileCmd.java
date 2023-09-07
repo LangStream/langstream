@@ -58,7 +58,8 @@ public abstract class CreateUpdateProfileCmd extends BaseProfileCmd {
         NamedProfile profile = getConfig().getProfiles().get(name);
         if (isCreate()) {
             if (profile != null) {
-                throw new IllegalArgumentException("Profile %s already exists".formatted(name));
+                throw new IllegalArgumentException(
+                        String.format("Profile %s already exists", name));
             }
             profile = new NamedProfile();
             profile.setName(name);
@@ -88,13 +89,13 @@ public abstract class CreateUpdateProfileCmd extends BaseProfileCmd {
                 langStreamCLIConfig -> {
                     langStreamCLIConfig.getProfiles().put(name, finalProfile);
                     if (isCreate()) {
-                        log("profile %s created".formatted(name));
+                        log(String.format("profile %s created", name));
                     } else {
-                        log("profile %s updated".formatted(name));
+                        log(String.format("profile %s updated", name));
                     }
                     if (setAsCurrent) {
                         langStreamCLIConfig.setCurrentProfile(name);
-                        log("profile %s set as current".formatted(name));
+                        log(String.format("profile %s set as current", name));
                     }
                 });
     }

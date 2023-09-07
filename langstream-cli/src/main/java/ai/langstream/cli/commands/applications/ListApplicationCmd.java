@@ -66,7 +66,7 @@ public class ListApplicationCmd extends BaseApplicationCmd {
                                 countDeployed++;
                             }
                         }
-                        return "%d/%d".formatted(countDeployed, executors.size());
+                        return String.format("%d/%d", countDeployed, executors.size());
                     }
                 case "replicas":
                     {
@@ -92,7 +92,7 @@ public class ListApplicationCmd extends BaseApplicationCmd {
                         if (countAll == 0) {
                             return "";
                         }
-                        return "%d/%d".formatted(countRunning, countAll);
+                        return String.format("%d/%d", countRunning, countAll);
                     }
                 default:
                     return jsonNode.get(s);

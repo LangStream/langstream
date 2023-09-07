@@ -15,20 +15,30 @@
  */
 package ai.langstream.cli.commands.gateway;
 
-import ai.langstream.api.model.Gateway;
+import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.websocket.WebSocketClient;
 import jakarta.websocket.CloseReason;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "produce", header = "Produce messages to a gateway")
 public class ProduceGatewayCmd extends BaseGatewayCmd {
 
-    record ProduceRequest(Object key, Object value, Map<String, String> headers) {}
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    static class ProduceRequest {
+        private Object key;
+        private Object value;
+        private Map<String, String> headers;
+    }
 
     @CommandLine.Parameters(description = "Application ID")
     private String applicationId;
@@ -74,7 +84,7 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
                 validateGatewayAndGetUrl(
                         applicationId,
                         gatewayId,
-                        Gateway.GatewayType.produce,
+                        Gateways.Gateway.TYPE_PRODUCE,
                         params,
                         Map.of(),
                         credentials);
@@ -95,10 +105,10 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
                                         if (closeReason.getCloseCode()
                                                 != CloseReason.CloseCodes.NORMAL_CLOSURE) {
                                             err(
-                                                    "Server closed connection with unexpected code: %s %s"
-                                                            .formatted(
-                                                                    closeReason.getCloseCode(),
-                                                                    closeReason.getReasonPhrase()));
+                                                    String.format(
+                                                            "Server closed connection with unexpected code: %s %s",
+                                                            closeReason.getCloseCode(),
+                                                            closeReason.getReasonPhrase()));
                                         }
                                         countDownLatch.countDown();
                                     }
@@ -106,8 +116,9 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
                                     @Override
                                     public void onError(Throwable throwable) {
                                         err(
-                                                "Connection error: %s"
-                                                        .formatted(throwable.getMessage()));
+                                                String.format(
+                                                        "Connection error: %s",
+                                                        throwable.getMessage()));
                                     }
                                 })
                         .connect(URI.create(producePath), connectTimeout)) {

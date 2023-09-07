@@ -15,12 +15,8 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import static ai.langstream.impl.parser.ModelBuilder.resolveFileReferencesInYAMLFile;
-
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.Dependency;
-import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +31,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
@@ -164,84 +163,117 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
 
         if (appDirectory != null) {
-            // parse locally the application in order to validate it
-            // and to get the dependencies
-            final Application applicationInstance =
-                    ModelBuilder.buildApplicationInstance(
-                                    List.of(appDirectory.toPath()), null, null)
-                            .getApplication();
-            downloadDependencies(applicationInstance, appDirectory.toPath());
+            downloadDependencies(appDirectory.toPath());
         }
 
         final Path tempZip = buildZip(appDirectory, this::log);
 
         long size = Files.size(tempZip);
-        log("deploying application: %s (%d KB)".formatted(applicationId, size / 1024));
+        log(String.format("deploying application: %s (%d KB)", applicationId, size / 1024));
 
         final Map<String, Object> contents = new HashMap<>();
         contents.put("app", tempZip);
         if (instanceFile != null) {
-            contents.put("instance", resolveFileReferencesInYAMLFile(instanceFile.toPath()));
+            contents.put(
+                    "instance",
+                    LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
+                            instanceFile.toPath()));
         }
         if (secretsFile != null) {
-            contents.put("secrets", resolveFileReferencesInYAMLFile(secretsFile.toPath()));
+            contents.put(
+                    "secrets",
+                    LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
+                            secretsFile.toPath()));
         }
         final MultiPartBodyPublisher bodyPublisher = buildMultipartContentForAppZip(contents);
 
         if (isUpdate()) {
             getClient().applications().update(applicationId, bodyPublisher);
-            log("application %s updated".formatted(applicationId));
+            log(String.format("application %s updated", applicationId));
         } else {
             getClient().applications().deploy(applicationId, bodyPublisher);
-            log("application %s deployed".formatted(applicationId));
+            log(String.format("application %s deployed", applicationId));
         }
     }
 
-    private void downloadDependencies(Application applicationInstance, Path directory)
-            throws Exception {
-        if (applicationInstance.getDependencies() != null) {
-            for (Dependency dependency : applicationInstance.getDependencies()) {
-                URL url = new URL(dependency.url());
+    @AllArgsConstructor
+    @Getter
+    private static class Dependency {
+        private String name;
+        private String url;
+        private String type;
+        private String sha512sum;
+    }
 
-                String outputPath =
-                        switch (dependency.type()) {
-                            case "java-library" -> "java/lib";
-                            default -> throw new RuntimeException(
-                                    "unsupported dependency type: " + dependency.type());
-                        };
-                Path output = directory.resolve(outputPath);
-                if (!Files.exists(output)) {
-                    Files.createDirectories(output);
-                }
-                String rawFileName = url.getFile().substring(url.getFile().lastIndexOf('/') + 1);
-                Path fileName = output.resolve(rawFileName);
+    private void downloadDependencies(Path directory) throws Exception {
 
-                if (Files.isRegularFile(fileName)) {
+        final Path configuration = directory.resolve("configuration.yaml");
+        if (!Files.exists(configuration)) {
+            return;
+        }
+        final Map<String, Object> map =
+                yamlConfigReader.readValue(configuration.toFile(), Map.class);
+        final List<Map<String, Object>> dependencies =
+                (List<Map<String, Object>>) map.get("dependencies");
+        if (dependencies == null) {
+            return;
+        }
+        final List<Dependency> dependencyList =
+                dependencies.stream()
+                        .map(
+                                dependency ->
+                                        new Dependency(
+                                                (String) dependency.get("name"),
+                                                (String) dependency.get("url"),
+                                                (String) dependency.get("type"),
+                                                (String) dependency.get("sha512sum")))
+                        .collect(Collectors.toList());
 
-                    if (!checkChecksum(fileName, dependency.sha512sum())) {
-                        log("File seems corrupted, deleting it");
-                        Files.delete(fileName);
-                    } else {
-                        log("Dependency: %s at %s".formatted(fileName, fileName.toAbsolutePath()));
-                        continue;
-                    }
-                }
+        for (Dependency dependency : dependencyList) {
+            URL url = new URL(dependency.getUrl());
 
-                log(
-                        "downloading dependency: %s to %s"
-                                .formatted(fileName, fileName.toAbsolutePath()));
-                final HttpRequest request = getClient().newDependencyGet(url);
-                getClient().http(request, HttpResponse.BodyHandlers.ofFile(fileName));
-
-                if (!checkChecksum(fileName, dependency.sha512sum())) {
-                    log(
-                            "File still seems corrupted. Please double check the checksum and try again.");
-                    Files.delete(fileName);
-                    throw new IOException("File at " + url + ", seems corrupted");
-                }
-
-                log("dependency downloaded");
+            final String outputPath;
+            switch (dependency.getType()) {
+                case "java-library":
+                    outputPath = "java/lib";
+                    break;
+                default:
+                    throw new RuntimeException(
+                            "unsupported dependency type: " + dependency.getType());
             }
+            ;
+            Path output = directory.resolve(outputPath);
+            if (!Files.exists(output)) {
+                Files.createDirectories(output);
+            }
+            String rawFileName = url.getFile().substring(url.getFile().lastIndexOf('/') + 1);
+            Path fileName = output.resolve(rawFileName);
+
+            if (Files.isRegularFile(fileName)) {
+
+                if (!checkChecksum(fileName, dependency.getSha512sum())) {
+                    log("File seems corrupted, deleting it");
+                    Files.delete(fileName);
+                } else {
+                    log(String.format("Dependency: %s at %s", fileName, fileName.toAbsolutePath()));
+                    continue;
+                }
+            }
+
+            log(
+                    String.format(
+                            "downloading dependency: %s to %s",
+                            fileName, fileName.toAbsolutePath()));
+            final HttpRequest request = getClient().newDependencyGet(url);
+            getClient().http(request, HttpResponse.BodyHandlers.ofFile(fileName));
+
+            if (!checkChecksum(fileName, dependency.getSha512sum())) {
+                log("File still seems corrupted. Please double check the checksum and try again.");
+                Files.delete(fileName);
+                throw new IOException("File at " + url + ", seems corrupted");
+            }
+
+            log("dependency downloaded");
         }
     }
 
@@ -255,8 +287,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         byte[] digest = instance.digest();
         String base16encoded = bytesToHex(digest);
         if (!sha512sum.equals(base16encoded)) {
-            log("Computed checksum: %s".formatted(base16encoded));
-            log("Expected checksum: %s".formatted(sha512sum));
+            log(String.format("Computed checksum: %s", base16encoded));
+            log(String.format("Expected checksum: %s", sha512sum));
         }
         return sha512sum.equals(base16encoded);
     }
@@ -286,7 +318,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         if (appDirectory == null) {
             return;
         }
-        logger.accept("packaging app: %s".formatted(appDirectory.getAbsolutePath()));
+        logger.accept(String.format("packaging app: %s", appDirectory.getAbsolutePath()));
         if (appDirectory.isDirectory()) {
             for (File file : appDirectory.listFiles()) {
                 if (file.isDirectory()) {

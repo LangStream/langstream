@@ -32,6 +32,7 @@
     <docker.platforms>linux/amd64</docker.platforms>
     <appassembler-maven-plugin.version>1.10</appassembler-maven-plugin.version>
     <buildnumber-maven-plugin.version>1.4</buildnumber-maven-plugin.version>
+
   </properties>
   <dependencies>
     <dependency>
@@ -48,16 +49,6 @@
       <artifactId>wiremock</artifactId>
       <version>${wiremock.version}</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>ai.langstream</groupId>
-      <artifactId>langstream-core</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -81,6 +72,41 @@
   </dependencies>
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${compiler-plugin.version}</version>
+        <configuration>
+          <source>${cli-jdk-target-version}</source>
+          <target>${cli-jdk-target-version}</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-bytecode-version</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <enforceBytecodeVersion>
+                  <maxJdkVersion>${cli-jdk-target-version}</maxJdkVersion>
+                </enforceBytecodeVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>extra-enforcer-rules</artifactId>
+            <version>${extra-enforcer-rules.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>

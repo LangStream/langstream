@@ -13,27 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.gateway;
+package ai.langstream.api.events;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.Gateway;
 import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public interface GatewayRequestContext {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class GatewayEventData {
 
-    String tenant();
-
-    String applicationId();
-
-    Application application();
-
-    Gateway gateway();
-
-    String credentials();
-
-    Map<String, String> userParameters();
-
-    Map<String, String> options();
-
-    Map<String, String> httpHeaders();
+    private Map<String, String> userParameters;
+    private Map<String, String> options;
+    private Map<String, String> httpRequestHeaders;
 }

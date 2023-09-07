@@ -84,7 +84,8 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    public void onBeforeHandshakeCompleted(AuthenticatedGatewayRequestContext context)
+    public void onBeforeHandshakeCompleted(
+            AuthenticatedGatewayRequestContext context, Map<String, Object> attributes)
             throws Exception {
         final Gateway gateway = context.gateway();
         final Application application = context.application();
@@ -115,6 +116,7 @@ public class ConsumeHandler extends AbstractHandler {
                         streamingCluster, Map.of("topic", topicName), position);
         reader.start();
         context.attributes().put("topicReader", reader);
+        sendClientConnectedEvent(context);
     }
 
     @Override

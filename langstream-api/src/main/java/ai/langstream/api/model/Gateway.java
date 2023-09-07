@@ -15,6 +15,8 @@
  */
 package ai.langstream.api.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
 
@@ -24,8 +26,9 @@ public record Gateway(
         String topic,
         Authentication authentication,
         List<String> parameters,
-        ProduceOptions produceOptions,
-        ConsumeOptions consumeOptions) {
+        @JsonAlias({"produce-options"}) ProduceOptions produceOptions,
+        @JsonAlias({"consume-options"}) ConsumeOptions consumeOptions,
+        @JsonProperty("events-topic") String eventsTopic) {
     public enum GatewayType {
         produce,
         consume
@@ -38,7 +41,18 @@ public record Gateway(
             List<String> parameters,
             ProduceOptions produceOptions,
             ConsumeOptions consumeOptions) {
-        this(id, type, topic, null, parameters, produceOptions, consumeOptions);
+        this(id, type, topic, null, parameters, produceOptions, consumeOptions, null);
+    }
+
+    public Gateway(
+            String id,
+            GatewayType type,
+            String topic,
+            Authentication authentication,
+            List<String> parameters,
+            ProduceOptions produceOptions,
+            ConsumeOptions consumeOptions) {
+        this(id, type, topic, authentication, parameters, produceOptions, consumeOptions, null);
     }
 
     public record Authentication(String provider, Map<String, Object> configuration) {}

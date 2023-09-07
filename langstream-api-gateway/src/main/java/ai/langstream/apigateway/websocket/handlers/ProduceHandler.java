@@ -20,7 +20,6 @@ import static ai.langstream.apigateway.websocket.WebSocketConfig.PRODUCE_PATH;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.Header;
-import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicProducer;
@@ -37,8 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -77,38 +74,40 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
-    public void onOpen(
-            WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) {
-        Gateway selectedGateway = context.gateway();
+    public void onBeforeHandshakeCompleted(
+            AuthenticatedGatewayRequestContext context, Map<String, Object> attributes)
+            throws Exception {
+        Gateway gateway = context.gateway();
 
         final List<Header> headers =
-                getCommonHeaders(
-                        selectedGateway, context.userParameters(), context.principalValues());
+                getCommonHeaders(gateway, context.userParameters(), context.principalValues());
         final StreamingCluster streamingCluster =
                 context.application().getInstance().streamingCluster();
 
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
 
-        final String topicName = selectedGateway.topic();
+        final String topicName = gateway.topic();
         final TopicProducer producer =
                 topicConnectionsRuntime.createProducer(
-                        "ag-" + webSocketSession.getId(),
-                        streamingCluster,
-                        Map.of("topic", topicName));
-        recordCloseableResource(webSocketSession, producer);
+                        null, streamingCluster, Map.of("topic", topicName));
+        recordCloseableResource(attributes, producer);
         producer.start();
 
-        webSocketSession.getAttributes().put("producer", producer);
-        webSocketSession.getAttributes().put("headers", Collections.unmodifiableList(headers));
-
+        attributes.put("producer", producer);
+        attributes.put("headers", Collections.unmodifiableList(headers));
         log.info(
                 "Started produced for gateway {}/{}/{} on topic {}",
                 context.tenant(),
                 context.applicationId(),
                 context.gateway().id(),
                 topicName);
+        sendClientConnectedEvent(context);
     }
+
+    @Override
+    public void onOpen(
+            WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) {}
 
     @Override
     public void onMessage(
@@ -155,8 +154,12 @@ public class ProduceHandler extends AbstractHandler {
             }
         }
         try {
-            final ProduceHandlerRecord record =
-                    new ProduceHandlerRecord(produceRequest.key(), produceRequest.value(), headers);
+            final SimpleRecord record =
+                    SimpleRecord.builder()
+                            .key(produceRequest.key())
+                            .value(produceRequest.value())
+                            .headers(headers)
+                            .build();
             topicProducer.write(record).get();
             log.info("[{}] Produced record {}", webSocketSession.getId(), record);
         } catch (Throwable tt) {
@@ -232,38 +235,5 @@ public class ProduceHandler extends AbstractHandler {
             }
         }
         return headers;
-    }
-
-    @AllArgsConstructor
-    @ToString
-    private static class ProduceHandlerRecord implements Record {
-        private final Object key;
-        private final Object value;
-        private final Collection<Header> headers;
-
-        @Override
-        public Object key() {
-            return key;
-        }
-
-        @Override
-        public Object value() {
-            return value;
-        }
-
-        @Override
-        public String origin() {
-            return null;
-        }
-
-        @Override
-        public Long timestamp() {
-            return null;
-        }
-
-        @Override
-        public Collection<Header> headers() {
-            return headers;
-        }
     }
 }

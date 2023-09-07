@@ -48,7 +48,6 @@ RUN mkdir /app && chmod g+w /app
 ADD maven /app
 WORKDIR /app
 
-RUN chown -R 10000:10000 /app/conf
 RUN echo "export PATH=$PATH:/app/bin" >> /.bashrc
 
 # The UID must be non-zero. Otherwise, it is arbitrary. No logic should rely on its specific value.

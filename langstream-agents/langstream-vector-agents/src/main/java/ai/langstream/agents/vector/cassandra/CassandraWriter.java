@@ -122,7 +122,14 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                         }
                     });
             configuration.put(SinkUtil.NAME_OPT, "langstream");
-            String table = (String) agentConfiguration.get("table");
+            String table =
+                    (String)
+                            agentConfiguration.getOrDefault(
+                                    "table", agentConfiguration.get("table-name"));
+            String keyspace = (String) agentConfiguration.get("keyspace");
+            if (keyspace != null || !keyspace.isEmpty()) {
+                table = keyspace + "." + table;
+            }
             String mapping = (String) agentConfiguration.get("mapping");
             configuration.put("topics", DUMMY_TOPIC);
             configuration.put("topic." + DUMMY_TOPIC + "." + table + ".mapping", mapping);

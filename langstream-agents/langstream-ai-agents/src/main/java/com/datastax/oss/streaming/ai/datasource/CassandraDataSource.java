@@ -31,7 +31,6 @@ import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.codec.CqlVectorCodec;
 import com.datastax.oss.driver.internal.core.type.codec.registry.DefaultCodecRegistry;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.ByteArrayInputStream;
 import java.net.InetSocketAddress;
@@ -45,7 +44,7 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class AstraDBDataSource implements QueryStepDataSource {
+public class CassandraDataSource implements QueryStepDataSource {
 
     CqlSession session;
     Map<String, PreparedStatement> statements = new ConcurrentHashMap<>();
@@ -69,9 +68,7 @@ public class AstraDBDataSource implements QueryStepDataSource {
     @Override
     public void initialize(Map<String, Object> dataSourceConfig) {
         log.info("Initializing AstraDBDataSource with config {}", dataSourceConfig);
-        this.session =
-                buildCqlSession(
-                        dataSourceConfig);
+        this.session = buildCqlSession(dataSourceConfig);
     }
 
     @Override
@@ -190,9 +187,9 @@ public class AstraDBDataSource implements QueryStepDataSource {
         String password = ConfigurationUtils.getString("password", null, dataSourceConfig);
         String secureBundle = ConfigurationUtils.getString("secureBundle", null, dataSourceConfig);
         List<String> contactPoints = ConfigurationUtils.getList("contact-points", dataSourceConfig);
-        String loadBalancingLocalDc = ConfigurationUtils.getString("loadBalancing-localDc", "", dataSourceConfig);
+        String loadBalancingLocalDc =
+                ConfigurationUtils.getString("loadBalancing-localDc", "", dataSourceConfig);
         int port = ConfigurationUtils.getInteger("port", 9042, dataSourceConfig);
-
 
         byte[] secureBundleDecoded = null;
         if (secureBundle != null && !secureBundle.isEmpty()) {
@@ -202,9 +199,7 @@ public class AstraDBDataSource implements QueryStepDataSource {
             }
             secureBundleDecoded = Base64.getDecoder().decode(secureBundle);
         }
-        CqlSessionBuilder builder =
-                new CqlSessionBuilder()
-                        .withCodecRegistry(CODEC_REGISTRY);
+        CqlSessionBuilder builder = new CqlSessionBuilder().withCodecRegistry(CODEC_REGISTRY);
 
         if (username != null && password != null) {
             builder.withAuthCredentials(username, password);
@@ -214,14 +209,22 @@ public class AstraDBDataSource implements QueryStepDataSource {
             builder.withCloudSecureConnectBundle(new ByteArrayInputStream(secureBundleDecoded));
         }
         if (!contactPoints.isEmpty()) {
-            builder.addContactPoints(contactPoints
-                    .stream()
-                    .map(cp -> new InetSocketAddress(cp, port))
-                    .collect(Collectors.toList()));
+            builder.addContactPoints(
+                    contactPoints.stream()
+                            .map(cp -> new InetSocketAddress(cp, port))
+                            .collect(Collectors.toList()));
         }
         if (!loadBalancingLocalDc.isEmpty()) {
             builder.withLocalDatacenter(loadBalancingLocalDc);
         }
         return builder.build();
+    }
+
+    public static String escapeCQLString(String value) {
+        return value.replace("'", "''");
+    }
+
+    public CqlSession getSession() {
+        return session;
     }
 }

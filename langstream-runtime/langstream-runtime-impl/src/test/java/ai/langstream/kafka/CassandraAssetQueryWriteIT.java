@@ -15,9 +15,16 @@
  */
 package ai.langstream.kafka;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.AbstractApplicationRunner;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -38,7 +45,7 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
     @Test
     public void testCassandra() throws Exception {
         String tenant = "tenant";
-        String[] expectedAgents = {"app-step1"};
+        String[] expectedAgents = {"app-step1", "app-step2"};
 
         Map<String, String> application =
                 Map.of(
@@ -61,6 +68,14 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                         "pipeline.yaml",
                         """
                                 assets:
+                                  - name: "vsearch-keyspace"
+                                    asset-type: "cassandra-keyspace"
+                                    creation-mode: create-if-not-exists
+                                    config:
+                                       keyspace: "vsearch"
+                                       datasource: "CassandraDatasource"
+                                       create-statements:
+                                          - "CREATE KEYSPACE vsearch WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};"
                                   - name: "documents-table"
                                     asset-type: "cassandra-table"
                                     creation-mode: create-if-not-exists
@@ -68,8 +83,9 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                                        table-name: "documents"
                                        keyspace: "vsearch"
                                        datasource: "CassandraDatasource"
-                                       statements:
-                                          - "CREATE TABLE IF NOT EXISTS vsearch.documents (id text PRIMARY KEY, name text, description text);"
+                                       create-statements:
+                                          - "CREATE TABLE IF NOT EXISTS vsearch.documents (id int PRIMARY KEY, name text, description text);"
+                                          - "INSERT INTO vsearch.documents (id, name, description) VALUES (1, 'A', 'A description');"
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
@@ -80,13 +96,33 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                                     name: "Execute Query"
                                     type: "query-vector-db"
                                     input: "input-topic"
-                                    output: "output-topic"
                                     configuration:
                                       datasource: "CassandraDatasource"
-                                      query: "SELECT id FROM vsearch.documents WHERE vsearch.documents = ?"
+                                      query: "SELECT * FROM vsearch.documents WHERE id=?;"
+                                      only-first: true
+                                      output-field: "value.queryresult"
                                       fields:
                                         - "value.documentId"
-                                      output-field: "value.query-result"
+                                  - name: "Generate a new record, with a new id"
+                                    type: "compute"
+                                    output: "output-topic"
+                                    configuration:
+                                      fields:
+                                        - expression : "value.documentId + 1"
+                                          name : "value.documentId"
+                                        - expression : "value.queryresult.name"
+                                          name : "value.name"
+                                        - expression : "value.queryresult.description"
+                                          name : "value.description"
+                                  - id: step2
+                                    name: "Write a new record to Cassandra"
+                                    type: "vector-db-sink"
+                                    input: "output-topic"
+                                    configuration:
+                                      datasource: "CassandraDatasource"
+                                      table-name: "documents"
+                                      keyspace: "vsearch"
+                                      mapping: "id=value.documentId,name=value.name,description=value.description"
                                 """);
 
         try (ApplicationRuntime applicationRuntime =
@@ -101,7 +137,26 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"documentId\":1,\"query-result\":[{\"id\":\"C\"},{\"id\":\"B\"},{\"id\":\"D\"}]}"));
+                                "{\"documentId\":2,\"queryresult\":{\"name\":\"A\",\"description\":\"A description\",\"id\":\"1\"},\"name\":\"A\",\"description\":\"A description\"}"));
+
+                try (CassandraDataSource cassandraDataSource = new CassandraDataSource()) {
+                    cassandraDataSource.initialize(
+                            Map.of(
+                                    "service", "cassandra",
+                                    "contact-points", cassandra.getContactPoint().getHostString(),
+                                    "loadBalancing-localDc", cassandra.getLocalDatacenter(),
+                                    "port", cassandra.getContactPoint().getPort()));
+                    ResultSet execute =
+                            cassandraDataSource
+                                    .getSession()
+                                    .execute("SELECT * FROM vsearch.documents");
+                    List<Row> all = execute.all();
+                    Set<Integer> documentIds =
+                            all.stream().map(row -> row.getInt("id")).collect(Collectors.toSet());
+                    all.forEach(row -> log.info("row id {}", row.get("id", Integer.class)));
+                    assertEquals(2, all.size());
+                    assertEquals(Set.of(1, 2), documentIds);
+                }
             }
         }
     }

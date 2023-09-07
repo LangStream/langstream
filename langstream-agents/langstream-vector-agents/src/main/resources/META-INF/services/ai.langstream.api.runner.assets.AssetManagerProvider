@@ -1,1 +1,1 @@
-ai.langstream.agents.vector.cassandra.CassandraTableAssetManagerProvider
+ai.langstream.agents.vector.cassandra.CassandraAssetsManagerProvider

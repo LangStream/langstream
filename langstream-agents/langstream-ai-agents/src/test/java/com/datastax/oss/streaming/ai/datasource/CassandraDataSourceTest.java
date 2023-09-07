@@ -24,11 +24,11 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-public class AstraDBDataSourceTest {
+public class CassandraDataSourceTest {
     @Test
     @Disabled
     void testQueryWithParameters() throws Exception {
-        AstraDBDataSource source = new AstraDBDataSource();
+        CassandraDataSource source = new CassandraDataSource();
         Map<String, Object> dataSourceConfig = buildDataSourceConfig();
         source.initialize(dataSourceConfig);
 
@@ -41,7 +41,7 @@ public class AstraDBDataSourceTest {
 
     @Disabled
     void testQueryWithVectorSearch() throws Exception {
-        AstraDBDataSource source = new AstraDBDataSource();
+        CassandraDataSource source = new CassandraDataSource();
         Map<String, Object> dataSourceConfig = buildDataSourceConfig();
         source.initialize(dataSourceConfig);
 
@@ -53,9 +53,14 @@ public class AstraDBDataSourceTest {
     }
 
     private static Map<String, Object> buildDataSourceConfig() {
-        return Map.of("service", "astra",
-        "username", "set-your-client-id",
-        "password", "set-your-secret",
-                "seecureBundle", "xxx-set-base64-encoded-bundle-xxx");
+        return Map.of(
+                "service",
+                "astra",
+                "username",
+                "set-your-client-id",
+                "password",
+                "set-your-secret",
+                "seecureBundle",
+                "xxx-set-base64-encoded-bundle-xxx");
     }
 }

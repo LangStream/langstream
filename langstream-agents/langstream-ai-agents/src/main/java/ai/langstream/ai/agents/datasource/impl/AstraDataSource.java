@@ -16,9 +16,8 @@
 package ai.langstream.ai.agents.datasource.impl;
 
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
-import com.datastax.oss.streaming.ai.datasource.AstraDBDataSource;
+import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-
 import java.util.Map;
 
 public class AstraDataSource implements DataSourceProvider {
@@ -32,7 +31,7 @@ public class AstraDataSource implements DataSourceProvider {
     @Override
     public QueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
-        AstraDBDataSource result = new AstraDBDataSource();
+        CassandraDataSource result = new CassandraDataSource();
         result.initialize(dataSourceConfig);
         return result;
     }

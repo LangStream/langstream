@@ -38,7 +38,7 @@ import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.UnwrapKeyValueStep;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
-import com.datastax.oss.streaming.ai.datasource.AstraDBDataSource;
+import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.jstl.predicate.JstlPredicate;
@@ -134,11 +134,10 @@ public class TransformFunctionUtil {
         String service = (String) dataSourceConfig.get("service");
         switch (service) {
             case "astra":
-                dataSource = new AstraDBDataSource();
+                dataSource = new CassandraDataSource();
                 break;
             default:
-                throw new IllegalArgumentException(
-                        "Invalid service type " + service);
+                throw new IllegalArgumentException("Invalid service type " + service);
         }
         dataSource.initialize(dataSourceConfig);
         return dataSource;

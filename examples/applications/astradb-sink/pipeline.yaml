@@ -24,5 +24,6 @@ pipeline:
     input: "input-topic"
     configuration:
       datasource: "AstraDatasource"
-      table: "vsearch.products"
+      table-name: "products"
+      keyspace: "vsearch"
       mapping: "id=value.id,description=value.description,name=value.name"

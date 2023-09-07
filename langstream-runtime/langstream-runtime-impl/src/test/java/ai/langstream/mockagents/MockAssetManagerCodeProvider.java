@@ -46,14 +46,21 @@ public class MockAssetManagerCodeProvider implements AssetManagerProvider {
         public static CopyOnWriteArrayList<AssetDefinition> DEPLOYED_ASSETS =
                 new CopyOnWriteArrayList<>();
 
+        private AssetDefinition assetDefinition;
+
         @Override
-        public synchronized boolean assetExists(AssetDefinition assetDefinition) throws Exception {
+        public void initialize(AssetDefinition assetDefinition) throws Exception {
+            this.assetDefinition = assetDefinition;
+        }
+
+        @Override
+        public synchronized boolean assetExists() throws Exception {
             return DEPLOYED_ASSETS.stream()
                     .anyMatch(a -> a.getId().equals(assetDefinition.getId()));
         }
 
         @Override
-        public synchronized void deployAsset(AssetDefinition assetDefinition) throws Exception {
+        public synchronized void deployAsset() throws Exception {
             log.info("Deploying asset {}", assetDefinition);
             Map<String, Object> datasource =
                     ConfigurationUtils.getMap("datasource", null, assetDefinition.getConfig());

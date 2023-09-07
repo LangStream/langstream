@@ -44,14 +44,18 @@ public record AssetManagerAndLoader(AssetManager agentCode, ClassLoader classLoa
         return new AssetManager() {
 
             @Override
-            public boolean assetExists(AssetDefinition assetDefinition) throws Exception {
-                return callWithContextClassloader(
-                        agentCode -> agentCode.assetExists(assetDefinition));
+            public void initialize(AssetDefinition assetDefinition) throws Exception {
+                executeWithContextClassloader(agentCode -> agentCode.initialize(assetDefinition));
             }
 
             @Override
-            public void deployAsset(AssetDefinition assetDefinition) throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.deployAsset(assetDefinition));
+            public boolean assetExists() throws Exception {
+                return callWithContextClassloader(agentCode -> agentCode.assetExists());
+            }
+
+            @Override
+            public void deployAsset() throws Exception {
+                executeWithContextClassloader(agentCode -> agentCode.deployAsset());
             }
 
             @Override

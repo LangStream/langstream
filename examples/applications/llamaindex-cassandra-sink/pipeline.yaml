@@ -26,8 +26,8 @@ pipeline:
       className: llamaindex_cassandra.LlamaIndexCassandraSink
       openaiKey: "{{ secrets.open-ai.access-key }}"
       cassandra:
-        username: "{{{ secrets.astra.username }}}"
-        password: "{{{ secrets.astra.password }}}"
+        username: "{{{ secrets.astra.clientId }}}"
+        password: "{{{ secrets.astra.secret }}}"
         secureBundle: "{{{ secrets.astra.secureBundle }}}"
         keyspace: ks1
         table: vs_ll_openai

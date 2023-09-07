@@ -56,132 +56,150 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
         }
     }
 
-    private static class CassandraTableAssetManager implements AssetManager {
+    private static class CassandraTableAssetManager extends BaseCassandraAssetManager {
 
         @Override
-        public boolean assetExists(AssetDefinition assetDefinition) throws Exception {
+        public boolean assetExists() throws Exception {
             String tableName =
                     ConfigurationUtils.getString("table-name", null, assetDefinition.getConfig());
             String keySpace =
                     ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
             log.info("Checking is table {} exists in keyspace {}", tableName, keySpace);
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
-                CqlSession session = datasource.getSession();
-                log.info("Getting keyspace {} metadata", keySpace);
-                Optional<KeyspaceMetadata> keyspace = session.getMetadata().getKeyspace(keySpace);
-                if (keyspace.isEmpty()) {
-                    throw new IllegalStateException(
-                            "The keyspace "
-                                    + keySpace
-                                    + " does not exist, "
-                                    + "you could use a cassandra-keyspace asset to create it.");
-                }
-                log.info("Getting table {} metadata", tableName);
-                KeyspaceMetadata keyspaceMetadata = keyspace.get();
-                Optional<TableMetadata> table = keyspaceMetadata.getTable(tableName);
 
-                if (table.isPresent()) {
-                    log.info("Table {} exists", tableName);
-                    String describe = table.get().describe(true);
-                    log.info("Describe table result: {}", describe);
-                } else {
-                    log.info("Table {} does not exist", tableName);
-                }
-                return table.isPresent();
+            CqlSession session = datasource.getSession();
+            log.info("Getting keyspace {} metadata", keySpace);
+            Optional<KeyspaceMetadata> keyspace = session.getMetadata().getKeyspace(keySpace);
+            if (keyspace.isEmpty()) {
+                throw new IllegalStateException(
+                        "The keyspace "
+                                + keySpace
+                                + " does not exist, "
+                                + "you could use a cassandra-keyspace asset to create it.");
             }
+            log.info("Getting table {} metadata", tableName);
+            KeyspaceMetadata keyspaceMetadata = keyspace.get();
+            Optional<TableMetadata> table = keyspaceMetadata.getTable(tableName);
+
+            if (table.isPresent()) {
+                log.info("Table {} exists", tableName);
+                String describe = table.get().describe(true);
+                log.info("Describe table result: {}", describe);
+            } else {
+                log.info("Table {} does not exist", tableName);
+            }
+            return table.isPresent();
         }
 
         @Override
-        public void deployAsset(AssetDefinition assetDefinition) throws Exception {
+        public void deployAsset() throws Exception {
             String keySpace =
                     ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
-                List<String> statements =
-                        ConfigurationUtils.getList(
-                                "create-statements", assetDefinition.getConfig());
-                for (String statement : statements) {
-                    log.info("Executing: {}", statement);
-                    SimpleStatement simpleStatement = SimpleStatement.newInstance(statement);
-                    simpleStatement.setKeyspace(keySpace);
-                    try {
-                        datasource.getSession().execute(simpleStatement);
-                    } catch (AlreadyExistsException e) {
-                        log.info(
-                                "Table already exists, maybe it was created by another agent ({})",
-                                e.toString());
-                    }
-                }
-            }
-        }
-    }
 
-    private static class CassandraKeyspaceAssetManager implements AssetManager {
-
-        @Override
-        public boolean assetExists(AssetDefinition assetDefinition) throws Exception {
-            String keySpace =
-                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
-            log.info("Checking if keyspace {} exists", keySpace);
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
-                CqlSession session = datasource.getSession();
-                Optional<KeyspaceMetadata> keyspace = session.getMetadata().getKeyspace(keySpace);
-                keyspace.ifPresent(
-                        keyspaceMetadata ->
-                                log.info(
-                                        "Describe keyspace result: {}",
-                                        keyspaceMetadata.describe(true)));
-                log.info("Result: {}", keyspace);
-                return keyspace.isPresent();
-            }
-        }
-
-        @Override
-        public void deployAsset(AssetDefinition assetDefinition) throws Exception {
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
-                List<String> statements =
-                        ConfigurationUtils.getList(
-                                "create-statements", assetDefinition.getConfig());
-                for (String statement : statements) {
-                    log.info("Executing: {}", statement);
-                    try {
-                        datasource.executeStatement(statement, List.of());
-                    } catch (AlreadyExistsException e) {
-                        log.info(
-                                "Keyspace already exists, maybe it was created by another agent ({})",
-                                e.toString());
-                    }
-                }
-            }
-        }
-    }
-
-    private static class AstraDBKeyspaceAssetManager implements AssetManager {
-
-        @Override
-        public boolean assetExists(AssetDefinition assetDefinition) throws Exception {
-            String keySpace =
-                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
-            log.info("Checking if keyspace {} exists", keySpace);
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
-                DatabaseClient astraDbClient = datasource.buildAstraClient();
-                boolean exist = astraDbClient.keyspaces().exist(keySpace);
-                log.info("Result: {}", exist);
-                return exist;
-            }
-        }
-
-        @Override
-        public void deployAsset(AssetDefinition assetDefinition) throws Exception {
-            String keySpace =
-                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
-            try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
-                DatabaseClient astraDbClient = datasource.buildAstraClient();
+            List<String> statements =
+                    ConfigurationUtils.getList("create-statements", assetDefinition.getConfig());
+            for (String statement : statements) {
+                log.info("Executing: {}", statement);
+                SimpleStatement simpleStatement = SimpleStatement.newInstance(statement);
+                simpleStatement.setKeyspace(keySpace);
                 try {
-                    astraDbClient.keyspaces().create(keySpace);
-                } catch (com.dtsx.astra.sdk.db.exception.KeyspaceAlreadyExistException e) {
+                    datasource.getSession().execute(simpleStatement);
+                } catch (AlreadyExistsException e) {
+                    log.info(
+                            "Table already exists, maybe it was created by another agent ({})",
+                            e.toString());
+                }
+            }
+        }
+    }
+
+    private static class CassandraKeyspaceAssetManager extends BaseCassandraAssetManager {
+
+        @Override
+        public boolean assetExists() throws Exception {
+            String keySpace =
+                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
+            log.info("Checking if keyspace {} exists", keySpace);
+
+            CqlSession session = datasource.getSession();
+            Optional<KeyspaceMetadata> keyspace = session.getMetadata().getKeyspace(keySpace);
+            keyspace.ifPresent(
+                    keyspaceMetadata ->
+                            log.info(
+                                    "Describe keyspace result: {}",
+                                    keyspaceMetadata.describe(true)));
+            log.info("Result: {}", keyspace);
+            return keyspace.isPresent();
+        }
+
+        @Override
+        public void deployAsset() throws Exception {
+
+            List<String> statements =
+                    ConfigurationUtils.getList("create-statements", assetDefinition.getConfig());
+            for (String statement : statements) {
+                log.info("Executing: {}", statement);
+                try {
+                    datasource.executeStatement(statement, List.of());
+                } catch (AlreadyExistsException e) {
                     log.info(
                             "Keyspace already exists, maybe it was created by another agent ({})",
                             e.toString());
+                }
+            }
+        }
+    }
+
+    private abstract static class BaseCassandraAssetManager implements AssetManager {
+
+        CassandraDataSource datasource;
+        AssetDefinition assetDefinition;
+
+        @Override
+        public void initialize(AssetDefinition assetDefinition) {
+            this.datasource = buildDataSource(assetDefinition);
+            this.assetDefinition = assetDefinition;
+        }
+
+        @Override
+        public void close() throws Exception {
+            if (datasource != null) {
+                datasource.close();
+            }
+        }
+    }
+
+    private static class AstraDBKeyspaceAssetManager extends BaseCassandraAssetManager {
+
+        @Override
+        public boolean assetExists() throws Exception {
+            String keySpace =
+                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
+            log.info("Checking if keyspace {} exists", keySpace);
+            DatabaseClient astraDbClient = datasource.buildAstraClient();
+            boolean exist = astraDbClient.keyspaces().exist(keySpace);
+            log.info("Result: {}", exist);
+            return exist;
+        }
+
+        @Override
+        public void deployAsset() throws Exception {
+            String keySpace =
+                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
+            DatabaseClient astraDbClient = datasource.buildAstraClient();
+            try {
+                astraDbClient.keyspaces().create(keySpace);
+            } catch (com.dtsx.astra.sdk.db.exception.KeyspaceAlreadyExistException e) {
+                log.info(
+                        "Keyspace already exists, maybe it was created by another agent ({})",
+                        e.toString());
+            } catch (com.dtsx.astra.sdk.exception.AuthenticationException e) {
+                String message = e.toString();
+                if (message.contains("HTTP_CONFLICT")) {
+                    log.info(
+                            "Keyspace already exists, maybe it was created by another agent ({})",
+                            e.toString());
+                } else {
+                    throw new IllegalStateException("Error creating keyspace", e);
                 }
             }
         }

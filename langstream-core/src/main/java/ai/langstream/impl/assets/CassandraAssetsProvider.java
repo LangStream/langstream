@@ -34,7 +34,9 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
         Map<String, Object> configuration = ConfigurationUtils.getMap("config", null, asset);
         requiredField(assetDefinition, configuration, "datasource");
         final Map<String, Object> datasource =
-                ConfigurationUtils.getMap("datasource", null, configuration);
+                ConfigurationUtils.getMap("datasource", Map.of(), configuration);
+        final Map<String, Object> datasourceConfiguration =
+                ConfigurationUtils.getMap("configuration", Map.of(), datasource);
         switch (assetDefinition.getAssetType()) {
             case "cassandra-table" -> {
                 requiredNonEmptyField(assetDefinition, configuration, "table-name");
@@ -44,19 +46,26 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
             case "cassandra-keyspace" -> {
                 requiredNonEmptyField(assetDefinition, configuration, "keyspace");
                 requiredListField(assetDefinition, configuration, "create-statements");
-                if (datasource.containsKey("secureBundle")) {
+                if (datasourceConfiguration.containsKey("secureBundle")) {
                     throw new IllegalArgumentException(
-                            "Use astradb-keyspace for AstraDB services.");
+                            "Use astra-keyspace for AstraDB services (not expecting a secureBundle in a Cassandra datasource).");
                 }
             }
-            case "astradb-keyspace" -> {
+            case "astra-keyspace" -> {
                 requiredNonEmptyField(assetDefinition, configuration, "keyspace");
-                if (!datasource.containsKey("secureBundle")) {
+                if (!datasourceConfiguration.containsKey("secureBundle")) {
                     throw new IllegalArgumentException(
-                            "Use cassandra-keyspace for a standard Cassandra service.");
+                            "Use cassandra-keyspace for a standard Cassandra service (expecting a secureBundle, but found only "
+                                    + datasourceConfiguration.keySet()
+                                    + " .");
                 }
+                // are we are using the AstraDB SDK we need also the AstraCS token and
+                // the name of the database
+                requiredNonEmptyField(assetDefinition, datasourceConfiguration, "token");
+                requiredNonEmptyField(assetDefinition, datasourceConfiguration, "database");
             }
-            default -> throw new IllegalStateException();
+            default -> throw new IllegalStateException(
+                    "Unexpected value: " + assetDefinition.getAssetType());
         }
     }
 

@@ -33,6 +33,7 @@ import com.datastax.oss.driver.internal.core.type.codec.CqlVectorCodec;
 import com.datastax.oss.driver.internal.core.type.codec.registry.DefaultCodecRegistry;
 import com.dtsx.astra.sdk.db.AstraDbClient;
 import com.dtsx.astra.sdk.db.DatabaseClient;
+import com.dtsx.astra.sdk.utils.ApiLocator;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.ByteArrayInputStream;
 import java.net.InetSocketAddress;
@@ -50,6 +51,7 @@ public class CassandraDataSource implements QueryStepDataSource {
 
     CqlSession session;
     String astraToken;
+    String astraEnvironment;
 
     String astraDatabase;
     Map<String, PreparedStatement> statements = new ConcurrentHashMap<>();
@@ -74,8 +76,10 @@ public class CassandraDataSource implements QueryStepDataSource {
     public void initialize(Map<String, Object> dataSourceConfig) {
         log.info("Initializing AstraDBDataSource with config {}", dataSourceConfig);
         this.session = buildCqlSession(dataSourceConfig);
-        this.astraToken = ConfigurationUtils.getString("astra-token", null, dataSourceConfig);
-        this.astraDatabase = ConfigurationUtils.getString("astra-database", null, dataSourceConfig);
+        this.astraToken = ConfigurationUtils.getString("token", null, dataSourceConfig);
+        this.astraEnvironment =
+                ConfigurationUtils.getString("environment", "PROD", dataSourceConfig);
+        this.astraDatabase = ConfigurationUtils.getString("database", null, dataSourceConfig);
     }
 
     @Override
@@ -200,6 +204,13 @@ public class CassandraDataSource implements QueryStepDataSource {
 
         byte[] secureBundleDecoded = null;
         if (secureBundle != null && !secureBundle.isEmpty()) {
+            // these are the values used by the Astra UI
+            if (username == null) {
+                username = ConfigurationUtils.getString("clientId", null, dataSourceConfig);
+            }
+            if (password == null) {
+                password = ConfigurationUtils.getString("secret", null, dataSourceConfig);
+            }
             // Remove the base64: prefix if present
             if (secureBundle.startsWith("base64:")) {
                 secureBundle = secureBundle.substring("base64:".length());
@@ -239,6 +250,7 @@ public class CassandraDataSource implements QueryStepDataSource {
             throw new IllegalArgumentException(
                     "You must configure both astra-token and astra-database");
         }
-        return new AstraDbClient(astraToken).databaseByName(astraDatabase);
+        return new AstraDbClient(astraToken, ApiLocator.AstraEnvironment.valueOf(astraEnvironment))
+                .databaseByName(astraDatabase);
     }
 }

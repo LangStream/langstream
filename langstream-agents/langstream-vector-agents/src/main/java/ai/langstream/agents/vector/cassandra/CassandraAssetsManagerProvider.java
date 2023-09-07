@@ -38,7 +38,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
     public boolean supports(String assetType) {
         return "cassandra-table".equals(assetType)
                 || "cassandra-keyspace".equals(assetType)
-                || "astradb-keyspace".equals(assetType);
+                || "astra-keyspace".equals(assetType);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
                 return new CassandraTableAssetManager();
             case "cassandra-keyspace":
                 return new CassandraKeyspaceAssetManager();
-            case "astradb-keyspace":
+            case "astra-keyspace":
                 return new AstraDBKeyspaceAssetManager();
             default:
                 throw new IllegalArgumentException();
@@ -163,15 +163,10 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
                     ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
             log.info("Checking if keyspace {} exists", keySpace);
             try (CassandraDataSource datasource = buildDataSource(assetDefinition); ) {
-                CqlSession session = datasource.getSession();
-                Optional<KeyspaceMetadata> keyspace = session.getMetadata().getKeyspace(keySpace);
-                keyspace.ifPresent(
-                        keyspaceMetadata ->
-                                log.info(
-                                        "Describe keyspace result: {}",
-                                        keyspaceMetadata.describe(true)));
-                log.info("Result: {}", keyspace);
-                return keyspace.isPresent();
+                DatabaseClient astraDbClient = datasource.buildAstraClient();
+                boolean exist = astraDbClient.keyspaces().exist(keySpace);
+                log.info("Result: {}", exist);
+                return exist;
             }
         }
 

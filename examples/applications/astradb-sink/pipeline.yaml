@@ -19,15 +19,21 @@ topics:
   - name: "input-topic"
     creation-mode: create-if-not-exists
 assets:
+  - name: "lagstream-keyspace"
+    asset-type: "astra-keyspace"
+    creation-mode: create-if-not-exists
+    config:
+      keyspace: "langstream"
+      datasource: "AstraDatasource"
   - name: "products-table"
     asset-type: "cassandra-table"
     creation-mode: create-if-not-exists
     config:
       table-name: "products"
-      keyspace: "products"
+      keyspace: "langstream"
       datasource: "AstraDatasource"
       create-statements:
-        - "CREATE TABLE IF NOT EXISTS products.products (id int PRIMARY KEY,name TEXT,description TEXT);"
+        - "CREATE TABLE IF NOT EXISTS langstream.products (id int PRIMARY KEY,name TEXT,description TEXT);"
 pipeline:
   - name: "Write to Astra"
     type: "vector-db-sink"
@@ -35,5 +41,5 @@ pipeline:
     configuration:
       datasource: "AstraDatasource"
       table-name: "products"
-      keyspace: "products"
+      keyspace: "langstream"
       mapping: "id=value.id,description=value.description,name=value.name"

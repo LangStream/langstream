@@ -180,17 +180,6 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(1));
         List<Record> result = new ArrayList<>(poll.count());
         for (ConsumerRecord<?, ?> record : poll) {
-            TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
-            OffsetAndMetadata offsetAndMetadata = committed.get(topicPartition);
-            if (offsetAndMetadata != null) {
-                if (offsetAndMetadata.offset() >= record.offset()) {
-                    log.warn(
-                            "Skipping message {} on partition {} because it has been already processed",
-                            record,
-                            topicPartition);
-                    continue;
-                }
-            }
             result.add(KafkaRecord.fromKafkaConsumerRecord(record));
         }
         if (!result.isEmpty()) {
@@ -221,10 +210,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
             KafkaRecord.KafkaConsumerOffsetProvider kafkaRecord =
                     (KafkaRecord.KafkaConsumerOffsetProvider) record;
             TopicPartition topicPartition = kafkaRecord.getTopicPartition();
-            long offset = kafkaRecord.offset();
-            TreeSet<Long> offsetsForPartition =
-                    uncommittedOffsets.computeIfAbsent(topicPartition, (key) -> new TreeSet<>());
-            offsetsForPartition.add(offset);
+            long offset = kafkaRecord.offset() + 1;
             OffsetAndMetadata offsetAndMetadata = committed.get(topicPartition);
             if (offsetAndMetadata == null) {
                 offsetAndMetadata = consumer.committed(topicPartition);
@@ -236,10 +222,22 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
                     committed.put(topicPartition, offsetAndMetadata);
                 }
             }
+            long currentOffset = offsetAndMetadata == null ? 0 : offsetAndMetadata.offset();
+
+            if (offset <= currentOffset) {
+                throw new IllegalStateException(
+                        ("Commit called with offset %s less than or equal to the currently committed offset %s "
+                                        + "on partition %s")
+                                .formatted(offset, currentOffset, topicPartition));
+            }
+
+            TreeSet<Long> offsetsForPartition =
+                    uncommittedOffsets.computeIfAbsent(topicPartition, (key) -> new TreeSet<>());
+            offsetsForPartition.add(offset);
 
             // advance the offset up the first gap
             long least = offsetsForPartition.first();
-            long currentOffset = offsetAndMetadata == null ? -1 : offsetAndMetadata.offset();
+
             while (least == currentOffset + 1) {
                 offsetsForPartition.remove(least);
                 offsetAndMetadata = new OffsetAndMetadata(least);

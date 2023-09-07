@@ -18,10 +18,10 @@ package ai.langstream.cli.commands;
 import ai.langstream.cli.commands.profiles.CreateUpdateProfileCmd;
 import ai.langstream.cli.commands.profiles.DeleteProfileCmd;
 import ai.langstream.cli.commands.profiles.GetCurrentProfileCmd;
+import ai.langstream.cli.commands.profiles.GetProfileCmd;
 import ai.langstream.cli.commands.profiles.ImportProfileCmd;
 import ai.langstream.cli.commands.profiles.ListProfileCmd;
 import ai.langstream.cli.commands.profiles.SetCurrentProfileCmd;
-import ai.langstream.cli.commands.profiles.GetProfileCmd;
 import lombok.Getter;
 import picocli.CommandLine;
 

@@ -71,9 +71,7 @@ public class ImportProfileCmd extends BaseProfileCmd {
             if (!Files.isRegularFile(file.toPath())) {
                 throw new IllegalArgumentException("File %s does not exist".formatted(fromFile));
             }
-            profile =
-                    yamlConfigReader.readValue(
-                            new File(fromFile), Profile.class);
+            profile = yamlConfigReader.readValue(new File(fromFile), Profile.class);
         } else if (inline != null) {
             String jsonProfile;
             if (inline.startsWith("base64:")) {
@@ -83,8 +81,7 @@ public class ImportProfileCmd extends BaseProfileCmd {
             } else {
                 jsonProfile = inline;
             }
-            profile =
-                    jsonConfigReader.readValue(jsonProfile, Profile.class);
+            profile = jsonConfigReader.readValue(jsonProfile, Profile.class);
         } else {
             throw new IllegalStateException();
         }
@@ -100,13 +97,11 @@ public class ImportProfileCmd extends BaseProfileCmd {
 
         updateConfig(
                 langStreamCLIConfig -> {
-                    final NamedProfile existing =
-                            langStreamCLIConfig.getProfiles().get(name);
+                    final NamedProfile existing = langStreamCLIConfig.getProfiles().get(name);
                     if (!allowUpdate && existing != null) {
                         throw new IllegalArgumentException(
                                 "Profile %s already exists".formatted(name));
                     }
-
 
                     langStreamCLIConfig.getProfiles().put(name, newProfile);
                     if (existing == null) {

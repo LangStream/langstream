@@ -96,8 +96,7 @@ public abstract class BaseCmd implements Runnable {
 
     protected NamedProfile getDefaultProfile() {
         final LangStreamCLIConfig config = getConfig();
-        final NamedProfile defaultProfile =
-                new NamedProfile();
+        final NamedProfile defaultProfile = new NamedProfile();
         defaultProfile.setName(BaseProfileCmd.DEFAULT_PROFILE_NAME);
         defaultProfile.setTenant(config.getTenant());
         defaultProfile.setToken(config.getToken());

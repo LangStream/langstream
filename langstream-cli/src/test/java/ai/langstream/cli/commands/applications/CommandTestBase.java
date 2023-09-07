@@ -112,6 +112,7 @@ public class CommandTestBase {
 
     @SneakyThrows
     protected LangStreamCLIConfig getConfig() {
-        return new ObjectMapper(new YAMLFactory()).readValue(cliYaml.toFile(), LangStreamCLIConfig.class);
+        return new ObjectMapper(new YAMLFactory())
+                .readValue(cliYaml.toFile(), LangStreamCLIConfig.class);
     }
 }

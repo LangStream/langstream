@@ -108,7 +108,7 @@ public abstract class BaseCmd implements Runnable {
         if (config.getApiGatewayUrl() == null) {
             defaultProfile.setApiGatewayUrl("ws://localhost:8091");
         } else {
-            defaultProfile.setApiGatewayUrl(config.getWebServiceUrl());
+            defaultProfile.setApiGatewayUrl(config.getApiGatewayUrl());
         }
         if (config.getTenant() == null) {
             defaultProfile.setTenant("default");

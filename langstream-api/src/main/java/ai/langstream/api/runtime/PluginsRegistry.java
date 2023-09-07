@@ -44,4 +44,29 @@ public class PluginsRegistry {
                                                         + clusterRuntime.getClusterType()));
         return agentRuntimeProviderProvider.get();
     }
+
+    public AssetNodeProvider lookupAssetImplementation(
+            String type, ComputeClusterRuntime clusterRuntime) {
+        log.info(
+                "Looking for an implementation of asset type {} on {}",
+                type,
+                clusterRuntime.getClusterType());
+        ServiceLoader<AssetNodeProvider> loader = ServiceLoader.load(AssetNodeProvider.class);
+        ServiceLoader.Provider<AssetNodeProvider> assetRuntimeProviderProvider =
+                loader.stream()
+                        .filter(
+                                p -> {
+                                    AssetNodeProvider agentNodeProvider = p.get();
+                                    return agentNodeProvider.supports(type, clusterRuntime);
+                                })
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new RuntimeException(
+                                                "No AssetNodeProvider found for type "
+                                                        + type
+                                                        + " for cluster type "
+                                                        + clusterRuntime.getClusterType()));
+        return assetRuntimeProviderProvider.get();
+    }
 }

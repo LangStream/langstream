@@ -130,32 +130,25 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
             AgentConfiguration agentConfiguration,
             Module module,
             Pipeline pipeline,
-            ExecutionPlan physicalApplicationInstance,
+            ExecutionPlan executionPlan,
             ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry,
             StreamingClusterRuntime streamingClusterRuntime) {
         Object metadata =
                 computeAgentMetadata(
-                        agentConfiguration,
-                        physicalApplicationInstance,
-                        clusterRuntime,
-                        streamingClusterRuntime);
+                        agentConfiguration, executionPlan, clusterRuntime, streamingClusterRuntime);
         String agentType = getAgentType(agentConfiguration);
         ComponentType componentType = getComponentType(agentConfiguration);
         Map<String, Object> configuration =
                 computeAgentConfiguration(
-                        agentConfiguration,
-                        module,
-                        pipeline,
-                        physicalApplicationInstance,
-                        clusterRuntime);
+                        agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
         // we create the output connection first to make sure that the topic is created
         ConnectionImplementation output =
                 computeOutput(
                         agentConfiguration,
                         module,
                         pipeline,
-                        physicalApplicationInstance,
+                        executionPlan,
                         clusterRuntime,
                         streamingClusterRuntime);
         ConnectionImplementation input =
@@ -163,7 +156,7 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                         agentConfiguration,
                         module,
                         pipeline,
-                        physicalApplicationInstance,
+                        executionPlan,
                         clusterRuntime,
                         streamingClusterRuntime);
         boolean composable = isComposable(agentConfiguration);

@@ -24,6 +24,8 @@ import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.AgentNodeProvider;
+import ai.langstream.api.runtime.AssetNode;
+import ai.langstream.api.runtime.AssetNodeProvider;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ConnectionImplementation;
 import ai.langstream.api.runtime.DeployContext;
@@ -57,7 +59,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
         detectTopics(result, streamingClusterRuntime);
 
-        detectAssets(result);
+        detectAssets(result, pluginsRegistry);
 
         detectAgents(result, streamingClusterRuntime, pluginsRegistry);
 
@@ -89,13 +91,18 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
     }
 
     /** Detects assets that are explicitly defined in the application instance. */
-    protected void detectAssets(ExecutionPlan result) {
+    protected void detectAssets(ExecutionPlan result, PluginsRegistry pluginsRegistry) {
         Application applicationInstance = result.getApplication();
         for (Module module : applicationInstance.getModules().values()) {
             if (module.getAssets() != null) {
                 // the order is important, there may be some dependencies between them
                 for (AssetDefinition asset : module.getAssets()) {
-                    result.registerAsset(asset);
+                    AssetNodeProvider assetNodeProvider =
+                            pluginsRegistry.lookupAssetImplementation(asset.getAssetType(), this);
+                    AssetNode assetImplementation =
+                            assetNodeProvider.createImplementation(
+                                    asset, module, result, this, pluginsRegistry);
+                    result.registerAsset(assetImplementation);
                 }
             }
         }

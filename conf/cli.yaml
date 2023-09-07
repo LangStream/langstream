@@ -14,16 +14,6 @@
 # limitations under the License.
 #
 
----
-webServiceUrl: "http://localhost:8090"
-apiGatewayUrl: "ws://localhost:8091"
-tenant: "default"
-token: null
-profiles:
-  new:
-    webServiceUrl: "ss"
-    apiGatewayUrl: null
-    tenant: "gigio"
-    token: null
-    name: "new"
-currentProfile: "new"
+webServiceUrl: http://localhost:8090
+apiGatewayUrl: ws://localhost:8091
+tenant: default

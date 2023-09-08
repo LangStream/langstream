@@ -21,21 +21,21 @@ gateways:
     topic: input-topic
     parameters:
       - sessionId
-    produceOptions:
+    produce-options:
       headers:
         - key: langstream-client-session-id
-          valueFromParameters: sessionId
+          value-from-parameters: sessionId
 
   - id: consume-output
     type: consume
     topic: output-topic
     parameters:
       - sessionId
-    consumeOptions:
+    consume-options:
       filters:
         headers:
           - key: langstream-client-session-id
-            valueFromParameters: sessionId
+            value-from-parameters: sessionId
 
   - id: consume-history
     type: consume
@@ -48,10 +48,11 @@ gateways:
       provider: google
       configuration:
         clientId: "{{ secrets.google.client-id }}"
-    produceOptions:
+      allow-admin-requests: true
+    produce-options:
       headers:
         - key: langstream-client-user-id
-          valueFromAuthentication: subject
+          value-from-authentication: subject
 
   - id: consume-output-auth
     type: consume
@@ -60,9 +61,10 @@ gateways:
       provider: google
       configuration:
         clientId: "{{ secrets.google.client-id }}"
-    consumeOptions:
+      allow-admin-requests: true
+    consume-options:
       filters:
         headers:
           - key: langstream-client-user-id
-            valueFromAuthentication: subject
+            value-from-authentication: subject
 

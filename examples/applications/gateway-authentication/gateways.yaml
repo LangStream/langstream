@@ -21,20 +21,20 @@ gateways:
     topic: input-topic
     parameters:
       - sessionId
-    produceOptions:
+    produce-options:
       headers:
         - key: langstream-client-session-id
-          valueFromParameters: sessionId
+          value-from-parameters: sessionId
   - id: consume-output-no-auth
     type: consume
     topic: output-topic
     parameters:
       - sessionId
-    consumeOptions:
+    consume-options:
       filters:
         headers:
           - key: langstream-client-session-id
-            valueFromParameters: sessionId
+            value-from-parameters: sessionId
 
   - id: produce-input-auth-google
     type: produce
@@ -45,12 +45,13 @@ gateways:
       provider: google
       configuration:
         clientId: "{{ secrets.google.client-id }}"
-    produceOptions:
+      allow-admin-requests: true
+    produce-options:
       headers:
         - key: langstream-client-user-id
-          valueFromAuthentication: subject
+          value-from-authentication: subject
         - key: langstream-client-session-id
-          valueFromParameters: sessionId
+          value-from-parameters: sessionId
 
   - id: consume-output-auth-google
     type: consume
@@ -61,13 +62,14 @@ gateways:
       provider: google
       configuration:
         clientId: "{{ secrets.google.client-id }}"
-    consumeOptions:
+      allow-admin-requests: true
+    consume-options:
       filters:
         headers:
           - key: langstream-client-user-id
-            valueFromAuthentication: subject
+            value-from-authentication: subject
           - key: langstream-client-session-id
-            valueFromParameters: sessionId
+            value-from-parameters: sessionId
 
   - id: produce-input-auth-github
     type: produce
@@ -78,26 +80,28 @@ gateways:
       provider: github
       configuration:
         clientId: "{{ secrets.github.client-id }}"
-    produceOptions:
+      allow-admin-requests: true
+    produce-options:
       headers:
         - key: langstream-client-user-id
           valueFromAuthentication: login
         - key: langstream-client-session-id
-          valueFromParameters: sessionId
+          value-from-parameters: sessionId
 
-  - id: consume-output-auth-github
-    type: consume
-    topic: output-topic
-    parameters:
-      - sessionId
-    authentication:
-      provider: github
-      configuration:
-        clientId: "{{ secrets.github.client-id }}"
-    consumeOptions:
+    - id: consume-output-auth-github
+      type: consume
+      topic: output-topic
+      parameters:
+        - sessionId
+      authentication:
+        provider: github
+        configuration:
+          clientId: "{{ secrets.github.client-id }}"
+        allow-admin-requests: true
+    consume-options:
       filters:
         headers:
           - key: langstream-client-user-id
-            valueFromAuthentication: login
+            value-from-authentication: login
           - key: langstream-client-session-id
-            valueFromParameters: sessionId
+            value-from-parameters: sessionId

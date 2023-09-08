@@ -322,6 +322,12 @@ def test_serializers():
             ("ByteArraySerializer", True, b"\x01"),
             ("ByteArraySerializer", 42, b"\x00\x00\x00\x00\x00\x00\x00\x2A"),
             ("ByteArraySerializer", 42.0, b"\x40\x45\x00\x00\x00\x00\x00\x00"),
+            ("ByteArraySerializer", {"a": "b", "c": 42.0}, b'{"a": "b", "c": 42.0}'),
+            (
+                "ByteArraySerializer",
+                [{"a": "b"}, {"c": 42.0}],
+                b'[{"a": "b"}, {"c": 42.0}]',
+            ),
         ]:
             sink = kafka_connection.create_topic_producer(
                 "id",

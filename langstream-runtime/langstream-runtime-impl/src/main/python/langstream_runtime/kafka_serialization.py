@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import json
 import struct as _struct
 
 from confluent_kafka.serialization import (
@@ -388,6 +389,38 @@ class ByteArrayDeserializer(Deserializer):
         return value
 
 
+class JsonSerializer(Serializer):
+    """
+    Serializes objects using json.dumps
+    """
+
+    def __call__(self, obj, ctx=None):
+        """
+        Args:
+            obj (object): object to be serialized
+
+            ctx (SerializationContext): Metadata pertaining to the serialization
+                operation
+
+        Note:
+            None objects are represented as Kafka Null.
+
+        Raises:
+            SerializerError if an error occurs during serialization.
+
+        Returns:
+            the bytes
+        """
+
+        if obj is None:
+            return None
+
+        try:
+            return json.dumps(obj).encode("utf-8")
+        except Exception as e:
+            raise SerializationError(str(e))
+
+
 STRING_SERIALIZER = StringSerializer()
 BOOLEAN_SERIALIZER = BooleanSerializer()
 SHORT_SERIALIZER = ShortSerializer()
@@ -396,6 +429,7 @@ LONG_SERIALIZER = LongSerializer()
 FLOAT_SERIALIZER = FloatSerializer()
 DOUBLE_SERIALIZER = DoubleSerializer()
 BYTEARRAY_SERIALIZER = ByteArraySerializer()
+JSON_SERIALIZER = JsonSerializer()
 
 STRING_DESERIALIZER = StringDeserializer()
 BOOLEAN_DESERIALIZER = BooleanDeserializer()

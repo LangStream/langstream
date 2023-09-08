@@ -360,6 +360,11 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
     static File downloadHttpsFile(String path, HttpClientFacade client, Consumer<String> logger)
             throws IOException, HttpRequestFailedException {
+        final URI uri = URI.create(path);
+        if ("github.com".equals(uri.getHost())) {
+            return downloadFromGithub(uri, logger);
+        }
+
         final HttpRequest request =
                 HttpRequest.newBuilder()
                         .uri(URI.create(path))
@@ -384,6 +389,10 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         final long time = (System.currentTimeMillis() - start) / 1000;
         logger.accept(String.format("downloaded remote file %s (%d s)", path, time));
         return tempFile.toFile();
+    }
+
+    private static File downloadFromGithub(URI uri, Consumer<String> logger) {
+        return GithubRepositoryDownloader.downloadGithubRepository(uri, logger);
     }
 
     public static MultiPartBodyPublisher buildMultipartContentForAppZip(

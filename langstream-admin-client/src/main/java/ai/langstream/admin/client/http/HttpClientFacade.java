@@ -17,6 +17,7 @@ package ai.langstream.admin.client.http;
 
 import ai.langstream.admin.client.AdminClientLogger;
 import ai.langstream.admin.client.HttpRequestFailedException;
+import ai.langstream.admin.client.util.Slf4jLAdminClientLogger;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.http.HttpClient;
@@ -26,13 +27,23 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class HttpClientFacade implements AutoCloseable {
 
     private final AdminClientLogger logger;
     private final HttpClientProperties httpClientProperties;
     private ExecutorService executorService;
     private HttpClient httpClient;
+
+    public HttpClientFacade() {
+        this(new HttpClientProperties());
+    }
+
+    public HttpClientFacade(HttpClientProperties httpClientProperties) {
+        this(new Slf4jLAdminClientLogger(log), httpClientProperties);
+    }
 
     public HttpClientFacade(AdminClientLogger logger, HttpClientProperties httpClientProperties) {
         this.logger = logger;

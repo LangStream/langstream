@@ -20,6 +20,7 @@ import ai.langstream.admin.client.http.HttpClientProperties;
 import ai.langstream.admin.client.http.Retry;
 import ai.langstream.admin.client.model.Applications;
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
+import ai.langstream.admin.client.util.Slf4jLAdminClientLogger;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -27,13 +28,18 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class AdminClient implements AutoCloseable {
 
     private final AdminClientConfiguration configuration;
     private final AdminClientLogger logger;
     private final HttpClientFacade httpClientFacade;
-    private HttpClientProperties httpClientProperties;
+
+    public AdminClient(AdminClientConfiguration adminClientConfiguration) {
+        this(adminClientConfiguration, new Slf4jLAdminClientLogger(log));
+    }
 
     public AdminClient(
             AdminClientConfiguration adminClientConfiguration, AdminClientLogger logger) {
@@ -46,7 +52,6 @@ public class AdminClient implements AutoCloseable {
             HttpClientProperties httpClientProperties) {
         this.configuration = adminClientConfiguration;
         this.logger = logger;
-        this.httpClientProperties = httpClientProperties;
         this.httpClientFacade = new HttpClientFacade(logger, httpClientProperties);
     }
 

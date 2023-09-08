@@ -34,8 +34,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
     protected static final ObjectMapper messageMapper = new ObjectMapper();
 
-    @CommandLine.ParentCommand
-    private RootGatewayCmd cmd;
+    @CommandLine.ParentCommand private RootGatewayCmd cmd;
 
     @Override
     protected RootCmd getRootCmd() {
@@ -43,7 +42,9 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     }
 
     private static String computeQueryString(
-            Map<String, String> systemParams, Map<String, String> userParams, Map<String, String> options) {
+            Map<String, String> systemParams,
+            Map<String, String> userParams,
+            Map<String, String> options) {
         String paramsPart = "";
         String optionsPart = "";
         String systemParamsPart = "";
@@ -61,14 +62,12 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                             .collect(Collectors.joining("&"));
         }
 
-
         if (systemParams != null) {
             systemParamsPart =
                     systemParams.entrySet().stream()
                             .map(e -> encodeParam(e, ""))
                             .collect(Collectors.joining("&"));
         }
-
 
         return String.join("&", List.of(systemParamsPart, paramsPart, optionsPart));
     }
@@ -93,8 +92,16 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             String adminCredentials,
             String adminCredentialsType,
             Map<String, String> adminCredentialsInputs) {
-        validateGateway(applicationId, gatewayId, type, params, options, credentials, adminCredentials,
-                adminCredentialsType, adminCredentialsInputs);
+        validateGateway(
+                applicationId,
+                gatewayId,
+                type,
+                params,
+                options,
+                credentials,
+                adminCredentials,
+                adminCredentialsType,
+                adminCredentialsInputs);
 
         Map<String, String> systemParams = new HashMap<>();
         if (credentials != null) {
@@ -108,7 +115,8 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         }
         if (adminCredentialsInputs != null) {
             for (Map.Entry<String, String> adminInput : adminCredentialsInputs.entrySet()) {
-                systemParams.put("admin-credentials-input-" + adminInput.getKey(), adminInput.getValue());
+                systemParams.put(
+                        "admin-credentials-input-" + adminInput.getKey(), adminInput.getValue());
             }
         }
 
@@ -166,10 +174,10 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         if (selectedGateway == null) {
             throw new IllegalArgumentException(
                     "gateway "
-                    + gatewayId
-                    + " of type "
-                    + type
-                    + " is not defined in the application");
+                            + gatewayId
+                            + " of type "
+                            + type
+                            + " is not defined in the application");
         }
         final List<String> requiredParameters = selectedGateway.getParameters();
         if (requiredParameters != null) {
@@ -177,11 +185,11 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                 if (params == null || !params.containsKey(requiredParameter)) {
                     throw new IllegalArgumentException(
                             "gateway "
-                            + gatewayId
-                            + " of type "
-                            + type
-                            + " requires parameter "
-                            + requiredParameter);
+                                    + gatewayId
+                                    + " of type "
+                                    + type
+                                    + " requires parameter "
+                                    + requiredParameter);
                 }
             }
         }
@@ -191,11 +199,15 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                         "gateway " + gatewayId + " of type " + type + " requires credentials");
             }
             if (adminCredentials != null) {
-                final Object allowAdminRequests = selectedGateway.getAuthentication().get("allow-admin-requests");
+                final Object allowAdminRequests =
+                        selectedGateway.getAuthentication().get("allow-admin-requests");
                 if (allowAdminRequests != null && allowAdminRequests.toString().equals("false")) {
                     throw new IllegalArgumentException(
-                            "gateway " + gatewayId + " of type " + type + " do not allow admin requests");
-
+                            "gateway "
+                                    + gatewayId
+                                    + " of type "
+                                    + type
+                                    + " do not allow admin requests");
                 }
             }
         }

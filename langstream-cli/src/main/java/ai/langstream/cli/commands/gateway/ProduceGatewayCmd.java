@@ -79,8 +79,7 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
 
     @CommandLine.Option(
             names = {"-ac", "--admin-credentials"},
-            description =
-                    "Admin credentials for the gateway.")
+            description = "Admin credentials for the gateway.")
     private String adminCredentials;
 
     @CommandLine.Option(

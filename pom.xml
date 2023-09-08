@@ -176,7 +176,7 @@
       <dependency>
         <!-- AstraDB DataSource -->
         <groupId>com.datastax.oss</groupId>
-        <artifactId>java-driver-core</artifactId>
+        <artifactId>java-driver-core-shaded</artifactId>
         <version>4.16.0</version>
         <exclusions>
           <exclusion>

@@ -43,8 +43,9 @@
     <dependency>
       <!-- AstraDB DataSource -->
       <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-core</artifactId>
+      <artifactId>java-driver-core-shaded</artifactId>
     </dependency>
+
     <dependency>
       <groupId>com.datastax.astra</groupId>
       <artifactId>astra-sdk-devops</artifactId>

@@ -23,8 +23,6 @@ configuration:
         service: "astra"
         clientId: "{{{ secrets.astra.clientId }}}"
         secret: "{{{ secrets.astra.secret }}}"
-        secureBundle: "{{{ secrets.astra.secureBundle }}}"
-        # These are optional, but if you want to use the astra-keyspace asset you need them
         token: "{{{ secrets.astra.token }}}"
         database: "{{{ secrets.astra.database }}}"
         environment: "{{{ secrets.astra.environment }}}"

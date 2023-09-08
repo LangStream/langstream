@@ -46,18 +46,17 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
             case "cassandra-keyspace" -> {
                 requiredNonEmptyField(assetDefinition, configuration, "keyspace");
                 requiredListField(assetDefinition, configuration, "create-statements");
-                if (datasourceConfiguration.containsKey("secureBundle")) {
-                    throw new IllegalArgumentException(
-                            "Use astra-keyspace for AstraDB services (not expecting a secureBundle in a Cassandra datasource).");
+                if (datasourceConfiguration.containsKey("secureBundle")
+                        || datasourceConfiguration.containsKey("database")) {
+                    throw new IllegalArgumentException("Use astra-keyspace for AstraDB services");
                 }
             }
             case "astra-keyspace" -> {
                 requiredNonEmptyField(assetDefinition, configuration, "keyspace");
-                if (!datasourceConfiguration.containsKey("secureBundle")) {
+                if (!datasourceConfiguration.containsKey("secureBundle")
+                        && !datasourceConfiguration.containsKey("database")) {
                     throw new IllegalArgumentException(
-                            "Use cassandra-keyspace for a standard Cassandra service (expecting a secureBundle, but found only "
-                                    + datasourceConfiguration.keySet()
-                                    + " .");
+                            "Use cassandra-keyspace for a standard Cassandra service (not AstraDB)");
                 }
                 // are we are using the AstraDB SDK we need also the AstraCS token and
                 // the name of the database

@@ -57,7 +57,7 @@ Insert some data:
 ## Deploy the LangStream application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/query-jdbc -i examples/instances/kafka-kubernetes.yaml
+./bin/langstream apps deploy test -app examples/applications/query-jdbc -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Start a Producer

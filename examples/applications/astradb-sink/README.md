@@ -21,15 +21,21 @@ CREATE TABLE IF NOT EXISTS products (
 
 This is handled by the 'cassandra-table' assets in the pipeline.yaml file.
 
-## Configure the pipeline
+## Configure access to the Vector Database
 
-Update the secrets.yaml file and set the Astra credentials and the database name:
-- clientId
-- secret
-- token
-- database
+Export some ENV variables in order to configure access to the database:
+
+```
+export ASTRA_TOKEN=...
+export ASTRA_CLIENT_ID=...
+export ASTRA_SECRET=...
+export ASTRA_DATABASE=...
+```
 
 You can find the credentials in the Astra DB console when you create a Token.
+
+The examples/secrets/secrets.yaml resolves those environment variables for you.
+When you go in production you are supposed to create a dedicated secrets.yaml file for each environment.
 
 ## Deploy the LangStream application
 

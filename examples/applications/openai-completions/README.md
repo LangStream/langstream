@@ -2,32 +2,20 @@
 
 This sample application shows how to execute completion using the OpenAI library using the Azure OpenAI API endpoint.
 
-## Create OpenAI Secret
+## Configure you OpenAI API Key
 
-If you want to enable Google authentication in the gateways, also set the `GOOGLE_CLIENT_ID` environment variable.
+Export some ENV variables in order to configure access to Open AI:
 
 ```
-export AZURE_URL=xxxx
-export OPEN_AI_ACCESS_KEY=xxxx
-
-export GOOGLE_CLIENT_ID=xxx
-
-echo """
-secrets:
-  - name: open-ai
-    id: open-ai
-    data:
-      url: $AZURE_URL
-      access-key: $OPEN_AI_ACCESS_KEY
-  - name: google
-    id: google
-    data:
-      client-id: $GOOGLE_CLIENT_ID
-""" > /tmp/secrets.yaml
+export OPENAI_ACCESS_KEY=...
+export OPENAI_URL=...
+export OPENAI_PROVIDER=azure
 ```
-## 
+
+
+## Deploy the LangStream application
 ```
-./bin/langstream apps deploy test -app examples/applications/openai-completions -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/openai-completions -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Produce a message
@@ -41,25 +29,6 @@ consume from the history-topic:
 
 ```
 ./bin/langstream gateway consume test consume-history
-```
-
-
-## Use authenticated gateway
-This example shows how to create a gateway that requires authentication. The application uses the [Sign In with Google](https://developers.google.com/identity/gsi/web/guides/overview) feature.
-
-In this case there's no need to create a session since the session will be per-user.
-
-```
-google_token=xxx
-./bin/langstream gateway produce test produce-input-auth -c "$google_token" -v "Who was the Presitent of the US in 19990 ?"
-./bin/langstream gateway consume test consume-output-auth -c "$google_token"
-```
-
-
-
-
-
-
 ```
 
 

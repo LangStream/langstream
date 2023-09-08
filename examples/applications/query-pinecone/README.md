@@ -12,9 +12,6 @@ Create an index on Pinecone.
 Create your Pinecone index following the official documentation.
 https://docs.pinecone.io/docs/quickstart
 
-
-Then you have to fill in the secrets.yaml file with the Pinecone API key and the index name.
-
 Please ensure that when you create the index you set the dimension to 1536 that is the default vector size for 
 the embedding-ada-002 model we are using to compute the embeddings.
 
@@ -27,10 +24,26 @@ pinecone.list_indexes()
 
 You also have to set your OpenAI API keys in the secrets.yaml file. 
 
+## Configure access to the Vector Database
+
+Export some ENV variables in order to configure access to the database:
+
+```
+export PINECONE_SERVICE = ...
+export PINECONE_ACCESS_KEY...
+export PINECONE_PROJECT_NAME...
+export PINECONE_ENVIRONMENT=...
+export PINECONE_INDEX_NAME=...
+```
+
+The examples/secrets/secrets.yaml resolves those environment variables for you.
+When you go in production you are supposed to create a dedicated secrets.yaml file for each environment.
+
+
 ## Deploy the LangStream application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/query-pinecone -i examples/instances/kafka-kubernetes.yaml -s /path/to/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/query-pinecone -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Start a Producer to index a document

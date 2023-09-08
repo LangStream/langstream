@@ -28,10 +28,31 @@ CREATE CUSTOM INDEX IF NOT EXISTS ann_index
   ON documents(embeddings_vector) USING 'StorageAttachedIndex';
 ```
 
-## Prepare the secrets file
+## Configure your OpenAI API Key
 
-As you would have already set up you should have a secrets.yaml file that contains the credentials to access the Vector Database
-and OpenAI APIs.
+Export some ENV variables in order to configure access to Open AI:
+
+```
+export OPENAI_ACCESS_KEY=...
+export OPENAI_URL=...
+export OPENAI_PROVIDER=azure
+```
+
+## Configure access to the Vector Database
+
+Export some ENV variables in order to configure access to the database:
+
+```
+export ASTRA_TOKEN=...
+export ASTRA_CLIENT_ID=...
+export ASTRA_SECRET=...
+export ASTRA_DATABASE=...
+```
+
+You can find the credentials in the Astra DB console when you create a Token.
+
+The examples/secrets/secrets.yaml resolves those environment variables for you.
+When you go in production you are supposed to create a dedicated secrets.yaml file for each environment.
 
 
 ## Deploy the LangStream application

@@ -28,13 +28,14 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.text.StringSubstitutor;
 
 @Slf4j
 public class LocalFileReferenceResolver {
 
     static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
-    private static final Pattern patternPlaceholder = Pattern.compile("<file:(.*?)>");
+    private static final Pattern filePlaceHolderPattern = Pattern.compile("<file:(.*?)>");
 
     public static String resolveFileReferencesInYAMLFile(Path file) throws Exception {
         return resolveFileReferencesInYAMLFile(
@@ -82,7 +83,8 @@ public class LocalFileReferenceResolver {
         // in order to fail fast if the file is not valid YAML
         Map<String, Object> map = mapper.readValue(content, Map.class);
 
-        if (!patternPlaceholder.matcher(content).find()) {
+        if (!filePlaceHolderPattern.matcher(content).find()
+                && !content.contains("${")) {
             return content;
         }
 
@@ -96,7 +98,7 @@ public class LocalFileReferenceResolver {
             Object value = list.get(i);
             if (value instanceof String) {
                 String string = (String) value;
-                String newValue = resolveFileReferences(string, readFileContents);
+                String newValue = resolveReferencesInString(string, readFileContents);
                 list.set(i, newValue);
             } else if (value instanceof Map) {
                 Map<String, Object> mapChild = (Map<String, Object>) value;
@@ -113,7 +115,7 @@ public class LocalFileReferenceResolver {
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             if (entry.getValue() instanceof String) {
                 String string = (String) entry.getValue();
-                String newValue = resolveFileReferences(string, readFileContents);
+                String newValue = resolveReferencesInString(string, readFileContents);
                 entry.setValue(newValue);
             } else if (entry.getValue() instanceof Map) {
                 Map<String, Object> mapChild = (Map<String, Object>) entry.getValue();
@@ -132,10 +134,16 @@ public class LocalFileReferenceResolver {
      * @param content contents of the YAML file
      * @return the new content of the file
      */
-    private static String resolveFileReferences(
+    public static String resolveReferencesInString(
             String content, Function<String, String> readFileContents) throws Exception {
 
-        Matcher matcher = patternPlaceholder.matcher(content);
+        // first apply the env
+        StringSubstitutor stringSubstitutor =
+                new StringSubstitutor(System.getenv());
+        content = stringSubstitutor.replace(content);
+
+        // then resolve file references
+        Matcher matcher = filePlaceHolderPattern.matcher(content);
         StringBuffer buffer = new StringBuffer();
 
         while (matcher.find()) {

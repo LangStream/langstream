@@ -139,26 +139,21 @@ Inside the [examples](./examples) folder, you can find some examples of applicat
 
 In this example, you will deploy an application that performs AI completion and return information about a known person.
 
-1. Create the secrets file containing the OpenAI URL and access key:
+1. Export two environment variables containing the OpenAI URL and access key:
+```
+export OPEN_AI_URL=xx
+export  OPEN_AI_ACCESS_KEY=xx
 ```
 
-OPEN_AI_URL=xx
-OPEN_AI_ACCESS_KEY=xx
+The [secrets.yaml](./examples/secrets/secrets.yaml) file contains many placeholders that refer to environment variables.
+You can either export them or replace them with the actual values.
 
-echo """
-secrets:
-  - name: open-ai
-    id: open-ai
-    data:
-      url: $OPEN_AI_URL
-      access-key: $OPEN_AI_ACCESS_KEY
-""" > /tmp/secrets.yaml
 ```
 
 2. Deploy the `openai-completions` application
 
 ```
-./bin/langstream apps deploy openai-completions -app examples/applications/openai-completions -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+./bin/langstream apps deploy openai-completions -app examples/applications/openai-completions -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ./bin/langstream apps get openai-completions
 ```
 

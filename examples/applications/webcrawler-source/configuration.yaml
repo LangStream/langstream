@@ -32,3 +32,4 @@ configuration:
       secureBundle: "{{{ secrets.astra.secureBundle }}}"
       database: "{{{ secrets.astra.database }}}"
       token: "{{{ secrets.astra.token }}}"
+      environment: "{{{ secrets.astra.environment }}}"

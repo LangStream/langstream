@@ -99,14 +99,14 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                                             "port",
                                             datasource.getOrDefault("port", "9042").toString());
 
-                                    // AstraDB
-                                    if (datasource.containsKey("secureBundle")) {
+                                    String secureBundleString =
+                                            datasource.getOrDefault("secureBundle", "").toString();
+                                    // AstraDB, explicit secureBundle
+                                    if (!secureBundleString.isEmpty()) {
                                         configuration.put(
-                                                "cloud.secureConnectBundle",
-                                                datasource
-                                                        .getOrDefault("secureBundle", "")
-                                                        .toString());
+                                                "cloud.secureConnectBundle", secureBundleString);
                                     } else {
+                                        // AstraDB, token/database
                                         String token =
                                                 ConfigurationUtils.getString(
                                                         "token", "", datasource);

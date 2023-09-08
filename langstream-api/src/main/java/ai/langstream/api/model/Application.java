@@ -33,10 +33,6 @@ public class Application {
     private Instance instance;
     private Secrets secrets;
 
-    public Map<String, Resource> getResources() {
-        return resources;
-    }
-
     @JsonIgnore
     public Module getModule(String module) {
         return modules.computeIfAbsent(module, Module::new);

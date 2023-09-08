@@ -27,7 +27,7 @@ import java.util.Set;
 public class AIProvidersResourceProvider implements ResourceNodeProvider {
 
     private static final Set<String> SUPPORTED_TYPES =
-            Set.of("open-ai", "hugging-face", "vertex-ai");
+            Set.of("open-ai-configuration", "hugging-face-configuration", "vertex-configuration");
 
     @Override
     public Map<String, Object> createImplementation(

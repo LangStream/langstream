@@ -55,7 +55,8 @@ public record Gateway(
         this(id, type, topic, authentication, parameters, produceOptions, consumeOptions, null);
     }
 
-    public record Authentication(String provider, Map<String, Object> configuration, boolean allowAdminRequests) {
+    public record Authentication(
+            String provider, Map<String, Object> configuration, boolean allowAdminRequests) {
         public Authentication(String provider, Map<String, Object> configuration) {
             this(provider, configuration, false);
         }

@@ -18,7 +18,6 @@ package ai.langstream.apigateway.websocket.handlers;
 import ai.langstream.api.events.EventRecord;
 import ai.langstream.api.events.EventSources;
 import ai.langstream.api.events.GatewayEventData;
-import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Gateway;
@@ -73,8 +72,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     public void onBeforeHandshakeCompleted(
             AuthenticatedGatewayRequestContext gatewayRequestContext,
             Map<String, Object> attributes)
-            throws Exception {
-    }
+            throws Exception {}
 
     abstract void onOpen(
             WebSocketSession webSocketSession,
@@ -183,10 +181,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         if (selectedGateway == null) {
             throw new IllegalArgumentException(
                     "gateway "
-                    + gatewayId
-                    + " of type "
-                    + type
-                    + " is not defined in the application");
+                            + gatewayId
+                            + " of type "
+                            + type
+                            + " is not defined in the application");
         }
         return selectedGateway;
     }
@@ -201,7 +199,6 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         final String credentials = queryString.remove("credentials");
         final String adminCredentials = queryString.remove("admin-credentials");
         final String adminCredentialsType = queryString.remove("admin-credentials-type");
-
 
         final Map<String, String> adminCredentialsInputs = new HashMap<>();
 
@@ -219,10 +216,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             } else {
                 throw new IllegalArgumentException(
                         "invalid query parameter "
-                        + entry.getKey()
-                        + ". "
-                        + "To specify a gateway parameter, use the format param:<parameter_name>."
-                        + "To specify a option, use the format option:<option_name>.");
+                                + entry.getKey()
+                                + ". "
+                                + "To specify a gateway parameter, use the format param:<parameter_name>."
+                                + "To specify a option, use the format option:<option_name>.");
             }
         }
 
@@ -251,8 +248,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         }
         validateOptions(options);
 
-        if (credentials != null && (
-                !adminCredentialsInputs.isEmpty() || adminCredentials != null || adminCredentialsType != null)) {
+        if (credentials != null
+                && (!adminCredentialsInputs.isEmpty()
+                        || adminCredentials != null
+                        || adminCredentialsType != null)) {
             throw new IllegalArgumentException(
                     "credentials and admin-credentials cannot be used together");
         }
@@ -269,7 +268,6 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 .userParameters(userParameters)
                 .gateway(gateway)
                 .build();
-
     }
 
     protected void recordCloseableResource(
@@ -322,10 +320,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
 
         try (final TopicProducer producer =
-                     topicConnectionsRuntime.createProducer(
-                             "langstream-events",
-                             streamingCluster,
-                             Map.of("topic", gateway.eventsTopic()));) {
+                topicConnectionsRuntime.createProducer(
+                        "langstream-events",
+                        streamingCluster,
+                        Map.of("topic", gateway.eventsTopic())); ) {
             producer.start();
 
             final EventSources.GatewaySource source =

@@ -59,7 +59,7 @@ public class GatewayAuthenticationProviderRegistry {
                                 () ->
                                         new RuntimeException(
                                                 "No GatewayAdminAuthenticationProvider found for type "
-                                                + type))
+                                                        + type))
                         .get();
         store.initialize(configuration);
         return store;

@@ -16,9 +16,6 @@
 package ai.langstream.apigateway.auth.impl.jwt.admin;
 
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 public record JwtAdminAuthenticationProviderConfiguration(
         String secretKey,
@@ -28,5 +25,4 @@ public record JwtAdminAuthenticationProviderConfiguration(
         String audienceClaim,
         String audience,
         List<String> adminRoles,
-        String jwksHostsAllowlist) {
-}
+        String jwksHostsAllowlist) {}

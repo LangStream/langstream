@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 
 import ai.langstream.api.events.EventRecord;
@@ -54,8 +53,6 @@ import jakarta.websocket.CloseReason;
 import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Session;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +70,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
@@ -87,7 +83,7 @@ import org.springframework.context.annotation.Primary;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "spring.main.allow-bean-definition-overriding=true",
+            "spring.main.allow-bean-definition-overriding=true",
         })
 @WireMockTest
 class ProduceConsumeHandlerTest {
@@ -99,7 +95,6 @@ class ProduceConsumeHandlerTest {
 
     static List<String> topics;
     static Gateways testGateways;
-
 
     @TestConfiguration
     public static class WebSocketTestConfig {
@@ -130,14 +125,18 @@ class ProduceConsumeHandlerTest {
             final GatewayAdminAuthenticationProperties props =
                     new GatewayAdminAuthenticationProperties();
             props.setTypes(List.of("http"));
-            props.setConfiguration(Map.of("http", Map.of(
-                    "base-url", wireMockBaseUrl,
-                    "path-template", "/auth/{tenant}",
-                    "headers", Map.of("h1", "v1")
-            )));
+            props.setConfiguration(
+                    Map.of(
+                            "http",
+                            Map.of(
+                                    "base-url",
+                                    wireMockBaseUrl,
+                                    "path-template",
+                                    "/auth/{tenant}",
+                                    "headers",
+                                    Map.of("h1", "v1"))));
             return props;
         }
-
     }
 
     @NotNull
@@ -547,7 +546,6 @@ class ProduceConsumeHandlerTest {
         assertEquals(List.of(), user2Messages);
     }
 
-
     @Test
     void testAdminAuthentication() {
         wireMock.register(
@@ -606,14 +604,11 @@ class ProduceConsumeHandlerTest {
                                         .formatted(port)),
                         user1Messages);
 
-
-
         connectAndProduce(
                 URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce?admin-credentials=test-user-password&admin-credentials-type=http&admin-credentials-input-user-id=mock-user"
                                 .formatted(port)),
                 new ProduceRequest(null, "hello user", null));
-
 
         Awaitility.await()
                 .untilAsserted(
@@ -629,7 +624,8 @@ class ProduceConsumeHandlerTest {
         connectAndExpectClose(
                 URI.create(
                         "ws://localhost:%d/v1/consume/tenant1/application1/consume-no-admin?admin-credentials=test-user-password&admin-credentials-type=http&admin-credentials-input-user-id=mock-user"
-                                .formatted(port)), new CloseReason(
+                                .formatted(port)),
+                new CloseReason(
                         CloseReason.CloseCodes.VIOLATED_POLICY,
                         "Gateway consume-no-admin of tenant tenant1 does not allow admin requests."));
 
@@ -643,10 +639,10 @@ class ProduceConsumeHandlerTest {
         connectAndExpectClose(
                 URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce?admin-credentials=test-user-password-but-wrong&admin-credentials-input-user-id=mock-user"
-                                .formatted(port)), new CloseReason(
+                                .formatted(port)),
+                new CloseReason(
                         CloseReason.CloseCodes.VIOLATED_POLICY,
                         "Gateway produce of tenant tenant1 does not allow admin requests."));
-
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}

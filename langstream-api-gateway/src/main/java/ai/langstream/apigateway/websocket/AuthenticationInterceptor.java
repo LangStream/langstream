@@ -47,7 +47,6 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
     private final Map<String, GatewayAdminAuthenticationProvider> adminAuthProviders;
     private final String defaultProvider;
 
-
     public AuthenticationInterceptor(
             GatewayAdminAuthenticationProperties adminAuthenticationProperties) {
         final List<String> types = adminAuthenticationProperties.getTypes();
@@ -55,12 +54,14 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
         String defaultProvider = null;
         if (types != null) {
             for (String type : types) {
-                // preload all admin providers to avoid concurrency, add cache and check configuration sanity
+                // preload all admin providers to avoid concurrency, add cache and check
+                // configuration sanity
                 final GatewayAdminAuthenticationProvider provider =
                         GatewayAuthenticationProviderRegistry.loadAdminProvider(
                                 type, adminAuthenticationProperties.getConfiguration().get(type));
                 providers.put(type, provider);
-                if (adminAuthenticationProperties.getDefaultType() != null && adminAuthenticationProperties.getDefaultType().equals(type)) {
+                if (adminAuthenticationProperties.getDefaultType() != null
+                        && adminAuthenticationProperties.getDefaultType().equals(type)) {
                     defaultProvider = type;
                 }
             }
@@ -145,8 +146,12 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
         final GatewayAuthenticationResult result;
         if (gatewayRequestContext.isAdminRequest()) {
             if (!authentication.allowAdminRequests()) {
-                throw new AuthFailedException("Gateway " + gatewayRequestContext.gateway().id()
-                        + " of tenant " + gatewayRequestContext.tenant() + " does not allow admin requests.");
+                throw new AuthFailedException(
+                        "Gateway "
+                                + gatewayRequestContext.gateway().id()
+                                + " of tenant "
+                                + gatewayRequestContext.tenant()
+                                + " does not allow admin requests.");
             }
             String provider = gatewayRequestContext.adminCredentialsType();
             if (provider == null && defaultProvider != null) {
@@ -164,14 +169,13 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
             result = gatewayAdminAuthenticationProvider.authenticate(gatewayRequestContext);
         } else {
 
-            if (authentication != null)  {
+            if (authentication != null) {
                 final String provider = authentication.provider();
 
                 final GatewayAuthenticationProvider authenticationProvider =
                         GatewayAuthenticationProviderRegistry.loadProvider(
                                 provider, authentication.configuration());
-                result =
-                        authenticationProvider.authenticate(gatewayRequestContext);
+                result = authenticationProvider.authenticate(gatewayRequestContext);
             } else {
                 result = null;
             }

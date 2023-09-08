@@ -15,8 +15,6 @@
  */
 package ai.langstream.api.gateway;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.Gateway;
 import java.util.Map;
 
 public interface GatewayAdminRequestContext extends GatewayRequestContext {

@@ -48,14 +48,15 @@ public class TokenAuthFilter extends GenericFilterBean {
     public TokenAuthFilter(AuthTokenProperties tokenProperties) {
         this.tokenProperties = tokenProperties;
 
-        final JwtProperties jwtProperties = new JwtProperties(
-                tokenProperties.secretKey(),
-                tokenProperties.publicKey(),
-                tokenProperties.authClaim(),
-                tokenProperties.publicAlg(),
-                tokenProperties.audienceClaim(),
-                tokenProperties.audience(),
-                tokenProperties.jwksHostsAllowlist());
+        final JwtProperties jwtProperties =
+                new JwtProperties(
+                        tokenProperties.secretKey(),
+                        tokenProperties.publicKey(),
+                        tokenProperties.authClaim(),
+                        tokenProperties.publicAlg(),
+                        tokenProperties.audienceClaim(),
+                        tokenProperties.audience(),
+                        tokenProperties.jwksHostsAllowlist());
 
         this.authenticationProvider = new AuthenticationProviderToken(jwtProperties);
     }
@@ -69,7 +70,7 @@ public class TokenAuthFilter extends GenericFilterBean {
                     ((HttpServletRequest) servletRequest).getHeader(HttpHeaders.AUTHORIZATION);
             final String token;
             if (httpHeaderValue == null
-                || httpHeaderValue.length() <= HTTP_HEADER_VALUE_PREFIX.length()) {
+                    || httpHeaderValue.length() <= HTTP_HEADER_VALUE_PREFIX.length()) {
                 throw new AuthenticationProviderToken.AuthenticationException("Missing token");
             } else {
                 token = httpHeaderValue.substring(HTTP_HEADER_VALUE_PREFIX.length());
@@ -85,7 +86,7 @@ public class TokenAuthFilter extends GenericFilterBean {
 
             List<GrantedAuthority> authorities = null;
             if (tokenProperties.adminRoles() != null
-                && tokenProperties.adminRoles().contains(role)) {
+                    && tokenProperties.adminRoles().contains(role)) {
                 authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_ADMIN));
             }
 

@@ -243,8 +243,7 @@ public class AuthenticationProviderToken {
         return StringUtils.isNotBlank(tokenAudienceClaim) ? tokenAudienceClaim : null;
     }
 
-    private String getTokenAudience(JwtProperties tokenProperties)
-            throws IllegalArgumentException {
+    private String getTokenAudience(JwtProperties tokenProperties) throws IllegalArgumentException {
         String tokenAudience = tokenProperties.audience();
         return StringUtils.isNotBlank(tokenAudience) ? tokenAudience : null;
     }

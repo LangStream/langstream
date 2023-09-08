@@ -31,7 +31,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class GatewayAdminAuthenticationProperties {
 
     private List<String> types;
+
     @JsonAlias("default-type")
     private String defaultType;
+
     private Map<String, Map<String, Object>> configuration = new HashMap<>();
 }

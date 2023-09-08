@@ -1,3 +1,18 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ai.langstream.apigateway.auth.impl.jwt.admin;
 
 import ai.langstream.api.gateway.GatewayAdminAuthenticationProvider;
@@ -20,7 +35,6 @@ public class HttpAdminAuthenticationProvider implements GatewayAdminAuthenticati
     private HttpAdminAuthenticationProviderConfiguration httpConfiguration;
     private HttpClient httpClient;
 
-
     @Override
     public String type() {
         return "http";
@@ -30,11 +44,13 @@ public class HttpAdminAuthenticationProvider implements GatewayAdminAuthenticati
     @SneakyThrows
     public void initialize(Map<String, Object> configuration) {
         httpConfiguration =
-                mapper.convertValue(configuration, HttpAdminAuthenticationProviderConfiguration.class);
-        httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
-                .followRedirects(HttpClient.Redirect.ALWAYS)
-                .build();
+                mapper.convertValue(
+                        configuration, HttpAdminAuthenticationProviderConfiguration.class);
+        httpClient =
+                HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(30))
+                        .followRedirects(HttpClient.Redirect.ALWAYS)
+                        .build();
     }
 
     @Override
@@ -46,15 +62,11 @@ public class HttpAdminAuthenticationProvider implements GatewayAdminAuthenticati
 
         log.info("Authenticating admin with url: {}", url);
 
-
-        final HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(URI.create(url));
+        final HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(url));
 
         httpConfiguration.getHeaders().forEach(builder::header);
         builder.header("Authorization", "Bearer " + context.credentials());
-        final HttpRequest request = builder
-                .GET()
-                .build();
+        final HttpRequest request = builder.GET().build();
 
         final HttpResponse<Void> response;
         try {
@@ -69,7 +81,8 @@ public class HttpAdminAuthenticationProvider implements GatewayAdminAuthenticati
             return GatewayAuthenticationResult.authenticationSuccessful(
                     context.adminCredentialsInputs());
         }
-        return GatewayAuthenticationResult.authenticationFailed("Http authentication failed: " + response.statusCode());
+        return GatewayAuthenticationResult.authenticationFailed(
+                "Http authentication failed: " + response.statusCode());
     }
 
     private static String resolvePlaceholders(Map<String, String> placeholders, String url) {

@@ -30,10 +30,12 @@ public class HttpAdminAuthenticationProviderConfiguration {
 
     @JsonAlias("base-url")
     private String baseUrl;
+
     @JsonAlias("path-template")
     private String pathTemplate;
+
     private Map<String, String> headers = new HashMap<>();
+
     @JsonAlias("accepted-statuses")
     private List<Integer> acceptedStatuses = List.of(200, 201);
-
 }

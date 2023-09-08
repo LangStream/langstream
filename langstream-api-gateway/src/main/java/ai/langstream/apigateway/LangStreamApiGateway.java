@@ -25,7 +25,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.core.env.Environment;
 
 @SpringBootApplication
-@EnableConfigurationProperties({StorageProperties.class, GatewayAdminAuthenticationProperties.class})
+@EnableConfigurationProperties({
+    StorageProperties.class,
+    GatewayAdminAuthenticationProperties.class
+})
 public class LangStreamApiGateway {
 
     static {

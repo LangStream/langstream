@@ -153,7 +153,7 @@ if you are using Azure Open AI then set OPEN_AI_PROVIDER to azure
 export OPEN_AI_PROVIDER=azure
 ```
 
-The values for OPEN_AI_EMBEDDINGS_MODEL and OPEN_AI_CHAT_COMPLETIONS_MODEL depend on your OpenAI enviroment.
+The values for OPEN_AI_EMBEDDINGS_MODEL and OPEN_AI_CHAT_COMPLETIONS_MODEL depend on your OpenAI environment.
 On Azure they must match the names of the deployments you created in the Azure portal.
 
 The [secrets.yaml](./examples/secrets/secrets.yaml) file contains many placeholders that refer to those environment variables.

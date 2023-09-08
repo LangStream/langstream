@@ -77,8 +77,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${compiler-plugin.version}</version>
         <configuration>
-          <source>${cli-jdk-target-version}</source>
-          <target>${cli-jdk-target-version}</target>
+          <release>${cli-jdk-target-version}</release>
         </configuration>
       </plugin>
       <plugin>

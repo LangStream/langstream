@@ -172,9 +172,9 @@ public abstract class BaseCmd implements Runnable {
             final Path langstreamDir = Path.of(userHome, ".langstream");
             Files.createDirectories(langstreamDir);
             final Path configFile = langstreamDir.resolve("config");
-            debug("Using config file %s".formatted(configFile));
+            debug(String.format("Using config file %s", configFile));
             if (!Files.exists(configFile)) {
-                debug("Init config file %s".formatted(configFile));
+                debug(String.format("Init config file %s", configFile));
                 Files.write(
                         configFile, yamlConfigReader.writeValueAsBytes(new LangStreamCLIConfig()));
             }
@@ -188,9 +188,9 @@ public abstract class BaseCmd implements Runnable {
         Files.createDirectories(dir);
 
         final Path cliYaml = dir.resolve("cli.yaml");
-        debug("Using config file %s".formatted(cliYaml));
+        debug(String.format("Using config file %s", cliYaml));
         if (!Files.exists(cliYaml)) {
-            debug("Init config file %s".formatted(cliYaml));
+            debug(String.format("Init config file %s", cliYaml));
             Files.write(cliYaml, yamlConfigReader.writeValueAsBytes(new LangStreamCLIConfig()));
         }
         return cliYaml.toFile();

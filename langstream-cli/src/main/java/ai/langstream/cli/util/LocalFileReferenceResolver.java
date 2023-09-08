@@ -15,6 +15,8 @@
  */
 package ai.langstream.cli.util;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.IOException;
@@ -81,14 +83,18 @@ public class LocalFileReferenceResolver {
             String content, Function<String, String> readFileContents) throws Exception {
         // first of all, we read te file with a generic YAML parser
         // in order to fail fast if the file is not valid YAML
-        Map<String, Object> map = mapper.readValue(content, Map.class);
+        try {
+            Map<String, Object> map = mapper.readValue(content, Map.class);
 
-        if (!filePlaceHolderPattern.matcher(content).find() && !content.contains("${")) {
-            return content;
+            if (!filePlaceHolderPattern.matcher(content).find() && !content.contains("${")) {
+                return content;
+            }
+
+            resolveFileReferencesInMap(map, readFileContents);
+            return mapper.writeValueAsString(map);
+        } catch (JsonParseException | JsonMappingException error) {
+            throw new IllegalArgumentException("Cannot parse YAML file", error);
         }
-
-        resolveFileReferencesInMap(map, readFileContents);
-        return mapper.writeValueAsString(map);
     }
 
     private static void resolveFileReferencesInList(

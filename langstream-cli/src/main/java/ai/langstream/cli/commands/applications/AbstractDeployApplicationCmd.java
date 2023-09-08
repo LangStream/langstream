@@ -179,16 +179,31 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         final Map<String, Object> contents = new HashMap<>();
         contents.put("app", tempZip);
         if (instanceFile != null) {
-            contents.put(
-                    "instance",
-                    LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
-                            instanceFile.toPath()));
+            try {
+                contents.put(
+                        "instance",
+                        LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
+                                instanceFile.toPath()));
+            } catch (Exception e) {
+                log(
+                        "Failed to resolve instance file references. Please double check the file path: "
+                                + instanceFile.toPath());
+                e.printStackTrace();
+                throw e;
+            }
         }
         if (secretsFile != null) {
-            contents.put(
-                    "secrets",
-                    LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
-                            secretsFile.toPath()));
+            try {
+                contents.put(
+                        "secrets",
+                        LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
+                                secretsFile.toPath()));
+            } catch (Exception e) {
+                log(
+                        "Failed to resolve secrets file references. Please double check the file path: "
+                                + secretsFile.toPath());
+                throw e;
+            }
         }
         final MultiPartBodyPublisher bodyPublisher = buildMultipartContentForAppZip(contents);
 

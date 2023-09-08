@@ -93,6 +93,7 @@ public class LangStreamCLI {
             if (cause instanceof HttpRequestFailedException) {
                 return (HttpRequestFailedException) cause;
             }
+            cause = cause.getCause();
         }
     }
 }

@@ -15,7 +15,9 @@
 # limitations under the License.
 #
 
+# Port forward LangStream control plane and Gateway
+pkill -f "kubectl port-forward svc/langstream-control-plane 8090:8090" || true
 kubectl port-forward svc/langstream-control-plane 8090:8090 &
+
+pkill -f "kubectl port-forward svc/langstream-api-gateway 8091:8091" || true
 kubectl port-forward svc/langstream-api-gateway 8091:8091 &
-
-

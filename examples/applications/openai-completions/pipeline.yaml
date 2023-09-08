@@ -31,7 +31,7 @@ pipeline:
     type: "ai-chat-completions"
     output: "history-topic"
     configuration:
-      model: "gpt-35-turbo" # This needs to be set to the model deployment name, not the base name
+      model: "{{{secrets.open-ai.chat-completions-model}}}" # This needs to be set to the model deployment name, not the base name
       # on the log-topic we add a field with the answer
       completion-field: "value.answer"
       # we are also logging the prompt we sent to the LLM

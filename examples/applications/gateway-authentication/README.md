@@ -25,20 +25,12 @@ If you want to enable Google authentication in the gateways, also set the `GOOGL
 
 ```
 export GOOGLE_CLIENT_ID=xxx
-
-echo """
-secrets:
-  - name: google
-    id: google
-    data:
-      client-id: $GOOGLE_CLIENT_ID
-""" > /tmp/secrets.yaml
 ```
 
 Deploy the application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/gateway-authentication -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/gateway-authentication -i examples/instances/kafka-kubernetes.yaml -s -s examples/secrets/secrets.yaml
 ```
 
 ## Start the echo chat-bot without authentication
@@ -100,20 +92,12 @@ The Client Secret is not used by the gateway but you need it in order to generat
 
 ```
 export GITHUB_CLIENT_ID=xxx
-
-echo """
-secrets:
-  - name: github
-    id: github
-    data:
-      client-id: $GITHUB_CLIENT_ID
-""" > /tmp/secrets.yaml
 ```
 
 Deploy the application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/gateway-authentication -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/gateway-authentication -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Get the GitHub token

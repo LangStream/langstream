@@ -252,12 +252,18 @@ public class ApplicationPlaceholderResolver {
         for (Placeholder placeholder : placeholders) {
             escaped = escaped.replace(placeholder.key, placeholder.value);
         }
-        final String result = Mustache.compiler().compile(escaped).execute(context);
-        String finalResult = result;
-        for (Placeholder placeholder : placeholders) {
-            finalResult = finalResult.replace(placeholder.value, placeholder.finalReplacement);
+        try {
+            final String result = Mustache.compiler().compile(escaped).execute(context);
+            String finalResult = result;
+            for (Placeholder placeholder : placeholders) {
+                finalResult = finalResult.replace(placeholder.value, placeholder.finalReplacement);
+            }
+            return finalResult;
+        } catch (com.samskivert.mustache.MustacheException e) {
+            log.error("Error resolving template: {}", template, e);
+            throw new IllegalArgumentException(
+                    "Error resolving template: " + template + " " + e, e);
         }
-        return finalResult;
     }
 
     private static Application deepCopy(Application instance) throws IOException {

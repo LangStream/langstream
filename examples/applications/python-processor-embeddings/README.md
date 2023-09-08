@@ -17,7 +17,7 @@ secrets:
 ```
 ## 
 ```
-./bin/langstream apps deploy test -app examples/applications/python-processor-embeddings -i examples/instances/kafka-kubernetes.yaml -s /tmp/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/python-processor-embeddings -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Start a Producer

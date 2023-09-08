@@ -27,7 +27,7 @@ pipeline:
     type: "compute-ai-embeddings"
     input: "input-topic"
     configuration:
-      model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
+      model: "{{{secrets.open-ai.embeddings-model}}}" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings"
       text: "{{% value.question }}"
       flush-interval: 0

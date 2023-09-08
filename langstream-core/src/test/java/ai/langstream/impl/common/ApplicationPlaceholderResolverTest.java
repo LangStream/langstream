@@ -16,6 +16,7 @@
 package ai.langstream.impl.common;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Resource;
@@ -240,9 +241,14 @@ class ApplicationPlaceholderResolverTest {
                                 null,
                                 null)
                         .getApplication();
-        Assertions.assertThrows(
-                MustacheException.Context.class,
-                () -> ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance));
+        IllegalArgumentException illegalArgumentException =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                ApplicationPlaceholderResolver.resolvePlaceholders(
+                                        applicationInstance));
+
+        assertInstanceOf(MustacheException.Context.class, illegalArgumentException.getCause());
     }
 
     @Test

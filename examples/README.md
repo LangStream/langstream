@@ -21,6 +21,3 @@ In this case you are using Kafka topics on an Astra Streaming tenant, and you ar
 to run your application.
 With this setup you are able to use any Kafka Connect connectors and write Python agents.
 
-If you want to deploy your application on DataStax Astra but using Pulsar IO Functions and connectors, then you 
-can use the 'instances/astra-pulsar.yaml' instance file.
-With this setup you will use Pulsar IO Functions and connectors to run your application.

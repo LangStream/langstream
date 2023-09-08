@@ -4,16 +4,21 @@ This sample application shows how to perform queries against a DataStax AstraDB 
 that is a Cassandra database with Vector Search support.
 
 
-## Get AstraDB Credentials 
+## Configure access to the Vector Database
 
-Get the credentials to access your AstraDB Database:
-- username
-- password
-- [Secure Connect Bundle](https://awesome-astra.github.io/docs/pages/astra/download-scb/#c-procedure)
+Export some ENV variables in order to configure access to the database:
 
-Encode the Secure connect Bundle in base64.
+```
+export ASTRA_TOKEN=...
+export ASTRA_CLIENT_ID=...
+export ASTRA_SECRET=...
+export ASTRA_DATABASE=...
+```
 
-Update the secrets.yaml file with those values.
+You can find the credentials in the Astra DB console when you create a Token.
+
+The examples/secrets/secrets.yaml resolves those environment variables for you.
+When you go in production you are supposed to create a dedicated secrets.yaml file for each environment.
 
 ## Create a "products" table
 

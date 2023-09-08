@@ -24,4 +24,6 @@ configuration:
         clientId: "{{{ secrets.astra.clientId }}}"
         secret: "{{{ secrets.astra.secret }}}"
         secureBundle: "{{{ secrets.astra.secureBundle }}}"
+        database: "{{{ secrets.astra.database }}}"
+        token: "{{{ secrets.astra.token }}}"
 

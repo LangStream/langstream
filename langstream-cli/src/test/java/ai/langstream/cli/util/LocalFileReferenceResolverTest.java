@@ -128,4 +128,37 @@ class LocalFileReferenceResolverTest {
 
         assertEquals(result, "---\n" + "secrets:\n" + "- \"some text\"\n" + "- \"base64:AQID\"\n");
     }
+
+    @Test
+    void testReplaceEnvVariables() throws Exception {
+        String JAVA_HOME = System.getenv("JAVA_HOME");
+        assertNotNull(
+                JAVA_HOME, "This test assumes that you have a JAVA_HOME environment variable");
+
+        String content =
+                "secrets:\n"
+                        + "  - name: some-secret\n"
+                        + "    id: some-id\n"
+                        + "    data:\n"
+                        + "      variable-1-from-env: ${JAVA_HOME:-defaultValue}\n"
+                        + "      variable-2-from-env: ${USE_DEFAULT:-defaultValue}\n"
+                        + "      variable-3-from-env: ${java_home:-defaultValue}\n";
+
+        System.getenv().forEach((k, v) -> System.out.println(k + " = " + v));
+
+        String result =
+                LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(content, (___) -> "");
+        assertEquals(
+                result,
+                "---\n"
+                        + "secrets:\n"
+                        + "- name: \"some-secret\"\n"
+                        + "  id: \"some-id\"\n"
+                        + "  data:\n"
+                        + "    variable-1-from-env: \""
+                        + JAVA_HOME
+                        + "\"\n"
+                        + "    variable-2-from-env: \"defaultValue\"\n"
+                        + "    variable-3-from-env: \"defaultValue\"\n");
+    }
 }

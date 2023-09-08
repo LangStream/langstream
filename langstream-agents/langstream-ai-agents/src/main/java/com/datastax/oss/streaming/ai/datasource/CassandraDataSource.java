@@ -203,14 +203,17 @@ public class CassandraDataSource implements QueryStepDataSource {
         if (password == null) {
             password = ConfigurationUtils.getString("secret", null, dataSourceConfig);
         }
-        String secureBundle = ConfigurationUtils.getString("secureBundle", null, dataSourceConfig);
+        String secureBundle = ConfigurationUtils.getString("secureBundle", "", dataSourceConfig);
         List<String> contactPoints = ConfigurationUtils.getList("contact-points", dataSourceConfig);
         String loadBalancingLocalDc =
                 ConfigurationUtils.getString("loadBalancing-localDc", "", dataSourceConfig);
         int port = ConfigurationUtils.getInteger("port", 9042, dataSourceConfig);
+        log.info("Contact points: {}", contactPoints);
+        log.info("Secure Bundle: {}", secureBundle);
 
         byte[] secureBundleDecoded = null;
-        if (secureBundle != null && !secureBundle.isEmpty()) {
+        if (!secureBundle.isEmpty()) {
+            log.info("Using the Secure Bundle ZIP provided by the configuration");
             // Remove the base64: prefix if present
             if (secureBundle.startsWith("base64:")) {
                 secureBundle = secureBundle.substring("base64:".length());
@@ -222,7 +225,10 @@ public class CassandraDataSource implements QueryStepDataSource {
                     astraDatabase);
             DatabaseClient databaseClient = this.buildAstraClient();
             secureBundleDecoded = downloadSecureBundle(databaseClient);
+        } else {
+            log.info("No secure bundle provided, using the default CQL driver for Cassandra");
         }
+
         CqlSessionBuilder builder = new CqlSessionBuilder().withCodecRegistry(CODEC_REGISTRY);
 
         if (username != null && password != null) {
@@ -258,8 +264,7 @@ public class CassandraDataSource implements QueryStepDataSource {
     public static DatabaseClient buildAstraClient(
             String astraToken, String astraDatabase, String astraEnvironment) {
         if (astraToken.isEmpty() || astraDatabase.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "You must configure both astra-token and astra-database");
+            throw new IllegalArgumentException("You must configure both token and database");
         }
         return new AstraDbClient(astraToken, ApiLocator.AstraEnvironment.valueOf(astraEnvironment))
                 .databaseByName(astraDatabase);

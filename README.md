@@ -74,6 +74,9 @@ kubectl port-forward svc/langstream-api-gateway 8091:8091 &
 
 ## CLI
 
+> **Warning**
+> CLI requires Java 11+ to be already installed on your machine.
+
 ### Installation
 There are multiple ways to install the CLI.
 

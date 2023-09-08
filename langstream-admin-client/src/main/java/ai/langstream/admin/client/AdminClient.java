@@ -15,6 +15,7 @@
  */
 package ai.langstream.admin.client;
 
+import ai.langstream.admin.client.http.HttpClientFacade;
 import ai.langstream.admin.client.http.HttpClientProperties;
 import ai.langstream.admin.client.http.Retry;
 import ai.langstream.admin.client.model.Applications;
@@ -37,8 +38,7 @@ public class AdminClient implements AutoCloseable {
 
     private final AdminClientConfiguration configuration;
     private final AdminClientLogger logger;
-    private ExecutorService executorService;
-    private HttpClient httpClient;
+    private final HttpClientFacade httpClientFacade;
     private HttpClientProperties httpClientProperties;
 
     public AdminClient(
@@ -53,87 +53,35 @@ public class AdminClient implements AutoCloseable {
         this.configuration = adminClientConfiguration;
         this.logger = logger;
         this.httpClientProperties = httpClientProperties;
+        this.httpClientFacade = new HttpClientFacade(logger, httpClientProperties);
     }
 
     protected String getBaseWebServiceUrl() {
         return configuration.getWebServiceUrl();
     }
 
-    public synchronized HttpClient getHttpClient() {
-        if (httpClient == null) {
-            executorService = Executors.newCachedThreadPool();
-            httpClient =
-                    HttpClient.newBuilder()
-                            .executor(executorService)
-                            .connectTimeout(Duration.ofSeconds(30))
-                            .followRedirects(HttpClient.Redirect.ALWAYS)
-                            .build();
-        }
-        return httpClient;
+    public HttpClientFacade getHttpClientFacade() {
+        return httpClientFacade;
+    }
+
+    public HttpClient getHttpClient() {
+        return httpClientFacade.getHttpClient();
     }
 
     public HttpResponse<String> http(HttpRequest httpRequest) throws HttpRequestFailedException {
-        return http(httpRequest, HttpResponse.BodyHandlers.ofString());
+        return httpClientFacade.http(httpRequest);
     }
 
     public <T> HttpResponse<T> http(
             HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler)
             throws HttpRequestFailedException {
-        return http(httpRequest, bodyHandler, httpClientProperties.getRetry().get());
+        return httpClientFacade.http(httpRequest, bodyHandler);
     }
 
     public <T> HttpResponse<T> http(
             HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler, Retry retry)
             throws HttpRequestFailedException {
-
-        try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("sending request: " + httpRequest);
-            }
-            final HttpResponse<T> response = getHttpClient().send(httpRequest, bodyHandler);
-            if (logger.isDebugEnabled()) {
-                logger.debug("received response: " + response);
-            }
-            if (shouldRetry(httpRequest, response, retry, null)) {
-                return http(httpRequest, bodyHandler, retry);
-            }
-            final int status = response.statusCode();
-            if (status >= 200 && status < 300) {
-                return response;
-            }
-            if (status >= 400) {
-                throw new HttpRequestFailedException(httpRequest, response);
-            }
-            throw new RuntimeException("Unexpected status code: " + status);
-        } catch (InterruptedException error) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(error);
-        } catch (ConnectException error) {
-            if (shouldRetry(httpRequest, null, retry, error)) {
-                return http(httpRequest, bodyHandler, retry);
-            }
-            throw new RuntimeException("Cannot connect to " + httpRequest.uri(), error);
-        } catch (IOException error) {
-            if (shouldRetry(httpRequest, null, retry, error)) {
-                return http(httpRequest, bodyHandler, retry);
-            }
-            throw new RuntimeException("Unexpected network error " + error, error);
-        }
-    }
-
-    private <T> boolean shouldRetry(
-            HttpRequest httpRequest, HttpResponse response, Retry retry, Exception error) {
-        final Optional<Long> next = retry.shouldRetryAfter(error, httpRequest, response);
-        if (next.isPresent()) {
-            try {
-                Thread.sleep(next.get());
-            } catch (InterruptedException interruptedException) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(interruptedException);
-            }
-            return true;
-        }
-        return false;
+        return httpClientFacade.http(httpRequest, bodyHandler, retry);
     }
 
     private HttpRequest.Builder withAuth(HttpRequest.Builder builder) {
@@ -317,8 +265,6 @@ public class AdminClient implements AutoCloseable {
 
     @Override
     public void close() {
-        if (executorService != null) {
-            executorService.shutdownNow();
-        }
+        httpClientFacade.close();
     }
 }

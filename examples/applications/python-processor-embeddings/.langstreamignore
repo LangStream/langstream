@@ -28,9 +28,10 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# This folder holds the libs built for the target
-# and we need it in the package
+# These folders hold the libs built for the target
+# and we need them in the package
 !python/lib/
+!java/lib/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

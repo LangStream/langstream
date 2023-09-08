@@ -20,6 +20,8 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
+import ai.langstream.api.model.Resource;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -82,6 +84,11 @@ public interface ComputeClusterRuntime extends AutoCloseable {
             ExecutionPlan physicalApplicationInstance,
             StreamingClusterRuntime streamingClusterRuntime) {
         return null;
+    }
+
+    default Map<String, Object> getResourceImplementation(
+            Resource resource, PluginsRegistry pluginsRegistry) {
+        return new HashMap<>(resource.configuration());
     }
 
     default void close() {}

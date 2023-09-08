@@ -24,6 +24,7 @@ import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.common.AbstractAgentProvider;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -390,7 +391,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             Map<String, Object> originalConfiguration,
             Map<String, Object> configuration,
             Application application,
-            AgentConfiguration agentConfiguration) {
+            AgentConfiguration agentConfiguration,
+            ComputeClusterRuntime computeClusterRuntime,
+            PluginsRegistry pluginsRegistry) {
         List<Map<String, Object>> steps = new ArrayList<>();
         configuration.put("steps", steps);
         Map<String, Object> step = new HashMap<>();
@@ -403,7 +406,12 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
         DataSourceConfigurationGenerator dataSourceConfigurationInjector =
                 (resourceId) ->
-                        generateDataSourceConfiguration(resourceId, application, configuration);
+                        generateDataSourceConfiguration(
+                                resourceId,
+                                application,
+                                configuration,
+                                computeClusterRuntime,
+                                pluginsRegistry);
 
         TopicConfigurationGenerator topicConfigurationGenerator =
                 (topicName) -> {
@@ -427,11 +435,15 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
     }
 
     private void generateAIProvidersConfiguration(
-            Application applicationInstance, Map<String, Object> configuration) {
+            Application applicationInstance,
+            Map<String, Object> configuration,
+            ComputeClusterRuntime clusterRuntime,
+            PluginsRegistry pluginsRegistry) {
         // let the user force the provider or detect it automatically
         String service = (String) configuration.remove("service");
         for (Resource resource : applicationInstance.getResources().values()) {
-            HashMap<String, Object> configurationCopy = new HashMap<>(resource.configuration());
+            Map<String, Object> configurationCopy =
+                    clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
             switch (resource.type()) {
                 case "vertex-configuration":
                     if (service == null || service.equals("vertex")) {
@@ -456,7 +468,11 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
     }
 
     private void generateDataSourceConfiguration(
-            String resourceId, Application applicationInstance, Map<String, Object> configuration) {
+            String resourceId,
+            Application applicationInstance,
+            Map<String, Object> configuration,
+            ComputeClusterRuntime computeClusterRuntime,
+            PluginsRegistry pluginsRegistry) {
         Resource resource = applicationInstance.getResources().get(resourceId);
         log.info("Generating datasource configuration for {}", resourceId);
         if (resource != null) {
@@ -467,7 +483,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             if (configuration.containsKey("datasource")) {
                 throw new IllegalArgumentException("Only one datasource is supported");
             }
-            configuration.put("datasource", new HashMap<>(resource.configuration()));
+            Map<String, Object> resourceImplementation =
+                    computeClusterRuntime.getResourceImplementation(resource, pluginsRegistry);
+            configuration.put("datasource", resourceImplementation);
         } else {
             throw new IllegalArgumentException("Resource " + resourceId + " not found");
         }
@@ -479,20 +497,29 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             Module module,
             Pipeline pipeline,
             ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime) {
+            ComputeClusterRuntime clusterRuntime,
+            PluginsRegistry pluginsRegistry) {
         Map<String, Object> originalConfiguration =
                 super.computeAgentConfiguration(
-                        agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        executionPlan,
+                        clusterRuntime,
+                        pluginsRegistry);
         Map<String, Object> configuration = new HashMap<>();
 
-        generateAIProvidersConfiguration(executionPlan.getApplication(), configuration);
+        generateAIProvidersConfiguration(
+                executionPlan.getApplication(), configuration, clusterRuntime, pluginsRegistry);
 
         generateSteps(
                 module,
                 originalConfiguration,
                 configuration,
                 executionPlan.getApplication(),
-                agentConfiguration);
+                agentConfiguration,
+                clusterRuntime,
+                pluginsRegistry);
         return configuration;
     }
 

@@ -1,0 +1,3 @@
+ai.langstream.impl.resources.VectorDatabaseResourceProvider
+ai.langstream.impl.resources.DataSourceResourceProvider
+ai.langstream.impl.resources.AIProvidersResourceProvider

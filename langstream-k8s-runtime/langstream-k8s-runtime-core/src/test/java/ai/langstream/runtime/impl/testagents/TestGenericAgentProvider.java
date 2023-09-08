@@ -21,6 +21,7 @@ import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.common.AbstractAgentProvider;
 import java.util.List;
 import java.util.Map;
@@ -38,10 +39,16 @@ public class TestGenericAgentProvider extends AbstractAgentProvider {
             Module module,
             Pipeline pipeline,
             ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime) {
+            ComputeClusterRuntime clusterRuntime,
+            PluginsRegistry pluginsRegistry) {
         Map<String, Object> copy =
                 super.computeAgentConfiguration(
-                        agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        executionPlan,
+                        clusterRuntime,
+                        pluginsRegistry);
         // TODO.....
         return copy;
     }

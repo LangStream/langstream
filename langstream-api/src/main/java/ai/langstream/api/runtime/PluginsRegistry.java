@@ -69,4 +69,29 @@ public class PluginsRegistry {
                                                         + clusterRuntime.getClusterType()));
         return assetRuntimeProviderProvider.get();
     }
+
+    public ResourceNodeProvider lookupResourceImplementation(
+            String type, ComputeClusterRuntime clusterRuntime) {
+        log.info(
+                "Looking for an implementation of resource type {} on {}",
+                type,
+                clusterRuntime.getClusterType());
+        ServiceLoader<ResourceNodeProvider> loader = ServiceLoader.load(ResourceNodeProvider.class);
+        ServiceLoader.Provider<ResourceNodeProvider> runtimeProviderProvider =
+                loader.stream()
+                        .filter(
+                                p -> {
+                                    ResourceNodeProvider nodeProvider = p.get();
+                                    return nodeProvider.supports(type, clusterRuntime);
+                                })
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new RuntimeException(
+                                                "No ResourceNodeProvider found for resource type "
+                                                        + type
+                                                        + " for cluster type "
+                                                        + clusterRuntime.getClusterType()));
+        return runtimeProviderProvider.get();
+    }
 }

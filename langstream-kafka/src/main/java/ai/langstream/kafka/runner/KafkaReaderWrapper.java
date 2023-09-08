@@ -43,7 +43,7 @@ class KafkaReaderWrapper implements TopicReader {
     private final Map<String, Object> configuration;
     private final String topicName;
     private final TopicOffsetPosition initialPosition;
-    KafkaConsumer consumer;
+    KafkaConsumer<?, ?> consumer;
 
     public KafkaReaderWrapper(
             Map<String, Object> configuration,
@@ -117,7 +117,7 @@ class KafkaReaderWrapper implements TopicReader {
         for (ConsumerRecord<?, ?> record : poll) {
             records.add(KafkaRecord.fromKafkaConsumerRecord(record));
         }
-        final Set assignment = consumer.assignment();
+        final Set<TopicPartition> assignment = consumer.assignment();
         if (!records.isEmpty()) {
             log.info("Received {} records from Kafka topics {}", records.size(), assignment);
         }

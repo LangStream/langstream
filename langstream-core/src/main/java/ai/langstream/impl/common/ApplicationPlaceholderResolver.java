@@ -261,7 +261,8 @@ public class ApplicationPlaceholderResolver {
             return finalResult;
         } catch (com.samskivert.mustache.MustacheException e) {
             log.error("Error resolving template: {}", template, e);
-            throw new IllegalArgumentException("Error resolving template: " + template + " " + e, e);
+            throw new IllegalArgumentException(
+                    "Error resolving template: " + template + " " + e, e);
         }
     }
 

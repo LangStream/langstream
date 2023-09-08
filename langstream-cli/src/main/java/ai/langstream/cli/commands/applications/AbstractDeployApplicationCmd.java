@@ -15,7 +15,6 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import ai.langstream.admin.client.AdminClient;
 import ai.langstream.admin.client.HttpRequestFailedException;
 import ai.langstream.admin.client.http.HttpClientFacade;
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
@@ -344,8 +343,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             return null;
         }
         if (path.startsWith("http://")) {
-            throw new IllegalArgumentException(
-                    "http is not supported. Please use https instead.");
+            throw new IllegalArgumentException("http is not supported. Please use https instead.");
         }
         if (path.startsWith("https://")) {
             return downloadHttpsFile(path, getClient().getHttpClientFacade(), this::log);
@@ -376,11 +374,11 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         if (response.statusCode() >= 400) {
             throw new RuntimeException(
                     "Failed to download file: "
-                    + path
-                    + "\nReceived status code: "
-                    + response.statusCode()
-                    + "\n"
-                    + response.body());
+                            + path
+                            + "\nReceived status code: "
+                            + response.statusCode()
+                            + "\n"
+                            + response.body());
         }
         Files.write(tempFile, response.body());
         final long time = (System.currentTimeMillis() - start) / 1000;

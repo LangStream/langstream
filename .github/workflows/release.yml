@@ -60,4 +60,4 @@ jobs:
           artifacts: "langstream-cli/target/langstream-*.zip,helm/crds/*.yml"
           token: ${{ secrets.GITHUB_TOKEN }}
           generateReleaseNotes: true
-          prerelease: true
+          prerelease: false

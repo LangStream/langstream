@@ -48,7 +48,7 @@
     <dependency>
       <groupId>com.datastax.astra</groupId>
       <artifactId>astra-sdk-devops</artifactId>
-      <version>0.6.8</version>
+      <version>0.6.9</version>
     </dependency>
     <dependency>
       <!-- Transform Function -->

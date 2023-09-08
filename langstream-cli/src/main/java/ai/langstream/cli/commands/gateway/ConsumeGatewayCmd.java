@@ -47,6 +47,22 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
     private String credentials;
 
     @CommandLine.Option(
+            names = {"-ac", "--admin-credentials"},
+            description =
+                    "Admin credentials for the gateway.")
+    private String adminCredentials;
+
+    @CommandLine.Option(
+            names = {"-act", "--admin-credentials-type"},
+            description = "Admin credentials type for the gateway.")
+    private String adminCredentialsType;
+
+    @CommandLine.Option(
+            names = {"-aci", "--admin-credentials-input"},
+            description = "Admin credentials type for the gateway.")
+    private Map<String, String> adminCredentialsInputs;
+
+    @CommandLine.Option(
             names = {"--position"},
             description =
                     "Initial position of the consumer. \"latest\", \"earliest\" or a offset value. "
@@ -77,7 +93,10 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
                         Gateways.Gateway.TYPE_CONSUME,
                         params,
                         options,
-                        credentials);
+                        credentials,
+                        adminCredentials,
+                        adminCredentialsType,
+                        adminCredentialsInputs);
 
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;

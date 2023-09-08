@@ -34,7 +34,8 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
     protected static final ObjectMapper messageMapper = new ObjectMapper();
 
-    @CommandLine.ParentCommand private RootGatewayCmd cmd;
+    @CommandLine.ParentCommand
+    private RootGatewayCmd cmd;
 
     @Override
     protected RootCmd getRootCmd() {
@@ -42,9 +43,10 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     }
 
     private static String computeQueryString(
-            String credentials, Map<String, String> userParams, Map<String, String> options) {
+            Map<String, String> systemParams, Map<String, String> userParams, Map<String, String> options) {
         String paramsPart = "";
         String optionsPart = "";
+        String systemParamsPart = "";
         if (userParams != null) {
             paramsPart =
                     userParams.entrySet().stream()
@@ -59,12 +61,16 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                             .collect(Collectors.joining("&"));
         }
 
-        String credentialsPart = "";
-        if (credentials != null) {
-            credentialsPart = encodeParam("credentials", credentials, "");
+
+        if (systemParams != null) {
+            systemParamsPart =
+                    systemParams.entrySet().stream()
+                            .map(e -> encodeParam(e, ""))
+                            .collect(Collectors.joining("&"));
         }
 
-        return String.join("&", List.of(credentialsPart, paramsPart, optionsPart));
+
+        return String.join("&", List.of(systemParamsPart, paramsPart, optionsPart));
     }
 
     private static String encodeParam(Map.Entry<String, String> e, String prefix) {
@@ -83,8 +89,29 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             String type,
             Map<String, String> params,
             Map<String, String> options,
-            String credentials) {
-        validateGateway(applicationId, gatewayId, type, params, options, credentials);
+            String credentials,
+            String adminCredentials,
+            String adminCredentialsType,
+            Map<String, String> adminCredentialsInputs) {
+        validateGateway(applicationId, gatewayId, type, params, options, credentials, adminCredentials,
+                adminCredentialsType, adminCredentialsInputs);
+
+        Map<String, String> systemParams = new HashMap<>();
+        if (credentials != null) {
+            systemParams.put("credentials", credentials);
+        }
+        if (adminCredentials != null) {
+            systemParams.put("admin-credentials", adminCredentials);
+        }
+        if (adminCredentialsType != null) {
+            systemParams.put("admin-credentials-type", adminCredentialsType);
+        }
+        if (adminCredentialsInputs != null) {
+            for (Map.Entry<String, String> adminInput : adminCredentialsInputs.entrySet()) {
+                systemParams.put("admin-credentials-input-" + adminInput.getKey(), adminInput.getValue());
+            }
+        }
+
         return String.format(
                 "%s/v1/%s/%s/%s/%s?%s",
                 getApiGatewayUrl(),
@@ -92,7 +119,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                 getTenant(),
                 applicationId,
                 gatewayId,
-                computeQueryString(credentials, params, options));
+                computeQueryString(systemParams, params, options));
     }
 
     private String getTenant() {
@@ -112,7 +139,10 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             String type,
             Map<String, String> params,
             Map<String, String> options,
-            String credentials) {
+            String credentials,
+            String adminCredentials,
+            String adminCredentialsType,
+            Map<String, String> adminCredentialsInputs) {
 
         final AdminClient client = getClient();
 
@@ -136,10 +166,10 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         if (selectedGateway == null) {
             throw new IllegalArgumentException(
                     "gateway "
-                            + gatewayId
-                            + " of type "
-                            + type
-                            + " is not defined in the application");
+                    + gatewayId
+                    + " of type "
+                    + type
+                    + " is not defined in the application");
         }
         final List<String> requiredParameters = selectedGateway.getParameters();
         if (requiredParameters != null) {
@@ -147,18 +177,26 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                 if (params == null || !params.containsKey(requiredParameter)) {
                     throw new IllegalArgumentException(
                             "gateway "
-                                    + gatewayId
-                                    + " of type "
-                                    + type
-                                    + " requires parameter "
-                                    + requiredParameter);
+                            + gatewayId
+                            + " of type "
+                            + type
+                            + " requires parameter "
+                            + requiredParameter);
                 }
             }
         }
         if (selectedGateway.getAuthentication() != null) {
-            if (credentials == null) {
+            if (credentials == null && adminCredentials == null) {
                 throw new IllegalArgumentException(
                         "gateway " + gatewayId + " of type " + type + " requires credentials");
+            }
+            if (adminCredentials != null) {
+                final Object allowAdminRequests = selectedGateway.getAuthentication().get("allow-admin-requests");
+                if (allowAdminRequests != null && allowAdminRequests.toString().equals("false")) {
+                    throw new IllegalArgumentException(
+                            "gateway " + gatewayId + " of type " + type + " do not allow admin requests");
+
+                }
             }
         }
     }

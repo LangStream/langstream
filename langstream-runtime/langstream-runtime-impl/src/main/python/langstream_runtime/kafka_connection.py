@@ -32,6 +32,7 @@ from .kafka_serialization import (
     FLOAT_SERIALIZER,
     DOUBLE_SERIALIZER,
     BYTEARRAY_SERIALIZER,
+    JSON_SERIALIZER,
     STRING_DESERIALIZER,
     BOOLEAN_DESERIALIZER,
     SHORT_DESERIALIZER,
@@ -142,6 +143,8 @@ def get_serializer(value):
         return LONG_SERIALIZER
     elif isinstance(value, float):
         return DOUBLE_SERIALIZER
+    elif isinstance(value, dict) or isinstance(value, list):
+        return JSON_SERIALIZER
     else:
         raise TypeError(f"No serializer for type {type(value)}")
 

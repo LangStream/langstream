@@ -81,6 +81,11 @@ public abstract class BaseCmd implements Runnable {
                         }
 
                         @Override
+                        public boolean isDebugEnabled() {
+                            return getRootCmd().isVerbose();
+                        }
+
+                        @Override
                         public void debug(Object message) {
                             BaseCmd.this.debug(message);
                         }

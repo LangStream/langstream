@@ -85,6 +85,11 @@ public class AgentCodeDownloader {
                     }
 
                     @Override
+                    public boolean isDebugEnabled() {
+                        return log.isDebugEnabled();
+                    }
+
+                    @Override
                     public void debug(Object message) {
                         log.debug(message.toString());
                     }

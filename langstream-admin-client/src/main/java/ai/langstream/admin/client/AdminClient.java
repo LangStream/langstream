@@ -15,30 +15,24 @@
  */
 package ai.langstream.admin.client;
 
+import ai.langstream.admin.client.http.HttpClientFacade;
 import ai.langstream.admin.client.http.HttpClientProperties;
 import ai.langstream.admin.client.http.Retry;
 import ai.langstream.admin.client.model.Applications;
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
-import java.io.IOException;
-import java.net.ConnectException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import lombok.SneakyThrows;
 
 public class AdminClient implements AutoCloseable {
 
     private final AdminClientConfiguration configuration;
     private final AdminClientLogger logger;
-    private ExecutorService executorService;
-    private HttpClient httpClient;
+    private final HttpClientFacade httpClientFacade;
     private HttpClientProperties httpClientProperties;
 
     public AdminClient(
@@ -53,84 +47,35 @@ public class AdminClient implements AutoCloseable {
         this.configuration = adminClientConfiguration;
         this.logger = logger;
         this.httpClientProperties = httpClientProperties;
+        this.httpClientFacade = new HttpClientFacade(logger, httpClientProperties);
     }
 
     protected String getBaseWebServiceUrl() {
         return configuration.getWebServiceUrl();
     }
 
-    public synchronized HttpClient getHttpClient() {
-        if (httpClient == null) {
-            executorService = Executors.newCachedThreadPool();
-            httpClient =
-                    HttpClient.newBuilder()
-                            .executor(executorService)
-                            .connectTimeout(Duration.ofSeconds(30))
-                            .followRedirects(HttpClient.Redirect.ALWAYS)
-                            .build();
-        }
-        return httpClient;
+    public HttpClientFacade getHttpClientFacade() {
+        return httpClientFacade;
     }
 
-    @SneakyThrows
-    public HttpResponse<String> http(HttpRequest httpRequest) {
-        return http(httpRequest, HttpResponse.BodyHandlers.ofString());
+    public HttpClient getHttpClient() {
+        return httpClientFacade.getHttpClient();
+    }
+
+    public HttpResponse<String> http(HttpRequest httpRequest) throws HttpRequestFailedException {
+        return httpClientFacade.http(httpRequest);
     }
 
     public <T> HttpResponse<T> http(
-            HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler) {
-        return http(httpRequest, bodyHandler, httpClientProperties.getRetry().get());
+            HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler)
+            throws HttpRequestFailedException {
+        return httpClientFacade.http(httpRequest, bodyHandler);
     }
 
     public <T> HttpResponse<T> http(
-            HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler, Retry retry) {
-
-        try {
-            final HttpResponse<T> response = getHttpClient().send(httpRequest, bodyHandler);
-            if (shouldRetry(httpRequest, response, retry, null)) {
-                return http(httpRequest, bodyHandler, retry);
-            }
-            final int status = response.statusCode();
-            if (status >= 200 && status < 300) {
-                return response;
-            }
-            if (status >= 400) {
-                final T body = response.body();
-                if (body != null) {
-                    logger.error(body);
-                }
-                throw new RuntimeException("Request failed: " + response.statusCode());
-            }
-            throw new RuntimeException("Unexpected status code: " + status);
-        } catch (InterruptedException error) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(error);
-        } catch (ConnectException error) {
-            if (shouldRetry(httpRequest, null, retry, error)) {
-                return http(httpRequest, bodyHandler, retry);
-            }
-            throw new RuntimeException("Cannot connect to " + httpRequest.uri(), error);
-        } catch (IOException error) {
-            if (shouldRetry(httpRequest, null, retry, error)) {
-                return http(httpRequest, bodyHandler, retry);
-            }
-            throw new RuntimeException("Unexpected network error " + error, error);
-        }
-    }
-
-    private <T> boolean shouldRetry(
-            HttpRequest httpRequest, HttpResponse response, Retry retry, Exception error) {
-        final Optional<Long> next = retry.shouldRetryAfter(error, httpRequest, response);
-        if (next.isPresent()) {
-            try {
-                Thread.sleep(next.get());
-            } catch (InterruptedException interruptedException) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(interruptedException);
-            }
-            return true;
-        }
-        return false;
+            HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler, Retry retry)
+            throws HttpRequestFailedException {
+        return httpClientFacade.http(httpRequest, bodyHandler, retry);
     }
 
     private HttpRequest.Builder withAuth(HttpRequest.Builder builder) {
@@ -232,6 +177,7 @@ public class AdminClient implements AutoCloseable {
 
     private class ApplicationsImpl implements Applications {
         @Override
+        @SneakyThrows
         public void deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
             final String path = tenantAppPath("/" + application);
             final String contentType =
@@ -243,6 +189,7 @@ public class AdminClient implements AutoCloseable {
         }
 
         @Override
+        @SneakyThrows
         public void update(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
             final String path = tenantAppPath("/" + application);
             final String contentType =
@@ -254,16 +201,19 @@ public class AdminClient implements AutoCloseable {
         }
 
         @Override
+        @SneakyThrows
         public void delete(String application) {
             http(newDelete(tenantAppPath("/" + application)));
         }
 
         @Override
+        @SneakyThrows
         public String get(String application, boolean stats) {
             return http(newGet(tenantAppPath("/" + application + "?stats=" + stats))).body();
         }
 
         @Override
+        @SneakyThrows
         public String list() {
             return http(newGet(tenantAppPath(""))).body();
         }
@@ -285,6 +235,7 @@ public class AdminClient implements AutoCloseable {
         }
 
         @Override
+        @SneakyThrows
         public <T> HttpResponse<T> download(
                 String application,
                 String codeArchiveId,
@@ -298,6 +249,7 @@ public class AdminClient implements AutoCloseable {
         }
 
         @Override
+        @SneakyThrows
         public String getCodeInfo(String application, String codeArchiveId) {
             final String path =
                     tenantAppPath("/" + application + "/code/" + codeArchiveId + "/info");
@@ -307,8 +259,6 @@ public class AdminClient implements AutoCloseable {
 
     @Override
     public void close() {
-        if (executorService != null) {
-            executorService.shutdownNow();
-        }
+        httpClientFacade.close();
     }
 }

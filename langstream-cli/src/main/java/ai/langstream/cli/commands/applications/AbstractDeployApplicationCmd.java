@@ -15,12 +15,16 @@
  */
 package ai.langstream.cli.commands.applications;
 
+import ai.langstream.admin.client.HttpRequestFailedException;
+import ai.langstream.admin.client.http.HttpClientFacade;
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
@@ -150,9 +154,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final File appDirectory = checkFileExists(appPath());
-        final File instanceFile = checkFileExists(instanceFilePath());
-        final File secretsFile = checkFileExists(secretFilePath());
+        final File appDirectory = checkFileExistsOrDownload(appPath());
+        final File instanceFile = checkFileExistsOrDownload(instanceFilePath());
+        final File secretsFile = checkFileExistsOrDownload(secretFilePath());
         final String applicationId = applicationId();
 
         if (isUpdate() && appDirectory == null && instanceFile == null && secretsFile == null) {
@@ -333,15 +337,53 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         logger.accept("app packaged");
     }
 
-    private File checkFileExists(String path) {
+    @SneakyThrows
+    private File checkFileExistsOrDownload(String path) {
         if (path == null) {
             return null;
+        }
+        if (path.startsWith("http://")) {
+            throw new IllegalArgumentException("http is not supported. Please use https instead.");
+        }
+        if (path.startsWith("https://")) {
+            return downloadHttpsFile(path, getClient().getHttpClientFacade(), this::log);
+        }
+        if (path.startsWith("file://")) {
+            path = path.substring("file://".length());
         }
         final File file = new File(path);
         if (!file.exists()) {
             throw new RuntimeException("File " + path + " does not exist");
         }
         return file;
+    }
+
+    static File downloadHttpsFile(String path, HttpClientFacade client, Consumer<String> logger)
+            throws IOException, HttpRequestFailedException {
+        final HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(URI.create(path))
+                        .version(HttpClient.Version.HTTP_1_1)
+                        .GET()
+                        .build();
+        final Path tempFile = Files.createTempFile("langstream", ".bin");
+        final long start = System.currentTimeMillis();
+        // use HttpResponse.BodyHandlers.ofByteArray() to get cleaner error messages
+        final HttpResponse<byte[]> response =
+                client.http(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException(
+                    "Failed to download file: "
+                            + path
+                            + "\nReceived status code: "
+                            + response.statusCode()
+                            + "\n"
+                            + response.body());
+        }
+        Files.write(tempFile, response.body());
+        final long time = (System.currentTimeMillis() - start) / 1000;
+        logger.accept(String.format("downloaded remote file %s (%d s)", path, time));
+        return tempFile.toFile();
     }
 
     public static MultiPartBodyPublisher buildMultipartContentForAppZip(

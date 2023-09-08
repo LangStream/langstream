@@ -15,12 +15,17 @@
  */
 package ai.langstream.admin.client;
 
-public interface AdminClientLogger {
-    void log(Object message);
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import lombok.Getter;
 
-    void error(Object message);
+@Getter
+public class HttpRequestFailedException extends Exception {
+    private final HttpRequest request;
+    private final HttpResponse<?> response;
 
-    boolean isDebugEnabled();
-
-    void debug(Object message);
+    public HttpRequestFailedException(HttpRequest request, HttpResponse<?> response) {
+        this.request = request;
+        this.response = response;
+    }
 }

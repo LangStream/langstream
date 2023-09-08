@@ -21,6 +21,7 @@ import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
+import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.AgentNodeProvider;
@@ -32,8 +33,10 @@ import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.ExecutionPlanOptimiser;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.runtime.ResourceNodeProvider;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
+import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -141,6 +144,15 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                 }
             }
         }
+    }
+
+    @Override
+    public Map<String, Object> getResourceImplementation(
+            Resource resource, PluginsRegistry pluginsRegistry) {
+        ResourceNodeProvider nodeProvider =
+                pluginsRegistry.lookupResourceImplementation(resource.type(), this);
+        // TODO: validate resource
+        return new HashMap<>(resource.configuration());
     }
 
     protected AgentNode buildAgent(

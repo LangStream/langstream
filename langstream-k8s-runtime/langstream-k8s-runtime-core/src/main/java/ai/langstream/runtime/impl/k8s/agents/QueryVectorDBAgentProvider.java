@@ -23,9 +23,9 @@ import ai.langstream.api.model.Resource;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,10 +55,16 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
             Module module,
             Pipeline pipeline,
             ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime) {
+            ComputeClusterRuntime clusterRuntime,
+            PluginsRegistry pluginsRegistry) {
         Map<String, Object> originalConfiguration =
                 super.computeAgentConfiguration(
-                        agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        executionPlan,
+                        clusterRuntime,
+                        pluginsRegistry);
 
         // get the datasource configuration and inject it into the agent configuration
         String resourceId = (String) originalConfiguration.remove("datasource");
@@ -72,17 +78,27 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
                             + agentConfiguration.getId());
         }
         generateDataSourceConfiguration(
-                resourceId, executionPlan.getApplication(), originalConfiguration);
+                resourceId,
+                executionPlan.getApplication(),
+                originalConfiguration,
+                clusterRuntime,
+                pluginsRegistry);
 
         return originalConfiguration;
     }
 
     private void generateDataSourceConfiguration(
-            String resourceId, Application applicationInstance, Map<String, Object> configuration) {
+            String resourceId,
+            Application applicationInstance,
+            Map<String, Object> configuration,
+            ComputeClusterRuntime computeClusterRuntime,
+            PluginsRegistry pluginsRegistry) {
 
         Resource resource = applicationInstance.getResources().get(resourceId);
         log.info("Generating datasource configuration for {}", resourceId);
         if (resource != null) {
+            Map<String, Object> resourceImplementation =
+                    computeClusterRuntime.getResourceImplementation(resource, pluginsRegistry);
             if (!resource.type().equals("datasource")
                     && !resource.type().equals("vector-database")) {
                 throw new IllegalArgumentException(
@@ -93,7 +109,7 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
             if (configuration.containsKey("datasource")) {
                 throw new IllegalArgumentException("Only one datasource is supported");
             }
-            configuration.put("datasource", new HashMap<>(resource.configuration()));
+            configuration.put("datasource", resourceImplementation);
         } else {
             throw new IllegalArgumentException("Resource " + resourceId + " not found");
         }

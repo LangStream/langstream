@@ -45,7 +45,12 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
             ExecutionPlan executionPlan,
             ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
-        Map<String, Object> asset = planAsset(assetDefinition, executionPlan.getApplication());
+        Map<String, Object> asset =
+                planAsset(
+                        assetDefinition,
+                        executionPlan.getApplication(),
+                        clusterRuntime,
+                        pluginsRegistry);
         validateAsset(assetDefinition, asset);
         return new AssetNode(asset);
     }
@@ -54,7 +59,10 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
             AssetDefinition assetDefinition, Map<String, Object> asset);
 
     private Map<String, Object> planAsset(
-            AssetDefinition assetDefinition, Application application) {
+            AssetDefinition assetDefinition,
+            Application application,
+            ComputeClusterRuntime computeClusterRuntime,
+            PluginsRegistry pluginsRegistry) {
 
         if (!supportedType.contains(assetDefinition.getAssetType())) {
             throw new IllegalStateException();
@@ -81,7 +89,10 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
                                                     key);
                                     Resource resource = resources.get(resourceId);
                                     if (resource != null) {
-                                        value = Map.of("configuration", resource.configuration());
+                                        Map<String, Object> resourceImplementation =
+                                                computeClusterRuntime.getResourceImplementation(
+                                                        resource, pluginsRegistry);
+                                        value = Map.of("configuration", resourceImplementation);
                                     } else {
                                         throw new IllegalArgumentException(
                                                 "Resource with name="

@@ -121,7 +121,8 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
             Module module,
             Pipeline pipeline,
             ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime) {
+            ComputeClusterRuntime clusterRuntime,
+            PluginsRegistry pluginsRegistry) {
         return new HashMap<>(agentConfiguration.getConfiguration());
     }
 
@@ -141,7 +142,12 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
         ComponentType componentType = getComponentType(agentConfiguration);
         Map<String, Object> configuration =
                 computeAgentConfiguration(
-                        agentConfiguration, module, pipeline, executionPlan, clusterRuntime);
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        executionPlan,
+                        clusterRuntime,
+                        pluginsRegistry);
         // we create the output connection first to make sure that the topic is created
         ConnectionImplementation output =
                 computeOutput(

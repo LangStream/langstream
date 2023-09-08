@@ -42,4 +42,26 @@ public class GatewayAuthenticationProviderRegistry {
         store.initialize(configuration);
         return store;
     }
+
+    public static GatewayAdminAuthenticationProvider loadAdminProvider(
+            String type, Map<String, Object> configuration) {
+        Objects.requireNonNull(type, "type cannot be null");
+        if (configuration == null) {
+            configuration = Map.of();
+        }
+        ServiceLoader<GatewayAdminAuthenticationProvider> loader =
+                ServiceLoader.load(GatewayAdminAuthenticationProvider.class);
+        final GatewayAdminAuthenticationProvider store =
+                loader.stream()
+                        .filter(p -> type.equals(p.get().type()))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new RuntimeException(
+                                                "No GatewayAdminAuthenticationProvider found for type "
+                                                + type))
+                        .get();
+        store.initialize(configuration);
+        return store;
+    }
 }

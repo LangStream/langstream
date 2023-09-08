@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.webservice.security.infrastructure.primary;
+package ai.langstream.auth.jwt;
 
-import ai.langstream.webservice.config.AuthTokenProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtException;
@@ -59,7 +58,7 @@ public class AuthenticationProviderToken {
     private final String audienceClaim;
     private final String audience;
 
-    public AuthenticationProviderToken(AuthTokenProperties tokenProperties)
+    public AuthenticationProviderToken(JwtProperties tokenProperties)
             throws IOException, IllegalArgumentException {
         this.publicKeyAlg = getPublicKeyAlgType(tokenProperties);
         parser =
@@ -151,7 +150,7 @@ public class AuthenticationProviderToken {
         }
     }
 
-    private Key getValidationKeyFromConfig(AuthTokenProperties tokenProperties) throws IOException {
+    private Key getValidationKeyFromConfig(JwtProperties tokenProperties) throws IOException {
         String tokenSecretKey = tokenProperties.secretKey();
         String tokenPublicKey = tokenProperties.publicKey();
         byte[] validationKey;
@@ -196,12 +195,12 @@ public class AuthenticationProviderToken {
         return Keys.hmacShaKeyFor(secretKey);
     }
 
-    private String getTokenRoleClaim(AuthTokenProperties tokenProperties) {
+    private String getTokenRoleClaim(JwtProperties tokenProperties) {
         String tokenAuthClaim = tokenProperties.authClaim();
         return StringUtils.isNotBlank(tokenAuthClaim) ? tokenAuthClaim : "sub";
     }
 
-    private SignatureAlgorithm getPublicKeyAlgType(AuthTokenProperties tokenProperties)
+    private SignatureAlgorithm getPublicKeyAlgType(JwtProperties tokenProperties)
             throws IllegalArgumentException {
         String tokenPublicAlg = tokenProperties.publicAlg();
         if (StringUtils.isNotBlank(tokenPublicAlg)) {
@@ -238,13 +237,13 @@ public class AuthenticationProviderToken {
         }
     }
 
-    private String getTokenAudienceClaim(AuthTokenProperties tokenProperties)
+    private String getTokenAudienceClaim(JwtProperties tokenProperties)
             throws IllegalArgumentException {
         String tokenAudienceClaim = tokenProperties.audienceClaim();
         return StringUtils.isNotBlank(tokenAudienceClaim) ? tokenAudienceClaim : null;
     }
 
-    private String getTokenAudience(AuthTokenProperties tokenProperties)
+    private String getTokenAudience(JwtProperties tokenProperties)
             throws IllegalArgumentException {
         String tokenAudience = tokenProperties.audience();
         return StringUtils.isNotBlank(tokenAudience) ? tokenAudience : null;

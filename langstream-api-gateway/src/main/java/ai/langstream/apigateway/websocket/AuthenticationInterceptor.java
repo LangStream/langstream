@@ -15,16 +15,20 @@
  */
 package ai.langstream.apigateway.websocket;
 
+import ai.langstream.api.gateway.GatewayAdminAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationProviderRegistry;
 import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Gateway;
+import ai.langstream.apigateway.config.GatewayAdminAuthenticationProperties;
 import ai.langstream.apigateway.websocket.handlers.AbstractHandler;
+import ai.langstream.apigateway.websocket.impl.GatewayRequestContextImpl;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -39,6 +43,34 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 
 @Slf4j
 public class AuthenticationInterceptor implements HandshakeInterceptor {
+
+    private final Map<String, GatewayAdminAuthenticationProvider> adminAuthProviders;
+    private final String defaultProvider;
+
+
+    public AuthenticationInterceptor(
+            GatewayAdminAuthenticationProperties adminAuthenticationProperties) {
+        final List<String> types = adminAuthenticationProperties.getTypes();
+        Map<String, GatewayAdminAuthenticationProvider> providers = new HashMap<>();
+        String defaultProvider = null;
+        if (types != null) {
+            for (String type : types) {
+                // preload all admin providers to avoid concurrency, add cache and check configuration sanity
+                final GatewayAdminAuthenticationProvider provider =
+                        GatewayAuthenticationProviderRegistry.loadAdminProvider(
+                                type, adminAuthenticationProperties.getConfiguration().get(type));
+                providers.put(type, provider);
+                if (adminAuthenticationProperties.getDefaultType() != null && adminAuthenticationProperties.getDefaultType().equals(type)) {
+                    defaultProvider = type;
+                }
+            }
+            if (types.size() == 1) {
+                defaultProvider = types.get(0);
+            }
+        }
+        this.adminAuthProviders = providers;
+        this.defaultProvider = defaultProvider;
+    }
 
     @Override
     public boolean beforeHandshake(
@@ -61,7 +93,7 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
             final String path = httpRequest.getURI().getPath();
             final Map<String, String> vars =
                     antPathMatcher.extractUriTemplateVariables(handler.path(), path);
-            final GatewayRequestContext gatewayRequestContext =
+            final GatewayRequestContextImpl gatewayRequestContext =
                     handler.validateRequest(
                             vars, querystring, request.getHeaders().toSingleValueMap());
 
@@ -100,30 +132,61 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
         }
     }
 
-    private Map<String, String> authenticate(GatewayRequestContext gatewayRequestContext)
+    private Map<String, String> authenticate(GatewayRequestContextImpl gatewayRequestContext)
             throws AuthFailedException {
+
         final Gateway.Authentication authentication =
                 gatewayRequestContext.gateway().authentication();
-        final Map<String, String> principalValues;
-        if (authentication != null) {
-            final String provider = authentication.provider();
 
-            final GatewayAuthenticationProvider authenticationProvider =
-                    GatewayAuthenticationProviderRegistry.loadProvider(
-                            provider, authentication.configuration());
-            final GatewayAuthenticationResult result =
-                    authenticationProvider.authenticate(gatewayRequestContext);
-            if (!result.authenticated()) {
-                throw new AuthFailedException(result.reason());
-            }
-            principalValues = result.principalValues();
-        } else {
-            principalValues = Map.of();
-        }
-        if (principalValues == null) {
+        if (authentication == null) {
             return Map.of();
         }
-        return principalValues;
+
+        final GatewayAuthenticationResult result;
+        if (gatewayRequestContext.isAdminRequest()) {
+            if (!authentication.allowAdminRequests()) {
+                throw new AuthFailedException("Gateway " + gatewayRequestContext.gateway().id()
+                        + " of tenant " + gatewayRequestContext.tenant() + " does not allow admin requests.");
+            }
+            String provider = gatewayRequestContext.adminCredentialsType();
+            if (provider == null && defaultProvider != null) {
+                provider = defaultProvider;
+            }
+            if (provider == null) {
+                throw new AuthFailedException("No admin auth provider specified");
+            }
+
+            final GatewayAdminAuthenticationProvider gatewayAdminAuthenticationProvider =
+                    adminAuthProviders.get(provider);
+            if (gatewayAdminAuthenticationProvider == null) {
+                throw new AuthFailedException("Unknown admin auth provider " + provider);
+            }
+            result = gatewayAdminAuthenticationProvider.authenticate(gatewayRequestContext);
+        } else {
+
+            if (authentication != null)  {
+                final String provider = authentication.provider();
+
+                final GatewayAuthenticationProvider authenticationProvider =
+                        GatewayAuthenticationProviderRegistry.loadProvider(
+                                provider, authentication.configuration());
+                result =
+                        authenticationProvider.authenticate(gatewayRequestContext);
+            } else {
+                result = null;
+            }
+        }
+        if (result == null) {
+            return Map.of();
+        }
+        if (!result.authenticated()) {
+            throw new AuthFailedException(result.reason());
+        }
+        final Map<String, String> values = result.principalValues();
+        if (values == null) {
+            return Map.of();
+        }
+        return values;
     }
 
     private AuthenticatedGatewayRequestContext getAuthenticatedGatewayRequestContext(

@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 
 import ai.langstream.api.events.EventRecord;
@@ -36,6 +37,7 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.config.GatewayAdminAuthenticationProperties;
 import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
 import ai.langstream.apigateway.websocket.api.ProduceRequest;
 import ai.langstream.apigateway.websocket.api.ProduceResponse;
@@ -45,10 +47,15 @@ import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import jakarta.websocket.CloseReason;
 import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Session;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -62,9 +69,11 @@ import lombok.SneakyThrows;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
@@ -77,7 +86,10 @@ import org.springframework.context.annotation.Primary;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"spring.main.allow-bean-definition-overriding=true"})
+        properties = {
+                "spring.main.allow-bean-definition-overriding=true",
+        })
+@WireMockTest
 class ProduceConsumeHandlerTest {
 
     protected static final ObjectMapper MAPPER = new ObjectMapper();
@@ -87,6 +99,7 @@ class ProduceConsumeHandlerTest {
 
     static List<String> topics;
     static Gateways testGateways;
+
 
     @TestConfiguration
     public static class WebSocketTestConfig {
@@ -110,6 +123,21 @@ class ProduceConsumeHandlerTest {
 
             return mock;
         }
+
+        @Bean
+        @Primary
+        public GatewayAdminAuthenticationProperties gatewayAdminAuthenticationProperties() {
+            final GatewayAdminAuthenticationProperties props =
+                    new GatewayAdminAuthenticationProperties();
+            props.setTypes(List.of("http"));
+            props.setConfiguration(Map.of("http", Map.of(
+                    "base-url", wireMockBaseUrl,
+                    "path-template", "/auth/{tenant}",
+                    "headers", Map.of("h1", "v1")
+            )));
+            return props;
+        }
+
     }
 
     @NotNull
@@ -158,8 +186,17 @@ class ProduceConsumeHandlerTest {
 
     @Autowired ApplicationStore store;
 
+    static WireMock wireMock;
+    static String wireMockBaseUrl;
+
+    @BeforeAll
+    public static void beforeAll(WireMockRuntimeInfo wmRuntimeInfo) {
+        wireMock = wmRuntimeInfo.getWireMock();
+        wireMockBaseUrl = wmRuntimeInfo.getHttpBaseUrl();
+    }
+
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach(WireMockRuntimeInfo wmRuntimeInfo) {
         testGateways = null;
         topics = null;
         Awaitility.setDefaultTimeout(30, TimeUnit.SECONDS);
@@ -508,6 +545,108 @@ class ProduceConsumeHandlerTest {
                                                         Map.of("header1", "test-user-password"))),
                                         user1Messages));
         assertEquals(List.of(), user2Messages);
+    }
+
+
+    @Test
+    void testAdminAuthentication() {
+        wireMock.register(
+                WireMock.get("/auth/tenant1")
+                        .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
+                        .withHeader("h1", WireMock.equalTo("v1"))
+                        .willReturn(WireMock.ok("")));
+        final String topic = genTopic();
+        prepareTopicsForTest(topic);
+
+        List<String> user1Messages = new ArrayList<>();
+
+        testGateways =
+                new Gateways(
+                        List.of(
+                                new Gateway(
+                                        "produce",
+                                        Gateway.GatewayType.produce,
+                                        topic,
+                                        new Gateway.Authentication("test-auth", Map.of(), true),
+                                        List.of(),
+                                        new Gateway.ProduceOptions(
+                                                List.of(
+                                                        Gateway.KeyValueComparison
+                                                                .valueFromAuthentication(
+                                                                        "header1", "user-id"))),
+                                        null),
+                                new Gateway(
+                                        "consume",
+                                        Gateway.GatewayType.consume,
+                                        topic,
+                                        new Gateway.Authentication("test-auth", Map.of(), true),
+                                        List.of(),
+                                        null,
+                                        new Gateway.ConsumeOptions(
+                                                new Gateway.ConsumeOptionsFilters(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromAuthentication(
+                                                                                "header1",
+                                                                                "user-id"))))),
+                                new Gateway(
+                                        "consume-no-admin",
+                                        Gateway.GatewayType.consume,
+                                        topic,
+                                        new Gateway.Authentication("test-auth", Map.of(), false),
+                                        List.of(),
+                                        null,
+                                        null)));
+
+        @Cleanup
+        final ClientSession client1 =
+                connectAndCollectMessages(
+                        URI.create(
+                                "ws://localhost:%d/v1/consume/tenant1/application1/consume?admin-credentials=test-user-password&admin-credentials-type=http&admin-credentials-input-user-id=mock-user"
+                                        .formatted(port)),
+                        user1Messages);
+
+
+
+        connectAndProduce(
+                URI.create(
+                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?admin-credentials=test-user-password&admin-credentials-type=http&admin-credentials-input-user-id=mock-user"
+                                .formatted(port)),
+                new ProduceRequest(null, "hello user", null));
+
+
+        Awaitility.await()
+                .untilAsserted(
+                        () ->
+                                assertMessagesContent(
+                                        List.of(
+                                                new MsgRecord(
+                                                        null,
+                                                        "hello user",
+                                                        Map.of("header1", "mock-user"))),
+                                        user1Messages));
+
+        connectAndExpectClose(
+                URI.create(
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume-no-admin?admin-credentials=test-user-password&admin-credentials-type=http&admin-credentials-input-user-id=mock-user"
+                                .formatted(port)), new CloseReason(
+                        CloseReason.CloseCodes.VIOLATED_POLICY,
+                        "Gateway consume-no-admin of tenant tenant1 does not allow admin requests."));
+
+        // use default admin auth provider
+        connectAndProduce(
+                URI.create(
+                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?admin-credentials=test-user-password&admin-credentials-input-user-id=mock-user"
+                                .formatted(port)),
+                new ProduceRequest(null, "hello user", null));
+
+        connectAndExpectClose(
+                URI.create(
+                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?admin-credentials=test-user-password-but-wrong&admin-credentials-input-user-id=mock-user"
+                                .formatted(port)), new CloseReason(
+                        CloseReason.CloseCodes.VIOLATED_POLICY,
+                        "Gateway produce of tenant tenant1 does not allow admin requests."));
+
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}

@@ -731,6 +731,7 @@
       <modules>
         <module>langstream-admin-client</module>
         <module>langstream-api</module>
+        <module>langstream-auth-jwt</module>
         <module>langstream-cli</module>
         <module>langstream-core</module>
         <module>langstream-agents</module>

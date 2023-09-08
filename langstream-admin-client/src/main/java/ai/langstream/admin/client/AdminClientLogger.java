@@ -20,5 +20,7 @@ public interface AdminClientLogger {
 
     void error(Object message);
 
+    boolean isDebugEnabled();
+
     void debug(Object message);
 }

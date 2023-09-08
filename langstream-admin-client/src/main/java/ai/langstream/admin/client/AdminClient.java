@@ -72,21 +72,28 @@ public class AdminClient implements AutoCloseable {
         return httpClient;
     }
 
-    @SneakyThrows
-    public HttpResponse<String> http(HttpRequest httpRequest) {
+    public HttpResponse<String> http(HttpRequest httpRequest) throws HttpRequestFailedException {
         return http(httpRequest, HttpResponse.BodyHandlers.ofString());
     }
 
     public <T> HttpResponse<T> http(
-            HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler) {
+            HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler)
+            throws HttpRequestFailedException {
         return http(httpRequest, bodyHandler, httpClientProperties.getRetry().get());
     }
 
     public <T> HttpResponse<T> http(
-            HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler, Retry retry) {
+            HttpRequest httpRequest, HttpResponse.BodyHandler<T> bodyHandler, Retry retry)
+            throws HttpRequestFailedException {
 
         try {
+            if (logger.isDebugEnabled()) {
+                logger.debug("sending request: " + httpRequest);
+            }
             final HttpResponse<T> response = getHttpClient().send(httpRequest, bodyHandler);
+            if (logger.isDebugEnabled()) {
+                logger.debug("received response: " + response);
+            }
             if (shouldRetry(httpRequest, response, retry, null)) {
                 return http(httpRequest, bodyHandler, retry);
             }
@@ -95,11 +102,7 @@ public class AdminClient implements AutoCloseable {
                 return response;
             }
             if (status >= 400) {
-                final T body = response.body();
-                if (body != null) {
-                    logger.error(body);
-                }
-                throw new RuntimeException("Request failed: " + response.statusCode());
+                throw new HttpRequestFailedException(httpRequest, response);
             }
             throw new RuntimeException("Unexpected status code: " + status);
         } catch (InterruptedException error) {
@@ -232,6 +235,7 @@ public class AdminClient implements AutoCloseable {
 
     private class ApplicationsImpl implements Applications {
         @Override
+        @SneakyThrows
         public void deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
             final String path = tenantAppPath("/" + application);
             final String contentType =
@@ -243,6 +247,7 @@ public class AdminClient implements AutoCloseable {
         }
 
         @Override
+        @SneakyThrows
         public void update(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
             final String path = tenantAppPath("/" + application);
             final String contentType =
@@ -254,16 +259,19 @@ public class AdminClient implements AutoCloseable {
         }
 
         @Override
+        @SneakyThrows
         public void delete(String application) {
             http(newDelete(tenantAppPath("/" + application)));
         }
 
         @Override
+        @SneakyThrows
         public String get(String application, boolean stats) {
             return http(newGet(tenantAppPath("/" + application + "?stats=" + stats))).body();
         }
 
         @Override
+        @SneakyThrows
         public String list() {
             return http(newGet(tenantAppPath(""))).body();
         }
@@ -285,6 +293,7 @@ public class AdminClient implements AutoCloseable {
         }
 
         @Override
+        @SneakyThrows
         public <T> HttpResponse<T> download(
                 String application,
                 String codeArchiveId,
@@ -298,6 +307,7 @@ public class AdminClient implements AutoCloseable {
         }
 
         @Override
+        @SneakyThrows
         public String getCodeInfo(String application, String codeArchiveId) {
             final String path =
                     tenantAppPath("/" + application + "/code/" + codeArchiveId + "/info");

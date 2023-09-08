@@ -20,7 +20,9 @@ import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
@@ -150,9 +152,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final File appDirectory = checkFileExists(appPath());
-        final File instanceFile = checkFileExists(instanceFilePath());
-        final File secretsFile = checkFileExists(secretFilePath());
+        final File appDirectory = checkFileExistsOrDownload(appPath());
+        final File instanceFile = checkFileExistsOrDownload(instanceFilePath());
+        final File secretsFile = checkFileExistsOrDownload(secretFilePath());
         final String applicationId = applicationId();
 
         if (isUpdate() && appDirectory == null && instanceFile == null && secretsFile == null) {
@@ -333,9 +335,39 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         logger.accept("app packaged");
     }
 
-    private File checkFileExists(String path) {
+    @SneakyThrows
+    private File checkFileExistsOrDownload(String path) {
         if (path == null) {
             return null;
+        }
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            final HttpRequest request =
+                    HttpRequest.newBuilder()
+                            .uri(URI.create(path))
+                            .version(HttpClient.Version.HTTP_1_1)
+                            .GET()
+                            .build();
+            final Path tempFile = Files.createTempFile("langstram", ".bin");
+            final long start = System.currentTimeMillis();
+            // use HttpResponse.BodyHandlers.ofByteArray() to get cleaner error messages
+            final HttpResponse<byte[]> response =
+                    getClient().http(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() >= 400) {
+                throw new RuntimeException(
+                        "Failed to download file: "
+                                + path
+                                + "\nReceived status code: "
+                                + response.statusCode()
+                                + "\n"
+                                + response.body());
+            }
+            Files.write(tempFile, response.body());
+            final long time = (System.currentTimeMillis() - start) / 1000;
+            log(String.format("downloaded remote file %s (%d s)", path, time));
+            return tempFile.toFile();
+        }
+        if (path.startsWith("file://")) {
+            path = path.substring("file://".length());
         }
         final File file = new File(path);
         if (!file.exists()) {

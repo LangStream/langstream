@@ -15,7 +15,10 @@
  */
 package ai.langstream.cli;
 
+import ai.langstream.admin.client.HttpRequestFailedException;
 import ai.langstream.cli.commands.RootCmd;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import picocli.CommandLine;
 
 public class LangStreamCLI {
@@ -30,28 +33,66 @@ public class LangStreamCLI {
         CommandLine gen = cmdLine.getSubcommands().get("generate-completion");
         gen.getCommandSpec().usageMessage().hidden(true);
         return cmdLine.setExecutionExceptionHandler(
-                        (e, commandLine, parseResult) -> {
-                            if (e.getMessage() != null) {
-                                commandLine
-                                        .getErr()
-                                        .println(
-                                                commandLine
-                                                        .getColorScheme()
-                                                        .errorText(e.getMessage()));
-                                RootCmd rootCmd = cmdLine.getCommand();
-                                if (rootCmd.isVerbose()) {
-                                    e.printStackTrace(commandLine.getErr());
-                                }
-                            } else {
-                                commandLine
-                                        .getErr()
-                                        .println(
-                                                commandLine
-                                                        .getColorScheme()
-                                                        .errorText("Internal error " + e));
-                            }
-                            return 1;
-                        })
+                        (e, commandLine, parseResult) -> handleException(cmdLine, e, commandLine))
                 .execute(args);
+    }
+
+    private static int handleException(CommandLine cmdLine, Exception e, CommandLine commandLine) {
+        printExceptionMessage(computeErrorMessage(e), commandLine);
+        RootCmd rootCmd = cmdLine.getCommand();
+        if (rootCmd.isVerbose()) {
+            e.printStackTrace(commandLine.getErr());
+        }
+        return 1;
+    }
+
+    private static String computeErrorMessage(Exception e) {
+        final HttpRequestFailedException httpRequestFailedException =
+                getHttpRequestFailedException(e);
+
+        if (httpRequestFailedException != null) {
+            String msg =
+                    String.format(
+                            "Http request to %s failed",
+                            httpRequestFailedException.getRequest().uri());
+            final HttpResponse<?> response = httpRequestFailedException.getResponse();
+            if (response != null) {
+                Object body = httpRequestFailedException.getResponse().body();
+                if (body != null) {
+                    if (body instanceof byte[]) {
+                        body = new String((byte[]) body, StandardCharsets.UTF_8);
+                    }
+                    msg += String.format(": %s", body);
+                } else {
+                    msg += String.format(": %s", response.statusCode());
+                }
+            }
+            return msg;
+
+        } else if (e.getMessage() != null) {
+            return e.getMessage();
+        } else {
+            return "Internal error: " + e;
+        }
+    }
+
+    private static void printExceptionMessage(String message, CommandLine commandLine) {
+        commandLine.getErr().println(commandLine.getColorScheme().errorText(message));
+    }
+
+    private static HttpRequestFailedException getHttpRequestFailedException(Throwable e) {
+
+        if (e instanceof HttpRequestFailedException) {
+            return (HttpRequestFailedException) e;
+        }
+        Throwable cause = e.getCause();
+        while (true) {
+            if (cause == null) {
+                return null;
+            }
+            if (cause instanceof HttpRequestFailedException) {
+                return (HttpRequestFailedException) cause;
+            }
+        }
     }
 }

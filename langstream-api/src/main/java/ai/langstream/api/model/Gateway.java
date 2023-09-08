@@ -56,14 +56,14 @@ public record Gateway(
     }
 
     public record Authentication(
-            String provider, Map<String, Object> configuration, boolean allowAdminRequests) {
+            String provider, Map<String, Object> configuration, @JsonProperty("allow-admin-requests") boolean allowAdminRequests) {
         public Authentication(String provider, Map<String, Object> configuration) {
             this(provider, configuration, false);
         }
     }
 
     public record KeyValueComparison(
-            String key, String value, String valueFromParameters, String valueFromAuthentication) {
+            String key, String value,  @JsonAlias({"value-from-parameters"}) String valueFromParameters,  @JsonAlias({"value-from-authentication"}) String valueFromAuthentication) {
         public static KeyValueComparison value(String key, String value) {
             return new KeyValueComparison(key, value, null, null);
         }

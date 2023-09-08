@@ -195,7 +195,7 @@ def test_kafka_commit():
         source.start()
 
         # Check that we resume on the correct message
-        assert source.read()[0].value() == "message 4"
+        assert source.read(5)[0].value() == "message 4"
 
         # on_assign should have been called
         assert source.committed[topic_partition] == 4
@@ -345,12 +345,18 @@ def test_serializers():
                 ]
             )
 
-            message = consumer.poll(5)
-            assert message.value() == message_value
-            assert message.key() == message_value
-            assert message.headers()[0][0] == "test-header"
-            if serializer == "ByteArraySerializer":
-                assert message.headers()[0][1] == message_value
+            def safe_consume():
+                message = consumer.poll(1)
+                if message is None or message.error():
+                    return False
+                assert message.value() == message_value
+                assert message.key() == message_value
+                assert message.headers()[0][0] == "test-header"
+                if serializer == "ByteArraySerializer":
+                    assert message.headers()[0][1] == message_value
+                return True
+
+            waiting.wait(safe_consume, timeout_seconds=5, sleep_seconds=0.1)
 
             sink.close()
 

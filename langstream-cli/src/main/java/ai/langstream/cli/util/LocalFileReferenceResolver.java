@@ -83,8 +83,7 @@ public class LocalFileReferenceResolver {
         // in order to fail fast if the file is not valid YAML
         Map<String, Object> map = mapper.readValue(content, Map.class);
 
-        if (!filePlaceHolderPattern.matcher(content).find()
-                && !content.contains("${")) {
+        if (!filePlaceHolderPattern.matcher(content).find() && !content.contains("${")) {
             return content;
         }
 
@@ -138,8 +137,7 @@ public class LocalFileReferenceResolver {
             String content, Function<String, String> readFileContents) throws Exception {
 
         // first apply the env
-        StringSubstitutor stringSubstitutor =
-                new StringSubstitutor(System.getenv());
+        StringSubstitutor stringSubstitutor = new StringSubstitutor(System.getenv());
         content = stringSubstitutor.replace(content);
 
         // then resolve file references

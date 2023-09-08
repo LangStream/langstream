@@ -142,10 +142,21 @@ In this example, you will deploy an application that performs AI completion and 
 1. Export two environment variables containing the OpenAI URL and access key:
 ```
 export OPEN_AI_URL=xx
-export  OPEN_AI_ACCESS_KEY=xx
+export OPEN_AI_ACCESS_KEY=xx
+export OPEN_AI_EMBEDDINGS_MODEL=xxx
+export OPEN_AI_CHAT_COMPLETIONS_MODEL=xxx
+export OPEN_AI_PROVIDER=openai
 ```
 
-The [secrets.yaml](./examples/secrets/secrets.yaml) file contains many placeholders that refer to environment variables.
+if you are using Azure Open AI then set OPEN_AI_PROVIDER to azure
+```
+export OPEN_AI_PROVIDER=azure
+```
+
+The values for OPEN_AI_EMBEDDINGS_MODEL and OPEN_AI_CHAT_COMPLETIONS_MODEL depend on your OpenAI enviroment.
+On Azure they must match the names of the deployments you created in the Azure portal.
+
+The [secrets.yaml](./examples/secrets/secrets.yaml) file contains many placeholders that refer to those environment variables.
 You can either export them or replace them with the actual values.
 
 ```
@@ -159,17 +170,12 @@ You can either export them or replace them with the actual values.
 
 Check your k8s cluster with `k9s -A` or run `./bin/langstream apps get openai-completions` until the app is deployed.
 
-Test the AI completion using the API gateway. Pass a person name as input to get information about them:
-```
-session="$(uuidgen)"
-./bin/langstream gateway produce openai-completions produce-input -p sessionId="$session" -v "Barack Obama"
-./bin/langstream gateway consume openai-completions consume-output -p sessionId="$session"
-```
+Test the AI completion using the API gateway. The LangStream CLI provides a convenient chat command to test the application:
 
-Another approach to test values is to use gateway `chat` CLI feature:
 ```
 ./bin/langstream gateway chat openai-completions -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
 ```
+
 ## Install Kubernetes Environment on MacOS
 
 ### Minikube

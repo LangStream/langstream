@@ -36,7 +36,7 @@ pipeline:
       endpoint: "{{{secrets.s3.endpoint}}}"
       access-key: "{{{secrets.s3.access-key}}}"
       secret-key: "{{{secrets.s3.secret}}}"
-      region: "{{{secrets.s3-credentials.region}}}"
+      region: "{{{secrets.s3.region}}}"
       idle-time: 5
   - name: "Extract text"
     type: "text-extractor"

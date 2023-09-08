@@ -211,6 +211,7 @@ public class CassandraDataSource implements QueryStepDataSource {
 
         byte[] secureBundleDecoded = null;
         if (secureBundle != null && !secureBundle.isEmpty()) {
+            log.info("Using the Secure Bundle ZIP provided by the configuration";
             // Remove the base64: prefix if present
             if (secureBundle.startsWith("base64:")) {
                 secureBundle = secureBundle.substring("base64:".length());

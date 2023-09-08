@@ -93,7 +93,6 @@ public class AgentCodeDownloader {
                     public void debug(Object message) {
                         log.debug(message.toString());
                     }
-
                 };
         return new AdminClient(config, logger);
     }

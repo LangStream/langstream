@@ -18,6 +18,7 @@ import logging
 import re
 import threading
 from typing import List, Dict, Optional, Any
+from uuid import UUID
 
 from confluent_kafka import Consumer, Producer, Message, TopicPartition, KafkaException
 from sortedcontainers import SortedSet
@@ -32,6 +33,7 @@ from .kafka_serialization import (
     FLOAT_SERIALIZER,
     DOUBLE_SERIALIZER,
     BYTEARRAY_SERIALIZER,
+    UUID_SERIALIZER,
     JSON_SERIALIZER,
     STRING_DESERIALIZER,
     BOOLEAN_DESERIALIZER,
@@ -41,6 +43,7 @@ from .kafka_serialization import (
     FLOAT_DESERIALIZER,
     DOUBLE_DESERIALIZER,
     BYTEARRAY_DESERIALIZER,
+    UUID_DESERIALIZER,
 )
 from .topic_connector import TopicConsumer, TopicProducer
 
@@ -58,6 +61,7 @@ SERIALIZERS = {
     "org.apache.kafka.common.serialization.LongSerializer": LONG_SERIALIZER,
     "org.apache.kafka.common.serialization.FloatSerializer": FLOAT_SERIALIZER,
     "org.apache.kafka.common.serialization.DoubleSerializer": DOUBLE_SERIALIZER,
+    "org.apache.kafka.common.serialization.UUIDSerializer": UUID_SERIALIZER,
 }
 
 DESERIALIZERS = {
@@ -69,6 +73,7 @@ DESERIALIZERS = {
     "org.apache.kafka.common.serialization.FloatDeserializer": FLOAT_DESERIALIZER,
     "org.apache.kafka.common.serialization.DoubleDeserializer": DOUBLE_DESERIALIZER,
     "org.apache.kafka.common.serialization.ByteArrayDeserializer": BYTEARRAY_DESERIALIZER,  # noqa: E501
+    "org.apache.kafka.common.serialization.UUIDDeserializer": UUID_DESERIALIZER,
 }
 
 
@@ -143,6 +148,8 @@ def get_serializer(value):
         return LONG_SERIALIZER
     elif isinstance(value, float):
         return DOUBLE_SERIALIZER
+    elif isinstance(value, UUID):
+        return UUID_SERIALIZER
     elif isinstance(value, dict) or isinstance(value, list):
         return JSON_SERIALIZER
     else:

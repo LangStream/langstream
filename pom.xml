@@ -609,6 +609,11 @@
                 <exclude>**/Pipfile</exclude>
                 <exclude>**/Pipfile.lock</exclude>
                 <exclude>**/*.ini</exclude>
+                <exclude>**/venv/**</exclude>
+                <exclude>**/.tox/**</exclude>
+                <exclude>**/.pytest_cache/**</exclude>
+                <exclude>**/.ruff_cache/**</exclude>
+                <exclude>**/__pycache__/**</exclude>
               </excludes>
             </licenseSet>
           </licenseSets>

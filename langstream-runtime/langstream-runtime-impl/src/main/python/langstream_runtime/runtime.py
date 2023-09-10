@@ -25,16 +25,17 @@ from functools import partial
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import List, Tuple, Union, Dict, Any, Optional
 
-from langstream import (
+from .api import (
     Agent,
     Source,
     Sink,
     Processor,
     Record,
-    SingleRecordProcessor,
     CommitCallback,
     AgentContext,
+    RecordType,
 )
+from .util import SingleRecordProcessor, SimpleRecord
 from . import topic_connections_registry
 from .source_record_tracker import SourceRecordTracker
 from .topic_connector import (
@@ -149,7 +150,7 @@ class RuntimeSource(RuntimeAgent, Source):
             started_at or current_time_millis(),
         )
 
-    def read(self) -> List[Record]:
+    def read(self) -> List[RecordType]:
         read = self.agent.read()
         self.last_processed_at = current_time_millis()
         self.total_out += len(read)
@@ -183,7 +184,7 @@ class RuntimeProcessor(RuntimeAgent, Processor):
 
     def process(
         self, records: List[Record]
-    ) -> List[Tuple[Record, Union[List[Record], Exception]]]:
+    ) -> List[Tuple[Record, Union[List[RecordType], Exception]]]:
         self.last_processed_at = current_time_millis()
         self.total_in += len(records)
         results = self.agent.process(records)
@@ -363,6 +364,15 @@ def call_method_if_exists(klass, method, *args, **kwargs):
         return method(*args, **kwargs)
 
 
+def wrap_in_record(records):
+    if isinstance(records, Exception):
+        return records
+    for i, record in enumerate(records):
+        if isinstance(record, tuple) or isinstance(record, list):
+            records[i] = SimpleRecord(*record)
+    return records
+
+
 def run_main_loop(
     source: RuntimeSource,
     sink: RuntimeSink,
@@ -383,7 +393,7 @@ def run_main_loop(
             if records and len(records) > 0:
                 # in case of permanent FAIL this method will throw an exception
                 processor_results = run_processor_agent(
-                    processor, records, errors_handler, source
+                    processor, wrap_in_record(records), errors_handler, source
                 )
                 # sinkRecord == null is the SKIP case
 
@@ -391,6 +401,11 @@ def run_main_loop(
                 # and the source has already committed the records
                 if processor_results is not None:
                     try:
+                        for i, result in enumerate(processor_results):
+                            processor_results[i] = (
+                                result[0],
+                                wrap_in_record(result[1]),
+                            )
                         source_record_tracker.track(processor_results)
                         for source_record, processor_result in processor_results:
                             if isinstance(processor_result, Exception):
@@ -539,5 +554,5 @@ class NoopTopicProducer(TopicProducer):
 
 
 class NoopProcessor(SingleRecordProcessor):
-    def process_record(self, record: Record) -> List[Record]:
+    def process_record(self, record: Record) -> List[RecordType]:
         return [record]

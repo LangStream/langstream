@@ -31,6 +31,7 @@ from langstream import (
     SingleRecordProcessor,
     AgentContext,
 )
+from langstream.api import RecordType
 from langstream_runtime import runtime
 
 
@@ -173,7 +174,7 @@ class TestAgent(Source, Sink, SingleRecordProcessor):
         self.context["close"] += 1
 
     def read(self):
-        return [SimpleRecord("some record " + str(len(self.context["records"])))]
+        return [("some record " + str(len(self.context["records"])),)]
 
     def set_commit_callback(self, commit_callback: CommitCallback):
         self.context["set_commit_callback"] += 1
@@ -182,8 +183,8 @@ class TestAgent(Source, Sink, SingleRecordProcessor):
         for record in records:
             self.context["records"].append(record.value())
 
-    def process_record(self, record: Record) -> List[Record]:
-        return [SimpleRecord(record.value() + " processed")]
+    def process_record(self, record: Record) -> List[RecordType]:
+        return [(record.value() + " processed",)]
 
     def set_context(self, agent_context: AgentContext):
         self.context["set_context"] += 1
@@ -228,11 +229,11 @@ class FailingProcessor(AbstractFailingAgent, SingleRecordProcessor):
 
     def process(
         self, records: List[Record]
-    ) -> List[Tuple[Record, Union[List[Record], Exception]]]:
+    ) -> List[Tuple[Record, Union[List[RecordType], Exception]]]:
         self.execution_count += 1
         return super().process(records)
 
-    def process_record(self, record: Record) -> List[Record]:
+    def process_record(self, record: Record) -> List[RecordType]:
         logging.info(f"Processing {record.value()}", record.value())
         if record.value() in self.fail_on_content:
             raise Exception(f"Failed on {record.value()}")
@@ -248,7 +249,7 @@ class FailingSink(AbstractFailingAgent, SingleRecordProcessor):
         self.uncommitted.append(record)
         return [record]
 
-    def process_record(self, _: Record) -> List[Record]:
+    def process_record(self, _: Record) -> List[RecordType]:
         result = []
         if len(self.records) > 0:
             for i in range(self.batch_size):

@@ -28,6 +28,7 @@ from testcontainers.core.waiting_utils import wait_container_is_ready
 from testcontainers.kafka import KafkaContainer
 
 from langstream import Record, SimpleRecord, SingleRecordProcessor
+from langstream.api import RecordType
 from langstream_runtime import kafka_connection
 from langstream_runtime import runtime
 
@@ -417,13 +418,13 @@ def test_consumer_deserializers():
 
 
 class TestSuccessProcessor(SingleRecordProcessor):
-    def process_record(self, record: Record) -> List[Record]:
+    def process_record(self, record: Record) -> List[RecordType]:
         headers = record.headers().copy()
         return [SimpleRecord(record.value(), headers=headers)]
 
 
 class TestFailingProcessor(SingleRecordProcessor):
-    def process_record(self, record: Record) -> List[Record]:
+    def process_record(self, record: Record) -> List[RecordType]:
         raise Exception("failed to process")
 
 

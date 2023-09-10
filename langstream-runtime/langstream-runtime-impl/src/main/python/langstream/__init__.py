@@ -18,6 +18,7 @@
 from .api import (
     Agent,
     Record,
+    RecordType,
     Sink,
     Source,
     Processor,
@@ -30,6 +31,7 @@ from .util import SimpleRecord, SingleRecordProcessor
 
 __all__ = [
     "Record",
+    "RecordType",
     "TopicConsumer",
     "TopicProducer",
     "AgentContext",

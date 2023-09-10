@@ -17,7 +17,8 @@
 
 from typing import List
 
-from langstream import Source, Record, SimpleRecord
+from langstream_runtime.api import Source, Record, RecordType
+from langstream_runtime.util import SimpleRecord
 from langstream_runtime.source_record_tracker import SourceRecordTracker
 
 
@@ -56,7 +57,7 @@ class MySource(Source):
     def __init__(self):
         self.committed = []
 
-    def read(self) -> List[Record]:
+    def read(self) -> List[RecordType]:
         return []
 
     def commit(self, records: List[Record]):

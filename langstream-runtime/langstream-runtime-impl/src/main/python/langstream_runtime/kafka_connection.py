@@ -22,7 +22,7 @@ from typing import List, Dict, Optional, Any
 from confluent_kafka import Consumer, Producer, Message, TopicPartition, KafkaException
 from sortedcontainers import SortedSet
 
-from langstream import Record, CommitCallback, SimpleRecord
+from .api import Record, CommitCallback
 from .kafka_serialization import (
     STRING_SERIALIZER,
     BOOLEAN_SERIALIZER,
@@ -43,6 +43,7 @@ from .kafka_serialization import (
     BYTEARRAY_DESERIALIZER,
 )
 from .topic_connector import TopicConsumer, TopicProducer
+from .util import SimpleRecord
 
 LOG = logging.getLogger(__name__)
 

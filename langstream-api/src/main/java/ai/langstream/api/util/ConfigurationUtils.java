@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -154,5 +155,101 @@ public class ConfigurationUtils {
                         + key
                         + ", expecting a Map, got got a "
                         + value.getClass().getName());
+    }
+
+    public static <T> T requiredField(
+            Map<String, Object> configuration, String name, Supplier<String> definition) {
+        Object value = configuration.get(name);
+        if (value == null) {
+            throw new IllegalArgumentException(
+                    "Missing required field '" + name + "' in " + definition.get());
+        }
+        return (T) value;
+    }
+
+    public static String requiredNonEmptyField(
+            Map<String, Object> configuration, String name, Supplier<String> definition) {
+        Object value = configuration.get(name);
+        if (value == null || value.toString().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Missing required field '" + name + "' in " + definition.get());
+        }
+        return value.toString();
+    }
+
+    public static void validateEnumField(
+            Map<String, Object> configuration,
+            String name,
+            Set<String> values,
+            Supplier<String> definition) {
+        Object value = configuration.get(name);
+        if (value == null || value.toString().isEmpty()) {
+            return;
+        }
+        if (!values.contains(value.toString())) {
+            throw new IllegalArgumentException(
+                    "Value "
+                            + value
+                            + " is not allowed for field '"
+                            + name
+                            + ", only "
+                            + values
+                            + " are allowed', in "
+                            + definition.get());
+        }
+    }
+
+    public static void validateInteger(
+            Map<String, Object> configuration,
+            String name,
+            int min,
+            int max,
+            Supplier<String> definition) {
+        Object value = configuration.get(name);
+        if (value == null || value.toString().isEmpty()) {
+            return;
+        }
+        int number;
+        if (value instanceof Number) {
+            number = ((Number) value).intValue();
+        } else {
+            number = Integer.parseInt(value.toString());
+        }
+        if (number < min) {
+            throw new IllegalArgumentException(
+                    "Integer field '"
+                            + name
+                            + "' is "
+                            + number
+                            + ", but it must be greater or equals to "
+                            + min
+                            + ", in "
+                            + definition.get());
+        }
+        if (number > max) {
+            throw new IllegalArgumentException(
+                    "Integer field '"
+                            + name
+                            + "' is "
+                            + number
+                            + ", but it must be less or equals to "
+                            + max
+                            + ", in "
+                            + definition.get());
+        }
+    }
+
+    public static void requiredListField(
+            Map<String, Object> configuration, String name, Supplier<String> definition) {
+        Object value = configuration.get(name);
+        if (value == null) {
+            throw new IllegalArgumentException(
+                    "Missing required field '" + name + "' in " + definition.get());
+        }
+
+        if (!(value instanceof List)) {
+            throw new IllegalArgumentException(
+                    "Expecting a list in the field '" + name + "' in " + definition.get());
+        }
     }
 }

@@ -228,7 +228,8 @@ public class ProduceHandler extends AbstractHandler {
                     value = principalValues.get(mapping.valueFromAuthentication());
                 }
                 if (value == null) {
-                    throw new IllegalArgumentException(mapping.key() + "header cannot be empty");
+                    throw new IllegalArgumentException(
+                            "header " + mapping.key() + " cannot be empty");
                 }
 
                 headers.add(SimpleRecord.SimpleHeader.of(mapping.key(), value));

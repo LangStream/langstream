@@ -58,9 +58,9 @@ public record Gateway(
     public record Authentication(
             String provider,
             Map<String, Object> configuration,
-            @JsonProperty("allow-admin-requests") boolean allowAdminRequests) {
+            @JsonProperty("allow-test-mode") boolean allowTestMode) {
         public Authentication(String provider, Map<String, Object> configuration) {
-            this(provider, configuration, false);
+            this(provider, configuration, true);
         }
     }
 

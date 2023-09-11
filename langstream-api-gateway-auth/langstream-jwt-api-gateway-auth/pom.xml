@@ -16,21 +16,28 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <artifactId>langstream-ai</artifactId>
+    <artifactId>langstream-api-gateway-auth</artifactId>
     <groupId>ai.langstream</groupId>
     <version>0.0.16-SNAPSHOT</version>
   </parent>
-  <packaging>pom</packaging>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>langstream-api-gateway-auth</artifactId>
+  <artifactId>langstream-jwt-api-gateway-auth</artifactId>
 
-  <modules>
-    <module>langstream-google-api-gateway-auth</module>
-    <module>langstream-github-api-gateway-auth</module>
-    <module>langstream-jwt-api-gateway-auth</module>
-    <module>langstream-http-api-gateway-auth</module>
-  </modules>
+  <dependencies>
+    <dependency>
+      <groupId>ai.langstream</groupId>
+      <artifactId>langstream-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ai.langstream</groupId>
+      <artifactId>langstream-auth-jwt</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
 </project>

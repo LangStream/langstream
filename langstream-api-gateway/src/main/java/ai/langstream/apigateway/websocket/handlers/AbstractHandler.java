@@ -18,6 +18,7 @@ package ai.langstream.apigateway.websocket.handlers;
 import ai.langstream.api.events.EventRecord;
 import ai.langstream.api.events.EventSources;
 import ai.langstream.api.events.GatewayEventData;
+import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Gateway;
@@ -189,7 +190,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         return selectedGateway;
     }
 
-    public GatewayRequestContextImpl validateRequest(
+    public GatewayRequestContext validateRequest(
             Map<String, String> pathVars,
             Map<String, String> queryString,
             Map<String, String> httpHeaders) {
@@ -197,18 +198,9 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         Map<String, String> userParameters = new HashMap<>();
 
         final String credentials = queryString.remove("credentials");
-        final String adminCredentials = queryString.remove("admin-credentials");
-        final String adminCredentialsType = queryString.remove("admin-credentials-type");
-
-        final Map<String, String> adminCredentialsInputs = new HashMap<>();
+        final String testCredentials = queryString.remove("test-credentials");
 
         for (Map.Entry<String, String> entry : queryString.entrySet()) {
-            if (entry.getKey().startsWith("admin-credentials-input-")) {
-                adminCredentialsInputs.put(
-                        entry.getKey().substring("admin-credentials-input-".length()),
-                        entry.getValue());
-                continue;
-            }
             if (entry.getKey().startsWith("option:")) {
                 options.put(entry.getKey().substring("option:".length()), entry.getValue());
             } else if (entry.getKey().startsWith("param:")) {
@@ -248,21 +240,16 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         }
         validateOptions(options);
 
-        if (credentials != null
-                && (!adminCredentialsInputs.isEmpty()
-                        || adminCredentials != null
-                        || adminCredentialsType != null)) {
+        if (credentials != null && testCredentials != null) {
             throw new IllegalArgumentException(
-                    "credentials and admin-credentials cannot be used together");
+                    "credentials and test-credentials cannot be used together");
         }
         return GatewayRequestContextImpl.builder()
                 .tenant(tenant)
                 .applicationId(applicationId)
                 .application(application)
                 .credentials(credentials)
-                .adminCredentialsType(adminCredentialsType)
-                .adminCredentials(adminCredentials)
-                .adminCredentialsInputs(adminCredentialsInputs)
+                .testCredentials(testCredentials)
                 .httpHeaders(httpHeaders)
                 .options(options)
                 .userParameters(userParameters)

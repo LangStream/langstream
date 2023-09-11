@@ -13,29 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.gateway;
+package ai.langstream.apigateway.config;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.Gateway;
+import java.util.HashMap;
 import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-public interface GatewayRequestContext {
+@ConfigurationProperties(prefix = "application.gateways.auth.test")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GatewayTestAuthenticationProperties {
 
-    String tenant();
+    private String type;
 
-    String applicationId();
-
-    Application application();
-
-    Gateway gateway();
-
-    String credentials();
-
-    boolean isTestMode();
-
-    Map<String, String> userParameters();
-
-    Map<String, String> options();
-
-    Map<String, String> httpHeaders();
+    private Map<String, Object> configuration = new HashMap<>();
 }

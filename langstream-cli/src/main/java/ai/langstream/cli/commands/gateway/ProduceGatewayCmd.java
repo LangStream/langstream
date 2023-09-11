@@ -78,19 +78,9 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
     private long connectTimeoutSeconds = 0;
 
     @CommandLine.Option(
-            names = {"-ac", "--admin-credentials"},
-            description = "Admin credentials for the gateway.")
-    private String adminCredentials;
-
-    @CommandLine.Option(
-            names = {"-act", "--admin-credentials-type"},
-            description = "Admin credentials type for the gateway.")
-    private String adminCredentialsType;
-
-    @CommandLine.Option(
-            names = {"-aci", "--admin-credentials-input"},
-            description = "Admin credentials type for the gateway.")
-    private Map<String, String> adminCredentialsInputs;
+            names = {"-tc", "--test-credentials"},
+            description = "Test credentials for the gateway.")
+    private String testCredentials;
 
     @Override
     @SneakyThrows
@@ -103,9 +93,7 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
                         params,
                         Map.of(),
                         credentials,
-                        adminCredentials,
-                        adminCredentialsType,
-                        adminCredentialsInputs);
+                        testCredentials);
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;
         CountDownLatch countDownLatch = new CountDownLatch(1);

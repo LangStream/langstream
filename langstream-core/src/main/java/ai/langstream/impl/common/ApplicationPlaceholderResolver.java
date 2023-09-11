@@ -182,7 +182,7 @@ public class ApplicationPlaceholderResolver {
                         new Gateway.Authentication(
                                 authentication.provider(),
                                 resolveMap(context, gateway.authentication().configuration()),
-                                authentication.allowAdminRequests());
+                                authentication.allowTestMode());
             }
 
             final String topic = resolveValue(context, gateway.topic());

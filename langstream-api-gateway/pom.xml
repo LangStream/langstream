@@ -131,14 +131,14 @@
 
 		<dependency>
 			<groupId>ai.langstream</groupId>
-			<artifactId>langstream-jwt-gateway-admin-auth</artifactId>
+			<artifactId>langstream-jwt-api-gateway-auth</artifactId>
 			<version>${project.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>ai.langstream</groupId>
-			<artifactId>langstream-http-gateway-admin-auth</artifactId>
+			<artifactId>langstream-http-api-gateway-auth</artifactId>
 			<version>${project.version}</version>
 			<scope>runtime</scope>
 		</dependency>

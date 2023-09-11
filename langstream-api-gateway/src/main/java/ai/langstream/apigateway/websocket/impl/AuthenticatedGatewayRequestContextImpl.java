@@ -18,69 +18,69 @@ package ai.langstream.apigateway.websocket.impl;
 import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Gateway;
+import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.Map;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 @Builder
-@AllArgsConstructor
-public class GatewayRequestContextImpl implements GatewayRequestContext {
+public class AuthenticatedGatewayRequestContextImpl implements AuthenticatedGatewayRequestContext {
 
-    private final String tenant;
-    private final String applicationId;
-    private final Application application;
-    private final Gateway gateway;
-    private final String credentials;
-    private final String testCredentials;
-    private final Map<String, String> userParameters;
-    private final Map<String, String> options;
-    private final Map<String, String> httpHeaders;
+    private final GatewayRequestContext gatewayRequestContext;
+    private final Map<String, Object> attributes;
+    private final Map<String, String> principalValues;
+
+    @Override
+    public Map<String, Object> attributes() {
+        return attributes;
+    }
+
+    @Override
+    public Map<String, String> principalValues() {
+        return principalValues;
+    }
 
     @Override
     public String tenant() {
-        return tenant;
+        return gatewayRequestContext.tenant();
     }
 
     @Override
     public String applicationId() {
-        return applicationId;
+        return gatewayRequestContext.applicationId();
     }
 
     @Override
     public Application application() {
-        return application;
+        return gatewayRequestContext.application();
     }
 
     @Override
     public Gateway gateway() {
-        return gateway;
+        return gatewayRequestContext.gateway();
     }
 
     @Override
     public String credentials() {
-        if (isTestMode()) {
-            return testCredentials;
-        }
-        return credentials;
+        return gatewayRequestContext.credentials();
     }
 
     @Override
     public boolean isTestMode() {
-        return testCredentials != null;
+        return gatewayRequestContext.isTestMode();
     }
 
     @Override
     public Map<String, String> userParameters() {
-        return userParameters;
+        return gatewayRequestContext.userParameters();
     }
 
     @Override
     public Map<String, String> options() {
-        return options;
+        return gatewayRequestContext.options();
     }
 
     @Override
     public Map<String, String> httpHeaders() {
-        return httpHeaders;
+        return gatewayRequestContext.httpHeaders();
     }
 }

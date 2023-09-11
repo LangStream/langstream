@@ -48,7 +48,6 @@ gateways:
       provider: google
       configuration:
         clientId: "{{ secrets.google.client-id }}"
-      allow-admin-requests: true
     produce-options:
       headers:
         - key: langstream-client-user-id
@@ -61,7 +60,6 @@ gateways:
       provider: google
       configuration:
         clientId: "{{ secrets.google.client-id }}"
-      allow-admin-requests: true
     consume-options:
       filters:
         headers:

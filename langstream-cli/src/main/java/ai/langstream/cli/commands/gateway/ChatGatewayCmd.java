@@ -63,24 +63,14 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
     private String credentials;
 
     @CommandLine.Option(
+            names = {"-tc", "--test-credentials"},
+            description = "Test credentials for the gateway.")
+    private String testCredentials;
+
+    @CommandLine.Option(
             names = {"--connect-timeout"},
             description = "Connect timeout for WebSocket connections in seconds.")
     private long connectTimeoutSeconds = 0;
-
-    @CommandLine.Option(
-            names = {"-ac", "--admin-credentials"},
-            description = "Admin credentials for the gateway.")
-    private String adminCredentials;
-
-    @CommandLine.Option(
-            names = {"-act", "--admin-credentials-type"},
-            description = "Admin credentials type for the gateway.")
-    private String adminCredentialsType;
-
-    @CommandLine.Option(
-            names = {"-aci", "--admin-credentials-input"},
-            description = "Admin credentials type for the gateway.")
-    private Map<String, String> adminCredentialsInputs;
 
     @Override
     @SneakyThrows
@@ -94,9 +84,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                         params,
                         consumeGatewayOptions,
                         credentials,
-                        adminCredentials,
-                        adminCredentialsType,
-                        adminCredentialsInputs);
+                        testCredentials);
         final String producePath =
                 validateGatewayAndGetUrl(
                         applicationId,
@@ -105,9 +93,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                         params,
                         Map.of(),
                         credentials,
-                        adminCredentials,
-                        adminCredentialsType,
-                        adminCredentialsInputs);
+                        testCredentials);
 
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;

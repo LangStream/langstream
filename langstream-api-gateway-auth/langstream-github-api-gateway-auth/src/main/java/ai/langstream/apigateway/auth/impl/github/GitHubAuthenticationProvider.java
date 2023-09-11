@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GitHubAuthenticationProvider implements GatewayAuthenticationProvider {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    protected static final ObjectMapper mapper = new ObjectMapper();
 
     private String clientId;
 
@@ -81,7 +81,7 @@ public class GitHubAuthenticationProvider implements GatewayAuthenticationProvid
                 log.info("X-OAuth-Client-Id: {}", responseClientId);
                 log.info("Required: X-OAuth-Client-Id: {}", clientId);
 
-                Map<String, String> result = new ObjectMapper().readValue(body, Map.class);
+                Map<String, String> result = mapper.readValue(body, Map.class);
                 if (log.isDebugEnabled()) {
                     response.headers().map().forEach((k, v) -> log.debug("Header {}: {}", k, v));
                 }

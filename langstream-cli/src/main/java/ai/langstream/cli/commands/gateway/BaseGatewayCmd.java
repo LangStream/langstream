@@ -89,37 +89,17 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             Map<String, String> params,
             Map<String, String> options,
             String credentials,
-            String adminCredentials,
-            String adminCredentialsType,
-            Map<String, String> adminCredentialsInputs) {
+            String testCredentials) {
         validateGateway(
-                applicationId,
-                gatewayId,
-                type,
-                params,
-                options,
-                credentials,
-                adminCredentials,
-                adminCredentialsType,
-                adminCredentialsInputs);
+                applicationId, gatewayId, type, params, options, credentials, testCredentials);
 
         Map<String, String> systemParams = new HashMap<>();
         if (credentials != null) {
             systemParams.put("credentials", credentials);
         }
-        if (adminCredentials != null) {
-            systemParams.put("admin-credentials", adminCredentials);
+        if (testCredentials != null) {
+            systemParams.put("test-credentials", testCredentials);
         }
-        if (adminCredentialsType != null) {
-            systemParams.put("admin-credentials-type", adminCredentialsType);
-        }
-        if (adminCredentialsInputs != null) {
-            for (Map.Entry<String, String> adminInput : adminCredentialsInputs.entrySet()) {
-                systemParams.put(
-                        "admin-credentials-input-" + adminInput.getKey(), adminInput.getValue());
-            }
-        }
-
         return String.format(
                 "%s/v1/%s/%s/%s/%s?%s",
                 getApiGatewayUrl(),
@@ -148,9 +128,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             Map<String, String> params,
             Map<String, String> options,
             String credentials,
-            String adminCredentials,
-            String adminCredentialsType,
-            Map<String, String> adminCredentialsInputs) {
+            String testCredentials) {
 
         final AdminClient client = getClient();
 
@@ -194,20 +172,20 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             }
         }
         if (selectedGateway.getAuthentication() != null) {
-            if (credentials == null && adminCredentials == null) {
+            if (credentials == null && testCredentials == null) {
                 throw new IllegalArgumentException(
                         "gateway " + gatewayId + " of type " + type + " requires credentials");
             }
-            if (adminCredentials != null) {
-                final Object allowAdminRequests =
-                        selectedGateway.getAuthentication().get("allow-admin-requests");
-                if (allowAdminRequests != null && allowAdminRequests.toString().equals("false")) {
+            if (testCredentials != null) {
+                final Object allowTestMode =
+                        selectedGateway.getAuthentication().get("allow-test-mode");
+                if (allowTestMode != null && allowTestMode.toString().equals("false")) {
                     throw new IllegalArgumentException(
                             "gateway "
                                     + gatewayId
                                     + " of type "
                                     + type
-                                    + " do not allow admin requests");
+                                    + " do not allow test mode.");
                 }
             }
         }

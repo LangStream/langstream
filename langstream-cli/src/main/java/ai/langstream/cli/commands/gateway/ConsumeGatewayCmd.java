@@ -47,19 +47,9 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
     private String credentials;
 
     @CommandLine.Option(
-            names = {"-ac", "--admin-credentials"},
-            description = "Admin credentials for the gateway.")
-    private String adminCredentials;
-
-    @CommandLine.Option(
-            names = {"-act", "--admin-credentials-type"},
-            description = "Admin credentials type for the gateway.")
-    private String adminCredentialsType;
-
-    @CommandLine.Option(
-            names = {"-aci", "--admin-credentials-input"},
-            description = "Admin credentials type for the gateway.")
-    private Map<String, String> adminCredentialsInputs;
+            names = {"-tc", "--test-credentials"},
+            description = "Test credentials for the gateway.")
+    private String testCredentials;
 
     @CommandLine.Option(
             names = {"--position"},
@@ -93,9 +83,7 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
                         params,
                         options,
                         credentials,
-                        adminCredentials,
-                        adminCredentialsType,
-                        adminCredentialsInputs);
+                        testCredentials);
 
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;

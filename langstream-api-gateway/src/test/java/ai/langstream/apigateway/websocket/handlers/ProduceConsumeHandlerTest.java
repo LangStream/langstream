@@ -36,7 +36,7 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
-import ai.langstream.apigateway.config.GatewayAdminAuthenticationProperties;
+import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
 import ai.langstream.apigateway.websocket.api.ProduceRequest;
 import ai.langstream.apigateway.websocket.api.ProduceResponse;
@@ -121,20 +121,18 @@ class ProduceConsumeHandlerTest {
 
         @Bean
         @Primary
-        public GatewayAdminAuthenticationProperties gatewayAdminAuthenticationProperties() {
-            final GatewayAdminAuthenticationProperties props =
-                    new GatewayAdminAuthenticationProperties();
-            props.setTypes(List.of("http"));
+        public GatewayTestAuthenticationProperties gatewayTestAuthenticationProperties() {
+            final GatewayTestAuthenticationProperties props =
+                    new GatewayTestAuthenticationProperties();
+            props.setType("http");
             props.setConfiguration(
                     Map.of(
-                            "http",
-                            Map.of(
-                                    "base-url",
-                                    wireMockBaseUrl,
-                                    "path-template",
-                                    "/auth/{tenant}",
-                                    "headers",
-                                    Map.of("h1", "v1"))));
+                            "base-url",
+                            wireMockBaseUrl,
+                            "path-template",
+                            "/auth/{tenant}",
+                            "headers",
+                            Map.of("h1", "v1")));
             return props;
         }
     }
@@ -466,7 +464,7 @@ class ProduceConsumeHandlerTest {
                                                 List.of(
                                                         Gateway.KeyValueComparison
                                                                 .valueFromAuthentication(
-                                                                        "header1", "user-id"))),
+                                                                        "header1", "login"))),
                                         null),
                                 new Gateway(
                                         "consume",
@@ -481,7 +479,7 @@ class ProduceConsumeHandlerTest {
                                                                 Gateway.KeyValueComparison
                                                                         .valueFromAuthentication(
                                                                                 "header1",
-                                                                                "user-id")))))));
+                                                                                "login")))))));
 
         connectAndExpectClose(
                 URI.create(
@@ -547,7 +545,7 @@ class ProduceConsumeHandlerTest {
     }
 
     @Test
-    void testAdminAuthentication() {
+    void testTestCredentials() {
         wireMock.register(
                 WireMock.get("/auth/tenant1")
                         .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
@@ -571,7 +569,7 @@ class ProduceConsumeHandlerTest {
                                                 List.of(
                                                         Gateway.KeyValueComparison
                                                                 .valueFromAuthentication(
-                                                                        "header1", "user-id"))),
+                                                                        "header1", "login"))),
                                         null),
                                 new Gateway(
                                         "consume",
@@ -586,9 +584,9 @@ class ProduceConsumeHandlerTest {
                                                                 Gateway.KeyValueComparison
                                                                         .valueFromAuthentication(
                                                                                 "header1",
-                                                                                "user-id"))))),
+                                                                                "login"))))),
                                 new Gateway(
-                                        "consume-no-admin",
+                                        "consume-no-test",
                                         Gateway.GatewayType.consume,
                                         topic,
                                         new Gateway.Authentication("test-auth", Map.of(), false),
@@ -600,13 +598,13 @@ class ProduceConsumeHandlerTest {
         final ClientSession client1 =
                 connectAndCollectMessages(
                         URI.create(
-                                "ws://localhost:%d/v1/consume/tenant1/application1/consume?admin-credentials=test-user-password&admin-credentials-type=http&admin-credentials-input-user-id=mock-user"
+                                "ws://localhost:%d/v1/consume/tenant1/application1/consume?test-credentials=test-user-password"
                                         .formatted(port)),
                         user1Messages);
 
         connectAndProduce(
                 URI.create(
-                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?admin-credentials=test-user-password&admin-credentials-type=http&admin-credentials-input-user-id=mock-user"
+                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?test-credentials=test-user-password"
                                 .formatted(port)),
                 new ProduceRequest(null, "hello user", null));
 
@@ -618,31 +616,24 @@ class ProduceConsumeHandlerTest {
                                                 new MsgRecord(
                                                         null,
                                                         "hello user",
-                                                        Map.of("header1", "mock-user"))),
+                                                        Map.of(
+                                                                "header1",
+                                                                "9d75ff199d33e051209b59702de27d1e470eafb58ac6d8865788bf23b48e6818"))),
                                         user1Messages));
 
         connectAndExpectClose(
                 URI.create(
-                        "ws://localhost:%d/v1/consume/tenant1/application1/consume-no-admin?admin-credentials=test-user-password&admin-credentials-type=http&admin-credentials-input-user-id=mock-user"
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume-no-admin?test-credentials=test-user-password"
                                 .formatted(port)),
                 new CloseReason(
                         CloseReason.CloseCodes.VIOLATED_POLICY,
-                        "Gateway consume-no-admin of tenant tenant1 does not allow admin requests."));
-
-        // use default admin auth provider
-        connectAndProduce(
-                URI.create(
-                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?admin-credentials=test-user-password&admin-credentials-input-user-id=mock-user"
-                                .formatted(port)),
-                new ProduceRequest(null, "hello user", null));
+                        "Gateway consume-no-test of tenant tenant1 does not allow test mode."));
 
         connectAndExpectClose(
                 URI.create(
-                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?admin-credentials=test-user-password-but-wrong&admin-credentials-input-user-id=mock-user"
+                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?test-credentials=test-user-password-but-wrong"
                                 .formatted(port)),
-                new CloseReason(
-                        CloseReason.CloseCodes.VIOLATED_POLICY,
-                        "Gateway produce of tenant tenant1 does not allow admin requests."));
+                new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Invalid credentials"));
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}

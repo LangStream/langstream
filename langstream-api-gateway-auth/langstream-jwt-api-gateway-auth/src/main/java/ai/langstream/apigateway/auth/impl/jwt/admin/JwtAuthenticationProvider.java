@@ -40,8 +40,7 @@ public class JwtAuthenticationProvider implements GatewayAuthenticationProvider 
     @SneakyThrows
     public void initialize(Map<String, Object> configuration) {
         final JwtAuthenticationProviderConfiguration tokenProperties =
-                mapper.convertValue(
-                        configuration, JwtAuthenticationProviderConfiguration.class);
+                mapper.convertValue(configuration, JwtAuthenticationProviderConfiguration.class);
 
         if (tokenProperties.adminRoles() != null) {
             this.adminRoles = tokenProperties.adminRoles();

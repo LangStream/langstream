@@ -27,11 +27,13 @@ docker_platforms() {
   fi
 }
 
+common_flags="-DskipTests -PskipPython -Dlicense.skip -Dspotless.skip"
+
 
 build_docker_image() {
   module=$1
-  ./mvnw clean install -am -DskipTests -pl $module -T 1C -PskipPython
-  ./mvnw package -DskipTests -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)" -PskipPython
+  ./mvnw install -am -pl $module -T 1C $common_flags
+  ./mvnw package -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)" $common_flags
   docker images | head -n 2
 }
 
@@ -47,9 +49,9 @@ elif [ "$only_image" == "api-gateway" ]; then
   build_docker_image langstream-api-gateway
 else
   # Build all artifacts
-  ./mvnw install -DskipTests -T 1C -Ddocker.platforms="$(docker_platforms)" -PskipPython
+  ./mvnw install -T 1C -Ddocker.platforms="$(docker_platforms)" $common_flags
   # Build docker images
-  ./mvnw package -DskipTests -Pdocker -Ddocker.platforms="$(docker_platforms)" -PskipPython
+  ./mvnw package -Pdocker -Ddocker.platforms="$(docker_platforms)" $common_flags
   docker images | head -n 6
 fi
 

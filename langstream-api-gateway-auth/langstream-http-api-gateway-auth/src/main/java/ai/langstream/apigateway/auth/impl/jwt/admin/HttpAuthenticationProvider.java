@@ -44,8 +44,7 @@ public class HttpAuthenticationProvider implements GatewayAuthenticationProvider
     @SneakyThrows
     public void initialize(Map<String, Object> configuration) {
         httpConfiguration =
-                mapper.convertValue(
-                        configuration, HttpAuthenticationProviderConfiguration.class);
+                mapper.convertValue(configuration, HttpAuthenticationProviderConfiguration.class);
         httpClient =
                 HttpClient.newBuilder()
                         .connectTimeout(Duration.ofSeconds(30))

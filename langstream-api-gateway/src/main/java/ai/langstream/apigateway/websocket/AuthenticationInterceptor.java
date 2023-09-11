@@ -132,7 +132,7 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
 
         final GatewayAuthenticationResult result;
         if (gatewayRequestContext.isTestMode()) {
-            if (!authentication.allowTestMode()) {
+            if (!authentication.isAllowTestMode()) {
                 throw new AuthFailedException(
                         "Gateway "
                                 + gatewayRequestContext.gateway().id()

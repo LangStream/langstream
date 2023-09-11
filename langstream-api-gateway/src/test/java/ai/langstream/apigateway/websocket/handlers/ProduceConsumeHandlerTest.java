@@ -458,7 +458,7 @@ class ProduceConsumeHandlerTest {
                                         "produce",
                                         Gateway.GatewayType.produce,
                                         topic,
-                                        new Gateway.Authentication("test-auth", Map.of()),
+                                        new Gateway.Authentication("test-auth", Map.of(), true),
                                         List.of(),
                                         new Gateway.ProduceOptions(
                                                 List.of(
@@ -470,7 +470,7 @@ class ProduceConsumeHandlerTest {
                                         "consume",
                                         Gateway.GatewayType.consume,
                                         topic,
-                                        new Gateway.Authentication("test-auth", Map.of()),
+                                        new Gateway.Authentication("test-auth", Map.of(), true),
                                         List.of(),
                                         null,
                                         new Gateway.ConsumeOptions(

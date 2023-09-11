@@ -43,6 +43,7 @@ gateways:
       - sessionId
     authentication:
       provider: google
+      allow-test-mode: true
       configuration:
         clientId: "{{ secrets.google.client-id }}"
     produce-options:
@@ -58,6 +59,7 @@ gateways:
     parameters:
       - sessionId
     authentication:
+      allow-test-mode: true
       provider: google
       configuration:
         clientId: "{{ secrets.google.client-id }}"

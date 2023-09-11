@@ -38,6 +38,7 @@ RUN mkdir /minio \
 
 # Add the runtime code at the end. This optimizes docker layers to not depend on artifacts-specific changes.
 ADD maven/lib /app/tester/lib
+RUN rm -f /app/tester/lib/*netty*
 ADD maven/entrypoint.sh /app/entrypoint.sh
 
 WORKDIR /app

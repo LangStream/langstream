@@ -145,10 +145,10 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
             }
             result = authTestProvider.authenticate(gatewayRequestContext);
         } else {
-            final String provider = authentication.provider();
+            final String provider = authentication.getProvider();
             final GatewayAuthenticationProvider authProvider =
                     GatewayAuthenticationProviderRegistry.loadProvider(
-                            provider, authentication.configuration());
+                            provider, authentication.getConfiguration());
             result = authProvider.authenticate(gatewayRequestContext);
         }
         if (result == null) {

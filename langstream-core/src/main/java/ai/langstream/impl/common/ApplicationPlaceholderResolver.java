@@ -177,12 +177,12 @@ public class ApplicationPlaceholderResolver {
         for (Gateway gateway : instance.getGateways().gateways()) {
             Gateway.Authentication authentication = gateway.authentication();
             if (gateway.authentication() != null
-                    && gateway.authentication().configuration() != null) {
+                    && gateway.authentication().getConfiguration() != null) {
                 authentication =
                         new Gateway.Authentication(
-                                authentication.provider(),
-                                resolveMap(context, gateway.authentication().configuration()),
-                                authentication.allowTestMode());
+                                authentication.getProvider(),
+                                resolveMap(context, gateway.authentication().getConfiguration()),
+                                authentication.isAllowTestMode());
             }
 
             final String topic = resolveValue(context, gateway.topic());

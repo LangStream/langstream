@@ -19,6 +19,9 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 public record Gateway(
         String id,
@@ -55,13 +58,15 @@ public record Gateway(
         this(id, type, topic, authentication, parameters, produceOptions, consumeOptions, null);
     }
 
-    public record Authentication(
-            String provider,
-            Map<String, Object> configuration,
-            @JsonProperty("allow-test-mode") boolean allowTestMode) {
-        public Authentication(String provider, Map<String, Object> configuration) {
-            this(provider, configuration, true);
-        }
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Authentication {
+        private String provider;
+        private Map<String, Object> configuration;
+
+        @JsonProperty("allow-test-mode")
+        private boolean allowTestMode = true;
     }
 
     public record KeyValueComparison(

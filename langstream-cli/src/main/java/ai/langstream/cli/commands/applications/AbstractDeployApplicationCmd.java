@@ -159,9 +159,6 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             header = "Run on a docker container a LangStream application")
     public static class LocalRun extends AbstractDeployApplicationCmd {
 
-        @CommandLine.Parameters(description = "Name of the application")
-        private String name;
-
         @CommandLine.Option(
                 names = {"-app", "--application"},
                 description = "Application directory path",
@@ -181,7 +178,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         @Override
         String applicationId() {
-            return name;
+            return "app";
         }
 
         @Override

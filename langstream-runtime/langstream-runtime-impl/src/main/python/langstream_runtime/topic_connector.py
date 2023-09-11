@@ -17,9 +17,10 @@
 import logging
 from typing import List, Dict, Any
 
-from langstream import (
+from .api import (
     Source,
     Record,
+    RecordType,
     Sink,
     CommitCallback,
     TopicProducer,
@@ -33,7 +34,7 @@ class TopicConsumerSource(Source):
     def __init__(self, consumer: TopicConsumer):
         self.consumer = consumer
 
-    def read(self) -> List[Record]:
+    def read(self) -> List[RecordType]:
         return self.consumer.read()
 
     def commit(self, records: List[Record]):

@@ -23,7 +23,7 @@ from uuid import UUID
 from confluent_kafka import Consumer, Producer, Message, TopicPartition, KafkaException
 from sortedcontainers import SortedSet
 
-from langstream import Record, CommitCallback, SimpleRecord
+from .api import Record, CommitCallback
 from .kafka_serialization import (
     STRING_SERIALIZER,
     BOOLEAN_SERIALIZER,
@@ -46,6 +46,7 @@ from .kafka_serialization import (
     UUID_DESERIALIZER,
 )
 from .topic_connector import TopicConsumer, TopicProducer
+from .util import SimpleRecord
 
 LOG = logging.getLogger(__name__)
 

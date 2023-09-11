@@ -29,5 +29,6 @@
   <modules>
     <module>langstream-runtime-api</module>
     <module>langstream-runtime-impl</module>
+    <module>langstream-runtime-tester</module>
   </modules>
 </project>

@@ -41,6 +41,8 @@ elif [ "$only_image" == "operator" ] || [ "$only_image" == "deployer" ]; then
   build_docker_image langstream-k8s-deployer/langstream-k8s-deployer-operator
 elif [ "$only_image" == "runtime" ]; then
   build_docker_image langstream-runtime/langstream-runtime-impl
+elif [ "$only_image" == "runtime-tester" ]; then
+  build_docker_image langstream-runtime/langstream-runtime-tester
 elif [ "$only_image" == "cli" ]; then
   build_docker_image langstream-cli
 elif [ "$only_image" == "api-gateway" ]; then

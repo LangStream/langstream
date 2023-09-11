@@ -15,6 +15,8 @@
  */
 package ai.langstream.impl.common;
 
+import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.Module;
@@ -25,9 +27,9 @@ import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /** Utility method to implement an AssetNodeProvider. */
 public abstract class AbstractAssetProvider implements AssetNodeProvider {
@@ -84,9 +86,9 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
                                 if (lookupResource(key)) {
                                     String resourceId =
                                             requiredNonEmptyField(
-                                                    assetDefinition,
                                                     assetDefinition.getConfig(),
-                                                    key);
+                                                    key,
+                                                    describe(assetDefinition));
                                     Resource resource = resources.get(resourceId);
                                     if (resource != null) {
                                         Map<String, Object> resourceImplementation =
@@ -117,67 +119,13 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
         return supportedType.contains(type);
     }
 
-    protected static <T> T requiredField(
-            AssetDefinition assetDefinition, Map<String, Object> configuration, String name) {
-        Object value = configuration.get(name);
-        if (value == null) {
-            throw new IllegalArgumentException(
-                    "Missing required field '"
-                            + name
-                            + "' in assert definition, type="
-                            + assetDefinition.getAssetType()
-                            + ", name="
-                            + assetDefinition.getName()
-                            + ", id="
-                            + assetDefinition.getId());
-        }
-        return (T) value;
-    }
-
-    protected static String requiredNonEmptyField(
-            AssetDefinition assetDefinition, Map<String, Object> configuration, String name) {
-        Object value = configuration.get(name);
-        if (value == null || value.toString().isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Missing required field '"
-                            + name
-                            + "' in assert definition, type="
-                            + assetDefinition.getAssetType()
-                            + ", name="
-                            + assetDefinition.getName()
-                            + ", id="
-                            + assetDefinition.getId());
-        }
-        return value.toString();
-    }
-
-    protected static void requiredListField(
-            AssetDefinition assetDefinition, Map<String, Object> configuration, String name) {
-        Object value = configuration.get(name);
-        if (value == null) {
-            throw new IllegalArgumentException(
-                    "Missing required field '"
-                            + name
-                            + "' in assert definition, type="
-                            + assetDefinition.getAssetType()
-                            + ", name="
-                            + assetDefinition.getName()
-                            + ", id="
-                            + assetDefinition.getId());
-        }
-
-        if (!(value instanceof List)) {
-            throw new IllegalArgumentException(
-                    "Expecting a list in the field '"
-                            + name
-                            + "' in assert definition, type="
-                            + assetDefinition.getAssetType()
-                            + ", name="
-                            + assetDefinition.getName()
-                            + ", id="
-                            + assetDefinition.getId()
-                            + " but got a "
-                            + value.getClass().getName());
-        }
+    protected static Supplier<String> describe(AssetDefinition assetDefinition) {
+        return () ->
+                " assert definition, type="
+                        + assetDefinition.getAssetType()
+                        + ", name="
+                        + assetDefinition.getName()
+                        + ", id="
+                        + assetDefinition.getId();
     }
 }

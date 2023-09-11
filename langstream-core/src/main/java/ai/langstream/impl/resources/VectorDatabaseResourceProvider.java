@@ -15,6 +15,10 @@
  */
 package ai.langstream.impl.resources;
 
+import static ai.langstream.api.util.ConfigurationUtils.requiredField;
+import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
+import static ai.langstream.api.util.ConfigurationUtils.validateEnumField;
+
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
@@ -23,8 +27,10 @@ import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.ResourceNodeProvider;
 import ai.langstream.api.util.ConfigurationUtils;
 import java.util.Map;
+import java.util.Set;
 
-public class VectorDatabaseResourceProvider implements ResourceNodeProvider {
+public class VectorDatabaseResourceProvider extends DataSourceResourceProvider
+        implements ResourceNodeProvider {
     @Override
     public Map<String, Object> createImplementation(
             Resource resource,
@@ -33,12 +39,40 @@ public class VectorDatabaseResourceProvider implements ResourceNodeProvider {
             ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
         Map<String, Object> configuration = resource.configuration();
-        String service = ConfigurationUtils.getString("service", "", configuration);
-        if (service.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Missing required field 'service' in a vector-database resource definition");
+
+        String service = requiredField(configuration, "service", describe(resource));
+        validateEnumField(
+                configuration,
+                "service",
+                Set.of("astra", "cassandra", "pinecone"),
+                describe(resource));
+
+        switch (service) {
+            case "astra":
+                validateAstraDatabaseResource(resource);
+                break;
+            case "cassandra":
+                validateCassandraDatabaseResource(resource);
+                break;
+            case "pinecone":
+                validatePineconeDatabaseResource(resource);
+                break;
+            default:
+                throw new IllegalStateException();
         }
+
         return resource.configuration();
+    }
+
+    protected void validatePineconeDatabaseResource(Resource resource) {
+        Map<String, Object> configuration = resource.configuration();
+
+        requiredNonEmptyField(configuration, "api-key", describe(resource));
+        requiredNonEmptyField(configuration, "environment", describe(resource));
+        requiredNonEmptyField(configuration, "project-name", describe(resource));
+        requiredNonEmptyField(configuration, "index-name", describe(resource));
+        ConfigurationUtils.validateInteger(
+                configuration, "server-side-timeout-sec", 1, 300000, describe(resource));
     }
 
     @Override

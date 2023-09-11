@@ -19,14 +19,16 @@ import ai.langstream.api.gateway.GatewayAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationProviderRegistry;
 import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
-import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Gateway;
+import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.websocket.handlers.AbstractHandler;
+import ai.langstream.apigateway.websocket.impl.AuthenticatedGatewayRequestContextImpl;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -39,6 +41,24 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 
 @Slf4j
 public class AuthenticationInterceptor implements HandshakeInterceptor {
+
+    private final GatewayAuthenticationProvider authTestProvider;
+
+    public AuthenticationInterceptor(
+            GatewayTestAuthenticationProperties testAuthenticationProperties) {
+        if (testAuthenticationProperties.getType() != null) {
+            authTestProvider =
+                    GatewayAuthenticationProviderRegistry.loadProvider(
+                            testAuthenticationProperties.getType(),
+                            testAuthenticationProperties.getConfiguration());
+            log.info(
+                    "Loaded test authentication provider {}",
+                    authTestProvider.getClass().getName());
+        } else {
+            authTestProvider = null;
+            log.info("No test authentication provider configured");
+        }
+    }
 
     @Override
     public boolean beforeHandshake(
@@ -102,85 +122,80 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
 
     private Map<String, String> authenticate(GatewayRequestContext gatewayRequestContext)
             throws AuthFailedException {
+
         final Gateway.Authentication authentication =
                 gatewayRequestContext.gateway().authentication();
-        final Map<String, String> principalValues;
-        if (authentication != null) {
-            final String provider = authentication.provider();
 
-            final GatewayAuthenticationProvider authenticationProvider =
-                    GatewayAuthenticationProviderRegistry.loadProvider(
-                            provider, authentication.configuration());
-            final GatewayAuthenticationResult result =
-                    authenticationProvider.authenticate(gatewayRequestContext);
-            if (!result.authenticated()) {
-                throw new AuthFailedException(result.reason());
-            }
-            principalValues = result.principalValues();
-        } else {
-            principalValues = Map.of();
-        }
-        if (principalValues == null) {
+        if (authentication == null) {
             return Map.of();
         }
-        return principalValues;
+
+        final GatewayAuthenticationResult result;
+        if (gatewayRequestContext.isTestMode()) {
+            if (!authentication.isAllowTestMode()) {
+                throw new AuthFailedException(
+                        "Gateway "
+                                + gatewayRequestContext.gateway().id()
+                                + " of tenant "
+                                + gatewayRequestContext.tenant()
+                                + " does not allow test mode.");
+            }
+            if (authTestProvider == null) {
+                throw new AuthFailedException("No test auth provider specified");
+            }
+            result = authTestProvider.authenticate(gatewayRequestContext);
+        } else {
+            final String provider = authentication.getProvider();
+            final GatewayAuthenticationProvider authProvider =
+                    GatewayAuthenticationProviderRegistry.loadProvider(
+                            provider, authentication.getConfiguration());
+            result = authProvider.authenticate(gatewayRequestContext);
+        }
+        if (result == null) {
+            throw new AuthFailedException("Authentication provider returned null");
+        }
+        if (!result.authenticated()) {
+            throw new AuthFailedException(result.reason());
+        }
+        return getPrincipalValues(result, gatewayRequestContext);
+    }
+
+    private Map<String, String> getPrincipalValues(
+            GatewayAuthenticationResult result, GatewayRequestContext context) {
+        if (!context.isTestMode()) {
+            final Map<String, String> values = result.principalValues();
+            if (values == null) {
+                return Map.of();
+            }
+            return values;
+        } else {
+            final Map<String, String> values = new HashMap<>();
+            final String principalSubject = DigestUtils.sha256Hex(context.credentials());
+            final int principalNumericId = principalSubject.hashCode();
+            final String principalEmail = "%s@locahost".formatted(principalSubject);
+
+            // google
+            values.putIfAbsent("subject", principalSubject);
+            values.putIfAbsent("email", principalEmail);
+            values.putIfAbsent("name", principalSubject);
+
+            // github
+            values.putIfAbsent("login", principalSubject);
+            values.putIfAbsent("id", principalNumericId + "");
+            return values;
+        }
     }
 
     private AuthenticatedGatewayRequestContext getAuthenticatedGatewayRequestContext(
             GatewayRequestContext gatewayRequestContext,
             Map<String, String> principalValues,
             Map<String, Object> attributes) {
-        return new AuthenticatedGatewayRequestContext() {
-            @Override
-            public Map<String, String> principalValues() {
-                return principalValues;
-            }
 
-            @Override
-            public String tenant() {
-                return gatewayRequestContext.tenant();
-            }
-
-            @Override
-            public Map<String, Object> attributes() {
-                return attributes;
-            }
-
-            @Override
-            public String applicationId() {
-                return gatewayRequestContext.applicationId();
-            }
-
-            @Override
-            public Application application() {
-                return gatewayRequestContext.application();
-            }
-
-            @Override
-            public Gateway gateway() {
-                return gatewayRequestContext.gateway();
-            }
-
-            @Override
-            public String credentials() {
-                return gatewayRequestContext.credentials();
-            }
-
-            @Override
-            public Map<String, String> userParameters() {
-                return gatewayRequestContext.userParameters();
-            }
-
-            @Override
-            public Map<String, String> options() {
-                return gatewayRequestContext.options();
-            }
-
-            @Override
-            public Map<String, String> httpHeaders() {
-                return gatewayRequestContext.httpHeaders();
-            }
-        };
+        return AuthenticatedGatewayRequestContextImpl.builder()
+                .gatewayRequestContext(gatewayRequestContext)
+                .attributes(attributes)
+                .principalValues(principalValues)
+                .build();
     }
 
     @Override

@@ -81,7 +81,7 @@ public class GitHubAuthenticationProvider implements GatewayAuthenticationProvid
                 log.info("X-OAuth-Client-Id: {}", responseClientId);
                 log.info("Required: X-OAuth-Client-Id: {}", clientId);
 
-                Map<String, String> result = new ObjectMapper().readValue(body, Map.class);
+                Map<String, String> result = mapper.readValue(body, Map.class);
                 if (log.isDebugEnabled()) {
                     response.headers().map().forEach((k, v) -> log.debug("Header {}: {}", k, v));
                 }

@@ -30,5 +30,7 @@
   <modules>
     <module>langstream-google-api-gateway-auth</module>
     <module>langstream-github-api-gateway-auth</module>
+    <module>langstream-jwt-api-gateway-auth</module>
+    <module>langstream-http-api-gateway-auth</module>
   </modules>
 </project>

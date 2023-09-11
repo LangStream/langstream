@@ -77,6 +77,11 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
             description = "Connect timeout for WebSocket connections in seconds.")
     private long connectTimeoutSeconds = 0;
 
+    @CommandLine.Option(
+            names = {"-tc", "--test-credentials"},
+            description = "Test credentials for the gateway.")
+    private String testCredentials;
+
     @Override
     @SneakyThrows
     public void run() {
@@ -87,7 +92,8 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
                         Gateways.Gateway.TYPE_PRODUCE,
                         params,
                         Map.of(),
-                        credentials);
+                        credentials,
+                        testCredentials);
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;
         CountDownLatch countDownLatch = new CountDownLatch(1);

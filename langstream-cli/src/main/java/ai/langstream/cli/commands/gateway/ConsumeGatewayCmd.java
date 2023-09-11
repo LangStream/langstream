@@ -47,6 +47,11 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
     private String credentials;
 
     @CommandLine.Option(
+            names = {"-tc", "--test-credentials"},
+            description = "Test credentials for the gateway.")
+    private String testCredentials;
+
+    @CommandLine.Option(
             names = {"--position"},
             description =
                     "Initial position of the consumer. \"latest\", \"earliest\" or a offset value. "
@@ -77,7 +82,8 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
                         Gateways.Gateway.TYPE_CONSUME,
                         params,
                         options,
-                        credentials);
+                        credentials,
+                        testCredentials);
 
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;

@@ -15,6 +15,8 @@
  */
 package ai.langstream.webservice.security.infrastructure.primary;
 
+import ai.langstream.auth.jwt.AuthenticationProviderToken;
+import ai.langstream.auth.jwt.JwtProperties;
 import ai.langstream.webservice.config.AuthTokenProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -45,7 +47,18 @@ public class TokenAuthFilter extends GenericFilterBean {
     @SneakyThrows
     public TokenAuthFilter(AuthTokenProperties tokenProperties) {
         this.tokenProperties = tokenProperties;
-        this.authenticationProvider = new AuthenticationProviderToken(tokenProperties);
+
+        final JwtProperties jwtProperties =
+                new JwtProperties(
+                        tokenProperties.secretKey(),
+                        tokenProperties.publicKey(),
+                        tokenProperties.authClaim(),
+                        tokenProperties.publicAlg(),
+                        tokenProperties.audienceClaim(),
+                        tokenProperties.audience(),
+                        tokenProperties.jwksHostsAllowlist());
+
+        this.authenticationProvider = new AuthenticationProviderToken(jwtProperties);
     }
 
     @Override

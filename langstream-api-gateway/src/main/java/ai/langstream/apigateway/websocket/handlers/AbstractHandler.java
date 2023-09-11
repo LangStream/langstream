@@ -30,6 +30,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
+import ai.langstream.apigateway.websocket.impl.GatewayRequestContextImpl;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -197,6 +198,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         Map<String, String> userParameters = new HashMap<>();
 
         final String credentials = queryString.remove("credentials");
+        final String testCredentials = queryString.remove("test-credentials");
 
         for (Map.Entry<String, String> entry : queryString.entrySet()) {
             if (entry.getKey().startsWith("option:")) {
@@ -238,48 +240,21 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         }
         validateOptions(options);
 
-        return new GatewayRequestContext() {
-
-            @Override
-            public String tenant() {
-                return tenant;
-            }
-
-            @Override
-            public String applicationId() {
-                return applicationId;
-            }
-
-            @Override
-            public Application application() {
-                return application;
-            }
-
-            @Override
-            public Gateway gateway() {
-                return gateway;
-            }
-
-            @Override
-            public String credentials() {
-                return credentials;
-            }
-
-            @Override
-            public Map<String, String> userParameters() {
-                return userParameters;
-            }
-
-            @Override
-            public Map<String, String> options() {
-                return options;
-            }
-
-            @Override
-            public Map<String, String> httpHeaders() {
-                return httpHeaders;
-            }
-        };
+        if (credentials != null && testCredentials != null) {
+            throw new IllegalArgumentException(
+                    "credentials and test-credentials cannot be used together");
+        }
+        return GatewayRequestContextImpl.builder()
+                .tenant(tenant)
+                .applicationId(applicationId)
+                .application(application)
+                .credentials(credentials)
+                .testCredentials(testCredentials)
+                .httpHeaders(httpHeaders)
+                .options(options)
+                .userParameters(userParameters)
+                .gateway(gateway)
+                .build();
     }
 
     protected void recordCloseableResource(

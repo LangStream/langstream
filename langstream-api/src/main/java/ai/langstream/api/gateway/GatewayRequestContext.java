@@ -31,6 +31,8 @@ public interface GatewayRequestContext {
 
     String credentials();
 
+    boolean isTestMode();
+
     Map<String, String> userParameters();
 
     Map<String, String> options();

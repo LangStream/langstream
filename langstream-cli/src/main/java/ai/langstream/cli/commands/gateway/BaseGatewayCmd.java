@@ -42,9 +42,12 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     }
 
     private static String computeQueryString(
-            String credentials, Map<String, String> userParams, Map<String, String> options) {
+            Map<String, String> systemParams,
+            Map<String, String> userParams,
+            Map<String, String> options) {
         String paramsPart = "";
         String optionsPart = "";
+        String systemParamsPart = "";
         if (userParams != null) {
             paramsPart =
                     userParams.entrySet().stream()
@@ -59,12 +62,14 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                             .collect(Collectors.joining("&"));
         }
 
-        String credentialsPart = "";
-        if (credentials != null) {
-            credentialsPart = encodeParam("credentials", credentials, "");
+        if (systemParams != null) {
+            systemParamsPart =
+                    systemParams.entrySet().stream()
+                            .map(e -> encodeParam(e, ""))
+                            .collect(Collectors.joining("&"));
         }
 
-        return String.join("&", List.of(credentialsPart, paramsPart, optionsPart));
+        return String.join("&", List.of(systemParamsPart, paramsPart, optionsPart));
     }
 
     private static String encodeParam(Map.Entry<String, String> e, String prefix) {
@@ -83,8 +88,18 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             String type,
             Map<String, String> params,
             Map<String, String> options,
-            String credentials) {
-        validateGateway(applicationId, gatewayId, type, params, options, credentials);
+            String credentials,
+            String testCredentials) {
+        validateGateway(
+                applicationId, gatewayId, type, params, options, credentials, testCredentials);
+
+        Map<String, String> systemParams = new HashMap<>();
+        if (credentials != null) {
+            systemParams.put("credentials", credentials);
+        }
+        if (testCredentials != null) {
+            systemParams.put("test-credentials", testCredentials);
+        }
         return String.format(
                 "%s/v1/%s/%s/%s/%s?%s",
                 getApiGatewayUrl(),
@@ -92,7 +107,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                 getTenant(),
                 applicationId,
                 gatewayId,
-                computeQueryString(credentials, params, options));
+                computeQueryString(systemParams, params, options));
     }
 
     private String getTenant() {
@@ -112,7 +127,8 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             String type,
             Map<String, String> params,
             Map<String, String> options,
-            String credentials) {
+            String credentials,
+            String testCredentials) {
 
         final AdminClient client = getClient();
 
@@ -156,10 +172,26 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             }
         }
         if (selectedGateway.getAuthentication() != null) {
-            if (credentials == null) {
+            if (credentials == null && testCredentials == null) {
                 throw new IllegalArgumentException(
                         "gateway " + gatewayId + " of type " + type + " requires credentials");
             }
+            if (testCredentials != null) {
+                final Object allowTestMode =
+                        selectedGateway.getAuthentication().get("allow-test-mode");
+                if (allowTestMode != null && allowTestMode.toString().equals("false")) {
+                    throw new IllegalArgumentException(
+                            "gateway "
+                                    + gatewayId
+                                    + " of type "
+                                    + type
+                                    + " do not allow test mode.");
+                }
+            }
+        }
+        if (credentials != null && testCredentials != null) {
+            throw new IllegalArgumentException(
+                    "credentials and test-credentials cannot be used together");
         }
     }
 }

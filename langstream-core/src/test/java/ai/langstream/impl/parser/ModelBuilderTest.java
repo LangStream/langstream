@@ -17,10 +17,13 @@ package ai.langstream.impl.parser;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import ai.langstream.api.model.Application;
+import ai.langstream.api.model.Gateway;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -94,5 +97,41 @@ class ModelBuilderTest {
                 "589c0438a29fe804da9f1848b8c6ecb291a55f1e665b0f92a4d46929c09e117c",
                 applicationWithPackageInfo.getJavaBinariesDigest());
         Assertions.assertNull(applicationWithPackageInfo.getPyBinariesDigest());
+    }
+
+    @Test
+    void testParseGateway() throws Exception {
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                pipeline:
+                                  - name: "step1"
+                                    type: "noop"
+
+                                """,
+                                        "gateways.yaml",
+                                        """
+                                gateways:
+                                - id: gw
+                                  type: produce
+                                  topic: t1
+                                  authentication:
+                                    provider: google
+                                    configuration: {}
+                                """),
+                                null,
+                                null)
+                        .getApplication();
+        final List<Gateway> gateways = applicationInstance.getGateways().gateways();
+        Assertions.assertEquals(1, gateways.size());
+        final Gateway gateway = gateways.get(0);
+        assertEquals("gw", gateway.id());
+        assertEquals("t1", gateway.topic());
+        assertEquals("google", gateway.authentication().getProvider());
+        assertTrue(gateway.authentication().isAllowTestMode());
     }
 }

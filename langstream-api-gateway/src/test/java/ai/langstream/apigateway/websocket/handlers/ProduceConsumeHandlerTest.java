@@ -36,6 +36,7 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
 import ai.langstream.apigateway.websocket.api.ProduceRequest;
 import ai.langstream.apigateway.websocket.api.ProduceResponse;
@@ -45,6 +46,9 @@ import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import jakarta.websocket.CloseReason;
 import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Session;
@@ -62,6 +66,7 @@ import lombok.SneakyThrows;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -77,7 +82,10 @@ import org.springframework.context.annotation.Primary;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"spring.main.allow-bean-definition-overriding=true"})
+        properties = {
+            "spring.main.allow-bean-definition-overriding=true",
+        })
+@WireMockTest
 class ProduceConsumeHandlerTest {
 
     protected static final ObjectMapper MAPPER = new ObjectMapper();
@@ -109,6 +117,23 @@ class ProduceConsumeHandlerTest {
                     .getSpecs(anyString(), anyString());
 
             return mock;
+        }
+
+        @Bean
+        @Primary
+        public GatewayTestAuthenticationProperties gatewayTestAuthenticationProperties() {
+            final GatewayTestAuthenticationProperties props =
+                    new GatewayTestAuthenticationProperties();
+            props.setType("http");
+            props.setConfiguration(
+                    Map.of(
+                            "base-url",
+                            wireMockBaseUrl,
+                            "path-template",
+                            "/auth/{tenant}",
+                            "headers",
+                            Map.of("h1", "v1")));
+            return props;
         }
     }
 
@@ -158,8 +183,17 @@ class ProduceConsumeHandlerTest {
 
     @Autowired ApplicationStore store;
 
+    static WireMock wireMock;
+    static String wireMockBaseUrl;
+
+    @BeforeAll
+    public static void beforeAll(WireMockRuntimeInfo wmRuntimeInfo) {
+        wireMock = wmRuntimeInfo.getWireMock();
+        wireMockBaseUrl = wmRuntimeInfo.getHttpBaseUrl();
+    }
+
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach(WireMockRuntimeInfo wmRuntimeInfo) {
         testGateways = null;
         topics = null;
         Awaitility.setDefaultTimeout(30, TimeUnit.SECONDS);
@@ -424,19 +458,19 @@ class ProduceConsumeHandlerTest {
                                         "produce",
                                         Gateway.GatewayType.produce,
                                         topic,
-                                        new Gateway.Authentication("test-auth", Map.of()),
+                                        new Gateway.Authentication("test-auth", Map.of(), true),
                                         List.of(),
                                         new Gateway.ProduceOptions(
                                                 List.of(
                                                         Gateway.KeyValueComparison
                                                                 .valueFromAuthentication(
-                                                                        "header1", "user-id"))),
+                                                                        "header1", "login"))),
                                         null),
                                 new Gateway(
                                         "consume",
                                         Gateway.GatewayType.consume,
                                         topic,
-                                        new Gateway.Authentication("test-auth", Map.of()),
+                                        new Gateway.Authentication("test-auth", Map.of(), true),
                                         List.of(),
                                         null,
                                         new Gateway.ConsumeOptions(
@@ -445,7 +479,7 @@ class ProduceConsumeHandlerTest {
                                                                 Gateway.KeyValueComparison
                                                                         .valueFromAuthentication(
                                                                                 "header1",
-                                                                                "user-id")))))));
+                                                                                "login")))))));
 
         connectAndExpectClose(
                 URI.create(
@@ -508,6 +542,98 @@ class ProduceConsumeHandlerTest {
                                                         Map.of("header1", "test-user-password"))),
                                         user1Messages));
         assertEquals(List.of(), user2Messages);
+    }
+
+    @Test
+    void testTestCredentials() {
+        wireMock.register(
+                WireMock.get("/auth/tenant1")
+                        .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
+                        .withHeader("h1", WireMock.equalTo("v1"))
+                        .willReturn(WireMock.ok("")));
+        final String topic = genTopic();
+        prepareTopicsForTest(topic);
+
+        List<String> user1Messages = new ArrayList<>();
+
+        testGateways =
+                new Gateways(
+                        List.of(
+                                new Gateway(
+                                        "produce",
+                                        Gateway.GatewayType.produce,
+                                        topic,
+                                        new Gateway.Authentication("test-auth", Map.of(), true),
+                                        List.of(),
+                                        new Gateway.ProduceOptions(
+                                                List.of(
+                                                        Gateway.KeyValueComparison
+                                                                .valueFromAuthentication(
+                                                                        "header1", "login"))),
+                                        null),
+                                new Gateway(
+                                        "consume",
+                                        Gateway.GatewayType.consume,
+                                        topic,
+                                        new Gateway.Authentication("test-auth", Map.of(), true),
+                                        List.of(),
+                                        null,
+                                        new Gateway.ConsumeOptions(
+                                                new Gateway.ConsumeOptionsFilters(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromAuthentication(
+                                                                                "header1",
+                                                                                "login"))))),
+                                new Gateway(
+                                        "consume-no-test",
+                                        Gateway.GatewayType.consume,
+                                        topic,
+                                        new Gateway.Authentication("test-auth", Map.of(), false),
+                                        List.of(),
+                                        null,
+                                        null)));
+
+        @Cleanup
+        final ClientSession client1 =
+                connectAndCollectMessages(
+                        URI.create(
+                                "ws://localhost:%d/v1/consume/tenant1/application1/consume?test-credentials=test-user-password"
+                                        .formatted(port)),
+                        user1Messages);
+
+        connectAndProduce(
+                URI.create(
+                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?test-credentials=test-user-password"
+                                .formatted(port)),
+                new ProduceRequest(null, "hello user", null));
+
+        Awaitility.await()
+                .untilAsserted(
+                        () ->
+                                assertMessagesContent(
+                                        List.of(
+                                                new MsgRecord(
+                                                        null,
+                                                        "hello user",
+                                                        Map.of(
+                                                                "header1",
+                                                                "9d75ff199d33e051209b59702de27d1e470eafb58ac6d8865788bf23b48e6818"))),
+                                        user1Messages));
+
+        connectAndExpectClose(
+                URI.create(
+                        "ws://localhost:%d/v1/consume/tenant1/application1/consume-no-admin?test-credentials=test-user-password"
+                                .formatted(port)),
+                new CloseReason(
+                        CloseReason.CloseCodes.VIOLATED_POLICY,
+                        "Gateway consume-no-test of tenant tenant1 does not allow test mode."));
+
+        connectAndExpectClose(
+                URI.create(
+                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?test-credentials=test-user-password-but-wrong"
+                                .formatted(port)),
+                new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Invalid credentials"));
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}

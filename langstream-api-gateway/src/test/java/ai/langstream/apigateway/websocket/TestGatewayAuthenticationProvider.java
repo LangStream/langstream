@@ -37,7 +37,7 @@ public class TestGatewayAuthenticationProvider implements GatewayAuthenticationP
         log.info("Authenticating {}", context.credentials());
         if (context.credentials().startsWith("test-user-password")) {
             return GatewayAuthenticationResult.authenticationSuccessful(
-                    Map.of("user-id", context.credentials()));
+                    Map.of("login", context.credentials()));
         } else {
             return GatewayAuthenticationResult.authenticationFailed("Invalid credentials");
         }

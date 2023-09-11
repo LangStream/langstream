@@ -63,6 +63,11 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
     private String credentials;
 
     @CommandLine.Option(
+            names = {"-tc", "--test-credentials"},
+            description = "Test credentials for the gateway.")
+    private String testCredentials;
+
+    @CommandLine.Option(
             names = {"--connect-timeout"},
             description = "Connect timeout for WebSocket connections in seconds.")
     private long connectTimeoutSeconds = 0;
@@ -78,7 +83,8 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                         Gateways.Gateway.TYPE_CONSUME,
                         params,
                         consumeGatewayOptions,
-                        credentials);
+                        credentials,
+                        testCredentials);
         final String producePath =
                 validateGatewayAndGetUrl(
                         applicationId,
@@ -86,7 +92,8 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                         Gateways.Gateway.TYPE_PRODUCE,
                         params,
                         Map.of(),
-                        credentials);
+                        credentials,
+                        testCredentials);
 
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;

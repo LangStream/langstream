@@ -66,11 +66,15 @@ public class AIProvidersResourceProvider implements ResourceNodeProvider {
         requiredNonEmptyField(configuration, "project", describe(resource));
 
         String token = getString("token", "", configuration);
+        String serviceAccountJson = getString("serviceAccountJson", "", configuration);
+        if (!token.isEmpty() && !serviceAccountJson.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Only one of token and serviceAccountJson should be provided in "
+                            + describe(resource).get());
+        }
         if (token.isEmpty()) {
             requiredNonEmptyField(configuration, "serviceAccountJson", describe(resource));
         }
-
-        String serviceAccountJson = getString("serviceAccountJson", "", configuration);
         if (!serviceAccountJson.isEmpty()) {
             try {
                 new ObjectMapper().readValue(serviceAccountJson, Map.class);

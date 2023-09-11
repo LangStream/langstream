@@ -189,5 +189,9 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                 }
             }
         }
+        if (credentials != null && testCredentials != null) {
+            throw new IllegalArgumentException(
+                    "credentials and test-credentials cannot be used together");
+        }
     }
 }

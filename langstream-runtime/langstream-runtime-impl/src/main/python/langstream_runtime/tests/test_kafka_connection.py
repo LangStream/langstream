@@ -16,6 +16,7 @@
 
 import time
 from typing import List
+from uuid import UUID
 
 import pytest
 import waiting
@@ -317,11 +318,21 @@ def test_serializers():
             ("LongSerializer", 42, b"\x00\x00\x00\x00\x00\x00\x00\x2A"),
             ("FloatSerializer", 42.0, b"\x42\x28\x00\x00"),
             ("DoubleSerializer", 42.0, b"\x40\x45\x00\x00\x00\x00\x00\x00"),
+            (
+                "UUIDSerializer",
+                UUID("00010203-0405-0607-0809-0a0b0c0d0e0f"),
+                b"00010203-0405-0607-0809-0a0b0c0d0e0f",
+            ),
             ("ByteArraySerializer", b"test", b"test"),
             ("ByteArraySerializer", "test", b"test"),
             ("ByteArraySerializer", True, b"\x01"),
             ("ByteArraySerializer", 42, b"\x00\x00\x00\x00\x00\x00\x00\x2A"),
             ("ByteArraySerializer", 42.0, b"\x40\x45\x00\x00\x00\x00\x00\x00"),
+            (
+                "ByteArraySerializer",
+                UUID("00010203-0405-0607-0809-0a0b0c0d0e0f"),
+                b"00010203-0405-0607-0809-0a0b0c0d0e0f",
+            ),
             ("ByteArraySerializer", {"a": "b", "c": 42.0}, b'{"a": "b", "c": 42.0}'),
             (
                 "ByteArraySerializer",
@@ -392,6 +403,11 @@ def test_consumer_deserializers():
             ("FloatDeserializer", 42.0, b"\x42\x28\x00\x00"),
             ("DoubleDeserializer", 42.0, b"\x40\x45\x00\x00\x00\x00\x00\x00"),
             ("ByteArrayDeserializer", b"test", b"test"),
+            (
+                "UUIDDeserializer",
+                UUID("00010203-0405-0607-0809-0a0b0c0d0e0f"),
+                b"00010203-0405-0607-0809-0a0b0c0d0e0f",
+            ),
         ]:
             producer.produce(INPUT_TOPIC, message_value, key=message_value)
             producer.flush()

@@ -17,6 +17,7 @@
 
 import json
 import struct as _struct
+from uuid import UUID
 
 from confluent_kafka.serialization import (
     Serializer,
@@ -374,7 +375,7 @@ class ByteArrayDeserializer(Deserializer):
             SerializerError if an error occurs during deserialization.
 
         Returns:
-            float if data is not None, otherwise None
+            bytes if data is not None, otherwise None
         """
 
         if value is None:
@@ -387,6 +388,78 @@ class ByteArrayDeserializer(Deserializer):
             )
 
         return value
+
+
+class UuidSerializer(Serializer):
+    """
+    Serializes UUID to bytes.
+
+    See Also:
+        `UUIDSerializer Javadoc <https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/serialization/UUIDSerializer.java>`_
+
+    """  # noqa: E501
+
+    def __call__(self, obj, ctx=None):
+        """
+        Args:
+            obj (object): object to be serialized
+
+            ctx (SerializationContext): Metadata pertaining to the serialization
+                operation
+
+        Note:
+            None objects are represented as Kafka Null.
+
+        Raises:
+            SerializerError if an error occurs during serialization.
+
+        Returns:
+            the UUID string representation as bytes
+        """
+
+        if obj is None:
+            return None
+
+        if not isinstance(obj, UUID):
+            raise SerializationError(
+                f"UuidSerializer: a bytes-like object is required, not {type(obj)}"
+            )
+
+        return str(obj).encode("utf-8")
+
+
+class UuidDeserializer(Deserializer):
+    """
+    Deserializes bytes to UUID.
+
+    See Also:
+        `UUIDDeserializer Javadoc <https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/serialization/UUIDDeserializer.java>`_
+    """  # noqa: E501
+
+    def __call__(self, value, ctx=None):
+        """
+        Deserializes bytes to UUID.
+
+        Args:
+            value (bytes): bytes to be deserialized
+
+            ctx (SerializationContext): Metadata pertaining to the serialization
+                operation
+
+        Raises:
+            SerializerError if an error occurs during deserialization.
+
+        Returns:
+            UUID if data is not None, otherwise None
+        """
+
+        if value is None:
+            return None
+
+        try:
+            return UUID(value.decode("utf-8"))
+        except Exception as e:
+            raise SerializationError(str(e))
 
 
 class JsonSerializer(Serializer):
@@ -429,6 +502,7 @@ LONG_SERIALIZER = LongSerializer()
 FLOAT_SERIALIZER = FloatSerializer()
 DOUBLE_SERIALIZER = DoubleSerializer()
 BYTEARRAY_SERIALIZER = ByteArraySerializer()
+UUID_SERIALIZER = UuidSerializer()
 JSON_SERIALIZER = JsonSerializer()
 
 STRING_DESERIALIZER = StringDeserializer()
@@ -439,3 +513,4 @@ LONG_DESERIALIZER = LongDeserializer()
 FLOAT_DESERIALIZER = FloatDeserializer()
 DOUBLE_DESERIALIZER = DoubleDeserializer()
 BYTEARRAY_DESERIALIZER = ByteArrayDeserializer()
+UUID_DESERIALIZER = UuidDeserializer()

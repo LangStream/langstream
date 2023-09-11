@@ -53,10 +53,18 @@ public class DataSourceResourceProvider implements ResourceNodeProvider {
             case "cassandra":
                 validateCassandraDatabaseResource(resource);
                 break;
+            case "jdbc":
+                validateJDBCDatabaseResource(resource);
             default:
                 throw new IllegalStateException();
         }
         return resource.configuration();
+    }
+
+    private void validateJDBCDatabaseResource(Resource resource) {
+        Map<String, Object> configuration = resource.configuration();
+        requiredNonEmptyField(configuration, "url", describe(resource));
+        requiredNonEmptyField(configuration, "driverClass", describe(resource));
     }
 
     @Override

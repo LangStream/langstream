@@ -18,23 +18,38 @@ package ai.langstream.cli.commands;
 import ai.langstream.admin.client.AdminClient;
 import ai.langstream.admin.client.AdminClientConfiguration;
 import ai.langstream.admin.client.AdminClientLogger;
+import ai.langstream.admin.client.HttpRequestFailedException;
+import ai.langstream.admin.client.http.HttpClientFacade;
 import ai.langstream.cli.LangStreamCLIConfig;
 import ai.langstream.cli.NamedProfile;
+import ai.langstream.cli.commands.applications.GithubRepositoryDownloader;
 import ai.langstream.cli.commands.profiles.BaseProfileCmd;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.commons.beanutils.PropertyUtils;
 import picocli.CommandLine;
@@ -367,5 +382,173 @@ public abstract class BaseCmd implements Runnable {
     @SneakyThrows
     protected static Object searchValueInJson(Map<String, Object> jsonNode, String path) {
         return PropertyUtils.getProperty(jsonNode, path);
+    }
+
+    @SneakyThrows
+    protected File checkFileExistsOrDownload(String path) {
+        if (path == null) {
+            return null;
+        }
+        if (path.startsWith("http://")) {
+            throw new IllegalArgumentException("http is not supported. Please use https instead.");
+        }
+        if (path.startsWith("https://")) {
+            return downloadHttpsFile(path, getClient().getHttpClientFacade(), this::log);
+        }
+        if (path.startsWith("file://")) {
+            path = path.substring("file://".length());
+        }
+        final File file = new File(path);
+        if (!file.exists()) {
+            throw new RuntimeException("File " + path + " does not exist");
+        }
+        return file;
+    }
+
+    public static File downloadHttpsFile(
+            String path, HttpClientFacade client, Consumer<String> logger)
+            throws IOException, HttpRequestFailedException {
+        final URI uri = URI.create(path);
+        if ("github.com".equals(uri.getHost())) {
+            return downloadFromGithub(uri, logger);
+        }
+
+        final HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(URI.create(path))
+                        .version(HttpClient.Version.HTTP_1_1)
+                        .GET()
+                        .build();
+        final Path tempFile = Files.createTempFile("langstream", ".bin");
+        final long start = System.currentTimeMillis();
+        // use HttpResponse.BodyHandlers.ofByteArray() to get cleaner error messages
+        final HttpResponse<byte[]> response =
+                client.http(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException(
+                    "Failed to download file: "
+                            + path
+                            + "\nReceived status code: "
+                            + response.statusCode()
+                            + "\n"
+                            + response.body());
+        }
+        Files.write(tempFile, response.body());
+        final long time = (System.currentTimeMillis() - start) / 1000;
+        logger.accept(String.format("downloaded remote file %s (%d s)", path, time));
+        return tempFile.toFile();
+    }
+
+    private static File downloadFromGithub(URI uri, Consumer<String> logger) {
+        return GithubRepositoryDownloader.downloadGithubRepository(uri, logger);
+    }
+
+    @AllArgsConstructor
+    @Getter
+    private static class Dependency {
+        private String name;
+        private String url;
+        private String type;
+        private String sha512sum;
+    }
+
+    protected void downloadDependencies(Path directory) throws Exception {
+
+        final Path configuration = directory.resolve("configuration.yaml");
+        if (!Files.exists(configuration)) {
+            return;
+        }
+        final Map<String, Object> map =
+                yamlConfigReader.readValue(configuration.toFile(), Map.class);
+        final List<Map<String, Object>> dependencies =
+                (List<Map<String, Object>>) map.get("dependencies");
+        if (dependencies == null) {
+            return;
+        }
+        final List<Dependency> dependencyList =
+                dependencies.stream()
+                        .map(
+                                dependency ->
+                                        new Dependency(
+                                                (String) dependency.get("name"),
+                                                (String) dependency.get("url"),
+                                                (String) dependency.get("type"),
+                                                (String) dependency.get("sha512sum")))
+                        .collect(Collectors.toList());
+
+        for (Dependency dependency : dependencyList) {
+            URL url = new URL(dependency.getUrl());
+
+            final String outputPath;
+            switch (dependency.getType()) {
+                case "java-library":
+                    outputPath = "java/lib";
+                    break;
+                default:
+                    throw new RuntimeException(
+                            "unsupported dependency type: " + dependency.getType());
+            }
+
+            Path output = directory.resolve(outputPath);
+            if (!Files.exists(output)) {
+                Files.createDirectories(output);
+            }
+            String rawFileName = url.getFile().substring(url.getFile().lastIndexOf('/') + 1);
+            Path fileName = output.resolve(rawFileName);
+
+            if (Files.isRegularFile(fileName)) {
+
+                if (!checkChecksum(fileName, dependency.getSha512sum())) {
+                    log("File seems corrupted, deleting it");
+                    Files.delete(fileName);
+                } else {
+                    log(String.format("Dependency: %s at %s", fileName, fileName.toAbsolutePath()));
+                    continue;
+                }
+            }
+
+            log(
+                    String.format(
+                            "downloading dependency: %s to %s",
+                            fileName, fileName.toAbsolutePath()));
+            final HttpRequest request = getClient().newDependencyGet(url);
+            getClient().http(request, HttpResponse.BodyHandlers.ofFile(fileName));
+
+            if (!checkChecksum(fileName, dependency.getSha512sum())) {
+                log("File still seems corrupted. Please double check the checksum and try again.");
+                Files.delete(fileName);
+                throw new IOException("File at " + url + ", seems corrupted");
+            }
+
+            log("dependency downloaded");
+        }
+    }
+
+    protected boolean checkChecksum(Path fileName, String sha512sum) throws Exception {
+        MessageDigest instance = MessageDigest.getInstance("SHA-512");
+        try (DigestInputStream inputStream =
+                new DigestInputStream(
+                        new BufferedInputStream(Files.newInputStream(fileName)), instance)) {
+            while (inputStream.read() != -1) {}
+        }
+        byte[] digest = instance.digest();
+        String base16encoded = bytesToHex(digest);
+        if (!sha512sum.equals(base16encoded)) {
+            log(String.format("Computed checksum: %s", base16encoded));
+            log(String.format("Expected checksum: %s", sha512sum));
+        }
+        return sha512sum.equals(base16encoded);
+    }
+
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 }

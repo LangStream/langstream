@@ -15,16 +15,9 @@
 # limitations under the License.
 #
 
-# This is a sample file to connect to DataStax Astra Streaming service
-# But it works with any Kafka Cluster that enables SASL/PLAIN authentication and SSL encryption
-
 instance:
   streamingCluster:
     type: "kafka"
     configuration:
       admin:
-        bootstrap.servers: "{{{ secrets.kafka.bootstrap-servers }}}"
-        security.protocol: SASL_SSL
-        sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username='{{{ secrets.kafka.username }}}' password='{{{ secrets.kafka.password }}}';"
-        sasl.mechanism: PLAIN
-        session.timeout.ms: "45000"
+        bootstrap.servers: localhost:9092

@@ -28,10 +28,12 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -93,6 +95,11 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         boolean isUpdate() {
             return false;
         }
+
+        @Override
+        boolean isLocalRun() {
+            return false;
+        }
     }
 
     @CommandLine.Command(name = "update", header = "Update an existing LangStream application")
@@ -140,6 +147,67 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         boolean isUpdate() {
             return true;
         }
+
+        @Override
+        boolean isLocalRun() {
+            return false;
+        }
+    }
+
+    @CommandLine.Command(
+            name = "local-run",
+            header = "Run on a docker container a LangStream application")
+    public static class LocalRun extends AbstractDeployApplicationCmd {
+
+        @CommandLine.Parameters(description = "Name of the application")
+        private String name;
+
+        @CommandLine.Option(
+                names = {"-app", "--application"},
+                description = "Application directory path",
+                required = true)
+        private String appPath;
+
+        @CommandLine.Option(
+                names = {"-i", "--instance"},
+                description = "Instance file path",
+                required = true)
+        private String instanceFilePath;
+
+        @CommandLine.Option(
+                names = {"-s", "--secrets"},
+                description = "Secrets file path")
+        private String secretFilePath;
+
+        @Override
+        String applicationId() {
+            return name;
+        }
+
+        @Override
+        String appPath() {
+            return appPath;
+        }
+
+        @Override
+        String instanceFilePath() {
+            return instanceFilePath;
+        }
+
+        @Override
+        String secretFilePath() {
+            return secretFilePath;
+        }
+
+        @Override
+        boolean isUpdate() {
+            return false;
+        }
+
+        @Override
+        boolean isLocalRun() {
+            return true;
+        }
     }
 
     abstract String applicationId();
@@ -151,6 +219,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
     abstract String secretFilePath();
 
     abstract boolean isUpdate();
+
+    abstract boolean isLocalRun();
 
     @Override
     @SneakyThrows
@@ -175,6 +245,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         long size = Files.size(tempZip);
         log(String.format("deploying application: %s (%d KB)", applicationId, size / 1024));
+        String secretsContents = null;
+        String instanceContents = null;
 
         final Map<String, Object> contents = new HashMap<>();
         contents.put("app", tempZip);
@@ -182,8 +254,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             try {
                 contents.put(
                         "instance",
-                        LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
-                                instanceFile.toPath()));
+                        instanceContents =
+                                LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
+                                        instanceFile.toPath()));
             } catch (Exception e) {
                 log(
                         "Failed to resolve instance file references. Please double check the file path: "
@@ -196,8 +269,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             try {
                 contents.put(
                         "secrets",
-                        LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
-                                secretsFile.toPath()));
+                        secretsContents =
+                                LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
+                                        secretsFile.toPath()));
             } catch (Exception e) {
                 log(
                         "Failed to resolve secrets file references. Please double check the file path: "
@@ -205,15 +279,44 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 throw e;
             }
         }
-        final MultiPartBodyPublisher bodyPublisher = buildMultipartContentForAppZip(contents);
 
-        if (isUpdate()) {
-            getClient().applications().update(applicationId, bodyPublisher);
-            log(String.format("application %s updated", applicationId));
+        if (isLocalRun()) {
+            executeOnDocker(appDirectory, instanceContents, secretsContents);
         } else {
-            getClient().applications().deploy(applicationId, bodyPublisher);
-            log(String.format("application %s deployed", applicationId));
+            final MultiPartBodyPublisher bodyPublisher = buildMultipartContentForAppZip(contents);
+
+            if (isUpdate()) {
+                getClient().applications().update(applicationId, bodyPublisher);
+                log(String.format("application %s updated", applicationId));
+            } else {
+                getClient().applications().deploy(applicationId, bodyPublisher);
+                log(String.format("application %s deployed", applicationId));
+            }
         }
+    }
+
+    private void executeOnDocker(File appDirectory, String instanceContents, String secretsContents)
+            throws Exception {
+        File tmpInstanceFile = Files.createTempFile("instance", ".yaml").toFile();
+        Files.write(tmpInstanceFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));
+        File tmpSecretsFile = Files.createTempFile("secrets", ".yaml").toFile();
+        Files.write(tmpSecretsFile.toPath(), secretsContents.getBytes(StandardCharsets.UTF_8));
+        String imageName = "langstream/langstream-runtime-tester:latest-dev";
+        List<String> commandLine = new ArrayList<>();
+        commandLine.add("docker");
+        commandLine.add("run");
+        commandLine.add("--rm");
+        commandLine.add("-it");
+        commandLine.add("-v");
+        commandLine.add(appDirectory.getAbsolutePath() + ":/code/application");
+        commandLine.add("-v");
+        commandLine.add(tmpInstanceFile.getAbsolutePath() + ":/code/instance.yaml");
+        commandLine.add("-v");
+        commandLine.add(tmpSecretsFile.getAbsolutePath() + ":/code/secrets.yaml");
+        commandLine.add(imageName);
+        ProcessBuilder processBuilder = new ProcessBuilder(commandLine).inheritIO();
+        Process process = processBuilder.start();
+        process.waitFor();
     }
 
     @AllArgsConstructor

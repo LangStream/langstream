@@ -1,1 +1,1 @@
-ai.langstream.apigateway.auth.impl.jwt.admin.JwtAdminAuthenticationProvider
+ai.langstream.apigateway.auth.impl.jwt.admin.JwtAuthenticationProvider

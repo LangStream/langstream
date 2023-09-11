@@ -15,27 +15,14 @@
  */
 package ai.langstream.apigateway.auth.impl.jwt.admin;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class HttpAdminAuthenticationProviderConfiguration {
-
-    @JsonAlias("base-url")
-    private String baseUrl;
-
-    @JsonAlias("path-template")
-    private String pathTemplate;
-
-    private Map<String, String> headers = new HashMap<>();
-
-    @JsonAlias("accepted-statuses")
-    private List<Integer> acceptedStatuses = List.of(200, 201);
-}
+public record JwtAuthenticationProviderConfiguration(
+        String secretKey,
+        String publicKey,
+        String authClaim,
+        String publicAlg,
+        String audienceClaim,
+        String audience,
+        List<String> adminRoles,
+        String jwksHostsAllowlist) {}

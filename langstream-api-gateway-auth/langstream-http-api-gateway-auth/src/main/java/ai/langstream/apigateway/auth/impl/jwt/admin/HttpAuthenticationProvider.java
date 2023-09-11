@@ -29,10 +29,10 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class HttpAdminAuthenticationProvider implements GatewayAuthenticationProvider {
+public class HttpAuthenticationProvider implements GatewayAuthenticationProvider {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-    private HttpAdminAuthenticationProviderConfiguration httpConfiguration;
+    private HttpAuthenticationProviderConfiguration httpConfiguration;
     private HttpClient httpClient;
 
     @Override
@@ -45,7 +45,7 @@ public class HttpAdminAuthenticationProvider implements GatewayAuthenticationPro
     public void initialize(Map<String, Object> configuration) {
         httpConfiguration =
                 mapper.convertValue(
-                        configuration, HttpAdminAuthenticationProviderConfiguration.class);
+                        configuration, HttpAuthenticationProviderConfiguration.class);
         httpClient =
                 HttpClient.newBuilder()
                         .connectTimeout(Duration.ofSeconds(30))

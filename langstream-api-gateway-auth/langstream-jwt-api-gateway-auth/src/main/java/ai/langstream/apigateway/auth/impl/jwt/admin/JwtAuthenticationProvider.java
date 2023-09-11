@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
 
-public class JwtAdminAuthenticationProvider implements GatewayAuthenticationProvider {
+public class JwtAuthenticationProvider implements GatewayAuthenticationProvider {
 
     private static final ObjectMapper mapper = new ObjectMapper();
     private AuthenticationProviderToken authenticationProviderToken;
@@ -39,9 +39,9 @@ public class JwtAdminAuthenticationProvider implements GatewayAuthenticationProv
     @Override
     @SneakyThrows
     public void initialize(Map<String, Object> configuration) {
-        final JwtAdminAuthenticationProviderConfiguration tokenProperties =
+        final JwtAuthenticationProviderConfiguration tokenProperties =
                 mapper.convertValue(
-                        configuration, JwtAdminAuthenticationProviderConfiguration.class);
+                        configuration, JwtAuthenticationProviderConfiguration.class);
 
         if (tokenProperties.adminRoles() != null) {
             this.adminRoles = tokenProperties.adminRoles();

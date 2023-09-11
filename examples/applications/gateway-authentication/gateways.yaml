@@ -81,19 +81,19 @@ gateways:
     produce-options:
       headers:
         - key: langstream-client-user-id
-          valueFromAuthentication: login
+          value-from-authentication: login
         - key: langstream-client-session-id
           value-from-parameters: sessionId
 
-    - id: consume-output-auth-github
-      type: consume
-      topic: output-topic
-      parameters:
-        - sessionId
-      authentication:
-        provider: github
-        configuration:
-          clientId: "{{ secrets.github.client-id }}"
+  - id: consume-output-auth-github
+    type: consume
+    topic: output-topic
+    parameters:
+      - sessionId
+    authentication:
+      provider: github
+      configuration:
+        clientId: "{{ secrets.github.client-id }}"
     consume-options:
       filters:
         headers:

@@ -30,7 +30,6 @@ import picocli.CommandLine;
         subcommands = {
             AbstractDeployApplicationCmd.DeployApplicationCmd.class,
             AbstractDeployApplicationCmd.UpdateApplicationCmd.class,
-            AbstractDeployApplicationCmd.LocalRun.class,
             ListApplicationCmd.class,
             DeleteApplicationCmd.class,
             GetApplicationCmd.class,

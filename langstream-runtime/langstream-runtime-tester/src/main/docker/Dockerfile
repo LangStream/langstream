@@ -18,6 +18,23 @@
 FROM langstream/langstream-runtime:latest-dev
 
 ARG DEBIAN_FRONTEND=noninteractive
+USER 0
+RUN mkdir /kafka \
+       && curl -o /kafka/kafka.tgz https://downloads.apache.org/kafka/3.5.1/kafka_2.13-3.5.1.tgz \
+       && cd /kafka \
+       && tar -xzf kafka.tgz \
+       && rm kafka.tgz \
+       && mv kafka_2.13-3.5.1 kafka \
+       && chmod -R g+w /kafka \
+       && cd /kafka/kafka \
+       && export UUID=$(bin/kafka-storage.sh random-uuid) \
+       && bin/kafka-storage.sh format -t $UUID -c config/kraft/server.properties \
+       && mkdir -p /tmp/kraft-combined-logs \
+       && chmod a+rwx /tmp/kraft-combined-logs
+
+RUN mkdir /minio \
+    && wget https://dl.min.io/server/minio/release/linux-amd64/minio -O /minio/minio \
+    && chmod a+x /minio/minio
 
 # Add the runtime code at the end. This optimizes docker layers to not depend on artifacts-specific changes.
 ADD maven/lib /app/tester/lib

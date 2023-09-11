@@ -1,4 +1,4 @@
-#!/bin/bash
+#
 #
 # Copyright DataStax, Inc.
 #
@@ -15,16 +15,9 @@
 # limitations under the License.
 #
 
-START_KAFKA=${START_BROKER:-true}
-if [ "START_BROKER" = "true" ]; then
-  echo "Starting Broker"
-  /kafka/kafka/bin/kafka-server-start.sh -daemon /kafka/kafka/config/kraft/server.properties
-fi
-
-START_MINIO=${START_MINIO:-true}
-if [ "$START_MINIO" = "true" ]; then
-  echo "Starting Minio"
-  /minio/minio server /tmp &
-fi
-
-exec java ${JAVA_OPTS} -Djdk.lang.Process.launchMechanism=vfork -cp "/app/lib/*:/app/tester/lib/*" "ai.langstream.runtime.tester.Main"
+instance:
+  streamingCluster:
+    type: "kafka"
+    configuration:
+      admin:
+        bootstrap.servers: localhost:9092

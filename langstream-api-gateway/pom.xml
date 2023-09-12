@@ -117,6 +117,18 @@
 
 		<dependency>
 			<groupId>ai.langstream</groupId>
+			<artifactId>langstream-kafka-runtime</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>ai.langstream</groupId>
+			<artifactId>langstream-pulsar-runtime</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>ai.langstream</groupId>
 			<artifactId>langstream-google-api-gateway-auth</artifactId>
 			<version>${project.version}</version>
 			<scope>runtime</scope>
@@ -177,6 +189,32 @@
 					<configuration>
 						<mainClass>ai.langstream.apigateway.LangStreamApiGateway</mainClass>
 					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<executions>
+						<execution>
+						<id>copy</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>${project.groupId}</groupId>
+									<artifactId>langstream-kafka-runtime</artifactId>
+									<version>${project.version}</version>
+									<type>nar</type>
+									<classifier>nar</classifier>
+									<overWrite>false</overWrite>
+									<outputDirectory>${project.build.directory}/agents</outputDirectory>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+						</execution>
+					</executions>
 				</plugin>
 			</plugins>
 		</pluginManagement>

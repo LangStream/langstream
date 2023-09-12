@@ -34,6 +34,7 @@ import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentInfo;
+import ai.langstream.runtime.agent.nar.NarFileHandler;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.charset.StandardCharsets;
@@ -99,10 +100,19 @@ class PulsarRunnerDockerTest {
                         .getApplication();
 
         @Cleanup
+        NarFileHandler narFileHandler =
+                new NarFileHandler(
+                        AbstractApplicationRunner.agentsDirectory,
+                        Thread.currentThread().getContextClassLoader());
+        narFileHandler.scan();
+
+        @Cleanup
         ApplicationDeployer deployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
-                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .topicConnectionsRuntimeRegistry(
+                                new TopicConnectionsRuntimeRegistry()
+                                        .setPackageLoader(narFileHandler))
                         .pluginsRegistry(new PluginsRegistry())
                         .build();
 

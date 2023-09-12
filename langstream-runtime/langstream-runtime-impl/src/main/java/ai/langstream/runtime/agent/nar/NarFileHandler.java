@@ -185,7 +185,7 @@ public class NarFileHandler
                 byte[] bytes = inputStream.readAllBytes();
                 String string = new String(bytes, StandardCharsets.UTF_8);
                 BufferedReader reader = new BufferedReader(new StringReader(string));
-                assetTypes =
+                streamingClusterTypes =
                         reader.lines().filter(s -> !s.isBlank() && !s.startsWith("#")).toList();
                 log.info(
                         "The file {} contains a static streamingClusters index, skipping the unpacking. It is expected that handles these streamingClusters: {}",
@@ -193,7 +193,7 @@ public class NarFileHandler
                         assetTypes);
             }
 
-            if (!agents.isEmpty() || !assetTypes.isEmpty()) {
+            if (!agents.isEmpty() || !assetTypes.isEmpty() || !streamingClusterTypes.isEmpty()) {
                 PackageMetadata metadata =
                         new PackageMetadata(
                                 narFile,

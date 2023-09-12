@@ -15,6 +15,8 @@
  */
 package ai.langstream.runtime.deployer;
 
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV_DEFAULT;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 import ai.langstream.api.model.Secrets;
@@ -29,7 +31,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
@@ -125,7 +126,7 @@ public class RuntimeDeployerStarter extends RuntimeStarter {
         }
         final ClusterConfiguration clusterConfiguration = getClusterConfiguration();
         final String token = getToken();
-        final Path agentsDirectory = Paths.get("/app/agents");
+        final Path agentsDirectory = getPathFromEnv(AGENTS_ENV, AGENTS_ENV_DEFAULT);
 
         try (NarFileHandler narFileHandler =
                 new NarFileHandler(

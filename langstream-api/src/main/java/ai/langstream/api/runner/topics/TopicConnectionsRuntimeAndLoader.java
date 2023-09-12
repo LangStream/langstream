@@ -16,6 +16,7 @@
 package ai.langstream.api.runner.topics;
 
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runtime.ExecutionPlan;
 import java.util.Map;
 
 public record TopicConnectionsRuntimeAndLoader(
@@ -68,6 +69,21 @@ public record TopicConnectionsRuntimeAndLoader(
             @Override
             public void init(StreamingCluster streamingCluster) {
                 executeNoExceptionWithContextClassloader(code -> code.init(streamingCluster));
+            }
+
+            @Override
+            public void deploy(ExecutionPlan applicationInstance) {
+                executeNoExceptionWithContextClassloader(code -> code.deploy(applicationInstance));
+            }
+
+            @Override
+            public void delete(ExecutionPlan applicationInstance) {
+                executeNoExceptionWithContextClassloader(code -> code.delete(applicationInstance));
+            }
+
+            @Override
+            public void close() {
+                executeNoExceptionWithContextClassloader(TopicConnectionsRuntime::close);
             }
 
             @Override

@@ -49,8 +49,10 @@ public class TopicConnectionsRuntimeRegistry {
         ClassLoader getClassloader();
     }
 
-    public void setPackageLoader(TopicConnectionsPackageLoader packageLoader) {
+    public TopicConnectionsRuntimeRegistry setPackageLoader(
+            TopicConnectionsPackageLoader packageLoader) {
         this.packageLoader = packageLoader;
+        return this;
     }
 
     @SneakyThrows

@@ -129,9 +129,9 @@ class ModelBuilderTest {
         final List<Gateway> gateways = applicationInstance.getGateways().gateways();
         Assertions.assertEquals(1, gateways.size());
         final Gateway gateway = gateways.get(0);
-        assertEquals("gw", gateway.id());
-        assertEquals("t1", gateway.topic());
-        assertEquals("google", gateway.authentication().getProvider());
-        assertTrue(gateway.authentication().isAllowTestMode());
+        assertEquals("gw", gateway.getId());
+        assertEquals("t1", gateway.getTopic());
+        assertEquals("google", gateway.getAuthentication().getProvider());
+        assertTrue(gateway.getAuthentication().isAllowTestMode());
     }
 }

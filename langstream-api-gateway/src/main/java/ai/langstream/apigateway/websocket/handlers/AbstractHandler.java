@@ -174,7 +174,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         Gateway selectedGateway = null;
 
         for (Gateway gateway : gateways) {
-            if (gateway.id().equals(gatewayId) && type == gateway.type()) {
+            if (gateway.getId().equals(gatewayId) && type == gateway.getType()) {
                 selectedGateway = gateway;
                 break;
             }
@@ -223,7 +223,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         final Gateway.GatewayType type = gatewayType();
         final Gateway gateway = extractGateway(gatewayId, application, type);
 
-        final List<String> requiredParameters = gateway.parameters();
+        final List<String> requiredParameters = gateway.getParameters();
         Set<String> allUserParameterKeys = new HashSet<>(userParameters.keySet());
         if (requiredParameters != null) {
             for (String requiredParameter : requiredParameters) {
@@ -298,7 +298,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     @SneakyThrows
     protected void sendEvent(EventRecord.Types type, AuthenticatedGatewayRequestContext context) {
         final Gateway gateway = context.gateway();
-        if (gateway.eventsTopic() == null) {
+        if (gateway.getEventsTopic() == null) {
             return;
         }
         final StreamingCluster streamingCluster =
@@ -310,7 +310,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 topicConnectionsRuntime.createProducer(
                         "langstream-events",
                         streamingCluster,
-                        Map.of("topic", gateway.eventsTopic())); ) {
+                        Map.of("topic", gateway.getEventsTopic())); ) {
             producer.start();
 
             final EventSources.GatewaySource source =

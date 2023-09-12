@@ -175,30 +175,31 @@ public class ApplicationPlaceholderResolver {
         }
         List<Gateway> newGateways = new ArrayList<>();
         for (Gateway gateway : instance.getGateways().gateways()) {
-            Gateway.Authentication authentication = gateway.authentication();
-            if (gateway.authentication() != null
-                    && gateway.authentication().getConfiguration() != null) {
+            Gateway.Authentication authentication = gateway.getAuthentication();
+            if (gateway.getAuthentication() != null
+                    && gateway.getAuthentication().getConfiguration() != null) {
                 authentication =
                         new Gateway.Authentication(
                                 authentication.getProvider(),
-                                resolveMap(context, gateway.authentication().getConfiguration()),
+                                resolveMap(context, gateway.getAuthentication().getConfiguration()),
                                 authentication.isAllowTestMode());
             }
 
-            final String topic = resolveValue(context, gateway.topic());
+            final String topic = resolveValue(context, gateway.getTopic());
             final String eventsTopic =
-                    gateway.eventsTopic() == null
+                    gateway.getEventsTopic() == null
                             ? null
-                            : resolveValue(context, gateway.eventsTopic());
+                            : resolveValue(context, gateway.getEventsTopic());
             newGateways.add(
                     new Gateway(
-                            gateway.id(),
-                            gateway.type(),
+                            gateway.getId(),
+                            gateway.getType(),
                             topic,
                             authentication,
-                            gateway.parameters(),
-                            gateway.produceOptions(),
-                            gateway.consumeOptions(),
+                            gateway.getParameters(),
+                            gateway.getProduceOptions(),
+                            gateway.getConsumeOptions(),
+                            gateway.getChatOptions(),
                             eventsTopic));
         }
         return new Gateways(newGateways);

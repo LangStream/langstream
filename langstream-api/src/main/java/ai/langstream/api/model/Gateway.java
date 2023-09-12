@@ -20,42 +20,37 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-public record Gateway(
-        String id,
-        GatewayType type,
-        String topic,
-        Authentication authentication,
-        List<String> parameters,
-        @JsonAlias({"produce-options"}) ProduceOptions produceOptions,
-        @JsonAlias({"consume-options"}) ConsumeOptions consumeOptions,
-        @JsonProperty("events-topic") String eventsTopic) {
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public final class Gateway {
+
+    private String id;
+    private GatewayType type;
+    private String topic;
+    private Authentication authentication;
+    private List<String> parameters;
+
+    @JsonAlias({"produce-options"})
+    private ProduceOptions produceOptions;
+
+    @JsonAlias({"consume-options"})
+    private ConsumeOptions consumeOptions;
+
+    @JsonProperty("chat-options")
+    private ChatOptions chatOptions;
+
+    @JsonProperty("events-topic")
+    private String eventsTopic;
+
     public enum GatewayType {
         produce,
         consume
-    }
-
-    public Gateway(
-            String id,
-            GatewayType type,
-            String topic,
-            List<String> parameters,
-            ProduceOptions produceOptions,
-            ConsumeOptions consumeOptions) {
-        this(id, type, topic, null, parameters, produceOptions, consumeOptions, null);
-    }
-
-    public Gateway(
-            String id,
-            GatewayType type,
-            String topic,
-            Authentication authentication,
-            List<String> parameters,
-            ProduceOptions produceOptions,
-            ConsumeOptions consumeOptions) {
-        this(id, type, topic, authentication, parameters, produceOptions, consumeOptions, null);
     }
 
     @Data
@@ -94,4 +89,22 @@ public record Gateway(
     public record ConsumeOptions(ConsumeOptionsFilters filters) {}
 
     public record ConsumeOptionsFilters(List<KeyValueComparison> headers) {}
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChatOptions {
+
+        @JsonProperty("questions-topic")
+        private String questionsTopic;
+
+        @JsonProperty("answers-topic")
+        private String answersTopic;
+
+        @JsonProperty("session-parameter")
+        private String sessionParameter;
+
+        @JsonProperty("user-parameter")
+        private String userParameter;
+    }
 }

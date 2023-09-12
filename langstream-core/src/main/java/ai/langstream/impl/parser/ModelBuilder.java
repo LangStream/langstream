@@ -323,28 +323,28 @@ public class ModelBuilder {
     }
 
     private static void validateGateway(Gateway gateway) {
-        if (gateway.id() == null || gateway.id().isBlank()) {
+        if (gateway.getId() == null || gateway.getId().isBlank()) {
             throw new IllegalArgumentException("Gateway id is required");
         }
-        if (gateway.type() == null) {
+        if (gateway.getType() == null) {
             throw new IllegalArgumentException("Gateway type is required");
         }
-        if (gateway.type() == Gateway.GatewayType.consume) {
-            if (gateway.produceOptions() != null) {
+        if (gateway.getType() == Gateway.GatewayType.consume) {
+            if (gateway.getProduceOptions() != null) {
                 throw new IllegalArgumentException(
                         "Gateway of type 'consume' cannot have produce options");
             }
-            if (gateway.consumeOptions() != null) {
-                if (gateway.consumeOptions().filters() != null) {
+            if (gateway.getConsumeOptions() != null) {
+                if (gateway.getConsumeOptions().filters() != null) {
                     final Gateway.ConsumeOptionsFilters filters =
-                            gateway.consumeOptions().filters();
+                            gateway.getConsumeOptions().filters();
                     if (filters.headers() != null) {
                         filters.headers().forEach(ModelBuilder::validateGatewayKeyValueComparison);
                     }
                 }
             }
-        } else if (gateway.type() == Gateway.GatewayType.produce) {
-            if (gateway.consumeOptions() != null) {
+        } else if (gateway.getType() == Gateway.GatewayType.produce) {
+            if (gateway.getConsumeOptions() != null) {
                 throw new IllegalArgumentException(
                         "Gateway of type 'produce' cannot have consume options");
             }

@@ -163,15 +163,15 @@ class ProduceConsumeHandlerTest {
                                         new ObjectMapper(new YAMLFactory())
                                                 .writeValueAsString(module)),
                                 """
-                                instance:
-                                  streamingCluster:
-                                    type: "kafka"
-                                    configuration:
-                                      admin:
-                                        bootstrap.servers: "%s"
-                                  computeCluster:
-                                     type: "none"
-                                """
+                                        instance:
+                                          streamingCluster:
+                                            type: "kafka"
+                                            configuration:
+                                              admin:
+                                                bootstrap.servers: "%s"
+                                          computeCluster:
+                                             type: "none"
+                                        """
                                         .formatted(kafkaContainer.getBootstrapServers()),
                                 null)
                         .getApplication();
@@ -211,20 +211,16 @@ class ProduceConsumeHandlerTest {
         testGateways =
                 new Gateways(
                         List.of(
-                                new Gateway(
-                                        "produce",
-                                        Gateway.GatewayType.produce,
-                                        topic,
-                                        List.of(),
-                                        null,
-                                        null),
-                                new Gateway(
-                                        "consume",
-                                        Gateway.GatewayType.consume,
-                                        topic,
-                                        List.of(),
-                                        null,
-                                        null)));
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .build()));
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
         List<String> messages = new ArrayList<>();
@@ -300,13 +296,12 @@ class ProduceConsumeHandlerTest {
         testGateways =
                 new Gateways(
                         List.of(
-                                new Gateway(
-                                        "gw",
-                                        Gateway.GatewayType.valueOf(type),
-                                        topic,
-                                        List.of("session-id"),
-                                        null,
-                                        null)));
+                                Gateway.builder()
+                                        .id("gw")
+                                        .type(Gateway.GatewayType.valueOf(type))
+                                        .topic(topic)
+                                        .parameters(List.of("session-id"))
+                                        .build()));
         connectAndExpectClose(
                 URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw".formatted(port, type)),
                 new CloseReason(
@@ -353,35 +348,37 @@ class ProduceConsumeHandlerTest {
         testGateways =
                 new Gateways(
                         List.of(
-                                new Gateway(
-                                        "produce",
-                                        Gateway.GatewayType.produce,
-                                        topic,
-                                        List.of("session-id"),
-                                        new Gateway.ProduceOptions(
-                                                List.of(
-                                                        Gateway.KeyValueComparison.value(
-                                                                "header1", "langstream"))),
-                                        null),
-                                new Gateway(
-                                        "produce-non-langstream",
-                                        Gateway.GatewayType.produce,
-                                        topic,
-                                        List.of("session-id"),
-                                        null,
-                                        null),
-                                new Gateway(
-                                        "consume",
-                                        Gateway.GatewayType.consume,
-                                        topic,
-                                        List.of("session-id"),
-                                        null,
-                                        new Gateway.ConsumeOptions(
-                                                new Gateway.ConsumeOptionsFilters(
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .parameters(List.of("session-id"))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
                                                         List.of(
                                                                 Gateway.KeyValueComparison.value(
-                                                                        "header1",
-                                                                        "langstream")))))));
+                                                                        "header1", "langstream"))))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("produce-non-langstream")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .parameters(List.of("session-id"))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .parameters(List.of("session-id"))
+                                        .consumeOptions(
+                                                new Gateway.ConsumeOptions(
+                                                        new Gateway.ConsumeOptionsFilters(
+                                                                List.of(
+                                                                        Gateway.KeyValueComparison
+                                                                                .value(
+                                                                                        "header1",
+                                                                                        "langstream")))))
+                                        .build()));
 
         List<String> user1Messages = new ArrayList<>();
         List<String> user2Messages = new ArrayList<>();
@@ -405,7 +402,8 @@ class ProduceConsumeHandlerTest {
                 new TestWebSocketClient(TestWebSocketClient.NOOP)
                         .connect(
                                 URI.create(
-                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce-non-langstream?param:session-id"
+                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce-non"
+                                                        + "-langstream?param:session-id"
                                                         + "=user1")
                                                 .formatted(port)))) {
             final ProduceRequest produceRequest =
@@ -417,7 +415,8 @@ class ProduceConsumeHandlerTest {
                 new TestWebSocketClient(TestWebSocketClient.NOOP)
                         .connect(
                                 URI.create(
-                                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user1"
+                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
+                                                        + "-id=user1")
                                                 .formatted(port)))) {
             final ProduceRequest produceRequest =
                     new ProduceRequest(null, "this is a message for everyone", null);
@@ -454,32 +453,37 @@ class ProduceConsumeHandlerTest {
         testGateways =
                 new Gateways(
                         List.of(
-                                new Gateway(
-                                        "produce",
-                                        Gateway.GatewayType.produce,
-                                        topic,
-                                        new Gateway.Authentication("test-auth", Map.of(), true),
-                                        List.of(),
-                                        new Gateway.ProduceOptions(
-                                                List.of(
-                                                        Gateway.KeyValueComparison
-                                                                .valueFromAuthentication(
-                                                                        "header1", "login"))),
-                                        null),
-                                new Gateway(
-                                        "consume",
-                                        Gateway.GatewayType.consume,
-                                        topic,
-                                        new Gateway.Authentication("test-auth", Map.of(), true),
-                                        List.of(),
-                                        null,
-                                        new Gateway.ConsumeOptions(
-                                                new Gateway.ConsumeOptionsFilters(
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth", Map.of(), true))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
                                                         List.of(
                                                                 Gateway.KeyValueComparison
                                                                         .valueFromAuthentication(
                                                                                 "header1",
-                                                                                "login")))))));
+                                                                                "login"))))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth", Map.of(), true))
+                                        .consumeOptions(
+                                                new Gateway.ConsumeOptions(
+                                                        new Gateway.ConsumeOptionsFilters(
+                                                                List.of(
+                                                                        Gateway.KeyValueComparison
+                                                                                .valueFromAuthentication(
+                                                                                        "header1",
+                                                                                        "login")))))
+                                        .build()));
 
         connectAndExpectClose(
                 URI.create(
@@ -514,14 +518,16 @@ class ProduceConsumeHandlerTest {
         final ClientSession client1 =
                 connectAndCollectMessages(
                         URI.create(
-                                "ws://localhost:%d/v1/consume/tenant1/application1/consume?credentials=test-user-password&option:position=earliest"
+                                ("ws://localhost:%d/v1/consume/tenant1/application1/consume?credentials=test-user"
+                                                + "-password&option:position=earliest")
                                         .formatted(port)),
                         user1Messages);
         @Cleanup
         final ClientSession client2 =
                 connectAndCollectMessages(
                         URI.create(
-                                "ws://localhost:%d/v1/consume/tenant1/application1/consume?credentials=test-user-password-2&option:position=earliest"
+                                ("ws://localhost:%d/v1/consume/tenant1/application1/consume?credentials=test-user"
+                                                + "-password-2&option:position=earliest")
                                         .formatted(port)),
                         user2Messages);
 
@@ -559,46 +565,52 @@ class ProduceConsumeHandlerTest {
         testGateways =
                 new Gateways(
                         List.of(
-                                new Gateway(
-                                        "produce",
-                                        Gateway.GatewayType.produce,
-                                        topic,
-                                        new Gateway.Authentication("test-auth", Map.of(), true),
-                                        List.of(),
-                                        new Gateway.ProduceOptions(
-                                                List.of(
-                                                        Gateway.KeyValueComparison
-                                                                .valueFromAuthentication(
-                                                                        "header1", "login"))),
-                                        null),
-                                new Gateway(
-                                        "consume",
-                                        Gateway.GatewayType.consume,
-                                        topic,
-                                        new Gateway.Authentication("test-auth", Map.of(), true),
-                                        List.of(),
-                                        null,
-                                        new Gateway.ConsumeOptions(
-                                                new Gateway.ConsumeOptionsFilters(
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth", Map.of(), true))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
                                                         List.of(
                                                                 Gateway.KeyValueComparison
                                                                         .valueFromAuthentication(
                                                                                 "header1",
-                                                                                "login"))))),
-                                new Gateway(
-                                        "consume-no-test",
-                                        Gateway.GatewayType.consume,
-                                        topic,
-                                        new Gateway.Authentication("test-auth", Map.of(), false),
-                                        List.of(),
-                                        null,
-                                        null)));
+                                                                                "login"))))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth", Map.of(), true))
+                                        .consumeOptions(
+                                                new Gateway.ConsumeOptions(
+                                                        new Gateway.ConsumeOptionsFilters(
+                                                                List.of(
+                                                                        Gateway.KeyValueComparison
+                                                                                .valueFromAuthentication(
+                                                                                        "header1",
+                                                                                        "login")))))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume-no-test")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth", Map.of(), false))
+                                        .build()));
 
         @Cleanup
         final ClientSession client1 =
                 connectAndCollectMessages(
                         URI.create(
-                                "ws://localhost:%d/v1/consume/tenant1/application1/consume?test-credentials=test-user-password"
+                                ("ws://localhost:%d/v1/consume/tenant1/application1/consume?test-credentials=test-user"
+                                                + "-password")
                                         .formatted(port)),
                         user1Messages);
 
@@ -623,7 +635,8 @@ class ProduceConsumeHandlerTest {
 
         connectAndExpectClose(
                 URI.create(
-                        "ws://localhost:%d/v1/consume/tenant1/application1/consume-no-admin?test-credentials=test-user-password"
+                        ("ws://localhost:%d/v1/consume/tenant1/application1/consume-no-admin?test-credentials=test"
+                                        + "-user-password")
                                 .formatted(port)),
                 new CloseReason(
                         CloseReason.CloseCodes.VIOLATED_POLICY,
@@ -631,7 +644,8 @@ class ProduceConsumeHandlerTest {
 
         connectAndExpectClose(
                 URI.create(
-                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?test-credentials=test-user-password-but-wrong"
+                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce?test-credentials=test-user"
+                                        + "-password-but-wrong")
                                 .formatted(port)),
                 new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Invalid credentials"));
     }
@@ -671,30 +685,33 @@ class ProduceConsumeHandlerTest {
         testGateways =
                 new Gateways(
                         List.of(
-                                new Gateway(
-                                        "produce",
-                                        Gateway.GatewayType.produce,
-                                        topic,
-                                        List.of("session-id"),
-                                        new Gateway.ProduceOptions(
-                                                List.of(
-                                                        Gateway.KeyValueComparison
-                                                                .valueFromParameters(
-                                                                        "header1", "session-id"))),
-                                        null),
-                                new Gateway(
-                                        "consume",
-                                        Gateway.GatewayType.consume,
-                                        topic,
-                                        List.of("session-id"),
-                                        null,
-                                        new Gateway.ConsumeOptions(
-                                                new Gateway.ConsumeOptionsFilters(
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .parameters(List.of("session-id"))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
                                                         List.of(
                                                                 Gateway.KeyValueComparison
                                                                         .valueFromParameters(
                                                                                 "header1",
-                                                                                "session-id")))))));
+                                                                                "session-id"))))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .parameters(List.of("session-id"))
+                                        .consumeOptions(
+                                                new Gateway.ConsumeOptions(
+                                                        new Gateway.ConsumeOptionsFilters(
+                                                                List.of(
+                                                                        Gateway.KeyValueComparison
+                                                                                .valueFromParameters(
+                                                                                        "header1",
+                                                                                        "session-id")))))
+                                        .build()));
 
         List<String> user1Messages = new ArrayList<>();
         List<String> user2Messages = new ArrayList<>();
@@ -703,7 +720,8 @@ class ProduceConsumeHandlerTest {
         final ClientSession client1 =
                 connectAndCollectMessages(
                         URI.create(
-                                "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user1&option:position=earliest"
+                                ("ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user1"
+                                                + "&option:position=earliest")
                                         .formatted(port)),
                         user1Messages);
         @Cleanup
@@ -718,7 +736,8 @@ class ProduceConsumeHandlerTest {
                 new TestWebSocketClient(TestWebSocketClient.NOOP)
                         .connect(
                                 URI.create(
-                                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user1"
+                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
+                                                        + "-id=user1")
                                                 .formatted(port)))) {
             final ProduceRequest produceRequest =
                     new ProduceRequest(null, "this is a message for user1", null);
@@ -742,7 +761,8 @@ class ProduceConsumeHandlerTest {
                 new TestWebSocketClient(TestWebSocketClient.NOOP)
                         .connect(
                                 URI.create(
-                                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user1"
+                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
+                                                        + "-id=user1")
                                                 .formatted(port)))) {
             final ProduceRequest produceRequest =
                     new ProduceRequest(null, "this is a message for user1, again", null);
@@ -768,7 +788,8 @@ class ProduceConsumeHandlerTest {
                 new TestWebSocketClient(TestWebSocketClient.NOOP)
                         .connect(
                                 URI.create(
-                                        "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session-id=user2"
+                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
+                                                        + "-id=user2")
                                                 .formatted(port)))) {
             final ProduceRequest produceRequest =
                     new ProduceRequest(null, "this is a message for user2", null);
@@ -810,17 +831,19 @@ class ProduceConsumeHandlerTest {
         testGateways =
                 new Gateways(
                         List.of(
-                                new Gateway(
-                                        "gw",
-                                        Gateway.GatewayType.produce,
-                                        topic,
-                                        List.of("session-id"),
-                                        new Gateway.ProduceOptions(
-                                                List.of(
-                                                        Gateway.KeyValueComparison
-                                                                .valueFromParameters(
-                                                                        "header1", "session-id"))),
-                                        null)));
+                                Gateway.builder()
+                                        .id("gw")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .parameters(List.of("session-id"))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromParameters(
+                                                                                "header1",
+                                                                                "session-id"))))
+                                        .build()));
         ProduceResponse response =
                 connectAndProduce(
                         URI.create(
@@ -873,20 +896,16 @@ class ProduceConsumeHandlerTest {
         testGateways =
                 new Gateways(
                         List.of(
-                                new Gateway(
-                                        "produce",
-                                        Gateway.GatewayType.produce,
-                                        topic,
-                                        List.of(),
-                                        null,
-                                        null),
-                                new Gateway(
-                                        "consume",
-                                        Gateway.GatewayType.consume,
-                                        topic,
-                                        List.of(),
-                                        null,
-                                        null)));
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .build()));
 
         List<String> messages = new ArrayList<>();
 
@@ -1023,20 +1042,16 @@ class ProduceConsumeHandlerTest {
         testGateways =
                 new Gateways(
                         List.of(
-                                new Gateway(
-                                        "produce",
-                                        Gateway.GatewayType.produce,
-                                        topic,
-                                        List.of(),
-                                        null,
-                                        null),
-                                new Gateway(
-                                        "consume",
-                                        Gateway.GatewayType.consume,
-                                        topic,
-                                        List.of(),
-                                        null,
-                                        null)));
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .build()));
 
         List<List<String>> allMessages = new ArrayList<>();
 
@@ -1272,24 +1287,20 @@ class ProduceConsumeHandlerTest {
         testGateways =
                 new Gateways(
                         List.of(
-                                new Gateway(
-                                        "produce",
-                                        Gateway.GatewayType.produce,
-                                        topic,
-                                        null,
-                                        List.of("p"),
-                                        null,
-                                        null,
-                                        eventsTopic),
-                                new Gateway(
-                                        "consume",
-                                        Gateway.GatewayType.consume,
-                                        eventsTopic,
-                                        null,
-                                        List.of("p"),
-                                        null,
-                                        null,
-                                        eventsTopic)));
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .parameters(List.of("p"))
+                                        .eventsTopic(eventsTopic)
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(eventsTopic)
+                                        .parameters(List.of("p"))
+                                        .eventsTopic(eventsTopic)
+                                        .build()));
 
         CountDownLatch consumerReady = new CountDownLatch(1);
         CountDownLatch countDownLatch = new CountDownLatch(5);
@@ -1320,7 +1331,8 @@ class ProduceConsumeHandlerTest {
                                 })
                         .connect(
                                 URI.create(
-                                        "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:p=consumer"
+                                        ("ws://localhost:%d/v1/consume/tenant1/application1/consume?param:p"
+                                                        + "=consumer")
                                                 .formatted(port)))) {
             consumerReady.await();
 
@@ -1328,7 +1340,8 @@ class ProduceConsumeHandlerTest {
                     new TestWebSocketClient(TestWebSocketClient.NOOP)
                             .connect(
                                     URI.create(
-                                            "ws://localhost:%d/v1/produce/tenant1/application1/produce?param:p=producer"
+                                            ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:p"
+                                                            + "=producer")
                                                     .formatted(port)))) {
                 final ProduceRequest produceRequest =
                         new ProduceRequest(null, "this is a message", null);
@@ -1352,7 +1365,7 @@ class ProduceConsumeHandlerTest {
                     MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
             assertEquals("tenant1", source.getTenant());
             assertEquals("application1", source.getApplicationId());
-            assertEquals("consume", source.getGateway().id());
+            assertEquals("consume", source.getGateway().getId());
             GatewayEventData data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
             assertEquals("consumer", data.getUserParameters().get("p"));
             assertEquals(0, data.getOptions().size());
@@ -1366,7 +1379,7 @@ class ProduceConsumeHandlerTest {
             source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
             assertEquals("tenant1", source.getTenant());
             assertEquals("application1", source.getApplicationId());
-            assertEquals("produce", source.getGateway().id());
+            assertEquals("produce", source.getGateway().getId());
             data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
             assertEquals("producer", data.getUserParameters().get("p"));
             assertNotNull(data.getHttpRequestHeaders().get("host"));
@@ -1380,7 +1393,7 @@ class ProduceConsumeHandlerTest {
             source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
             assertEquals("tenant1", source.getTenant());
             assertEquals("application1", source.getApplicationId());
-            assertEquals("produce", source.getGateway().id());
+            assertEquals("produce", source.getGateway().getId());
             data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
             assertEquals("producer", data.getUserParameters().get("p"));
             assertNotNull(data.getHttpRequestHeaders().get("host"));
@@ -1394,7 +1407,7 @@ class ProduceConsumeHandlerTest {
             source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
             assertEquals("tenant1", source.getTenant());
             assertEquals("application1", source.getApplicationId());
-            assertEquals("consume", source.getGateway().id());
+            assertEquals("consume", source.getGateway().getId());
             data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
             assertEquals("consumer1", data.getUserParameters().get("p"));
             assertNotNull(data.getHttpRequestHeaders().get("host"));
@@ -1408,7 +1421,7 @@ class ProduceConsumeHandlerTest {
             source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
             assertEquals("tenant1", source.getTenant());
             assertEquals("application1", source.getApplicationId());
-            assertEquals("consume", source.getGateway().id());
+            assertEquals("consume", source.getGateway().getId());
             data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
             assertEquals("consumer1", data.getUserParameters().get("p"));
             assertNotNull(data.getHttpRequestHeaders().get("host"));

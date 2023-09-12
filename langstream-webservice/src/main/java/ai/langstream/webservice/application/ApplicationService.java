@@ -134,9 +134,9 @@ public class ApplicationService {
         if (applicationDeployProperties.gateway().requireAuthentication()) {
             if (application.getGateways() != null && application.getGateways().gateways() != null) {
                 for (Gateway gateway : application.getGateways().gateways()) {
-                    if (gateway.authentication() == null) {
+                    if (gateway.getAuthentication() == null) {
                         throw new IllegalArgumentException(
-                                "Gateway " + gateway.id() + " is missing authentication");
+                                "Gateway " + gateway.getId() + " is missing authentication");
                     }
                 }
             }

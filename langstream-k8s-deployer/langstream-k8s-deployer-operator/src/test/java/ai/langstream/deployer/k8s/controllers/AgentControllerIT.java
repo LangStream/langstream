@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.api.model.StreamingCluster;
@@ -30,7 +31,10 @@ import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.checkerframework.checker.units.qual.K;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -39,41 +43,22 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 @Testcontainers
 public class AgentControllerIT {
 
-    @RegisterExtension static final OperatorExtension deployment = new OperatorExtension();
+    static final Map<String, String> DEPLOYER_CONFIG = new HashMap<>(Map.of(
+            "DEPLOYER_RUNTIME_IMAGE", "busybox",
+            "DEPLOYER_RUNTIME_IMAGE_PULL_POLICY", "IfNotPresent"));
+
+    @RegisterExtension static final OperatorExtension deployment = new OperatorExtension(DEPLOYER_CONFIG);
 
     @Test
     void testAgentController() {
         final KubernetesClient client = deployment.getClient();
         final String namespace = "langstream-my-tenant";
-        client.resource(
-                        new NamespaceBuilder()
-                                .withNewMetadata()
-                                .withName(namespace)
-                                .endMetadata()
-                                .build())
-                .serverSideApply();
+        createNamespace(client, namespace);
 
         final String agentCustomResourceName =
                 AgentResourcesFactory.getAgentCustomResourceName("my-app", "agent-id");
 
-        client.resource(
-                        AgentResourcesFactory.generateAgentSecret(
-                                agentCustomResourceName,
-                                new RuntimePodConfiguration(
-                                        Map.of("input", Map.of("is_input", true)),
-                                        Map.of("output", Map.of("is_output", true)),
-                                        new AgentSpec(
-                                                AgentSpec.ComponentType.PROCESSOR,
-                                                "my-tenant",
-                                                "agent-id",
-                                                "my-app",
-                                                "fn-type",
-                                                Map.of("config", true),
-                                                Map.of()),
-                                        new StreamingCluster("noop", Map.of("config", true)),
-                                        null)))
-                .inNamespace(namespace)
-                .serverSideApply();
+        createAgentSecret(client, agentCustomResourceName, namespace);
 
         final AgentCustomResource resource =
                 getCr(
@@ -83,8 +68,6 @@ public class AgentControllerIT {
                 metadata:
                   name: %s
                 spec:
-                    image: busybox
-                    imagePullPolicy: IfNotPresent
                     applicationId: my-app
                     agentId: agent-id
                     agentConfigSecretRef: %s
@@ -146,4 +129,124 @@ public class AgentControllerIT {
     private AgentCustomResource getCr(String yaml) {
         return SerializationUtil.readYaml(yaml, AgentCustomResource.class);
     }
+
+    @Test
+    void testDoNotUpdateStatefulsetIfDeployerRestarted() throws InterruptedException {
+        final KubernetesClient client = deployment.getClient();
+        final String namespace = "langstream-my-tenant";
+        createNamespace(client, namespace);
+
+        final String agentCustomResourceName =
+                AgentResourcesFactory.getAgentCustomResourceName("my-app", "agent-id");
+
+        createAgentSecret(client, agentCustomResourceName, namespace);
+
+        AgentCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Agent
+                metadata:
+                  name: %s
+                spec:
+                    image: busybox
+                    imagePullPolicy: IfNotPresent
+                    applicationId: my-app
+                    agentId: agent-id
+                    agentConfigSecretRef: %s
+                    agentConfigSecretRefChecksum: xx
+                    tenant: my-tenant
+                """
+                                .formatted(agentCustomResourceName, agentCustomResourceName));
+
+        client.resource(resource).inNamespace(namespace).create();
+
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            assertEquals(
+                                    1,
+                                    client.apps()
+                                            .statefulSets()
+                                            .inNamespace(namespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
+                            assertEquals(
+                                    AgentLifecycleStatus.Status.DEPLOYING,
+                                    client.resources(AgentCustomResource.class)
+                                            .inNamespace(namespace)
+                                            .withName(agentCustomResourceName)
+                                            .get()
+                                            .getStatus()
+                                            .getStatus()
+                                            .getStatus());
+                        });
+        resource = client.resource(resource)
+                .inNamespace(namespace)
+                .get();
+        assertNotNull(resource.getStatus().getLastConfigApplied());
+
+         StatefulSet statefulSet =
+                client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
+        assertEquals("busybox", statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+
+        DEPLOYER_CONFIG.put("DEPLOYER_RUNTIME_IMAGE", "busybox:v2");
+        deployment.restartDeployerOperator();
+
+        resource = client.resource(resource)
+                .inNamespace(namespace)
+                .get();
+        resource.getSpec().setCodeArchiveId("another");
+        client.resource(resource).inNamespace(namespace).serverSideApply();
+
+        Awaitility.await().atMost(1, TimeUnit.MINUTES)
+                .untilAsserted(
+                        () -> {
+                            final String archiveId =
+                                    SerializationUtil.readJson(client.resources(AgentCustomResource.class)
+                                                            .inNamespace(namespace)
+                                                            .withName(agentCustomResourceName)
+                                                            .get()
+                                                            .getStatus()
+                                                            .getLastApplied(),
+                                                    ai.langstream.deployer.k8s.api.crds.agents.AgentSpec.class)
+                                            .getCodeArchiveId();
+                            assertEquals("another", archiveId);
+                        });
+        statefulSet = client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
+        assertEquals("busybox", statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+    }
+
+    private void createAgentSecret(KubernetesClient client, String agentCustomResourceName, String namespace) {
+        client.resource(
+                        AgentResourcesFactory.generateAgentSecret(
+                                agentCustomResourceName,
+                                new RuntimePodConfiguration(
+                                        Map.of("input", Map.of("is_input", true)),
+                                        Map.of("output", Map.of("is_output", true)),
+                                        new AgentSpec(
+                                                AgentSpec.ComponentType.PROCESSOR,
+                                                "my-tenant",
+                                                "agent-id",
+                                                "my-app",
+                                                "fn-type",
+                                                Map.of("config", true),
+                                                Map.of()),
+                                        new StreamingCluster("noop", Map.of("config", true)),
+                                        null)))
+                .inNamespace(namespace)
+                .serverSideApply();
+    }
+
+    private void createNamespace(KubernetesClient client, String namespace) {
+        client.resource(
+                        new NamespaceBuilder()
+                                .withNewMetadata()
+                                .withName(namespace)
+                                .endMetadata()
+                                .build())
+                .serverSideApply();
+    }
+
 }

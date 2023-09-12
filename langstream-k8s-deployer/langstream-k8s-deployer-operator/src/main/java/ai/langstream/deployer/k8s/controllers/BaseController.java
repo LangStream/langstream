@@ -76,7 +76,7 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
             lastApplied = SerializationUtil.writeAsJson(resource.getSpec());
             baseStatus.setLastApplied(lastApplied);
             log.infof(
-                    "Reconcilied application %s, reschedule: %s, status: %s",
+                    "Reconciled application %s, reschedule: %s, status: %s",
                     resource.getMetadata().getName(),
                     String.valueOf(result.getScheduleDelay().isPresent()),
                     resource.getStatus());

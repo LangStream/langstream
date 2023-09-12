@@ -17,9 +17,11 @@ package ai.langstream.deployer.k8s.api.crds.agents;
 
 import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.deployer.k8s.api.crds.BaseStatus;
+import java.util.Map;
 import lombok.Data;
 
 @Data
 public class AgentStatus extends BaseStatus {
     private AgentLifecycleStatus status;
+    private String lastConfigApplied;
 }

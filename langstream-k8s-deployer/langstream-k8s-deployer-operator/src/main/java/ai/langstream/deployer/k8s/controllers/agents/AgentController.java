@@ -16,12 +16,15 @@
 package ai.langstream.deployer.k8s.controllers.agents;
 
 import ai.langstream.api.model.AgentLifecycleStatus;
+import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.ResolvedDeployerConfiguration;
+import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.controllers.BaseController;
 import ai.langstream.deployer.k8s.controllers.InfiniteRetry;
 import ai.langstream.deployer.k8s.util.KubeUtil;
+import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
@@ -33,8 +36,15 @@ import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
+import io.javaoperatorsdk.operator.processing.dependent.kubernetes.ResourceUpdaterMatcher;
+import io.javaoperatorsdk.operator.processing.dependent.kubernetes.updatermatcher.GenericResourceUpdaterMatcher;
+import io.quarkus.arc.All;
 import jakarta.inject.Inject;
+import java.io.Serial;
 import java.util.concurrent.TimeUnit;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.jbosslog.JBossLog;
 
 @ControllerConfiguration(
@@ -69,6 +79,8 @@ public class AgentController extends BaseController<AgentCustomResource>
                         .getName();
         final StatefulSet current =
                 client.apps().statefulSets().inNamespace(targetNamespace).withName(name).get();
+
+        setLastAppliedConfig(agent);
         if (KubeUtil.isStatefulSetReady(current)) {
             agent.getStatus().setStatus(AgentLifecycleStatus.DEPLOYED);
             return UpdateControl.updateStatus(agent);
@@ -76,6 +88,17 @@ public class AgentController extends BaseController<AgentCustomResource>
             agent.getStatus().setStatus(AgentLifecycleStatus.DEPLOYING);
             return UpdateControl.updateStatus(agent).rescheduleAfter(5, TimeUnit.SECONDS);
         }
+    }
+
+    private void setLastAppliedConfig(AgentCustomResource agent) {
+        final LastAppliedConfigForStatefulset lastAppliedConfigForStatefulset =
+                new LastAppliedConfigForStatefulset(configuration.getAgentResources(),
+                        configuration.getRuntimeImage(),
+                        configuration.getRuntimeImagePullPolicy(),
+                        configuration.getAgentPodTemplate());
+
+
+        agent.getStatus().setLastConfigApplied(SerializationUtil.writeAsJson(lastAppliedConfigForStatefulset));
     }
 
     @Override
@@ -86,7 +109,7 @@ public class AgentController extends BaseController<AgentCustomResource>
 
     @JBossLog
     public static class StsDependantResource
-            extends CRUDKubernetesDependentResource<StatefulSet, AgentCustomResource> {
+            extends CRUDKubernetesDependentResource<StatefulSet, AgentCustomResource>  {
 
         @Inject ResolvedDeployerConfiguration configuration;
 
@@ -98,15 +121,35 @@ public class AgentController extends BaseController<AgentCustomResource>
         protected StatefulSet desired(
                 AgentCustomResource primary, Context<AgentCustomResource> context) {
             try {
-                final AgentResourcesFactory.GenerateStatefulsetParams params =
-                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
-                                .agentCustomResource(primary)
-                                .agentResourceUnitConfiguration(configuration.getAgentResources())
-                                .podTemplate(configuration.getAgentPodTemplate())
-                                .image(configuration.getRuntimeImage())
-                                .imagePullPolicy(configuration.getRuntimeImagePullPolicy())
-                                .build();
-                return AgentResourcesFactory.generateStatefulSet(params);
+                final AgentResourcesFactory.GenerateStatefulsetParams.GenerateStatefulsetParamsBuilder
+                        builder = AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                        .agentCustomResource(primary);
+
+                final boolean isUpdate;
+
+                if (primary.getStatus() != null && primary.getStatus().getLastConfigApplied() != null) {
+                    isUpdate = true;
+                    // this is an update for the statefulset.
+                    // It's required to not keep the same deployer configuration of the current version
+                    final LastAppliedConfigForStatefulset lastAppliedConfig =
+                            SerializationUtil.readJson(primary.getStatus().getLastConfigApplied(),
+                                    LastAppliedConfigForStatefulset.class);
+                    builder
+                            .agentResourceUnitConfiguration(lastAppliedConfig.getAgentResourceUnitConfiguration())
+                            .image(lastAppliedConfig.getImage())
+                            .imagePullPolicy(lastAppliedConfig.getImagePullPolicy())
+                            .podTemplate(lastAppliedConfig.getPodTemplate());
+                } else {
+                    isUpdate = false;
+                    builder
+                            .agentResourceUnitConfiguration(configuration.getAgentResources())
+                            .podTemplate(configuration.getAgentPodTemplate())
+                            .image(configuration.getRuntimeImage())
+                            .imagePullPolicy(configuration.getRuntimeImagePullPolicy());
+                }
+                log.infof("Generating statefulset for agent %s (update=%s)",
+                        primary.getMetadata().getName(), isUpdate + "");
+                return AgentResourcesFactory.generateStatefulSet(builder.build());
             } catch (Throwable t) {
                 log.errorf(
                         t,
@@ -140,5 +183,17 @@ public class AgentController extends BaseController<AgentCustomResource>
                 throw new RuntimeException(t);
             }
         }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LastAppliedConfigForStatefulset {
+
+        private AgentResourceUnitConfiguration agentResourceUnitConfiguration;
+        private String image;
+        private String imagePullPolicy;
+        private PodTemplate podTemplate;
+
     }
 }

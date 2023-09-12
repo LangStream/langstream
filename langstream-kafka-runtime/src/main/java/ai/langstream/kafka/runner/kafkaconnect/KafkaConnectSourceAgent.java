@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.kafkaconnect;
+package ai.langstream.kafka.runner.kafkaconnect;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.kafka.connect.runtime.TopicCreationConfig.PARTITIONS_VALIDATOR;

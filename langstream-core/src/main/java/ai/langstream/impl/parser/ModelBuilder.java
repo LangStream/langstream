@@ -332,7 +332,11 @@ public class ModelBuilder {
         if (gateway.getType() == Gateway.GatewayType.consume) {
             if (gateway.getProduceOptions() != null) {
                 throw new IllegalArgumentException(
-                        "Gateway of type 'consume' cannot have produce options");
+                        "Gateway of type 'consume' cannot have produce-options");
+            }
+            if (gateway.getChatOptions() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'consume' cannot have chat-options");
             }
             if (gateway.getConsumeOptions() != null) {
                 if (gateway.getConsumeOptions().filters() != null) {
@@ -346,7 +350,38 @@ public class ModelBuilder {
         } else if (gateway.getType() == Gateway.GatewayType.produce) {
             if (gateway.getConsumeOptions() != null) {
                 throw new IllegalArgumentException(
-                        "Gateway of type 'produce' cannot have consume options");
+                        "Gateway of type 'produce' cannot have consume-options");
+            }
+            if (gateway.getChatOptions() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'produce' cannot have chat-options");
+            }
+        } else if (gateway.getType() == Gateway.GatewayType.chat) {
+            if (gateway.getConsumeOptions() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'chat' cannot have consume-options");
+            }
+            if (gateway.getProduceOptions() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'chat' cannot have produce-options");
+            }
+            if (gateway.getTopic() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'chat' cannot have topic. Use chat-options.question-topic and chat-options.answers-topic instead");
+            }
+            final Gateway.ChatOptions chatOptions = gateway.getChatOptions();
+            if (chatOptions == null) {
+                throw new IllegalArgumentException("Gateway of type 'chat' must have chat-options");
+            }
+
+            if (chatOptions.getAnswersTopic() == null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'chat' must have chat-options.answers-topic");
+            }
+
+            if (chatOptions.getQuestionsTopic() == null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'chat' must have chat-options.questions-topic");
             }
         }
     }

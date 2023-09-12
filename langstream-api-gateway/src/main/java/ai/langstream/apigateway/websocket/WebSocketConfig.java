@@ -19,6 +19,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
+import ai.langstream.apigateway.websocket.handlers.ChatHandler;
 import ai.langstream.apigateway.websocket.handlers.ConsumeHandler;
 import ai.langstream.apigateway.websocket.handlers.ProduceHandler;
 import jakarta.annotation.PreDestroy;
@@ -42,6 +43,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     public static final String CONSUME_PATH = "/v1/consume/{tenant}/{application}/{gateway}";
     public static final String PRODUCE_PATH = "/v1/produce/{tenant}/{application}/{gateway}";
+    public static final String CHAT_PATH = "/v1/chat/{tenant}/{application}/{gateway}";
 
     private final ApplicationStore applicationStore;
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
@@ -61,6 +63,12 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 .addHandler(
                         new ProduceHandler(applicationStore, topicConnectionsRuntimeRegistry),
                         PRODUCE_PATH)
+                .addHandler(
+                        new ChatHandler(
+                                applicationStore,
+                                consumeThreadPool,
+                                topicConnectionsRuntimeRegistry),
+                        CHAT_PATH)
                 .setAllowedOrigins("*")
                 .addInterceptors(
                         new HttpSessionHandshakeInterceptor(),

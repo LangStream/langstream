@@ -35,6 +35,13 @@ gateways:
         headers:
           - key: langstream-client-session-id
             value-from-parameters: sessionId
+  - id: chat-no-auth
+    type: chat
+    chat-options:
+      headers:
+      - value-from-parameters: session-id
+      questions-topic: input-topic
+      answers-topic: output-topic
 
   - id: produce-input-auth-google
     type: produce

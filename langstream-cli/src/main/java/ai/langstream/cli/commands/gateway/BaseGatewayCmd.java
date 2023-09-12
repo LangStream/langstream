@@ -15,7 +15,6 @@
  */
 package ai.langstream.cli.commands.gateway;
 
-import ai.langstream.admin.client.AdminClient;
 import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.commands.BaseCmd;
 import ai.langstream.cli.commands.RootCmd;
@@ -26,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
@@ -130,11 +130,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             String credentials,
             String testCredentials) {
 
-        final AdminClient client = getClient();
-
-        final String applicationContent =
-                applicationDescriptions.computeIfAbsent(
-                        application, app -> client.applications().get(application, false));
+        final String applicationContent = getAppDescriptionOrLoad(application);
         final List<Gateways.Gateway> gateways =
                 Gateways.readFromApplicationDescription(applicationContent);
 
@@ -193,5 +189,53 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             throw new IllegalArgumentException(
                     "credentials and test-credentials cannot be used together");
         }
+    }
+
+    private String getAppDescriptionOrLoad(String application) {
+        return applicationDescriptions.computeIfAbsent(
+                application, app -> getClient().applications().get(application, false));
+    }
+
+    protected Map<String, String> generatedParamsForChatGateway(
+            String application, String gatewayId) {
+        final String description = getAppDescriptionOrLoad(application);
+
+        final List<Gateways.Gateway> gateways =
+                Gateways.readFromApplicationDescription(description);
+
+        if (gateways.isEmpty()) {
+            return null;
+        }
+
+        Gateways.Gateway selectedGateway = null;
+        for (Gateways.Gateway gateway : gateways) {
+            if (gateway.getId().equals(gatewayId)
+                    && Gateways.Gateway.TYPE_CHAT.equals(gateway.getType())) {
+                selectedGateway = gateway;
+                break;
+            }
+        }
+        if (selectedGateway == null) {
+            return null;
+        }
+
+        if (selectedGateway.getChatOptions() == null) {
+            return null;
+        }
+        final List<Map<String, Object>> headers =
+                (List<Map<String, Object>>) selectedGateway.getChatOptions().get("headers");
+        if (headers == null) {
+            return null;
+        }
+
+        Map<String, String> result = new HashMap<>();
+
+        for (Map<String, Object> header : headers) {
+            if (header.containsKey("valueFromParameters")) {
+                final Object key = header.getOrDefault("key", header.get("valueFromParameters"));
+                result.put(key.toString(), UUID.randomUUID().toString());
+            }
+        }
+        return result;
     }
 }

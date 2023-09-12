@@ -50,7 +50,8 @@ public final class Gateway {
 
     public enum GatewayType {
         produce,
-        consume
+        consume,
+        chat
     }
 
     @Data
@@ -69,6 +70,40 @@ public final class Gateway {
             String value,
             @JsonAlias({"value-from-parameters"}) String valueFromParameters,
             @JsonAlias({"value-from-authentication"}) String valueFromAuthentication) {
+
+        public KeyValueComparison {
+            if (value == null && valueFromAuthentication == null && valueFromParameters == null) {
+                throw new IllegalArgumentException(
+                        "Must specify one of value, value-from-parameters, or value-from-authentication");
+            }
+            if (value != null && valueFromParameters != null) {
+                throw new IllegalArgumentException(
+                        "Cannot specify both value and value-from-parameters");
+            }
+
+            if (value != null && valueFromAuthentication != null) {
+                throw new IllegalArgumentException(
+                        "Cannot specify both value and value-from-authentication");
+            }
+
+            if (valueFromAuthentication != null && valueFromParameters != null) {
+                throw new IllegalArgumentException(
+                        "Cannot specify both value-from-parameters and value-from-authentication");
+            }
+            if (key == null) {
+                if (value != null) {
+                    key = value;
+                } else if (valueFromParameters != null) {
+                    key = valueFromParameters;
+                } else {
+                    key = valueFromAuthentication;
+                }
+                if (key == null) {
+                    throw new IllegalArgumentException("Not able to compute key: " + this);
+                }
+            }
+        }
+
         public static KeyValueComparison value(String key, String value) {
             return new KeyValueComparison(key, value, null, null);
         }
@@ -81,6 +116,11 @@ public final class Gateway {
         public static KeyValueComparison valueFromAuthentication(
                 String key, String valueFromAuthentication) {
             return new KeyValueComparison(key, null, null, valueFromAuthentication);
+        }
+
+        private String getKeyWithDefaultValue() {
+
+            throw new IllegalStateException();
         }
     }
 
@@ -101,10 +141,6 @@ public final class Gateway {
         @JsonProperty("answers-topic")
         private String answersTopic;
 
-        @JsonProperty("session-parameter")
-        private String sessionParameter;
-
-        @JsonProperty("user-parameter")
-        private String userParameter;
+        List<KeyValueComparison> headers;
     }
 }

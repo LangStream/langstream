@@ -186,10 +186,7 @@ public class ApplicationPlaceholderResolver {
             }
 
             final String topic = resolveValue(context, gateway.getTopic());
-            final String eventsTopic =
-                    gateway.getEventsTopic() == null
-                            ? null
-                            : resolveValue(context, gateway.getEventsTopic());
+            final String eventsTopic = resolveValue(context, gateway.getEventsTopic());
             newGateways.add(
                     new Gateway(
                             gateway.getId(),
@@ -245,6 +242,9 @@ public class ApplicationPlaceholderResolver {
     private record Placeholder(String key, String value, String finalReplacement) {}
 
     static String resolveValue(Map<String, Object> context, String template) {
+        if (template == null) {
+            return null;
+        }
         List<Placeholder> placeholders = new ArrayList<>();
         placeholders.add(new Placeholder("{{% ", "{__MUSTACHE_ESCAPING_PREFIX ", "{{ "));
         placeholders.add(

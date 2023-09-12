@@ -15,11 +15,6 @@
  */
 package ai.langstream.kafka.runtime;
 
-import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
-
 import ai.langstream.api.model.SchemaDefinition;
 import ai.langstream.api.runtime.ConnectionImplementation;
 import ai.langstream.api.runtime.Topic;
@@ -40,6 +35,13 @@ public record KafkaTopic(
         Map<String, Object> config,
         Map<String, Object> options)
         implements ConnectionImplementation, Topic {
+
+    private static final String KEY_DESERIALIZER_CLASS_CONFIG = "key.deserializer";
+    private static final String VALUE_DESERIALIZER_CLASS_CONFIG = "value.deserializer";
+
+    private static final String KEY_SERIALIZER_CLASS_CONFIG = "key.serializer";
+
+    private static final String VALUE_SERIALIZER_CLASS_CONFIG = "value.serializer";
 
     public KafkaTopic {
         // options must be a mutable map, because we can dynamically add options

@@ -25,6 +25,8 @@ pipeline:
     type: "query"
     input: "input-topic"
     output: "output-topic"
+    errors:
+      on-failure: "skip"
     configuration:
       datasource: "PGDataSource"
       query: "SELECT * FROM products WHERE id = ?"

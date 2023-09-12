@@ -68,7 +68,7 @@ kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kaf
 Insert a JSON with "id", "name" and "description":
 
 ```
-{"id": 10, "name": "test", "description": "test"}
+{"id": 1, "name": "test", "description": "test"}
 ```
 
 

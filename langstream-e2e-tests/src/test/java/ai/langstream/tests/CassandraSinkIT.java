@@ -26,13 +26,16 @@ import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
 public class CassandraSinkIT extends BaseEndToEndTest {
 
-    // @BeforeAll
+    @BeforeAll
     public static void setupCassandra() {
         installCassandra();
 
@@ -46,12 +49,12 @@ public class CassandraSinkIT extends BaseEndToEndTest {
         executeCQL("SELECT * FROM vsearch.products;");
     }
 
-    // @AfterAll
+    @AfterAll
     public static void removeCassandra() {
         uninstallCassandra();
     }
 
-    // @Test
+    @Test
     public void test() throws Exception {
 
         final String tenant = "ten-" + System.currentTimeMillis();

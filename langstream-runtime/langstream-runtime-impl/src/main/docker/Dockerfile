@@ -45,7 +45,7 @@ RUN mkdir -p /etc/apt/keyrings \
 
 # Cleanup apt
 RUN apt-get -y install unzip \
-     apt-get -y --purge autoremove \
+     && apt-get -y --purge autoremove \
      && apt-get autoclean \
      && apt-get clean \
      && rm -rf /var/lib/apt/lists/*

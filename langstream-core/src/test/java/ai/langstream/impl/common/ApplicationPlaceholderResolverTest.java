@@ -343,9 +343,9 @@ class ApplicationPlaceholderResolverTest {
 
         final Application resolved =
                 ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
-        assertEquals("my-input-topic", resolved.getGateways().gateways().get(0).topic());
-        assertEquals("my-stream-topic", resolved.getGateways().gateways().get(0).eventsTopic());
-        assertEquals("my-input-topic", resolved.getGateways().gateways().get(1).topic());
-        assertEquals("my-stream-topic", resolved.getGateways().gateways().get(1).eventsTopic());
+        assertEquals("my-input-topic", resolved.getGateways().gateways().get(0).getTopic());
+        assertEquals("my-stream-topic", resolved.getGateways().gateways().get(0).getEventsTopic());
+        assertEquals("my-input-topic", resolved.getGateways().gateways().get(1).getTopic());
+        assertEquals("my-stream-topic", resolved.getGateways().gateways().get(1).getEventsTopic());
     }
 }

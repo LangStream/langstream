@@ -124,7 +124,7 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
             throws AuthFailedException {
 
         final Gateway.Authentication authentication =
-                gatewayRequestContext.gateway().authentication();
+                gatewayRequestContext.gateway().getAuthentication();
 
         if (authentication == null) {
             return Map.of();
@@ -135,7 +135,7 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
             if (!authentication.isAllowTestMode()) {
                 throw new AuthFailedException(
                         "Gateway "
-                                + gatewayRequestContext.gateway().id()
+                                + gatewayRequestContext.gateway().getId()
                                 + " of tenant "
                                 + gatewayRequestContext.tenant()
                                 + " does not allow test mode.");

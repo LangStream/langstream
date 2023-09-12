@@ -87,7 +87,7 @@ public class ProduceHandler extends AbstractHandler {
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
 
-        final String topicName = gateway.topic();
+        final String topicName = gateway.getTopic();
         final TopicProducer producer =
                 topicConnectionsRuntime.createProducer(
                         null, streamingCluster, Map.of("topic", topicName));
@@ -100,7 +100,7 @@ public class ProduceHandler extends AbstractHandler {
                 "Started produced for gateway {}/{}/{} on topic {}",
                 context.tenant(),
                 context.applicationId(),
-                context.gateway().id(),
+                context.gateway().getId(),
                 topicName);
         sendClientConnectedEvent(context);
     }
@@ -212,10 +212,10 @@ public class ProduceHandler extends AbstractHandler {
             Map<String, String> passedParameters,
             Map<String, String> principalValues) {
         final List<Header> headers = new ArrayList<>();
-        if (selectedGateway.produceOptions() != null
-                && selectedGateway.produceOptions().headers() != null) {
+        if (selectedGateway.getProduceOptions() != null
+                && selectedGateway.getProduceOptions().headers() != null) {
             final List<Gateway.KeyValueComparison> headersConfig =
-                    selectedGateway.produceOptions().headers();
+                    selectedGateway.getProduceOptions().headers();
             for (Gateway.KeyValueComparison mapping : headersConfig) {
                 if (mapping.key() == null || mapping.key().isEmpty()) {
                     throw new IllegalArgumentException("Header key cannot be empty");

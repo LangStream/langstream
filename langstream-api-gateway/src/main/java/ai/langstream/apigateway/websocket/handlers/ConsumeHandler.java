@@ -99,7 +99,7 @@ public class ConsumeHandler extends AbstractHandler {
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
 
-        final String topicName = gateway.topic();
+        final String topicName = gateway.getTopic();
 
         final String positionParameter = context.options().getOrDefault("position", "latest");
         TopicOffsetPosition position =
@@ -128,7 +128,7 @@ public class ConsumeHandler extends AbstractHandler {
                             final Map<String, Object> attributes = session.getAttributes();
                             TopicReader reader = (TopicReader) attributes.get("topicReader");
                             final String tenant = context.tenant();
-                            final String gatewayId = context.gateway().id();
+                            final String gatewayId = context.gateway().getId();
                             final String applicationId = context.applicationId();
                             try {
                                 log.info(
@@ -262,8 +262,8 @@ public class ConsumeHandler extends AbstractHandler {
             Map<String, String> principalValues) {
         List<Function<Record, Boolean>> filters = new ArrayList<>();
 
-        if (selectedGateway.consumeOptions() != null) {
-            final Gateway.ConsumeOptions consumeOptions = selectedGateway.consumeOptions();
+        if (selectedGateway.getConsumeOptions() != null) {
+            final Gateway.ConsumeOptions consumeOptions = selectedGateway.getConsumeOptions();
             if (consumeOptions.filters() != null) {
                 if (consumeOptions.filters().headers() != null) {
                     for (Gateway.KeyValueComparison comparison :

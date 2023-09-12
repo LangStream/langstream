@@ -52,10 +52,12 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
         }
 
         String[] names = metadata.names();
-        log.info(
-                "Document type: {} Content {}",
-                Stream.of(names).collect(Collectors.toMap(Function.identity(), metadata::get)),
-                valueAsString);
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Document type: {} Content {}",
+                    Stream.of(names).collect(Collectors.toMap(Function.identity(), metadata::get)),
+                    valueAsString);
+        }
         return List.of(SimpleRecord.copyFrom(record).value(valueAsString.toString()).build());
     }
 }

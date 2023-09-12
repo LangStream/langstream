@@ -143,6 +143,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add(tmpInstanceFile.getAbsolutePath() + ":/code/instance.yaml");
         commandLine.add("-v");
         commandLine.add(tmpSecretsFile.getAbsolutePath() + ":/code/secrets.yaml");
+        commandLine.add("--add-host");
+        commandLine.add("minio.minio-dev.svc.cluster.local:127.0.0.1");
+        commandLine.add("--add-host");
+        commandLine.add("my-cluster-kafka-bootstrap.kafka:127.0.0.1");
         commandLine.add(imageName);
         ProcessBuilder processBuilder = new ProcessBuilder(commandLine).inheritIO();
         Process process = processBuilder.start();

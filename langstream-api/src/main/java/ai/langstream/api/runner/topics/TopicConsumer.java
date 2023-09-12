@@ -21,6 +21,13 @@ import java.util.Map;
 
 public interface TopicConsumer extends AutoCloseable {
 
+    /**
+     * This method works well only if the TopicConsumer has been loaded from the same classloader of
+     * the caller. It is currently used only by the Kafka Connect adapter because it needs to access
+     * the native consumer to handle the offsets.
+     *
+     * @return the native consumer.
+     */
     default Object getNativeConsumer() {
         return null;
     }

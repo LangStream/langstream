@@ -16,6 +16,7 @@
 package ai.langstream.runtime.tester;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
@@ -24,6 +25,7 @@ import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentInfo;
+import ai.langstream.runtime.agent.nar.NarFileHandler;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.file.Path;
@@ -47,6 +49,7 @@ public class LocalApplicationRunner implements AutoCloseable {
 
     final KubeTestServer kubeServer = new KubeTestServer();
     final ApplicationDeployer applicationDeployer;
+    final NarFileHandler narFileHandler;
 
     final Path agentsDirectory;
 
@@ -56,12 +59,20 @@ public class LocalApplicationRunner implements AutoCloseable {
 
     final AtomicBoolean started = new AtomicBoolean();
 
-    public LocalApplicationRunner(Path agentsDirectory) {
+    public LocalApplicationRunner(Path agentsDirectory) throws Exception {
         this.agentsDirectory = agentsDirectory;
+        this.narFileHandler =
+                new NarFileHandler(
+                        agentsDirectory, List.of(), Thread.currentThread().getContextClassLoader());
+        TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                new TopicConnectionsRuntimeRegistry();
+        narFileHandler.scan();
+        topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
         this.applicationDeployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
+                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .build();
     }
 
@@ -223,6 +234,9 @@ public class LocalApplicationRunner implements AutoCloseable {
         if (applicationDeployer != null) {
             // this closes the kubernetes client
             applicationDeployer.close();
+        }
+        if (narFileHandler != null) {
+            narFileHandler.close();
         }
     }
 }

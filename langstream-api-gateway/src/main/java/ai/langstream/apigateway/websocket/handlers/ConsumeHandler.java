@@ -24,6 +24,7 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.OffsetPerPartition;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
@@ -53,8 +54,11 @@ public class ConsumeHandler extends AbstractHandler {
 
     private final ExecutorService executor;
 
-    public ConsumeHandler(ApplicationStore applicationStore, ExecutorService executor) {
-        super(applicationStore);
+    public ConsumeHandler(
+            ApplicationStore applicationStore,
+            ExecutorService executor,
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
+        super(applicationStore, topicConnectionsRuntimeRegistry);
         this.executor = executor;
     }
 
@@ -97,7 +101,9 @@ public class ConsumeHandler extends AbstractHandler {
         final StreamingCluster streamingCluster = application.getInstance().streamingCluster();
 
         final TopicConnectionsRuntime topicConnectionsRuntime =
-                TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
+                topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(streamingCluster)
+                        .asTopicConnectionsRuntime();
 
         final String topicName = gateway.getTopic();
 

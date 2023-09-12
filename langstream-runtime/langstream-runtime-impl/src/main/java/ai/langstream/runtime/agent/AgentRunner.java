@@ -37,6 +37,7 @@ import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeAndLoader;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
@@ -57,7 +58,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -82,8 +82,6 @@ import org.eclipse.jetty.servlet.ServletHolder;
 /** This is the main entry point for the pods that run the LangStream runtime and Java code. */
 @Slf4j
 public class AgentRunner {
-    private static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY =
-            new TopicConnectionsRuntimeRegistry();
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
     private static MainErrorHandler mainErrorHandler =
@@ -156,26 +154,32 @@ public class AgentRunner {
 
         log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
 
-        ClassLoader customLibClassloader =
-                buildCustomLibClassloader(
-                        codeDirectory, Thread.currentThread().getContextClassLoader());
+        List<URL> customLibClasspath = buildCustomLibClasspath(codeDirectory);
         try (NarFileHandler narFileHandler =
-                new NarFileHandler(agentsDirectory, customLibClassloader)) {
+                new NarFileHandler(
+                        agentsDirectory,
+                        customLibClasspath,
+                        Thread.currentThread().getContextClassLoader())) {
             narFileHandler.scan();
 
             AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
             assetManagerRegistry.setAssetManagerPackageLoader(narFileHandler);
+
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                    new TopicConnectionsRuntimeRegistry();
+            topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
 
             deployAssets(configuration, assetManagerRegistry);
 
             AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
             agentCodeRegistry.setAgentPackageLoader(narFileHandler);
 
-            TopicConnectionsRuntime topicConnectionsRuntime =
-                    TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(
+            TopicConnectionsRuntimeAndLoader topicConnectionsRuntimeWithClassloader =
+                    topicConnectionsRuntimeRegistry.getTopicConnectionsRuntime(
                             configuration.streamingCluster());
-
             try {
+                TopicConnectionsRuntime topicConnectionsRuntime =
+                        topicConnectionsRuntimeWithClassloader.asTopicConnectionsRuntime();
                 AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
                 Server server = null;
                 try {
@@ -199,16 +203,14 @@ public class AgentRunner {
                     }
                 }
             } finally {
-                topicConnectionsRuntime.close();
+                topicConnectionsRuntimeWithClassloader.close();
             }
         }
     }
 
-    private static ClassLoader buildCustomLibClassloader(
-            Path codeDirectory, ClassLoader contextClassLoader) throws IOException {
-        ClassLoader customLibClassloader = contextClassLoader;
+    private static List<URL> buildCustomLibClasspath(Path codeDirectory) throws IOException {
         if (codeDirectory == null) {
-            return customLibClassloader;
+            return List.of();
         }
         Path javaLib = codeDirectory.resolve("java").resolve("lib");
         log.info("Looking for java lib in {}", javaLib);
@@ -231,9 +233,9 @@ public class AgentRunner {
                                 .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
             }
-            customLibClassloader = new URLClassLoader(jars.toArray(URL[]::new), contextClassLoader);
+            return jars;
         }
-        return customLibClassloader;
+        return List.of();
     }
 
     private static void runPythonAgent(Path podRuntimeConfiguration, Path codeDirectory)

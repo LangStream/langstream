@@ -94,7 +94,7 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>langstream-kafka</artifactId>
+			<artifactId>langstream-kafka-runtime</artifactId>
 			<version>${project.version}</version>
 			<classifier>tests</classifier>
 			<scope>test</scope>
@@ -112,6 +112,18 @@
 		<dependency>
 			<groupId>ai.langstream</groupId>
 			<artifactId>langstream-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>ai.langstream</groupId>
+			<artifactId>langstream-kafka-runtime</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>ai.langstream</groupId>
+			<artifactId>langstream-pulsar-runtime</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

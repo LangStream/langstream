@@ -18,9 +18,10 @@ package ai.langstream.kafka;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.AbstractApplicationRunner;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -139,17 +140,12 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                         List.of(
                                 "{\"documentId\":2,\"queryresult\":{\"name\":\"A\",\"description\":\"A description\",\"id\":\"1\"},\"name\":\"A\",\"description\":\"A description\"}"));
 
-                try (CassandraDataSource cassandraDataSource = new CassandraDataSource()) {
-                    cassandraDataSource.initialize(
-                            Map.of(
-                                    "service", "cassandra",
-                                    "contact-points", cassandra.getContactPoint().getHostString(),
-                                    "loadBalancing-localDc", cassandra.getLocalDatacenter(),
-                                    "port", cassandra.getContactPoint().getPort()));
-                    ResultSet execute =
-                            cassandraDataSource
-                                    .getSession()
-                                    .execute("SELECT * FROM vsearch.documents");
+                CqlSessionBuilder builder = new CqlSessionBuilder();
+                builder.addContactPoint(cassandra.getContactPoint());
+                builder.withLocalDatacenter(cassandra.getLocalDatacenter());
+
+                try (CqlSession cqlSession = builder.build(); ) {
+                    ResultSet execute = cqlSession.execute("SELECT * FROM vsearch.documents");
                     List<Row> all = execute.all();
                     Set<Integer> documentIds =
                             all.stream().map(row -> row.getInt("id")).collect(Collectors.toSet());

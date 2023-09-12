@@ -19,6 +19,7 @@ import ai.langstream.api.codestorage.GenericZipFileArchiveFile;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -43,21 +44,25 @@ import lombok.extern.slf4j.Slf4j;
 public class NarFileHandler
         implements AutoCloseable,
                 AgentCodeRegistry.AgentPackageLoader,
-                AssetManagerRegistry.AssetManagerPackageLoader {
+                AssetManagerRegistry.AssetManagerPackageLoader,
+                TopicConnectionsRuntimeRegistry.TopicConnectionsPackageLoader {
 
     private final Path packagesDirectory;
     private final Path temporaryDirectory;
 
-    private final ClassLoader customCodeClassloader;
+    private final List<URL> customLibClasspath;
+    private final ClassLoader parentClassloader;
 
     private List<URLClassLoader> classloaders;
     private final Map<String, PackageMetadata> packages = new HashMap<>();
 
-    public NarFileHandler(Path packagesDirectory, ClassLoader customCodeClassloader)
+    public NarFileHandler(
+            Path packagesDirectory, List<URL> customLibClasspath, ClassLoader parentClassloader)
             throws Exception {
         this.packagesDirectory = packagesDirectory;
         this.temporaryDirectory = Files.createTempDirectory("nar");
-        this.customCodeClassloader = customCodeClassloader;
+        this.customLibClasspath = customLibClasspath;
+        this.parentClassloader = parentClassloader;
     }
 
     private static void deleteDirectory(Path dir) throws Exception {
@@ -79,6 +84,7 @@ public class NarFileHandler
             URLClassLoader classLoader = metadata.getClassLoader();
             if (classLoader != null) {
                 try {
+                    log.info("Closing classloader {}", classLoader);
                     classLoader.close();
                 } catch (Exception err) {
                     log.error("Cannot close classloader {}", classLoader, err);
@@ -93,24 +99,58 @@ public class NarFileHandler
         }
     }
 
+    private static class NarFileClassLoader extends URLClassLoader {
+
+        private final String name;
+
+        public NarFileClassLoader(String name, List<URL> urls, ClassLoader parent) {
+            super(urls.toArray(URL[]::new), parent);
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return "NarFileClassLoader{" + "name='" + name + '\'' + '}';
+        }
+
+        @Override
+        protected Class<?> findClass(String name) throws ClassNotFoundException {
+            try {
+                return super.findClass(name);
+            } catch (ClassNotFoundException err) {
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                            "findClass class {} not found here {}: {}", name, this, err.toString());
+                }
+                throw err;
+            }
+        }
+    }
+
     @Data
     final class PackageMetadata {
         private final Path nar;
         private final String name;
         private final Set<String> agentTypes;
         private final Set<String> assetTypes;
+        private final Set<String> streamingClusterTypes;
         private Path directory;
         private URLClassLoader classLoader;
 
         public PackageMetadata(
-                Path nar, String name, Set<String> agentTypes, Set<String> assetTypes) {
+                Path nar,
+                String name,
+                Set<String> agentTypes,
+                Set<String> assetTypes,
+                Set<String> streamingClusterTypes) {
             this.nar = nar;
             this.name = name;
             this.agentTypes = agentTypes;
             this.assetTypes = assetTypes;
+            this.streamingClusterTypes = streamingClusterTypes;
         }
 
-        public void unpack() throws Exception {
+        public synchronized void unpack() throws Exception {
             if (directory != null) {
                 return;
             }
@@ -122,7 +162,7 @@ public class NarFileHandler
         }
     }
 
-    public void scan() throws Exception {
+    public synchronized void scan() throws Exception {
         try (DirectoryStream<Path> all = Files.newDirectoryStream(packagesDirectory, "*.nar")) {
             for (Path narFile : all) {
                 handleNarFile(narFile);
@@ -141,6 +181,7 @@ public class NarFileHandler
 
             List<String> agents = List.of();
             List<String> assetTypes = List.of();
+            List<String> streamingClusterTypes = List.of();
 
             ZipEntry entryAgentsIndex = zipFile.getEntry("META-INF/ai.langstream.agents.index");
             if (entryAgentsIndex != null) {
@@ -169,10 +210,29 @@ public class NarFileHandler
                         assetTypes);
             }
 
-            if (!agents.isEmpty() || !assetTypes.isEmpty()) {
+            ZipEntry streamingClustersIndex =
+                    zipFile.getEntry("META-INF/ai.langstream.streamingClusters.index");
+            if (streamingClustersIndex != null) {
+                InputStream inputStream = zipFile.getInputStream(streamingClustersIndex);
+                byte[] bytes = inputStream.readAllBytes();
+                String string = new String(bytes, StandardCharsets.UTF_8);
+                BufferedReader reader = new BufferedReader(new StringReader(string));
+                streamingClusterTypes =
+                        reader.lines().filter(s -> !s.isBlank() && !s.startsWith("#")).toList();
+                log.info(
+                        "The file {} contains a static streamingClusters index, skipping the unpacking. It is expected that handles these streamingClusters: {}",
+                        narFile,
+                        assetTypes);
+            }
+
+            if (!agents.isEmpty() || !assetTypes.isEmpty() || !streamingClusterTypes.isEmpty()) {
                 PackageMetadata metadata =
                         new PackageMetadata(
-                                narFile, filename, Set.copyOf(agents), Set.copyOf(assetTypes));
+                                narFile,
+                                filename,
+                                Set.copyOf(agents),
+                                Set.copyOf(assetTypes),
+                                Set.copyOf(streamingClusterTypes));
                 packages.put(filename, metadata);
                 return;
             }
@@ -183,16 +243,21 @@ public class NarFileHandler
             ZipEntry serviceProviderForAssets =
                     zipFile.getEntry(
                             "META-INF/services/ai.langstream.api.runner.assets.AssetManagerProvider");
-            if (serviceProviderForAgents == null && serviceProviderForAssets == null) {
+            ZipEntry serviceProviderForStreamingClusters =
+                    zipFile.getEntry(
+                            "META-INF/services/ai.langstream.api.runner.topics.TopicConnectionProvider");
+            if (serviceProviderForAgents == null
+                    && serviceProviderForAssets == null
+                    && serviceProviderForStreamingClusters == null) {
                 log.info(
-                        "The file {} does not contain any AgentCodeProvider/AssetManagerProvider, skipping the file",
+                        "The file {} does not contain any AgentCodeProvider/AssetManagerProvider/TopicConnectionProvider, skipping the file",
                         narFile);
                 return;
             }
         }
 
-        log.info("The file {} does not contain any index, still adding the file", narFile);
-        PackageMetadata metadata = new PackageMetadata(narFile, filename, null, null);
+        log.info("The file {} does not contain any indexes, still adding the file", narFile);
+        PackageMetadata metadata = new PackageMetadata(narFile, filename, null, null, null);
         packages.put(filename, metadata);
     }
 
@@ -204,12 +269,9 @@ public class NarFileHandler
             return null;
         }
         URLClassLoader classLoader =
-                createClassloaderForPackage(customCodeClassloader, packageForAssetType);
-        log.info(
-                "For package {}, classloader {}, parent {}",
-                packageForAssetType.getName(),
-                classLoader,
-                classLoader.getParent());
+                createClassloaderForPackage(
+                        customLibClasspath, packageForAssetType, parentClassloader);
+        log.info("For package {}, classloader {}", packageForAssetType.getName(), classLoader);
         return new AssetManagerRegistry.AssetPackage() {
             @Override
             public ClassLoader getClassloader() {
@@ -224,6 +286,34 @@ public class NarFileHandler
     }
 
     @Override
+    public TopicConnectionsRuntimeRegistry.TopicConnectionsRuntimePackage
+            loadPackageForTopicConnectionRuntime(String type) throws Exception {
+        PackageMetadata packageForStreamingCluster = getPackageForStreamingClusterType(type);
+        if (packageForStreamingCluster == null) {
+            return null;
+        }
+        URLClassLoader classLoader =
+                createClassloaderForPackage(
+                        customLibClasspath, packageForStreamingCluster, parentClassloader);
+        log.info(
+                "For package {}, classloader {}, parent {}",
+                packageForStreamingCluster.getName(),
+                classLoader,
+                classLoader.getParent());
+        return new TopicConnectionsRuntimeRegistry.TopicConnectionsRuntimePackage() {
+            @Override
+            public ClassLoader getClassloader() {
+                return classLoader;
+            }
+
+            @Override
+            public String getName() {
+                return packageForStreamingCluster.getName();
+            }
+        };
+    }
+
+    @Override
     @SneakyThrows
     public AgentCodeRegistry.AgentPackage loadPackageForAgent(String agentType) {
         PackageMetadata packageForAgentType = getPackageForAgentType(agentType);
@@ -231,7 +321,8 @@ public class NarFileHandler
             return null;
         }
         URLClassLoader classLoader =
-                createClassloaderForPackage(customCodeClassloader, packageForAgentType);
+                createClassloaderForPackage(
+                        customLibClasspath, packageForAgentType, parentClassloader);
         log.info(
                 "For package {}, classloader {}, parent {}",
                 packageForAgentType.getName(),
@@ -264,6 +355,16 @@ public class NarFileHandler
                 .orElse(null);
     }
 
+    public PackageMetadata getPackageForStreamingClusterType(String name) {
+        return packages.values().stream()
+                .filter(
+                        p ->
+                                p.streamingClusterTypes != null
+                                        && p.streamingClusterTypes.contains(name))
+                .findFirst()
+                .orElse(null);
+    }
+
     @Override
     public List<? extends ClassLoader> getAllClassloaders() throws Exception {
         if (classloaders != null) {
@@ -273,19 +374,21 @@ public class NarFileHandler
         classloaders = new ArrayList<>();
         for (PackageMetadata metadata : packages.values()) {
             metadata.unpack();
-            URLClassLoader result = createClassloaderForPackage(customCodeClassloader, metadata);
+            URLClassLoader result =
+                    createClassloaderForPackage(customLibClasspath, metadata, parentClassloader);
             classloaders.add(result);
         }
         return classloaders;
     }
 
     @Override
-    public ClassLoader getCustomCodeClassloader() {
-        return customCodeClassloader;
+    public ClassLoader getSystemClassloader() {
+        return parentClassloader;
     }
 
     private static URLClassLoader createClassloaderForPackage(
-            ClassLoader parent, PackageMetadata metadata) throws Exception {
+            List<URL> customLibClasspath, PackageMetadata metadata, ClassLoader parentClassloader)
+            throws Exception {
 
         if (metadata.classLoader != null) {
             return metadata.classLoader;
@@ -314,8 +417,16 @@ public class NarFileHandler
             }
         }
 
-        URLClassLoader result = new URLClassLoader(urls.toArray(URL[]::new), parent);
+        URLClassLoader result = new NarFileClassLoader(metadata.name, urls, parentClassloader);
+
+        if (!customLibClasspath.isEmpty()) {
+            result =
+                    new NarFileClassLoader(
+                            metadata.name + "+custom-lib", customLibClasspath, result);
+        }
+
         metadata.classLoader = result;
+
         return result;
     }
 }

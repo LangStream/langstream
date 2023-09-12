@@ -16,17 +16,29 @@
 package ai.langstream.runtime.deployer;
 
 import ai.langstream.api.model.Secrets;
+import ai.langstream.runtime.api.agent.AgentRunnerConstants;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConstants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+@Slf4j
 class RuntimeDeployerStarterTest {
+
+    public static final Path agentsDirectory;
+
+    static {
+        agentsDirectory = Path.of(System.getProperty("user.dir"), "target", "agents");
+        log.info("Agents directory is {}", agentsDirectory);
+    }
 
     static ObjectMapper mapper = new ObjectMapper();
 
@@ -75,10 +87,12 @@ class RuntimeDeployerStarterTest {
 
     @SneakyThrows
     private void runTest(boolean expectOk, Map<String, String> env, String... args) {
+        Map<String, String> envWithAgents = new HashMap<>(env);
+        envWithAgents.put(AgentRunnerConstants.AGENTS_ENV, agentsDirectory.toString());
         final RuntimeDeployer runtimeDeployer = Mockito.mock(RuntimeDeployer.class);
 
         try {
-            new TestDeployer(env, runtimeDeployer).start(args);
+            new TestDeployer(envWithAgents, runtimeDeployer).start(args);
         } catch (Exception e) {
             if (expectOk) {
                 throw new RuntimeException(e);
@@ -90,7 +104,13 @@ class RuntimeDeployerStarterTest {
             throw new RuntimeException("Expected exception");
         }
         Mockito.verify(runtimeDeployer)
-                .deploy(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+                .deploy(
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any());
     }
 
     static class TestDeployer extends RuntimeDeployerStarter {

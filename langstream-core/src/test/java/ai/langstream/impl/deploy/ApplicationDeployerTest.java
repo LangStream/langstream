@@ -15,12 +15,16 @@
  */
 package ai.langstream.impl.deploy;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.spy;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ComputeCluster;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeAndLoader;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -30,7 +34,6 @@ import ai.langstream.impl.noop.NoOpComputeClusterRuntimeProvider;
 import ai.langstream.impl.parser.ModelBuilder;
 import java.util.Map;
 import lombok.Cleanup;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -70,6 +73,8 @@ class ApplicationDeployerTest {
                 spy(new NoOpComputeClusterRuntimeProvider.NoOpClusterRuntime());
         final StreamingClusterRuntime mockStreamingRuntime =
                 Mockito.mock(StreamingClusterRuntime.class);
+        final TopicConnectionsRuntime mockTopicConnectionsRuntime =
+                Mockito.mock(TopicConnectionsRuntime.class);
         registry.addClusterRuntime("mock", mockRuntime);
         registry.addStreamingClusterRuntime("mock", mockStreamingRuntime);
 
@@ -77,6 +82,18 @@ class ApplicationDeployerTest {
                 ApplicationDeployer.builder()
                         .pluginsRegistry(new PluginsRegistry())
                         .registry(registry)
+                        .topicConnectionsRuntimeRegistry(
+                                new TopicConnectionsRuntimeRegistry() {
+                                    @Override
+                                    public TopicConnectionsRuntimeAndLoader
+                                            getTopicConnectionsRuntime(
+                                                    StreamingCluster streamingCluster) {
+                                        assertEquals(streamingCluster.type(), "mock");
+                                        return new TopicConnectionsRuntimeAndLoader(
+                                                mockTopicConnectionsRuntime,
+                                                Thread.currentThread().getContextClassLoader());
+                                    }
+                                })
                         .build();
 
         Application applicationInstance =
@@ -114,7 +131,7 @@ class ApplicationDeployerTest {
                         invocationOnMock -> {
                             final Application resolvedApplicationInstance =
                                     (Application) invocationOnMock.getArguments()[0];
-                            Assertions.assertEquals(
+                            assertEquals(
                                     "my-access-key",
                                     resolvedApplicationInstance
                                             .getResources()
@@ -129,12 +146,14 @@ class ApplicationDeployerTest {
                         Mockito.any(),
                         eq(mockStreamingRuntime),
                         Mockito.any(),
+                        Mockito.any(),
                         Mockito.any());
         Mockito.verify(mockRuntime)
                 .deploy(
                         Mockito.anyString(),
                         Mockito.any(),
                         eq(mockStreamingRuntime),
+                        Mockito.any(),
                         Mockito.any(),
                         Mockito.any());
     }

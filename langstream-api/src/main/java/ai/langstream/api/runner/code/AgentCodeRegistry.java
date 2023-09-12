@@ -15,6 +15,7 @@
  */
 package ai.langstream.api.runner.code;
 
+import ai.langstream.api.util.ClassloaderUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -45,7 +46,7 @@ public class AgentCodeRegistry {
 
         List<? extends ClassLoader> getAllClassloaders() throws Exception;
 
-        ClassLoader getCustomCodeClassloader();
+        ClassLoader getSystemClassloader();
     }
 
     @SneakyThrows
@@ -55,7 +56,7 @@ public class AgentCodeRegistry {
 
         ClassLoader customCodeClassloader =
                 agentPackageLoader != null
-                        ? agentPackageLoader.getCustomCodeClassloader()
+                        ? agentPackageLoader.getSystemClassloader()
                         : AgentCodeRegistry.class.getClassLoader();
         // always allow to find the system agents
         AgentCodeAndLoader agentCodeProviderProviderFromSystem =
@@ -110,9 +111,13 @@ public class AgentCodeRegistry {
 
         return agentCodeProviderProvider
                 .map(
-                        provider ->
-                                new AgentCodeAndLoader(
-                                        provider.get().createInstance(agentType), classLoader))
+                        provider -> {
+                            AgentCode instance =
+                                    ClassloaderUtils.executeWithClassloader(
+                                            classLoader,
+                                            () -> provider.get().createInstance(agentType));
+                            return new AgentCodeAndLoader(instance, classLoader);
+                        })
                 .orElse(null);
     }
 

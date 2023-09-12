@@ -17,6 +17,7 @@ package ai.langstream.runtime.impl.k8s;
 
 import ai.langstream.api.model.ErrorsSpec;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -92,14 +93,15 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             ExecutionPlan executionPlan,
             StreamingClusterRuntime streamingClusterRuntime,
             String codeStorageArchiveId,
-            DeployContext deployContext) {
+            DeployContext deployContext,
+            TopicConnectionsRuntime topicConnectionsRuntime) {
 
         // this code is executed in the application setup job, that is a process with admin
         // privileges
         // this code must never run custom code imported from the application (like Jars or Py).
 
         // deploy topics
-        streamingClusterRuntime.deploy(executionPlan);
+        topicConnectionsRuntime.deploy(executionPlan);
 
         List<Map<String, Object>> assets = collectAssets(executionPlan);
 
@@ -382,7 +384,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
             String codeStorageArchiveId,
-            DeployContext deployContext) {
+            DeployContext deployContext,
+            TopicConnectionsRuntime topicConnectionsRuntime) {
         List<AgentCustomResource> agentCustomResources = new ArrayList<>();
         List<Secret> secrets = new ArrayList<>();
         collectAgentCustomResourcesAndSecrets(

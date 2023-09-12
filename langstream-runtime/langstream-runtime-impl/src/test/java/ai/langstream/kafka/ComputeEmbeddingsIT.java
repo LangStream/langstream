@@ -29,7 +29,7 @@ import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.kafka.runtime.KafkaTopic;
+import ai.langstream.api.runtime.Topic;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.ArrayList;
@@ -241,7 +241,7 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                     implementation.getConnectionImplementation(
                                     module,
                                     Connection.fromTopic(TopicDefinition.fromName(inputTopic)))
-                            instanceof KafkaTopic);
+                            instanceof Topic);
 
             Set<String> topics = getKafkaAdmin().listTopics().names().get();
             log.info("Topics {}", topics);
@@ -371,7 +371,7 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                     implementation.getConnectionImplementation(
                                     module,
                                     Connection.fromTopic(TopicDefinition.fromName(inputTopic)))
-                            instanceof KafkaTopic);
+                            instanceof Topic);
 
             Set<String> topics = getKafkaAdmin().listTopics().names().get();
             log.info("Topics {}", topics);

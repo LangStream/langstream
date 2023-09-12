@@ -15,6 +15,7 @@
  */
 package ai.langstream.api.runner.assets;
 
+import ai.langstream.api.util.ClassloaderUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -45,7 +46,7 @@ public class AssetManagerRegistry {
 
         List<? extends ClassLoader> getAllClassloaders() throws Exception;
 
-        ClassLoader getCustomCodeClassloader();
+        ClassLoader getSystemClassloader();
     }
 
     @SneakyThrows
@@ -55,7 +56,7 @@ public class AssetManagerRegistry {
 
         ClassLoader customCodeClassloader =
                 assetManagerPackageLoader != null
-                        ? assetManagerPackageLoader.getCustomCodeClassloader()
+                        ? assetManagerPackageLoader.getSystemClassloader()
                         : AssetManagerRegistry.class.getClassLoader();
         // always allow to find the system assets
         AssetManagerAndLoader assetCodeProviderProviderFromSystem =
@@ -113,7 +114,10 @@ public class AssetManagerRegistry {
                 .map(
                         provider ->
                                 new AssetManagerAndLoader(
-                                        provider.get().createInstance(assetType), classLoader))
+                                        ClassloaderUtils.executeWithClassloader(
+                                                classLoader,
+                                                () -> provider.get().createInstance(assetType)),
+                                        classLoader))
                 .orElse(null);
     }
 

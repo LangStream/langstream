@@ -25,20 +25,6 @@ import java.util.Map;
 public interface StreamingClusterRuntime extends AutoCloseable {
 
     /**
-     * Deploy the topics on the StreamingCluster
-     *
-     * @param applicationInstance the physical application instance
-     */
-    default void deploy(ExecutionPlan applicationInstance) {}
-
-    /**
-     * Undeploy all the resources created on the StreamingCluster
-     *
-     * @param applicationInstance the physical application instance
-     */
-    default void delete(ExecutionPlan applicationInstance) {}
-
-    /**
      * Map a Logical TopicDefinition to a Physical TopicImplementation
      *
      * @param topicDefinition the logical topic definition

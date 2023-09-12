@@ -22,6 +22,7 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
@@ -44,8 +45,10 @@ import org.springframework.web.socket.WebSocketSession;
 @Slf4j
 public class ProduceHandler extends AbstractHandler {
 
-    public ProduceHandler(ApplicationStore applicationStore) {
-        super(applicationStore);
+    public ProduceHandler(
+            ApplicationStore applicationStore,
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
+        super(applicationStore, topicConnectionsRuntimeRegistry);
     }
 
     @Override
@@ -85,7 +88,9 @@ public class ProduceHandler extends AbstractHandler {
                 context.application().getInstance().streamingCluster();
 
         final TopicConnectionsRuntime topicConnectionsRuntime =
-                TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
+                topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(streamingCluster)
+                        .asTopicConnectionsRuntime();
 
         final String topicName = gateway.topic();
         final TopicProducer producer =

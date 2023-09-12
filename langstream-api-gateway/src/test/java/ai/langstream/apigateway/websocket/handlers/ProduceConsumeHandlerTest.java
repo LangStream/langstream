@@ -33,6 +33,7 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Gateways;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
@@ -269,10 +270,13 @@ class ProduceConsumeHandlerTest {
 
     private void prepareTopicsForTest(String... topic) {
         topics = List.of(topic);
+        TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                new TopicConnectionsRuntimeRegistry();
         final ApplicationDeployer deployer =
                 ApplicationDeployer.builder()
                         .pluginsRegistry(new PluginsRegistry())
                         .registry(new ClusterRuntimeRegistry())
+                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .build();
         final StreamingCluster streamingCluster =
                 new StreamingCluster(
@@ -284,8 +288,9 @@ class ProduceConsumeHandlerTest {
                                         kafkaContainer.getBootstrapServers(),
                                         "default.api.timeout.ms",
                                         5000)));
-        new ClusterRuntimeRegistry()
-                .getStreamingClusterRuntime(streamingCluster)
+        topicConnectionsRuntimeRegistry
+                .getTopicConnectionsRuntime(streamingCluster)
+                .asTopicConnectionsRuntime()
                 .deploy(
                         deployer.createImplementation(
                                 "app", store.get("t", "app", false).getInstance()));

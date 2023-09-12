@@ -41,7 +41,7 @@
       <artifactId>google-api-client</artifactId>
     </dependency>
     <dependency>
-      <!-- AstraDB DataSource -->
+      <!-- AstraDB/Cassandra DataSource -->
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-core-shaded</artifactId>
     </dependency>

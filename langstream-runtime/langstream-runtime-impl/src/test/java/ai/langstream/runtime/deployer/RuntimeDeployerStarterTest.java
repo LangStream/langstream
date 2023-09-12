@@ -90,7 +90,13 @@ class RuntimeDeployerStarterTest {
             throw new RuntimeException("Expected exception");
         }
         Mockito.verify(runtimeDeployer)
-                .deploy(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+                .deploy(
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any());
     }
 
     static class TestDeployer extends RuntimeDeployerStarter {

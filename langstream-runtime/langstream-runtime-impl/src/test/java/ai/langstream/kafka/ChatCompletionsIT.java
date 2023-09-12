@@ -28,7 +28,7 @@ import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.kafka.runtime.KafkaTopic;
+import ai.langstream.api.runtime.Topic;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.nio.charset.StandardCharsets;
@@ -151,7 +151,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                     Connection.fromTopic(
                                             TopicDefinition.fromName(
                                                     applicationRuntime.getGlobal("input-topic"))))
-                            instanceof KafkaTopic);
+                            instanceof Topic);
 
             Set<String> topics = getKafkaAdmin().listTopics().names().get();
             log.info("Topics {}", topics);

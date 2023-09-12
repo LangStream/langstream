@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
@@ -32,6 +33,7 @@ import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentInfo;
+import ai.langstream.runtime.agent.nar.NarFileHandler;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.file.Path;
@@ -78,6 +80,7 @@ public abstract class AbstractApplicationRunner {
     protected static final KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
 
     protected static ApplicationDeployer applicationDeployer;
+    private static NarFileHandler narFileHandler;
 
     protected record ApplicationRuntime(
             String tenant,
@@ -163,10 +166,17 @@ public abstract class AbstractApplicationRunner {
     }
 
     @BeforeAll
-    public static void setup() {
+    public static void setup() throws Exception {
+        narFileHandler =
+                new NarFileHandler(agentsDirectory, Thread.currentThread().getContextClassLoader());
+        TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                new TopicConnectionsRuntimeRegistry();
+        narFileHandler.scan();
+        topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
         applicationDeployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
+                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .pluginsRegistry(new PluginsRegistry())
                         .build();
     }
@@ -455,6 +465,9 @@ public abstract class AbstractApplicationRunner {
         if (applicationDeployer != null) {
             // this closes the kubernetes client
             applicationDeployer.close();
+        }
+        if (narFileHandler != null) {
+            narFileHandler.close();
         }
     }
 }

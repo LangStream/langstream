@@ -15,6 +15,7 @@
  */
 package ai.langstream.apigateway.websocket;
 
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.websocket.handlers.ConsumeHandler;
@@ -42,13 +43,21 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public static final String PRODUCE_PATH = "/v1/produce/{tenant}/{application}/{gateway}";
 
     private final ApplicationStore applicationStore;
+    private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     private final GatewayTestAuthenticationProperties adminAuthenticationProperties;
     private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool();
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new ConsumeHandler(applicationStore, consumeThreadPool), CONSUME_PATH)
-                .addHandler(new ProduceHandler(applicationStore), PRODUCE_PATH)
+        registry.addHandler(
+                        new ConsumeHandler(
+                                applicationStore,
+                                consumeThreadPool,
+                                topicConnectionsRuntimeRegistry),
+                        CONSUME_PATH)
+                .addHandler(
+                        new ProduceHandler(applicationStore, topicConnectionsRuntimeRegistry),
+                        PRODUCE_PATH)
                 .setAllowedOrigins("*")
                 .addInterceptors(
                         new HttpSessionHandshakeInterceptor(),

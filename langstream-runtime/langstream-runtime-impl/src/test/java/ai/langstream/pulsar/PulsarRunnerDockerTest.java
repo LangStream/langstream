@@ -23,9 +23,11 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.runtime.Topic;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
@@ -100,6 +102,7 @@ class PulsarRunnerDockerTest {
         ApplicationDeployer deployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
+                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .build();
 
@@ -110,7 +113,7 @@ class PulsarRunnerDockerTest {
                 implementation.getConnectionImplementation(
                                 module,
                                 Connection.fromTopic(TopicDefinition.fromName("input-topic")))
-                        instanceof PulsarTopic);
+                        instanceof Topic);
         deployer.deploy("tenant", implementation, null);
         assertEquals(1, secrets.size());
         final Secret secret = secrets.values().iterator().next();
@@ -118,8 +121,9 @@ class PulsarRunnerDockerTest {
                 AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
 
         try (PulsarClient client =
-                        PulsarClientUtils.buildPulsarClient(
-                                implementation.getApplication().getInstance().streamingCluster());
+                        PulsarClient.builder()
+                                .serviceUrl(pulsarContainer.getPulsarBrokerUrl())
+                                .build();
                 Producer<byte[]> producer = client.newProducer().topic("input-topic").create();
                 org.apache.pulsar.client.api.Consumer<byte[]> consumer =
                         client.newConsumer()

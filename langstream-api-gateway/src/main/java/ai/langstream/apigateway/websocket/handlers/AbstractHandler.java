@@ -41,7 +41,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
@@ -50,13 +49,18 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-@AllArgsConstructor
 @Slf4j
 public abstract class AbstractHandler extends TextWebSocketHandler {
     protected static final ObjectMapper mapper = new ObjectMapper();
-    protected static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY =
-            new TopicConnectionsRuntimeRegistry();
+    protected final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     protected final ApplicationStore applicationStore;
+
+    public AbstractHandler(
+            ApplicationStore applicationStore,
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
+        this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
+        this.applicationStore = applicationStore;
+    }
 
     public abstract String path();
 
@@ -304,7 +308,9 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         final StreamingCluster streamingCluster =
                 context.application().getInstance().streamingCluster();
         final TopicConnectionsRuntime topicConnectionsRuntime =
-                TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(streamingCluster);
+                topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(streamingCluster)
+                        .asTopicConnectionsRuntime();
 
         try (final TopicProducer producer =
                 topicConnectionsRuntime.createProducer(

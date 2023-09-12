@@ -61,7 +61,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-kafka</artifactId>
+      <artifactId>langstream-kafka-runtime</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>

@@ -37,6 +37,7 @@ import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeAndLoader;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
@@ -82,8 +83,6 @@ import org.eclipse.jetty.servlet.ServletHolder;
 /** This is the main entry point for the pods that run the LangStream runtime and Java code. */
 @Slf4j
 public class AgentRunner {
-    private static final TopicConnectionsRuntimeRegistry TOPIC_CONNECTIONS_REGISTRY =
-            new TopicConnectionsRuntimeRegistry();
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
     private static MainErrorHandler mainErrorHandler =
@@ -166,16 +165,21 @@ public class AgentRunner {
             AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
             assetManagerRegistry.setAssetManagerPackageLoader(narFileHandler);
 
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                    new TopicConnectionsRuntimeRegistry();
+            topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
+
             deployAssets(configuration, assetManagerRegistry);
 
             AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
             agentCodeRegistry.setAgentPackageLoader(narFileHandler);
 
-            TopicConnectionsRuntime topicConnectionsRuntime =
-                    TOPIC_CONNECTIONS_REGISTRY.getTopicConnectionsRuntime(
+            TopicConnectionsRuntimeAndLoader topicConnectionsRuntimeWithClassloader =
+                    topicConnectionsRuntimeRegistry.getTopicConnectionsRuntime(
                             configuration.streamingCluster());
-
             try {
+                TopicConnectionsRuntime topicConnectionsRuntime =
+                        topicConnectionsRuntimeWithClassloader.asTopicConnectionsRuntime();
                 AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
                 Server server = null;
                 try {
@@ -199,7 +203,7 @@ public class AgentRunner {
                     }
                 }
             } finally {
-                topicConnectionsRuntime.close();
+                topicConnectionsRuntimeWithClassloader.close();
             }
         }
     }

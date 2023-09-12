@@ -85,15 +85,13 @@ public record KafkaTopic(
     private String getDeserializerForSchema(SchemaDefinition schema) {
         if (schema == null) {
             // the default is String, because people usually use schemaless JSON
-            return org.apache.kafka.common.serialization.StringDeserializer.class.getName();
+            return "org.apache.kafka.common.serialization.StringDeserializer";
         }
 
         return switch (schema.type()) {
-            case "string" -> org.apache.kafka.common.serialization.StringDeserializer.class
-                    .getName();
-            case "bytes" -> org.apache.kafka.common.serialization.ByteArrayDeserializer.class
-                    .getName();
-            case "avro" -> io.confluent.kafka.serializers.KafkaAvroDeserializer.class.getName();
+            case "string" -> "org.apache.kafka.common.serialization.StringDeserializer";
+            case "bytes" -> "org.apache.kafka.common.serialization.ByteArrayDeserializer";
+            case "avro" -> "io.confluent.kafka.serializers.KafkaAvroDeserializer";
             default -> throw new IllegalArgumentException(
                     "Unsupported schema type: " + schema.type());
         };
@@ -103,14 +101,13 @@ public record KafkaTopic(
         if (schema == null) {
             // we use reflection to dynamically configure the Serializer for the object, see
             // KafkaProducerWrapper
-            return org.apache.kafka.common.serialization.ByteArraySerializer.class.getName();
+            return "org.apache.kafka.common.serialization.ByteArraySerializer";
         }
 
         return switch (schema.type()) {
-            case "string" -> org.apache.kafka.common.serialization.StringSerializer.class.getName();
-            case "bytes" -> org.apache.kafka.common.serialization.ByteArraySerializer.class
-                    .getName();
-            case "avro" -> io.confluent.kafka.serializers.KafkaAvroSerializer.class.getName();
+            case "string" -> "org.apache.kafka.common.serialization.StringSerializer";
+            case "bytes" -> "org.apache.kafka.common.serialization.ByteArraySerializer";
+            case "avro" -> "io.confluent.kafka.serializers.KafkaAvroSerializer";
             default -> throw new IllegalArgumentException(
                     "Unsupported schema type: " + schema.type());
         };

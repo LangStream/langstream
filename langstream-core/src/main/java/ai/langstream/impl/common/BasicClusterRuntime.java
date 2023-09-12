@@ -23,6 +23,7 @@ import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.AgentNodeProvider;
 import ai.langstream.api.runtime.AssetNode;
@@ -405,8 +406,9 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
             String codeStorageArchiveId,
-            DeployContext deployContext) {
-        streamingClusterRuntime.deploy(applicationInstance);
+            DeployContext deployContext,
+            TopicConnectionsRuntime topicConnectionsRuntime) {
+        topicConnectionsRuntime.deploy(applicationInstance);
         log.warn(
                 "ClusterType "
                         + getClusterType()
@@ -420,8 +422,9 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
             String codeStorageArchiveId,
-            DeployContext deployContext) {
-        streamingClusterRuntime.delete(applicationInstance);
+            DeployContext deployContext,
+            TopicConnectionsRuntime topicConnectionsRuntime) {
+        topicConnectionsRuntime.delete(applicationInstance);
         log.warn(
                 "ClusterType "
                         + getClusterType()

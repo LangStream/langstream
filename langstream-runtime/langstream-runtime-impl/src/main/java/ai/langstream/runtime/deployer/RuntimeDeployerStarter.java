@@ -18,7 +18,9 @@ package ai.langstream.runtime.deployer;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 import ai.langstream.api.model.Secrets;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.runtime.RuntimeStarter;
+import ai.langstream.runtime.agent.nar.NarFileHandler;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
@@ -27,9 +29,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.Nullable;
 
 /** This is the main entry point for the deployer runtime. */
 @Slf4j
@@ -123,21 +125,34 @@ public class RuntimeDeployerStarter extends RuntimeStarter {
         }
         final ClusterConfiguration clusterConfiguration = getClusterConfiguration();
         final String token = getToken();
+        final Path agentsDirectory = Paths.get("/app/agents");
 
-        switch (arg0) {
-            case "delete" -> runtimeDeployer.delete(
-                    clusterRuntimeConfiguration, configuration, secrets);
-            case "deploy" -> runtimeDeployer.deploy(
-                    clusterRuntimeConfiguration,
-                    configuration,
-                    secrets,
-                    clusterConfiguration,
-                    token);
-            default -> throw new IllegalArgumentException("Unknown command " + arg0);
+        try (NarFileHandler narFileHandler =
+                new NarFileHandler(
+                        agentsDirectory, Thread.currentThread().getContextClassLoader())) {
+            narFileHandler.scan();
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                    new TopicConnectionsRuntimeRegistry();
+            topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
+
+            switch (arg0) {
+                case "delete" -> runtimeDeployer.delete(
+                        clusterRuntimeConfiguration,
+                        configuration,
+                        secrets,
+                        topicConnectionsRuntimeRegistry);
+                case "deploy" -> runtimeDeployer.deploy(
+                        clusterRuntimeConfiguration,
+                        configuration,
+                        secrets,
+                        clusterConfiguration,
+                        token,
+                        topicConnectionsRuntimeRegistry);
+                default -> throw new IllegalArgumentException("Unknown command " + arg0);
+            }
         }
     }
 
-    @Nullable
     private ClusterConfiguration getClusterConfiguration() throws IOException {
         final Path clusterConfigPath =
                 getOptionalPathFromEnv(

@@ -16,12 +16,27 @@
 package ai.langstream.api.runner.topics;
 
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runtime.ExecutionPlan;
 import java.util.Map;
 
 /** This is the interface that the LangStream runtime to connect to Topics. */
 public interface TopicConnectionsRuntime {
 
     default void init(StreamingCluster streamingCluster) {}
+
+    /**
+     * Deploy the topics on the StreamingCluster
+     *
+     * @param applicationInstance the physical application instance
+     */
+    default void deploy(ExecutionPlan applicationInstance) {}
+
+    /**
+     * Undeploy all the resources created on the StreamingCluster
+     *
+     * @param applicationInstance the physical application instance
+     */
+    default void delete(ExecutionPlan applicationInstance) {}
 
     TopicConsumer createConsumer(
             String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration);

@@ -53,8 +53,6 @@
       <artifactId>langstream-admin-client</artifactId>
       <version>${project.version}</version>
     </dependency>
-
-    <!-- implementation for the Kafka Consumers/Producers -->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>langstream-kafka</artifactId>
@@ -62,45 +60,62 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-kafka</artifactId>
+      <artifactId>langstream-pulsar</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- implementation for the Kafka Consumers/Producers -->
+
+
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-avro-serializer</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-client-admin</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-client-original</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>connect-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-kafka-runtime</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
 
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-pulsar</artifactId>
-      <version>${project.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>io.netty</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
+      <!-- AstraDB/Cassandra DataSource -->
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core-shaded</artifactId>
+      <scope>test</scope>
     </dependency>
-
     <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>connect-runtime</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>ch.qos.reload4j</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
     </dependency>
-
-    <!-- implementation for Kafka Connect -->
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-kafka-connect</artifactId>
-      <version>${project.version}</version>
-      <!-- scope should be runtime but we need it for the tests -->
+      <groupId>org.testcontainers</groupId>
+      <artifactId>cassandra</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -201,6 +216,7 @@
       <artifactId>kubernetes-server-mock</artifactId>
       <scope>test</scope>
     </dependency>
+    <!--
     <dependency>
       <groupId>io.netty.incubator</groupId>
       <artifactId>netty-incubator-transport-native-io_uring</artifactId>
@@ -290,7 +306,7 @@
       <artifactId>netty-tcnative-boringssl-static</artifactId>
       <version>${netty.boringssl.version}</version>
     </dependency>
-
+-->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>langstream-k8s-common</artifactId>
@@ -321,44 +337,6 @@
       <version>1.7.2</version>
       <scope>test</scope>
     </dependency> -->
-
-
-<!--    Agents: ensure this module is dependant from agents modules-->
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-ai-agents</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-agents-text-processing</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-agent-s3</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-agent-webcrawler</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-vector-agents</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
   </dependencies>
   <build>
     <plugins>
@@ -491,10 +469,41 @@
             <configuration>
               <artifactItems>
 
-                <!-- main implementation for the Agents -->
+                <!-- main implementation for the Agents, Assets and TopicConnectionsRuntime-->
+
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>langstream-kafka-runtime</artifactId>
+                  <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                </artifactItem>
+
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>langstream-pulsar-runtime</artifactId>
+                  <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                </artifactItem>
+
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
                   <artifactId>langstream-ai-agents</artifactId>
+                  <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                </artifactItem>
+
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>langstream-kafka-connect</artifactId>
                   <version>${project.version}</version>
                   <type>nar</type>
                   <classifier>nar</classifier>

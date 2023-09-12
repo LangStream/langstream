@@ -736,7 +736,9 @@
         <module>langstream-core</module>
         <module>langstream-agents</module>
         <module>langstream-pulsar</module>
+        <module>langstream-pulsar-runtime</module>
         <module>langstream-kafka</module>
+        <module>langstream-kafka-runtime</module>
         <module>langstream-kafka-connect</module>
         <module>langstream-k8s-runtime</module>
         <module>langstream-codestorage-s3</module>
@@ -763,7 +765,9 @@
         <module>langstream-core</module>
         <module>langstream-agents</module>
         <module>langstream-pulsar</module>
+        <module>langstream-pulsar-runtime</module>
         <module>langstream-kafka</module>
+        <module>langstream-kafka-runtime</module>
         <module>langstream-kafka-connect</module>
         <module>langstream-k8s-runtime</module>
         <module>langstream-codestorage-s3</module>

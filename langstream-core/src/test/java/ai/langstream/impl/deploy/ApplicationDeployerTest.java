@@ -21,6 +21,7 @@ import static org.mockito.Mockito.spy;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ComputeCluster;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -77,6 +78,7 @@ class ApplicationDeployerTest {
                 ApplicationDeployer.builder()
                         .pluginsRegistry(new PluginsRegistry())
                         .registry(registry)
+                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
                         .build();
 
         Application applicationInstance =
@@ -129,12 +131,14 @@ class ApplicationDeployerTest {
                         Mockito.any(),
                         eq(mockStreamingRuntime),
                         Mockito.any(),
+                        Mockito.any(),
                         Mockito.any());
         Mockito.verify(mockRuntime)
                 .deploy(
                         Mockito.anyString(),
                         Mockito.any(),
                         eq(mockStreamingRuntime),
+                        Mockito.any(),
                         Mockito.any(),
                         Mockito.any());
     }

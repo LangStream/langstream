@@ -31,6 +31,7 @@ import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
@@ -39,7 +40,7 @@ import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 
-public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
+public class OperatorExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
 
     GenericContainer<?> container;
     K3sContainer k3s;
@@ -77,11 +78,15 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
         k3s.start();
         applyCRDs();
         Testcontainers.exposeHostPorts(k3s.getFirstMappedPort());
-        startDeployerOperator();
         client =
                 new KubernetesClientBuilder()
                         .withConfig(Config.fromKubeconfig(k3s.getKubeconfig()))
                         .build();
+    }
+
+    @Override
+    public void beforeEach(ExtensionContext extensionContext) throws Exception {
+        restartDeployerOperator();
     }
 
     private void startDeployerOperator() throws IOException {
@@ -105,7 +110,10 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
 
     @SneakyThrows
     public void restartDeployerOperator() {
-        container.stop();
+        if (container != null) {
+            container.stop();
+            container = null;
+        }
         startDeployerOperator();
     }
 

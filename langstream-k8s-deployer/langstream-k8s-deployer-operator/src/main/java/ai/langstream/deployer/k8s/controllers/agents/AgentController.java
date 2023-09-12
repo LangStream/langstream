@@ -21,6 +21,7 @@ import ai.langstream.deployer.k8s.ResolvedDeployerConfiguration;
 import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
+import ai.langstream.deployer.k8s.api.crds.agents.AgentStatus;
 import ai.langstream.deployer.k8s.controllers.BaseController;
 import ai.langstream.deployer.k8s.controllers.InfiniteRetry;
 import ai.langstream.deployer.k8s.util.KubeUtil;
@@ -119,6 +120,8 @@ public class AgentController extends BaseController<AgentCustomResource>
         protected StatefulSet desired(
                 AgentCustomResource primary, Context<AgentCustomResource> context) {
             try {
+                final StatefulSet existingStatefulset =
+                        context.getSecondaryResource(StatefulSet.class).orElse(null);
                 final AgentResourcesFactory.GenerateStatefulsetParams
                                 .GenerateStatefulsetParamsBuilder
                         builder =
@@ -127,15 +130,25 @@ public class AgentController extends BaseController<AgentCustomResource>
 
                 final boolean isUpdate;
 
-                if (primary.getStatus() != null
-                        && primary.getStatus().getLastConfigApplied() != null) {
+                final AgentStatus status = primary.getStatus();
+                if (status != null && existingStatefulset != null) {
+                    // spec has not changed, do not touch the statefulset at all
+                    if (!BaseController.areSpecChanged(primary)) {
+                        log.infof(
+                                "Agent %s spec has not changed, skipping statefulset update",
+                                primary.getMetadata().getName());
+                        return existingStatefulset;
+                    }
+                }
+
+                if (status != null && status.getLastConfigApplied() != null) {
                     isUpdate = true;
                     // this is an update for the statefulset.
                     // It's required to not keep the same deployer configuration of the current
                     // version
                     final LastAppliedConfigForStatefulset lastAppliedConfig =
                             SerializationUtil.readJson(
-                                    primary.getStatus().getLastConfigApplied(),
+                                    status.getLastConfigApplied(),
                                     LastAppliedConfigForStatefulset.class);
                     builder.agentResourceUnitConfiguration(
                                     lastAppliedConfig.getAgentResourceUnitConfiguration())

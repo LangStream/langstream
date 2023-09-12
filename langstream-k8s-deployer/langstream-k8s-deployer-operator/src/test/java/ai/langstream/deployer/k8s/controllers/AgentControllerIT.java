@@ -34,6 +34,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -54,13 +55,14 @@ public class AgentControllerIT {
     @Test
     void testAgentController() {
         final KubernetesClient client = deployment.getClient();
-        final String namespace = "langstream-my-tenant";
+        final String tenant = genTenant();
+        final String namespace = "langstream-" + tenant;
         createNamespace(client, namespace);
 
         final String agentCustomResourceName =
                 AgentResourcesFactory.getAgentCustomResourceName("my-app", "agent-id");
 
-        createAgentSecret(client, agentCustomResourceName, namespace);
+        createAgentSecret(client, tenant, agentCustomResourceName, namespace);
 
         final AgentCustomResource resource =
                 getCr(
@@ -74,9 +76,10 @@ public class AgentControllerIT {
                     agentId: agent-id
                     agentConfigSecretRef: %s
                     agentConfigSecretRefChecksum: xx
-                    tenant: my-tenant
+                    tenant: %s
                 """
-                                .formatted(agentCustomResourceName, agentCustomResourceName));
+                                .formatted(
+                                        agentCustomResourceName, agentCustomResourceName, tenant));
 
         client.resource(resource).inNamespace(namespace).create();
 
@@ -128,20 +131,27 @@ public class AgentControllerIT {
         assertEquals("/app-config/config", container.getArgs().get(args++));
     }
 
+    static AtomicInteger counter = new AtomicInteger(0);
+
+    private String genTenant() {
+        return "my-tenant-" + counter.incrementAndGet();
+    }
+
     private AgentCustomResource getCr(String yaml) {
         return SerializationUtil.readYaml(yaml, AgentCustomResource.class);
     }
 
     @Test
-    void testDoNotUpdateStatefulsetIfDeployerRestarted() throws InterruptedException {
+    void testDoNotUpdateStatefulsetIfDeployerRestarted() {
         final KubernetesClient client = deployment.getClient();
-        final String namespace = "langstream-my-tenant";
+        final String tenant = genTenant();
+        final String namespace = "langstream-" + tenant;
         createNamespace(client, namespace);
 
         final String agentCustomResourceName =
                 AgentResourcesFactory.getAgentCustomResourceName("my-app", "agent-id");
 
-        createAgentSecret(client, agentCustomResourceName, namespace);
+        createAgentSecret(client, tenant, agentCustomResourceName, namespace);
 
         AgentCustomResource resource =
                 getCr(
@@ -157,9 +167,10 @@ public class AgentControllerIT {
                     agentId: agent-id
                     agentConfigSecretRef: %s
                     agentConfigSecretRefChecksum: xx
-                    tenant: my-tenant
+                    tenant: %s
                 """
-                                .formatted(agentCustomResourceName, agentCustomResourceName));
+                                .formatted(
+                                        agentCustomResourceName, agentCustomResourceName, tenant));
 
         client.resource(resource).inNamespace(namespace).create();
 
@@ -194,37 +205,51 @@ public class AgentControllerIT {
                 statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
 
         DEPLOYER_CONFIG.put("DEPLOYER_RUNTIME_IMAGE", "busybox:v2");
-        deployment.restartDeployerOperator();
+        try {
+            deployment.restartDeployerOperator();
 
-        resource = client.resource(resource).inNamespace(namespace).get();
-        resource.getSpec().setCodeArchiveId("another");
-        client.resource(resource).inNamespace(namespace).serverSideApply();
+            resource = client.resource(resource).inNamespace(namespace).get();
+            resource.getSpec().setCodeArchiveId("another");
+            client.resource(resource).inNamespace(namespace).serverSideApply();
 
-        Awaitility.await()
-                .atMost(1, TimeUnit.MINUTES)
-                .untilAsserted(
-                        () -> {
-                            final String archiveId =
-                                    SerializationUtil.readJson(
-                                                    client.resources(AgentCustomResource.class)
-                                                            .inNamespace(namespace)
-                                                            .withName(agentCustomResourceName)
-                                                            .get()
-                                                            .getStatus()
-                                                            .getLastApplied(),
-                                                    ai.langstream.deployer.k8s.api.crds.agents
-                                                            .AgentSpec.class)
-                                            .getCodeArchiveId();
-                            assertEquals("another", archiveId);
-                        });
-        statefulSet = client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
-        assertEquals(
-                "busybox",
-                statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+            Awaitility.await()
+                    .atMost(1, TimeUnit.MINUTES)
+                    .untilAsserted(
+                            () -> {
+                                final String archiveId =
+                                        SerializationUtil.readJson(
+                                                        client.resources(AgentCustomResource.class)
+                                                                .inNamespace(namespace)
+                                                                .withName(agentCustomResourceName)
+                                                                .get()
+                                                                .getStatus()
+                                                                .getLastApplied(),
+                                                        ai.langstream.deployer.k8s.api.crds.agents
+                                                                .AgentSpec.class)
+                                                .getCodeArchiveId();
+                                assertEquals("another", archiveId);
+                            });
+            statefulSet =
+                    client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
+            assertEquals(
+                    "busybox",
+                    statefulSet
+                            .getSpec()
+                            .getTemplate()
+                            .getSpec()
+                            .getContainers()
+                            .get(0)
+                            .getImage());
+        } finally {
+            DEPLOYER_CONFIG.put("DEPLOYER_RUNTIME_IMAGE", "busybox");
+        }
     }
 
     private void createAgentSecret(
-            KubernetesClient client, String agentCustomResourceName, String namespace) {
+            KubernetesClient client,
+            String tenant,
+            String agentCustomResourceName,
+            String namespace) {
         client.resource(
                         AgentResourcesFactory.generateAgentSecret(
                                 agentCustomResourceName,
@@ -233,7 +258,7 @@ public class AgentControllerIT {
                                         Map.of("output", Map.of("is_output", true)),
                                         new AgentSpec(
                                                 AgentSpec.ComponentType.PROCESSOR,
-                                                "my-tenant",
+                                                tenant,
                                                 "agent-id",
                                                 "my-app",
                                                 "fn-type",

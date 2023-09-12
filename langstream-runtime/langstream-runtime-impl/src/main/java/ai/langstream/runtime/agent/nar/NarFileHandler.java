@@ -15,8 +15,6 @@
  */
 package ai.langstream.runtime.agent.nar;
 
-import static ai.langstream.api.util.ClassloaderUtils.describeClassloader;
-
 import ai.langstream.api.codestorage.GenericZipFileArchiveFile;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
@@ -273,10 +271,7 @@ public class NarFileHandler
         URLClassLoader classLoader =
                 createClassloaderForPackage(
                         customLibClasspath, packageForAssetType, parentClassloader);
-        log.info(
-                "For package {}, classloader {}",
-                packageForAssetType.getName(),
-                describeClassloader(classLoader));
+        log.info("For package {}, classloader {}", packageForAssetType.getName(), classLoader);
         return new AssetManagerRegistry.AssetPackage() {
             @Override
             public ClassLoader getClassloader() {

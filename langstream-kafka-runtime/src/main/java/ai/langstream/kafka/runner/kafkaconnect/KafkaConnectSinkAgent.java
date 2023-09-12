@@ -15,8 +15,6 @@
  */
 package ai.langstream.kafka.runner.kafkaconnect;
 
-import static ai.langstream.api.util.ClassloaderUtils.describeClassloader;
-
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSink;
@@ -464,7 +462,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         log.info(
                 "Loading class {} from classloader {}",
                 kafkaConnectorFQClassName,
-                describeClassloader(Thread.currentThread().getContextClassLoader()));
+                Thread.currentThread().getContextClassLoader());
 
         Class<?> clazz =
                 Class.forName(

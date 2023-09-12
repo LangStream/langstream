@@ -15,6 +15,11 @@
  */
 package ai.langstream.api.util;
 
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /** Utility class for classloader related operations. */
 public class ClassloaderUtils {
 
@@ -42,5 +47,29 @@ public class ClassloaderUtils {
         try (ClassloaderContext ignored = withContextClassloader(cl)) {
             return supplier.get();
         }
+    }
+
+    public static String describeClassloader(ClassLoader classLoader) {
+        StringBuilder result = new StringBuilder();
+        if (classLoader instanceof URLClassLoader urlClassLoader) {
+            result.append(classLoader).append(": {");
+            URL[] urLs = urlClassLoader.getURLs();
+            if (urLs != null) {
+                String urlsString =
+                        Stream.of(urLs)
+                                .map(String::valueOf)
+                                .collect(Collectors.joining(",", "", "\n"));
+                result.append("urls: ").append(urlsString);
+            }
+            result.append("}");
+        } else {
+            result.append(classLoader);
+        }
+        if (classLoader.getParent() != null) {
+            result.append("\n Parent: ")
+                    .append(describeClassloader(classLoader.getParent()))
+                    .append("\n");
+        }
+        return result.toString();
     }
 }

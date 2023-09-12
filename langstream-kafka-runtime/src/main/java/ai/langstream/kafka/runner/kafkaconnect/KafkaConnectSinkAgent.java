@@ -15,6 +15,8 @@
  */
 package ai.langstream.kafka.runner.kafkaconnect;
 
+import static ai.langstream.api.util.ClassloaderUtils.describeClassloader;
+
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSink;
@@ -37,6 +39,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +47,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.cache.LRUCache;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.data.Schema;
@@ -77,7 +81,26 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         }
     }
 
-    public KafkaConnectSinkAgent() {}
+    public KafkaConnectSinkAgent() {
+        org.apache.kafka.common.cache.Cache<String, String> mockCache = new LRUCache<>(1000);
+        mockCache.put("foo", "bar");
+        log.info("Created cache {}: {}", mockCache, mockCache.getClass());
+
+        scheduledExecutor =
+                Executors.newSingleThreadScheduledExecutor(
+                        new ThreadFactoryBuilder()
+                                .setNameFormat("kafka-adaptor-sink-flush-%d")
+                                .build());
+    }
+
+    private AvroData getAvroData() {
+        AvroData avroData = lazyAvroData.get();
+        if (avroData == null) {
+            lazyAvroData.compareAndSet(null, new AvroData(1000));
+            avroData = lazyAvroData.get();
+        }
+        return avroData;
+    }
 
     private static class LangStreamSinkRecord extends SinkRecord {
 
@@ -118,11 +141,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
     private final AtomicLong currentBatchSize = new AtomicLong(0L);
 
     private long lingerMs;
-    private final ScheduledExecutorService scheduledExecutor =
-            Executors.newSingleThreadScheduledExecutor(
-                    new ThreadFactoryBuilder()
-                            .setNameFormat("kafka-adaptor-sink-flush-%d")
-                            .build());
+    private final ScheduledExecutorService scheduledExecutor;
     protected final ConcurrentLinkedDeque<KafkaRecord> pendingFlushQueue =
             new ConcurrentLinkedDeque<>();
     private final AtomicBoolean isFlushRunning = new AtomicBoolean(false);
@@ -135,7 +154,8 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
 
     private AgentContext context;
 
-    private final AvroData avroData = new AvroData(1000);
+    private final AtomicReference<AvroData> lazyAvroData = new AtomicReference<>();
+
     private final ConcurrentLinkedDeque<ConsumerCommand> consumerCqrsQueue =
             new ConcurrentLinkedDeque<>();
 
@@ -227,17 +247,19 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
 
     private Schema toKafkaSchema(Object input, Schema schema) {
         if (input instanceof GenericData.Record rec && schema == null) {
-            return avroData.toConnectSchema(rec.getSchema());
+            return getAvroData().toConnectSchema(rec.getSchema());
         }
         return schema;
     }
 
     private Object toKafkaData(Object input, Schema schema) {
         if (input instanceof GenericData.Record rec) {
+            AvroData avroDataInstance = getAvroData();
             if (schema == null) {
-                return avroData.toConnectData(rec.getSchema(), rec);
+                return avroDataInstance.toConnectData(rec.getSchema(), rec);
             } else {
-                return avroData.toConnectData(avroData.fromConnectSchema(schema), rec);
+                return avroDataInstance.toConnectData(
+                        avroDataInstance.fromConnectSchema(schema), rec);
             }
         }
         return input;
@@ -442,7 +464,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
         log.info(
                 "Loading class {} from classloader {}",
                 kafkaConnectorFQClassName,
-                Thread.currentThread().getContextClassLoader());
+                describeClassloader(Thread.currentThread().getContextClassLoader()));
 
         Class<?> clazz =
                 Class.forName(

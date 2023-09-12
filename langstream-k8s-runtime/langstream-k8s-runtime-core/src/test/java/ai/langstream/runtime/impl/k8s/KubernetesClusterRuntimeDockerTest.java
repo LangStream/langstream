@@ -25,6 +25,7 @@ import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
@@ -75,6 +76,7 @@ class KubernetesClusterRuntimeDockerTest {
                                                 new ObjectMapper()
                                                         .convertValue(config, Map.class))))
                         .pluginsRegistry(new PluginsRegistry())
+                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
                         .deployContext(deployContext)
                         .build();
         return deployer;

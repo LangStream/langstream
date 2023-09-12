@@ -121,7 +121,8 @@ public class NarFileHandler
                 return super.findClass(name);
             } catch (ClassNotFoundException err) {
                 if (log.isDebugEnabled()) {
-                    log.debug("findClass class {} not found here {}: {}", name, this, err.toString());
+                    log.debug(
+                            "findClass class {} not found here {}: {}", name, this, err.toString());
                 }
                 throw err;
             }

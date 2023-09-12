@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -36,12 +35,16 @@ public final class Gateway {
     private String topic;
     private Authentication authentication;
     private List<String> parameters;
+
     @JsonAlias({"produce-options"})
     private ProduceOptions produceOptions;
+
     @JsonAlias({"consume-options"})
     private ConsumeOptions consumeOptions;
+
     @JsonProperty("chat-options")
     private ChatOptions chatOptions;
+
     @JsonProperty("events-topic")
     private String eventsTopic;
 
@@ -81,28 +84,26 @@ public final class Gateway {
         }
     }
 
-    public record ProduceOptions(List<KeyValueComparison> headers) {
-    }
+    public record ProduceOptions(List<KeyValueComparison> headers) {}
 
-    public record ConsumeOptions(ConsumeOptionsFilters filters) {
-    }
+    public record ConsumeOptions(ConsumeOptionsFilters filters) {}
 
-    public record ConsumeOptionsFilters(List<KeyValueComparison> headers) {
-    }
+    public record ConsumeOptionsFilters(List<KeyValueComparison> headers) {}
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ChatOptions {
 
-
         @JsonProperty("questions-topic")
         private String questionsTopic;
+
         @JsonProperty("answers-topic")
         private String answersTopic;
 
         @JsonProperty("session-parameter")
         private String sessionParameter;
+
         @JsonProperty("user-parameter")
         private String userParameter;
     }

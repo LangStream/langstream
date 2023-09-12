@@ -83,7 +83,7 @@ import org.springframework.context.annotation.Primary;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "spring.main.allow-bean-definition-overriding=true",
+            "spring.main.allow-bean-definition-overriding=true",
         })
 @WireMockTest
 class ProduceConsumeHandlerTest {
@@ -104,12 +104,12 @@ class ProduceConsumeHandlerTest {
         public ApplicationStore store() {
             final ApplicationStore mock = Mockito.mock(ApplicationStore.class);
             doAnswer(
-                    invocationOnMock -> {
-                        final StoredApplication storedApplication = new StoredApplication();
-                        final Application application = buildApp();
-                        storedApplication.setInstance(application);
-                        return storedApplication;
-                    })
+                            invocationOnMock -> {
+                                final StoredApplication storedApplication = new StoredApplication();
+                                final Application application = buildApp();
+                                storedApplication.setInstance(application);
+                                return storedApplication;
+                            })
                     .when(mock)
                     .get(anyString(), anyString(), anyBoolean());
             doAnswer(invocationOnMock -> ApplicationSpecs.builder().application(buildApp()).build())
@@ -179,11 +179,9 @@ class ProduceConsumeHandlerTest {
         return application;
     }
 
-    @LocalServerPort
-    int port;
+    @LocalServerPort int port;
 
-    @Autowired
-    ApplicationStore store;
+    @Autowired ApplicationStore store;
 
     static WireMock wireMock;
     static String wireMockBaseUrl;
@@ -227,34 +225,34 @@ class ProduceConsumeHandlerTest {
         CountDownLatch countDownLatch = new CountDownLatch(1);
         List<String> messages = new ArrayList<>();
         try (final TestWebSocketClient ignored =
-                     new TestWebSocketClient(
-                             new TestWebSocketClient.Handler() {
-                                 @Override
-                                 public void onMessage(String msg) {
-                                     messages.add(msg);
-                                     countDownLatch.countDown();
-                                 }
+                new TestWebSocketClient(
+                                new TestWebSocketClient.Handler() {
+                                    @Override
+                                    public void onMessage(String msg) {
+                                        messages.add(msg);
+                                        countDownLatch.countDown();
+                                    }
 
-                                 @Override
-                                 public void onClose(CloseReason closeReason) {
-                                     countDownLatch.countDown();
-                                 }
+                                    @Override
+                                    public void onClose(CloseReason closeReason) {
+                                        countDownLatch.countDown();
+                                    }
 
-                                 @Override
-                                 public void onError(Throwable throwable) {
-                                     countDownLatch.countDown();
-                                 }
-                             })
-                             .connect(
-                                     URI.create(
-                                             "ws://localhost:%d/v1/consume/tenant1/application1/consume"
-                                                     .formatted(port)))) {
+                                    @Override
+                                    public void onError(Throwable throwable) {
+                                        countDownLatch.countDown();
+                                    }
+                                })
+                        .connect(
+                                URI.create(
+                                        "ws://localhost:%d/v1/consume/tenant1/application1/consume"
+                                                .formatted(port)))) {
             try (final TestWebSocketClient producer =
-                         new TestWebSocketClient(TestWebSocketClient.NOOP)
-                                 .connect(
-                                         URI.create(
-                                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce"
-                                                         .formatted(port)))) {
+                    new TestWebSocketClient(TestWebSocketClient.NOOP)
+                            .connect(
+                                    URI.create(
+                                            "ws://localhost:%d/v1/produce/tenant1/application1/produce"
+                                                    .formatted(port)))) {
                 final ProduceRequest produceRequest =
                         new ProduceRequest(null, "this is a message", null);
                 produce(produceRequest, producer);
@@ -302,7 +300,8 @@ class ProduceConsumeHandlerTest {
                                         .id("gw")
                                         .type(Gateway.GatewayType.valueOf(type))
                                         .topic(topic)
-                                        .parameters(List.of("session-id")).build()));
+                                        .parameters(List.of("session-id"))
+                                        .build()));
         connectAndExpectClose(
                 URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw".formatted(port, type)),
                 new CloseReason(
@@ -326,7 +325,7 @@ class ProduceConsumeHandlerTest {
         connectAndExpectClose(
                 URI.create(
                         ("ws://localhost:%d/v1/%s/tenant1/application1/gw?param:session-id=ok&param:another-non"
-                         + "-declared=y")
+                                        + "-declared=y")
                                 .formatted(port, type)),
                 new CloseReason(
                         CloseReason.CloseCodes.VIOLATED_POLICY,
@@ -354,43 +353,45 @@ class ProduceConsumeHandlerTest {
                                         .type(Gateway.GatewayType.produce)
                                         .topic(topic)
                                         .parameters(List.of("session-id"))
-                                        .produceOptions(new Gateway.ProduceOptions(
-                                                List.of(
-                                                        Gateway.KeyValueComparison.value(
-                                                                "header1", "langstream"))))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison.value(
+                                                                        "header1", "langstream"))))
                                         .build(),
                                 Gateway.builder()
                                         .id("produce-non-langstream")
                                         .type(Gateway.GatewayType.produce)
                                         .topic(topic)
                                         .parameters(List.of("session-id"))
-                                        .build()
-                                ,
+                                        .build(),
                                 Gateway.builder()
                                         .id("consume")
                                         .type(Gateway.GatewayType.consume)
                                         .topic(topic)
                                         .parameters(List.of("session-id"))
-                                        .consumeOptions(new Gateway.ConsumeOptions(
-                                                new Gateway.ConsumeOptionsFilters(
-                                                        List.of(
-                                                                Gateway.KeyValueComparison.value(
-                                                                        "header1",
-                                                                        "langstream")))))
-                                        .build()
-                        )
-                );
+                                        .consumeOptions(
+                                                new Gateway.ConsumeOptions(
+                                                        new Gateway.ConsumeOptionsFilters(
+                                                                List.of(
+                                                                        Gateway.KeyValueComparison
+                                                                                .value(
+                                                                                        "header1",
+                                                                                        "langstream")))))
+                                        .build()));
 
         List<String> user1Messages = new ArrayList<>();
         List<String> user2Messages = new ArrayList<>();
 
-        @Cleanup final ClientSession client1 =
+        @Cleanup
+        final ClientSession client1 =
                 connectAndCollectMessages(
                         URI.create(
                                 "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user1"
                                         .formatted(port)),
                         user1Messages);
-        @Cleanup final ClientSession client2 =
+        @Cleanup
+        final ClientSession client2 =
                 connectAndCollectMessages(
                         URI.create(
                                 "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user2"
@@ -398,25 +399,25 @@ class ProduceConsumeHandlerTest {
                         user2Messages);
 
         try (final TestWebSocketClient producer =
-                     new TestWebSocketClient(TestWebSocketClient.NOOP)
-                             .connect(
-                                     URI.create(
-                                             ("ws://localhost:%d/v1/produce/tenant1/application1/produce-non"
-                                              + "-langstream?param:session-id"
-                                              + "=user1")
-                                                     .formatted(port)))) {
+                new TestWebSocketClient(TestWebSocketClient.NOOP)
+                        .connect(
+                                URI.create(
+                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce-non"
+                                                        + "-langstream?param:session-id"
+                                                        + "=user1")
+                                                .formatted(port)))) {
             final ProduceRequest produceRequest =
                     new ProduceRequest(null, "this is a message non from langstream", null);
             produce(produceRequest, producer);
         }
 
         try (final TestWebSocketClient producer =
-                     new TestWebSocketClient(TestWebSocketClient.NOOP)
-                             .connect(
-                                     URI.create(
-                                             ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
-                                              + "-id=user1")
-                                                     .formatted(port)))) {
+                new TestWebSocketClient(TestWebSocketClient.NOOP)
+                        .connect(
+                                URI.create(
+                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
+                                                        + "-id=user1")
+                                                .formatted(port)))) {
             final ProduceRequest produceRequest =
                     new ProduceRequest(null, "this is a message for everyone", null);
             produce(produceRequest, producer);
@@ -513,18 +514,20 @@ class ProduceConsumeHandlerTest {
         List<String> user1Messages = new ArrayList<>();
         List<String> user2Messages = new ArrayList<>();
 
-        @Cleanup final ClientSession client1 =
+        @Cleanup
+        final ClientSession client1 =
                 connectAndCollectMessages(
                         URI.create(
                                 ("ws://localhost:%d/v1/consume/tenant1/application1/consume?credentials=test-user"
-                                 + "-password&option:position=earliest")
+                                                + "-password&option:position=earliest")
                                         .formatted(port)),
                         user1Messages);
-        @Cleanup final ClientSession client2 =
+        @Cleanup
+        final ClientSession client2 =
                 connectAndCollectMessages(
                         URI.create(
                                 ("ws://localhost:%d/v1/consume/tenant1/application1/consume?credentials=test-user"
-                                 + "-password-2&option:position=earliest")
+                                                + "-password-2&option:position=earliest")
                                         .formatted(port)),
                         user2Messages);
 
@@ -566,35 +569,48 @@ class ProduceConsumeHandlerTest {
                                         .id("produce")
                                         .type(Gateway.GatewayType.produce)
                                         .topic(topic)
-                                        .authentication(new Gateway.Authentication("test-auth", Map.of(), true))
-                                        .produceOptions(new Gateway.ProduceOptions(List.of(
-                                                Gateway.KeyValueComparison
-                                                        .valueFromAuthentication(
-                                                                "header1", "login"))))
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth", Map.of(), true))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromAuthentication(
+                                                                                "header1",
+                                                                                "login"))))
                                         .build(),
                                 Gateway.builder()
                                         .id("consume")
                                         .type(Gateway.GatewayType.consume)
                                         .topic(topic)
-                                        .authentication(new Gateway.Authentication("test-auth", Map.of(), true))
-                                        .consumeOptions(new Gateway.ConsumeOptions(
-                                                new Gateway.ConsumeOptionsFilters(List.of(
-                                                        Gateway.KeyValueComparison
-                                                                .valueFromAuthentication(
-                                                                        "header1", "login")))))
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth", Map.of(), true))
+                                        .consumeOptions(
+                                                new Gateway.ConsumeOptions(
+                                                        new Gateway.ConsumeOptionsFilters(
+                                                                List.of(
+                                                                        Gateway.KeyValueComparison
+                                                                                .valueFromAuthentication(
+                                                                                        "header1",
+                                                                                        "login")))))
                                         .build(),
                                 Gateway.builder()
                                         .id("consume-no-test")
                                         .type(Gateway.GatewayType.consume)
                                         .topic(topic)
-                                        .authentication(new Gateway.Authentication("test-auth", Map.of(), false))
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth", Map.of(), false))
                                         .build()));
 
-        @Cleanup final ClientSession client1 =
+        @Cleanup
+        final ClientSession client1 =
                 connectAndCollectMessages(
                         URI.create(
                                 ("ws://localhost:%d/v1/consume/tenant1/application1/consume?test-credentials=test-user"
-                                 + "-password")
+                                                + "-password")
                                         .formatted(port)),
                         user1Messages);
 
@@ -620,7 +636,7 @@ class ProduceConsumeHandlerTest {
         connectAndExpectClose(
                 URI.create(
                         ("ws://localhost:%d/v1/consume/tenant1/application1/consume-no-admin?test-credentials=test"
-                         + "-user-password")
+                                        + "-user-password")
                                 .formatted(port)),
                 new CloseReason(
                         CloseReason.CloseCodes.VIOLATED_POLICY,
@@ -629,13 +645,12 @@ class ProduceConsumeHandlerTest {
         connectAndExpectClose(
                 URI.create(
                         ("ws://localhost:%d/v1/produce/tenant1/application1/produce?test-credentials=test-user"
-                         + "-password-but-wrong")
+                                        + "-password-but-wrong")
                                 .formatted(port)),
                 new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Invalid credentials"));
     }
 
-    private record MsgRecord(Object key, Object value, Map<String, String> headers) {
-    }
+    private record MsgRecord(Object key, Object value, Map<String, String> headers) {}
 
     private void assertMessagesContent(List<MsgRecord> expected, List<String> actual) {
         assertEquals(
@@ -675,34 +690,42 @@ class ProduceConsumeHandlerTest {
                                         .type(Gateway.GatewayType.produce)
                                         .topic(topic)
                                         .parameters(List.of("session-id"))
-                                        .produceOptions(new Gateway.ProduceOptions(List.of(
-                                                Gateway.KeyValueComparison
-                                                        .valueFromParameters(
-                                                                "header1", "session-id"))))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromParameters(
+                                                                                "header1",
+                                                                                "session-id"))))
                                         .build(),
                                 Gateway.builder()
                                         .id("consume")
                                         .type(Gateway.GatewayType.consume)
                                         .topic(topic)
                                         .parameters(List.of("session-id"))
-                                        .consumeOptions(new Gateway.ConsumeOptions(
-                                                new Gateway.ConsumeOptionsFilters(List.of(
-                                                        Gateway.KeyValueComparison
-                                                                .valueFromParameters(
-                                                                        "header1", "session-id")))))
+                                        .consumeOptions(
+                                                new Gateway.ConsumeOptions(
+                                                        new Gateway.ConsumeOptionsFilters(
+                                                                List.of(
+                                                                        Gateway.KeyValueComparison
+                                                                                .valueFromParameters(
+                                                                                        "header1",
+                                                                                        "session-id")))))
                                         .build()));
 
         List<String> user1Messages = new ArrayList<>();
         List<String> user2Messages = new ArrayList<>();
 
-        @Cleanup final ClientSession client1 =
+        @Cleanup
+        final ClientSession client1 =
                 connectAndCollectMessages(
                         URI.create(
                                 ("ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user1"
-                                 + "&option:position=earliest")
+                                                + "&option:position=earliest")
                                         .formatted(port)),
                         user1Messages);
-        @Cleanup final ClientSession client2 =
+        @Cleanup
+        final ClientSession client2 =
                 connectAndCollectMessages(
                         URI.create(
                                 "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:session-id=user2"
@@ -710,12 +733,12 @@ class ProduceConsumeHandlerTest {
                         user2Messages);
 
         try (final TestWebSocketClient producer =
-                     new TestWebSocketClient(TestWebSocketClient.NOOP)
-                             .connect(
-                                     URI.create(
-                                             ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
-                                              + "-id=user1")
-                                                     .formatted(port)))) {
+                new TestWebSocketClient(TestWebSocketClient.NOOP)
+                        .connect(
+                                URI.create(
+                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
+                                                        + "-id=user1")
+                                                .formatted(port)))) {
             final ProduceRequest produceRequest =
                     new ProduceRequest(null, "this is a message for user1", null);
             produce(produceRequest, producer);
@@ -735,12 +758,12 @@ class ProduceConsumeHandlerTest {
         assertEquals(List.of(), user2Messages);
 
         try (final TestWebSocketClient producer =
-                     new TestWebSocketClient(TestWebSocketClient.NOOP)
-                             .connect(
-                                     URI.create(
-                                             ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
-                                              + "-id=user1")
-                                                     .formatted(port)))) {
+                new TestWebSocketClient(TestWebSocketClient.NOOP)
+                        .connect(
+                                URI.create(
+                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
+                                                        + "-id=user1")
+                                                .formatted(port)))) {
             final ProduceRequest produceRequest =
                     new ProduceRequest(null, "this is a message for user1, again", null);
             produce(produceRequest, producer);
@@ -762,12 +785,12 @@ class ProduceConsumeHandlerTest {
         assertEquals(List.of(), user2Messages);
 
         try (final TestWebSocketClient producer =
-                     new TestWebSocketClient(TestWebSocketClient.NOOP)
-                             .connect(
-                                     URI.create(
-                                             ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
-                                              + "-id=user2")
-                                                     .formatted(port)))) {
+                new TestWebSocketClient(TestWebSocketClient.NOOP)
+                        .connect(
+                                URI.create(
+                                        ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:session"
+                                                        + "-id=user2")
+                                                .formatted(port)))) {
             final ProduceRequest produceRequest =
                     new ProduceRequest(null, "this is a message for user2", null);
             produce(produceRequest, producer);
@@ -813,10 +836,13 @@ class ProduceConsumeHandlerTest {
                                         .type(Gateway.GatewayType.produce)
                                         .topic(topic)
                                         .parameters(List.of("session-id"))
-                                        .produceOptions(new Gateway.ProduceOptions(List.of(
-                                                Gateway.KeyValueComparison
-                                                        .valueFromParameters(
-                                                                "header1", "session-id"))))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromParameters(
+                                                                                "header1",
+                                                                                "session-id"))))
                                         .build()));
         ProduceResponse response =
                 connectAndProduce(
@@ -858,8 +884,8 @@ class ProduceConsumeHandlerTest {
         assertEquals(ProduceResponse.Status.BAD_REQUEST, response.status());
         assertEquals(
                 "Unrecognized token 'invalid': was expecting (JSON String, Number, Array, Object or token "
-                + "'null', 'true' or 'false')\n"
-                + " at [Source: (String)\"invalid-json\"; line: 1, column: 8]",
+                        + "'null', 'true' or 'false')\n"
+                        + " at [Source: (String)\"invalid-json\"; line: 1, column: 8]",
                 response.reason());
     }
 
@@ -883,7 +909,8 @@ class ProduceConsumeHandlerTest {
 
         List<String> messages = new ArrayList<>();
 
-        @Cleanup final ClientSession client1 =
+        @Cleanup
+        final ClientSession client1 =
                 connectAndCollectMessages(
                         URI.create(
                                 "ws://localhost:%d/v1/consume/tenant1/application1/consume"
@@ -891,11 +918,11 @@ class ProduceConsumeHandlerTest {
                         messages);
 
         try (final TestWebSocketClient producer =
-                     new TestWebSocketClient(TestWebSocketClient.NOOP)
-                             .connect(
-                                     URI.create(
-                                             "ws://localhost:%d/v1/produce/tenant1/application1/produce"
-                                                     .formatted(port)))) {
+                new TestWebSocketClient(TestWebSocketClient.NOOP)
+                        .connect(
+                                URI.create(
+                                        "ws://localhost:%d/v1/produce/tenant1/application1/produce"
+                                                .formatted(port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "msg1", null);
             produce(produceRequest, producer);
         }
@@ -909,17 +936,18 @@ class ProduceConsumeHandlerTest {
                 MAPPER.readValue(messages.get(0), ConsumePushMessage.class).offset();
 
         try (final TestWebSocketClient producer =
-                     new TestWebSocketClient(TestWebSocketClient.NOOP)
-                             .connect(
-                                     URI.create(
-                                             "ws://localhost:%d/v1/produce/tenant1/application1/produce"
-                                                     .formatted(port)))) {
+                new TestWebSocketClient(TestWebSocketClient.NOOP)
+                        .connect(
+                                URI.create(
+                                        "ws://localhost:%d/v1/produce/tenant1/application1/produce"
+                                                .formatted(port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "msg2", null);
             produce(produceRequest, producer);
         }
 
         List<String> messagesFromOffset = new ArrayList<>();
-        @Cleanup final ClientSession client1Offset =
+        @Cleanup
+        final ClientSession client1Offset =
                 connectAndCollectMessages(
                         URI.create(
                                 "ws://localhost:%d/v1/consume/tenant1/application1/consume?option:position=%s"
@@ -934,7 +962,8 @@ class ProduceConsumeHandlerTest {
                                         messagesFromOffset));
 
         List<String> messagesFromEarliest = new ArrayList<>();
-        @Cleanup final ClientSession clientFromEarliest =
+        @Cleanup
+        final ClientSession clientFromEarliest =
                 connectAndCollectMessages(
                         URI.create(
                                 "ws://localhost:%d/v1/consume/tenant1/application1/consume?option:position=earliest"
@@ -951,7 +980,8 @@ class ProduceConsumeHandlerTest {
                                         messagesFromEarliest));
 
         List<String> messagesFromLatest = new ArrayList<>();
-        @Cleanup final ClientSession clientFromLatest =
+        @Cleanup
+        final ClientSession clientFromLatest =
                 connectAndCollectMessages(
                         URI.create(
                                 "ws://localhost:%d/v1/consume/tenant1/application1/consume?option:position=latest"
@@ -959,11 +989,11 @@ class ProduceConsumeHandlerTest {
                         messagesFromLatest);
 
         try (final TestWebSocketClient producer =
-                     new TestWebSocketClient(TestWebSocketClient.NOOP)
-                             .connect(
-                                     URI.create(
-                                             "ws://localhost:%d/v1/produce/tenant1/application1/produce"
-                                                     .formatted(port)))) {
+                new TestWebSocketClient(TestWebSocketClient.NOOP)
+                        .connect(
+                                URI.create(
+                                        "ws://localhost:%d/v1/produce/tenant1/application1/produce"
+                                                .formatted(port)))) {
             final ProduceRequest produceRequest = new ProduceRequest(null, "msg3", null);
             produce(produceRequest, producer);
         }
@@ -1038,11 +1068,11 @@ class ProduceConsumeHandlerTest {
         try {
 
             try (final TestWebSocketClient producer =
-                         new TestWebSocketClient(TestWebSocketClient.NOOP)
-                                 .connect(
-                                         URI.create(
-                                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce"
-                                                         .formatted(port)))) {
+                    new TestWebSocketClient(TestWebSocketClient.NOOP)
+                            .connect(
+                                    URI.create(
+                                            "ws://localhost:%d/v1/produce/tenant1/application1/produce"
+                                                    .formatted(port)))) {
                 final ProduceRequest produceRequest = new ProduceRequest(null, "msg1", null);
                 produce(produceRequest, producer);
             }
@@ -1057,11 +1087,11 @@ class ProduceConsumeHandlerTest {
             }
 
             try (final TestWebSocketClient producer =
-                         new TestWebSocketClient(TestWebSocketClient.NOOP)
-                                 .connect(
-                                         URI.create(
-                                                 "ws://localhost:%d/v1/produce/tenant1/application1/produce"
-                                                         .formatted(port)))) {
+                    new TestWebSocketClient(TestWebSocketClient.NOOP)
+                            .connect(
+                                    URI.create(
+                                            "ws://localhost:%d/v1/produce/tenant1/application1/produce"
+                                                    .formatted(port)))) {
                 final ProduceRequest produceRequest = new ProduceRequest(null, "msg2", null);
                 produce(produceRequest, producer);
             }
@@ -1095,26 +1125,26 @@ class ProduceConsumeHandlerTest {
 
         AtomicReference<CloseReason> closeReason = new AtomicReference<>();
         try (final TestWebSocketClient client =
-                     new TestWebSocketClient(
-                             new TestWebSocketClient.Handler() {
-                                 @Override
-                                 public void onMessage(String msg) {
-                                     fail("should not receive a message");
-                                     countDownLatch.countDown();
-                                 }
+                new TestWebSocketClient(
+                                new TestWebSocketClient.Handler() {
+                                    @Override
+                                    public void onMessage(String msg) {
+                                        fail("should not receive a message");
+                                        countDownLatch.countDown();
+                                    }
 
-                                 @Override
-                                 public void onClose(CloseReason cr) {
-                                     closeReason.set(cr);
-                                     countDownLatch.countDown();
-                                 }
+                                    @Override
+                                    public void onClose(CloseReason cr) {
+                                        closeReason.set(cr);
+                                        countDownLatch.countDown();
+                                    }
 
-                                 @Override
-                                 public void onError(Throwable throwable) {
-                                     throw new RuntimeException(throwable);
-                                 }
-                             })
-                             .connect(connectTo)) {
+                                    @Override
+                                    public void onError(Throwable throwable) {
+                                        throw new RuntimeException(throwable);
+                                    }
+                                })
+                        .connect(connectTo)) {
             Thread.sleep(5000);
             countDownLatch.await();
             assertEquals(
@@ -1131,25 +1161,24 @@ class ProduceConsumeHandlerTest {
 
         AtomicReference<CloseReason> closeReason = new AtomicReference<>();
         try (final TestWebSocketClient client =
-                     new TestWebSocketClient(
-                             new TestWebSocketClient.Handler() {
-                                 @Override
-                                 public void onOpen(Session session) {
-                                     TestWebSocketClient.Handler.super.onOpen(session);
-                                     countDownLatch.countDown();
-                                 }
+                new TestWebSocketClient(
+                                new TestWebSocketClient.Handler() {
+                                    @Override
+                                    public void onOpen(Session session) {
+                                        TestWebSocketClient.Handler.super.onOpen(session);
+                                        countDownLatch.countDown();
+                                    }
 
-                                 @Override
-                                 public void onMessage(String msg) {
-                                 }
+                                    @Override
+                                    public void onMessage(String msg) {}
 
-                                 @Override
-                                 public void onClose(CloseReason cr) {
-                                     closeReason.set(cr);
-                                     countDownLatch.countDown();
-                                 }
-                             })
-                             .connect(connectTo)) {
+                                    @Override
+                                    public void onClose(CloseReason cr) {
+                                        closeReason.set(cr);
+                                        countDownLatch.countDown();
+                                    }
+                                })
+                        .connect(connectTo)) {
             client.send("message");
             countDownLatch.await();
             assertNull(closeReason.get());
@@ -1168,29 +1197,29 @@ class ProduceConsumeHandlerTest {
 
         AtomicReference<CloseReason> closeReason = new AtomicReference<>();
         try (final TestWebSocketClient client =
-                     new TestWebSocketClient(
-                             new TestWebSocketClient.Handler() {
-                                 @Override
-                                 public void onOpen(Session session) {
-                                     TestWebSocketClient.Handler.super.onOpen(session);
-                                 }
+                new TestWebSocketClient(
+                                new TestWebSocketClient.Handler() {
+                                    @Override
+                                    public void onOpen(Session session) {
+                                        TestWebSocketClient.Handler.super.onOpen(session);
+                                    }
 
-                                 @Override
-                                 @SneakyThrows
-                                 public void onMessage(String msg) {
-                                     response.set(
-                                             new ObjectMapper()
-                                                     .readValue(msg, ProduceResponse.class));
-                                     countDownLatch.countDown();
-                                 }
+                                    @Override
+                                    @SneakyThrows
+                                    public void onMessage(String msg) {
+                                        response.set(
+                                                new ObjectMapper()
+                                                        .readValue(msg, ProduceResponse.class));
+                                        countDownLatch.countDown();
+                                    }
 
-                                 @Override
-                                 public void onClose(CloseReason cr) {
-                                     closeReason.set(cr);
-                                     countDownLatch.countDown();
-                                 }
-                             })
-                             .connect(connectTo)) {
+                                    @Override
+                                    public void onClose(CloseReason cr) {
+                                        closeReason.set(cr);
+                                        countDownLatch.countDown();
+                                    }
+                                })
+                        .connect(connectTo)) {
             client.send(json);
             countDownLatch.await();
             assertNull(closeReason.get());
@@ -1212,22 +1241,22 @@ class ProduceConsumeHandlerTest {
         CountDownLatch countDownLatch = new CountDownLatch(1);
         final TestWebSocketClient client =
                 new TestWebSocketClient(
-                        new TestWebSocketClient.Handler() {
-                            @Override
-                            public void onOpen(Session session) {
-                                countDownLatch.countDown();
-                            }
+                                new TestWebSocketClient.Handler() {
+                                    @Override
+                                    public void onOpen(Session session) {
+                                        countDownLatch.countDown();
+                                    }
 
-                            @Override
-                            public void onMessage(String msg) {
-                                collect.add(msg);
-                            }
+                                    @Override
+                                    public void onMessage(String msg) {
+                                        collect.add(msg);
+                                    }
 
-                            @Override
-                            public void onClose(CloseReason cr) {
-                                closeReason.set(cr);
-                            }
-                        })
+                                    @Override
+                                    public void onClose(CloseReason cr) {
+                                        closeReason.set(cr);
+                                    }
+                                })
                         .connect(connectTo);
         countDownLatch.await();
         return new ClientSession() {
@@ -1264,64 +1293,61 @@ class ProduceConsumeHandlerTest {
                                         .topic(topic)
                                         .parameters(List.of("p"))
                                         .eventsTopic(eventsTopic)
-                                        .build()
-                                ,
+                                        .build(),
                                 Gateway.builder()
                                         .id("consume")
                                         .type(Gateway.GatewayType.consume)
                                         .topic(eventsTopic)
                                         .parameters(List.of("p"))
                                         .eventsTopic(eventsTopic)
-                                        .build())
-                );
+                                        .build()));
 
         CountDownLatch consumerReady = new CountDownLatch(1);
         CountDownLatch countDownLatch = new CountDownLatch(5);
         List<String> messages = new ArrayList<>();
         try (final TestWebSocketClient consumerClient =
-                     new TestWebSocketClient(
-                             new TestWebSocketClient.Handler() {
-                                 @Override
-                                 public void onMessage(String msg) {
-                                     messages.add(msg);
-                                     countDownLatch.countDown();
-                                 }
+                new TestWebSocketClient(
+                                new TestWebSocketClient.Handler() {
+                                    @Override
+                                    public void onMessage(String msg) {
+                                        messages.add(msg);
+                                        countDownLatch.countDown();
+                                    }
 
-                                 @Override
-                                 public void onOpen(Session session) {
-                                     consumerReady.countDown();
-                                 }
+                                    @Override
+                                    public void onOpen(Session session) {
+                                        consumerReady.countDown();
+                                    }
 
-                                 @Override
-                                 public void onClose(CloseReason closeReason) {
-                                     countDownLatch.countDown();
-                                 }
+                                    @Override
+                                    public void onClose(CloseReason closeReason) {
+                                        countDownLatch.countDown();
+                                    }
 
-                                 @Override
-                                 public void onError(Throwable throwable) {
-                                     countDownLatch.countDown();
-                                 }
-                             })
-                             .connect(
-                                     URI.create(
-                                             ("ws://localhost:%d/v1/consume/tenant1/application1/consume?param:p"
-                                              + "=consumer")
-                                                     .formatted(port)))) {
+                                    @Override
+                                    public void onError(Throwable throwable) {
+                                        countDownLatch.countDown();
+                                    }
+                                })
+                        .connect(
+                                URI.create(
+                                        ("ws://localhost:%d/v1/consume/tenant1/application1/consume?param:p"
+                                                        + "=consumer")
+                                                .formatted(port)))) {
             consumerReady.await();
 
             try (final TestWebSocketClient producer =
-                         new TestWebSocketClient(TestWebSocketClient.NOOP)
-                                 .connect(
-                                         URI.create(
-                                                 ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:p"
-                                                  + "=producer")
-                                                         .formatted(port)))) {
+                    new TestWebSocketClient(TestWebSocketClient.NOOP)
+                            .connect(
+                                    URI.create(
+                                            ("ws://localhost:%d/v1/produce/tenant1/application1/produce?param:p"
+                                                            + "=producer")
+                                                    .formatted(port)))) {
                 final ProduceRequest produceRequest =
                         new ProduceRequest(null, "this is a message", null);
                 produce(produceRequest, producer);
             }
-            new TestWebSocketClient(new TestWebSocketClient.Handler() {
-            })
+            new TestWebSocketClient(new TestWebSocketClient.Handler() {})
                     .connect(
                             URI.create(
                                     "ws://localhost:%d/v1/consume/tenant1/application1/consume?param:p=consumer1"

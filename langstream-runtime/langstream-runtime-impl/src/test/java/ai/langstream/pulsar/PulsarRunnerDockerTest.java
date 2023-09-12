@@ -39,6 +39,7 @@ import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Cleanup;
@@ -103,6 +104,7 @@ class PulsarRunnerDockerTest {
         NarFileHandler narFileHandler =
                 new NarFileHandler(
                         AbstractApplicationRunner.agentsDirectory,
+                        List.of(),
                         Thread.currentThread().getContextClassLoader());
         narFileHandler.scan();
 

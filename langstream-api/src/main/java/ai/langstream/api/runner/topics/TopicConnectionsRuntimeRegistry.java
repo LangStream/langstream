@@ -41,7 +41,7 @@ public class TopicConnectionsRuntimeRegistry {
 
         List<? extends ClassLoader> getAllClassloaders() throws Exception;
 
-        ClassLoader getCustomCodeClassloader();
+        ClassLoader getSystemClassloader();
     }
 
     public interface TopicConnectionsRuntimePackage {
@@ -66,7 +66,7 @@ public class TopicConnectionsRuntimeRegistry {
 
         ClassLoader customCodeClassloader =
                 packageLoader != null
-                        ? packageLoader.getCustomCodeClassloader()
+                        ? packageLoader.getSystemClassloader()
                         : AgentCodeRegistry.class.getClassLoader();
         // always allow to find the system implementations
         TopicConnectionsRuntimeAndLoader codeProviderProviderFromSystem =

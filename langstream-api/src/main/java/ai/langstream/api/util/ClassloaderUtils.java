@@ -56,9 +56,7 @@ public class ClassloaderUtils {
             URL[] urLs = urlClassLoader.getURLs();
             if (urLs != null) {
                 String urlsString =
-                        Stream.of(urLs)
-                                .map(String::valueOf)
-                                .collect(Collectors.joining(",", "", "\n"));
+                        Stream.of(urLs).map(String::valueOf).collect(Collectors.joining(",\n"));
                 result.append("urls: ").append(urlsString);
             }
             result.append("}");

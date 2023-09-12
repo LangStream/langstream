@@ -168,7 +168,8 @@ public abstract class AbstractApplicationRunner {
     @BeforeAll
     public static void setup() throws Exception {
         narFileHandler =
-                new NarFileHandler(agentsDirectory, Thread.currentThread().getContextClassLoader());
+                new NarFileHandler(
+                        agentsDirectory, List.of(), Thread.currentThread().getContextClassLoader());
         TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
                 new TopicConnectionsRuntimeRegistry();
         narFileHandler.scan();

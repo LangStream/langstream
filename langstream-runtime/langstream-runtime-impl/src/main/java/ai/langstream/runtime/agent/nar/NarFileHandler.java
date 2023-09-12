@@ -52,16 +52,19 @@ public class NarFileHandler
     private final Path packagesDirectory;
     private final Path temporaryDirectory;
 
-    private final ClassLoader customCodeClassloader;
+    private final List<URL> customLibClasspath;
+    private final ClassLoader parentClassloader;
 
     private List<URLClassLoader> classloaders;
     private final Map<String, PackageMetadata> packages = new HashMap<>();
 
-    public NarFileHandler(Path packagesDirectory, ClassLoader customCodeClassloader)
+    public NarFileHandler(
+            Path packagesDirectory, List<URL> customLibClasspath, ClassLoader parentClassloader)
             throws Exception {
         this.packagesDirectory = packagesDirectory;
         this.temporaryDirectory = Files.createTempDirectory("nar");
-        this.customCodeClassloader = customCodeClassloader;
+        this.customLibClasspath = customLibClasspath;
+        this.parentClassloader = parentClassloader;
     }
 
     private static void deleteDirectory(Path dir) throws Exception {
@@ -95,6 +98,33 @@ public class NarFileHandler
             deleteDirectory(temporaryDirectory);
         } catch (Exception e) {
             log.error("Cannot delete temporary directory {}", temporaryDirectory, e);
+        }
+    }
+
+    private static class NarFileClassLoader extends URLClassLoader {
+
+        private final String name;
+
+        public NarFileClassLoader(String name, List<URL> urls, ClassLoader parent) {
+            super(urls.toArray(URL[]::new), parent);
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return "NarFileClassLoader{" + "name='" + name + '\'' + '}';
+        }
+
+        @Override
+        protected Class<?> findClass(String name) throws ClassNotFoundException {
+            try {
+                return super.findClass(name);
+            } catch (ClassNotFoundException err) {
+                if (log.isDebugEnabled()) {
+                    log.debug("findClass class {} not found here {}: {}", name, this, err.toString());
+                }
+                throw err;
+            }
         }
     }
 
@@ -240,7 +270,8 @@ public class NarFileHandler
             return null;
         }
         URLClassLoader classLoader =
-                createClassloaderForPackage(customCodeClassloader, packageForAssetType);
+                createClassloaderForPackage(
+                        customLibClasspath, packageForAssetType, parentClassloader);
         log.info(
                 "For package {}, classloader {}",
                 packageForAssetType.getName(),
@@ -266,7 +297,8 @@ public class NarFileHandler
             return null;
         }
         URLClassLoader classLoader =
-                createClassloaderForPackage(customCodeClassloader, packageForStreamingCluster);
+                createClassloaderForPackage(
+                        customLibClasspath, packageForStreamingCluster, parentClassloader);
         log.info(
                 "For package {}, classloader {}, parent {}",
                 packageForStreamingCluster.getName(),
@@ -293,7 +325,8 @@ public class NarFileHandler
             return null;
         }
         URLClassLoader classLoader =
-                createClassloaderForPackage(customCodeClassloader, packageForAgentType);
+                createClassloaderForPackage(
+                        customLibClasspath, packageForAgentType, parentClassloader);
         log.info(
                 "For package {}, classloader {}, parent {}",
                 packageForAgentType.getName(),
@@ -345,19 +378,21 @@ public class NarFileHandler
         classloaders = new ArrayList<>();
         for (PackageMetadata metadata : packages.values()) {
             metadata.unpack();
-            URLClassLoader result = createClassloaderForPackage(customCodeClassloader, metadata);
+            URLClassLoader result =
+                    createClassloaderForPackage(customLibClasspath, metadata, parentClassloader);
             classloaders.add(result);
         }
         return classloaders;
     }
 
     @Override
-    public ClassLoader getCustomCodeClassloader() {
-        return customCodeClassloader;
+    public ClassLoader getSystemClassloader() {
+        return parentClassloader;
     }
 
     private static URLClassLoader createClassloaderForPackage(
-            ClassLoader parent, PackageMetadata metadata) throws Exception {
+            List<URL> customLibClasspath, PackageMetadata metadata, ClassLoader parentClassloader)
+            throws Exception {
 
         if (metadata.classLoader != null) {
             return metadata.classLoader;
@@ -386,8 +421,16 @@ public class NarFileHandler
             }
         }
 
-        URLClassLoader result = new URLClassLoader(urls.toArray(URL[]::new), parent);
+        URLClassLoader result = new NarFileClassLoader(metadata.name, urls, parentClassloader);
+
+        if (!customLibClasspath.isEmpty()) {
+            result =
+                    new NarFileClassLoader(
+                            metadata.name + "+custom-lib", customLibClasspath, result);
+        }
+
         metadata.classLoader = result;
+
         return result;
     }
 }

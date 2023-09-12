@@ -58,7 +58,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -155,11 +154,12 @@ public class AgentRunner {
 
         log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
 
-        ClassLoader customLibClassloader =
-                buildCustomLibClassloader(
-                        codeDirectory, Thread.currentThread().getContextClassLoader());
+        List<URL> customLibClasspath = buildCustomLibClasspath(codeDirectory);
         try (NarFileHandler narFileHandler =
-                new NarFileHandler(agentsDirectory, customLibClassloader)) {
+                new NarFileHandler(
+                        agentsDirectory,
+                        customLibClasspath,
+                        Thread.currentThread().getContextClassLoader())) {
             narFileHandler.scan();
 
             AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
@@ -208,11 +208,9 @@ public class AgentRunner {
         }
     }
 
-    private static ClassLoader buildCustomLibClassloader(
-            Path codeDirectory, ClassLoader contextClassLoader) throws IOException {
-        ClassLoader customLibClassloader = contextClassLoader;
+    private static List<URL> buildCustomLibClasspath(Path codeDirectory) throws IOException {
         if (codeDirectory == null) {
-            return customLibClassloader;
+            return List.of();
         }
         Path javaLib = codeDirectory.resolve("java").resolve("lib");
         log.info("Looking for java lib in {}", javaLib);
@@ -235,9 +233,9 @@ public class AgentRunner {
                                 .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
             }
-            customLibClassloader = new URLClassLoader(jars.toArray(URL[]::new), contextClassLoader);
+            return jars;
         }
-        return customLibClassloader;
+        return List.of();
     }
 
     private static void runPythonAgent(Path podRuntimeConfiguration, Path codeDirectory)

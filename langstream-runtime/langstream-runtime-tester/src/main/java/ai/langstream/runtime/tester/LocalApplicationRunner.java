@@ -62,7 +62,8 @@ public class LocalApplicationRunner implements AutoCloseable {
     public LocalApplicationRunner(Path agentsDirectory) throws Exception {
         this.agentsDirectory = agentsDirectory;
         this.narFileHandler =
-                new NarFileHandler(agentsDirectory, Thread.currentThread().getContextClassLoader());
+                new NarFileHandler(
+                        agentsDirectory, List.of(), Thread.currentThread().getContextClassLoader());
         TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
                 new TopicConnectionsRuntimeRegistry();
         narFileHandler.scan();

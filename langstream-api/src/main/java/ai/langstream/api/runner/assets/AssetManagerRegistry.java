@@ -46,7 +46,7 @@ public class AssetManagerRegistry {
 
         List<? extends ClassLoader> getAllClassloaders() throws Exception;
 
-        ClassLoader getCustomCodeClassloader();
+        ClassLoader getSystemClassloader();
     }
 
     @SneakyThrows
@@ -56,7 +56,7 @@ public class AssetManagerRegistry {
 
         ClassLoader customCodeClassloader =
                 assetManagerPackageLoader != null
-                        ? assetManagerPackageLoader.getCustomCodeClassloader()
+                        ? assetManagerPackageLoader.getSystemClassloader()
                         : AssetManagerRegistry.class.getClassLoader();
         // always allow to find the system assets
         AssetManagerAndLoader assetCodeProviderProviderFromSystem =

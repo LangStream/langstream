@@ -46,7 +46,7 @@ public class AgentCodeRegistry {
 
         List<? extends ClassLoader> getAllClassloaders() throws Exception;
 
-        ClassLoader getCustomCodeClassloader();
+        ClassLoader getSystemClassloader();
     }
 
     @SneakyThrows
@@ -56,7 +56,7 @@ public class AgentCodeRegistry {
 
         ClassLoader customCodeClassloader =
                 agentPackageLoader != null
-                        ? agentPackageLoader.getCustomCodeClassloader()
+                        ? agentPackageLoader.getSystemClassloader()
                         : AgentCodeRegistry.class.getClassLoader();
         // always allow to find the system agents
         AgentCodeAndLoader agentCodeProviderProviderFromSystem =

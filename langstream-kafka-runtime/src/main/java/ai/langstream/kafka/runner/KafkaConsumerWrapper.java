@@ -28,6 +28,8 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
+import ai.langstream.api.util.ClassloaderUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
@@ -68,7 +70,9 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
 
     @Override
     public synchronized void start() {
-        consumer = new KafkaConsumer(configuration);
+        try (var context = ClassloaderUtils.withContextClassloader(this.getClass().getClassLoader())) {
+            consumer = new KafkaConsumer(configuration);
+        }
         if (topicName != null) {
             log.info("Subscribing consumer to {}", topicName);
             consumer.subscribe(List.of(topicName), this);

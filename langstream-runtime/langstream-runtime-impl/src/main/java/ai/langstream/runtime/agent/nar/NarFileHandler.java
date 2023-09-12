@@ -118,7 +118,7 @@ public class NarFileHandler
             this.streamingClusterTypes = streamingClusterTypes;
         }
 
-        public void unpack() throws Exception {
+        public synchronized void unpack() throws Exception {
             if (directory != null) {
                 return;
             }
@@ -130,7 +130,7 @@ public class NarFileHandler
         }
     }
 
-    public void scan() throws Exception {
+    public synchronized void scan() throws Exception {
         try (DirectoryStream<Path> all = Files.newDirectoryStream(packagesDirectory, "*.nar")) {
             for (Path narFile : all) {
                 handleNarFile(narFile);

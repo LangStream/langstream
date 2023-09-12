@@ -17,7 +17,9 @@ package ai.langstream.kafka.runner.kafkaconnect;
 
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class KafkaConnectCodeProvider implements AgentCodeProvider {
     @Override
     public boolean supports(String agentType) {
@@ -26,6 +28,8 @@ public class KafkaConnectCodeProvider implements AgentCodeProvider {
 
     @Override
     public AgentCode createInstance(String agentType) {
+        log.info("Current classloader is {}", Thread.currentThread().getContextClassLoader());
+        log.info("Current class classloader is {}", this.getClass().getClassLoader());
         return switch (agentType) {
             case "sink" -> new KafkaConnectSinkAgent();
             case "source" -> new KafkaConnectSourceAgent();

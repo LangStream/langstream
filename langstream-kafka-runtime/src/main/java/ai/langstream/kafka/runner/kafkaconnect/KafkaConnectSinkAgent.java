@@ -62,6 +62,23 @@ import org.apache.kafka.connect.sink.SinkTask;
 @Slf4j
 public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSink {
 
+    static {
+        log.info(
+                "Loading KafkaConnectSinkAgent, classloader {}",
+                KafkaConnectSinkAgent.class.getClassLoader());
+        try {
+            Class<?> aClass =
+                    KafkaConnectSinkAgent.class
+                            .getClassLoader()
+                            .loadClass("org.apache.kafka.common.cache.Cache");
+            log.info("Loaded class {}", aClass);
+        } catch (Throwable t) {
+            log.error("Error loading class", t);
+        }
+    }
+
+    public KafkaConnectSinkAgent() {}
+
     private static class LangStreamSinkRecord extends SinkRecord {
 
         final int estimatedSize;

@@ -41,10 +41,11 @@ RUN mkdir -p /etc/apt/keyrings \
      && apt-get -y dist-upgrade \
      && apt-get -y install temurin-17-jdk \
      && export ARCH=$(uname -m | sed -r 's/aarch64/arm64/g' |  awk '!/arm64/{$0="amd64"}1') \
-     && echo networkaddress.cache.ttl=1 >> /usr/lib/jvm/temurin-17-jdk-$ARCH/conf/security/java.security \
+     && echo networkaddress.cache.ttl=1 >> /usr/lib/jvm/temurin-17-jdk-$ARCH/conf/security/java.security
 
 # Cleanup apt
-RUN apt-get -y --purge autoremove \
+RUN apt-get -y install unzip \
+     apt-get -y --purge autoremove \
      && apt-get autoclean \
      && apt-get clean \
      && rm -rf /var/lib/apt/lists/*

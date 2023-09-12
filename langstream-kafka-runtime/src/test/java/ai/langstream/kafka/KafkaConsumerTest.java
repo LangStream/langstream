@@ -26,6 +26,7 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
@@ -88,6 +89,7 @@ class KafkaConsumerTest {
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
+                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -211,6 +213,7 @@ class KafkaConsumerTest {
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
+                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -305,6 +308,7 @@ class KafkaConsumerTest {
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
+                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
                         .build();
 
         Module module = applicationInstance.getModule("module-1");

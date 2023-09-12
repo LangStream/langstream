@@ -118,7 +118,8 @@ class KafkaProducerWrapper implements TopicProducer {
 
     @Override
     public void start() {
-        try (var context = ClassloaderUtils.withContextClassloader(this.getClass().getClassLoader())) {
+        try (var context =
+                ClassloaderUtils.withContextClassloader(this.getClass().getClassLoader())) {
             producer = new KafkaProducer<>(copy);
         }
     }

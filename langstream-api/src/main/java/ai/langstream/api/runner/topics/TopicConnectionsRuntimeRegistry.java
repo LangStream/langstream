@@ -17,6 +17,7 @@ package ai.langstream.api.runner.topics;
 
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
+import ai.langstream.api.util.ClassloaderUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -125,7 +126,10 @@ public class TopicConnectionsRuntimeRegistry {
                 .map(
                         provider ->
                                 new TopicConnectionsRuntimeAndLoader(
-                                        provider.get().getImplementation(), classLoader))
+                                        ClassloaderUtils.executeWithClassloader(
+                                                classLoader,
+                                                () -> provider.get().getImplementation()),
+                                        classLoader))
                 .orElse(null);
     }
 }

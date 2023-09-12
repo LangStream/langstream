@@ -17,6 +17,7 @@ package ai.langstream.kafka.runner;
 
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.util.ClassloaderUtils;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,8 +29,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import ai.langstream.api.util.ClassloaderUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
@@ -70,7 +69,8 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
 
     @Override
     public synchronized void start() {
-        try (var context = ClassloaderUtils.withContextClassloader(this.getClass().getClassLoader())) {
+        try (var context =
+                ClassloaderUtils.withContextClassloader(this.getClass().getClassLoader())) {
             consumer = new KafkaConsumer(configuration);
         }
         if (topicName != null) {

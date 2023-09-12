@@ -36,4 +36,11 @@ public class ClassloaderUtils {
     public static ClassloaderContext withContextClassloader(ClassLoader cl) {
         return new ClassloaderContext(cl);
     }
+
+    public static <T> T executeWithClassloader(
+            ClassLoader cl, java.util.function.Supplier<T> supplier) {
+        try (ClassloaderContext ignored = withContextClassloader(cl)) {
+            return supplier.get();
+        }
+    }
 }

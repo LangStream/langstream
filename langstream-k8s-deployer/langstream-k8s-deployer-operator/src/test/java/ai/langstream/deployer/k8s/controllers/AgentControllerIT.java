@@ -34,7 +34,6 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.checkerframework.checker.units.qual.K;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -43,11 +42,14 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 @Testcontainers
 public class AgentControllerIT {
 
-    static final Map<String, String> DEPLOYER_CONFIG = new HashMap<>(Map.of(
-            "DEPLOYER_RUNTIME_IMAGE", "busybox",
-            "DEPLOYER_RUNTIME_IMAGE_PULL_POLICY", "IfNotPresent"));
+    static final Map<String, String> DEPLOYER_CONFIG =
+            new HashMap<>(
+                    Map.of(
+                            "DEPLOYER_RUNTIME_IMAGE", "busybox",
+                            "DEPLOYER_RUNTIME_IMAGE_PULL_POLICY", "IfNotPresent"));
 
-    @RegisterExtension static final OperatorExtension deployment = new OperatorExtension(DEPLOYER_CONFIG);
+    @RegisterExtension
+    static final OperatorExtension deployment = new OperatorExtension(DEPLOYER_CONFIG);
 
     @Test
     void testAgentController() {
@@ -182,43 +184,47 @@ public class AgentControllerIT {
                                             .getStatus()
                                             .getStatus());
                         });
-        resource = client.resource(resource)
-                .inNamespace(namespace)
-                .get();
+        resource = client.resource(resource).inNamespace(namespace).get();
         assertNotNull(resource.getStatus().getLastConfigApplied());
 
-         StatefulSet statefulSet =
+        StatefulSet statefulSet =
                 client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
-        assertEquals("busybox", statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+        assertEquals(
+                "busybox",
+                statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
 
         DEPLOYER_CONFIG.put("DEPLOYER_RUNTIME_IMAGE", "busybox:v2");
         deployment.restartDeployerOperator();
 
-        resource = client.resource(resource)
-                .inNamespace(namespace)
-                .get();
+        resource = client.resource(resource).inNamespace(namespace).get();
         resource.getSpec().setCodeArchiveId("another");
         client.resource(resource).inNamespace(namespace).serverSideApply();
 
-        Awaitility.await().atMost(1, TimeUnit.MINUTES)
+        Awaitility.await()
+                .atMost(1, TimeUnit.MINUTES)
                 .untilAsserted(
                         () -> {
                             final String archiveId =
-                                    SerializationUtil.readJson(client.resources(AgentCustomResource.class)
+                                    SerializationUtil.readJson(
+                                                    client.resources(AgentCustomResource.class)
                                                             .inNamespace(namespace)
                                                             .withName(agentCustomResourceName)
                                                             .get()
                                                             .getStatus()
                                                             .getLastApplied(),
-                                                    ai.langstream.deployer.k8s.api.crds.agents.AgentSpec.class)
+                                                    ai.langstream.deployer.k8s.api.crds.agents
+                                                            .AgentSpec.class)
                                             .getCodeArchiveId();
                             assertEquals("another", archiveId);
                         });
         statefulSet = client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
-        assertEquals("busybox", statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+        assertEquals(
+                "busybox",
+                statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
     }
 
-    private void createAgentSecret(KubernetesClient client, String agentCustomResourceName, String namespace) {
+    private void createAgentSecret(
+            KubernetesClient client, String agentCustomResourceName, String namespace) {
         client.resource(
                         AgentResourcesFactory.generateAgentSecret(
                                 agentCustomResourceName,
@@ -248,5 +254,4 @@ public class AgentControllerIT {
                                 .build())
                 .serverSideApply();
     }
-
 }

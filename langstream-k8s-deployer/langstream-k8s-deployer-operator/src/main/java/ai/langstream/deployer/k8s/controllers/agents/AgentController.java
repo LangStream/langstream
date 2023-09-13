@@ -88,6 +88,9 @@ public class AgentController extends BaseController<AgentCustomResource>
     }
 
     private void setLastAppliedConfig(AgentCustomResource agent) {
+        if (agent.getStatus().getLastConfigApplied() != null) {
+            return;
+        }
         final LastAppliedConfigForStatefulset lastAppliedConfigForStatefulset =
                 new LastAppliedConfigForStatefulset(
                         configuration.getAgentResources(),

@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.api.model.ApplicationStatus;
+import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
@@ -151,7 +152,7 @@ class AgentCustomResourceTest {
                 .resource(
                         new ServiceAccountBuilder()
                                 .withNewMetadata()
-                                .withName(tenant)
+                                .withName(CRDConstants.computeRuntimeServiceAccountForTenant(tenant))
                                 .endMetadata()
                                 .build())
                 .inNamespace(namespace)

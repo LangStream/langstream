@@ -203,7 +203,7 @@ public class AppResourcesFactory {
                 .withNewSpec()
                 .withTolerations(podTemplate != null ? podTemplate.tolerations() : null)
                 .withNodeSelector(podTemplate != null ? podTemplate.nodeSelector() : null)
-                .withServiceAccountName(tenant)
+                .withServiceAccountName(CRDConstants.computeDeployerServiceAccountForTenant(tenant))
                 .withVolumes(
                         new VolumeBuilder()
                                 .withName("app-config")

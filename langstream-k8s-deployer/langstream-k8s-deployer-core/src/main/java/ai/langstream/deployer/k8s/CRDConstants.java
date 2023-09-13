@@ -50,4 +50,13 @@ public class CRDConstants {
     public static final int MAX_AGENT_ID_LENGTH = 37;
 
     public static final Pattern RESOURCE_NAME_PATTERN = Pattern.compile("^([a-z])[-a-z0-9]+$");
+
+    public static String computeDeployerServiceAccountForTenant(final String tenant) {
+        return tenant;
+    }
+
+    public static String computeRuntimeServiceAccountForTenant(final String tenant) {
+        return "runtime-" + tenant;
+    }
+
 }

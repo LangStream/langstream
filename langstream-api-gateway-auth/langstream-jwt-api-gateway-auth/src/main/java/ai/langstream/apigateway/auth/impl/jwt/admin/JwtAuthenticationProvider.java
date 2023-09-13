@@ -56,7 +56,8 @@ public class JwtAuthenticationProvider implements GatewayAuthenticationProvider 
                         tokenProperties.publicAlg(),
                         tokenProperties.audienceClaim(),
                         tokenProperties.audience(),
-                        tokenProperties.jwksHostsAllowlist());
+                        tokenProperties.jwksHostsAllowlist(),
+                        false, null);
         this.authenticationProviderToken = new AuthenticationProviderToken(jwtProperties);
     }
 

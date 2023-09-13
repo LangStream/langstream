@@ -56,7 +56,9 @@ public class TokenAuthFilter extends GenericFilterBean {
                         tokenProperties.publicAlg(),
                         tokenProperties.audienceClaim(),
                         tokenProperties.audience(),
-                        tokenProperties.jwksHostsAllowlist());
+                        tokenProperties.jwksHostsAllowlist(),
+                        tokenProperties.allowKubernetesServiceAccounts(),
+                        tokenProperties.kubernetesNamespacePrefix());
 
         this.authenticationProvider = new AuthenticationProviderToken(jwtProperties);
     }

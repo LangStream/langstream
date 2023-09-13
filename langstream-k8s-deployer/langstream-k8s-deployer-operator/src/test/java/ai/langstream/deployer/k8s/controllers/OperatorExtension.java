@@ -15,6 +15,9 @@
  */
 package ai.langstream.deployer.k8s.controllers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import ai.langstream.deployer.k8s.LeaderElectionConfig;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.exception.ExecutionException;
@@ -25,21 +28,26 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PortForwardingContainer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.images.builder.Transferable;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.utility.DockerImageName;
 
-public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
+@Slf4j
+public class OperatorExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
 
     GenericContainer<?> container;
     K3sContainer k3s;
@@ -77,11 +85,15 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
         k3s.start();
         applyCRDs();
         Testcontainers.exposeHostPorts(k3s.getFirstMappedPort());
-        startDeployerOperator();
         client =
                 new KubernetesClientBuilder()
                         .withConfig(Config.fromKubeconfig(k3s.getKubeconfig()))
                         .build();
+    }
+
+    @Override
+    public void beforeEach(ExtensionContext extensionContext) throws Exception {
+        restartDeployerOperator();
     }
 
     private void startDeployerOperator() throws IOException {
@@ -101,11 +113,31 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback {
         container.withLogConsumer(
                 outputFrame -> System.out.print("operator>" + outputFrame.getUtf8String()));
         container.start();
+        final String containerIdentity = container.getContainerId().substring(0, 12);
+        Awaitility.await()
+                .atMost(Duration.ofMinutes(1))
+                .pollInterval(Duration.ofSeconds(5))
+                .untilAsserted(
+                        () -> {
+                            final String identity =
+                                    client.leases()
+                                            .inNamespace("default")
+                                            .withName(LeaderElectionConfig.LEASE_NAME)
+                                            .get()
+                                            .getSpec()
+                                            .getHolderIdentity();
+                            log.info(
+                                    "found identity: {} expected: {}", identity, containerIdentity);
+                            assertEquals(containerIdentity, identity);
+                        });
     }
 
     @SneakyThrows
     public void restartDeployerOperator() {
-        container.stop();
+        if (container != null) {
+            container.stop();
+            container = null;
+        }
         startDeployerOperator();
     }
 

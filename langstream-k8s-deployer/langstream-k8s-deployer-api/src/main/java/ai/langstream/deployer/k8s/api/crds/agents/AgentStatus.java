@@ -22,4 +22,5 @@ import lombok.Data;
 @Data
 public class AgentStatus extends BaseStatus {
     private AgentLifecycleStatus status;
+    private String lastConfigApplied;
 }

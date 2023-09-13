@@ -21,9 +21,7 @@ import ai.langstream.deployer.k8s.api.crds.apps.ApplicationStatus;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.controllers.BaseController;
 import ai.langstream.deployer.k8s.controllers.InfiniteRetry;
-import ai.langstream.deployer.k8s.util.JSONComparator;
 import ai.langstream.deployer.k8s.util.KubeUtil;
-import ai.langstream.deployer.k8s.util.SpecDiffer;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -145,19 +143,5 @@ public class AppController extends BaseController<ApplicationCustomResource>
                         .build();
         final Job job = AppResourcesFactory.generateJob(params);
         KubeUtil.patchJob(client, job);
-    }
-
-    protected boolean areSpecChanged(ApplicationCustomResource cr) {
-        final String lastApplied = cr.getStatus().getLastApplied();
-        if (lastApplied == null) {
-            return true;
-        }
-        final JSONComparator.Result diff = SpecDiffer.generateDiff(lastApplied, cr.getSpec());
-        if (!diff.areEquals()) {
-            log.infof("Spec changed for %s", cr.getMetadata().getName());
-            SpecDiffer.logDetailedSpecDiff(diff);
-            return true;
-        }
-        return false;
     }
 }

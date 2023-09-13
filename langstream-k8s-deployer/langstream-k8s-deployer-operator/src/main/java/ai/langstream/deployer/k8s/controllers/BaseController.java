@@ -18,7 +18,9 @@ package ai.langstream.deployer.k8s.controllers;
 import ai.langstream.deployer.k8s.ResolvedDeployerConfiguration;
 import ai.langstream.deployer.k8s.TenantLimitsChecker;
 import ai.langstream.deployer.k8s.api.crds.BaseStatus;
+import ai.langstream.deployer.k8s.util.JSONComparator;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
+import ai.langstream.deployer.k8s.util.SpecDiffer;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
@@ -76,7 +78,7 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
             lastApplied = SerializationUtil.writeAsJson(resource.getSpec());
             baseStatus.setLastApplied(lastApplied);
             log.infof(
-                    "Reconcilied application %s, reschedule: %s, status: %s",
+                    "Reconciled application %s, reschedule: %s, status: %s",
                     resource.getMetadata().getName(),
                     String.valueOf(result.getScheduleDelay().isPresent()),
                     resource.getStatus());
@@ -90,5 +92,19 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
             result = UpdateControl.updateStatus(resource).rescheduleAfter(5, TimeUnit.SECONDS);
         }
         return result;
+    }
+
+    protected static boolean areSpecChanged(CustomResource<?, ? extends BaseStatus> cr) {
+        final String lastApplied = cr.getStatus().getLastApplied();
+        if (lastApplied == null) {
+            return true;
+        }
+        final JSONComparator.Result diff = SpecDiffer.generateDiff(lastApplied, cr.getSpec());
+        if (!diff.areEquals()) {
+            log.infof("Spec changed for %s", cr.getMetadata().getName());
+            SpecDiffer.logDetailedSpecDiff(diff);
+            return true;
+        }
+        return false;
     }
 }

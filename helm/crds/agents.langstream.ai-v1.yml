@@ -45,6 +45,8 @@ spec:
             type: object
           status:
             properties:
+              lastConfigApplied:
+                type: string
               status:
                 properties:
                   status:

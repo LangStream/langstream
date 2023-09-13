@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s;
 
 import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
+import ai.langstream.deployer.k8s.util.SerializationUtil;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,8 +27,10 @@ import jakarta.inject.Singleton;
 import java.util.Map;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import lombok.extern.jbosslog.JBossLog;
 
 @Singleton
+@JBossLog
 public class ResolvedDeployerConfiguration {
 
     private static final ObjectMapper yamlMapper =
@@ -65,6 +68,7 @@ public class ResolvedDeployerConfiguration {
         this.globalStorageConfiguration =
                 yamlMapper.readValue(
                         configuration.globalStorage(), GlobalStorageConfiguration.class);
+        log.infof("Deployer configuration: %s", SerializationUtil.writeAsJson(this));
     }
 
     @Getter private Map<String, Object> clusterRuntime;

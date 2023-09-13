@@ -249,6 +249,14 @@ public class KubeTestServer
                                 .formatted(namespace, tenant))
                 .andReply(HttpURLConnection.HTTP_OK, recordedRequest -> null)
                 .always();
+
+        server.expect()
+                .patch()
+                .withPath(
+                        "/api/v1/namespaces/%s/serviceaccounts/runtime-%s?fieldManager=fabric8"
+                                .formatted(namespace, tenant))
+                .andReply(HttpURLConnection.HTTP_OK, recordedRequest -> null)
+                .always();
         server.expect()
                 .patch()
                 .withPath(

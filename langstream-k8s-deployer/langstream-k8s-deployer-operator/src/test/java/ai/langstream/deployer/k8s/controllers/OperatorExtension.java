@@ -15,6 +15,9 @@
  */
 package ai.langstream.deployer.k8s.controllers;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import ai.langstream.deployer.k8s.LeaderElectionConfig;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.exception.ExecutionException;
@@ -25,6 +28,7 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -38,6 +42,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PortForwardingContainer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.images.builder.Transferable;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.utility.DockerImageName;
 
 public class OperatorExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
@@ -106,6 +111,18 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback, B
         container.withLogConsumer(
                 outputFrame -> System.out.print("operator>" + outputFrame.getUtf8String()));
         container.start();
+        Awaitility.await()
+                .atMost(Duration.ofMinutes(1))
+                .untilAsserted(
+                        () -> {
+                            assertNotNull(
+                                    client.leases()
+                                            .inNamespace("default")
+                                            .withName(LeaderElectionConfig.LEASE_NAME)
+                                            .get()
+                                            .getSpec()
+                                            .getHolderIdentity());
+                        });
     }
 
     @SneakyThrows

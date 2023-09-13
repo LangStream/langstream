@@ -15,6 +15,7 @@
  */
 package ai.langstream.runtime.tester;
 
+import ai.langstream.apigateway.LangStreamApiGateway;
 import ai.langstream.impl.parser.ModelBuilder;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +27,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Main {
     public static void main(String... args) {
+
+        Thread thread =
+                new Thread(
+                        () -> {
+                            LangStreamApiGateway.main(args);
+                        });
+        thread.setDaemon(true);
+        thread.start();
+
         try {
             String applicationPath = "/code/application";
             String instanceFile = "/code/instance.yaml";
@@ -90,6 +100,7 @@ public class Main {
                     runner.executeAgentRunners(applicationRuntime);
                 }
             }
+
         } catch (Throwable error) {
             error.printStackTrace();
         }

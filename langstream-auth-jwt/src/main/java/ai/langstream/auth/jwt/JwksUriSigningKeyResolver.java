@@ -59,13 +59,15 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
     private final LocalKubernetesJwksUriSigningKeyResolver localKubernetesJwksUriSigningKeyResolver;
     private Map<JwksUriCacheKey, Key> keyMap = new ConcurrentHashMap<>();
 
-
     public JwksUriSigningKeyResolver(String algorithm, String hostsAllowlist, Key fallbackKey) {
         this(algorithm, hostsAllowlist, fallbackKey, null);
     }
 
-    public JwksUriSigningKeyResolver(String algorithm, String hostsAllowlist, Key fallbackKey,
-                                     LocalKubernetesJwksUriSigningKeyResolver localKubernetesJwksUriSigningKeyResolver) {
+    public JwksUriSigningKeyResolver(
+            String algorithm,
+            String hostsAllowlist,
+            Key fallbackKey,
+            LocalKubernetesJwksUriSigningKeyResolver localKubernetesJwksUriSigningKeyResolver) {
         this.algorithm = algorithm;
         if (StringUtils.isBlank(hostsAllowlist)) {
             this.hostsAllowlist = null;
@@ -82,9 +84,9 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
             this.localKubernetesJwksUriSigningKeyResolver =
                     new LocalKubernetesJwksUriSigningKeyResolver(httpClient);
         } else {
-            this.localKubernetesJwksUriSigningKeyResolver = localKubernetesJwksUriSigningKeyResolver;
+            this.localKubernetesJwksUriSigningKeyResolver =
+                    localKubernetesJwksUriSigningKeyResolver;
         }
-
     }
 
     @Override
@@ -147,7 +149,8 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
                     KeyFactory keyFactory = KeyFactory.getInstance("RSA");
                     return keyFactory.generatePublic(rsaPublicKeySpec);
                 } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                    throw new JwtException("Failed to parse public key '" + key.kid() + "' from " + jwksUri.uri());
+                    throw new JwtException(
+                            "Failed to parse public key '" + key.kid() + "' from " + jwksUri.uri());
                 }
             }
             throw new JwtException(

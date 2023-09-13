@@ -58,5 +58,4 @@ public class CRDConstants {
     public static String computeRuntimeServiceAccountForTenant(final String tenant) {
         return "runtime-" + tenant;
     }
-
 }

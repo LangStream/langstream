@@ -18,7 +18,6 @@ package ai.langstream.impl.storage.k8s.apps;
 import static ai.langstream.impl.storage.k8s.apps.KubernetesApplicationStore.encodeSecret;
 
 import ai.langstream.deployer.k8s.CRDConstants;
-import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;

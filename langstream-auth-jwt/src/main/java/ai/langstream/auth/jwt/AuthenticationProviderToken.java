@@ -65,19 +65,18 @@ public class AuthenticationProviderToken {
         this(tokenProperties, null);
     }
 
-    public AuthenticationProviderToken(JwtProperties tokenProperties, SigningKeyResolver signingKeyResolver)
+    public AuthenticationProviderToken(
+            JwtProperties tokenProperties, SigningKeyResolver signingKeyResolver)
             throws IOException, IllegalArgumentException {
         if (signingKeyResolver == null) {
             final SignatureAlgorithm publicKeyAlgType = getPublicKeyAlgType(tokenProperties);
-            signingKeyResolver = new JwksUriSigningKeyResolver(
-                    publicKeyAlgType.getValue(),
-                    tokenProperties.jwksHostsAllowlist(),
-                    getValidationKeyFromConfig(tokenProperties, publicKeyAlgType));
+            signingKeyResolver =
+                    new JwksUriSigningKeyResolver(
+                            publicKeyAlgType.getValue(),
+                            tokenProperties.jwksHostsAllowlist(),
+                            getValidationKeyFromConfig(tokenProperties, publicKeyAlgType));
         }
-        parser =
-                Jwts.parserBuilder()
-                        .setSigningKeyResolver(signingKeyResolver)
-                        .build();
+        parser = Jwts.parserBuilder().setSigningKeyResolver(signingKeyResolver).build();
         this.roleClaim = getTokenRoleClaim(tokenProperties);
         this.audienceClaim = getTokenAudienceClaim(tokenProperties);
         this.audience = getTokenAudience(tokenProperties);
@@ -175,7 +174,8 @@ public class AuthenticationProviderToken {
         return null;
     }
 
-    private static Key getValidationKeyFromConfig(JwtProperties tokenProperties, SignatureAlgorithm algType) throws IOException {
+    private static Key getValidationKeyFromConfig(
+            JwtProperties tokenProperties, SignatureAlgorithm algType) throws IOException {
         String tokenSecretKey = tokenProperties.secretKey();
         String tokenPublicKey = tokenProperties.publicKey();
         byte[] validationKey;

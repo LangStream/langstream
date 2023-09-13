@@ -152,7 +152,8 @@ class AgentCustomResourceTest {
                 .resource(
                         new ServiceAccountBuilder()
                                 .withNewMetadata()
-                                .withName(CRDConstants.computeRuntimeServiceAccountForTenant(tenant))
+                                .withName(
+                                        CRDConstants.computeRuntimeServiceAccountForTenant(tenant))
                                 .endMetadata()
                                 .build())
                 .inNamespace(namespace)

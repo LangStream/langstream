@@ -18,6 +18,8 @@ name: "Crawl a website"
 topics:
   - name: "chunks-topic"
     creation-mode: create-if-not-exists
+resources:
+      size: 2
 pipeline:
   - name: "Crawl the WebSite"
     type: "webcrawler-source"

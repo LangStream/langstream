@@ -41,6 +41,8 @@ if [ "$only_image" == "control-plane" ]; then
   build_docker_image langstream-webservice
 elif [ "$only_image" == "operator" ] || [ "$only_image" == "deployer" ]; then
   build_docker_image langstream-k8s-deployer/langstream-k8s-deployer-operator
+elif [ "$only_image" == "runtime-base-docker-image" ]; then
+  build_docker_image langstream-runtime/langstream-runtime-base-docker-image
 elif [ "$only_image" == "runtime" ]; then
   build_docker_image langstream-runtime/langstream-runtime-impl
 elif [ "$only_image" == "runtime-tester" ]; then

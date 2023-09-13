@@ -81,6 +81,7 @@ jobs:
       - name: 'Test: Runtime (Integration Tests)'
         if: ${{ matrix.name == 'Runtime IT' }}
         run: |
+          ./mvnw package -pl ":langstream-runtime-base-docker-image" -Pdocker -DskipTests -PskipPython
           ./mvnw package -pl ":langstream-runtime-impl" -Pdocker -DskipTests -PskipPython
           ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython
 

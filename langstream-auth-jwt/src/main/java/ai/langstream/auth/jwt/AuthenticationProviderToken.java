@@ -22,6 +22,7 @@ import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.RequiredTypeException;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.SigningKeyResolver;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
@@ -54,21 +55,28 @@ public class AuthenticationProviderToken {
 
     private final JwtParser parser;
     private final String roleClaim;
-    private final SignatureAlgorithm publicKeyAlg;
     private final String audienceClaim;
     private final String audience;
+    private final boolean allowK8sServiceAccountAuth;
+    private final String k8sNamespacePrefix;
 
     public AuthenticationProviderToken(JwtProperties tokenProperties)
             throws IOException, IllegalArgumentException {
-        this.publicKeyAlg = getPublicKeyAlgType(tokenProperties);
-        parser =
-                Jwts.parserBuilder()
-                        .setSigningKeyResolver(
-                                new JwksUriSigningKeyResolver(
-                                        publicKeyAlg.getValue(),
-                                        tokenProperties.jwksHostsAllowlist(),
-                                        getValidationKeyFromConfig(tokenProperties)))
-                        .build();
+        this(tokenProperties, null);
+    }
+
+    public AuthenticationProviderToken(
+            JwtProperties tokenProperties, SigningKeyResolver signingKeyResolver)
+            throws IOException, IllegalArgumentException {
+        if (signingKeyResolver == null) {
+            final SignatureAlgorithm publicKeyAlgType = getPublicKeyAlgType(tokenProperties);
+            signingKeyResolver =
+                    new JwksUriSigningKeyResolver(
+                            publicKeyAlgType.getValue(),
+                            tokenProperties.jwksHostsAllowlist(),
+                            getValidationKeyFromConfig(tokenProperties, publicKeyAlgType));
+        }
+        parser = Jwts.parserBuilder().setSigningKeyResolver(signingKeyResolver).build();
         this.roleClaim = getTokenRoleClaim(tokenProperties);
         this.audienceClaim = getTokenAudienceClaim(tokenProperties);
         this.audience = getTokenAudience(tokenProperties);
@@ -79,11 +87,17 @@ public class AuthenticationProviderToken {
                             + this.audienceClaim
                             + "] configured, but Audience stands for this broker not.");
         }
+        this.allowK8sServiceAccountAuth = tokenProperties.allowKubernetesServiceAccounts();
+        this.k8sNamespacePrefix = tokenProperties.kubernetesNamespacePrefix();
     }
 
     public String authenticate(String token) throws AuthenticationException {
         final Jwt<?, Claims> jwt = authenticateToken(token);
-        return getPrincipal(jwt);
+        final String principal = getPrincipal(jwt);
+        if (principal == null) {
+            throw new AuthenticationException("Token was valid, however no principal found.");
+        }
+        return principal;
     }
 
     private Jwt<?, Claims> authenticateToken(final String token) throws AuthenticationException {
@@ -132,14 +146,9 @@ public class AuthenticationProviderToken {
         final Claims body = jwt.getBody();
         try {
             log.debug("Token body: {}", body);
-            if (body.containsKey("kubernetes.io")) {
-                final Map map = body.get("kubernetes.io", Map.class);
-                if (map.containsKey("serviceaccount")) {
-                    final Map serviceAccount = (Map) map.get("serviceaccount");
-                    if (serviceAccount.containsKey("name")) {
-                        return (String) serviceAccount.get("name");
-                    }
-                }
+            String principal = getPrincipalFromKubernetesClaim(body);
+            if (principal != null) {
+                return principal;
             }
             return body.get(this.roleClaim, String.class);
         } catch (RequiredTypeException var4) {
@@ -150,7 +159,23 @@ public class AuthenticationProviderToken {
         }
     }
 
-    private Key getValidationKeyFromConfig(JwtProperties tokenProperties) throws IOException {
+    private String getPrincipalFromKubernetesClaim(Claims body) {
+        if (allowK8sServiceAccountAuth && body.containsKey("kubernetes.io")) {
+            final Map map = body.get("kubernetes.io", Map.class);
+            if (map.containsKey("namespace")) {
+                final String namespace = (String) map.get("namespace");
+                if (namespace != null) {
+                    if (namespace.startsWith(k8sNamespacePrefix)) {
+                        return namespace.substring(k8sNamespacePrefix.length());
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Key getValidationKeyFromConfig(
+            JwtProperties tokenProperties, SignatureAlgorithm algType) throws IOException {
         String tokenSecretKey = tokenProperties.secretKey();
         String tokenPublicKey = tokenProperties.publicKey();
         byte[] validationKey;
@@ -159,7 +184,7 @@ public class AuthenticationProviderToken {
             return decodeSecretKey(validationKey);
         } else if (StringUtils.isNotBlank(tokenPublicKey)) {
             validationKey = readKeyFromUrl(tokenPublicKey);
-            return decodePublicKey(validationKey, this.publicKeyAlg);
+            return decodePublicKey(validationKey, algType);
         }
         return null;
     }

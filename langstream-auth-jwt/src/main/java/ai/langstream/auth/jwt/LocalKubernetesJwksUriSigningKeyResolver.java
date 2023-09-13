@@ -31,22 +31,36 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LocalKubernetesJwksUriSigningKeyResolver {
 
+    public static final String DEFAULT_TOKEN_PATH =
+            "/var/run/secrets/kubernetes.io/serviceaccount/token";
+    public static final String DEFAULT_K8S_BASE_URL =
+            "https://kubernetes.default.svc.cluster.local";
     private final HttpClient httpClient;
     private final String token;
     private final String localK8sIssuer;
     private final Map<String, JwksUriSigningKeyResolver.JwksUri> cache = new ConcurrentHashMap<>();
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    public LocalKubernetesJwksUriSigningKeyResolver(HttpClient httpClient) {
+    public LocalKubernetesJwksUriSigningKeyResolver(
+            HttpClient httpClient, String tokenPath, String localIssuerBaseUrl) {
         this.httpClient = httpClient;
-        token = loadToken();
-        localK8sIssuer = loadLocalIssuer();
+        token = loadToken(tokenPath);
+        localK8sIssuer = loadLocalIssuer(localIssuerBaseUrl);
         log.info("Loaded local Kubernetes issuer: {}", localK8sIssuer);
     }
 
+    public LocalKubernetesJwksUriSigningKeyResolver(HttpClient httpClient) {
+        this(httpClient, DEFAULT_TOKEN_PATH, DEFAULT_K8S_BASE_URL);
+    }
+
     @SneakyThrows
-    private String loadToken() {
-        final Path defaultPath = Path.of("/var/run/secrets/kubernetes.io/serviceaccount/token");
+    private static String loadToken(String path) {
+        if (path == null) {
+            log.info(
+                    "No token path specified. Kubernetes Service account authentication might not work.");
+            return null;
+        }
+        final Path defaultPath = Path.of(path);
         if (Files.isRegularFile(defaultPath)) {
             log.info("Loading token from {}", defaultPath);
             return Files.readString(defaultPath);
@@ -59,9 +73,13 @@ public class LocalKubernetesJwksUriSigningKeyResolver {
     }
 
     @SneakyThrows
-    private String loadLocalIssuer() {
-        final String endpoint =
-                composeWellKnownEndpoint("https://kubernetes.default.svc.cluster.local");
+    private String loadLocalIssuer(String baseUrl) {
+        if (baseUrl == null) {
+            log.info(
+                    "Base url not configured for local Kubernetes API. It's ok if not running in a kubernetes pod.");
+            return null;
+        }
+        final String endpoint = composeWellKnownEndpoint(baseUrl);
         final Map<String, ?> response;
         try {
             response = getResponseFromWellKnownOpenIdConfiguration(endpoint);

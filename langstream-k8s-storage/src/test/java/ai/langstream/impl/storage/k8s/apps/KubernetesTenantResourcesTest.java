@@ -54,13 +54,19 @@ class KubernetesTenantResourcesTest {
 
     private void assertResources(String tenant, String namespace) {
         assertNotNull(k3s.getClient().namespaces().withName(namespace).get());
-        final ServiceAccount serviceAccount =
+        Assertions.assertNotNull(
                 k3s.getClient()
                         .resources(ServiceAccount.class)
                         .inNamespace(namespace)
                         .withName(tenant)
-                        .get();
-        Assertions.assertNotNull(serviceAccount);
+                        .get());
+
+        Assertions.assertNotNull(
+                k3s.getClient()
+                        .resources(ServiceAccount.class)
+                        .inNamespace(namespace)
+                        .withName("runtime-" + tenant)
+                        .get());
         Assertions.assertEquals(
                 """
                 ---

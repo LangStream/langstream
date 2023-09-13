@@ -311,7 +311,8 @@ public class AgentResourcesFactory {
                                 .withNewEmptyDir()
                                 .endEmptyDir()
                                 .build())
-                .withServiceAccountName(spec.getTenant())
+                .withServiceAccountName(
+                        CRDConstants.computeRuntimeServiceAccountForTenant(spec.getTenant()))
                 .endSpec()
                 .endTemplate()
                 .endSpec()

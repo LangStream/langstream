@@ -53,6 +53,7 @@ public class TenantResources {
         ensureRole();
         ensureRoleBinding();
         ensureClusterConfiguration();
+        ensureServiceAccountRuntime();
     }
 
     @SneakyThrows
@@ -74,6 +75,7 @@ public class TenantResources {
     }
 
     private void ensureRoleBinding() {
+        final String serviceAccount = CRDConstants.computeDeployerServiceAccountForTenant(tenant);
         client.resource(
                         new RoleBindingBuilder()
                                 .withNewMetadata()
@@ -86,7 +88,7 @@ public class TenantResources {
                                 .endRoleRef()
                                 .withSubjects(
                                         new SubjectBuilder()
-                                                .withName(tenant)
+                                                .withName(serviceAccount)
                                                 .withNamespace(namespace)
                                                 .withKind("ServiceAccount")
                                                 .build())
@@ -121,15 +123,29 @@ public class TenantResources {
     }
 
     private void ensureServiceAccount() {
+        final String name = CRDConstants.computeDeployerServiceAccountForTenant(tenant);
         client.resource(
                         new ServiceAccountBuilder()
                                 .withNewMetadata()
-                                .withName(tenant)
+                                .withName(name)
                                 .endMetadata()
                                 .build())
                 .inNamespace(namespace)
                 .serverSideApply();
-        log.info("Service account {} up to date", tenant);
+        log.info("Service account {} up to date", name);
+    }
+
+    private void ensureServiceAccountRuntime() {
+        final String name = CRDConstants.computeRuntimeServiceAccountForTenant(tenant);
+        client.resource(
+                        new ServiceAccountBuilder()
+                                .withNewMetadata()
+                                .withName(name)
+                                .endMetadata()
+                                .build())
+                .inNamespace(namespace)
+                .serverSideApply();
+        log.info("Service account {} up to date", name);
     }
 
     private void ensureNamespace() {

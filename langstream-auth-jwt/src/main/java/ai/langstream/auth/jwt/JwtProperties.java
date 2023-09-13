@@ -22,4 +22,6 @@ public record JwtProperties(
         String publicAlg,
         String audienceClaim,
         String audience,
-        String jwksHostsAllowlist) {}
+        String jwksHostsAllowlist,
+        boolean allowKubernetesServiceAccounts,
+        String kubernetesNamespacePrefix) {}

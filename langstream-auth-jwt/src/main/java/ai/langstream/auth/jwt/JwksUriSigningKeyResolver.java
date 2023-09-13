@@ -15,6 +15,7 @@
  */
 package ai.langstream.auth.jwt;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
@@ -59,6 +60,14 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
     private Map<JwksUriCacheKey, Key> keyMap = new ConcurrentHashMap<>();
 
     public JwksUriSigningKeyResolver(String algorithm, String hostsAllowlist, Key fallbackKey) {
+        this(algorithm, hostsAllowlist, fallbackKey, null);
+    }
+
+    public JwksUriSigningKeyResolver(
+            String algorithm,
+            String hostsAllowlist,
+            Key fallbackKey,
+            LocalKubernetesJwksUriSigningKeyResolver localKubernetesJwksUriSigningKeyResolver) {
         this.algorithm = algorithm;
         if (StringUtils.isBlank(hostsAllowlist)) {
             this.hostsAllowlist = null;
@@ -71,8 +80,13 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
                         .connectTimeout(Duration.ofSeconds(30))
                         .followRedirects(HttpClient.Redirect.ALWAYS)
                         .build();
-        this.localKubernetesJwksUriSigningKeyResolver =
-                new LocalKubernetesJwksUriSigningKeyResolver(httpClient);
+        if (localKubernetesJwksUriSigningKeyResolver == null) {
+            this.localKubernetesJwksUriSigningKeyResolver =
+                    new LocalKubernetesJwksUriSigningKeyResolver(httpClient);
+        } else {
+            this.localKubernetesJwksUriSigningKeyResolver =
+                    localKubernetesJwksUriSigningKeyResolver;
+        }
     }
 
     @Override
@@ -135,7 +149,8 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
                     KeyFactory keyFactory = KeyFactory.getInstance("RSA");
                     return keyFactory.generatePublic(rsaPublicKeySpec);
                 } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                    throw new IllegalStateException("Failed to parse public key");
+                    throw new JwtException(
+                            "Failed to parse public key '" + key.kid() + "' from " + jwksUri.uri());
                 }
             }
             throw new JwtException(
@@ -166,7 +181,7 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
                                     + " "
                                     + responseWithToken.body());
                 } else {
-                    body = httpResponse.body();
+                    body = responseWithToken.body();
                 }
             } else {
                 log.warn(
@@ -185,7 +200,12 @@ public class JwksUriSigningKeyResolver implements SigningKeyResolver {
         } else {
             body = httpResponse.body();
         }
-        return MAPPER.readValue(body, JwkKeys.class);
+        try {
+            return MAPPER.readValue(body, JwkKeys.class);
+        } catch (JsonProcessingException ex) {
+            log.warn("Failed to parse keys from URL: {}, got {}", jwksUri.uri(), body, ex);
+            throw ex;
+        }
     }
 
     private HttpResponse<String> sendGetKeysRequest(JwksUri jwksUri, boolean useToken)

@@ -15,7 +15,7 @@
  */
 package ai.langstream.deployer.k8s.controllers;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.deployer.k8s.LeaderElectionConfig;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -45,6 +46,7 @@ import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.utility.DockerImageName;
 
+@Slf4j
 public class OperatorExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
 
     GenericContainer<?> container;
@@ -111,17 +113,22 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback, B
         container.withLogConsumer(
                 outputFrame -> System.out.print("operator>" + outputFrame.getUtf8String()));
         container.start();
+        final String containerIdentity = container.getContainerId().substring(0, 12);
         Awaitility.await()
                 .atMost(Duration.ofMinutes(1))
+                .pollInterval(Duration.ofSeconds(5))
                 .untilAsserted(
                         () -> {
-                            assertNotNull(
+                            final String identity =
                                     client.leases()
                                             .inNamespace("default")
                                             .withName(LeaderElectionConfig.LEASE_NAME)
                                             .get()
                                             .getSpec()
-                                            .getHolderIdentity());
+                                            .getHolderIdentity();
+                            log.info(
+                                    "found identity: {} expected: {}", identity, containerIdentity);
+                            assertEquals(containerIdentity, identity);
                         });
     }
 

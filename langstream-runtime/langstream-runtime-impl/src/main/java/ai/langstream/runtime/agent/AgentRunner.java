@@ -55,6 +55,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.prometheus.client.hotspot.DefaultExports;
 import jakarta.servlet.Servlet;
 import java.io.IOException;
+import java.lang.management.BufferPoolMXBean;
+import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -69,6 +71,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -285,151 +291,172 @@ public class AgentRunner {
             Runnable beforeStopSource)
             throws Exception {
 
-        topicConnectionsRuntime.init(configuration.streamingCluster());
+        ScheduledExecutorService statsScheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
 
-        // this is closed by the TopicSource
-        final TopicConsumer consumer;
-        TopicProducer deadLetterProducer = null;
-        if (configuration.input() != null && !configuration.input().isEmpty()) {
-            consumer =
-                    topicConnectionsRuntime.createConsumer(
-                            agentId, configuration.streamingCluster(), configuration.input());
-            deadLetterProducer =
-                    topicConnectionsRuntime.createDeadletterTopicProducer(
-                            agentId, configuration.streamingCluster(), configuration.input());
-        } else {
-            consumer = new NoopTopicConsumer();
-        }
+            topicConnectionsRuntime.init(configuration.streamingCluster());
 
-        if (deadLetterProducer == null) {
-            deadLetterProducer = new NoopTopicProducer();
-        }
-
-        // this is closed by the TopicSink
-        final TopicProducer producer;
-        if (configuration.output() != null && !configuration.output().isEmpty()) {
-            producer =
-                    topicConnectionsRuntime.createProducer(
-                            agentId, configuration.streamingCluster(), configuration.output());
-        } else {
-            producer = new NoopTopicProducer();
-        }
-
-        ErrorsHandler errorsHandler =
-                new StandardErrorsHandler(configuration.agent().errorHandlerConfiguration());
-
-        try (TopicAdmin topicAdmin =
-                topicConnectionsRuntime.createTopicAdmin(
-                        agentId, configuration.streamingCluster(), configuration.output())) {
-            AgentProcessor mainProcessor;
-            if (agentCodeWithLoader.isProcessor()) {
-                mainProcessor = agentCodeWithLoader.asProcessor();
+            // this is closed by the TopicSource
+            final TopicConsumer consumer;
+            TopicProducer deadLetterProducer = null;
+            if (configuration.input() != null && !configuration.input().isEmpty()) {
+                consumer =
+                        topicConnectionsRuntime.createConsumer(
+                                agentId, configuration.streamingCluster(), configuration.input());
+                deadLetterProducer =
+                        topicConnectionsRuntime.createDeadletterTopicProducer(
+                                agentId, configuration.streamingCluster(), configuration.input());
             } else {
-                mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
-                mainProcessor.setMetadata("identity", "identity", System.currentTimeMillis());
-            }
-            agentInfo.watchProcessor(mainProcessor);
-
-            AgentSource source = null;
-            if (agentCodeWithLoader.isSource()) {
-                source = agentCodeWithLoader.asSource();
-            } else if (agentCodeWithLoader.is(code -> code instanceof CompositeAgentProcessor)) {
-                source = ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSource();
+                consumer = new NoopTopicConsumer();
             }
 
-            if (source == null) {
-                source = new TopicConsumerSource(consumer, deadLetterProducer);
-                source.setMetadata("topic-source", "topic-source", System.currentTimeMillis());
-                source.init(Map.of());
+            if (deadLetterProducer == null) {
+                deadLetterProducer = new NoopTopicProducer();
             }
-            agentInfo.watchSource(source);
 
-            AgentSink sink = null;
-            if (agentCodeWithLoader.isSink()) {
-                sink = agentCodeWithLoader.asSink();
-            } else if (agentCodeWithLoader.is(code -> code instanceof CompositeAgentProcessor)) {
-                sink = ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSink();
+            // this is closed by the TopicSink
+            final TopicProducer producer;
+            if (configuration.output() != null && !configuration.output().isEmpty()) {
+                producer =
+                        topicConnectionsRuntime.createProducer(
+                                agentId, configuration.streamingCluster(), configuration.output());
+            } else {
+                producer = new NoopTopicProducer();
             }
-            if (sink == null) {
-                sink = new TopicProducerSink(producer);
-                sink.setMetadata("topic-sink", "topic-sink", System.currentTimeMillis());
-                sink.init(Map.of());
-            }
-            agentInfo.watchSink(sink);
 
-            String onBadRecord =
-                    configuration
-                            .agent()
-                            .errorHandlerConfiguration()
-                            .getOrDefault("onFailure", FAIL)
-                            .toString();
-            final BadRecordHandler brh = getBadRecordHandler(onBadRecord, deadLetterProducer);
+            ErrorsHandler errorsHandler =
+                    new StandardErrorsHandler(configuration.agent().errorHandlerConfiguration());
 
-            try {
-                topicAdmin.start();
-                AgentContext agentContext =
-                        new SimpleAgentContext(
-                                agentId,
-                                consumer,
-                                producer,
-                                topicAdmin,
-                                brh,
-                                new TopicConnectionProvider() {
-                                    @Override
-                                    public TopicConsumer createConsumer(
-                                            String agentId, Map<String, Object> config) {
-                                        return topicConnectionsRuntime.createConsumer(
-                                                agentId, configuration.streamingCluster(), config);
-                                    }
+            try (TopicAdmin topicAdmin =
+                    topicConnectionsRuntime.createTopicAdmin(
+                            agentId, configuration.streamingCluster(), configuration.output())) {
+                AgentProcessor mainProcessor;
+                if (agentCodeWithLoader.isProcessor()) {
+                    mainProcessor = agentCodeWithLoader.asProcessor();
+                } else {
+                    mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
+                    mainProcessor.setMetadata("identity", "identity", System.currentTimeMillis());
+                }
+                agentInfo.watchProcessor(mainProcessor);
 
-                                    @Override
-                                    public TopicProducer createProducer(
-                                            String agentId, Map<String, Object> config) {
-                                        return topicConnectionsRuntime.createProducer(
-                                                agentId, configuration.streamingCluster(), config);
-                                    }
-                                });
-                log.info("Source: {}", source);
-                log.info("Processor: {}", mainProcessor);
-                log.info("Sink: {}", sink);
-                PendingRecordsCounterSource pendingRecordsCounterSource =
-                        new PendingRecordsCounterSource(source);
-                runMainLoop(
-                        pendingRecordsCounterSource,
-                        mainProcessor,
-                        sink,
-                        agentContext,
-                        errorsHandler,
-                        continueLoop);
-
-                pendingRecordsCounterSource.waitForNoPendingRecords();
-
-                log.info("Main loop ended");
-
-            } finally {
-                mainProcessor.close();
-
-                if (beforeStopSource != null) {
-                    // we want to perform validations after stopping the processors
-                    // but without stopping the source (otherwise we cannot see the status of the
-                    // consumers)
-                    beforeStopSource.run();
+                AgentSource source = null;
+                if (agentCodeWithLoader.isSource()) {
+                    source = agentCodeWithLoader.asSource();
+                } else if (agentCodeWithLoader.is(
+                        code -> code instanceof CompositeAgentProcessor)) {
+                    source =
+                            ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSource();
                 }
 
-                source.close();
-                sink.close();
+                if (source == null) {
+                    source = new TopicConsumerSource(consumer, deadLetterProducer);
+                    source.setMetadata("topic-source", "topic-source", System.currentTimeMillis());
+                    source.init(Map.of());
+                }
+                agentInfo.watchSource(source);
 
-                log.info("Agent fully stopped");
+                AgentSink sink = null;
+                if (agentCodeWithLoader.isSink()) {
+                    sink = agentCodeWithLoader.asSink();
+                } else if (agentCodeWithLoader.is(
+                        code -> code instanceof CompositeAgentProcessor)) {
+                    sink = ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSink();
+                }
+                if (sink == null) {
+                    sink = new TopicProducerSink(producer);
+                    sink.setMetadata("topic-sink", "topic-sink", System.currentTimeMillis());
+                    sink.init(Map.of());
+                }
+                agentInfo.watchSink(sink);
+
+                String onBadRecord =
+                        configuration
+                                .agent()
+                                .errorHandlerConfiguration()
+                                .getOrDefault("onFailure", FAIL)
+                                .toString();
+                final BadRecordHandler brh = getBadRecordHandler(onBadRecord, deadLetterProducer);
+
+                try {
+                    topicAdmin.start();
+                    AgentContext agentContext =
+                            new SimpleAgentContext(
+                                    agentId,
+                                    consumer,
+                                    producer,
+                                    topicAdmin,
+                                    brh,
+                                    new TopicConnectionProvider() {
+                                        @Override
+                                        public TopicConsumer createConsumer(
+                                                String agentId, Map<String, Object> config) {
+                                            return topicConnectionsRuntime.createConsumer(
+                                                    agentId,
+                                                    configuration.streamingCluster(),
+                                                    config);
+                                        }
+
+                                        @Override
+                                        public TopicProducer createProducer(
+                                                String agentId, Map<String, Object> config) {
+                                            return topicConnectionsRuntime.createProducer(
+                                                    agentId,
+                                                    configuration.streamingCluster(),
+                                                    config);
+                                        }
+                                    });
+                    log.info("Source: {}", source);
+                    log.info("Processor: {}", mainProcessor);
+                    log.info("Sink: {}", sink);
+                    PendingRecordsCounterSource pendingRecordsCounterSource =
+                            new PendingRecordsCounterSource(source, sink.handlesCommit());
+
+                    statsScheduler.scheduleAtFixedRate(
+                            pendingRecordsCounterSource::dumpStats, 5, 5, TimeUnit.SECONDS);
+
+                    runMainLoop(
+                            pendingRecordsCounterSource,
+                            mainProcessor,
+                            sink,
+                            agentContext,
+                            errorsHandler,
+                            continueLoop);
+
+                    pendingRecordsCounterSource.waitForNoPendingRecords();
+
+                    log.info("Main loop ended");
+
+                } finally {
+                    mainProcessor.close();
+
+                    if (beforeStopSource != null) {
+                        // we want to perform validations after stopping the processors
+                        // but without stopping the source (otherwise we cannot see the status of
+                        // the
+                        // consumers)
+                        beforeStopSource.run();
+                    }
+
+                    source.close();
+                    sink.close();
+
+                    log.info("Agent fully stopped");
+                }
             }
+        } finally {
+            statsScheduler.shutdown();
         }
     }
 
     private static final class PendingRecordsCounterSource implements AgentSource {
         private final AgentSource wrapped;
         private final Set<Record> pendingRecords = ConcurrentHashMap.newKeySet();
+        private final AtomicLong totalSourceRecords = new AtomicLong();
+        private final boolean sinkHandlesCommits;
 
-        public PendingRecordsCounterSource(AgentSource wrapped) {
+        public PendingRecordsCounterSource(AgentSource wrapped, boolean sinkHandlesCommits) {
             this.wrapped = wrapped;
+            this.sinkHandlesCommits = sinkHandlesCommits;
         }
 
         @Override
@@ -476,7 +503,13 @@ public class AgentRunner {
         public List<Record> read() throws Exception {
             List<Record> read = wrapped.read();
             if (read != null) {
-                pendingRecords.addAll(read);
+                totalSourceRecords.addAndGet(read.size());
+                if (!sinkHandlesCommits) {
+                    // is the Sink handles the commit (Kafka Connect case)
+                    // then it doesn't notify the Source of the commit,
+                    // so we cannot track this here, otherwise it is a memory leak
+                    pendingRecords.addAll(read);
+                }
             }
             return read;
         }
@@ -540,6 +573,30 @@ public class AgentRunner {
                 // exist the loop on IE
                 Thread.currentThread().interrupt();
             }
+        }
+
+        static final int MB = 1024 * 1024;
+
+        public void dumpStats() {
+            Object currentRecords = sinkHandlesCommits ? "N/A" : pendingRecords.size();
+            Runtime instance = Runtime.getRuntime();
+
+            BufferPoolMXBean directMemory =
+                    ManagementFactory.getPlatformMXBeans(BufferPoolMXBean.class).stream()
+                            .filter(b -> b.getName().contains("direct"))
+                            .findFirst()
+                            .orElse(null);
+
+            log.info(
+                    "Records: total {}, working {}, Memory stats: used {} MB, total {} MB, free {} MB, max {} MB "
+                            + "Direct memory {} MB",
+                    totalSourceRecords.get(),
+                    currentRecords,
+                    (instance.totalMemory() - instance.freeMemory()) / MB,
+                    instance.totalMemory() / MB,
+                    instance.freeMemory() / MB,
+                    instance.maxMemory() / MB,
+                    directMemory != null ? directMemory.getMemoryUsed() / MB : "?");
         }
     }
 

@@ -28,6 +28,7 @@
   <name>LangStream - Pod Runtime</name>
   <modules>
     <module>langstream-runtime-api</module>
+    <module>langstream-runtime-base-docker-image</module>
     <module>langstream-runtime-impl</module>
     <module>langstream-runtime-tester</module>
   </modules>

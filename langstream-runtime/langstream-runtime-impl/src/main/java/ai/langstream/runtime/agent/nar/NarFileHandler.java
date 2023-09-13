@@ -190,7 +190,7 @@ public class NarFileHandler
                 String string = new String(bytes, StandardCharsets.UTF_8);
                 BufferedReader reader = new BufferedReader(new StringReader(string));
                 agents = reader.lines().filter(s -> !s.isBlank() && !s.startsWith("#")).toList();
-                log.info(
+                log.debug(
                         "The file {} contains a static agents index, skipping the unpacking. It is expected that handles these agents: {}",
                         narFile,
                         agents);
@@ -204,7 +204,7 @@ public class NarFileHandler
                 BufferedReader reader = new BufferedReader(new StringReader(string));
                 assetTypes =
                         reader.lines().filter(s -> !s.isBlank() && !s.startsWith("#")).toList();
-                log.info(
+                log.debug(
                         "The file {} contains a static assetTypes index, skipping the unpacking. It is expected that handles these assetTypes: {}",
                         narFile,
                         assetTypes);
@@ -219,7 +219,7 @@ public class NarFileHandler
                 BufferedReader reader = new BufferedReader(new StringReader(string));
                 streamingClusterTypes =
                         reader.lines().filter(s -> !s.isBlank() && !s.startsWith("#")).toList();
-                log.info(
+                log.debug(
                         "The file {} contains a static streamingClusters index, skipping the unpacking. It is expected that handles these streamingClusters: {}",
                         narFile,
                         assetTypes);
@@ -249,14 +249,14 @@ public class NarFileHandler
             if (serviceProviderForAgents == null
                     && serviceProviderForAssets == null
                     && serviceProviderForStreamingClusters == null) {
-                log.info(
+                log.debug(
                         "The file {} does not contain any AgentCodeProvider/AssetManagerProvider/TopicConnectionProvider, skipping the file",
                         narFile);
                 return;
             }
         }
 
-        log.info("The file {} does not contain any indexes, still adding the file", narFile);
+        log.debug("The file {} does not contain any indexes, still adding the file", narFile);
         PackageMetadata metadata = new PackageMetadata(narFile, filename, null, null, null);
         packages.put(filename, metadata);
     }
@@ -271,7 +271,7 @@ public class NarFileHandler
         URLClassLoader classLoader =
                 createClassloaderForPackage(
                         customLibClasspath, packageForAssetType, parentClassloader);
-        log.info("For package {}, classloader {}", packageForAssetType.getName(), classLoader);
+        log.debug("For package {}, classloader {}", packageForAssetType.getName(), classLoader);
         return new AssetManagerRegistry.AssetPackage() {
             @Override
             public ClassLoader getClassloader() {
@@ -295,7 +295,7 @@ public class NarFileHandler
         URLClassLoader classLoader =
                 createClassloaderForPackage(
                         customLibClasspath, packageForStreamingCluster, parentClassloader);
-        log.info(
+        log.debug(
                 "For package {}, classloader {}, parent {}",
                 packageForStreamingCluster.getName(),
                 classLoader,
@@ -323,7 +323,7 @@ public class NarFileHandler
         URLClassLoader classLoader =
                 createClassloaderForPackage(
                         customLibClasspath, packageForAgentType, parentClassloader);
-        log.info(
+        log.debug(
                 "For package {}, classloader {}, parent {}",
                 packageForAgentType.getName(),
                 classLoader,
@@ -396,10 +396,10 @@ public class NarFileHandler
 
         metadata.unpack();
 
-        log.info("Creating classloader for package {}", metadata.name);
+        log.debug("Creating classloader for package {}", metadata.name);
         List<URL> urls = new ArrayList<>();
 
-        log.info("Adding agents code {}", metadata.directory);
+        log.debug("Adding agents code {}", metadata.directory);
         urls.add(metadata.directory.toFile().toURI().toURL());
 
         Path metaInfDirectory = metadata.directory.resolve("META-INF");

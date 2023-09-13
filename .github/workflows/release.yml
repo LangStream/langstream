@@ -49,7 +49,6 @@ jobs:
             docker tag langstream/$image:latest-dev $repo/$image:$docker_tag
             docker push $repo/$image:$docker_tag
           }
-          tag_and_push langstream-runtime-base
           tag_and_push langstream-runtime
           tag_and_push langstream-cli
           tag_and_push langstream-deployer

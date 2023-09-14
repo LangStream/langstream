@@ -118,7 +118,7 @@ public final class ApplicationDeployer implements AutoCloseable {
                     if (!exists) {
                         log.info(
                                 "Asset {}  of type {} needs to be created",
-                                asset.getName(),
+                                asset.getId(),
                                 asset.getAssetType());
                         assetManagerImpl.deployAsset();
                     }

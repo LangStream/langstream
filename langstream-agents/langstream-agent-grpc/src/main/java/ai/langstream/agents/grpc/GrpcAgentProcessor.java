@@ -15,15 +15,14 @@
  */
 package ai.langstream.agents.grpc;
 
-import ai.langstream.agents.grpc.ProcessorGrpc.ProcessorStub;
 import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -32,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Conversions;
 import org.apache.avro.generic.GenericDatumReader;
@@ -46,12 +46,11 @@ import org.apache.avro.io.EncoderFactory;
 public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProcessor {
 
     protected ManagedChannel channel;
-    private ProcessorStub processorStub;
     private StreamObserver<ProcessorRequest> request;
     private RecordSink sink;
 
     // For each record sent, we increment the recordId
-    private final AtomicInteger recordId = new AtomicInteger(0);
+    private final AtomicLong recordId = new AtomicLong(0);
 
     // For each record sent, we store the record and the sink to which the result should be emitted
     private final Map<Long, RecordAndSink> sourceRecords = new ConcurrentHashMap<>();
@@ -66,8 +65,10 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
     private final Map<Integer, Object> serverSchemas = new ConcurrentHashMap<>();
 
     private final StreamObserver<ProcessorResponse> responseObserver = getResponseObserver();
+    private AgentContext agentContext;
 
-    private record RecordAndSink(ai.langstream.api.runner.code.Record sourceRecord, RecordSink sink) {}
+    private record RecordAndSink(
+            ai.langstream.api.runner.code.Record sourceRecord, RecordSink sink) {}
 
     public GrpcAgentProcessor() {}
 
@@ -80,8 +81,12 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
         if (channel == null) {
             throw new IllegalStateException("Channel not initialized");
         }
-        processorStub = ProcessorGrpc.newStub(channel);
-        startRequest();
+        request = ProcessorGrpc.newStub(channel).process(responseObserver);
+    }
+
+    @Override
+    public void setContext(AgentContext context) {
+        this.agentContext = context;
     }
 
     @Override
@@ -89,9 +94,6 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
             List<ai.langstream.api.runner.code.Record> records, RecordSink recordSink) {
         if (sink == null) {
             sink = recordSink;
-        }
-        if (request == null) {
-            startRequest();
         }
 
         Records.Builder recordsBuilder = Records.newBuilder();
@@ -149,54 +151,41 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
         if (value == null) {
             return null;
         }
-        if (value.hasStringValue()) {
-            return value.getStringValue();
-        } else if (value.hasBytesValue()) {
-            return value.getBytesValue().toByteArray();
-        } else if (value.hasBooleanValue()) {
-            return value.getBooleanValue();
-        } else if (value.hasByteValue()) {
-            return (byte) value.getByteValue();
-        } else if (value.hasShortValue()) {
-            return (short) value.getShortValue();
-        } else if (value.hasIntValue()) {
-            return value.getIntValue();
-        } else if (value.hasLongValue()) {
-            return value.getLongValue();
-        } else if (value.hasFloatValue()) {
-            return value.getFloatValue();
-        } else if (value.hasDoubleValue()) {
-            return value.getDoubleValue();
-        } else if (value.hasJsonValue()) {
-            return value.getJsonValue();
-        } else if (value.hasAvroValue()) {
-            Object serverSchema = serverSchemas.get(value.getSchemaId());
-            if (serverSchema instanceof org.apache.avro.Schema schema) {
-                return deserializeGenericRecord(schema, value.getAvroValue().toByteArray());
-            } else {
-                // TODO: received unknown schema. error ?
-                // Do we send an error result or do we fail completely so that the agent is
-                // restarted ?
+        return switch (value.getTypeOneofCase()) {
+            case BYTESVALUE -> value.getBytesValue().toByteArray();
+            case BOOLEANVALUE -> value.getBooleanValue();
+            case STRINGVALUE -> value.getStringValue();
+            case BYTEVALUE -> (byte) value.getByteValue();
+            case SHORTVALUE -> (short) value.getShortValue();
+            case INTVALUE -> value.getIntValue();
+            case LONGVALUE -> value.getLongValue();
+            case FLOATVALUE -> value.getFloatValue();
+            case DOUBLEVALUE -> value.getDoubleValue();
+            case JSONVALUE -> value.getJsonValue();
+            case AVROVALUE -> {
+                Object serverSchema = serverSchemas.get(value.getSchemaId());
+                if (serverSchema instanceof org.apache.avro.Schema schema) {
+                    yield deserializeGenericRecord(schema, value.getAvroValue().toByteArray());
+                } else {
+                    log.error("Unknown schema id {}", value.getSchemaId());
+                    throw new RuntimeException("Unknown schema id " + value.getSchemaId());
+                }
             }
-        }
-        // TODO: error ?
-        return null;
+            case TYPEONEOF_NOT_SET -> null;
+        };
     }
 
     private SourceRecordAndResult fromGrpc(
-            ai.langstream.api.runner.code.Record sourceRecord, ProcessorResult result) {
+            ai.langstream.api.runner.code.Record sourceRecord, ProcessorResult result)
+            throws IOException {
         List<ai.langstream.api.runner.code.Record> resultRecords = new ArrayList<>();
         if (result.hasError()) {
             // TODO: specialize exception ?
             return new SourceRecordAndResult(
                     sourceRecord, null, new RuntimeException(result.getError()));
         }
-        try {
-            for (Record record : result.getRecords().getRecordList()) {
-                resultRecords.add(fromGrpc(record));
-            }
-        } catch (Exception e) {
-            return new SourceRecordAndResult(sourceRecord, null, e);
+        for (Record record : result.getRecords().getRecordList()) {
+            resultRecords.add(fromGrpc(record));
         }
         return new SourceRecordAndResult(sourceRecord, resultRecords, null);
     }
@@ -315,15 +304,29 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
                                         RecordAndSink recordAndSink =
                                                 sourceRecords.remove(result.getRecordId());
                                         if (recordAndSink == null) {
-                                            // TODO ignore or error ?
-                                            log.warn("Unknown record id {}", result.getRecordId());
+                                            agentContext.criticalFailure(
+                                                    new RuntimeException(
+                                                            "Received unknown record id "
+                                                                    + result.getRecordId()));
                                         } else {
-                                            recordAndSink
-                                                    .sink()
-                                                    .emit(
-                                                            fromGrpc(
-                                                                    recordAndSink.sourceRecord(),
-                                                                    result));
+                                            try {
+                                                recordAndSink
+                                                        .sink()
+                                                        .emit(
+                                                                fromGrpc(
+                                                                        recordAndSink
+                                                                                .sourceRecord(),
+                                                                        result));
+                                            } catch (Exception e) {
+                                                agentContext.criticalFailure(
+                                                        new RuntimeException(
+                                                                "Error while processing record %s: %s"
+                                                                        .formatted(
+                                                                                result
+                                                                                        .getRecordId(),
+                                                                                e.getMessage()),
+                                                                e));
+                                            }
                                         }
                                     });
                 }
@@ -331,36 +334,17 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
 
             @Override
             public void onError(Throwable throwable) {
-                onRequestFailed(throwable);
+                agentContext.criticalFailure(
+                        new RuntimeException(
+                                "gRPC server sent error: %s".formatted(throwable.getMessage()),
+                                throwable));
             }
 
             @Override
             public void onCompleted() {
-                onRequestFailed(
+                agentContext.criticalFailure(
                         new RuntimeException("gRPC server completed the stream unexpectedly"));
             }
         };
-    }
-
-    private void startRequest() {
-        schemaIds.clear();
-        serverSchemas.clear();
-        request = processorStub.process(responseObserver);
-    }
-
-    private synchronized void onRequestFailed(Throwable throwable) {
-        sourceRecords
-                .values()
-                .forEach(
-                        r ->
-                                r.sink()
-                                        .emit(
-                                                new SourceRecordAndResult(
-                                                        r.sourceRecord(), null, throwable)));
-        sourceRecords.clear();
-        request = null;
-        if (!channel.isShutdown()) {
-            log.error("gRPC error", throwable);
-        }
     }
 }

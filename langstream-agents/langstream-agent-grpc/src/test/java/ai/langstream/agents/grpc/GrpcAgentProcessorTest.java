@@ -21,19 +21,25 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SimpleRecord.SimpleHeader;
+import ai.langstream.api.runner.topics.TopicAdmin;
+import ai.langstream.api.runner.topics.TopicConnectionProvider;
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicProducer;
+import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -43,12 +49,12 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class GrpcAgentProcessorTest {
     private String serverName;
@@ -65,7 +71,6 @@ public class GrpcAgentProcessorTest {
                         @Override
                         public void onNext(ProcessorRequest request) {
                             ProcessorResponse.Builder resp = ProcessorResponse.newBuilder();
-                            boolean error = false;
                             if (request.hasSchema()) {
                                 schemaCounter.incrementAndGet();
                                 resp.setSchema(request.getSchema());
@@ -79,21 +84,35 @@ public class GrpcAgentProcessorTest {
                                     if (record.getOrigin().equals("failing-origin")) {
                                         resultBuilder.setError("test-error");
                                     } else if (record.getOrigin().equals("failing-server")) {
-                                        error = true;
+                                        response.onError(
+                                                Status.INTERNAL
+                                                        .withDescription("server error")
+                                                        .asException());
+                                        return;
+                                    } else if (record.getOrigin().equals("completing-server")) {
+                                        response.onCompleted();
+                                        return;
+                                    } else if (record.getOrigin().equals("wrong-record-id")) {
+                                        resultBuilder.setRecordId(record.getRecordId() + 1);
                                     } else {
-                                        resultBuilder.setRecords(
-                                                Records.newBuilder().addRecord(record));
+                                        Records.Builder recordsBuilder =
+                                                resultBuilder.getRecordsBuilder();
+                                        if (record.getOrigin().equals("wrong-schema-id")) {
+                                            recordsBuilder.addRecord(
+                                                    ai.langstream.agents.grpc.Record.newBuilder()
+                                                            .setValue(
+                                                                    Value.newBuilder()
+                                                                            .setSchemaId(1)
+                                                                            .setAvroValue(
+                                                                                    ByteString
+                                                                                            .EMPTY)));
+                                        } else {
+                                            recordsBuilder.addRecord(record);
+                                        }
                                     }
                                 }
                             }
-                            if (error) {
-                                response.onError(
-                                        Status.INTERNAL
-                                                .withDescription("server error")
-                                                .asException());
-                            } else {
-                                response.onNext(resp.build());
-                            }
+                            response.onNext(resp.build());
                         }
 
                         @Override
@@ -190,32 +209,19 @@ public class GrpcAgentProcessorTest {
         processor.close();
     }
 
-    @Test
-    void testServerError() throws Exception {
+    @ParameterizedTest
+    @ValueSource(
+            strings = {"failing-server", "completing-server", "wrong-record-id", "wrong-schema-id"})
+    void testServerError(String origin) throws Exception {
         GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
-        Record inputRecord = SimpleRecord.builder().origin("failing-server").build();
+        Record inputRecord = SimpleRecord.builder().origin(origin).build();
+
+        TestAgentContext testAgentContext = new TestAgentContext();
+        processor.setContext(testAgentContext);
         processor.start();
-        CompletableFuture<Void> op = new CompletableFuture<>();
-        processor.process(
-                List.of(inputRecord),
-                result -> {
-                    try {
-                        assertSame(inputRecord, result.sourceRecord());
-                        assertInstanceOf(StatusRuntimeException.class, result.error());
-                        Status errorStatus = ((StatusRuntimeException) result.error()).getStatus();
-                        Assertions.assertEquals(Status.Code.INTERNAL, errorStatus.getCode());
-                        Assertions.assertEquals("server error", errorStatus.getDescription());
-                        assertTrue(result.resultRecords().isEmpty());
-                    } catch (Throwable t) {
-                        op.completeExceptionally(t);
-                    }
-                    op.complete(null);
-                });
-        op.get(5, TimeUnit.SECONDS);
+        processor.process(List.of(inputRecord), result -> {});
 
-        // Test that the processor is still usable after a server error
-        assertProcessSuccessful(processor, SimpleRecord.builder().value("test").build());
-
+        assertTrue(testAgentContext.failureCalled.await(5, TimeUnit.SECONDS));
         processor.close();
     }
 
@@ -243,17 +249,6 @@ public class GrpcAgentProcessorTest {
         assertProcessSuccessful(processor, inputRecord);
         assertProcessSuccessful(processor, inputRecord);
         assertEquals(1, schemaCounter.get());
-        // Restart the server
-        server.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
-        server =
-                InProcessServerBuilder.forName(serverName)
-                        .directExecutor()
-                        .addService(testProcessorService)
-                        .build()
-                        .start();
-        // Check that the schema is sent again
-        assertProcessSuccessful(processor, inputRecord);
-        assertEquals(2, schemaCounter.get());
         processor.close();
     }
 
@@ -294,6 +289,41 @@ public class GrpcAgentProcessorTest {
                     new String(act, StandardCharsets.UTF_8));
         } else {
             assertEquals(expected, actual);
+        }
+    }
+
+    static class TestAgentContext implements AgentContext {
+
+        private final CountDownLatch failureCalled = new CountDownLatch(1);
+
+        @Override
+        public TopicConsumer getTopicConsumer() {
+            return null;
+        }
+
+        @Override
+        public TopicProducer getTopicProducer() {
+            return null;
+        }
+
+        @Override
+        public String getGlobalAgentId() {
+            return null;
+        }
+
+        @Override
+        public TopicAdmin getTopicAdmin() {
+            return null;
+        }
+
+        @Override
+        public TopicConnectionProvider getTopicConnectionProvider() {
+            return null;
+        }
+
+        @Override
+        public void criticalFailure(Throwable error) {
+            failureCalled.countDown();
         }
     }
 }

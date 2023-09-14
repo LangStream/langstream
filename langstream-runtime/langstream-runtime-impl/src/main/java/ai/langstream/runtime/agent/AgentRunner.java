@@ -1031,5 +1031,14 @@ public class AgentRunner {
         public TopicConnectionProvider getTopicConnectionProvider() {
             return topicConnectionProvider;
         }
+
+        @Override
+        public void criticalFailure(Throwable error) {
+            log.error(
+                    "Critical failure: %s. Shutting down the runtime..."
+                            .formatted(error.getMessage()),
+                    error);
+            AgentContext.super.criticalFailure(error);
+        }
     }
 }

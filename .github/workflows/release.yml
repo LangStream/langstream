@@ -50,6 +50,7 @@ jobs:
             docker push $repo/$image:$docker_tag
           }
           tag_and_push langstream-runtime
+          tag_and_push langstream-runtime-tester
           tag_and_push langstream-cli
           tag_and_push langstream-deployer
           tag_and_push langstream-control-plane

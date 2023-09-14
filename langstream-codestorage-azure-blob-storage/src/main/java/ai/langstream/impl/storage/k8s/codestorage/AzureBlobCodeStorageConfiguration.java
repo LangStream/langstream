@@ -15,7 +15,6 @@
  */
 package ai.langstream.impl.storage.k8s.codestorage;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,23 +26,19 @@ import lombok.NoArgsConstructor;
 public class AzureBlobCodeStorageConfiguration {
     private String type;
 
-    @JsonProperty("blob-name")
-    private String blobName = "langstream-code-storage";
-
-    @JsonProperty("blob-container")
-    private String blobContainer;
+    private String container = "langstream-code-storage";
 
     private String endpoint;
 
     @JsonProperty("sas-token")
     private String sasToken;
 
-    @JsonProperty("account-name")
-    private String accountName;
+    @JsonProperty("storage-account-name")
+    private String storageAccountName;
 
-    @JsonProperty("account-key")
-    private String accountKey;
+    @JsonProperty("storage-account-key")
+    private String storageAccountKey;
 
-    @JsonProperty("account-connection-string")
-    private String accountConnectionString;
+    @JsonProperty("storage-account-connection-string")
+    private String storageAccountConnectionString;
 }

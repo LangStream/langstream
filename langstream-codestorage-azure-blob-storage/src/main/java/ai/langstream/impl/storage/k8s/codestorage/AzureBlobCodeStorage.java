@@ -23,8 +23,10 @@ import ai.langstream.api.codestorage.UploadableCodeArchive;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.blob.models.BlobHttpHeaders;
 import com.azure.storage.blob.models.BlockBlobItem;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import com.azure.storage.common.StorageSharedKeyCredential;
@@ -39,20 +41,21 @@ import java.util.Objects;
 import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class AzureBlobCodeStorage implements CodeStorage {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-    protected static final String OBJECT_METADATA_KEY_TENANT = "langstream-tenant";
-    protected static final String OBJECT_METADATA_KEY_APPLICATION = "langstream-application";
-    protected static final String OBJECT_METADATA_KEY_VERSION = "langstream-version";
+    // metadata keys must not contain dashes since it's not supported by azure
+    protected static final String OBJECT_METADATA_KEY_TENANT = "langstreamtenant";
+    protected static final String OBJECT_METADATA_KEY_APPLICATION = "langstreamapplication";
+    protected static final String OBJECT_METADATA_KEY_VERSION = "langstreamversion";
     protected static final String OBJECT_METADATA_KEY_PY_BINARIES_DIGEST =
-            "langstream-py-binaries-digest";
+            "langstreampybinariesdigest";
     protected static final String OBJECT_METADATA_KEY_JAVA_BINARIES_DIGEST =
-            "langstream-java-binaries-digest";
-    private final String blobName;
-    private final BlobContainerClient blobClient;
+            "langstreamjavabinariesdigest";
+    private final BlobContainerClient containerClient;
 
     @SneakyThrows
     public AzureBlobCodeStorage(Map<String, Object> configuration) {
@@ -67,33 +70,39 @@ public class AzureBlobCodeStorage implements CodeStorage {
         if (azureConfig.getSasToken() != null) {
             containerClientBuilder.sasToken(azureConfig.getSasToken());
             log.info("Connecting to Azure at {} with SAS token", azureConfig.getEndpoint());
-        } else if (azureConfig.getAccountName() != null) {
-            containerClientBuilder.credential(new StorageSharedKeyCredential(azureConfig.getAccountName(),
-                    azureConfig.getAccountKey()));
-            log.info("Connecting to Azure at {} with account name {}", azureConfig.getEndpoint(), azureConfig.getAccountName());
-        } else if (azureConfig.getAccountConnectionString() != null) {
+        } else if (azureConfig.getStorageAccountName() != null) {
+            containerClientBuilder.credential(
+                    new StorageSharedKeyCredential(
+                            azureConfig.getStorageAccountName(),
+                            azureConfig.getStorageAccountKey()));
+            log.info(
+                    "Connecting to Azure at {} with account name {}",
+                    azureConfig.getEndpoint(),
+                    azureConfig.getStorageAccountName());
+        } else if (azureConfig.getStorageAccountConnectionString() != null) {
             log.info("Connecting to Azure at {} with connection string", azureConfig.getEndpoint());
-            containerClientBuilder.credential(StorageSharedKeyCredential.fromConnectionString(
-                    azureConfig.getAccountConnectionString()));
+            containerClientBuilder.credential(
+                    StorageSharedKeyCredential.fromConnectionString(
+                            azureConfig.getStorageAccountConnectionString()));
         } else {
-            throw new IllegalArgumentException("Either sas-token, account-name/account-key or account-connection-string must be provided");
+            throw new IllegalArgumentException(
+                    "Either sas-token, account-name/account-key or account-connection-string must be provided");
         }
 
         containerClientBuilder.endpoint(azureConfig.getEndpoint());
-        if (azureConfig.getBlobContainer() != null) {
-            containerClientBuilder.containerName(azureConfig.getBlobContainer());
-        }
+        final String container = azureConfig.getContainer();
+        containerClientBuilder.containerName(container);
+        this.containerClient = containerClientBuilder.buildClient();
+        log.info(
+                "Connected to Azure to account {}, container {}",
+                containerClient.getAccountName(),
+                containerClient.getBlobContainerName());
 
-        this.blobClient = containerClientBuilder.buildClient();
-
-
-        blobName = azureConfig.getBlobName();
-
-        if (!blobClient.exists()) {
-            log.info("Creating blob {}", blobName);
-            blobClient.createIfNotExists();
+        if (!this.containerClient.exists()) {
+            log.info("Creating container");
+            this.containerClient.createIfNotExists();
         } else {
-            log.info("Blob {} already exists", blobName);
+            log.info("Container already exists");
         }
     }
 
@@ -129,16 +138,20 @@ public class AzureBlobCodeStorage implements CodeStorage {
                     userMetadata.put(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST, pyBinariesDigest);
                 }
 
-                final String key = tenant + "/" + codeStoreId;
-
                 final BlobParallelUploadOptions options =
                         new BlobParallelUploadOptions(BinaryData.fromFile(tempFile))
-                                .setMetadata(userMetadata);
+                                .setMetadata(userMetadata)
+                                .setHeaders(
+                                        new BlobHttpHeaders().setContentType("application/zip"));
 
+                final BlobClient blobClient = getBlobClient(tenant, codeStoreId);
                 final Response<BlockBlobItem> response =
-                        blobClient.getBlobClient(key).uploadWithResponse(options, null, Context.NONE);
+                        blobClient.uploadWithResponse(options, null, Context.NONE);
                 if (response.getValue() == null) {
-                    throw new CodeStorageException("Failed to upload code archive to azure, status code: " + response.getStatusCode() + ". value was null.");
+                    throw new CodeStorageException(
+                            "Failed to upload code archive to azure, status code: "
+                                    + response.getStatusCode()
+                                    + ". value was null.");
                 }
 
                 return new CodeArchiveMetadata(
@@ -160,8 +173,9 @@ public class AzureBlobCodeStorage implements CodeStorage {
             Path zipFile = tempFile.resolve("code.zip");
             try {
 
-                final String key = tenant + "/" + codeStoreId;
-                blobClient.getBlobClient(key).getBlockBlobClient().downloadToFile(zipFile.toString());
+                getBlobClient(tenant, codeStoreId)
+                        .getBlockBlobClient()
+                        .downloadToFile(zipFile.toString());
                 codeArchive.accept(new LocalZipFileArchiveFile(zipFile));
             } finally {
                 if (Files.exists(zipFile)) {
@@ -178,25 +192,25 @@ public class AzureBlobCodeStorage implements CodeStorage {
     @Override
     public CodeArchiveMetadata describeApplicationCode(String tenant, String codeStoreId)
             throws CodeStorageException {
-        final String key = tenant + "/" + codeStoreId;
-        final Boolean exists = blobClient.getBlobClient(key).exists();
+        final BlobClient blobClient = getBlobClient(tenant, codeStoreId);
+        final Boolean exists = blobClient.exists();
         if (exists != null && exists) {
-            final Map<String, String> metadata = blobClient.getBlobClient(key).getBlockBlobClient()
-                    .getProperties()
-                    .getMetadata();
+            final Map<String, String> metadata =
+                    blobClient.getBlockBlobClient().getProperties().getMetadata();
             final String objectTenant = metadata.get(OBJECT_METADATA_KEY_TENANT);
             if (!Objects.equals(objectTenant, tenant)) {
                 throw new CodeStorageException(
                         "Tenant mismatch in Azure object "
-                        + key
-                        + ": "
-                        + objectTenant
-                        + " != "
-                        + tenant);
+                                + blobClient.getBlobName()
+                                + ": "
+                                + objectTenant
+                                + " != "
+                                + tenant);
             }
             final String applicationId = metadata.get(OBJECT_METADATA_KEY_APPLICATION);
             Objects.requireNonNull(
-                    applicationId, "Azure object " + key + " contains empty application metadata");
+                    applicationId,
+                    "Blob " + blobClient.getBlobName() + " contains empty application metadata");
 
             final String pyBinariesDigest = metadata.get(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST);
             final String javaBinariesDigest =
@@ -209,10 +223,17 @@ public class AzureBlobCodeStorage implements CodeStorage {
         }
     }
 
+    @NotNull
+    private BlobClient getBlobClient(String tenant, String codeStoreId) {
+        final String key = tenant + "-" + codeStoreId;
+        final BlobClient blobClient = containerClient.getBlobClient(key);
+        return blobClient;
+    }
+
     @Override
     public void deleteApplicationCode(String tenant, String codeStoreId)
             throws CodeStorageException {
-        blobClient.getBlobClient(codeStoreId).deleteIfExists();
+        getBlobClient(tenant, codeStoreId).deleteIfExists();
     }
 
     @Override
@@ -221,6 +242,5 @@ public class AzureBlobCodeStorage implements CodeStorage {
     }
 
     @Override
-    public void close() {
-    }
+    public void close() {}
 }

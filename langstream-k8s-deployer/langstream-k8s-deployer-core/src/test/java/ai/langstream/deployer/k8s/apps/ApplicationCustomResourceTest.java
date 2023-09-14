@@ -27,7 +27,6 @@ import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
-import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -99,7 +98,7 @@ class ApplicationCustomResourceTest {
         final String applicationId = "my-app";
         final ApplicationCustomResource cr = deployApp(tenant, applicationId, isDeleteJob);
         assertEquals(
-                1,
+                2,
                 k3s.getClient()
                         .batch()
                         .v1()
@@ -199,7 +198,8 @@ class ApplicationCustomResourceTest {
                     tenant: %s
                 """
                                 .formatted(applicationId, namespace, tenant));
-        resource.getMetadata().setLabels(AppResourcesFactory.getLabelsForDeployer(deleteJob, applicationId));
+        resource.getMetadata()
+                .setLabels(AppResourcesFactory.getLabelsForDeployer(deleteJob, applicationId));
 
         k3s.getClient().resource(resource).inNamespace(namespace).serverSideApply();
         resource = k3s.getClient().resource(resource).get();
@@ -211,13 +211,25 @@ class ApplicationCustomResourceTest {
         }
         resource.setStatus(status);
         k3s.getClient().resource(resource).inNamespace(namespace).updateStatus();
-        final Job jo =
-                AppResourcesFactory.generateDeployerJob(
-                        AppResourcesFactory.GenerateJobParams.builder()
-                                .applicationCustomResource(resource)
-                                .deleteJob(deleteJob)
-                                .build());
-        k3s.getClient().resource(jo).inNamespace(namespace).serverSideApply();
+        k3s.getClient()
+                .resource(
+                        AppResourcesFactory.generateDeployerJob(
+                                AppResourcesFactory.GenerateJobParams.builder()
+                                        .applicationCustomResource(resource)
+                                        .deleteJob(deleteJob)
+                                        .build()))
+                .inNamespace(namespace)
+                .serverSideApply();
+
+        k3s.getClient()
+                .resource(
+                        AppResourcesFactory.generateSetupJob(
+                                AppResourcesFactory.GenerateJobParams.builder()
+                                        .applicationCustomResource(resource)
+                                        .deleteJob(deleteJob)
+                                        .build()))
+                .inNamespace(namespace)
+                .serverSideApply();
         return resource;
     }
 

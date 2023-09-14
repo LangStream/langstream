@@ -21,7 +21,6 @@ import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.Resource;
-import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

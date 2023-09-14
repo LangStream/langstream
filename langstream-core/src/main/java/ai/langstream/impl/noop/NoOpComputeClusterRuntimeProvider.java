@@ -17,7 +17,10 @@ package ai.langstream.impl.noop;
 
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ComputeClusterRuntimeProvider;
+import ai.langstream.api.runtime.DeployContext;
+import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.ExecutionPlanOptimiser;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.impl.agents.ComposableAgentExecutionPlanOptimiser;
 import ai.langstream.impl.common.BasicClusterRuntime;
 import java.util.List;
@@ -55,5 +58,23 @@ public class NoOpComputeClusterRuntimeProvider implements ComputeClusterRuntimeP
         public List<ExecutionPlanOptimiser> getExecutionPlanOptimisers() {
             return OPTIMISERS;
         }
+
+        @Override
+        public Object deploy(
+                String tenant,
+                ExecutionPlan applicationInstance,
+                StreamingClusterRuntime streamingClusterRuntime,
+                String codeStorageArchiveId,
+                DeployContext deployContext) {
+            return null;
+        }
+
+        @Override
+        public void delete(
+                String tenant,
+                ExecutionPlan applicationInstance,
+                StreamingClusterRuntime streamingClusterRuntime,
+                String codeStorageArchiveId,
+                DeployContext deployContext) {}
     }
 }

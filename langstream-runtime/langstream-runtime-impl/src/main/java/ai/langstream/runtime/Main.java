@@ -23,12 +23,16 @@ import java.util.List;
 
 public class Main {
 
-    private static final List<String> COMMANDS = List.of("agent-runtime", "agent-code-download", "deployer-runtime", "application-setup");
+    private static final List<String> COMMANDS =
+            List.of(
+                    "agent-runtime",
+                    "agent-code-download",
+                    "deployer-runtime",
+                    "application-setup");
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.err.println(
-                    "Unknown command. Only " + COMMANDS + " are supported.");
+            System.err.println("Unknown command. Only " + COMMANDS + " are supported.");
             System.exit(1);
         }
         String command = args[0];
@@ -40,8 +44,7 @@ public class Main {
             case "deployer-runtime" -> RuntimeDeployerStarter.main(newArgs);
             case "application-setup" -> ApplicationSetupRunnerStarter.main(newArgs);
             default -> {
-                System.err.println(
-                        "Unknown command. Only " + COMMANDS + " are supported.");
+                System.err.println("Unknown command. Only " + COMMANDS + " are supported.");
                 System.exit(1);
             }
         }

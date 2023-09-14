@@ -1,6 +1,22 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ai.langstream.runtime.application;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+
 import ai.langstream.api.model.Secrets;
 import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.api.application.ApplicationSetupConfiguration;
@@ -19,7 +35,6 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
                     .configure(
                             FAIL_ON_UNKNOWN_PROPERTIES,
                             false); // this helps with forward compatibility
-
 
     private static final ErrorHandler errorHandler =
             error -> {
@@ -59,9 +74,10 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
                         ApplicationSetupConstants.APP_CONFIG_ENV,
                         ApplicationSetupConstants.APP_CONFIG_ENV_DEFAULT);
         final Path secretsPath = getOptionalPathFromEnv(ApplicationSetupConstants.APP_SECRETS_ENV);
-        final Path packagesDirectory = getPathFromEnv(
-                ApplicationSetupConstants.AGENTS_ENV, ApplicationSetupConstants.AGENTS_ENV_DEFAULT);
-
+        final Path packagesDirectory =
+                getPathFromEnv(
+                        ApplicationSetupConstants.AGENTS_ENV,
+                        ApplicationSetupConstants.AGENTS_ENV_DEFAULT);
 
         final Map<String, Map<String, Object>> clusterRuntimeConfiguration =
                 loadClusterRuntimeConfiguration(clusterRuntimeConfigPath);
@@ -69,19 +85,12 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
                 loadApplicationSetupConfiguration(appConfigPath);
         final Secrets secrets = loadSecrets(secretsPath);
 
-
-
         final String arg0 = args[0];
         switch (arg0) {
             case "deploy" -> applicationSetupRunner.runSetup(
-                    clusterRuntimeConfiguration,
-                    configuration,
-                    secrets,
-                    packagesDirectory);
+                    clusterRuntimeConfiguration, configuration, secrets, packagesDirectory);
             default -> throw new IllegalArgumentException("Unknown command " + arg0);
         }
-
-
     }
 
     private Secrets loadSecrets(Path secretsPath) throws IOException {
@@ -95,7 +104,8 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
         return secrets;
     }
 
-    private ApplicationSetupConfiguration loadApplicationSetupConfiguration(Path appConfigPath) throws IOException {
+    private ApplicationSetupConfiguration loadApplicationSetupConfiguration(Path appConfigPath)
+            throws IOException {
         log.info("Loading app configuration from {}", appConfigPath);
         final ApplicationSetupConfiguration configuration =
                 MAPPER.readValue(appConfigPath.toFile(), ApplicationSetupConfiguration.class);
@@ -103,7 +113,8 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
         return configuration;
     }
 
-    private Map<String, Map<String, Object>> loadClusterRuntimeConfiguration(Path clusterRuntimeConfigPath) throws IOException {
+    private Map<String, Map<String, Object>> loadClusterRuntimeConfiguration(
+            Path clusterRuntimeConfigPath) throws IOException {
         log.info("Loading cluster runtime config from {}", clusterRuntimeConfigPath);
         final Map<String, Map<String, Object>> clusterRuntimeConfiguration =
                 (Map<String, Map<String, Object>>)

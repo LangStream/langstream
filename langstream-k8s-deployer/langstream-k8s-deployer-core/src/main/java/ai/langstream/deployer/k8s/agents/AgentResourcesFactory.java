@@ -164,7 +164,8 @@ public class AgentResourcesFactory {
                         .withArgs(
                                 "echo '%s' > /download-config/config"
                                         .formatted(
-                                                SerializationUtil.writeInlineBashJson(downloadAgentCodeConfiguration)))
+                                                SerializationUtil.writeInlineBashJson(
+                                                        downloadAgentCodeConfiguration)))
                         .withVolumeMounts(
                                 new VolumeMountBuilder()
                                         .withName(downloadConfigVolume)

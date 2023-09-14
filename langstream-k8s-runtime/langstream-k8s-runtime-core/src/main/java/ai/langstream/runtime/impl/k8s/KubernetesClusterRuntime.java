@@ -17,7 +17,6 @@ package ai.langstream.runtime.impl.k8s;
 
 import ai.langstream.api.model.ErrorsSpec;
 import ai.langstream.api.model.StreamingCluster;
-import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;

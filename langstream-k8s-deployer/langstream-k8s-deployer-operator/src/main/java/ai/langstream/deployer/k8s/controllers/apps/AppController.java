@@ -86,11 +86,14 @@ public class AppController extends BaseController<ApplicationCustomResource>
                 : DeleteControl.defaultDelete();
     }
 
-    private Duration handleJob(ApplicationCustomResource application, boolean isSetupJob, boolean delete) {
+    private Duration handleJob(
+            ApplicationCustomResource application, boolean isSetupJob, boolean delete) {
         final String applicationId = application.getMetadata().getName();
 
-        final String jobName = isSetupJob ? AppResourcesFactory.getSetupJobName(applicationId, delete) :
-                AppResourcesFactory.getDeployerJobName(applicationId, delete);
+        final String jobName =
+                isSetupJob
+                        ? AppResourcesFactory.getSetupJobName(applicationId, delete)
+                        : AppResourcesFactory.getDeployerJobName(applicationId, delete);
         final String namespace = application.getMetadata().getNamespace();
         final Job currentJob =
                 client.batch().v1().jobs().inNamespace(namespace).withName(jobName).get();
@@ -136,7 +139,8 @@ public class AppController extends BaseController<ApplicationCustomResource>
     }
 
     @SneakyThrows
-    private void createJob(ApplicationCustomResource applicationCustomResource, boolean setupJob, boolean delete) {
+    private void createJob(
+            ApplicationCustomResource applicationCustomResource, boolean setupJob, boolean delete) {
         final AppResourcesFactory.GenerateJobParams params =
                 AppResourcesFactory.GenerateJobParams.builder()
                         .applicationCustomResource(applicationCustomResource)
@@ -146,7 +150,10 @@ public class AppController extends BaseController<ApplicationCustomResource>
                         .image(configuration.getRuntimeImage())
                         .imagePullPolicy(configuration.getRuntimeImagePullPolicy())
                         .build();
-        final Job job = setupJob ? AppResourcesFactory.generateSetupJob(params) : AppResourcesFactory.generateDeployerJob(params);
+        final Job job =
+                setupJob
+                        ? AppResourcesFactory.generateSetupJob(params)
+                        : AppResourcesFactory.generateDeployerJob(params);
         KubeUtil.patchJob(client, job);
     }
 }

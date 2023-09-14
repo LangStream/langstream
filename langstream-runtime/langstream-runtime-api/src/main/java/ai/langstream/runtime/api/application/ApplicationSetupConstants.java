@@ -28,5 +28,4 @@ public class ApplicationSetupConstants {
     public static final String APP_SECRETS_ENV = "LANGSTREAM_APPLICATION_SETUP_APP_SECRETS";
     public static final String AGENTS_ENV = "LANGSTREAM_APPLICATION_SETUP_AGENTS";
     public static final String AGENTS_ENV_DEFAULT = "/app/agents";
-
 }

@@ -130,7 +130,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             log("Running all the agents in the application");
         }
         log("Instance file: " + instanceFile.getAbsolutePath());
-        log("Secrets file: " + secretsFile.getAbsolutePath());
+        if (secretsFile != null) {
+            log("Secrets file: " + secretsFile.getAbsolutePath());
+        }
         log("Start broker: " + startBroker);
         log("Start S3: " + startS3);
         log("Start Webservices " + startWebservices);
@@ -141,11 +143,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
         downloadDependencies(appDirectory.toPath());
 
-        String secretsContents;
-        String instanceContents;
+        final String secretsContents;
+        final String instanceContents;
 
         try {
-
             instanceContents =
                     LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
                             instanceFile.toPath());
@@ -157,16 +158,19 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             throw e;
         }
 
-        try {
-
-            secretsContents =
-                    LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
-                            secretsFile.toPath());
-        } catch (Exception e) {
-            log(
-                    "Failed to resolve secrets file references. Please double check the file path: "
-                            + secretsFile.toPath());
-            throw e;
+        if (secretsFile != null) {
+            try {
+                secretsContents =
+                        LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
+                                secretsFile.toPath());
+            } catch (Exception e) {
+                log(
+                        "Failed to resolve secrets file references. Please double check the file path: "
+                                + secretsFile.toPath());
+                throw e;
+            }
+        } else {
+            secretsContents = null;
         }
 
         executeOnDocker(
@@ -194,8 +198,11 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             throws Exception {
         File tmpInstanceFile = Files.createTempFile("instance", ".yaml").toFile();
         Files.write(tmpInstanceFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));
-        File tmpSecretsFile = Files.createTempFile("secrets", ".yaml").toFile();
-        Files.write(tmpSecretsFile.toPath(), secretsContents.getBytes(StandardCharsets.UTF_8));
+        File tmpSecretsFile = null;
+        if (secretsContents != null) {
+            tmpSecretsFile = Files.createTempFile("secrets", ".yaml").toFile();
+            Files.write(tmpSecretsFile.toPath(), secretsContents.getBytes(StandardCharsets.UTF_8));
+        }
         String imageName = dockerImageName + ":" + dockerImageVersion;
         List<String> commandLine = new ArrayList<>();
         commandLine.add(dockerCommand);
@@ -222,8 +229,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add(appDirectory.getAbsolutePath() + ":/code/application");
         commandLine.add("-v");
         commandLine.add(tmpInstanceFile.getAbsolutePath() + ":/code/instance.yaml");
-        commandLine.add("-v");
-        commandLine.add(tmpSecretsFile.getAbsolutePath() + ":/code/secrets.yaml");
+        if (tmpSecretsFile != null) {
+            commandLine.add("-v");
+            commandLine.add(tmpSecretsFile.getAbsolutePath() + ":/code/secrets.yaml");
+        }
         commandLine.add("--add-host");
         commandLine.add("minio.minio-dev.svc.cluster.local:127.0.0.1");
         commandLine.add("--add-host");

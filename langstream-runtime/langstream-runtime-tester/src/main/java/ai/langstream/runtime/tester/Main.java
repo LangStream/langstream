@@ -45,7 +45,13 @@ public class Main {
             String secretsFile = "/code/secrets.yaml";
             String agentsDirectory = "/app/agents";
 
-            String secrets = Files.readString(Paths.get(secretsFile));
+            final String secrets;
+            final Path secretsPath = Paths.get(secretsFile);
+            if (Files.exists(secretsPath)) {
+                secrets = Files.readString(secretsPath);
+            } else {
+                secrets = null;
+            }
             String instance = Files.readString(Paths.get(instanceFile));
 
             Path codeDirectory = Paths.get(applicationPath);

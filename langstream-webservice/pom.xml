@@ -75,6 +75,12 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>langstream-codestorage-azure-blob-storage</artifactId>
+			<version>${project.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>langstream-k8s-runtime-core</artifactId>
 			<version>${project.version}</version>
 		</dependency>

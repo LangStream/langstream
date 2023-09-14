@@ -25,7 +25,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
-import ai.langstream.runtime.agent.nar.NarFileHandler;
+import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.runtime.api.application.ApplicationSetupConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Path;

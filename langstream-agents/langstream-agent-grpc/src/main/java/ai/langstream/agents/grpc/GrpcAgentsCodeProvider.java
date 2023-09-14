@@ -21,7 +21,7 @@ import ai.langstream.api.runner.code.AgentCodeProvider;
 public class GrpcAgentsCodeProvider implements AgentCodeProvider {
     @Override
     public boolean supports(String agentType) {
-        return "python-grpc-processor".equals(agentType);
+        return "experimental-python-processor".equals(agentType);
     }
 
     @Override

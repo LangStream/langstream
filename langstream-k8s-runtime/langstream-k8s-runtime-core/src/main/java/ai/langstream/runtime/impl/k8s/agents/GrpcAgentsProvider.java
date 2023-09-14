@@ -27,7 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GrpcAgentsProvider extends AbstractComposableAgentProvider {
 
-    private static final Set<String> SUPPORTED_AGENT_TYPES = Set.of("python-grpc-processor");
+    private static final Set<String> SUPPORTED_AGENT_TYPES =
+            Set.of("experimental-python-processor");
 
     public GrpcAgentsProvider() {
         super(SUPPORTED_AGENT_TYPES, List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));

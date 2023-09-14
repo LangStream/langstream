@@ -172,7 +172,6 @@ class KafkaProducerWrapper implements TopicProducer {
                         cacheKeyForKeySerializer = keyClass;
                     }
                     key = keySerializer.serialize(topicName, r.key());
-                    log.info("Chosen serializer for key  {} is {}", keyClass, keySerializer);
                 }
             }
             Object value = null;
@@ -185,10 +184,6 @@ class KafkaProducerWrapper implements TopicProducer {
                             || !(Objects.equals(valueClass, cacheKeyForValueSerializer))) {
                         valueSerializer = getSerializer(valueClass, valueSerializers, false);
                         cacheKeyForValueSerializer = valueClass;
-                        log.info(
-                                "Chosen serializer for value {} is {}",
-                                valueClass,
-                                valueSerializer);
                     }
                     value = valueSerializer.serialize(topicName, r.value());
                 }
@@ -204,10 +199,6 @@ class KafkaProducerWrapper implements TopicProducer {
                                 || !(Objects.equals(headerClass, cacheKeyForHeaderSerializer))) {
                             headerSerializer = getSerializer(headerClass, headerSerializers, null);
                             cacheKeyForHeaderSerializer = headerClass;
-                            log.info(
-                                    "Chosen serializer for headers {} is {}",
-                                    headerClass,
-                                    headerSerializer);
                         }
                         serializedHeader = headerSerializer.serialize(topicName, headerValue);
                     }
@@ -216,7 +207,10 @@ class KafkaProducerWrapper implements TopicProducer {
             }
             ProducerRecord<Object, Object> record =
                     new ProducerRecord<>(topicName, null, null, key, value, headers);
-            log.info("Sending record {}", record);
+
+            if (log.isDebugEnabled()) {
+                log.debug("Sending record {}", record);
+            }
 
             producer.send(
                     record,

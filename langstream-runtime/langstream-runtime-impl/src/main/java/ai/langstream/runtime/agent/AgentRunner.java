@@ -46,7 +46,7 @@ import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.agent.api.AgentInfoServlet;
 import ai.langstream.runtime.agent.api.GetFromUriServlet;
 import ai.langstream.runtime.agent.api.MetricsHttpServlet;
-import ai.langstream.runtime.agent.nar.NarFileHandler;
+import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.runtime.agent.python.PythonCodeAgentProvider;
 import ai.langstream.runtime.agent.simple.IdentityAgentProvider;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;

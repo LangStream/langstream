@@ -195,6 +195,43 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<!-- main implementation for the TopicConnectionsRuntime-->
+								<artifactItem>
+									<groupId>${project.groupId}</groupId>
+									<artifactId>langstream-kafka-runtime</artifactId>
+									<version>${project.version}</version>
+									<type>nar</type>
+									<classifier>nar</classifier>
+									<overWrite>false</overWrite>
+									<outputDirectory>${project.build.directory}/agents</outputDirectory>
+								</artifactItem>
+
+								<artifactItem>
+									<groupId>${project.groupId}</groupId>
+									<artifactId>langstream-pulsar-runtime</artifactId>
+									<version>${project.version}</version>
+									<type>nar</type>
+									<classifier>nar</classifier>
+									<overWrite>false</overWrite>
+									<outputDirectory>${project.build.directory}/agents</outputDirectory>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
 				<executions>
 					<execution>
@@ -249,7 +286,13 @@
 						</labels>
 					</container>
 					<extraDirectories>
-						<paths>src/main/docker/jib</paths>
+						<paths>
+							<path>src/main/docker/jib</path>
+							<path>
+								<from>${pom.build.directory}/agents</from>
+								<into>/app/agents</into>
+							</path>
+						</paths>
 						<permissions>
 							<permission>
 								<file>/entrypoint.sh</file>

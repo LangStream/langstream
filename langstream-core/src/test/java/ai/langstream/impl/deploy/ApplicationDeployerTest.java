@@ -23,6 +23,8 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ComputeCluster;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeAndLoader;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -80,6 +82,18 @@ class ApplicationDeployerTest {
                 ApplicationDeployer.builder()
                         .pluginsRegistry(new PluginsRegistry())
                         .registry(registry)
+                        .topicConnectionsRuntimeRegistry(
+                                new TopicConnectionsRuntimeRegistry() {
+                                    @Override
+                                    public TopicConnectionsRuntimeAndLoader
+                                            getTopicConnectionsRuntime(
+                                                    StreamingCluster streamingCluster) {
+                                        assertEquals(streamingCluster.type(), "mock");
+                                        return new TopicConnectionsRuntimeAndLoader(
+                                                mockTopicConnectionsRuntime,
+                                                Thread.currentThread().getContextClassLoader());
+                                    }
+                                })
                         .build();
 
         Application applicationInstance =

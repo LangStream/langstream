@@ -161,6 +161,7 @@ class KubernetesClusterRuntimeDockerTest {
         assertEquals("value.embeddings", step1.get("embeddings-field"));
         assertEquals("{{ value.name }} {{ value.description }}", step1.get("text"));
 
+        deployer.setup(tenant, implementation);
         deployer.deploy(tenant, implementation, null);
 
         assertEquals(1, agentsCRs.size());

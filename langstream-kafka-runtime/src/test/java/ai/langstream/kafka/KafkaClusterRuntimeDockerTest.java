@@ -84,6 +84,7 @@ class KafkaClusterRuntimeDockerTest {
                                 Connection.fromTopic(TopicDefinition.fromName("input-topic")))
                         instanceof KafkaTopic);
 
+        deployer.setup("tenant", implementation);
         deployer.deploy("tenant", implementation, null);
 
         Set<String> topics = admin.listTopics().names().get();

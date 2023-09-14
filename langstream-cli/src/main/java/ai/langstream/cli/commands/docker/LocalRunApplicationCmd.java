@@ -15,6 +15,7 @@
  */
 package ai.langstream.cli.commands.docker;
 
+import ai.langstream.cli.commands.VersionProvider;
 import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -87,9 +88,35 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             description = "Command to run docker")
     private String dockerCommand = "docker";
 
+    @CommandLine.Option(
+            names = {"--langstream-runtime-version"},
+            description = "Version of the LangStream runtime to use")
+    private String dockerImageVersion = VersionProvider.getMavenVersion();
+
+    @CommandLine.Option(
+            names = {"--langstream-runtime-docker-image"},
+            description = "Docker image of the LangStream runtime to use")
+    private String dockerImageName;
+
     @Override
     @SneakyThrows
     public void run() {
+
+        if (dockerImageVersion != null && dockerImageVersion.endsWith("-SNAPSHOT")) {
+            // built-from-sources, not a release
+            dockerImageVersion = "latest-dev";
+        }
+
+        if (dockerImageName == null) {
+            if (dockerImageVersion != null && dockerImageVersion.equals("latest-dev")) {
+                // built-from-sources, not a release
+                dockerImageName = "langstream/langstream-runtime-tester";
+            } else {
+                // default to latest
+                dockerImageName = "ghcr.io/langstream/langstream-runtime-tester";
+            }
+        }
+
         final File appDirectory = checkFileExistsOrDownload(appPath);
         final File instanceFile = checkFileExistsOrDownload(instanceFilePath);
         final File secretsFile = checkFileExistsOrDownload(secretFilePath);
@@ -169,7 +196,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         Files.write(tmpInstanceFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));
         File tmpSecretsFile = Files.createTempFile("secrets", ".yaml").toFile();
         Files.write(tmpSecretsFile.toPath(), secretsContents.getBytes(StandardCharsets.UTF_8));
-        String imageName = "langstream/langstream-runtime-tester:latest-dev";
+        String imageName = dockerImageName + ":" + dockerImageVersion;
         List<String> commandLine = new ArrayList<>();
         commandLine.add(dockerCommand);
         commandLine.add("run");

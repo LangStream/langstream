@@ -41,8 +41,9 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
     @CommandLine.Parameters(description = "Application ID")
     private String applicationId;
 
-    // optional
-    @CommandLine.Parameters(arity = "1..2", description = "Chat gateway ID")
+    @CommandLine.Option(
+            names = {"-g", "--chat-gateway"},
+            description = "Use a 'chat' gateway")
     private String chatGatewayId;
 
     @CommandLine.Option(

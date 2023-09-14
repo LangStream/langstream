@@ -19,27 +19,32 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import picocli.CommandLine;
 
 public class VersionProvider implements CommandLine.IVersionProvider {
 
-    private static final String[] VERSION = new String[] {getVersionFromJar()};
+    private static final List<String> VERSION_INFO = getVersionFromJar();
 
-    public String[] getVersion() {
-        return VERSION;
+    public static String getMavenVersion() {
+        return VERSION_INFO.get(1);
     }
 
-    private static String getVersionFromJar() {
+    public String[] getVersion() {
+        return new String[] {VERSION_INFO.get(0)};
+    }
+
+    private static List<String> getVersionFromJar() {
         try {
             Manifest manifest = getManifest();
             final String version = getVersionFromManifest(manifest);
             final String gitRevision = getGitRevisionFromManifest(manifest);
-            return String.format("LangStream CLI %s (%s)", version, gitRevision);
+            return List.of(String.format("LangStream CLI %s (%s)", version, gitRevision), version);
         } catch (Throwable t) {
             // never ever let this exception bubble up otherwise any command will fail
-            return String.format("Error: %s", t.getMessage());
+            return List.of(String.format("Error: %s", t.getMessage()), "unknown");
         }
     }
 

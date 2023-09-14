@@ -20,4 +20,4 @@ instance:
     type: "kafka"
     configuration:
       admin:
-        bootstrap.servers: localhost:39092
+        bootstrap.servers: localhost:9092

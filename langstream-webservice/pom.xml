@@ -21,11 +21,11 @@
 	<parent>
 		<groupId>ai.langstream</groupId>
 		<artifactId>langstream-ai</artifactId>
-		<version>0.0.18-SNAPSHOT</version>
+		<version>0.0.18</version>
 	</parent>
 	<groupId>ai.langstream</groupId>
 	<artifactId>langstream-webservice</artifactId>
-	<version>0.0.18-SNAPSHOT</version>
+	<version>0.0.18</version>
 	<name>LangStream - WebService</name>
 	<description>LangStream Control Plane Web Service</description>
 	<properties>

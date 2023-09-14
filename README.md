@@ -119,7 +119,7 @@ By default, the CLI will connect to the control plane running on `localhost:8090
 
 To configure a different LangStream environment, you can configure a new profile:
 ```
-langstream profiles create dev --web-service-url https://langstream-control-plane --api-gateway-url wss://langstream-api-gateway --tenant my-tenant
+langstream profiles create dev --web-service-url https://langstream-control-plane --api-gateway-url wss://langstream-api-gateway --tenant my-tenant --set-current
 ```
 
 The above applies for all the configuration options:

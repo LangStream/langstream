@@ -24,7 +24,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>langstream-code-storage-providers</artifactId>
+    <artifactId>langstream-codestorage-providers</artifactId>
     <name>LangStream - Code Storage Providers</name>
     <packaging>pom</packaging>
     <modules>

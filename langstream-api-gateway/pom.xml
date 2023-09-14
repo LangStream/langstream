@@ -117,18 +117,6 @@
 
 		<dependency>
 			<groupId>ai.langstream</groupId>
-			<artifactId>langstream-kafka-runtime</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>ai.langstream</groupId>
-			<artifactId>langstream-pulsar-runtime</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>ai.langstream</groupId>
 			<artifactId>langstream-google-api-gateway-auth</artifactId>
 			<version>${project.version}</version>
 			<scope>runtime</scope>

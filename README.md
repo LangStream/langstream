@@ -162,7 +162,6 @@ On Azure they must match the names of the deployments you created in the Azure p
 The [secrets.yaml](./examples/secrets/secrets.yaml) file contains many placeholders that refer to those environment variables.
 You can either export them or replace them with the actual values.
 
-```
 
 2. Deploy the `openai-completions` application
 

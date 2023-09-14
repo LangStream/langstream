@@ -27,10 +27,13 @@ import lombok.NoArgsConstructor;
 public class AzureBlobCodeStorageConfiguration {
     private String type;
 
-    @JsonAlias({"bucketname", "bucket-name"})
-    private String bucketName = "langstream-code-storage";
+    @JsonProperty("blob-name")
+    private String blobName = "langstream-code-storage";
 
-    private String endpoint = "s3.amazonaws.com";
+    @JsonProperty("blob-container")
+    private String blobContainer;
+
+    private String endpoint;
 
     @JsonProperty("sas-token")
     private String sasToken;

@@ -51,7 +51,7 @@ public class AzureBlobCodeStorage implements CodeStorage {
             "langstream-py-binaries-digest";
     protected static final String OBJECT_METADATA_KEY_JAVA_BINARIES_DIGEST =
             "langstream-java-binaries-digest";
-    private final String bucketName;
+    private final String blobName;
     private final BlobContainerClient blobClient;
 
     @SneakyThrows
@@ -59,10 +59,11 @@ public class AzureBlobCodeStorage implements CodeStorage {
         final AzureBlobCodeStorageConfiguration azureConfig =
                 mapper.convertValue(configuration, AzureBlobCodeStorageConfiguration.class);
 
-        BlobContainerClientBuilder containerClientBuilder = new BlobContainerClientBuilder();
-        containerClientBuilder.endpoint(azureConfig.getEndpoint());
-        containerClientBuilder.containerName(azureConfig.getBucketName());
+        if (azureConfig.getEndpoint() == null) {
+            throw new IllegalArgumentException("Azure 'endpoint' must be provided");
+        }
 
+        BlobContainerClientBuilder containerClientBuilder = new BlobContainerClientBuilder();
         if (azureConfig.getSasToken() != null) {
             containerClientBuilder.sasToken(azureConfig.getSasToken());
             log.info("Connecting to Azure at {} with SAS token", azureConfig.getEndpoint());
@@ -78,16 +79,21 @@ public class AzureBlobCodeStorage implements CodeStorage {
             throw new IllegalArgumentException("Either sas-token, account-name/account-key or account-connection-string must be provided");
         }
 
+        containerClientBuilder.endpoint(azureConfig.getEndpoint());
+        if (azureConfig.getBlobContainer() != null) {
+            containerClientBuilder.containerName(azureConfig.getBlobContainer());
+        }
+
         this.blobClient = containerClientBuilder.buildClient();
 
 
-        bucketName = azureConfig.getBucketName();
+        blobName = azureConfig.getBlobName();
 
         if (!blobClient.exists()) {
-            log.info("Creating bucket {}", bucketName);
+            log.info("Creating blob {}", blobName);
             blobClient.createIfNotExists();
         } else {
-            log.info("Bucket {} already exists", bucketName);
+            log.info("Blob {} already exists", blobName);
         }
     }
 

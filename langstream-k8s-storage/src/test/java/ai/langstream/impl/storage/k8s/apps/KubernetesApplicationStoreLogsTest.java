@@ -149,8 +149,7 @@ class KubernetesApplicationStoreLogsTest {
                                                 "fn-type",
                                                 Map.of("config", true),
                                                 Map.of()),
-                                        new StreamingCluster("noop", Map.of("config", true)),
-                                        null)))
+                                        new StreamingCluster("noop", Map.of("config", true)))))
                 .inNamespace("langstream-" + tenant)
                 .serverSideApply();
 

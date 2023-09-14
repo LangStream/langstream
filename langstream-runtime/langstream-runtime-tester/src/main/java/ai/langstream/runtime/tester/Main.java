@@ -48,7 +48,8 @@ public class Main {
             String secrets = Files.readString(Paths.get(secretsFile));
             String instance = Files.readString(Paths.get(instanceFile));
 
-            List<Path> applicationDirectories = List.of(Paths.get(applicationPath));
+            Path codeDirectory = Paths.get(applicationPath);
+            List<Path> applicationDirectories = List.of(codeDirectory);
             ModelBuilder.ApplicationWithPackageInfo applicationWithPackageInfo =
                     ModelBuilder.buildApplicationInstance(
                             applicationDirectories, instance, secrets);
@@ -101,7 +102,7 @@ public class Main {
             }
 
             try (LocalApplicationRunner runner =
-                    new LocalApplicationRunner(Paths.get(agentsDirectory)); ) {
+                    new LocalApplicationRunner(Paths.get(agentsDirectory), codeDirectory); ) {
 
                 InMemoryApplicationStore.setAgentsInfoCollector(runner);
                 InMemoryApplicationStore.setFilterAgents(agentsIdToKeepInStats);

@@ -115,11 +115,11 @@ source $HOME/.bashrc # or open another terminal
 
 ### Usage
 To get started, run `langstream --help` to see the available commands.
-By default, the CLI will connect to the control plane running on `localhost:8090`. You can change this by setting the `LANGSTREAM_webServiceUrl` environment variable.
+By default, the CLI will connect to the control plane running on `localhost:8090`. 
 
-To change permanently it, you can run:
+To configure a different LangStream environment, you can configure a new profile:
 ```
-langstream configure webServiceUrl <url>
+langstream profiles create dev --web-service-url https://langstream-control-plane --api-gateway-url wss://langstream-api-gateway --tenant my-tenant
 ```
 
 The above applies for all the configuration options:

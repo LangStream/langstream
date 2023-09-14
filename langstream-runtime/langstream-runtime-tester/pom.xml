@@ -37,6 +37,17 @@
       <artifactId>langstream-api-gateway</artifactId>
       <version>${project.version}</version>
       <classifier>original</classifier>
+      <exclusions>
+        <!-- this are loaded from the .nar files -->
+        <exclusion>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>langstream-kafka-runtime</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>langstream-pulsar-runtime</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

@@ -22,10 +22,10 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.impl.deploy.ApplicationDeployer;
+import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentInfo;
-import ai.langstream.runtime.agent.nar.NarFileHandler;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.file.Path;
@@ -55,6 +55,8 @@ public class LocalApplicationRunner
 
     final Path agentsDirectory;
 
+    final Path codeDirectory;
+
     final AtomicBoolean continueLoop = new AtomicBoolean(true);
 
     final CountDownLatch exited = new CountDownLatch(1);
@@ -63,7 +65,8 @@ public class LocalApplicationRunner
 
     final Map<String, AgentInfo> allAgentsInfo = new ConcurrentHashMap<>();
 
-    public LocalApplicationRunner(Path agentsDirectory) throws Exception {
+    public LocalApplicationRunner(Path agentsDirectory, Path codeDirectory) throws Exception {
+        this.codeDirectory = codeDirectory;
         this.agentsDirectory = agentsDirectory;
         this.narFileHandler =
                 new NarFileHandler(
@@ -188,7 +191,7 @@ public class LocalApplicationRunner
                                 AgentRunner.runAgent(
                                         podConfiguration,
                                         null,
-                                        null,
+                                        codeDirectory,
                                         agentsDirectory,
                                         agentInfo,
                                         continueLoop::get,

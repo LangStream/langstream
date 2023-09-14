@@ -21,8 +21,8 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKN
 
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.runtime.RuntimeStarter;
-import ai.langstream.runtime.agent.nar.NarFileHandler;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;

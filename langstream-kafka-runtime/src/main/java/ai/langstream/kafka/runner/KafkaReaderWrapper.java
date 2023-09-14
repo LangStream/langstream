@@ -20,6 +20,7 @@ import ai.langstream.api.runner.topics.OffsetPerPartition;
 import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
+import ai.langstream.api.util.ClassloaderUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -56,7 +57,10 @@ class KafkaReaderWrapper implements TopicReader {
 
     @Override
     public void start() {
-        consumer = new KafkaConsumer(configuration);
+        try (var context =
+                ClassloaderUtils.withContextClassloader(this.getClass().getClassLoader())) {
+            consumer = new KafkaConsumer(configuration);
+        }
         final List<TopicPartition> partitions =
                 ((List<PartitionInfo>) consumer.partitionsFor(topicName))
                         .stream()

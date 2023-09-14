@@ -1051,7 +1051,7 @@ public class AgentRunner {
 
     private void deployAsset(AssetDefinition asset, AssetManagerRegistry assetManagerRegistry)
             throws Exception {
-        log.info("Deploying asset {}", asset);
+        log.info("Deploying asset {} type {}", asset.getId(), asset.getAssetType());
         AssetManagerAndLoader assetManager =
                 assetManagerRegistry.getAssetManager(asset.getAssetType());
         if (assetManager == null) {

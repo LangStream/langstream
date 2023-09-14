@@ -43,7 +43,7 @@ public class LangStreamControlPlaneWebApplication {
     private static final Logger log =
             LoggerFactory.getLogger(LangStreamControlPlaneWebApplication.class);
 
-    public static void main(String[] args) {
+    public static void main(String... args) {
         Environment env =
                 SpringApplication.run(LangStreamControlPlaneWebApplication.class, args)
                         .getEnvironment();

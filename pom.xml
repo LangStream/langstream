@@ -774,7 +774,6 @@
         <module>langstream-kafka-runtime</module>
         <module>langstream-k8s-runtime</module>
         <module>langstream-codestorage-providers</module>
-        <module>langstream-runtime</module>
         <module>langstream-webservice</module>
         <module>langstream-k8s-storage</module>
         <module>langstream-k8s-deployer</module>
@@ -782,6 +781,7 @@
         <module>langstream-e2e-tests</module>
         <module>langstream-api-gateway</module>
         <module>langstream-api-gateway-auth</module>
+        <module>langstream-runtime</module>
       </modules>
     </profile>
     <profile>

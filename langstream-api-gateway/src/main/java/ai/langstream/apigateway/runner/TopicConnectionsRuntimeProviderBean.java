@@ -22,9 +22,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@Slf4j
 public class TopicConnectionsRuntimeProviderBean {
 
     private final NarFileHandler narFileHandler;
@@ -34,13 +37,18 @@ public class TopicConnectionsRuntimeProviderBean {
     public TopicConnectionsRuntimeProviderBean(CodeConfiguration agentsConfiguration)
             throws Exception {
 
+        log.info("Agents configuration: {}", agentsConfiguration);
         if (agentsConfiguration.getPath() != null) {
             Path directory = Paths.get(agentsConfiguration.getPath());
+
             if (Files.isDirectory(directory)) {
+                log.info("Agents directory: {}", directory);
                 this.narFileHandler =
                         new NarFileHandler(
                                 directory, List.of(), NarFileHandler.class.getClassLoader());
+                this.narFileHandler.scan();
             } else {
+                log.info("Agents directory: {} does not exist", directory);
                 this.narFileHandler = null;
             }
         } else {

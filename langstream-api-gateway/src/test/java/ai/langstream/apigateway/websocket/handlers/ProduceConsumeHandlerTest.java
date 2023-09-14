@@ -42,6 +42,7 @@ import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
 import ai.langstream.apigateway.websocket.api.ProduceRequest;
 import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import ai.langstream.impl.deploy.ApplicationDeployer;
+import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -54,6 +55,7 @@ import jakarta.websocket.CloseReason;
 import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Session;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +67,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
@@ -88,7 +91,15 @@ import org.springframework.context.annotation.Primary;
             "spring.main.allow-bean-definition-overriding=true",
         })
 @WireMockTest
+@Slf4j
 class ProduceConsumeHandlerTest {
+
+    public static final Path agentsDirectory;
+
+    static {
+        agentsDirectory = Path.of(System.getProperty("user.dir"), "target", "agents");
+        log.info("Agents directory is {}", agentsDirectory);
+    }
 
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -265,37 +276,43 @@ class ProduceConsumeHandlerTest {
         }
     }
 
-    private void prepareTopicsForTest(String... topic) {
+    private void prepareTopicsForTest(String... topic) throws Exception {
         topics = List.of(topic);
-        TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
-                new TopicConnectionsRuntimeRegistry();
-        final ApplicationDeployer deployer =
-                ApplicationDeployer.builder()
-                        .pluginsRegistry(new PluginsRegistry())
-                        .registry(new ClusterRuntimeRegistry())
-                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
-                        .build();
-        final StreamingCluster streamingCluster =
-                new StreamingCluster(
-                        "kafka",
-                        Map.of(
-                                "admin",
-                                Map.of(
-                                        "bootstrap.servers",
-                                        kafkaContainer.getBootstrapServers(),
-                                        "default.api.timeout.ms",
-                                        5000)));
-        topicConnectionsRuntimeRegistry
-                .getTopicConnectionsRuntime(streamingCluster)
-                .asTopicConnectionsRuntime()
-                .deploy(
-                        deployer.createImplementation(
-                                "app", store.get("t", "app", false).getInstance()));
+        try (NarFileHandler narFileHandler =
+                new NarFileHandler(
+                        agentsDirectory, List.of(), NarFileHandler.class.getClassLoader()); ) {
+            narFileHandler.scan();
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                    new TopicConnectionsRuntimeRegistry();
+            topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
+            final ApplicationDeployer deployer =
+                    ApplicationDeployer.builder()
+                            .pluginsRegistry(new PluginsRegistry())
+                            .registry(new ClusterRuntimeRegistry())
+                            .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                            .build();
+            final StreamingCluster streamingCluster =
+                    new StreamingCluster(
+                            "kafka",
+                            Map.of(
+                                    "admin",
+                                    Map.of(
+                                            "bootstrap.servers",
+                                            kafkaContainer.getBootstrapServers(),
+                                            "default.api.timeout.ms",
+                                            5000)));
+            topicConnectionsRuntimeRegistry
+                    .getTopicConnectionsRuntime(streamingCluster)
+                    .asTopicConnectionsRuntime()
+                    .deploy(
+                            deployer.createImplementation(
+                                    "app", store.get("t", "app", false).getInstance()));
+        }
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"consume", "produce"})
-    void testParametersRequired(String type) {
+    void testParametersRequired(String type) throws Exception {
         final String topic = genTopic();
         prepareTopicsForTest(topic);
 
@@ -452,7 +469,7 @@ class ProduceConsumeHandlerTest {
     }
 
     @Test
-    void testAuthentication() {
+    void testAuthentication() throws Exception {
         final String topic = genTopic();
         prepareTopicsForTest(topic);
 
@@ -557,7 +574,7 @@ class ProduceConsumeHandlerTest {
     }
 
     @Test
-    void testTestCredentials() {
+    void testTestCredentials() throws Exception {
         wireMock.register(
                 WireMock.get("/auth/tenant1")
                         .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
@@ -831,7 +848,7 @@ class ProduceConsumeHandlerTest {
     }
 
     @Test
-    void testProduce() {
+    void testProduce() throws Exception {
         final String topic = genTopic();
         prepareTopicsForTest(topic);
 

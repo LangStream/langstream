@@ -421,11 +421,13 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             for (Record record : records) {
                 log.debug("[{}] Received record {}", session.getId(), record);
                 boolean skip = false;
-                for (Function<Record, Boolean> filter : filters) {
-                    if (!filter.apply(record)) {
-                        skip = true;
-                        log.debug("[{}] Skipping record {}", session.getId(), record);
-                        break;
+                if (filters != null) {
+                    for (Function<Record, Boolean> filter : filters) {
+                        if (!filter.apply(record)) {
+                            skip = true;
+                            log.debug("[{}] Skipping record {}", session.getId(), record);
+                            break;
+                        }
                     }
                 }
                 if (!skip) {

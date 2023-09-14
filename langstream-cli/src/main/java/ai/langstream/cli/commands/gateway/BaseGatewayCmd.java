@@ -22,6 +22,7 @@ import ai.langstream.cli.commands.RootGatewayCmd;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,31 +46,26 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             Map<String, String> systemParams,
             Map<String, String> userParams,
             Map<String, String> options) {
-        String paramsPart = "";
-        String optionsPart = "";
-        String systemParamsPart = "";
+        List<String> queryString = new ArrayList<>();
         if (userParams != null) {
-            paramsPart =
-                    userParams.entrySet().stream()
+            userParams.entrySet().stream()
                             .map(e -> encodeParam(e, "param:"))
-                            .collect(Collectors.joining("&"));
+                            .forEach(queryString::add);
         }
 
         if (options != null) {
-            optionsPart =
-                    options.entrySet().stream()
+            options.entrySet().stream()
                             .map(e -> encodeParam(e, "option:"))
-                            .collect(Collectors.joining("&"));
+                            .forEach(queryString::add);
         }
 
         if (systemParams != null) {
-            systemParamsPart =
-                    systemParams.entrySet().stream()
+            systemParams.entrySet().stream()
                             .map(e -> encodeParam(e, ""))
-                            .collect(Collectors.joining("&"));
+                            .forEach(queryString::add);
         }
 
-        return String.join("&", List.of(systemParamsPart, paramsPart, optionsPart));
+        return queryString.stream().collect(Collectors.joining("&"));
     }
 
     private static String encodeParam(Map.Entry<String, String> e, String prefix) {

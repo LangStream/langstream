@@ -30,6 +30,7 @@ import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -41,13 +42,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class LocalApplicationRunner implements AutoCloseable {
+public class LocalApplicationRunner
+        implements AutoCloseable, InMemoryApplicationStore.AgentInfoCollector {
 
     final KubeTestServer kubeServer = new KubeTestServer();
+    final InMemoryApplicationStore applicationStore = new InMemoryApplicationStore();
     final ApplicationDeployer applicationDeployer;
     final NarFileHandler narFileHandler;
 
@@ -58,6 +60,8 @@ public class LocalApplicationRunner implements AutoCloseable {
     final CountDownLatch exited = new CountDownLatch(1);
 
     final AtomicBoolean started = new AtomicBoolean();
+
+    final Map<String, AgentInfo> allAgentsInfo = new ConcurrentHashMap<>();
 
     public LocalApplicationRunner(Path agentsDirectory) throws Exception {
         this.agentsDirectory = agentsDirectory;
@@ -98,12 +102,12 @@ public class LocalApplicationRunner implements AutoCloseable {
             String tenant,
             String appId,
             ModelBuilder.ApplicationWithPackageInfo applicationWithPackageInfo,
-            String... expectedAgents)
+            String... agents)
             throws Exception {
 
-        kubeServer.spyAgentCustomResources(tenant, expectedAgents);
+        kubeServer.spyAgentCustomResources(tenant, agents);
         final Map<String, Secret> secrets =
-                kubeServer.spyAgentCustomResourcesSecrets(tenant, expectedAgents);
+                kubeServer.spyAgentCustomResourcesSecrets(tenant, agents);
 
         Application applicationInstance = applicationWithPackageInfo.getApplication();
 
@@ -112,8 +116,16 @@ public class LocalApplicationRunner implements AutoCloseable {
 
         applicationDeployer.deploy(tenant, implementation, null);
 
+        applicationStore.put(
+                tenant, appId, applicationInstance, "no-code-archive-reference", implementation);
+
         return new ApplicationRuntime(
                 tenant, appId, applicationInstance, implementation, secrets, applicationDeployer);
+    }
+
+    @Override
+    public Map<String, AgentInfo> collectAgentsStatus() {
+        return new HashMap<>(allAgentsInfo);
     }
 
     public record AgentRunResult(Map<String, AgentInfo> info) {}
@@ -122,30 +134,36 @@ public class LocalApplicationRunner implements AutoCloseable {
         kubeServer.start();
     }
 
-    public AgentRunResult executeAgentRunners(ApplicationRuntime runtime) throws Exception {
+    public AgentRunResult executeAgentRunners(ApplicationRuntime runtime, List<String> agents)
+            throws Exception {
 
         String runnerExecutionId = UUID.randomUUID().toString();
         log.info(
                 "{} Starting Agent Runners. Running {} pods",
                 runnerExecutionId,
                 runtime.secrets.size());
-        Map<String, AgentInfo> allAgentsInfo = new ConcurrentHashMap<>();
+
         started.set(true);
         try {
             List<RuntimePodConfiguration> pods = new ArrayList<>();
             runtime.secrets()
                     .forEach(
                             (key, secret) -> {
-                                RuntimePodConfiguration runtimePodConfiguration =
-                                        AgentResourcesFactory.readRuntimePodConfigurationFromSecret(
-                                                secret);
-                                log.info(
-                                        "{} Pod configuration {} = {}",
-                                        runnerExecutionId,
-                                        key,
-                                        runtimePodConfiguration);
-                                pods.add(runtimePodConfiguration);
+                                if (agents.contains(key)) {
+                                    RuntimePodConfiguration runtimePodConfiguration =
+                                            AgentResourcesFactory
+                                                    .readRuntimePodConfigurationFromSecret(secret);
+                                    log.info(
+                                            "{} Pod configuration {} = {}",
+                                            runnerExecutionId,
+                                            key,
+                                            runtimePodConfiguration);
+                                    pods.add(runtimePodConfiguration);
+                                } else {
+                                    log.info("Agent {} won't be executed", key);
+                                }
                             });
+
             // execute all the pods
             ExecutorService executorService = Executors.newCachedThreadPool();
             List<CompletableFuture> futures = new ArrayList<>();
@@ -167,7 +185,6 @@ public class LocalApplicationRunner implements AutoCloseable {
                                         podConfiguration.agent().agentId());
                                 AgentInfo agentInfo = new AgentInfo();
                                 allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
-                                AtomicInteger numLoops = new AtomicInteger();
                                 AgentRunner.runAgent(
                                         podConfiguration,
                                         null,

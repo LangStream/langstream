@@ -34,6 +34,18 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-api-gateway</artifactId>
+      <version>${project.version}</version>
+      <classifier>original</classifier>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-webservice</artifactId>
+      <version>${project.version}</version>
+      <classifier>original</classifier>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>langstream-runtime-impl</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -80,7 +92,6 @@
       <version>${project.version}</version>
       <scope>compile</scope>
     </dependency>
-
   </dependencies>
   <build>
     <plugins>

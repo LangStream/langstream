@@ -15,7 +15,9 @@
  */
 package ai.langstream.runtime.tester;
 
+import ai.langstream.apigateway.LangStreamApiGateway;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.webservice.LangStreamControlPlaneWebApplication;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -27,12 +29,21 @@ import lombok.extern.slf4j.Slf4j;
 public class Main {
     public static void main(String... args) {
         try {
+            String tenant = System.getenv().getOrDefault("LANSGSTREAM_TESTER_TENANT", "tenant");
+            String applicationId =
+                    System.getenv().getOrDefault("LANSGSTREAM_TESTER_APPLICATIONID", "app");
+
+            String singleAgentId = System.getenv().getOrDefault("LANSGSTREAM_TESTER_AGENTID", "");
+
+            boolean startWebservices =
+                    Boolean.parseBoolean(
+                            System.getenv()
+                                    .getOrDefault("LANSGSTREAM_TESTER_STARTWEBSERVICES", "true"));
+
             String applicationPath = "/code/application";
             String instanceFile = "/code/instance.yaml";
             String secretsFile = "/code/secrets.yaml";
             String agentsDirectory = "/app/agents";
-
-            String tenant = "tenant";
 
             String secrets = Files.readString(Paths.get(secretsFile));
             String instance = Files.readString(Paths.get(instanceFile));
@@ -42,9 +53,8 @@ public class Main {
                     ModelBuilder.buildApplicationInstance(
                             applicationDirectories, instance, secrets);
 
-            String applicationId = "app";
-
             List<String> expectedAgents = new ArrayList<>();
+            List<String> allAgentIds = new ArrayList<>();
             applicationWithPackageInfo
                     .getApplication()
                     .getModules()
@@ -58,6 +68,9 @@ public class Main {
                                                     p.getAgents()
                                                             .forEach(
                                                                     agentConfiguration -> {
+                                                                        allAgentIds.add(
+                                                                                agentConfiguration
+                                                                                        .getId());
                                                                         expectedAgents.add(
                                                                                 applicationId
                                                                                         + "-"
@@ -66,10 +79,40 @@ public class Main {
                                                                     });
                                                 });
                             });
-            log.info("expectedAgents {}", expectedAgents);
+            log.info("Available Agent ids in this application  {}", expectedAgents);
+
+            List<String> agentsToRun = new ArrayList<>(expectedAgents);
+            List<String> agentsIdToKeepInStats = new ArrayList<>(allAgentIds);
+            if (!singleAgentId.isEmpty()) {
+                log.info("Filtering out all the agents but {}", singleAgentId);
+                if (!allAgentIds.contains(singleAgentId)) {
+                    throw new IllegalStateException(
+                            "Agent id "
+                                    + singleAgentId
+                                    + " not found in the list of available agents for this application ("
+                                    + allAgentIds
+                                    + ")");
+                }
+                agentsToRun.clear();
+                agentsToRun.add(applicationId + "-" + singleAgentId);
+
+                agentsIdToKeepInStats.clear();
+                agentsIdToKeepInStats.add(singleAgentId);
+            }
 
             try (LocalApplicationRunner runner =
                     new LocalApplicationRunner(Paths.get(agentsDirectory)); ) {
+
+                InMemoryApplicationStore.setAgentsInfoCollector(runner);
+                InMemoryApplicationStore.setFilterAgents(agentsIdToKeepInStats);
+
+                if (startWebservices) {
+                    LangStreamControlPlaneWebApplication.main(
+                            "--spring.config.location=classpath:webservice.application.properties");
+
+                    LangStreamApiGateway.main(
+                            "--spring.config.location=classpath:gateway.application.properties");
+                }
 
                 runner.start();
                 try (LocalApplicationRunner.ApplicationRuntime applicationRuntime =
@@ -87,9 +130,10 @@ public class Main {
                                                 runner.close();
                                             }));
 
-                    runner.executeAgentRunners(applicationRuntime);
+                    runner.executeAgentRunners(applicationRuntime, agentsToRun);
                 }
             }
+
         } catch (Throwable error) {
             error.printStackTrace();
         }

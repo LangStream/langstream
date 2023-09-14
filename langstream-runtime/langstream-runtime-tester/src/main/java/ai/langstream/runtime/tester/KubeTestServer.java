@@ -120,7 +120,7 @@ public class KubeTestServer implements AutoCloseable {
                                             mapper.readValue(
                                                     byteArrayOutputStream.toByteArray(),
                                                     AgentCustomResource.class);
-                                    log.info("received patch request for agent {}", agentId);
+                                    log.debug("received patch request for agent {}", agentId);
                                     currentAgents.put(agentId, agent);
                                     return agent;
                                 } catch (IOException e) {
@@ -135,7 +135,7 @@ public class KubeTestServer implements AutoCloseable {
                     .andReply(
                             HttpURLConnection.HTTP_OK,
                             recordedRequest -> {
-                                log.info("received get request for agent {}", agentId);
+                                log.debug("received get request for agent {}", agentId);
                                 return currentAgents.get(agentId);
                             })
                     .always();
@@ -146,7 +146,7 @@ public class KubeTestServer implements AutoCloseable {
                     .andReply(
                             HttpURLConnection.HTTP_OK,
                             recordedRequest -> {
-                                log.info("received delete request for agent {}", agentId);
+                                log.debug("received delete request for agent {}", agentId);
                                 currentAgents.remove(agentId);
                                 return List.of();
                             })
@@ -175,7 +175,7 @@ public class KubeTestServer implements AutoCloseable {
                                             mapper.readValue(
                                                     byteArrayOutputStream.toByteArray(),
                                                     Secret.class);
-                                    log.info(
+                                    log.debug(
                                             "received patch request secret for agent {}: {}",
                                             agentId,
                                             secret);
@@ -193,7 +193,7 @@ public class KubeTestServer implements AutoCloseable {
                     .andReply(
                             HttpURLConnection.HTTP_OK,
                             recordedRequest -> {
-                                log.info("received delete request for secret agent {}", agentId);
+                                log.debug("received delete request for secret agent {}", agentId);
                                 currentAgentsSecrets.remove(agentId);
                                 return List.of();
                             })
@@ -281,7 +281,7 @@ public class KubeTestServer implements AutoCloseable {
                                             mapper.readValue(
                                                     byteArrayOutputStream.toByteArray(),
                                                     ApplicationCustomResource.class);
-                                    log.info("received patch request for app {}", appId);
+                                    log.debug("received patch request for app {}", appId);
                                     currentApplications.put(appId, app);
                                     return app;
                                 } catch (IOException e) {
@@ -314,7 +314,7 @@ public class KubeTestServer implements AutoCloseable {
                     .andReply(
                             HttpURLConnection.HTTP_OK,
                             recordedRequest -> {
-                                log.info("received delete request for app {}", appId);
+                                log.debug("received delete request for app {}", appId);
                                 currentApplications.remove(appId);
                                 return List.of();
                             })

@@ -15,13 +15,15 @@
  */
 package ai.langstream.apigateway.websocket.handlers;
 
-import static ai.langstream.apigateway.websocket.WebSocketConfig.CONSUME_PATH;
+import static ai.langstream.apigateway.websocket.WebSocketConfig.CHAT_PATH;
 
 import ai.langstream.api.model.Gateway;
+import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -33,11 +35,11 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 @Slf4j
-public class ConsumeHandler extends AbstractHandler {
+public class ChatHandler extends AbstractHandler {
 
     private final ExecutorService executor;
 
-    public ConsumeHandler(
+    public ChatHandler(
             ApplicationStore applicationStore,
             ExecutorService executor,
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
@@ -47,12 +49,12 @@ public class ConsumeHandler extends AbstractHandler {
 
     @Override
     public String path() {
-        return CONSUME_PATH;
+        return CHAT_PATH;
     }
 
     @Override
     Gateway.GatewayType gatewayType() {
-        return Gateway.GatewayType.consume;
+        return Gateway.GatewayType.chat;
     }
 
     @Override
@@ -72,7 +74,16 @@ public class ConsumeHandler extends AbstractHandler {
 
     @Override
     protected List<String> getAllRequiredParameters(Gateway gateway) {
-        return gateway.getParameters();
+        List<String> parameters = gateway.getParameters();
+        if (parameters == null) {
+            parameters = new ArrayList<>();
+        }
+        if (gateway.getChatOptions() != null && gateway.getChatOptions().getHeaders() != null) {
+            for (Gateway.KeyValueComparison header : gateway.getChatOptions().getHeaders()) {
+                parameters.add(header.key());
+            }
+        }
+        return parameters;
     }
 
     @Override
@@ -80,46 +91,77 @@ public class ConsumeHandler extends AbstractHandler {
             AuthenticatedGatewayRequestContext context, Map<String, Object> attributes)
             throws Exception {
 
-        final Gateway.ConsumeOptions consumeOptions = context.gateway().getConsumeOptions();
+        setupReader(context);
+        setupProducer(context);
 
-        final List<Function<Record, Boolean>> messageFilters;
-        if (consumeOptions != null && consumeOptions.filters() != null) {
-            messageFilters =
-                    createMessageFilters(
-                            consumeOptions.filters().headers(),
-                            context.userParameters(),
-                            context.principalValues());
-        } else {
-            messageFilters = null;
-        }
-
-        setupReader(
-                context.attributes(),
-                context.gateway().getTopic(),
-                context.application().getInstance().streamingCluster(),
-                messageFilters,
-                context.options());
         sendClientConnectedEvent(context);
     }
 
+    private void setupProducer(AuthenticatedGatewayRequestContext context) {
+        final Gateway.ChatOptions chatOptions = context.gateway().getChatOptions();
+
+        List<Gateway.KeyValueComparison> headerConfig = new ArrayList<>();
+        final List<Gateway.KeyValueComparison> gwHeaders = chatOptions.getHeaders();
+        if (gwHeaders != null) {
+            for (Gateway.KeyValueComparison gwHeader : gwHeaders) {
+                headerConfig.add(gwHeader);
+            }
+        }
+        final List<Header> commonHeaders =
+                getProducerCommonHeaders(
+                        headerConfig, context.userParameters(), context.principalValues());
+        setupProducer(
+                context.attributes(),
+                chatOptions.getQuestionsTopic(),
+                context.application().getInstance().streamingCluster(),
+                commonHeaders,
+                context.tenant(),
+                context.applicationId(),
+                context.gateway().getId());
+    }
+
+    private void setupReader(AuthenticatedGatewayRequestContext context) throws Exception {
+        final Gateway.ChatOptions chatOptions = context.gateway().getChatOptions();
+
+        List<Gateway.KeyValueComparison> headerFilters = new ArrayList<>();
+        final List<Gateway.KeyValueComparison> gwHeaders = chatOptions.getHeaders();
+        if (gwHeaders != null) {
+            for (Gateway.KeyValueComparison gwHeader : gwHeaders) {
+                headerFilters.add(gwHeader);
+            }
+        }
+        final List<Function<Record, Boolean>> messageFilters =
+                createMessageFilters(
+                        headerFilters, context.userParameters(), context.principalValues());
+
+        setupReader(
+                context.attributes(),
+                chatOptions.getAnswersTopic(),
+                context.application().getInstance().streamingCluster(),
+                messageFilters,
+                context.options());
+    }
+
     @Override
-    public void onOpen(WebSocketSession session, AuthenticatedGatewayRequestContext context) {
-        startReadingMessages(session, context, executor);
+    public void onOpen(
+            WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) {
+        startReadingMessages(webSocketSession, context, executor);
     }
 
     @Override
     public void onMessage(
             WebSocketSession webSocketSession,
             AuthenticatedGatewayRequestContext context,
-            TextMessage message) {}
+            TextMessage message)
+            throws Exception {
+        produceMessage(webSocketSession, message);
+    }
 
     @Override
     public void onClose(
             WebSocketSession webSocketSession,
             AuthenticatedGatewayRequestContext context,
-            CloseStatus closeStatus) {
-        stopReadingMessages(webSocketSession);
-    }
+            CloseStatus status) {}
 
     @Override
     void validateOptions(Map<String, String> options) {

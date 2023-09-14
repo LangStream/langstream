@@ -57,6 +57,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -671,9 +672,10 @@ class ProduceConsumeHandlerTest {
                                                 consume.record().value(),
                                                 consume.record().headers());
                                     } catch (JsonProcessingException e) {
-                                        throw new RuntimeException(e);
+                                        return null;
                                     }
                                 })
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toList()));
     }
 
@@ -1432,6 +1434,61 @@ class ProduceConsumeHandlerTest {
             assertNotNull(data.getHttpRequestHeaders().get("host"));
             assertEquals(0, data.getOptions().size());
             assertTrue(event.getTimestamp() > 0);
+        }
+    }
+
+    @Test
+    void testChatGateway() throws Exception {
+        final String topic = genTopic();
+        prepareTopicsForTest(topic);
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("chat")
+                                        .type(Gateway.GatewayType.chat)
+                                        .chatOptions(
+                                                new Gateway.ChatOptions(
+                                                        topic,
+                                                        topic,
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromParameters(
+                                                                                null, "session"))))
+                                        .build()));
+
+        CountDownLatch countDownLatch = new CountDownLatch(2);
+        List<String> messages = new ArrayList<>();
+        try (final TestWebSocketClient chat =
+                new TestWebSocketClient(
+                                new TestWebSocketClient.Handler() {
+                                    @Override
+                                    public void onMessage(String msg) {
+                                        messages.add(msg);
+                                        countDownLatch.countDown();
+                                    }
+
+                                    @Override
+                                    public void onClose(CloseReason closeReason) {
+                                        countDownLatch.countDown();
+                                    }
+
+                                    @Override
+                                    public void onError(Throwable throwable) {
+                                        countDownLatch.countDown();
+                                    }
+                                })
+                        .connect(
+                                URI.create(
+                                        "ws://localhost:%d/v1/chat/tenant1/application1/chat?param:session=s1"
+                                                .formatted(port)))) {
+            final ProduceRequest produceRequest =
+                    new ProduceRequest(null, "this is a message", null);
+            produce(produceRequest, chat);
+            countDownLatch.await();
+            assertMessagesContent(
+                    List.of(new MsgRecord(null, "this is a message", Map.of("session", "s1"))),
+                    messages);
         }
     }
 }

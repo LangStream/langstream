@@ -24,23 +24,41 @@ import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Gateways;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.topics.OffsetPerPartition;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runner.topics.TopicReadResult;
+import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
+import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
+import ai.langstream.apigateway.websocket.api.ProduceRequest;
+import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import ai.langstream.apigateway.websocket.impl.GatewayRequestContextImpl;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
@@ -227,7 +245,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         final Gateway.GatewayType type = gatewayType();
         final Gateway gateway = extractGateway(gatewayId, application, type);
 
-        final List<String> requiredParameters = gateway.getParameters();
+        final List<String> requiredParameters = getAllRequiredParameters(gateway);
         Set<String> allUserParameterKeys = new HashSet<>(userParameters.keySet());
         if (requiredParameters != null) {
             for (String requiredParameter : requiredParameters) {
@@ -261,7 +279,9 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 .build();
     }
 
-    protected void recordCloseableResource(
+    protected abstract List<String> getAllRequiredParameters(Gateway gateway);
+
+    protected static void recordCloseableResource(
             Map<String, Object> attributes, AutoCloseable... closeables) {
         List<AutoCloseable> currentCloseable = (List<AutoCloseable>) attributes.get("closeables");
 
@@ -348,5 +368,324 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             producer.write(record).get();
             log.info("sent event {}", recordValue);
         }
+    }
+
+    protected static void startReadingMessages(
+            WebSocketSession session,
+            AuthenticatedGatewayRequestContext context,
+            Executor executor) {
+        final CompletableFuture<Void> future =
+                CompletableFuture.runAsync(
+                        () -> {
+                            final Map<String, Object> attributes = session.getAttributes();
+                            TopicReader reader = (TopicReader) attributes.get("topicReader");
+                            final String tenant = context.tenant();
+                            final String gatewayId = context.gateway().getId();
+                            final String applicationId = context.applicationId();
+                            try {
+                                log.info(
+                                        "[{}] Started reader for gateway {}/{}/{}",
+                                        session.getId(),
+                                        tenant,
+                                        applicationId,
+                                        gatewayId);
+                                readMessages(
+                                        session,
+                                        (List<Function<Record, Boolean>>)
+                                                attributes.get("consumeFilters"),
+                                        reader);
+                            } catch (InterruptedException | CancellationException ex) {
+                                // ignore
+                            } catch (Throwable ex) {
+                                log.error(ex.getMessage(), ex);
+                            } finally {
+                                closeReader(reader);
+                            }
+                        },
+                        executor);
+        session.getAttributes().put("future", future);
+    }
+
+    protected static void readMessages(
+            WebSocketSession session, List<Function<Record, Boolean>> filters, TopicReader reader)
+            throws Exception {
+        while (true) {
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
+            if (!session.isOpen()) {
+                return;
+            }
+            final TopicReadResult readResult = reader.read();
+            final List<Record> records = readResult.records();
+            for (Record record : records) {
+                log.debug("[{}] Received record {}", session.getId(), record);
+                boolean skip = false;
+                if (filters != null) {
+                    for (Function<Record, Boolean> filter : filters) {
+                        if (!filter.apply(record)) {
+                            skip = true;
+                            log.debug("[{}] Skipping record {}", session.getId(), record);
+                            break;
+                        }
+                    }
+                }
+                if (!skip) {
+                    final Map<String, String> messageHeaders = computeMessageHeaders(record);
+                    final String offset = computeOffset(readResult);
+
+                    final ConsumePushMessage message =
+                            new ConsumePushMessage(
+                                    new ConsumePushMessage.Record(
+                                            record.key(), record.value(), messageHeaders),
+                                    offset);
+                    final String jsonMessage = mapper.writeValueAsString(message);
+                    session.sendMessage(new TextMessage(jsonMessage));
+                }
+            }
+        }
+    }
+
+    private static void closeReader(TopicReader reader) {
+        if (reader == null) {
+            return;
+        }
+        try {
+            reader.close();
+        } catch (Exception e) {
+            log.error("error closing reader", e);
+        }
+    }
+
+    private static Map<String, String> computeMessageHeaders(Record record) {
+        final Collection<Header> headers = record.headers();
+        final Map<String, String> messageHeaders;
+        if (headers == null) {
+            messageHeaders = Map.of();
+        } else {
+            messageHeaders = new HashMap<>();
+            headers.forEach(h -> messageHeaders.put(h.key(), h.valueAsString()));
+        }
+        return messageHeaders;
+    }
+
+    private static String computeOffset(TopicReadResult readResult) throws JsonProcessingException {
+        final OffsetPerPartition offsetPerPartition = readResult.partitionsOffsets();
+        if (offsetPerPartition == null) {
+            return null;
+        }
+        return Base64.getEncoder().encodeToString(mapper.writeValueAsBytes(offsetPerPartition));
+    }
+
+    protected static List<Function<Record, Boolean>> createMessageFilters(
+            List<Gateway.KeyValueComparison> headersFilters,
+            Map<String, String> passedParameters,
+            Map<String, String> principalValues) {
+        List<Function<Record, Boolean>> filters = new ArrayList<>();
+        if (headersFilters == null) {
+            return filters;
+        }
+        for (Gateway.KeyValueComparison comparison : headersFilters) {
+            if (comparison.key() == null) {
+                throw new IllegalArgumentException("Key cannot be null");
+            }
+            filters.add(
+                    record -> {
+                        final Header header = record.getHeader(comparison.key());
+                        if (header == null) {
+                            return false;
+                        }
+                        final String expectedValue = header.valueAsString();
+                        if (expectedValue == null) {
+                            return false;
+                        }
+                        String value = comparison.value();
+                        if (value == null && comparison.valueFromParameters() != null) {
+                            value = passedParameters.get(comparison.valueFromParameters());
+                        }
+                        if (value == null && comparison.valueFromAuthentication() != null) {
+                            value = principalValues.get(comparison.valueFromAuthentication());
+                        }
+                        if (value == null) {
+                            return false;
+                        }
+                        return expectedValue.equals(value);
+                    });
+        }
+        return filters;
+    }
+
+    protected void setupReader(
+            Map<String, Object> sessionAttributes,
+            String topic,
+            StreamingCluster streamingCluster,
+            List<Function<Record, Boolean>> filters,
+            Map<String, String> options)
+            throws Exception {
+        sessionAttributes.put("consumeFilters", filters);
+
+        final TopicConnectionsRuntime topicConnectionsRuntime =
+                topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(streamingCluster)
+                        .asTopicConnectionsRuntime();
+
+        final String positionParameter = options.getOrDefault("position", "latest");
+        TopicOffsetPosition position =
+                switch (positionParameter) {
+                    case "latest" -> TopicOffsetPosition.LATEST;
+                    case "earliest" -> TopicOffsetPosition.EARLIEST;
+                    default -> TopicOffsetPosition.absolute(
+                            new String(
+                                    Base64.getDecoder().decode(positionParameter),
+                                    StandardCharsets.UTF_8));
+                };
+        TopicReader reader =
+                topicConnectionsRuntime.createReader(
+                        streamingCluster, Map.of("topic", topic), position);
+        reader.start();
+        sessionAttributes.put("topicReader", reader);
+    }
+
+    protected void stopReadingMessages(WebSocketSession webSocketSession) {
+        final CompletableFuture<Void> future =
+                (CompletableFuture<Void>) webSocketSession.getAttributes().get("future");
+        if (future != null && !future.isDone()) {
+            future.cancel(true);
+        }
+    }
+
+    protected void setupProducer(
+            Map<String, Object> sessionAttributes,
+            String topic,
+            StreamingCluster streamingCluster,
+            final List<Header> commonHeaders,
+            final String tenant,
+            final String applicationId,
+            final String gatewayId) {
+        final TopicConnectionsRuntime topicConnectionsRuntime =
+                topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(streamingCluster)
+                        .asTopicConnectionsRuntime();
+
+        final TopicProducer producer =
+                topicConnectionsRuntime.createProducer(
+                        null, streamingCluster, Map.of("topic", topic));
+        recordCloseableResource(sessionAttributes, producer);
+        producer.start();
+
+        sessionAttributes.put("producer", producer);
+        sessionAttributes.put(
+                "headers",
+                commonHeaders == null ? List.of() : Collections.unmodifiableList(commonHeaders));
+        log.info(
+                "Started produced for gateway {}/{}/{} on topic {}",
+                tenant,
+                applicationId,
+                gatewayId,
+                topic);
+    }
+
+    protected static List<Header> getProducerCommonHeaders(
+            List<Gateway.KeyValueComparison> headerFilters,
+            Map<String, String> passedParameters,
+            Map<String, String> principalValues) {
+        final List<Header> headers = new ArrayList<>();
+        if (headerFilters == null) {
+            return headers;
+        }
+        for (Gateway.KeyValueComparison mapping : headerFilters) {
+            if (mapping.key() == null || mapping.key().isEmpty()) {
+                throw new IllegalArgumentException("Header key cannot be empty");
+            }
+            String value = mapping.value();
+            if (value == null && mapping.valueFromParameters() != null) {
+                value = passedParameters.get(mapping.valueFromParameters());
+            }
+            if (value == null && mapping.valueFromAuthentication() != null) {
+                value = principalValues.get(mapping.valueFromAuthentication());
+            }
+            if (value == null) {
+                throw new IllegalArgumentException("header " + mapping.key() + " cannot be empty");
+            }
+            headers.add(SimpleRecord.SimpleHeader.of(mapping.key(), value));
+        }
+        return headers;
+    }
+
+    protected static void produceMessage(WebSocketSession webSocketSession, TextMessage message)
+            throws IOException {
+        final TopicProducer topicProducer = getTopicProducer(webSocketSession, true);
+        final ProduceRequest produceRequest;
+        try {
+            produceRequest = mapper.readValue(message.getPayload(), ProduceRequest.class);
+        } catch (JsonProcessingException err) {
+            sendResponse(webSocketSession, ProduceResponse.Status.BAD_REQUEST, err.getMessage());
+            return;
+        }
+        if (produceRequest.value() == null && produceRequest.key() == null) {
+            sendResponse(
+                    webSocketSession,
+                    ProduceResponse.Status.BAD_REQUEST,
+                    "Either key or value must be set.");
+            return;
+        }
+
+        final Collection<Header> headers =
+                new ArrayList<>((List<Header>) webSocketSession.getAttributes().get("headers"));
+        if (produceRequest.headers() != null) {
+            final Set<String> configuredHeaders =
+                    headers.stream().map(Header::key).collect(Collectors.toSet());
+            for (Map.Entry<String, String> messageHeader : produceRequest.headers().entrySet()) {
+                if (configuredHeaders.contains(messageHeader.getKey())) {
+                    sendResponse(
+                            webSocketSession,
+                            ProduceResponse.Status.BAD_REQUEST,
+                            "Header "
+                                    + messageHeader.getKey()
+                                    + " is configured as parameter-level header.");
+                    return;
+                }
+                headers.add(
+                        SimpleRecord.SimpleHeader.of(
+                                messageHeader.getKey(), messageHeader.getValue()));
+            }
+        }
+        try {
+            final SimpleRecord record =
+                    SimpleRecord.builder()
+                            .key(produceRequest.key())
+                            .value(produceRequest.value())
+                            .headers(headers)
+                            .build();
+            topicProducer.write(record).get();
+            log.info("[{}] Produced record {}", webSocketSession.getId(), record);
+        } catch (Throwable tt) {
+            sendResponse(webSocketSession, ProduceResponse.Status.PRODUCER_ERROR, tt.getMessage());
+            return;
+        }
+
+        webSocketSession.sendMessage(
+                new TextMessage(mapper.writeValueAsString(ProduceResponse.OK)));
+    }
+
+    private static void sendResponse(
+            WebSocketSession webSocketSession, ProduceResponse.Status status, String reason)
+            throws IOException {
+        webSocketSession.sendMessage(
+                new TextMessage(mapper.writeValueAsString(new ProduceResponse(status, reason))));
+    }
+
+    private static TopicProducer getTopicProducer(
+            WebSocketSession webSocketSession, boolean throwIfNotFound) {
+        final TopicProducer topicProducer =
+                (TopicProducer) webSocketSession.getAttributes().get("producer");
+        if (topicProducer == null) {
+            if (throwIfNotFound) {
+                log.error("No producer found for session {}", webSocketSession.getId());
+                throw new IllegalStateException(
+                        "No producer found for session " + webSocketSession.getId());
+            }
+        }
+        return topicProducer;
     }
 }

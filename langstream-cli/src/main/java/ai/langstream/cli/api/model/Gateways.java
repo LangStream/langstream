@@ -49,7 +49,8 @@ public class Gateways {
                                         (String) map.get("id"),
                                         (String) map.get("type"),
                                         (List<String>) map.get("parameters"),
-                                        (Map<String, Object>) map.get("authentication")))
+                                        (Map<String, Object>) map.get("authentication"),
+                                        (Map<String, Object>) map.get("chat-options")))
                 .collect(Collectors.toList());
     }
 
@@ -60,10 +61,12 @@ public class Gateways {
 
         public static final String TYPE_PRODUCE = "produce";
         public static final String TYPE_CONSUME = "consume";
+        public static final String TYPE_CHAT = "chat";
 
         String id;
         String type;
         List<String> parameters;
         Map<String, Object> authentication;
+        Map<String, Object> chatOptions;
     }
 }

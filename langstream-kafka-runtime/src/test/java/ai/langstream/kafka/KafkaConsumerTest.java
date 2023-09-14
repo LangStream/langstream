@@ -24,6 +24,7 @@ import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
@@ -39,9 +40,11 @@ import ai.langstream.kafka.runner.KafkaConsumerWrapper;
 import ai.langstream.kafka.runner.KafkaTopicConnectionsRuntime;
 import ai.langstream.kafka.runtime.KafkaTopic;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -66,7 +69,7 @@ class KafkaConsumerTest {
     @ValueSource(ints = {1, 4})
     public void testKafkaConsumerCommitOffsets(int numPartitions) throws Exception {
         final AdminClient admin = kafkaContainer.getAdmin();
-        String topicName = "input-topic-" + numPartitions + "parts";
+        String topicName = "input-topic-" + numPartitions + "parts-" + UUID.randomUUID();
         Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
@@ -190,7 +193,7 @@ class KafkaConsumerTest {
         int numPartitions = 4;
         int numThreads = 8;
         final AdminClient admin = kafkaContainer.getAdmin();
-        String topicName = "input-topic-" + numPartitions + "-parts-mt";
+        String topicName = "input-topic-" + numPartitions + "-parts-mt-" + UUID.randomUUID();
         Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
@@ -285,7 +288,7 @@ class KafkaConsumerTest {
     public void testRestartConsumer() throws Exception {
         int numPartitions = 1;
         final AdminClient admin = kafkaContainer.getAdmin();
-        String topicName = "input-topic-restart";
+        String topicName = "input-topic-restart-" + UUID.randomUUID();
         Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
@@ -370,6 +373,105 @@ class KafkaConsumerTest {
         }
     }
 
+    @Test
+    public void testMultipleSchemas() throws Exception {
+        int numPartitions = 1;
+        final AdminClient admin = kafkaContainer.getAdmin();
+        String topicName = "input-topic-multi-schemas-" + UUID.randomUUID();
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
+                                                module: "module-1"
+                                                id: "pipeline-1"
+                                                topics:
+                                                  - name: %s
+                                                    creation-mode: create-if-not-exists
+                                                    partitions: %d
+                                                """
+                                                .formatted(topicName, numPartitions)),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
+
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+        assertTrue(
+                implementation.getConnectionImplementation(
+                                module, Connection.fromTopic(TopicDefinition.fromName(topicName)))
+                        instanceof KafkaTopic);
+
+        deployer.deploy("tenant", implementation, null);
+
+        Set<String> topics = admin.listTopics().names().get();
+        log.info("Topics {}", topics);
+        assertTrue(topics.contains(topicName));
+
+        Map<String, TopicDescription> stats = admin.describeTopics(Set.of(topicName)).all().get();
+        assertEquals(numPartitions, stats.get(topicName).partitions().size());
+
+        deployer.delete("tenant", implementation, null);
+        topics = admin.listTopics().names().get();
+        log.info("Topics {}", topics);
+        assertFalse(topics.contains(topicName));
+
+        StreamingCluster streamingCluster =
+                implementation.getApplication().getInstance().streamingCluster();
+        KafkaTopicConnectionsRuntime runtime = new KafkaTopicConnectionsRuntime();
+        runtime.init(streamingCluster);
+        String agentId = "agent-1";
+        try (TopicProducer producer =
+                runtime.createProducer(agentId, streamingCluster, Map.of("topic", topicName)); ) {
+            producer.start();
+
+            int numIterations = 5;
+            for (int i = 0; i < numIterations; i++) {
+
+                producer.write(generateRecord(1, "string")).join();
+                producer.write(generateRecord("two", 2)).join();
+
+                producer.write(
+                                generateRecord(
+                                        "two",
+                                        2,
+                                        new SimpleRecord.SimpleHeader("h1", 7),
+                                        new SimpleRecord.SimpleHeader("h2", "bar")))
+                        .join();
+
+                producer.write(generateRecord(1, "string")).join();
+                producer.write(generateRecord("two", 2)).join();
+
+                producer.write(
+                                generateRecord(
+                                        "two",
+                                        2,
+                                        new SimpleRecord.SimpleHeader("h1", 7),
+                                        new SimpleRecord.SimpleHeader("h2", "bar")))
+                        .join();
+
+                try (KafkaConsumerWrapper consumer =
+                        (KafkaConsumerWrapper)
+                                runtime.createConsumer(
+                                        agentId, streamingCluster, Map.of("topic", topicName))) {
+
+                    consumer.start();
+                    List<Record> readFromConsumer = consumeRecords(consumer, 6);
+                    consumer.commit(readFromConsumer);
+                }
+            }
+        }
+    }
+
     @NotNull
     private static List<Record> consumeRecords(TopicConsumer consumer, int atLeast) {
         List<Record> readFromConsumer = new ArrayList<>();
@@ -387,12 +489,17 @@ class KafkaConsumerTest {
         return readFromConsumer;
     }
 
-    private static Record generateRecord(String value) {
+    private static Record generateRecord(Object value) {
+        return generateRecord(value, value);
+    }
+
+    private static Record generateRecord(Object key, Object value, Header... headers) {
         return SimpleRecord.builder()
-                .key(value)
+                .key(key)
                 .value(value)
                 .origin("origin")
                 .timestamp(System.currentTimeMillis())
+                .headers(headers != null ? Arrays.asList(headers) : List.of())
                 .build();
     }
 

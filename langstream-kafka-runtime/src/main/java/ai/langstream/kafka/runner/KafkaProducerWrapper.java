@@ -74,8 +74,13 @@ class KafkaProducerWrapper implements TopicProducer {
     private final AtomicInteger totalIn = new AtomicInteger();
     KafkaProducer<Object, Object> producer;
     Serializer keySerializer;
+    Class cacheKeyForKeySerializer;
     Serializer valueSerializer;
+
+    Class cacheKeyForValueSerializer;
     Serializer headerSerializer;
+
+    Class cacheKeyForHeaderSerializer;
 
     boolean forcedKeySerializer;
     boolean forcedValueSerializer;
@@ -151,7 +156,7 @@ class KafkaProducerWrapper implements TopicProducer {
     }
 
     @Override
-    public CompletableFuture<?> write(Record r) {
+    public synchronized CompletableFuture<?> write(Record r) {
         CompletableFuture<?> handle = new CompletableFuture<>();
         try {
             List<org.apache.kafka.common.header.Header> headers = new ArrayList<>();
@@ -160,8 +165,11 @@ class KafkaProducerWrapper implements TopicProducer {
                 if (forcedKeySerializer) {
                     key = r.key();
                 } else {
-                    if (keySerializer == null) {
-                        keySerializer = getSerializer(r.key().getClass(), keySerializers, true);
+                    Class<?> keyClass = r.key().getClass();
+                    if (keySerializer == null
+                            || !(Objects.equals(keyClass, cacheKeyForKeySerializer))) {
+                        keySerializer = getSerializer(keyClass, keySerializers, true);
+                        cacheKeyForKeySerializer = keyClass;
                     }
                     key = keySerializer.serialize(topicName, r.key());
                 }
@@ -171,9 +179,11 @@ class KafkaProducerWrapper implements TopicProducer {
                 if (forcedValueSerializer) {
                     value = r.value();
                 } else {
-                    if (valueSerializer == null) {
-                        valueSerializer =
-                                getSerializer(r.value().getClass(), valueSerializers, false);
+                    Class<?> valueClass = r.value().getClass();
+                    if (valueSerializer == null
+                            || !(Objects.equals(valueClass, cacheKeyForValueSerializer))) {
+                        valueSerializer = getSerializer(valueClass, valueSerializers, false);
+                        cacheKeyForValueSerializer = valueClass;
                     }
                     value = valueSerializer.serialize(topicName, r.value());
                 }
@@ -182,10 +192,13 @@ class KafkaProducerWrapper implements TopicProducer {
                 for (Header header : r.headers()) {
                     Object headerValue = header.value();
                     byte[] serializedHeader = null;
+
                     if (headerValue != null) {
-                        if (headerSerializer == null) {
-                            headerSerializer =
-                                    getSerializer(headerValue.getClass(), headerSerializers, null);
+                        Class<?> headerClass = headerValue.getClass();
+                        if (headerSerializer == null
+                                || !(Objects.equals(headerClass, cacheKeyForHeaderSerializer))) {
+                            headerSerializer = getSerializer(headerClass, headerSerializers, null);
+                            cacheKeyForHeaderSerializer = headerClass;
                         }
                         serializedHeader = headerSerializer.serialize(topicName, headerValue);
                     }
@@ -194,7 +207,10 @@ class KafkaProducerWrapper implements TopicProducer {
             }
             ProducerRecord<Object, Object> record =
                     new ProducerRecord<>(topicName, null, null, key, value, headers);
-            log.info("Sending record {}", record);
+
+            if (log.isDebugEnabled()) {
+                log.debug("Sending record {}", record);
+            }
 
             producer.send(
                     record,

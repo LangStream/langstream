@@ -801,7 +801,7 @@
         <module>langstream-kafka</module>
         <module>langstream-kafka-runtime</module>
         <module>langstream-k8s-runtime</module>
-        <module>langstream-codestorage-s3</module>
+        <module>langstream-codestorage-providers</module>
         <module>langstream-k8s-storage</module>
         <module>langstream-k8s-common</module>
         <module>langstream-api-gateway-auth</module>

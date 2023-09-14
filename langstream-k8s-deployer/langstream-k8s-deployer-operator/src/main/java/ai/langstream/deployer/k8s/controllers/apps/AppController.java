@@ -69,7 +69,16 @@ public class AppController extends BaseController<ApplicationCustomResource>
             ApplicationCustomResource resource, Context<ApplicationCustomResource> context) {
         Duration rescheduleDuration = handleJob(resource, true, false);
         if (rescheduleDuration == null) {
+            log.infof(
+                    "setup job for %s is completed, checking deployer",
+                    resource.getMetadata().getName());
             rescheduleDuration = handleJob(resource, false, false);
+            log.infof(
+                    "setup job for %s is %s",
+                    resource.getMetadata().getName(),
+                    rescheduleDuration != null ? "not completed" : "completed");
+        } else {
+            log.infof("setup job for %s is not completed yet", resource.getMetadata().getName());
         }
         return rescheduleDuration != null
                 ? UpdateControl.updateStatus(resource).rescheduleAfter(rescheduleDuration)

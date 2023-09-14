@@ -21,14 +21,19 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import ai.langstream.api.model.ApplicationLifecycleStatus;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationStatus;
+import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
+import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.JobSpec;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -106,8 +111,64 @@ public class AppControllerIT {
                                             .getStatus()
                                             .getStatus());
                         });
-        final Job job = client.batch().v1().jobs().inNamespace(namespace).list().getItems().get(0);
-        checkJob(job, false);
+        Job job = client.batch().v1().jobs().inNamespace(namespace).list().getItems().get(0);
+        checkSetupJob(job);
+        // simulate job finished
+        client.resource(job).inNamespace(namespace).delete();
+
+        final Job mockJob =
+                new JobBuilder()
+                        .withNewMetadata()
+                        .withName(job.getMetadata().getName())
+                        .endMetadata()
+                        .withNewSpec()
+                        .withNewTemplate()
+                        .withNewSpec()
+                        .withContainers(
+                                List.of(
+                                        new ContainerBuilder()
+                                                .withName("test")
+                                                .withImage("busybox")
+                                                .withCommand(List.of("sleep", "1"))
+                                                .build()))
+                        .withRestartPolicy("Never")
+                        .endSpec()
+                        .endTemplate()
+                        .endSpec()
+                        .build();
+        client.resource(mockJob).inNamespace(namespace).create();
+
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(30))
+                .untilAsserted(
+                        () -> {
+                            assertNotNull(
+                                    client.batch()
+                                            .v1()
+                                            .jobs()
+                                            .inNamespace(namespace)
+                                            .withName(
+                                                    AppResourcesFactory.getDeployerJobName(
+                                                            applicationId, false))
+                                            .get());
+                            assertEquals(
+                                    ApplicationLifecycleStatus.Status.DEPLOYING,
+                                    client.resource(resource)
+                                            .inNamespace(namespace)
+                                            .get()
+                                            .getStatus()
+                                            .getStatus()
+                                            .getStatus());
+                        });
+        job =
+                client.batch()
+                        .v1()
+                        .jobs()
+                        .inNamespace(namespace)
+                        .withName(AppResourcesFactory.getDeployerJobName(applicationId, false))
+                        .get();
+
+        checkDeployerJob(job, false);
 
         client.resource(resource).inNamespace(namespace).delete();
 
@@ -115,7 +176,7 @@ public class AppControllerIT {
                 .untilAsserted(
                         () ->
                                 assertEquals(
-                                        2,
+                                        3,
                                         client.batch()
                                                 .v1()
                                                 .jobs()
@@ -132,7 +193,7 @@ public class AppControllerIT {
                         .get();
 
         assertNotNull(cleanupJob);
-        checkJob(cleanupJob, true);
+        checkDeployerJob(cleanupJob, true);
 
         // it has to wait for the cleanup job to complete before actually deleting the application
         assertNotNull(client.resource(resource).inNamespace(namespace).get());
@@ -202,7 +263,43 @@ public class AppControllerIT {
                         });
     }
 
-    private void checkJob(Job job, boolean cleanup) {
+    private void checkSetupJob(Job job) {
+        final JobSpec spec = job.getSpec();
+        final PodSpec templateSpec = spec.getTemplate().getSpec();
+        final Container container = templateSpec.getContainers().get(0);
+        assertEquals("busybox", container.getImage());
+        assertEquals("IfNotPresent", container.getImagePullPolicy());
+        assertEquals("setup", container.getName());
+        assertEquals(Quantity.parse("100m"), container.getResources().getRequests().get("cpu"));
+        assertEquals(Quantity.parse("128Mi"), container.getResources().getRequests().get("memory"));
+        assertEquals("/app-config", container.getVolumeMounts().get(0).getMountPath());
+        assertEquals("app-config", container.getVolumeMounts().get(0).getName());
+        assertEquals("/app-secrets", container.getVolumeMounts().get(1).getMountPath());
+        assertEquals("app-secrets", container.getVolumeMounts().get(1).getName());
+        assertEquals(0, container.getCommand().size());
+        int args = 0;
+        assertEquals("application-setup", container.getArgs().get(args++));
+        assertEquals("deploy", container.getArgs().get(args++));
+
+        final Container initContainer = templateSpec.getInitContainers().get(0);
+        assertEquals("busybox", initContainer.getImage());
+        assertEquals("IfNotPresent", initContainer.getImagePullPolicy());
+        assertEquals("setup-init-config", initContainer.getName());
+        assertEquals("/app-config", initContainer.getVolumeMounts().get(0).getMountPath());
+        assertEquals("app-config", initContainer.getVolumeMounts().get(0).getName());
+        assertEquals(
+                "/cluster-runtime-config", initContainer.getVolumeMounts().get(1).getMountPath());
+        assertEquals("cluster-runtime-config", initContainer.getVolumeMounts().get(1).getName());
+        assertEquals("bash", initContainer.getCommand().get(0));
+        assertEquals("-c", initContainer.getCommand().get(1));
+        assertEquals(
+                "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\","
+                        + "\"application\":\"{\\\"modules\\\": {}}\"}' > /app-config/config && echo '{}' > "
+                        + "/cluster-runtime-config/config",
+                initContainer.getArgs().get(0));
+    }
+
+    private void checkDeployerJob(Job job, boolean cleanup) {
         final JobSpec spec = job.getSpec();
         final PodSpec templateSpec = spec.getTemplate().getSpec();
         final Container container = templateSpec.getContainers().get(0);

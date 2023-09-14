@@ -166,7 +166,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             } catch (Exception e) {
                 log(
                         "Failed to resolve secrets file references. Please double check the file path: "
-                        + secretsFile.toPath());
+                                + secretsFile.toPath());
                 throw e;
             }
         } else {

@@ -118,8 +118,8 @@ jobs:
           fi
   e2e-tests:
     name: End to End tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    runs-on: LangStream-4-cores
+    timeout-minutes: 45
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2

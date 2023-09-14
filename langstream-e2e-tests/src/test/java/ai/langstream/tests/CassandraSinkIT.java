@@ -27,7 +27,9 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -35,8 +37,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(BaseEndToEndTest.class)
 public class CassandraSinkIT extends BaseEndToEndTest {
 
-    @BeforeAll
-    public static void setupCassandra() {
+    @BeforeEach
+    public void setupCassandra() {
         installCassandra();
 
         executeCQL(
@@ -49,8 +51,8 @@ public class CassandraSinkIT extends BaseEndToEndTest {
         executeCQL("SELECT * FROM vsearch.products;");
     }
 
-    @AfterAll
-    public static void removeCassandra() {
+    @AfterEach
+    public void removeCassandra() {
         uninstallCassandra();
     }
 
@@ -164,18 +166,9 @@ public class CassandraSinkIT extends BaseEndToEndTest {
     @SneakyThrows
     protected static void installCassandra() {
 
-        final Path tempFile = Files.createTempFile("cassandra-test", ".yaml");
-        Files.writeString(tempFile, CASSANDRA_MANIFEST);
-
-        String cmd =
-                "kubectl apply -n %s -f %s"
-                        .formatted(namespace, tempFile.toFile().getAbsolutePath());
-        log.info("Running {}", cmd);
-        runProcess(cmd.split(" "));
-
         applyManifest(CASSANDRA_MANIFEST, namespace);
 
-        cmd =
+        final String cmd =
                 "kubectl rollout status --watch --timeout=600s sts/cassandra -n %s"
                         .formatted(namespace);
         log.info("Running {}", cmd);
@@ -220,15 +213,7 @@ public class CassandraSinkIT extends BaseEndToEndTest {
 
     @SneakyThrows
     protected static void uninstallCassandra() {
-
-        final Path tempFile = Files.createTempFile("cassandra-test", ".yaml");
-        Files.writeString(tempFile, CASSANDRA_MANIFEST);
-
-        final String cmd =
-                "kubectl delete -n %s -f %s"
-                        .formatted(namespace, tempFile.toFile().getAbsolutePath());
-        log.info("Running {}", cmd);
-        runProcess(cmd.split(" "));
+        deleteManifest(CASSANDRA_MANIFEST, namespace);
         log.info("Cassandra uninstall completed");
     }
 }

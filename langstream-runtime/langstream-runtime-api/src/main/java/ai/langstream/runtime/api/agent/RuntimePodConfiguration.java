@@ -23,5 +23,4 @@ public record RuntimePodConfiguration(
         Map<String, Object> input,
         Map<String, Object> output,
         AgentSpec agent,
-        StreamingCluster streamingCluster,
-        List<Map<String, Object>> assets) {}
+        StreamingCluster streamingCluster) {}

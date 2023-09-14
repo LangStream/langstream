@@ -17,14 +17,18 @@ package ai.langstream.runtime;
 
 import ai.langstream.runtime.agent.AgentCodeDownloaderStarter;
 import ai.langstream.runtime.agent.AgentRunnerStarter;
+import ai.langstream.runtime.application.ApplicationSetupRunnerStarter;
 import ai.langstream.runtime.deployer.RuntimeDeployerStarter;
+import java.util.List;
 
 public class Main {
+
+    private static final List<String> COMMANDS = List.of("agent-runtime", "agent-code-download", "deployer-runtime", "application-setup");
 
     public static void main(String[] args) {
         if (args.length < 1) {
             System.err.println(
-                    "Unknown command. Only ['agent-runtime', 'deployer-runtime', 'agent-code-download']");
+                    "Unknown command. Only " + COMMANDS + " are supported.");
             System.exit(1);
         }
         String command = args[0];
@@ -34,9 +38,10 @@ public class Main {
             case "agent-runtime" -> AgentRunnerStarter.main(newArgs);
             case "agent-code-download" -> AgentCodeDownloaderStarter.main(newArgs);
             case "deployer-runtime" -> RuntimeDeployerStarter.main(newArgs);
+            case "application-setup" -> ApplicationSetupRunnerStarter.main(newArgs);
             default -> {
                 System.err.println(
-                        "Unknown command. Only ['agent-runtime', 'deployer-runtime', 'agent-code-download']");
+                        "Unknown command. Only " + COMMANDS + " are supported.");
                 System.exit(1);
             }
         }

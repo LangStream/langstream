@@ -69,7 +69,7 @@ class AppResourcesFactoryTest {
                             controller: true
                             name: test-'app
                         spec:
-                          backoffLimit: 1
+                          backoffLimit: 0
                           template:
                             metadata:
                               labels:
@@ -144,7 +144,7 @@ class AppResourcesFactoryTest {
                                   secretName: langstream-cluster-config
                         """,
                 SerializationUtil.writeAsYaml(
-                        AppResourcesFactory.generateJob(
+                        AppResourcesFactory.generateDeployerJob(
                                 AppResourcesFactory.GenerateJobParams.builder()
                                         .applicationCustomResource(resource)
                                         .build())));
@@ -168,7 +168,7 @@ class AppResourcesFactoryTest {
                             controller: true
                             name: test-'app
                         spec:
-                          backoffLimit: 1
+                          backoffLimit: 0
                           template:
                             metadata:
                               labels:
@@ -243,7 +243,7 @@ class AppResourcesFactoryTest {
                                   secretName: langstream-cluster-config
                         """,
                 SerializationUtil.writeAsYaml(
-                        AppResourcesFactory.generateJob(
+                        AppResourcesFactory.generateDeployerJob(
                                 AppResourcesFactory.GenerateJobParams.builder()
                                         .applicationCustomResource(resource)
                                         .deleteJob(true)
@@ -280,7 +280,7 @@ class AppResourcesFactoryTest {
                         Map.of("ann1", "value1"));
 
         Job job =
-                AppResourcesFactory.generateJob(
+                AppResourcesFactory.generateDeployerJob(
                         AppResourcesFactory.GenerateJobParams.builder()
                                 .applicationCustomResource(resource)
                                 .deleteJob(deleteJob)
@@ -317,7 +317,7 @@ class AppResourcesFactoryTest {
                 """);
 
         Job job =
-                AppResourcesFactory.generateJob(
+                AppResourcesFactory.generateDeployerJob(
                         AppResourcesFactory.GenerateJobParams.builder()
                                 .applicationCustomResource(resource)
                                 .deleteJob(deleteJob)

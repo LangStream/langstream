@@ -15,6 +15,7 @@
  */
 package ai.langstream.deployer.k8s.util;
 
+import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -75,5 +76,11 @@ public class SerializationUtil {
     @SneakyThrows
     public static <T> T readYaml(String yaml, Class<T> toClass) {
         return yamlMapper.readValue(yaml, toClass);
+    }
+
+
+    public static String writeInlineBashJson(Object value) {
+        return writeAsJson(value)
+                .replace("'", "'\"'\"'");
     }
 }

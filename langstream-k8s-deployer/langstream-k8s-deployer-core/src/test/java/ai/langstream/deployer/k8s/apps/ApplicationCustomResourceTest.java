@@ -199,7 +199,7 @@ class ApplicationCustomResourceTest {
                     tenant: %s
                 """
                                 .formatted(applicationId, namespace, tenant));
-        resource.getMetadata().setLabels(AppResourcesFactory.getLabels(deleteJob, applicationId));
+        resource.getMetadata().setLabels(AppResourcesFactory.getLabelsForDeployer(deleteJob, applicationId));
 
         k3s.getClient().resource(resource).inNamespace(namespace).serverSideApply();
         resource = k3s.getClient().resource(resource).get();
@@ -212,7 +212,7 @@ class ApplicationCustomResourceTest {
         resource.setStatus(status);
         k3s.getClient().resource(resource).inNamespace(namespace).updateStatus();
         final Job jo =
-                AppResourcesFactory.generateJob(
+                AppResourcesFactory.generateDeployerJob(
                         AppResourcesFactory.GenerateJobParams.builder()
                                 .applicationCustomResource(resource)
                                 .deleteJob(deleteJob)

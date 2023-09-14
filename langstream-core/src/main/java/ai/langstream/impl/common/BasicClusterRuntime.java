@@ -399,35 +399,4 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
 
         return topicImplementation;
     }
-
-    @Override
-    public Object deploy(
-            String tenant,
-            ExecutionPlan applicationInstance,
-            StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId,
-            DeployContext deployContext,
-            TopicConnectionsRuntime topicConnectionsRuntime) {
-        topicConnectionsRuntime.deploy(applicationInstance);
-        log.warn(
-                "ClusterType "
-                        + getClusterType()
-                        + " doesn't actually deploy agents, it's just a logical representation");
-        return null;
-    }
-
-    @Override
-    public void delete(
-            String tenant,
-            ExecutionPlan applicationInstance,
-            StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId,
-            DeployContext deployContext,
-            TopicConnectionsRuntime topicConnectionsRuntime) {
-        topicConnectionsRuntime.delete(applicationInstance);
-        log.warn(
-                "ClusterType "
-                        + getClusterType()
-                        + " doesn't actually deploy agents, it's just a logical representation");
-    }
 }

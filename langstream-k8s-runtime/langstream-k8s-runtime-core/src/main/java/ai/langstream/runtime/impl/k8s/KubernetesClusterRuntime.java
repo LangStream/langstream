@@ -93,17 +93,11 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             ExecutionPlan executionPlan,
             StreamingClusterRuntime streamingClusterRuntime,
             String codeStorageArchiveId,
-            DeployContext deployContext,
-            TopicConnectionsRuntime topicConnectionsRuntime) {
+            DeployContext deployContext) {
 
         // this code is executed in the application setup job, that is a process with admin
         // privileges
         // this code must never run custom code imported from the application (like Jars or Py).
-
-        // deploy topics
-        topicConnectionsRuntime.deploy(executionPlan);
-
-        List<Map<String, Object>> assets = collectAssets(executionPlan);
 
         List<AgentCustomResource> agentCustomResources = new ArrayList<>();
         List<Secret> secrets = new ArrayList<>();
@@ -113,8 +107,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 secrets,
                 executionPlan,
                 streamingClusterRuntime,
-                codeStorageArchiveId,
-                assets);
+                codeStorageArchiveId);
         final String namespace = computeNamespace(tenant);
 
         for (Secret secret : secrets) {
@@ -141,19 +134,6 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     agentCustomResource.getMetadata().getName());
         }
         return null;
-    }
-
-    private List<Map<String, Object>> collectAssets(ExecutionPlan executionPlan) {
-        List<Map<String, Object>> assets = new ArrayList<>();
-        if (executionPlan.getAssets() != null) {
-            executionPlan
-                    .getAssets()
-                    .forEach(
-                            (asset) -> {
-                                assets.add(asset.config());
-                            });
-        }
-        return assets;
     }
 
     static String tryKeepPreviousCodeArchiveId(
@@ -247,8 +227,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             List<Secret> secrets,
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId,
-            List<Map<String, Object>> assets) {
+            String codeStorageArchiveId) {
         for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
             collectAgentCustomResourceAndSecret(
                     tenant,
@@ -257,8 +236,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     agentImplementation,
                     streamingClusterRuntime,
                     applicationInstance,
-                    codeStorageArchiveId,
-                    assets);
+                    codeStorageArchiveId);
         }
     }
 
@@ -270,8 +248,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             AgentNode agent,
             StreamingClusterRuntime streamingClusterRuntime,
             ExecutionPlan applicationInstance,
-            String codeStorageArchiveId,
-            List<Map<String, Object>> assets) {
+            String codeStorageArchiveId) {
         log.info(
                 "Building configuration for Agent {}, codeStorageArchiveId {}",
                 agent,
@@ -326,8 +303,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                                 defaultAgentImplementation.getAgentType(),
                                 defaultAgentImplementation.getConfiguration(),
                                 errorsConfiguration),
-                        streamingCluster,
-                        assets);
+                        streamingCluster);
 
         final Secret secret =
                 AgentResourcesFactory.generateAgentSecret(
@@ -384,8 +360,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
             String codeStorageArchiveId,
-            DeployContext deployContext,
-            TopicConnectionsRuntime topicConnectionsRuntime) {
+            DeployContext deployContext) {
         List<AgentCustomResource> agentCustomResources = new ArrayList<>();
         List<Secret> secrets = new ArrayList<>();
         collectAgentCustomResourcesAndSecrets(
@@ -394,8 +369,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 secrets,
                 applicationInstance,
                 streamingClusterRuntime,
-                codeStorageArchiveId,
-                List.of()); // no assets here
+                codeStorageArchiveId);
         final String namespace = computeNamespace(tenant);
 
         for (Secret secret : secrets) {

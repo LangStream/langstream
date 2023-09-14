@@ -49,20 +49,18 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         List<String> queryString = new ArrayList<>();
         if (userParams != null) {
             userParams.entrySet().stream()
-                            .map(e -> encodeParam(e, "param:"))
-                            .forEach(queryString::add);
+                    .map(e -> encodeParam(e, "param:"))
+                    .forEach(queryString::add);
         }
 
         if (options != null) {
             options.entrySet().stream()
-                            .map(e -> encodeParam(e, "option:"))
-                            .forEach(queryString::add);
+                    .map(e -> encodeParam(e, "option:"))
+                    .forEach(queryString::add);
         }
 
         if (systemParams != null) {
-            systemParams.entrySet().stream()
-                            .map(e -> encodeParam(e, ""))
-                            .forEach(queryString::add);
+            systemParams.entrySet().stream().map(e -> encodeParam(e, "")).forEach(queryString::add);
         }
 
         return queryString.stream().collect(Collectors.joining("&"));

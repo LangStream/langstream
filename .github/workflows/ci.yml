@@ -139,6 +139,10 @@ jobs:
       - name: Start minikube
         id: minikube
         uses: medyagh/setup-minikube@latest
+        with:
+          cpus: 4
+          memory: 8192
+          kubernetes-version: 1.26.3
       - uses: azure/setup-helm@v3
         with:
           version: v3.7.0

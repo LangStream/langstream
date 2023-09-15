@@ -19,6 +19,7 @@ import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
@@ -117,5 +118,8 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                                             .getItems()
                                             .size());
                         });
+
+        final List<String> topics = getAllTopicsFromKafka();
+        Assertions.assertEquals(List.of("TEST_TOPIC_0"), topics);
     }
 }

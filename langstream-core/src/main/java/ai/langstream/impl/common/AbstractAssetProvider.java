@@ -121,7 +121,7 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
 
     protected static Supplier<String> describe(AssetDefinition assetDefinition) {
         return () ->
-                " assert definition, type="
+                "asset definition, type="
                         + assetDefinition.getAssetType()
                         + ", name="
                         + assetDefinition.getName()

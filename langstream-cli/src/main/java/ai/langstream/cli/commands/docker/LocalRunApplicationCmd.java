@@ -39,8 +39,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     @CommandLine.Option(
             names = {"-i", "--instance"},
-            description = "Instance file path",
-            required = true)
+            description = "Instance file path")
     private String instanceFilePath;
 
     @CommandLine.Option(
@@ -118,7 +117,13 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
 
         final File appDirectory = checkFileExistsOrDownload(appPath);
-        final File instanceFile = checkFileExistsOrDownload(instanceFilePath);
+        final File instanceFile;
+
+        if (instanceFilePath != null) {
+            instanceFile = checkFileExistsOrDownload(instanceFilePath);
+        } else {
+            instanceFile = null;
+        }
         final File secretsFile = checkFileExistsOrDownload(secretFilePath);
 
         log("Tenant " + getTenant());
@@ -129,7 +134,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         } else {
             log("Running all the agents in the application");
         }
-        log("Instance file: " + instanceFile.getAbsolutePath());
+        log("Instance file: " + instanceFile);
         if (secretsFile != null) {
             log("Secrets file: " + secretsFile.getAbsolutePath());
         }
@@ -137,8 +142,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         log("Start S3: " + startS3);
         log("Start Webservices " + startWebservices);
 
-        if ((appDirectory == null || instanceFile == null)) {
-            throw new IllegalArgumentException("application and instance files are required");
+        if (appDirectory == null) {
+            throw new IllegalArgumentException("application files are required");
         }
 
         downloadDependencies(appDirectory.toPath(), getClient(), this::log);
@@ -147,9 +152,27 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         final String instanceContents;
 
         try {
-            instanceContents =
-                    LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
-                            instanceFile.toPath());
+            if (instanceFile != null) {
+
+                instanceContents =
+                        LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
+                                instanceFile.toPath());
+            } else {
+                if (startBroker) {
+                    instanceContents =
+                            "instance:\n"
+                                    + "  streamingCluster:\n"
+                                    + "    type: \"kafka\"\n"
+                                    + "    configuration:\n"
+                                    + "      admin:\n"
+                                    + "        bootstrap.servers: localhost:9092";
+                    log(
+                            "Using default instance file that connects to the Kafka broker inside the docker container");
+                } else {
+                    throw new IllegalArgumentException(
+                            "instance file is required if broker is not started");
+                }
+            }
         } catch (Exception e) {
             log(
                     "Failed to resolve instance file references. Please double check the file path: "

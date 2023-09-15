@@ -1,4 +1,4 @@
-#!/bin/bash
+#
 #
 # Copyright DataStax, Inc.
 #
@@ -15,16 +15,25 @@
 # limitations under the License.
 #
 
-START_KAFKA=${START_BROKER:-true}
-if [ "$START_BROKER" = "true" ]; then
-  echo "Starting Broker"
-  /kafka/kafka/bin/kafka-server-start.sh -daemon /kafka/kafka/config/kraft/server.properties
-fi
+gateways:
+  - id: produce-input
+    type: produce
+    topic: input-topic
+    parameters:
+      - sessionId
+    produceOptions:
+      headers:
+        - key: langstream-client-session-id
+          valueFromParameters: sessionId
 
-START_MINIO=${START_MINIO:-true}
-if [ "$START_MINIO" = "true" ]; then
-  echo "Starting Minio"
-  /minio/minio server /tmp &
-fi
+  - id: consume-output
+    type: consume
+    topic: output-topic
+    parameters:
+      - sessionId
+    consumeOptions:
+      filters:
+        headers:
+          - key: langstream-client-session-id
+            valueFromParameters: sessionId
 
-exec java ${JAVA_OPTS} -Dlogging.config=/app/logback.xml -Djdk.lang.Process.launchMechanism=vfork -cp "/app/lib/*:/app/tester/lib/*" "ai.langstream.runtime.tester.Main"

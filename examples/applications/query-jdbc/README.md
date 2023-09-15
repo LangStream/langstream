@@ -60,23 +60,16 @@ Insert some data:
 ./bin/langstream apps deploy test -app examples/applications/query-jdbc -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
-## Start a Producer
+## Talk with the Chat bot using the CLI
+Since the application opens a gateway, we can use the gateway API to send and consume messages.
+
 ```
-kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic
+./bin/langstream gateway chat test -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
 ```
 
 Insert a JSON with "id", "name" and "description":
 
 ```
 {"id": 1, "name": "test", "description": "test"}
-```
-
-
-## Start a Consumer
-
-Start a Kafka Consumer on a terminal
-
-```
-kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
 ```
 

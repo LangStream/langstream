@@ -28,7 +28,12 @@ import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Secret;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,10 +49,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class LocalApplicationRunner
         implements AutoCloseable, InMemoryApplicationStore.AgentInfoCollector {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
     final KubeTestServer kubeServer = new KubeTestServer();
     final InMemoryApplicationStore applicationStore = new InMemoryApplicationStore();
@@ -162,11 +170,13 @@ public class LocalApplicationRunner
                                     RuntimePodConfiguration runtimePodConfiguration =
                                             AgentResourcesFactory
                                                     .readRuntimePodConfigurationFromSecret(secret);
-                                    log.info(
-                                            "{} Pod configuration {} = {}",
-                                            runnerExecutionId,
-                                            key,
-                                            runtimePodConfiguration);
+                                    if (log.isDebugEnabled()) {
+                                        log.debug(
+                                                "{} Pod configuration {} = {}",
+                                                runnerExecutionId,
+                                                key,
+                                                runtimePodConfiguration);
+                                    }
                                     pods.add(runtimePodConfiguration);
                                 } else {
                                     log.info("Agent {} won't be executed", key);
@@ -177,6 +187,7 @@ public class LocalApplicationRunner
             ExecutorService executorService = Executors.newCachedThreadPool();
             List<CompletableFuture> futures = new ArrayList<>();
             for (RuntimePodConfiguration podConfiguration : pods) {
+                Path podRuntimeConfigurationFile = persistPodConfiguration(podConfiguration);
                 CompletableFuture<?> handle = new CompletableFuture<>();
                 futures.add(handle);
                 executorService.submit(
@@ -196,7 +207,7 @@ public class LocalApplicationRunner
                                 allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
                                 AgentRunner.runAgent(
                                         podConfiguration,
-                                        null,
+                                        podRuntimeConfigurationFile,
                                         codeDirectory,
                                         agentsDirectory,
                                         agentInfo,
@@ -246,6 +257,16 @@ public class LocalApplicationRunner
             exited.countDown();
         }
         return new AgentRunResult(allAgentsInfo);
+    }
+
+    @NotNull
+    private static Path persistPodConfiguration(RuntimePodConfiguration podConfiguration)
+            throws IOException {
+        Path podRuntimeConfigurationFile = Files.createTempFile("podruntime", ".yaml");
+        try (OutputStream out = Files.newOutputStream(podRuntimeConfigurationFile)) {
+            MAPPER.writeValue(out, podConfiguration);
+        }
+        return podRuntimeConfigurationFile;
     }
 
     public void close() {

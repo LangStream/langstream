@@ -9,6 +9,13 @@ The code in `example.py` adds an exclamation mark to the end of a string message
 ./bin/langstream apps deploy test -app examples/applications/python-processor-exclamation -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
+## Talk with the Chat bot using the CLI
+Since the application opens a gateway, we can use the gateway API to send and consume messages.
+
+```
+./bin/langstream gateway chat test -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
+```
+
 ## Start a Producer
 ```
 kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic

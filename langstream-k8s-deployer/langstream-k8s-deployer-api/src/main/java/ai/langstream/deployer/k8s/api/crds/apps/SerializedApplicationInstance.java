@@ -42,10 +42,12 @@ public class SerializedApplicationInstance {
         this.instance = applicationInstance.getInstance();
         this.gateways = applicationInstance.getGateways();
         this.agentRunners = new HashMap<>();
-        log.info(
-                "Serializing application instance {} executionPlan {}",
-                applicationInstance,
-                executionPlan);
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Serializing application instance {} executionPlan {}",
+                    applicationInstance,
+                    executionPlan);
+        }
         if (executionPlan != null && executionPlan.getAgents() != null) {
             for (Map.Entry<String, AgentNode> entry : executionPlan.getAgents().entrySet()) {
                 AgentNode agentNode = entry.getValue();

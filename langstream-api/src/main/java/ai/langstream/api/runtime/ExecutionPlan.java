@@ -119,11 +119,13 @@ public final class ExecutionPlan {
 
     public void registerAgent(Module module, String id, AgentNode agentImplementation) {
         String internalId = module.getId() + "#" + id;
-        log.info(
-                "registering agent {} for module {} with id {}",
-                agentImplementation,
-                module.getId(),
-                id);
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "registering agent {} for module {} with id {}",
+                    agentImplementation,
+                    module.getId(),
+                    id);
+        }
         agents.put(internalId, agentImplementation);
     }
 

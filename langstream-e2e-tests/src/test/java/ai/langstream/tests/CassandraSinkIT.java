@@ -18,22 +18,23 @@ package ai.langstream.tests;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
 public class CassandraSinkIT extends BaseEndToEndTest {
 
-    // @BeforeAll
-    public static void setupCassandra() {
+    @BeforeEach
+    public void setupCassandra() {
         installCassandra();
 
         executeCQL(
@@ -46,14 +47,14 @@ public class CassandraSinkIT extends BaseEndToEndTest {
         executeCQL("SELECT * FROM vsearch.products;");
     }
 
-    // @AfterAll
-    public static void removeCassandra() {
+    @AfterEach
+    public void removeCassandra() {
         uninstallCassandra();
     }
 
-    // @Test
+    @Test
     public void test() throws Exception {
-
+        installLangStreamCluster(false);
         final String tenant = "ten-" + System.currentTimeMillis();
         executeCommandOnClient(
                 """
@@ -92,11 +93,19 @@ public class CassandraSinkIT extends BaseEndToEndTest {
                         .formatted(applicationId)
                         .split(" "));
 
+        // in this timeout is also included the runtime pod startup time
         Awaitility.await()
+                .atMost(1, TimeUnit.MINUTES)
+                .pollInterval(5, TimeUnit.SECONDS)
                 .untilAsserted(
                         () -> {
-                            String contents = executeCQL("SELECT * FROM vsearch.products;");
-                            assertTrue(contents.contains("test-from-sink"));
+                            try {
+                                String contents = executeCQL("SELECT * FROM vsearch.products;");
+                                assertTrue(contents.contains("test-from-sink"));
+                            } catch (Throwable t) {
+                                log.error("Failed to execute cqlsh command: {}", t.getMessage());
+                                fail("Failed to execute cqlsh command: " + t.getMessage());
+                            }
                         });
     }
 
@@ -161,18 +170,9 @@ public class CassandraSinkIT extends BaseEndToEndTest {
     @SneakyThrows
     protected static void installCassandra() {
 
-        final Path tempFile = Files.createTempFile("cassandra-test", ".yaml");
-        Files.writeString(tempFile, CASSANDRA_MANIFEST);
-
-        String cmd =
-                "kubectl apply -n %s -f %s"
-                        .formatted(namespace, tempFile.toFile().getAbsolutePath());
-        log.info("Running {}", cmd);
-        runProcess(cmd.split(" "));
-
         applyManifest(CASSANDRA_MANIFEST, namespace);
 
-        cmd =
+        final String cmd =
                 "kubectl rollout status --watch --timeout=600s sts/cassandra -n %s"
                         .formatted(namespace);
         log.info("Running {}", cmd);
@@ -217,15 +217,7 @@ public class CassandraSinkIT extends BaseEndToEndTest {
 
     @SneakyThrows
     protected static void uninstallCassandra() {
-
-        final Path tempFile = Files.createTempFile("cassandra-test", ".yaml");
-        Files.writeString(tempFile, CASSANDRA_MANIFEST);
-
-        final String cmd =
-                "kubectl delete -n %s -f %s"
-                        .formatted(namespace, tempFile.toFile().getAbsolutePath());
-        log.info("Running {}", cmd);
-        runProcess(cmd.split(" "));
+        deleteManifest(CASSANDRA_MANIFEST, namespace);
         log.info("Cassandra uninstall completed");
     }
 }

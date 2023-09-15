@@ -215,6 +215,12 @@ public class BaseEndToEndTest implements TestWatcher {
                 .serverSideApply();
     }
 
+    protected static void deleteManifest(String manifest, String namespace) {
+        client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
+                .inNamespace(namespace)
+                .delete();
+    }
+
     protected static void applyManifestNoNamespace(String manifest) {
         client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
                 .serverSideApply();
@@ -578,7 +584,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   app:
                     config:
                       agentResources:
-                        cpuPerUnit: 0.1
+                        cpuPerUnit: 0.2
                         memPerUnit: 128
                 client:
                   image:

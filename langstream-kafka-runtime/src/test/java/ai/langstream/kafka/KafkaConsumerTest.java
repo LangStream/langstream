@@ -430,7 +430,8 @@ class KafkaConsumerTest {
                                 null)
                         .getApplication();
 
-        final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry = new TopicConnectionsRuntimeRegistry();
+        final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                new TopicConnectionsRuntimeRegistry();
         @Cleanup
         ApplicationDeployer deployer =
                 ApplicationDeployer.builder()

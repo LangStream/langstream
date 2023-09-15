@@ -33,7 +33,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class AppResourcesFactoryTest {
 
     @Test
-    void testJob() {
+    void testDeployerJob() {
         final ApplicationCustomResource resource =
                 getCr(
                         """
@@ -69,7 +69,7 @@ class AppResourcesFactoryTest {
                             controller: true
                             name: test-'app
                         spec:
-                          backoffLimit: 1
+                          backoffLimit: 0
                           template:
                             metadata:
                               labels:
@@ -144,7 +144,7 @@ class AppResourcesFactoryTest {
                                   secretName: langstream-cluster-config
                         """,
                 SerializationUtil.writeAsYaml(
-                        AppResourcesFactory.generateJob(
+                        AppResourcesFactory.generateDeployerJob(
                                 AppResourcesFactory.GenerateJobParams.builder()
                                         .applicationCustomResource(resource)
                                         .build())));
@@ -168,7 +168,7 @@ class AppResourcesFactoryTest {
                             controller: true
                             name: test-'app
                         spec:
-                          backoffLimit: 1
+                          backoffLimit: 0
                           template:
                             metadata:
                               labels:
@@ -243,7 +243,195 @@ class AppResourcesFactoryTest {
                                   secretName: langstream-cluster-config
                         """,
                 SerializationUtil.writeAsYaml(
-                        AppResourcesFactory.generateJob(
+                        AppResourcesFactory.generateDeployerJob(
+                                AppResourcesFactory.GenerateJobParams.builder()
+                                        .applicationCustomResource(resource)
+                                        .deleteJob(true)
+                                        .build())));
+    }
+
+    @Test
+    void testSetupJob() {
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Application
+                metadata:
+                  name: test-'app
+                  namespace: default
+                spec:
+                    image: ubuntu
+                    imagePullPolicy: Always
+                    application: "{app: true}"
+                    tenant: my-tenant
+                    codeArchiveId: "iiii"
+                """);
+
+        assertEquals(
+                """
+                        ---
+                        apiVersion: batch/v1
+                        kind: Job
+                        metadata:
+                          labels:
+                            app: langstream-setup
+                            langstream-application: test-'app
+                            langstream-scope: deploy
+                          name: langstream-app-setup-test-'app
+                          namespace: default
+                          ownerReferences:
+                          - apiVersion: langstream.ai/v1alpha1
+                            kind: Application
+                            blockOwnerDeletion: true
+                            controller: true
+                            name: test-'app
+                        spec:
+                          backoffLimit: 0
+                          template:
+                            metadata:
+                              labels:
+                                app: langstream-setup
+                                langstream-application: test-'app
+                                langstream-scope: deploy
+                            spec:
+                              containers:
+                              - args:
+                                - application-setup
+                                - deploy
+                                env:
+                                - name: LANGSTREAM_APPLICATION_SETUP_APP_CONFIGURATION
+                                  value: /app-config/config
+                                - name: LANGSTREAM_APPLICATION_SETUP_CLUSTER_RUNTIME_CONFIGURATION
+                                  value: /cluster-runtime-config/config
+                                - name: LANGSTREAM_APPLICATION_SETUP_APP_SECRETS
+                                  value: /app-secrets/secrets
+                                image: ubuntu
+                                imagePullPolicy: Always
+                                name: setup
+                                resources:
+                                  requests:
+                                    cpu: 100m
+                                    memory: 128Mi
+                                terminationMessagePolicy: FallbackToLogsOnError
+                                volumeMounts:
+                                - mountPath: /app-config
+                                  name: app-config
+                                - mountPath: /app-secrets
+                                  name: app-secrets
+                                - mountPath: /cluster-runtime-config
+                                  name: cluster-runtime-config
+                              initContainers:
+                              - args:
+                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                command:
+                                - bash
+                                - -c
+                                image: ubuntu
+                                imagePullPolicy: Always
+                                name: setup-init-config
+                                volumeMounts:
+                                - mountPath: /app-config
+                                  name: app-config
+                                - mountPath: /cluster-runtime-config
+                                  name: cluster-runtime-config
+                              restartPolicy: Never
+                              serviceAccountName: runtime-my-tenant
+                              volumes:
+                              - emptyDir: {}
+                                name: app-config
+                              - name: app-secrets
+                                secret:
+                                  secretName: test-'app
+                              - emptyDir: {}
+                                name: cluster-runtime-config
+                        """,
+                SerializationUtil.writeAsYaml(
+                        AppResourcesFactory.generateSetupJob(
+                                AppResourcesFactory.GenerateJobParams.builder()
+                                        .applicationCustomResource(resource)
+                                        .build())));
+
+        assertEquals(
+                """
+                        ---
+                        apiVersion: batch/v1
+                        kind: Job
+                        metadata:
+                          labels:
+                            app: langstream-setup
+                            langstream-application: test-'app
+                            langstream-scope: delete
+                          name: langstream-app-setup-cleanup-test-'app
+                          namespace: default
+                          ownerReferences:
+                          - apiVersion: langstream.ai/v1alpha1
+                            kind: Application
+                            blockOwnerDeletion: true
+                            controller: true
+                            name: test-'app
+                        spec:
+                          backoffLimit: 0
+                          template:
+                            metadata:
+                              labels:
+                                app: langstream-setup
+                                langstream-application: test-'app
+                                langstream-scope: delete
+                            spec:
+                              containers:
+                              - args:
+                                - application-setup
+                                - deploy
+                                env:
+                                - name: LANGSTREAM_APPLICATION_SETUP_APP_CONFIGURATION
+                                  value: /app-config/config
+                                - name: LANGSTREAM_APPLICATION_SETUP_CLUSTER_RUNTIME_CONFIGURATION
+                                  value: /cluster-runtime-config/config
+                                - name: LANGSTREAM_APPLICATION_SETUP_APP_SECRETS
+                                  value: /app-secrets/secrets
+                                image: ubuntu
+                                imagePullPolicy: Always
+                                name: setup
+                                resources:
+                                  requests:
+                                    cpu: 100m
+                                    memory: 128Mi
+                                terminationMessagePolicy: FallbackToLogsOnError
+                                volumeMounts:
+                                - mountPath: /app-config
+                                  name: app-config
+                                - mountPath: /app-secrets
+                                  name: app-secrets
+                                - mountPath: /cluster-runtime-config
+                                  name: cluster-runtime-config
+                              initContainers:
+                              - args:
+                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                command:
+                                - bash
+                                - -c
+                                image: ubuntu
+                                imagePullPolicy: Always
+                                name: setup-init-config
+                                volumeMounts:
+                                - mountPath: /app-config
+                                  name: app-config
+                                - mountPath: /cluster-runtime-config
+                                  name: cluster-runtime-config
+                              restartPolicy: Never
+                              serviceAccountName: runtime-my-tenant
+                              volumes:
+                              - emptyDir: {}
+                                name: app-config
+                              - name: app-secrets
+                                secret:
+                                  secretName: test-'app
+                              - emptyDir: {}
+                                name: cluster-runtime-config
+                        """,
+                SerializationUtil.writeAsYaml(
+                        AppResourcesFactory.generateSetupJob(
                                 AppResourcesFactory.GenerateJobParams.builder()
                                         .applicationCustomResource(resource)
                                         .deleteJob(true)
@@ -280,7 +468,7 @@ class AppResourcesFactoryTest {
                         Map.of("ann1", "value1"));
 
         Job job =
-                AppResourcesFactory.generateJob(
+                AppResourcesFactory.generateDeployerJob(
                         AppResourcesFactory.GenerateJobParams.builder()
                                 .applicationCustomResource(resource)
                                 .deleteJob(deleteJob)
@@ -317,7 +505,7 @@ class AppResourcesFactoryTest {
                 """);
 
         Job job =
-                AppResourcesFactory.generateJob(
+                AppResourcesFactory.generateDeployerJob(
                         AppResourcesFactory.GenerateJobParams.builder()
                                 .applicationCustomResource(resource)
                                 .deleteJob(deleteJob)

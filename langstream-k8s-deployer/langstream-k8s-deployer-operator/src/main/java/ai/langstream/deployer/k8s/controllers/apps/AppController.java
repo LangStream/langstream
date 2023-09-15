@@ -67,7 +67,19 @@ public class AppController extends BaseController<ApplicationCustomResource>
     @Override
     protected UpdateControl<ApplicationCustomResource> patchResources(
             ApplicationCustomResource resource, Context<ApplicationCustomResource> context) {
-        final Duration rescheduleDuration = handleJob(resource, false);
+        Duration rescheduleDuration = handleJob(resource, true, false);
+        if (rescheduleDuration == null) {
+            log.infof(
+                    "setup job for %s is completed, checking deployer",
+                    resource.getMetadata().getName());
+            rescheduleDuration = handleJob(resource, false, false);
+            log.infof(
+                    "setup job for %s is %s",
+                    resource.getMetadata().getName(),
+                    rescheduleDuration != null ? "not completed" : "completed");
+        } else {
+            log.infof("setup job for %s is not completed yet", resource.getMetadata().getName());
+        }
         return rescheduleDuration != null
                 ? UpdateControl.updateStatus(resource).rescheduleAfter(rescheduleDuration)
                 : UpdateControl.updateStatus(resource);
@@ -77,20 +89,25 @@ public class AppController extends BaseController<ApplicationCustomResource>
     protected DeleteControl cleanupResources(
             ApplicationCustomResource resource, Context<ApplicationCustomResource> context) {
         appResourcesLimiter.onAppBeingDeleted(resource);
-        final Duration rescheduleDuration = handleJob(resource, true);
+        final Duration rescheduleDuration = handleJob(resource, false, true);
         return rescheduleDuration != null
                 ? DeleteControl.noFinalizerRemoval().rescheduleAfter(rescheduleDuration)
                 : DeleteControl.defaultDelete();
     }
 
-    private Duration handleJob(ApplicationCustomResource application, boolean delete) {
+    private Duration handleJob(
+            ApplicationCustomResource application, boolean isSetupJob, boolean delete) {
         final String applicationId = application.getMetadata().getName();
-        final String jobName = AppResourcesFactory.getJobName(applicationId, delete);
+
+        final String jobName =
+                isSetupJob
+                        ? AppResourcesFactory.getSetupJobName(applicationId, delete)
+                        : AppResourcesFactory.getDeployerJobName(applicationId, delete);
         final String namespace = application.getMetadata().getNamespace();
         final Job currentJob =
                 client.batch().v1().jobs().inNamespace(namespace).withName(jobName).get();
         if (currentJob == null || areSpecChanged(application)) {
-            if (!delete) {
+            if (isSetupJob && !delete) {
                 final boolean isDeployable = appResourcesLimiter.checkLimitsForTenant(application);
                 if (!isDeployable) {
                     log.infof(
@@ -111,7 +128,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
                             .setResourceLimitStatus(ApplicationStatus.ResourceLimitStatus.ACCEPTED);
                 }
             }
-            createJob(application, delete);
+            createJob(application, isSetupJob, delete);
             if (!delete) {
                 application.getStatus().setStatus(ApplicationLifecycleStatus.DEPLOYING);
             } else {
@@ -120,7 +137,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
             return DEFAULT_RESCHEDULE_DURATION;
         } else {
             if (KubeUtil.isJobCompleted(currentJob)) {
-                if (!delete) {
+                if (!isSetupJob && !delete) {
                     application.getStatus().setStatus(ApplicationLifecycleStatus.DEPLOYED);
                 }
                 return null;
@@ -131,7 +148,8 @@ public class AppController extends BaseController<ApplicationCustomResource>
     }
 
     @SneakyThrows
-    private void createJob(ApplicationCustomResource applicationCustomResource, boolean delete) {
+    private void createJob(
+            ApplicationCustomResource applicationCustomResource, boolean setupJob, boolean delete) {
         final AppResourcesFactory.GenerateJobParams params =
                 AppResourcesFactory.GenerateJobParams.builder()
                         .applicationCustomResource(applicationCustomResource)
@@ -141,7 +159,10 @@ public class AppController extends BaseController<ApplicationCustomResource>
                         .image(configuration.getRuntimeImage())
                         .imagePullPolicy(configuration.getRuntimeImagePullPolicy())
                         .build();
-        final Job job = AppResourcesFactory.generateJob(params);
+        final Job job =
+                setupJob
+                        ? AppResourcesFactory.generateSetupJob(params)
+                        : AppResourcesFactory.generateDeployerJob(params);
         KubeUtil.patchJob(client, job);
     }
 }

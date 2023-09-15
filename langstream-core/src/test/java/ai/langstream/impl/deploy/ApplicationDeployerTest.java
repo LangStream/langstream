@@ -146,14 +146,12 @@ class ApplicationDeployerTest {
                         Mockito.any(),
                         eq(mockStreamingRuntime),
                         Mockito.any(),
-                        Mockito.any(),
                         Mockito.any());
         Mockito.verify(mockRuntime)
                 .deploy(
                         Mockito.anyString(),
                         Mockito.any(),
                         eq(mockStreamingRuntime),
-                        Mockito.any(),
                         Mockito.any(),
                         Mockito.any());
     }

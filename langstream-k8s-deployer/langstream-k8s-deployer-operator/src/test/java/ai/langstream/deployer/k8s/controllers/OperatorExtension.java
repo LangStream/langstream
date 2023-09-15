@@ -83,6 +83,12 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback, B
         MethodUtils.invokeMethod(PortForwardingContainer.INSTANCE, true, "reset");
         k3s = new K3sContainer();
         k3s.start();
+        final Path tempFile = Files.createTempFile("langstream-test-kube", ".yaml");
+        Files.writeString(tempFile, k3s.getKubeconfig());
+        System.out.println(
+                "To inspect the container\nKUBECONFIG="
+                        + tempFile.toFile().getAbsolutePath()
+                        + " k9s");
         applyCRDs();
         Testcontainers.exposeHostPorts(k3s.getFirstMappedPort());
         client =

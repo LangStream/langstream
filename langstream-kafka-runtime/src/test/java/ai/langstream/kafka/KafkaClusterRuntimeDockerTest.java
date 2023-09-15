@@ -16,7 +16,6 @@
 package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
@@ -84,6 +83,7 @@ class KafkaClusterRuntimeDockerTest {
                                 Connection.fromTopic(TopicDefinition.fromName("input-topic")))
                         instanceof KafkaTopic);
 
+        deployer.setup("tenant", implementation);
         deployer.deploy("tenant", implementation, null);
 
         Set<String> topics = admin.listTopics().names().get();
@@ -97,10 +97,11 @@ class KafkaClusterRuntimeDockerTest {
         assertEquals(2, stats.get("input-topic-2-partitions").partitions().size());
 
         deployer.delete("tenant", implementation, null);
+        // delete should only delete the agents
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
-        assertFalse(topics.contains("input-topic"));
-        assertFalse(topics.contains("input-topic-2-partitions"));
+        assertTrue(topics.contains("input-topic"));
+        assertTrue(topics.contains("input-topic-2-partitions"));
     }
 
     private static String buildInstanceYaml() {

@@ -23,14 +23,12 @@ import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.TopicDefinition;
-import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.AgentNodeProvider;
 import ai.langstream.api.runtime.AssetNode;
 import ai.langstream.api.runtime.AssetNodeProvider;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ConnectionImplementation;
-import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.ExecutionPlanOptimiser;
 import ai.langstream.api.runtime.PluginsRegistry;
@@ -398,36 +396,5 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
         physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);
 
         return topicImplementation;
-    }
-
-    @Override
-    public Object deploy(
-            String tenant,
-            ExecutionPlan applicationInstance,
-            StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId,
-            DeployContext deployContext,
-            TopicConnectionsRuntime topicConnectionsRuntime) {
-        topicConnectionsRuntime.deploy(applicationInstance);
-        log.warn(
-                "ClusterType "
-                        + getClusterType()
-                        + " doesn't actually deploy agents, it's just a logical representation");
-        return null;
-    }
-
-    @Override
-    public void delete(
-            String tenant,
-            ExecutionPlan applicationInstance,
-            StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId,
-            DeployContext deployContext,
-            TopicConnectionsRuntime topicConnectionsRuntime) {
-        topicConnectionsRuntime.delete(applicationInstance);
-        log.warn(
-                "ClusterType "
-                        + getClusterType()
-                        + " doesn't actually deploy agents, it's just a logical representation");
     }
 }

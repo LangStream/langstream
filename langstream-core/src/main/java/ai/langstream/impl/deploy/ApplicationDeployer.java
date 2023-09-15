@@ -16,8 +16,13 @@
 package ai.langstream.impl.deploy;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.AssetDefinition;
+import ai.langstream.api.runner.assets.AssetManager;
+import ai.langstream.api.runner.assets.AssetManagerAndLoader;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runtime.AssetNode;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.DeployContext;
@@ -25,17 +30,22 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Builder
 @Slf4j
 public final class ApplicationDeployer implements AutoCloseable {
 
+    static final ObjectMapper MAPPER = new ObjectMapper();
+
     private ClusterRuntimeRegistry registry;
     private PluginsRegistry pluginsRegistry;
     private DeployContext deployContext;
     private TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+    private AssetManagerRegistry assetManagerRegistry;
 
     /**
      * Create a new implementation of the application instance.
@@ -62,6 +72,67 @@ public final class ApplicationDeployer implements AutoCloseable {
     }
 
     /**
+     * Setup the application by deploying topics and assets.
+     *
+     * @param tenant
+     * @param executionPlan
+     */
+    public void setup(String tenant, ExecutionPlan executionPlan) {
+        setupTopics(executionPlan);
+        setupAssets(executionPlan);
+    }
+
+    private void setupTopics(ExecutionPlan executionPlan) {
+        TopicConnectionsRuntime topicConnectionsRuntime =
+                topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(
+                                executionPlan.getApplication().getInstance().streamingCluster())
+                        .asTopicConnectionsRuntime();
+        topicConnectionsRuntime.deploy(executionPlan);
+    }
+
+    private void setupAssets(ExecutionPlan executionPlan) {
+        for (AssetNode assetNode : executionPlan.getAssets()) {
+            AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
+            setupAsset(asset, assetManagerRegistry);
+        }
+    }
+
+    @SneakyThrows
+    private void setupAsset(AssetDefinition asset, AssetManagerRegistry assetManagerRegistry) {
+        log.info("Deploying asset {} type {}", asset.getId(), asset.getAssetType());
+        AssetManagerAndLoader assetManager =
+                assetManagerRegistry.getAssetManager(asset.getAssetType());
+        if (assetManager == null) {
+            throw new RuntimeException(
+                    "No asset manager found for asset type " + asset.getAssetType());
+        }
+        try {
+            String creationMode = asset.getCreationMode();
+            switch (creationMode) {
+                case AssetDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
+                    AssetManager assetManagerImpl = assetManager.asAssetManager();
+                    assetManagerImpl.initialize(asset);
+                    boolean exists = assetManagerImpl.assetExists();
+
+                    if (!exists) {
+                        log.info(
+                                "Asset {}  of type {} needs to be created",
+                                asset.getId(),
+                                asset.getAssetType());
+                        assetManagerImpl.deployAsset();
+                    }
+                }
+                case AssetDefinition.CREATE_MODE_NONE -> {
+                    return;
+                }
+            }
+        } finally {
+            assetManager.close();
+        }
+    }
+
+    /**
      * Deploy the application instance.
      *
      * @param physicalApplicationInstance the application instance
@@ -75,21 +146,12 @@ public final class ApplicationDeployer implements AutoCloseable {
         StreamingClusterRuntime streamingClusterRuntime =
                 registry.getStreamingClusterRuntime(
                         applicationInstance.getInstance().streamingCluster());
-        TopicConnectionsRuntime topicConnectionsRuntime =
-                topicConnectionsRuntimeRegistry
-                        .getTopicConnectionsRuntime(
-                                physicalApplicationInstance
-                                        .getApplication()
-                                        .getInstance()
-                                        .streamingCluster())
-                        .asTopicConnectionsRuntime();
         return clusterRuntime.deploy(
                 tenant,
                 physicalApplicationInstance,
                 streamingClusterRuntime,
                 codeStorageArchiveId,
-                deployContext,
-                topicConnectionsRuntime);
+                deployContext);
     }
 
     /**
@@ -106,43 +168,12 @@ public final class ApplicationDeployer implements AutoCloseable {
         StreamingClusterRuntime streamingClusterRuntime =
                 registry.getStreamingClusterRuntime(
                         applicationInstance.getInstance().streamingCluster());
-        TopicConnectionsRuntime topicConnectionsRuntime =
-                topicConnectionsRuntimeRegistry
-                        .getTopicConnectionsRuntime(
-                                physicalApplicationInstance
-                                        .getApplication()
-                                        .getInstance()
-                                        .streamingCluster())
-                        .asTopicConnectionsRuntime();
         clusterRuntime.delete(
                 tenant,
                 physicalApplicationInstance,
                 streamingClusterRuntime,
                 codeStorageArchiveId,
-                deployContext,
-                topicConnectionsRuntime);
-    }
-
-    /**
-     * In the tests we don't have the operator, but we want to clean up the resources.
-     *
-     * @param tenant the tenant
-     * @param physicalApplicationInstance the application instance
-     */
-    public void deleteStreamingClusterResourcesForTests(
-            String tenant, ExecutionPlan physicalApplicationInstance) {
-        Application applicationInstance = physicalApplicationInstance.getApplication();
-        StreamingClusterRuntime streamingClusterRuntime =
-                registry.getStreamingClusterRuntime(
-                        applicationInstance.getInstance().streamingCluster());
-        topicConnectionsRuntimeRegistry
-                .getTopicConnectionsRuntime(
-                        physicalApplicationInstance
-                                .getApplication()
-                                .getInstance()
-                                .streamingCluster())
-                .asTopicConnectionsRuntime()
-                .delete(physicalApplicationInstance);
+                deployContext);
     }
 
     @Override

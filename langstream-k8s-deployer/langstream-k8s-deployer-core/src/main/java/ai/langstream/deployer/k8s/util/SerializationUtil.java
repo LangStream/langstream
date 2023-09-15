@@ -76,4 +76,8 @@ public class SerializationUtil {
     public static <T> T readYaml(String yaml, Class<T> toClass) {
         return yamlMapper.readValue(yaml, toClass);
     }
+
+    public static String writeInlineBashJson(Object value) {
+        return writeAsJson(value).replace("'", "'\"'\"'");
+    }
 }

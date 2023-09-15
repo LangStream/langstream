@@ -117,6 +117,8 @@ public class LocalApplicationRunner
         ExecutionPlan implementation =
                 applicationDeployer.createImplementation(appId, applicationInstance);
 
+        applicationDeployer.setup(tenant, implementation);
+
         applicationDeployer.deploy(tenant, implementation, null);
 
         applicationStore.put(

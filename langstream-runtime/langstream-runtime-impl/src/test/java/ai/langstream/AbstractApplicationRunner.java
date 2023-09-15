@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -81,6 +82,7 @@ public abstract class AbstractApplicationRunner {
 
     protected static ApplicationDeployer applicationDeployer;
     private static NarFileHandler narFileHandler;
+    private static TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
 
     protected record ApplicationRuntime(
             String tenant,
@@ -103,7 +105,11 @@ public abstract class AbstractApplicationRunner {
                                 return secrets.isEmpty();
                             });
             // this is a workaround, we want to clean up the env
-            applicationDeployer.deleteStreamingClusterResourcesForTests(tenant, implementation);
+            topicConnectionsRuntimeRegistry
+                    .getTopicConnectionsRuntime(
+                            implementation.getApplication().getInstance().streamingCluster())
+                    .asTopicConnectionsRuntime()
+                    .delete(implementation);
         }
     }
 
@@ -138,6 +144,7 @@ public abstract class AbstractApplicationRunner {
         ExecutionPlan implementation =
                 applicationDeployer.createImplementation(appId, applicationInstance);
 
+        applicationDeployer.setup(tenant, implementation);
         applicationDeployer.deploy(tenant, implementation, null);
 
         return new ApplicationRuntime(tenant, appId, applicationInstance, implementation, secrets);
@@ -170,15 +177,17 @@ public abstract class AbstractApplicationRunner {
         narFileHandler =
                 new NarFileHandler(
                         agentsDirectory, List.of(), Thread.currentThread().getContextClassLoader());
-        TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
-                new TopicConnectionsRuntimeRegistry();
+        topicConnectionsRuntimeRegistry = new TopicConnectionsRuntimeRegistry();
         narFileHandler.scan();
         topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
+        final AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
+        assetManagerRegistry.setAssetManagerPackageLoader(narFileHandler);
         applicationDeployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
-                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .pluginsRegistry(new PluginsRegistry())
+                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .assetManagerRegistry(assetManagerRegistry)
                         .build();
     }
 

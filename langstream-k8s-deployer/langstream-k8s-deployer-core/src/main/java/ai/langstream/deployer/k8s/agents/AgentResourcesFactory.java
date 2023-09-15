@@ -164,7 +164,7 @@ public class AgentResourcesFactory {
                         .withArgs(
                                 "echo '%s' > /download-config/config"
                                         .formatted(
-                                                writeInlineBashJson(
+                                                SerializationUtil.writeInlineBashJson(
                                                         downloadAgentCodeConfiguration)))
                         .withVolumeMounts(
                                 new VolumeMountBuilder()
@@ -350,12 +350,6 @@ public class AgentResourcesFactory {
                     "Runtime image is not specified, neither in the resource and in the deployer configuration.");
         }
         return containerImage;
-    }
-
-    private static String writeInlineBashJson(
-            DownloadAgentCodeConfiguration downloadAgentCodeConfiguration) {
-        return SerializationUtil.writeAsJson(downloadAgentCodeConfiguration)
-                .replace("'", "'\"'\"'");
     }
 
     public static Secret generateAgentSecret(

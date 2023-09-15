@@ -126,6 +126,7 @@ class PulsarRunnerDockerTest {
                                 module,
                                 Connection.fromTopic(TopicDefinition.fromName("input-topic")))
                         instanceof Topic);
+        deployer.setup("tenant", implementation);
         deployer.deploy("tenant", implementation, null);
         assertEquals(1, secrets.size());
         final Secret secret = secrets.values().iterator().next();

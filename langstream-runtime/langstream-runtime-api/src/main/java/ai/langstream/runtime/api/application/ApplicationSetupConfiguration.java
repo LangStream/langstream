@@ -13,13 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.runtime.api.agent;
+package ai.langstream.runtime.api.application;
 
-import ai.langstream.api.model.StreamingCluster;
-import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public record RuntimePodConfiguration(
-        Map<String, Object> input,
-        Map<String, Object> output,
-        AgentSpec agent,
-        StreamingCluster streamingCluster) {}
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApplicationSetupConfiguration {
+    private String applicationId;
+    private String tenant;
+    private String application;
+}

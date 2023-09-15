@@ -21,7 +21,6 @@ import ai.langstream.admin.client.AdminClient;
 import ai.langstream.admin.client.AdminClientLogger;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Secrets;
-import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -51,8 +50,7 @@ public class RuntimeDeployer {
             RuntimeDeployerConfiguration configuration,
             Secrets secrets,
             ClusterConfiguration clusterConfiguration,
-            String token,
-            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry)
+            String token)
             throws Exception {
 
         final String applicationId = configuration.getApplicationId();
@@ -74,7 +72,6 @@ public class RuntimeDeployer {
                         .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
                         .pluginsRegistry(new PluginsRegistry())
                         .deployContext(deployContext)
-                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .build()) {
 
             final ExecutionPlan implementation =
@@ -88,8 +85,7 @@ public class RuntimeDeployer {
     public void delete(
             Map<String, Map<String, Object>> clusterRuntimeConfiguration,
             RuntimeDeployerConfiguration configuration,
-            Secrets secrets,
-            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry)
+            Secrets secrets)
             throws IOException {
 
         final String applicationId = configuration.getApplicationId();
@@ -102,7 +98,6 @@ public class RuntimeDeployer {
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
                         .pluginsRegistry(new PluginsRegistry())
-                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .build()) {
 
             log.info("Deleting application {}", applicationId);

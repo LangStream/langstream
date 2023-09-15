@@ -87,12 +87,14 @@ class KafkaConsumerTest {
                                 null)
                         .getApplication();
 
+        final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                new TopicConnectionsRuntimeRegistry();
         @Cleanup
         ApplicationDeployer deployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
-                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -103,6 +105,7 @@ class KafkaConsumerTest {
                                 module, Connection.fromTopic(TopicDefinition.fromName(topicName)))
                         instanceof KafkaTopic);
 
+        deployer.setup("tenant", implementation);
         deployer.deploy("tenant", implementation, null);
 
         Set<String> topics = admin.listTopics().names().get();
@@ -113,6 +116,14 @@ class KafkaConsumerTest {
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
         deployer.delete("tenant", implementation, null);
+        topics = admin.listTopics().names().get();
+        log.info("Topics {}", topics);
+        assertTrue(topics.contains(topicName));
+        topicConnectionsRuntimeRegistry
+                .getTopicConnectionsRuntime(
+                        implementation.getApplication().getInstance().streamingCluster())
+                .asTopicConnectionsRuntime()
+                .delete(implementation);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
@@ -211,12 +222,14 @@ class KafkaConsumerTest {
                                 null)
                         .getApplication();
 
+        final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                new TopicConnectionsRuntimeRegistry();
         @Cleanup
         ApplicationDeployer deployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
-                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -227,6 +240,7 @@ class KafkaConsumerTest {
                                 module, Connection.fromTopic(TopicDefinition.fromName(topicName)))
                         instanceof KafkaTopic);
 
+        deployer.setup("tenant", implementation);
         deployer.deploy("tenant", implementation, null);
 
         Set<String> topics = admin.listTopics().names().get();
@@ -237,6 +251,15 @@ class KafkaConsumerTest {
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
         deployer.delete("tenant", implementation, null);
+        topics = admin.listTopics().names().get();
+        log.info("Topics {}", topics);
+        assertTrue(topics.contains(topicName));
+
+        topicConnectionsRuntimeRegistry
+                .getTopicConnectionsRuntime(
+                        implementation.getApplication().getInstance().streamingCluster())
+                .asTopicConnectionsRuntime()
+                .delete(implementation);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
@@ -306,12 +329,14 @@ class KafkaConsumerTest {
                                 null)
                         .getApplication();
 
+        final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                new TopicConnectionsRuntimeRegistry();
         @Cleanup
         ApplicationDeployer deployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
-                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -322,6 +347,7 @@ class KafkaConsumerTest {
                                 module, Connection.fromTopic(TopicDefinition.fromName(topicName)))
                         instanceof KafkaTopic);
 
+        deployer.setup("tenant", implementation);
         deployer.deploy("tenant", implementation, null);
 
         Set<String> topics = admin.listTopics().names().get();
@@ -331,6 +357,15 @@ class KafkaConsumerTest {
         Map<String, TopicDescription> stats = admin.describeTopics(Set.of(topicName)).all().get();
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
+        topics = admin.listTopics().names().get();
+        log.info("Topics {}", topics);
+        assertTrue(topics.contains(topicName));
+
+        topicConnectionsRuntimeRegistry
+                .getTopicConnectionsRuntime(
+                        implementation.getApplication().getInstance().streamingCluster())
+                .asTopicConnectionsRuntime()
+                .delete(implementation);
         deployer.delete("tenant", implementation, null);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
@@ -395,12 +430,14 @@ class KafkaConsumerTest {
                                 null)
                         .getApplication();
 
+        final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                new TopicConnectionsRuntimeRegistry();
         @Cleanup
         ApplicationDeployer deployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
-                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -411,6 +448,7 @@ class KafkaConsumerTest {
                                 module, Connection.fromTopic(TopicDefinition.fromName(topicName)))
                         instanceof KafkaTopic);
 
+        deployer.setup("tenant", implementation);
         deployer.deploy("tenant", implementation, null);
 
         Set<String> topics = admin.listTopics().names().get();
@@ -421,6 +459,15 @@ class KafkaConsumerTest {
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
         deployer.delete("tenant", implementation, null);
+        topics = admin.listTopics().names().get();
+        log.info("Topics {}", topics);
+        assertTrue(topics.contains(topicName));
+
+        topicConnectionsRuntimeRegistry
+                .getTopicConnectionsRuntime(
+                        implementation.getApplication().getInstance().streamingCluster())
+                .asTopicConnectionsRuntime()
+                .delete(implementation);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));

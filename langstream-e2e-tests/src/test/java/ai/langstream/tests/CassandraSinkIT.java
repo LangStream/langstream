@@ -94,10 +94,16 @@ public class CassandraSinkIT extends BaseEndToEndTest {
                         .split(" "));
 
         Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
                 .untilAsserted(
                         () -> {
-                            String contents = executeCQL("SELECT * FROM vsearch.products;");
-                            assertTrue(contents.contains("test-from-sink"));
+                            try {
+                                String contents = executeCQL("SELECT * FROM vsearch.products;");
+                                assertTrue(contents.contains("test-from-sink"));
+                            } catch (Throwable t) {
+                                log.error("Failed to execute cqlsh command: {}", t.getMessage());
+                                fail("Failed to execute cqlsh command: " + t.getMessage());
+                            }
                         });
     }
 

@@ -116,7 +116,7 @@ class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
 
         try (ApplicationRuntime applicationRuntime =
                 deployApplicationWithSecrets(
-                        tenant, "app", application, buildInstanceYaml(), null, expectedAgents)) {
+                        tenant, "app", application, buildInstanceYaml(), secrets, expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
                     KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 

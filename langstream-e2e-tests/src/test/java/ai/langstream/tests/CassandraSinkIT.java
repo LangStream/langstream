@@ -15,7 +15,6 @@
  */
 package ai.langstream.tests;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -68,7 +67,10 @@ public class CassandraSinkIT extends BaseEndToEndTest {
         copyFileToClientContainer(
                 Paths.get(testSecretBaseDir, "secret1.yaml").toFile(),
                 "/tmp/secrets.yaml",
-                file -> file.replace("CASSANDRA-HOST-INJECTED", cassandraHost));
+                file ->
+                        file.replace("CASSANDRA-HOST-INJECTED", cassandraHost)
+                                .replace("CASSANDRA-LOCAL-DC-INJECTED", "datacenter1")
+                                .replace("CASSANDRA-PORT-INJECTED", "9042"));
 
         executeCommandOnClient(
                 "bin/langstream apps deploy %s -app /tmp/cassandra-sink -i /tmp/instance.yaml -s /tmp/secrets.yaml"
@@ -112,7 +114,9 @@ public class CassandraSinkIT extends BaseEndToEndTest {
                                 fail("Keyspace vsearch should not exist anymore");
                             } catch (Throwable t) {
                                 log.info("Got exception: {}", t.getMessage());
-                                assertEquals(t.getMessage(), "'vsearch' not found in keyspaces");
+                                assertTrue(
+                                        t.getMessage()
+                                                .contains("'vsearch' not found in keyspaces"));
                             }
                         });
     }

@@ -182,7 +182,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                         waitForMessages(
                                 consumer,
                                 List.of(
-                                        "{\"question\":\"the car\",\"session-id\":\"2139847128764192\",\"answer\":\"A car is a vehicle\",\"prompt\":\"{\\\"options\\\":{\\\"max_tokens\\\":null,\\\"temperature\\\":null,\\\"top_p\\\":null,\\\"logit_bias\\\":null,\\\"user\\\":null,\\\"n\\\":null,\\\"stop\\\":null,\\\"presence_penalty\\\":null,\\\"frequency_penalty\\\":null,\\\"stream\\\":true,\\\"model\\\":\\\"gpt-35-turbo\\\",\\\"min-chunks-per-message\\\":3},\\\"messages\\\":[{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"What can you tell me about the car ?\\\"}],\\\"model\\\":\\\"gpt-35-turbo\\\"}\"}"));
+                                        "{\"question\":\"the car\",\"session-id\":\"2139847128764192\",\"answer\":\"A car is a vehicle\",\"prompt\":\"{\\\"options\\\":{\\\"max_tokens\\\":null,\\\"temperature\\\":null,\\\"top_p\\\":null,\\\"logit_bias\\\":null,\\\"user\\\":null,\\\"n\\\":null,\\\"stop\\\":null,\\\"presence_penalty\\\":null,\\\"frequency_penalty\\\":null,\\\"stream\\\":true,\\\"model\\\":\\\"gpt-35-turbo\\\",\\\"functions\\\":null,\\\"function_call\\\":null,\\\"dataSources\\\":null,\\\"min-chunks-per-message\\\":3},\\\"messages\\\":[{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"What can you tell me about the car ?\\\"}],\\\"model\\\":\\\"gpt-35-turbo\\\"}\"}"));
                 ConsumerRecord record = mainOutputRecords.get(0);
 
                 assertNull(record.headers().lastHeader("stream-id"));

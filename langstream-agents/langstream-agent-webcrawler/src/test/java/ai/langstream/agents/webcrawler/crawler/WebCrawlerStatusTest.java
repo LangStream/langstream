@@ -30,34 +30,34 @@ class WebCrawlerStatusTest {
     @Test
     public void testPreventCycles() {
         WebCrawlerStatus status = new WebCrawlerStatus();
-        status.addUrl(URL1, true);
+        status.addUrl(URL1, URLReference.Type.PAGE, 0, true);
         verify(status, 1, 1, 1);
-        status.addUrl(URL1, true);
+        status.addUrl(URL1, URLReference.Type.PAGE, 0, true);
         verify(status, 1, 1, 1);
         String url = status.nextUrl();
         verify(status, 1, 0, 1);
         status.urlProcessed(url);
         verify(status, 1, 0, 0);
-        status.addUrl(URL1, true);
+        status.addUrl(URL1, URLReference.Type.PAGE, 0, true);
         verify(status, 1, 0, 0);
-        status.addUrl(URL1, false);
+        status.addUrl(URL1, URLReference.Type.PAGE, 0, false);
         verify(status, 1, 0, 0);
     }
 
     @Test
     public void testPreventCyclesWithAnchors() {
         WebCrawlerStatus status = new WebCrawlerStatus();
-        status.addUrl(URL2, true);
+        status.addUrl(URL2, URLReference.Type.PAGE, 0, true);
         verify(status, 1, 1, 1);
-        status.addUrl(URL2_ANCHOR, true);
+        status.addUrl(URL2_ANCHOR, URLReference.Type.PAGE, 0, true);
         verify(status, 1, 1, 1);
         String url = status.nextUrl();
         verify(status, 1, 0, 1);
         status.urlProcessed(url);
         verify(status, 1, 0, 0);
-        status.addUrl(URL2, true);
+        status.addUrl(URL2, URLReference.Type.PAGE, 0, true);
         verify(status, 1, 0, 0);
-        status.addUrl(URL2_ANCHOR, false);
+        status.addUrl(URL2_ANCHOR, URLReference.Type.PAGE, 0, false);
         verify(status, 1, 0, 0);
     }
 
@@ -67,8 +67,8 @@ class WebCrawlerStatusTest {
         DummyStorage storage = new DummyStorage();
 
         WebCrawlerStatus status = new WebCrawlerStatus();
-        status.addUrl(URL1, true);
-        status.addUrl(URL2, true);
+        status.addUrl(URL1, URLReference.Type.PAGE, 0, true);
+        status.addUrl(URL2, URLReference.Type.PAGE, 0, true);
         verify(status, 2, 2, 2);
         status.persist(storage);
 
@@ -110,7 +110,7 @@ class WebCrawlerStatusTest {
 
     private static void verify(WebCrawlerStatus status, int visited, int pending, int remaining) {
         assertEquals(pending, status.getPendingUrls().size());
-        assertEquals(visited, status.getVisitedUrls().size());
+        assertEquals(visited, status.getUrls().size());
         assertEquals(remaining, status.getRemainingUrls().size());
     }
 

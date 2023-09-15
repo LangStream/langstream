@@ -66,9 +66,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private String bucketName;
     private Set<String> allowedDomains;
     private Set<String> forbiddenPaths;
+    private int maxUrls;
+    private boolean handleRobotsFile;
+    private boolean scanHtmlDocuments;
     private Set<String> seedUrls;
     private MinioClient minioClient;
-    private int idleTime;
     private int reindexIntervalSeconds;
 
     private String statusFileName;
@@ -103,8 +105,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         String region = getString("region", "", configuration);
         allowedDomains = getSet("allowed-domains", configuration);
         forbiddenPaths = getSet("forbidden-paths", configuration);
+        maxUrls = getInt("max-urls", 1000, configuration);
+        handleRobotsFile = getBoolean("handle-robots-file", true, configuration);
+        scanHtmlDocuments = getBoolean("scan-html-documents", true, configuration);
         seedUrls = getSet("seed-urls", configuration);
-        idleTime = getInt("idle-time", 1, configuration);
         reindexIntervalSeconds = getInt("reindex-interval-seconds", 60 * 60 * 24, configuration);
         maxUnflushedPages = getInt("max-unflushed-pages", 100, configuration);
 
@@ -124,6 +128,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         log.info("allowed-domains: {}", allowedDomains);
         log.info("forbidden-paths: {}", forbiddenPaths);
         log.info("seed-urls: {}", seedUrls);
+        log.info("max-urls: {}", maxUrls);
+        log.info("handle-robots-file: {}", handleRobotsFile);
+        log.info("scan-html-documents: {}", scanHtmlDocuments);
         log.info("user-agent: {}", userAgent);
         log.info("max-unflushed-pages: {}", maxUnflushedPages);
         log.info("min-time-between-requests: {}", minTimeBetweenRequests);
@@ -141,7 +148,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         WebCrawlerConfiguration webCrawlerConfiguration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(allowedDomains)
+                        .maxUrls(maxUrls)
                         .forbiddenPaths(forbiddenPaths)
+                        .handleRobotsFile(handleRobotsFile)
                         .minTimeBetweenRequests(minTimeBetweenRequests)
                         .userAgent(userAgent)
                         .handleCookies(handleCookies)
@@ -273,7 +282,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     }
 
     private List<Record> sleepForNoResults() throws Exception {
-        Thread.sleep(idleTime * 1000L);
+        Thread.sleep(100);
         return List.of();
     }
 

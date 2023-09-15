@@ -73,6 +73,46 @@ public class WebCrawlerSourceTest {
     }
 
     @Test
+    // @Disabled("This test is disabled because it connects to a real live website")
+    void testReadWebSite() throws Exception {
+        String bucket = "langstream-test-" + UUID.randomUUID();
+        String url = "https://www.datastax.com/";
+        String allowed = "https://www.datastax.com/";
+
+        WebCrawlerSource agentSource =
+                buildAgentSource(
+                        bucket,
+                        allowed,
+                        Set.of(),
+                        url,
+                        Map.of(
+                                "reindex-interval-seconds",
+                                "3600",
+                                "scan-html-documents",
+                                "false",
+                                "max-urls",
+                                10000));
+        List<Record> read = agentSource.read();
+        Set<String> urls = new HashSet<>();
+        agentSource.setOnReindexStart(
+                () -> {
+                    urls.clear();
+                });
+        int count = 0;
+        while (count < 10) {
+            log.info("read: {}", read);
+            for (Record r : read) {
+                String docUrl = r.key().toString();
+                assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+            }
+            count += read.size();
+            agentSource.commit(read);
+            read = agentSource.read();
+        }
+        agentSource.close();
+    }
+
+    @Test
     @Disabled("This test is disabled because it connects to a real live website")
     void testReadLangStreamDocs() throws Exception {
         String bucket = "langstream-test-" + UUID.randomUUID();
@@ -85,7 +125,7 @@ public class WebCrawlerSourceTest {
                         allowed,
                         Set.of("/pipeline-agents", "/building-applications"),
                         url,
-                        Map.of("reindex-interval-seconds", "30"));
+                        Map.of("reindex-interval-seconds", "30", "max-urls", 5));
         List<Record> read = agentSource.read();
         Set<String> urls = new HashSet<>();
         agentSource.setOnReindexStart(

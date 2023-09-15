@@ -21,10 +21,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,7 +53,7 @@ public class WebCrawlerStatus {
      * Memory of all the URLs that have been seen by the Crawler in order to prevent cycles. This
      * structure only grows and is never cleared.
      */
-    private final Set<String> visitedUrls = new HashSet<>();
+    private final Map<String, URLReference> urls = new HashMap<>();
 
     /**
      * Map of the URLs that have been seen by the Crawler and that have returned a temporary error.
@@ -68,7 +67,7 @@ public class WebCrawlerStatus {
             log.info("Found a saved status, reloading...");
             pendingUrls.clear();
             remainingUrls.clear();
-            visitedUrls.clear();
+            urls.clear();
 
             // please note that the order here is important
             // we want to visit the initial urls first
@@ -81,11 +80,19 @@ public class WebCrawlerStatus {
                 this.remainingUrls.addAll(remainingUrls);
             }
 
-            List<String> visitedUrls = (List<String>) currentStatus.get("visitedUrls");
-            if (visitedUrls != null) {
-                log.info("Reloaded {} visited urls", visitedUrls.size());
-                visitedUrls.forEach(u -> log.info("Visited {}", u));
-                this.visitedUrls.addAll(visitedUrls);
+            List<Map<String, Object>> urls = (List<Map<String, Object>>) currentStatus.get("urls");
+            if (urls != null) {
+                log.info("Reloaded {} urls", this.urls.size());
+                urls.forEach(
+                        u -> {
+                            log.info("Visited {}", u);
+                            String url = (String) u.get("url");
+                            String type = (String) u.get("type");
+                            int depth = (int) u.get("depth");
+                            URLReference reference =
+                                    new URLReference(url, URLReference.Type.valueOf(type), depth);
+                            this.urls.put(url, reference);
+                        });
             }
 
             Long lastIndexEndTimestamp = getLong("lastIndexEndTimestamp", null, currentStatus);
@@ -126,20 +133,27 @@ public class WebCrawlerStatus {
                         lastIndexStartTimestamp,
                         "remainingUrls",
                         new ArrayList<>(remainingUrls),
-                        "visitedUrls",
-                        new ArrayList<>(visitedUrls)));
+                        "url",
+                        urls.values().stream()
+                                .map(
+                                        ref ->
+                                                Map.of(
+                                                        "url", ref.url(),
+                                                        "type", ref.type().name(),
+                                                        "depth", ref.depth()))
+                                .collect(Collectors.toList())));
     }
 
-    public void addUrl(String url, boolean toScan) {
+    public void addUrl(String url, URLReference.Type type, int depth, boolean toScan) {
 
         // the '#' character is used to identify a fragment in a URL
         // we have to remove it to avoid duplicates
         url = removeFragment(url);
 
-        if (visitedUrls.contains(url)) {
+        if (urls.containsKey(url)) {
             return;
         }
-        visitedUrls.add(url);
+        urls.put(url, new URLReference(url, type, depth));
         if (toScan) {
             log.info("adding url {} to list", url);
             pendingUrls.add(url);
@@ -173,7 +187,7 @@ public class WebCrawlerStatus {
 
     public int temporaryErrorOnUrl(String url) {
         url = removeFragment(url);
-        visitedUrls.remove(url);
+        urls.remove(url);
         return errorCount.compute(
                 url,
                 (u, current) -> {
@@ -186,9 +200,17 @@ public class WebCrawlerStatus {
     }
 
     public void reset() {
-        visitedUrls.clear();
+        urls.clear();
         errorCount.clear();
         pendingUrls.clear();
         remainingUrls.clear();
+    }
+
+    public URLReference getReference(String current) {
+        URLReference reference = urls.get(current);
+        if (reference == null) {
+            throw new IllegalStateException("Unknown url " + current);
+        }
+        return reference;
     }
 }

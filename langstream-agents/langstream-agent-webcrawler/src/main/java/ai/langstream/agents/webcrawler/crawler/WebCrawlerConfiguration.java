@@ -29,9 +29,13 @@ public class WebCrawlerConfiguration {
     @Builder.Default private Set<String> forbiddenPaths = Set.of();
     @Builder.Default private String userAgent = null;
     @Builder.Default private int minTimeBetweenRequests = 100;
+    @Builder.Default private int maxUrls = 1000;
     @Builder.Default private int httpTimeout = 10000;
     @Builder.Default private int maxErrorCount = 5;
     @Builder.Default private boolean handleCookies = true;
+    @Builder.Default private boolean handleRobotsFile = true;
+    @Builder.Default private boolean scanHtmlDocuments = true;
+
     @Builder.Default private Set<String> allowedTags = Set.of("a");
 
     public boolean isAllowedUrl(String url) {

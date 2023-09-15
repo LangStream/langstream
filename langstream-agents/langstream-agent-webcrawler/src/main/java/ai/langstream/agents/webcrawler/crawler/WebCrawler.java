@@ -15,8 +15,24 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
+import crawlercommons.robots.SimpleRobotRules;
+import crawlercommons.robots.SimpleRobotRulesParser;
+import crawlercommons.sitemaps.AbstractSiteMap;
+import crawlercommons.sitemaps.SiteMap;
+import crawlercommons.sitemaps.SiteMapIndex;
+import crawlercommons.sitemaps.SiteMapParser;
+import crawlercommons.sitemaps.SiteMapURL;
+import java.io.IOException;
 import java.net.CookieManager;
 import java.net.CookieStore;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -55,7 +71,37 @@ public class WebCrawler {
         if (!configuration.isAllowedUrl(startUrl)) {
             return;
         }
-        status.addUrl(startUrl, true);
+
+        // add robots.txt to the list of urls to crawl
+        // before the original url
+        // because it may contain some interesting information that will drive the crawling
+        if (configuration.isHandleRobotsFile()) {
+            try {
+                URL url = new URL(startUrl);
+                String path = url.getPath();
+                if (path == null || path.isEmpty() || path.equals("/")) {
+                    String separator = startUrl.endsWith("/") ? "" : "/";
+                    String robotsFile = startUrl + separator + "robots.txt";
+                    log.info("Adding robots.txt to the list of urls to crawl: {}", robotsFile);
+                    // force add the url (no check on the max number of urls)
+                    status.addUrl(robotsFile, URLReference.Type.ROBOTS, 0, true);
+                }
+            } catch (MalformedURLException e) {
+                log.warn("Error while parsing the url: {}", startUrl, e);
+            }
+        }
+
+        addUrl(startUrl, null);
+    }
+
+    private void addUrl(String startUrl, URLReference parent) {
+        int size = status.getUrls().size();
+        if (configuration.getMaxUrls() <= 0 || size < configuration.getMaxUrls()) {
+            int newDepth = parent == null ? 0 : parent.depth() + 1;
+            status.addUrl(startUrl, URLReference.Type.PAGE, newDepth, true);
+        } else {
+            log.info("Max urls reached, skipping {}", startUrl);
+        }
     }
 
     public boolean runCycle() throws Exception {
@@ -64,6 +110,23 @@ public class WebCrawler {
             return false;
         }
         log.info("Crawling url: {}", current);
+
+        URLReference reference = status.getReference(current);
+
+        if (reference.type() == URLReference.Type.ROBOTS) {
+            log.info("Found a robots.txt file");
+            handleRobotsFile(current);
+            status.urlProcessed(current);
+            return true;
+        }
+
+        if (reference.type() == URLReference.Type.SITEMAP) {
+            log.info("Found a sitemap file");
+            handleSitemapsFile(current);
+            status.urlProcessed(current);
+            return true;
+        }
+
         Connection connect = Jsoup.connect(current);
         connect.cookieStore(cookieStore);
         connect.followRedirects(false);
@@ -89,7 +152,7 @@ public class WebCrawler {
                                 location);
                     } else {
                         log.info("A redirection happened from {} to {}", current, location);
-                        status.addUrl(location, true);
+                        addUrl(location, reference);
                         return true;
                     }
                 }
@@ -108,10 +171,10 @@ public class WebCrawler {
                 int currentCount = status.temporaryErrorOnUrl(current);
                 if (currentCount >= configuration.getMaxErrorCount()) {
                     log.info("Too many errors ({}) on url {}, skipping it", currentCount, current);
-                    status.addUrl(current, false);
+                    status.addUrl(current, reference.type(), reference.depth(), false);
                 } else {
                     log.info("Putting back the url {} into the backlog", current);
-                    status.addUrl(current, true);
+                    status.addUrl(current, reference.type(), reference.depth(), true);
                 }
             }
 
@@ -127,7 +190,7 @@ public class WebCrawler {
                     "Url {} lead to a {} content-type document. Skipping",
                     current,
                     notHtml.getMimeType());
-            status.addUrl(current, false);
+            status.addUrl(current, reference.type(), reference.depth(), false);
 
             // prevent from being banned for flooding
             if (configuration.getMinTimeBetweenRequests() > 0) {
@@ -139,19 +202,25 @@ public class WebCrawler {
         }
 
         if (!redirectedToForbiddenDomain) {
-            document.getElementsByAttribute("href")
-                    .forEach(
-                            element -> {
-                                if (configuration.isAllowedTag(element.tagName())) {
-                                    String url = element.absUrl("href");
-                                    if (configuration.isAllowedUrl(url)) {
-                                        status.addUrl(url, true);
-                                    } else {
-                                        log.debug("Ignoring not allowed url: {}", url);
-                                        status.addUrl(url, false);
+            if (configuration.isScanHtmlDocuments()) {
+                document.getElementsByAttribute("href")
+                        .forEach(
+                                element -> {
+                                    if (configuration.isAllowedTag(element.tagName())) {
+                                        String url = element.absUrl("href");
+                                        if (configuration.isAllowedUrl(url)) {
+                                            addUrl(url, reference);
+                                        } else {
+                                            log.debug("Ignoring not allowed url: {}", url);
+                                            status.addUrl(
+                                                    url,
+                                                    reference.type(),
+                                                    reference.depth(),
+                                                    false);
+                                        }
                                     }
-                                }
-                            });
+                                });
+            }
             visitor.visit(
                     new ai.langstream.agents.webcrawler.crawler.Document(current, document.html()));
         }
@@ -162,6 +231,74 @@ public class WebCrawler {
         }
 
         return true;
+    }
+
+    private void handleRobotsFile(String url) throws Exception {
+        HttpResponse<byte[]> response = downloadUrl(url);
+        SimpleRobotRulesParser parser = new SimpleRobotRulesParser();
+        SimpleRobotRules simpleRobotRules =
+                parser.parseContent(
+                        url,
+                        response.body(),
+                        response.headers().firstValue("content-type").orElse("text/plain"),
+                        List.of(configuration.getUserAgent()));
+
+        if (simpleRobotRules.getSitemaps().isEmpty()) {
+            log.info("The robots.txt file doesn't contain any site map");
+        } else {
+            simpleRobotRules
+                    .getSitemaps()
+                    .forEach(
+                            siteMap -> {
+                                log.info("Adding sitemap : {}", siteMap);
+                                // force add the url (no check on the max number of urls)
+                                status.addUrl(siteMap, URLReference.Type.SITEMAP, 0, true);
+                            });
+        }
+    }
+
+    private void handleSitemapsFile(String url) throws Exception {
+        HttpResponse<byte[]> response = downloadUrl(url);
+        SiteMapParser siteMapParser = new SiteMapParser();
+        AbstractSiteMap abstractSiteMap = siteMapParser.parseSiteMap(response.body(), new URL(url));
+        if (abstractSiteMap instanceof SiteMap siteMap) {
+
+            Collection<SiteMapURL> siteMapUrls = siteMap.getSiteMapUrls();
+
+            siteMapUrls.forEach(
+                    siteMapUrl -> {
+                        log.info("Adding url from sitemap : {}", siteMapUrl.getUrl());
+                        String loc = siteMapUrl.getUrl().toString();
+                        if (configuration.isAllowedUrl(loc)) {
+                            addUrl(loc, null);
+                        } else {
+                            log.debug("Ignoring not allowed url: {}", loc);
+                            status.addUrl(loc, URLReference.Type.PAGE, 0, false);
+                        }
+                    });
+        } else if (abstractSiteMap instanceof SiteMapIndex siteMapIndex) {
+            log.info("It is a sitemap index");
+            Collection<AbstractSiteMap> sitemaps = siteMapIndex.getSitemaps(true);
+            sitemaps.forEach(
+                    s -> {
+                        log.info("Adding this sitemap : {}", s.getUrl());
+                        status.addUrl(s.getUrl().toString(), URLReference.Type.SITEMAP, 0, true);
+                    });
+        } else {
+            log.warn("Unknown sitemap type: {}", abstractSiteMap.getClass().getName());
+        }
+    }
+
+    private HttpResponse<byte[]> downloadUrl(String url) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<byte[]> response =
+                client.send(
+                        HttpRequest.newBuilder()
+                                .uri(URI.create(url))
+                                .header("User-Agent", configuration.getUserAgent())
+                                .build(),
+                        HttpResponse.BodyHandlers.ofByteArray());
+        return response;
     }
 
     public void restartIndexing(Set<String> seedUrls) {

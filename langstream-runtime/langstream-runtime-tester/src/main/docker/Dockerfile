@@ -40,6 +40,7 @@ RUN mkdir /minio \
 ADD maven/lib /app/tester/lib
 RUN rm -f /app/tester/lib/*netty*
 ADD maven/entrypoint.sh /app/entrypoint.sh
+ADD maven/logback.xml /app/logback.xml
 
 WORKDIR /app
 

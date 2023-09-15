@@ -170,11 +170,13 @@ public class LocalApplicationRunner
                                     RuntimePodConfiguration runtimePodConfiguration =
                                             AgentResourcesFactory
                                                     .readRuntimePodConfigurationFromSecret(secret);
-                                    log.info(
-                                            "{} Pod configuration {} = {}",
-                                            runnerExecutionId,
-                                            key,
-                                            runtimePodConfiguration);
+                                    if (log.isDebugEnabled()) {
+                                        log.debug(
+                                                "{} Pod configuration {} = {}",
+                                                runnerExecutionId,
+                                                key,
+                                                runtimePodConfiguration);
+                                    }
                                     pods.add(runtimePodConfiguration);
                                 } else {
                                     log.info("Agent {} won't be executed", key);

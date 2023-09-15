@@ -147,14 +147,16 @@ public class AgentRunner {
             Runnable beforeStopSource,
             boolean startHttpServer)
             throws Exception {
-        log.info("Pod Configuration {}", configuration);
+        if (log.isDebugEnabled()) {
+            log.debug("Pod Configuration {}", configuration);
+        }
 
         // agentId is the identity of the agent in the cluster
         // it is shared by all the instances of the agent
         String agentId =
                 configuration.agent().applicationId() + "-" + configuration.agent().agentId();
 
-        log.info("Starting agent {} with configuration {}", agentId, configuration.agent());
+        log.info("Starting agent {}", agentId);
 
         List<URL> customLibClasspath = buildCustomLibClasspath(codeDirectory);
         try (NarFileHandler narFileHandler =
@@ -915,7 +917,10 @@ public class AgentRunner {
     private static AgentCodeAndLoader initAgent(
             RuntimePodConfiguration configuration, AgentCodeRegistry agentCodeRegistry)
             throws Exception {
-        log.info("Bootstrapping agent with configuration {}", configuration.agent());
+        log.info(
+                "Bootstrapping agent {} type {}",
+                configuration.agent().agentId(),
+                configuration.agent().agentType());
         return initAgent(
                 configuration.agent().agentId(),
                 configuration.agent().agentType(),

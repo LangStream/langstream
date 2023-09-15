@@ -33,6 +33,14 @@
       <lineEnding>unix</lineEnding>
       <fileMode>755</fileMode>
     </fileSet>
+    <fileSet>
+      <directory>src/main/assemble/</directory>
+      <outputDirectory>.</outputDirectory>
+      <includes>
+        <include>logback.xml</include>
+      </includes>
+      <lineEnding>unix</lineEnding>
+    </fileSet>
   </fileSets>
   <dependencySets>
     <dependencySet>

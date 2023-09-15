@@ -15,9 +15,6 @@
 # limitations under the License.
 #
 
-echo "Hosts:"
-cat /etc/hosts
-
 START_KAFKA=${START_BROKER:-true}
 if [ "$START_BROKER" = "true" ]; then
   echo "Starting Broker"
@@ -30,4 +27,4 @@ if [ "$START_MINIO" = "true" ]; then
   /minio/minio server /tmp &
 fi
 
-exec java ${JAVA_OPTS} -Djdk.lang.Process.launchMechanism=vfork -cp "/app/lib/*:/app/tester/lib/*" "ai.langstream.runtime.tester.Main"
+exec java ${JAVA_OPTS} -Dlogging.config=/app/logback.xml -Djdk.lang.Process.launchMechanism=vfork -cp "/app/lib/*:/app/tester/lib/*" "ai.langstream.runtime.tester.Main"

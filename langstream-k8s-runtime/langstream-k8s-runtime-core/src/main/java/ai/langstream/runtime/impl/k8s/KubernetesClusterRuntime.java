@@ -248,10 +248,12 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             StreamingClusterRuntime streamingClusterRuntime,
             ExecutionPlan applicationInstance,
             String codeStorageArchiveId) {
-        log.info(
-                "Building configuration for Agent {}, codeStorageArchiveId {}",
-                agent,
-                codeStorageArchiveId);
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Building configuration for Agent {}, codeStorageArchiveId {}",
+                    agent,
+                    codeStorageArchiveId);
+        }
         if (!(agent instanceof DefaultAgentNode defaultAgentImplementation)) {
             throw new UnsupportedOperationException(
                     "Only default agent implementations are supported");

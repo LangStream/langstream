@@ -141,7 +141,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             throw new IllegalArgumentException("application and instance files are required");
         }
 
-        downloadDependencies(appDirectory.toPath());
+        downloadDependencies(appDirectory.toPath(), getClient(), this::log);
 
         final String secretsContents;
         final String instanceContents;

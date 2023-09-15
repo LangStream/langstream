@@ -452,7 +452,7 @@ public abstract class BaseCmd implements Runnable {
         private String sha512sum;
     }
 
-    protected void downloadDependencies(Path directory) throws Exception {
+    public static void downloadDependencies(Path directory, AdminClient adminClient, Consumer<String> logger) throws Exception {
 
         final Path configuration = directory.resolve("configuration.yaml");
         if (!Files.exists(configuration)) {
@@ -460,8 +460,13 @@ public abstract class BaseCmd implements Runnable {
         }
         final Map<String, Object> map =
                 yamlConfigReader.readValue(configuration.toFile(), Map.class);
+
+        final Map<String, Object> configurationMap =
+                (Map<String, Object>) map.get("configuration");
+
+
         final List<Map<String, Object>> dependencies =
-                (List<Map<String, Object>>) map.get("dependencies");
+                (List<Map<String, Object>>) configurationMap.get("dependencies");
         if (dependencies == null) {
             return;
         }
@@ -480,6 +485,9 @@ public abstract class BaseCmd implements Runnable {
             URL url = new URL(dependency.getUrl());
 
             final String outputPath;
+            if (dependency.getType() == null) {
+                throw new RuntimeException("dependency type must be set");
+            }
             switch (dependency.getType()) {
                 case "java-library":
                     outputPath = "java/lib";
@@ -498,33 +506,33 @@ public abstract class BaseCmd implements Runnable {
 
             if (Files.isRegularFile(fileName)) {
 
-                if (!checkChecksum(fileName, dependency.getSha512sum())) {
-                    log("File seems corrupted, deleting it");
+                if (!checkChecksum(fileName, dependency.getSha512sum(), logger)) {
+                    logger.accept("File seems corrupted, deleting it");
                     Files.delete(fileName);
                 } else {
-                    log(String.format("Dependency: %s at %s", fileName, fileName.toAbsolutePath()));
+                    logger.accept(String.format("Dependency: %s at %s", fileName, fileName.toAbsolutePath()));
                     continue;
                 }
             }
 
-            log(
+            logger.accept(
                     String.format(
                             "downloading dependency: %s to %s",
                             fileName, fileName.toAbsolutePath()));
-            final HttpRequest request = getClient().newDependencyGet(url);
-            getClient().http(request, HttpResponse.BodyHandlers.ofFile(fileName));
+            final HttpRequest request = adminClient.newDependencyGet(url);
+            adminClient.http(request, HttpResponse.BodyHandlers.ofFile(fileName));
 
-            if (!checkChecksum(fileName, dependency.getSha512sum())) {
-                log("File still seems corrupted. Please double check the checksum and try again.");
+            if (!checkChecksum(fileName, dependency.getSha512sum(), logger)) {
+                logger.accept("File still seems corrupted. Please double check the checksum and try again.");
                 Files.delete(fileName);
                 throw new IOException("File at " + url + ", seems corrupted");
             }
 
-            log("dependency downloaded");
+            logger.accept("dependency downloaded");
         }
     }
 
-    protected boolean checkChecksum(Path fileName, String sha512sum) throws Exception {
+    protected static boolean checkChecksum(Path fileName, String sha512sum, Consumer<String> logger) throws Exception {
         MessageDigest instance = MessageDigest.getInstance("SHA-512");
         try (DigestInputStream inputStream =
                 new DigestInputStream(
@@ -534,8 +542,8 @@ public abstract class BaseCmd implements Runnable {
         byte[] digest = instance.digest();
         String base16encoded = bytesToHex(digest);
         if (!sha512sum.equals(base16encoded)) {
-            log(String.format("Computed checksum: %s", base16encoded));
-            log(String.format("Expected checksum: %s", sha512sum));
+            logger.accept(String.format("Computed checksum: %s", base16encoded));
+            logger.accept(String.format("Expected checksum: %s", sha512sum));
         }
         return sha512sum.equals(base16encoded);
     }

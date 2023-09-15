@@ -46,10 +46,12 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
                 requiredNonEmptyField(configuration, "table-name", describe(assetDefinition));
                 requiredNonEmptyField(configuration, "keyspace", describe(assetDefinition));
                 requiredListField(configuration, "create-statements", describe(assetDefinition));
+                checkDeleteStatements(assetDefinition, configuration);
             }
             case "cassandra-keyspace" -> {
                 requiredNonEmptyField(configuration, "keyspace", describe(assetDefinition));
                 requiredListField(configuration, "create-statements", describe(assetDefinition));
+                checkDeleteStatements(assetDefinition, configuration);
                 if (datasourceConfiguration.containsKey("secureBundle")
                         || datasourceConfiguration.containsKey("database")) {
                     throw new IllegalArgumentException("Use astra-keyspace for AstraDB services");
@@ -70,6 +72,18 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
             }
             default -> throw new IllegalStateException(
                     "Unexpected value: " + assetDefinition.getAssetType());
+        }
+    }
+
+    private static void checkDeleteStatements(
+            AssetDefinition assetDefinition, Map<String, Object> configuration) {
+        if (AssetDefinition.DELETE_MODE_DELETE.equals(assetDefinition.getDeletionMode())) {
+            requiredListField(configuration, "delete-statements", describe(assetDefinition));
+        } else {
+            if (configuration.containsKey("delete-statements")) {
+                throw new IllegalArgumentException(
+                        "delete-statements must be set only if deletion-mode=delete");
+            }
         }
     }
 

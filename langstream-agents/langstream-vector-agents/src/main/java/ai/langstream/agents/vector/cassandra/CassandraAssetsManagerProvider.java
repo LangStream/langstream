@@ -128,10 +128,6 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
             final String keySpace = getKeySpace();
             List<String> statements =
                     ConfigurationUtils.getList("delete-statements", assetDefinition.getConfig());
-            if (statements.isEmpty()) {
-                statements =
-                        List.of("DROP TABLE IF EXISTS %s.%s;".formatted(keySpace, getTableName()));
-            }
             execStatements(keySpace, statements);
             return true;
         }
@@ -185,9 +181,6 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
         public boolean deleteAssetIfExists() throws Exception {
             List<String> statements =
                     ConfigurationUtils.getList("delete-statements", assetDefinition.getConfig());
-            if (statements.isEmpty()) {
-                statements = List.of("DROP KEYSPACE IF EXISTS %s;".formatted(getKeyspace()));
-            }
             execStatements(statements);
             return true;
         }

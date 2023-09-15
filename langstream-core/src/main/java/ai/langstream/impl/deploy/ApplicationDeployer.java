@@ -60,10 +60,14 @@ public final class ApplicationDeployer implements AutoCloseable {
         StreamingClusterRuntime streamingClusterRuntime =
                 registry.getStreamingClusterRuntime(
                         applicationInstance.getInstance().streamingCluster());
-        log.info("Building execution plan for application {}", applicationInstance);
+        if (log.isDebugEnabled()) {
+            log.debug("Building execution plan for application {}", applicationInstance);
+        }
         final Application resolvedApplicationInstance =
                 ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
-        log.info("After resolving the placeholders {}", resolvedApplicationInstance);
+        if (log.isDebugEnabled()) {
+            log.debug("After resolving the placeholders {}", resolvedApplicationInstance);
+        }
         return clusterRuntime.buildExecutionPlan(
                 applicationId,
                 resolvedApplicationInstance,

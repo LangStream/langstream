@@ -16,6 +16,7 @@
 package ai.langstream.runtime.tester;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -75,11 +76,14 @@ public class LocalApplicationRunner
                 new TopicConnectionsRuntimeRegistry();
         narFileHandler.scan();
         topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
+        AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
+        assetManagerRegistry.setAssetManagerPackageLoader(narFileHandler);
         this.applicationDeployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .assetManagerRegistry(assetManagerRegistry)
                         .build();
     }
 

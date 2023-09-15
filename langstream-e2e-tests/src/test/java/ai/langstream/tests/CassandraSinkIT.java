@@ -15,6 +15,7 @@
  */
 package ai.langstream.tests;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -36,15 +37,6 @@ public class CassandraSinkIT extends BaseEndToEndTest {
     @BeforeEach
     public void setupCassandra() {
         installCassandra();
-
-        executeCQL(
-                "CREATE KEYSPACE IF NOT EXISTS vsearch WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : '1' };");
-        executeCQL(
-                "CREATE TABLE IF NOT EXISTS vsearch.products (id int PRIMARY KEY,name TEXT,description TEXT);");
-        executeCQL("SELECT * FROM vsearch.products;");
-        executeCQL(
-                "INSERT INTO vsearch.products(id, name, description) VALUES (1, 'test-init', 'test-init');");
-        executeCQL("SELECT * FROM vsearch.products;");
     }
 
     @AfterEach
@@ -105,6 +97,22 @@ public class CassandraSinkIT extends BaseEndToEndTest {
                             } catch (Throwable t) {
                                 log.error("Failed to execute cqlsh command: {}", t.getMessage());
                                 fail("Failed to execute cqlsh command: " + t.getMessage());
+                            }
+                        });
+
+        executeCommandOnClient("bin/langstream apps delete %s".formatted(applicationId).split(" "));
+
+        Awaitility.await()
+                .atMost(1, TimeUnit.MINUTES)
+                .pollInterval(5, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> {
+                            try {
+                                executeCQL("DESCRIBE KEYSPACE vsearch");
+                                fail("Keyspace vsearch should not exist anymore");
+                            } catch (Throwable t) {
+                                log.info("Got exception: {}", t.getMessage());
+                                assertEquals(t.getMessage(), "'vsearch' not found in keyspaces");
                             }
                         });
     }

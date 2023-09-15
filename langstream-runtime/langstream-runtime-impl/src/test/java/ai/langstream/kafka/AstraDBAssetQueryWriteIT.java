@@ -116,7 +116,7 @@ class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
 
         try (ApplicationRuntime applicationRuntime =
                 deployApplicationWithSecrets(
-                        tenant, "app", application, buildInstanceYaml(), secrets, expectedAgents)) {
+                        tenant, "app", application, buildInstanceYaml(), null, expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
                     KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
@@ -128,6 +128,8 @@ class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
                         List.of(
                                 "{\"documentId\":2,\"queryresult\":{\"name\":\"A\",\"description\":\"A description\",\"id\":\"1\"},\"name\":\"A\",\"description\":\"A description\"}"));
             }
+
+            applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
         }
     }
 }

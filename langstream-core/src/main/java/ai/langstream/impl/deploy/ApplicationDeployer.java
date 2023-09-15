@@ -188,6 +188,7 @@ public final class ApplicationDeployer implements AutoCloseable {
      */
     public void cleanup(String tenant, ExecutionPlan executionPlan) {
         cleanupTopics(executionPlan);
+        cleanupAssets(executionPlan);
     }
 
     private void cleanupTopics(ExecutionPlan executionPlan) {
@@ -197,6 +198,50 @@ public final class ApplicationDeployer implements AutoCloseable {
                                 executionPlan.getApplication().getInstance().streamingCluster())
                         .asTopicConnectionsRuntime();
         topicConnectionsRuntime.delete(executionPlan);
+    }
+
+    private void cleanupAssets(ExecutionPlan executionPlan) {
+        for (AssetNode assetNode : executionPlan.getAssets()) {
+            AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
+            cleanupAsset(asset, assetManagerRegistry);
+        }
+    }
+
+    @SneakyThrows
+    private void cleanupAsset(AssetDefinition asset, AssetManagerRegistry assetManagerRegistry) {
+        log.info(
+                "Cleaning up asset {} type {} with deletion mode {}",
+                asset.getId(),
+                asset.getAssetType(),
+                asset.getDeletionMode());
+        AssetManagerAndLoader assetManager =
+                assetManagerRegistry.getAssetManager(asset.getAssetType());
+        if (assetManager == null) {
+            throw new RuntimeException(
+                    "No asset manager found for asset type " + asset.getAssetType());
+        }
+        try {
+            String deletionMode = asset.getDeletionMode();
+            switch (deletionMode) {
+                case AssetDefinition.DELETE_MODE_DELETE:
+                    {
+                        AssetManager assetManagerImpl = assetManager.asAssetManager();
+                        assetManagerImpl.initialize(asset);
+                        log.info(
+                                "Deleting asset {} of type {}",
+                                asset.getId(),
+                                asset.getAssetType());
+                        assetManagerImpl.deleteAssetIfExists();
+                        break;
+                    }
+                default:
+                    {
+                        log.info("Keep asset {} of type {}", asset.getId(), asset.getAssetType());
+                    }
+            }
+        } finally {
+            assetManager.close();
+        }
     }
 
     @Override

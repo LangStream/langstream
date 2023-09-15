@@ -60,10 +60,8 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
 
         @Override
         public boolean assetExists() throws Exception {
-            String tableName =
-                    ConfigurationUtils.getString("table-name", null, assetDefinition.getConfig());
-            String keySpace =
-                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
+            String tableName = getTableName();
+            String keySpace = getKeySpace();
             log.info("Checking is table {} exists in keyspace {}", tableName, keySpace);
 
             CqlSession session = datasource.getSession();
@@ -90,13 +88,21 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
             return table.isPresent();
         }
 
+        private String getTableName() {
+            String tableName =
+                    ConfigurationUtils.getString("table-name", null, assetDefinition.getConfig());
+            return tableName;
+        }
+
         @Override
         public void deployAsset() throws Exception {
-            String keySpace =
-                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
-
+            String keySpace = getKeySpace();
             List<String> statements =
                     ConfigurationUtils.getList("create-statements", assetDefinition.getConfig());
+            execStatements(keySpace, statements);
+        }
+
+        private void execStatements(String keySpace, List<String> statements) {
             for (String statement : statements) {
                 log.info("Executing: {}", statement);
                 SimpleStatement simpleStatement = SimpleStatement.newInstance(statement);
@@ -111,9 +117,23 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
             }
         }
 
+        private String getKeySpace() {
+            String keySpace =
+                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
+            return keySpace;
+        }
+
         @Override
-        public void deleteAsset() throws Exception {
-            throw new UnsupportedOperationException();
+        public boolean deleteAssetIfExists() throws Exception {
+            final String keySpace = getKeySpace();
+            List<String> statements =
+                    ConfigurationUtils.getList("delete-statements", assetDefinition.getConfig());
+            if (statements.isEmpty()) {
+                statements =
+                        List.of("DROP TABLE IF EXISTS %s.%s;".formatted(keySpace, getTableName()));
+            }
+            execStatements(keySpace, statements);
+            return true;
         }
     }
 
@@ -121,8 +141,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
 
         @Override
         public boolean assetExists() throws Exception {
-            String keySpace =
-                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
+            String keySpace = getKeyspace();
             log.info("Checking if keyspace {} exists", keySpace);
 
             CqlSession session = datasource.getSession();
@@ -136,11 +155,20 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
             return keyspace.isPresent();
         }
 
+        private String getKeyspace() {
+            String keySpace =
+                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
+            return keySpace;
+        }
+
         @Override
         public void deployAsset() throws Exception {
-
             List<String> statements =
                     ConfigurationUtils.getList("create-statements", assetDefinition.getConfig());
+            execStatements(statements);
+        }
+
+        private void execStatements(List<String> statements) {
             for (String statement : statements) {
                 log.info("Executing: {}", statement);
                 try {
@@ -154,8 +182,14 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
         }
 
         @Override
-        public void deleteAsset() throws Exception {
-            throw new UnsupportedOperationException();
+        public boolean deleteAssetIfExists() throws Exception {
+            List<String> statements =
+                    ConfigurationUtils.getList("delete-statements", assetDefinition.getConfig());
+            if (statements.isEmpty()) {
+                statements = List.of("DROP KEYSPACE IF EXISTS %s;".formatted(getKeyspace()));
+            }
+            execStatements(statements);
+            return true;
         }
     }
 
@@ -182,8 +216,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
 
         @Override
         public boolean assetExists() throws Exception {
-            String keySpace =
-                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
+            String keySpace = getKeyspace();
             log.info("Checking if keyspace {} exists", keySpace);
             DatabaseClient astraDbClient = datasource.buildAstraClient();
             boolean exist = astraDbClient.keyspaces().exist(keySpace);
@@ -193,8 +226,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
 
         @Override
         public void deployAsset() throws Exception {
-            String keySpace =
-                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
+            String keySpace = getKeyspace();
             DatabaseClient astraDbClient = datasource.buildAstraClient();
             try {
                 astraDbClient.keyspaces().create(keySpace);
@@ -214,9 +246,27 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
             }
         }
 
+        private String getKeyspace() {
+            String keySpace =
+                    ConfigurationUtils.getString("keyspace", null, assetDefinition.getConfig());
+            return keySpace;
+        }
+
         @Override
-        public void deleteAsset() throws Exception {
-            throw new UnsupportedOperationException();
+        public boolean deleteAssetIfExists() throws Exception {
+            String keySpace = getKeyspace();
+
+            log.info("Deleting keyspace {}", keySpace);
+            DatabaseClient astraDbClient = datasource.buildAstraClient();
+            try {
+                astraDbClient.keyspaces().delete(keySpace);
+                return true;
+            } catch (com.dtsx.astra.sdk.db.exception.KeyspaceNotFoundException e) {
+                log.info(
+                        "Keyspace does not exist, maybe it was deleted by another agent ({})",
+                        e.toString());
+                return false;
+            }
         }
     }
 

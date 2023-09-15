@@ -19,13 +19,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.AssetDefinition;
+import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.mockagents.MockAssetManagerCodeProvider;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -65,6 +63,13 @@ class DeployAssetsTest extends AbstractApplicationRunner {
                             config:
                                 table: "{{{globals.table-name}}}"
                                 datasource: "the-resource"
+                          - name: "my-table2"
+                            creation-mode: create-if-not-exists
+                            deletion-mode: delete
+                            asset-type: "mock-database-resource"
+                            config:
+                                table: "other2"
+                                datasource: "the-resource"
                         topics:
                           - name: "input-topic"
                             creation-mode: create-if-not-exists
@@ -80,16 +85,9 @@ class DeployAssetsTest extends AbstractApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplicationWithSecrets(
                         tenant, "app", application, buildInstanceYaml(), secrets, expectedAgents)) {
-            try (KafkaProducer<String, String> producer = createProducer();
-                    KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
-                sendMessage("input-topic", "test", producer);
-                executeAgentRunners(applicationRuntime);
-                waitForMessages(consumer, List.of("test"));
-            }
-
             CopyOnWriteArrayList<AssetDefinition> deployedAssets =
                     MockAssetManagerCodeProvider.MockDatabaseResourceAssetManager.DEPLOYED_ASSETS;
-            assertEquals(1, deployedAssets.size());
+            assertEquals(2, deployedAssets.size());
             AssetDefinition deployedAsset = deployedAssets.get(0);
             assertEquals("my-table", deployedAsset.getConfig().get("table"));
             Map<String, Object> datasource =
@@ -97,6 +95,10 @@ class DeployAssetsTest extends AbstractApplicationRunner {
             Map<String, Object> datasourceConfiguration =
                     (Map<String, Object>) datasource.get("configuration");
             assertEquals("bar", datasourceConfiguration.get("foo"));
+
+            final ExecutionPlan plan = applicationRuntime.implementation();
+            applicationDeployer.cleanup(tenant, plan);
+            assertEquals(1, deployedAssets.size());
         }
     }
 

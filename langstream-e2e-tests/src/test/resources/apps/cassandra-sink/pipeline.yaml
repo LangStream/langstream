@@ -17,6 +17,26 @@
 module: "module-1"
 id: "pipeline-1"
 name: "Write to Cassandra"
+assets:
+  - name: "vsearch-keyspace"
+    asset-type: "cassandra-keyspace"
+    creation-mode: create-if-not-exists
+    deletion-mode: delete
+    config:
+      keyspace: "vsearch"
+      datasource: "CassandraDatasource"
+      create-statements:
+        - "CREATE KEYSPACE vsearch WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};"
+  - name: "documents-table"
+    asset-type: "cassandra-table"
+    creation-mode: create-if-not-exists
+    config:
+      table-name: "documents"
+      keyspace: "vsearch"
+      datasource: "CassandraDatasource"
+      create-statements:
+        - "CREATE TABLE IF NOT EXISTS vsearch.products (id int PRIMARY KEY, name TEXT, description TEXT);"
+        - "INSERT INTO vsearch.products(id, name, description) VALUES (1, 'test-init', 'test-init');"
 topics:
   - name: "TEST_TOPIC_C1"
     creation-mode: create-if-not-exists

@@ -125,7 +125,7 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                         .formatted(wireMockRuntimeInfo.getHttpBaseUrl()),
                                 () ->
                                         stubFor(
-                                                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-03-15-preview")
+                                                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-08-01-preview")
                                                         .willReturn(
                                                                 okJson(
                                                                         """
@@ -278,7 +278,7 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                             wireMockRuntimeInfo.getWireMock().removeStubMapping(stubMapping);
                         });
         stubFor(
-                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-03-15-preview")
+                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-08-01-preview")
                         .willReturn(
                                 okJson(
                                         """

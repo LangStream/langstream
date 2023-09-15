@@ -17,8 +17,8 @@ package com.datastax.oss.streaming.ai.util;
 
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.OpenAIClientBuilder;
-import com.azure.ai.openai.models.NonAzureOpenAIKeyCredential;
 import com.azure.core.credential.AzureKeyCredential;
+import com.azure.core.credential.KeyCredential;
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpPipeline;
@@ -107,8 +107,7 @@ public class TransformFunctionUtil {
         if (openAIConfig.getProvider() == OpenAIProvider.AZURE) {
             openAIClientBuilder.credential(new AzureKeyCredential(openAIConfig.getAccessKey()));
         } else {
-            openAIClientBuilder.credential(
-                    new NonAzureOpenAIKeyCredential(openAIConfig.getAccessKey()));
+            openAIClientBuilder.credential(new KeyCredential(openAIConfig.getAccessKey()));
         }
         if (openAIConfig.getUrl() != null) {
             openAIClientBuilder.endpoint(openAIConfig.getUrl());

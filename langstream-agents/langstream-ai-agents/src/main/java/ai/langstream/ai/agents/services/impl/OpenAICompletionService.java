@@ -59,9 +59,9 @@ public class OpenAICompletionService implements CompletionsService {
                                         .map(
                                                 message ->
                                                         new com.azure.ai.openai.models.ChatMessage(
-                                                                        ChatRole.fromString(
-                                                                                message.getRole()))
-                                                                .setContent(message.getContent()))
+                                                                ChatRole.fromString(
+                                                                        message.getRole()),
+                                                                message.getContent()))
                                         .collect(Collectors.toList()))
                         .setMaxTokens(getInteger("max-tokens", null, options))
                         .setTemperature(getDouble("temperature", null, options))

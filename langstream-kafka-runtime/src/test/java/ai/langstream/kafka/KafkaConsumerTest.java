@@ -447,6 +447,7 @@ class KafkaConsumerTest {
                                 module, Connection.fromTopic(TopicDefinition.fromName(topicName)))
                         instanceof KafkaTopic);
 
+        deployer.setup("tenant", implementation);
         deployer.deploy("tenant", implementation, null);
 
         Set<String> topics = admin.listTopics().names().get();

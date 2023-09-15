@@ -19,11 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.admin.client.AdminClient;
 import ai.langstream.admin.client.AdminClientConfiguration;
-import ai.langstream.admin.client.AdminClientLogger;
 import ai.langstream.admin.client.HttpRequestFailedException;
 import ai.langstream.admin.client.http.HttpClientFacade;
-import ai.langstream.admin.client.http.HttpClientProperties;
-import ai.langstream.admin.client.util.Slf4jLAdminClientLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -76,54 +73,98 @@ class AbstractDeployApplicationCmdTest {
     @Test
     void testDependencies() throws Exception {
 
-        wireMock.register(
-                WireMock.get("/the-dep.jar").willReturn(WireMock.ok("content!")));
-        final String sha = "bed0f8673c13f8431d5e4f5e4a0e496b2eddc4a18e03cff19256964a6132521a485afa59ace702b76c2832274d1c3914e3fec0221fee9d698eaedc7f5810a284";
+        wireMock.register(WireMock.get("/the-dep.jar").willReturn(WireMock.ok("content!")));
+        final String sha =
+                "bed0f8673c13f8431d5e4f5e4a0e496b2eddc4a18e03cff19256964a6132521a485afa59ace702b76c2832274d1c3914e3fec0221fee9d698eaedc7f5810a284";
 
-        Object content = Map.of("configuration",
-                Map.of("dependencies",
-                        List.of(Map.of("name", "My dep", "url", wireMockBaseUrl + "/the-dep.jar", "sha512sum", "-",
-                                "type",
-                                "java-library"))));
+        Object content =
+                Map.of(
+                        "configuration",
+                        Map.of(
+                                "dependencies",
+                                List.of(
+                                        Map.of(
+                                                "name",
+                                                "My dep",
+                                                "url",
+                                                wireMockBaseUrl + "/the-dep.jar",
+                                                "sha512sum",
+                                                "-",
+                                                "type",
+                                                "java-library"))));
         testConfig(content, false, "File at " + wireMockBaseUrl + "/the-dep.jar, seems corrupted");
 
-        content = Map.of("configuration",
-                Map.of("dependencies",
-                        List.of(Map.of("name", "My dep", "url", wireMockBaseUrl + "/the-dep.jar", "sha512sum", "",
-                                "type",
-                                "java-library"))));
+        content =
+                Map.of(
+                        "configuration",
+                        Map.of(
+                                "dependencies",
+                                List.of(
+                                        Map.of(
+                                                "name",
+                                                "My dep",
+                                                "url",
+                                                wireMockBaseUrl + "/the-dep.jar",
+                                                "sha512sum",
+                                                "",
+                                                "type",
+                                                "java-library"))));
         testConfig(content, false, "File at " + wireMockBaseUrl + "/the-dep.jar, seems corrupted");
 
-
-        content = Map.of("configuration",
-                Map.of("dependencies",
-                        List.of(Map.of("name", "My dep", "url", wireMockBaseUrl + "/the-dep.jar"))));
+        content =
+                Map.of(
+                        "configuration",
+                        Map.of(
+                                "dependencies",
+                                List.of(
+                                        Map.of(
+                                                "name",
+                                                "My dep",
+                                                "url",
+                                                wireMockBaseUrl + "/the-dep.jar"))));
         testConfig(content, false, "dependency type must be set");
 
-        content = Map.of("configuration",
-                Map.of("dependencies",
-                        List.of(
-                                Map.of("name", "My dep", "url", wireMockBaseUrl + "/the-dep.jar", "sha512sum", sha,
-                                        "type",
-                                        "java-library"),
-                                Map.of("name", "My dep2", "url", wireMockBaseUrl + "/the-dep.jar", "sha512sum", sha,
-                                        "type",
-                                        "java-library"))));
+        content =
+                Map.of(
+                        "configuration",
+                        Map.of(
+                                "dependencies",
+                                List.of(
+                                        Map.of(
+                                                "name",
+                                                "My dep",
+                                                "url",
+                                                wireMockBaseUrl + "/the-dep.jar",
+                                                "sha512sum",
+                                                sha,
+                                                "type",
+                                                "java-library"),
+                                        Map.of(
+                                                "name",
+                                                "My dep2",
+                                                "url",
+                                                wireMockBaseUrl + "/the-dep.jar",
+                                                "sha512sum",
+                                                sha,
+                                                "type",
+                                                "java-library"))));
         testConfig(content, true, null);
-
     }
 
     private void testConfig(Object content, boolean expectOk, String errMessage) throws Exception {
         final Path appDir = Files.createTempDirectory("langstream-cli-test");
         final Path configurationFile = appDir.resolve("configuration.yaml");
-        new ObjectMapper(new YAMLFactory())
-                .writeValue(configurationFile.toFile(), content);
+        new ObjectMapper(new YAMLFactory()).writeValue(configurationFile.toFile(), content);
 
-        final AdminClient adminClient = new AdminClient(AdminClientConfiguration.builder()
-                .webServiceUrl(wireMockBaseUrl)
-                .tenant("t").build());
+        final AdminClient adminClient =
+                new AdminClient(
+                        AdminClientConfiguration.builder()
+                                .webServiceUrl(wireMockBaseUrl)
+                                .tenant("t")
+                                .build());
         try {
-            AbstractDeployApplicationCmd.downloadDependencies(appDir, adminClient, System.out::println);
+            AbstractDeployApplicationCmd.downloadDependencies(
+                    appDir, adminClient, System.out::println);
         } catch (Throwable t) {
             t.printStackTrace();
             if (expectOk) {

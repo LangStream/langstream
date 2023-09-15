@@ -452,7 +452,8 @@ public abstract class BaseCmd implements Runnable {
         private String sha512sum;
     }
 
-    public static void downloadDependencies(Path directory, AdminClient adminClient, Consumer<String> logger) throws Exception {
+    public static void downloadDependencies(
+            Path directory, AdminClient adminClient, Consumer<String> logger) throws Exception {
 
         final Path configuration = directory.resolve("configuration.yaml");
         if (!Files.exists(configuration)) {
@@ -461,9 +462,7 @@ public abstract class BaseCmd implements Runnable {
         final Map<String, Object> map =
                 yamlConfigReader.readValue(configuration.toFile(), Map.class);
 
-        final Map<String, Object> configurationMap =
-                (Map<String, Object>) map.get("configuration");
-
+        final Map<String, Object> configurationMap = (Map<String, Object>) map.get("configuration");
 
         final List<Map<String, Object>> dependencies =
                 (List<Map<String, Object>>) configurationMap.get("dependencies");
@@ -510,7 +509,9 @@ public abstract class BaseCmd implements Runnable {
                     logger.accept("File seems corrupted, deleting it");
                     Files.delete(fileName);
                 } else {
-                    logger.accept(String.format("Dependency: %s at %s", fileName, fileName.toAbsolutePath()));
+                    logger.accept(
+                            String.format(
+                                    "Dependency: %s at %s", fileName, fileName.toAbsolutePath()));
                     continue;
                 }
             }
@@ -523,7 +524,8 @@ public abstract class BaseCmd implements Runnable {
             adminClient.http(request, HttpResponse.BodyHandlers.ofFile(fileName));
 
             if (!checkChecksum(fileName, dependency.getSha512sum(), logger)) {
-                logger.accept("File still seems corrupted. Please double check the checksum and try again.");
+                logger.accept(
+                        "File still seems corrupted. Please double check the checksum and try again.");
                 Files.delete(fileName);
                 throw new IOException("File at " + url + ", seems corrupted");
             }
@@ -532,7 +534,8 @@ public abstract class BaseCmd implements Runnable {
         }
     }
 
-    protected static boolean checkChecksum(Path fileName, String sha512sum, Consumer<String> logger) throws Exception {
+    protected static boolean checkChecksum(Path fileName, String sha512sum, Consumer<String> logger)
+            throws Exception {
         MessageDigest instance = MessageDigest.getInstance("SHA-512");
         try (DigestInputStream inputStream =
                 new DigestInputStream(

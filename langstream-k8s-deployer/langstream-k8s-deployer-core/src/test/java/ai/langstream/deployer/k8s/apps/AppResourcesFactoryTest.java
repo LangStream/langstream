@@ -382,7 +382,7 @@ class AppResourcesFactoryTest {
                               containers:
                               - args:
                                 - application-setup
-                                - deploy
+                                - cleanup
                                 env:
                                 - name: LANGSTREAM_APPLICATION_SETUP_APP_CONFIGURATION
                                   value: /app-config/config

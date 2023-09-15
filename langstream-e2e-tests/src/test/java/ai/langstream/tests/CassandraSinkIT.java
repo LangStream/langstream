@@ -54,7 +54,7 @@ public class CassandraSinkIT extends BaseEndToEndTest {
 
     @Test
     public void test() throws Exception {
-
+        installLangStreamCluster(false);
         final String tenant = "ten-" + System.currentTimeMillis();
         executeCommandOnClient(
                 """

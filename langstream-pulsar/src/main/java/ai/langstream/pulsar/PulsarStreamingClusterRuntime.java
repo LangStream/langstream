@@ -52,6 +52,7 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
                 keySchema,
                 valueSchema,
                 creationMode,
+                topicDefinition.getDeletionMode(),
                 topicDefinition.isImplicit());
     }
 

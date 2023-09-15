@@ -16,6 +16,7 @@
 package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
@@ -60,7 +61,11 @@ class KafkaClusterRuntimeDockerTest {
                                     creation-mode: create-if-not-exists
                                   - name: "input-topic-2-partitions"
                                     creation-mode: create-if-not-exists
+                                    deletion-mode: none
                                     partitions: 2
+                                  - name: "input-topic-delete"
+                                    creation-mode: create-if-not-exists
+                                    deletion-mode: delete
                                 """),
                                 buildInstanceYaml(),
                                 null)
@@ -90,6 +95,7 @@ class KafkaClusterRuntimeDockerTest {
         log.info("Topics {}", topics);
         assertTrue(topics.contains("input-topic"));
         assertTrue(topics.contains("input-topic-2-partitions"));
+        assertTrue(topics.contains("input-topic-delete"));
 
         Map<String, TopicDescription> stats =
                 admin.describeTopics(Set.of("input-topic", "input-topic-2-partitions")).all().get();
@@ -97,11 +103,18 @@ class KafkaClusterRuntimeDockerTest {
         assertEquals(2, stats.get("input-topic-2-partitions").partitions().size());
 
         deployer.delete("tenant", implementation, null);
-        // delete should only delete the agents
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertTrue(topics.contains("input-topic"));
         assertTrue(topics.contains("input-topic-2-partitions"));
+        assertTrue(topics.contains("input-topic-delete"));
+
+        deployer.cleanup("tenant", implementation);
+        topics = admin.listTopics().names().get();
+        log.info("Topics {}", topics);
+        assertTrue(topics.contains("input-topic"));
+        assertTrue(topics.contains("input-topic-2-partitions"));
+        assertFalse(topics.contains("input-topic-delete"));
     }
 
     private static String buildInstanceYaml() {

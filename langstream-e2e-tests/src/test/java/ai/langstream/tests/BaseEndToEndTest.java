@@ -66,6 +66,7 @@ import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -79,6 +80,7 @@ public class BaseEndToEndTest implements TestWatcher {
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
     protected static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
+    protected static final String KAFKA_NAMESPACE = "kafka-ns";
 
     interface KubeServer {
         void start();
@@ -98,14 +100,7 @@ public class BaseEndToEndTest implements TestWatcher {
         public void ensureImage(String image) {}
 
         @Override
-        public void stop() {
-            try (final KubernetesClient client =
-                    new KubernetesClientBuilder()
-                            .withConfig(Config.fromKubeconfig(kubeServer.getKubeConfig()))
-                            .build()) {
-                client.namespaces().withName(namespace).delete();
-            }
-        }
+        public void stop() {}
 
         @Override
         @SneakyThrows
@@ -215,6 +210,12 @@ public class BaseEndToEndTest implements TestWatcher {
                 .serverSideApply();
     }
 
+    protected static void deleteManifest(String manifest, String namespace) {
+        client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
+                .inNamespace(namespace)
+                .delete();
+    }
+
     protected static void applyManifestNoNamespace(String manifest) {
         client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
                 .serverSideApply();
@@ -299,6 +300,11 @@ public class BaseEndToEndTest implements TestWatcher {
 
     public static CompletableFuture<String> execInPod(
             String podName, String containerName, String... cmds) {
+        return execInPodInNamespace(namespace, podName, containerName, cmds);
+    }
+
+    public static CompletableFuture<String> execInPodInNamespace(
+            String namespace, String podName, String containerName, String... cmds) {
 
         final String cmd = String.join(" ", cmds);
         log.info(
@@ -515,6 +521,12 @@ public class BaseEndToEndTest implements TestWatcher {
                 .serverSideApply();
     }
 
+    @AfterEach
+    public void cleanupAfterEach() {
+        cleanupAllEndToEndTestsNamespaces();
+        execInKafkaPod("rpk topic delete -r \".*\"");
+    }
+
     private static void cleanupAllEndToEndTestsNamespaces() {
         client.namespaces().withLabel("app", "ls-test").delete();
         client.namespaces().list().getItems().stream()
@@ -578,7 +590,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   app:
                     config:
                       agentResources:
-                        cpuPerUnit: 0.1
+                        cpuPerUnit: 0.2
                         memPerUnit: 128
                 client:
                   image:
@@ -670,7 +682,7 @@ public class BaseEndToEndTest implements TestWatcher {
         client.resource(
                         new NamespaceBuilder()
                                 .withNewMetadata()
-                                .withName("kafka-ns")
+                                .withName(KAFKA_NAMESPACE)
                                 .endMetadata()
                                 .build())
                 .serverSideApply();
@@ -846,12 +858,19 @@ public class BaseEndToEndTest implements TestWatcher {
 
     private static void dumpResources(
             String filePrefix, Class<? extends HasMetadata> clazz, List<String> namespaces) {
-        for (String namespace : namespaces) {
-            client.resources(clazz)
-                    .inNamespace(namespace)
-                    .list()
-                    .getItems()
-                    .forEach(resource -> dumpResource(filePrefix, resource));
+        try {
+            for (String namespace : namespaces) {
+                client.resources(clazz)
+                        .inNamespace(namespace)
+                        .list()
+                        .getItems()
+                        .forEach(resource -> dumpResource(filePrefix, resource));
+            }
+        } catch (Throwable t) {
+            log.warn(
+                    "failed to dump resources of type {}: {}",
+                    clazz.getSimpleName(),
+                    t.getMessage());
         }
     }
 
@@ -921,5 +940,31 @@ public class BaseEndToEndTest implements TestWatcher {
         } catch (Throwable e) {
             log.error("failed to write events logs to file {}", outputFile, e);
         }
+    }
+
+    @SneakyThrows
+    protected static List<String> getAllTopicsFromKafka() {
+        final String result = execInKafkaPod("rpk topic list");
+        if (result == null) {
+            throw new IllegalStateException("failed to get topics from kafka");
+        }
+
+        final List<String> topics = new ArrayList<>();
+        final List<String> lines = result.lines().collect(Collectors.toList());
+        boolean first = true;
+        for (String line : lines) {
+            if (first) {
+                first = false;
+                continue;
+            }
+            topics.add(line.split(" ")[0]);
+        }
+        return topics;
+    }
+
+    @SneakyThrows
+    private static String execInKafkaPod(String cmd) {
+        return execInPodInNamespace(KAFKA_NAMESPACE, "redpanda-0", "redpanda", cmd.split(" "))
+                .get(1, TimeUnit.MINUTES);
     }
 }

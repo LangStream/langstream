@@ -78,5 +78,14 @@ public class MockAssetManagerCodeProvider implements AssetManagerProvider {
             }
             DEPLOYED_ASSETS.add(assetDefinition);
         }
+
+        @Override
+        public synchronized void deleteAsset() throws Exception {
+            log.info("Deleting asset {}", assetDefinition);
+            final boolean remove = DEPLOYED_ASSETS.remove(assetDefinition);
+            if (!remove) {
+                throw new IllegalStateException("Asset not found: " + assetDefinition);
+            }
+        }
     }
 }

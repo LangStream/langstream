@@ -41,41 +41,41 @@ class ApplicationServiceValidateUpdateTest {
         checkTopics(
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null)),
+                                "input-topic", null, null, null, 0, null, null, null)),
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null)),
+                                "input-topic", null, null, null, 0, null, null, null)),
                 true);
 
         checkTopics(
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null)),
+                                "input-topic", null, null, null, 0, null, null, null)),
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic1", null, null, 0, null, null, null)),
+                                "input-topic1", null, null, null, 0, null, null, null)),
                 false);
 
         checkTopics(
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null)),
+                                "input-topic", null, null, null, 0, null, null, null)),
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null),
+                                "input-topic", null, null, null, 0, null, null, null),
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic1", null, null, 0, null, null, null)),
+                                "input-topic1", null, null, null, 0, null, null, null)),
                 false);
 
         checkTopics(
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null),
+                                "input-topic", null, null, null, 0, null, null, null),
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic1", null, null, 0, null, null, null)),
+                                "input-topic1", null, null, null, 0, null, null, null)),
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null)),
+                                "input-topic", null, null, null, 0, null, null, null)),
                 false);
 
         checkTopics(
@@ -83,6 +83,7 @@ class ApplicationServiceValidateUpdateTest {
                         new ModelBuilder.TopicDefinitionModel(
                                 "input-topic",
                                 TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS,
+                                null,
                                 null,
                                 0,
                                 null,
@@ -92,6 +93,7 @@ class ApplicationServiceValidateUpdateTest {
                         new ModelBuilder.TopicDefinitionModel(
                                 "input-topic",
                                 TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS,
+                                null,
                                 null,
                                 0,
                                 null,
@@ -105,13 +107,14 @@ class ApplicationServiceValidateUpdateTest {
                                 "input-topic",
                                 TopicDefinition.CREATE_MODE_NONE,
                                 null,
+                                null,
                                 0,
                                 null,
                                 null,
                                 null)),
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null)),
+                                "input-topic", null, null, null, 0, null, null, null)),
                 true);
 
         checkTopics(
@@ -119,6 +122,7 @@ class ApplicationServiceValidateUpdateTest {
                         new ModelBuilder.TopicDefinitionModel(
                                 "input-topic",
                                 null,
+                                null,
                                 new SchemaDefinition("avro", "{}", null),
                                 0,
                                 null,
@@ -126,7 +130,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null)),
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null)),
+                                "input-topic", null, null, null, 0, null, null, null)),
                 false);
 
         checkTopics(
@@ -134,6 +138,7 @@ class ApplicationServiceValidateUpdateTest {
                         new ModelBuilder.TopicDefinitionModel(
                                 "input-topic",
                                 null,
+                                null,
                                 new SchemaDefinition("avro", "{}", null),
                                 0,
                                 null,
@@ -142,6 +147,7 @@ class ApplicationServiceValidateUpdateTest {
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
                                 "input-topic",
+                                null,
                                 null,
                                 new SchemaDefinition("json", "{}", null),
                                 0,
@@ -155,6 +161,7 @@ class ApplicationServiceValidateUpdateTest {
                         new ModelBuilder.TopicDefinitionModel(
                                 "input-topic",
                                 null,
+                                null,
                                 new SchemaDefinition("avro", "{}", null),
                                 0,
                                 null,
@@ -163,6 +170,7 @@ class ApplicationServiceValidateUpdateTest {
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
                                 "input-topic",
+                                null,
                                 null,
                                 new SchemaDefinition("avro", "{schema:true}", null),
                                 0,
@@ -174,19 +182,19 @@ class ApplicationServiceValidateUpdateTest {
         checkTopics(
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 1, null, null, null)),
+                                "input-topic", null, null, null, 1, null, null, null)),
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null)),
+                                "input-topic", null, null, null, 0, null, null, null)),
                 false);
 
         checkTopics(
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 1, null, null, null)),
+                                "input-topic", null, null, null, 1, null, null, null)),
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 2, null, null, null)),
+                                "input-topic", null, null, null, 2, null, null, null)),
                 false);
     }
 
@@ -659,9 +667,9 @@ class ApplicationServiceValidateUpdateTest {
         pipelineFileModel.setTopics(
                 List.of(
                         new ModelBuilder.TopicDefinitionModel(
-                                "input-topic", null, null, 0, null, null, null),
+                                "input-topic", null, null, null, 0, null, null, null),
                         new ModelBuilder.TopicDefinitionModel(
-                                "output-topic", null, null, 0, null, null, null)));
+                                "output-topic", null, null, null, 0, null, null, null)));
         pipelineFileModel.setPipeline(agents);
         Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(

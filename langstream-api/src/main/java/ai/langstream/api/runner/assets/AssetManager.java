@@ -26,5 +26,7 @@ public interface AssetManager {
 
     void deployAsset() throws Exception;
 
+    void deleteAsset() throws Exception;
+
     default void close() throws Exception {}
 }

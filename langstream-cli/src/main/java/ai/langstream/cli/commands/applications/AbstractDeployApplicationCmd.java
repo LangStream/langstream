@@ -154,7 +154,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
 
         if (appDirectory != null) {
-            downloadDependencies(appDirectory.toPath());
+            downloadDependencies(appDirectory.toPath(), getClient(), this::log);
         }
 
         final Path tempZip = buildZip(appDirectory, this::log);

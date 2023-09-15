@@ -59,6 +59,11 @@ public record AssetManagerAndLoader(AssetManager agentCode, ClassLoader classLoa
             }
 
             @Override
+            public void deleteAsset() throws Exception {
+                executeWithContextClassloader(agentCode -> agentCode.deleteAsset());
+            }
+
+            @Override
             public void close() throws Exception {
                 executeWithContextClassloader(agentCode -> agentCode.close());
             }

@@ -354,6 +354,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                 new TopicDefinition(
                         name,
                         creationMode,
+                        TopicDefinition.CREATE_MODE_NONE,
                         inputTopicDefinition.isImplicit(),
                         inputTopicDefinition.getPartitions(),
                         inputTopicDefinition.getKeySchema(),
@@ -372,18 +373,20 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             AgentConfiguration agentConfiguration,
             StreamingClusterRuntime streamingClusterRuntime) {
         // connecting two agents requires an intermediate topic
-        String name = "agent-" + agentConfiguration.getId() + "-input";
+        final String name = "agent-" + agentConfiguration.getId() + "-input";
         log.info(
                 "Automatically creating topic {} in order to connect as input for agent {}",
                 name,
                 agentConfiguration.getId());
         // short circuit...the Pulsar Runtime works only with Pulsar Topics on the same Pulsar
         // Cluster
-        String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
+        final String creationMode = TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS;
+        final String deletionMode = TopicDefinition.DELETE_MODE_NONE;
         TopicDefinition topicDefinition =
                 new TopicDefinition(
                         name,
                         creationMode,
+                        deletionMode,
                         true,
                         DEFAULT_PARTITIONS_FOR_IMPLICIT_TOPICS,
                         null,

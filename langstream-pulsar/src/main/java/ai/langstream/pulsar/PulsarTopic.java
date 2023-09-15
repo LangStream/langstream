@@ -27,6 +27,7 @@ public record PulsarTopic(
         SchemaDefinition keySchema,
         SchemaDefinition valueSchema,
         String createMode,
+        String deleteMode,
         boolean implicit)
         implements ConnectionImplementation, Topic {
 

@@ -159,14 +159,14 @@ public final class ApplicationDeployer implements AutoCloseable {
     }
 
     /**
-     * Delete the application instance and all the resources associated with it.
+     * Undeploy the application and delete all the agents.
      *
-     * @param physicalApplicationInstance the application instance
+     * @param tenant
+     * @param executionPlan the application plan
      * @param codeStorageArchiveId the code storage archive id
      */
-    public void delete(
-            String tenant, ExecutionPlan physicalApplicationInstance, String codeStorageArchiveId) {
-        Application applicationInstance = physicalApplicationInstance.getApplication();
+    public void delete(String tenant, ExecutionPlan executionPlan, String codeStorageArchiveId) {
+        Application applicationInstance = executionPlan.getApplication();
         ComputeClusterRuntime clusterRuntime =
                 registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
         StreamingClusterRuntime streamingClusterRuntime =
@@ -174,10 +174,29 @@ public final class ApplicationDeployer implements AutoCloseable {
                         applicationInstance.getInstance().streamingCluster());
         clusterRuntime.delete(
                 tenant,
-                physicalApplicationInstance,
+                executionPlan,
                 streamingClusterRuntime,
                 codeStorageArchiveId,
                 deployContext);
+    }
+
+    /**
+     * Cleanup all the resources associated with an application.
+     *
+     * @param tenant
+     * @param executionPlan the application instance
+     */
+    public void cleanup(String tenant, ExecutionPlan executionPlan) {
+        cleanupTopics(executionPlan);
+    }
+
+    private void cleanupTopics(ExecutionPlan executionPlan) {
+        TopicConnectionsRuntime topicConnectionsRuntime =
+                topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(
+                                executionPlan.getApplication().getInstance().streamingCluster())
+                        .asTopicConnectionsRuntime();
+        topicConnectionsRuntime.delete(executionPlan);
     }
 
     @Override

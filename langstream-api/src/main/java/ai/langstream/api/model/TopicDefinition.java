@@ -32,18 +32,23 @@ public class TopicDefinition {
     public static final String CREATE_MODE_NONE = "none";
     public static final String CREATE_MODE_CREATE_IF_NOT_EXISTS = "create-if-not-exists";
 
+    public static final String DELETE_MODE_NONE = "none";
+    public static final String DELETE_MODE_DELETE = "delete";
+
     public TopicDefinition() {
         creationMode = CREATE_MODE_NONE;
+        deletionMode = DELETE_MODE_NONE;
     }
 
     public static TopicDefinition fromName(String name) {
         return new TopicDefinition(
-                name, CREATE_MODE_NONE, false, 0, null, null, Map.of(), Map.of());
+                name, CREATE_MODE_NONE, DELETE_MODE_NONE, false, 0, null, null, Map.of(), Map.of());
     }
 
     public TopicDefinition(
             String name,
             String creationMode,
+            String deletionMode,
             boolean implicit,
             int partitions,
             SchemaDefinition keySchema,
@@ -53,6 +58,7 @@ public class TopicDefinition {
         this();
         this.name = name;
         this.creationMode = Objects.requireNonNullElse(creationMode, CREATE_MODE_NONE);
+        this.deletionMode = Objects.requireNonNullElse(deletionMode, DELETE_MODE_NONE);
         this.implicit = implicit;
         this.partitions = partitions;
         this.keySchema = keySchema;
@@ -66,6 +72,9 @@ public class TopicDefinition {
 
     @JsonProperty("creation-mode")
     private String creationMode;
+
+    @JsonProperty("deletion-mode")
+    private String deletionMode;
 
     // Kafka Admin special configuration options
     private Map<String, Object> config;
@@ -87,10 +96,21 @@ public class TopicDefinition {
         }
     }
 
+    private void validateDeletionMode() {
+        switch (deletionMode) {
+            case DELETE_MODE_DELETE:
+            case DELETE_MODE_NONE:
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid deletion mode: " + deletionMode);
+        }
+    }
+
     public TopicDefinition copy() {
         TopicDefinition copy = new TopicDefinition();
         copy.setName(name);
         copy.setCreationMode(creationMode);
+        copy.setDeletionMode(deletionMode);
         copy.setImplicit(implicit);
         copy.setPartitions(partitions);
         copy.setKeySchema(keySchema);

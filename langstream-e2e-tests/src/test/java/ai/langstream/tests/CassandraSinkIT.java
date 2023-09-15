@@ -93,8 +93,10 @@ public class CassandraSinkIT extends BaseEndToEndTest {
                         .formatted(applicationId)
                         .split(" "));
 
+        // in this timeout is also included the runtime pod startup time
         Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
+                .atMost(1, TimeUnit.MINUTES)
+                .pollInterval(5, TimeUnit.SECONDS)
                 .untilAsserted(
                         () -> {
                             try {

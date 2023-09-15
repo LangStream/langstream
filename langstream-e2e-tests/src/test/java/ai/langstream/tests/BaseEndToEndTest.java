@@ -584,7 +584,7 @@ public class BaseEndToEndTest implements TestWatcher {
                   app:
                     config:
                       agentResources:
-                        cpuPerUnit: 0.1
+                        cpuPerUnit: 0.2
                         memPerUnit: 128
                 client:
                   image:

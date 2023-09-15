@@ -25,7 +25,7 @@ pipeline:
     type: "sink"
     input: "TEST_TOPIC_C1"
     resources:
-      size: 2
+      size: 3
     configuration:
       connector.class: com.datastax.oss.kafka.sink.CassandraSinkConnector
       key.converter: org.apache.kafka.connect.storage.StringConverter

@@ -31,6 +31,7 @@ public record KafkaTopic(
         SchemaDefinition keySchema,
         SchemaDefinition valueSchema,
         String createMode,
+        String deleteMode,
         boolean implicit,
         Map<String, Object> config,
         Map<String, Object> options)

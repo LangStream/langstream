@@ -271,7 +271,9 @@ public class AppResourcesFactory {
                                 .withName(ApplicationSetupConstants.APP_SECRETS_ENV)
                                 .withValue("/app-secrets/secrets")
                                 .build());
-        final List<String> args = List.of("application-setup", "deploy");
+        final String cmd = isDeleteJob ? "cleanup" : "deploy";
+
+        final List<String> args = List.of("application-setup", cmd);
         final String containerName = "setup";
         final Container container =
                 createContainer(

@@ -89,6 +89,8 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
         switch (arg0) {
             case "deploy" -> applicationSetupRunner.runSetup(
                     clusterRuntimeConfiguration, configuration, secrets, packagesDirectory);
+            case "cleanup" -> applicationSetupRunner.runCleanup(
+                    clusterRuntimeConfiguration, configuration, secrets, packagesDirectory);
             default -> throw new IllegalArgumentException("Unknown command " + arg0);
         }
     }

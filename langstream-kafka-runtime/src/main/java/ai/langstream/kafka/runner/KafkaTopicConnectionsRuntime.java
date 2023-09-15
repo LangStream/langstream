@@ -265,20 +265,30 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
     private void deleteTopic(AdminClient admin, KafkaTopic topic) {
         switch (topic.createMode()) {
             case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
-                log.info("Deleting Kafka topic {}", topic.name());
-                try {
-                    admin.deleteTopics(List.of(topic.name()), new DeleteTopicsOptions())
-                            .all()
-                            .get();
-                } catch (ExecutionException e) {
-                    if (e.getCause() instanceof UnknownTopicOrPartitionException) {
-                        log.info("Topic {} does not exist", topic.name());
-                    } else {
-                        throw e;
+                if (topic.deleteMode().equals(TopicDefinition.DELETE_MODE_DELETE)) {
+                    log.info("Deleting Kafka topic {}", topic.name());
+                    try {
+                        admin.deleteTopics(List.of(topic.name()), new DeleteTopicsOptions())
+                                .all()
+                                .get();
+                    } catch (ExecutionException e) {
+                        if (e.getCause() instanceof UnknownTopicOrPartitionException) {
+                            log.info("Topic {} does not exist", topic.name());
+                        } else {
+                            throw e;
+                        }
                     }
+                } else {
+                    log.info(
+                            "Keeping Kafka topic {} since deletion-mode is {}",
+                            topic.name(),
+                            topic.deleteMode());
                 }
             }
-            default -> log.info("Keeping Kafka topic {}", topic.name());
+            default -> log.info(
+                    "Keeping Kafka topic {} since creation-mode is {}",
+                    topic.name(),
+                    topic.createMode());
         }
     }
 

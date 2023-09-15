@@ -61,7 +61,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
         String model = "gpt-35-turbo";
 
         stubFor(
-                post("/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview")
+                post("/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-08-01-preview")
                         .willReturn(
                                 okJson(
                                         """

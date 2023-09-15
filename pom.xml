@@ -35,7 +35,8 @@
     <confluent.avro>7.4.0</confluent.avro>
     <!-- Must match version in pulsar -->
     <avro.version>1.10.2</avro.version>
-    <azure-ai-openai.version>1.0.0-beta.2</azure-ai-openai.version>
+    <azure-ai-openai.version>1.0.0-beta.4</azure-ai-openai.version>
+    <azure-sdk-bom.version>1.2.16</azure-sdk-bom.version>
     <!-- same version of Kafka -->
     <netty.version>4.1.97.Final</netty.version>
     <netty.boringssl.version>2.0.61.Final</netty.boringssl.version>
@@ -98,6 +99,14 @@
         <version>${netty.version}</version>
         <type>pom</type>
       </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-sdk-bom</artifactId>
+        <version>${azure-sdk-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <dependency>
         <groupId>io.netty.incubator</groupId>
         <artifactId>netty-incubator-transport-native-io_uring</artifactId>

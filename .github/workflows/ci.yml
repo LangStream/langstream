@@ -153,9 +153,7 @@ jobs:
         run: |
           chmod +x mvnw
           uname -m
-          eval $(minikube docker-env)
-          ./docker/build.sh
-          eval $(minikube docker-env -u)
+          ./dev/prepare-minikube-for-e2e-tests.sh
           ./mvnw install -pl langstream-e2e-tests -am -DskipTests
           ./mvnw verify -pl langstream-e2e-tests -De2eTests
 

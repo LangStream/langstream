@@ -15,9 +15,13 @@
  */
 package ai.langstream.tests;
 
+import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
+import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,9 +57,10 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                 "bin/langstream apps deploy %s -app /tmp/python-processor -i /tmp/instance.yaml -s /tmp/secrets.yaml"
                         .formatted(applicationId)
                         .split(" "));
+        final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
         client.apps()
                 .statefulSets()
-                .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)
+                .inNamespace(tenantNamespace)
                 .withName(applicationId + "-test-python-processor")
                 .waitUntilReady(4, TimeUnit.MINUTES);
 
@@ -74,5 +79,43 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                 output.contains(
                         "{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value\","
                                 + "\"headers\":{}}"));
+
+        executeCommandOnClient("bin/langstream apps delete %s".formatted(applicationId).split(" "));
+
+
+        Awaitility.await()
+                .atMost(1, TimeUnit.MINUTES)
+                .untilAsserted(() -> {
+                    Assertions.assertNull(
+                            client.apps()
+                                    .statefulSets()
+                                    .inNamespace(tenantNamespace)
+                                    .withName(applicationId + "-test-python-processor")
+                                    .get());
+
+                    Assertions.assertEquals(
+                            0,
+                            client.resources(AgentCustomResource.class)
+                                    .inNamespace(tenantNamespace)
+                                    .list()
+                                    .getItems()
+                                    .size());
+
+                    Assertions.assertEquals(
+                            0,
+                            client.resources(ApplicationCustomResource.class)
+                                    .inNamespace(tenantNamespace)
+                                    .list()
+                                    .getItems()
+                                    .size());
+
+                    Assertions.assertEquals(
+                            1,
+                            client.resources(Secret.class)
+                                    .inNamespace(tenantNamespace)
+                                    .list()
+                                    .getItems()
+                                    .size());
+                });
     }
 }

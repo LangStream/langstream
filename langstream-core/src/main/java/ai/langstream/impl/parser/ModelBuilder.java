@@ -455,6 +455,7 @@ public class ModelBuilder {
                         new TopicDefinition(
                                 topicDefinition.getName(),
                                 topicDefinition.getCreationMode(),
+                                topicDefinition.getDeletionMode(),
                                 false,
                                 topicDefinition.getPartitions(),
                                 topicDefinition.getKeySchema(),
@@ -630,6 +631,9 @@ public class ModelBuilder {
 
         @JsonProperty("creation-mode")
         private String creationMode;
+
+        @JsonProperty("deletion-mode")
+        private String deletionMode;
 
         private SchemaDefinition schema;
 

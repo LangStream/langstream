@@ -27,6 +27,7 @@ import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.runtime.api.application.ApplicationSetupConfiguration;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
 import java.util.List;
@@ -51,26 +52,60 @@ public class ApplicationSetupRunner {
 
         final String applicationId = configuration.getApplicationId();
         log.info("Setup application {}", applicationId);
-        final String applicationConfig = configuration.getApplication();
-
-        final Application appInstance = MAPPER.readValue(applicationConfig, Application.class);
-        appInstance.setSecrets(secrets);
+        final Application appInstance = parseApplicationInstance(configuration, secrets);
 
         try (NarFileHandler narFileHandler =
-                new NarFileHandler(
-                        packagesDirectory,
-                        List.of(),
-                        Thread.currentThread().getContextClassLoader())) {
+                     getNarFileHandler(packagesDirectory)) {
             narFileHandler.scan();
             try (ApplicationDeployer deployer =
-                    buildDeployer(clusterRuntimeConfiguration, narFileHandler)) {
+                         buildDeployer(clusterRuntimeConfiguration, narFileHandler)) {
                 final ExecutionPlan executionPlan =
                         deployer.createImplementation(applicationId, appInstance);
-
                 deployer.setup(configuration.getTenant(), executionPlan);
                 log.info("Application {} setup done", applicationId);
             }
         }
+    }
+
+    public void runCleanup(
+            Map<String, Map<String, Object>> clusterRuntimeConfiguration,
+            ApplicationSetupConfiguration configuration,
+            Secrets secrets,
+            Path packagesDirectory)
+            throws Exception {
+
+        final String applicationId = configuration.getApplicationId();
+        log.info("Cleanup application {}", applicationId);
+        final Application appInstance = parseApplicationInstance(configuration, secrets);
+
+        try (NarFileHandler narFileHandler =
+                     getNarFileHandler(packagesDirectory)) {
+            narFileHandler.scan();
+            try (ApplicationDeployer deployer =
+                         buildDeployer(clusterRuntimeConfiguration, narFileHandler)) {
+                final ExecutionPlan executionPlan =
+                        deployer.createImplementation(applicationId, appInstance);
+
+                deployer.cleanup(configuration.getTenant(), executionPlan);
+                log.info("Application {} cleanup done", applicationId);
+            }
+        }
+    }
+
+    private NarFileHandler getNarFileHandler(Path packagesDirectory) throws Exception {
+        return new NarFileHandler(
+                packagesDirectory,
+                List.of(),
+                Thread.currentThread().getContextClassLoader());
+    }
+
+    private Application parseApplicationInstance(ApplicationSetupConfiguration configuration, Secrets secrets)
+            throws JsonProcessingException {
+        final String applicationConfig = configuration.getApplication();
+
+        final Application appInstance = MAPPER.readValue(applicationConfig, Application.class);
+        appInstance.setSecrets(secrets);
+        return appInstance;
     }
 
     private ApplicationDeployer buildDeployer(

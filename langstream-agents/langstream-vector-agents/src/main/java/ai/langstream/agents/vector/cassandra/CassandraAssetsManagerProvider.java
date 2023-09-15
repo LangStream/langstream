@@ -110,6 +110,11 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
                 }
             }
         }
+
+        @Override
+        public void deleteAsset() throws Exception {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private static class CassandraKeyspaceAssetManager extends BaseCassandraAssetManager {
@@ -146,6 +151,11 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
                             e.toString());
                 }
             }
+        }
+
+        @Override
+        public void deleteAsset() throws Exception {
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -202,6 +212,11 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
                     throw new IllegalStateException("Error creating keyspace", e);
                 }
             }
+        }
+
+        @Override
+        public void deleteAsset() throws Exception {
+            throw new UnsupportedOperationException();
         }
     }
 

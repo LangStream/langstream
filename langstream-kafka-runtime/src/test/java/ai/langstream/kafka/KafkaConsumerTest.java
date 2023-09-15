@@ -80,6 +80,7 @@ class KafkaConsumerTest {
                                                 topics:
                                                   - name: %s
                                                     creation-mode: create-if-not-exists
+                                                    deletion-mode: delete
                                                     partitions: %d
                                                 """
                                                 .formatted(topicName, numPartitions)),
@@ -116,14 +117,7 @@ class KafkaConsumerTest {
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
         deployer.delete("tenant", implementation, null);
-        topics = admin.listTopics().names().get();
-        log.info("Topics {}", topics);
-        assertTrue(topics.contains(topicName));
-        topicConnectionsRuntimeRegistry
-                .getTopicConnectionsRuntime(
-                        implementation.getApplication().getInstance().streamingCluster())
-                .asTopicConnectionsRuntime()
-                .delete(implementation);
+        deployer.cleanup("tenant", implementation);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
@@ -215,6 +209,7 @@ class KafkaConsumerTest {
                                                 topics:
                                                   - name: %s
                                                     creation-mode: create-if-not-exists
+                                                    deletion-mode: delete
                                                     partitions: %d
                                                 """
                                                 .formatted(topicName, numPartitions)),
@@ -250,16 +245,9 @@ class KafkaConsumerTest {
         Map<String, TopicDescription> stats = admin.describeTopics(Set.of(topicName)).all().get();
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
+        deployer.cleanup("tenant", implementation);
         deployer.delete("tenant", implementation, null);
-        topics = admin.listTopics().names().get();
-        log.info("Topics {}", topics);
-        assertTrue(topics.contains(topicName));
 
-        topicConnectionsRuntimeRegistry
-                .getTopicConnectionsRuntime(
-                        implementation.getApplication().getInstance().streamingCluster())
-                .asTopicConnectionsRuntime()
-                .delete(implementation);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
@@ -322,6 +310,7 @@ class KafkaConsumerTest {
                                                 topics:
                                                   - name: %s
                                                     creation-mode: create-if-not-exists
+                                                    deletion-mode: delete
                                                     partitions: %d
                                                 """
                                                 .formatted(topicName, numPartitions)),
@@ -357,16 +346,8 @@ class KafkaConsumerTest {
         Map<String, TopicDescription> stats = admin.describeTopics(Set.of(topicName)).all().get();
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
-        topics = admin.listTopics().names().get();
-        log.info("Topics {}", topics);
-        assertTrue(topics.contains(topicName));
-
-        topicConnectionsRuntimeRegistry
-                .getTopicConnectionsRuntime(
-                        implementation.getApplication().getInstance().streamingCluster())
-                .asTopicConnectionsRuntime()
-                .delete(implementation);
         deployer.delete("tenant", implementation, null);
+        deployer.cleanup("tenant", implementation);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
@@ -423,6 +404,7 @@ class KafkaConsumerTest {
                                                 topics:
                                                   - name: %s
                                                     creation-mode: create-if-not-exists
+                                                    deletion-mode: delete
                                                     partitions: %d
                                                 """
                                                 .formatted(topicName, numPartitions)),
@@ -458,16 +440,10 @@ class KafkaConsumerTest {
         Map<String, TopicDescription> stats = admin.describeTopics(Set.of(topicName)).all().get();
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
-        deployer.delete("tenant", implementation, null);
-        topics = admin.listTopics().names().get();
-        log.info("Topics {}", topics);
-        assertTrue(topics.contains(topicName));
 
-        topicConnectionsRuntimeRegistry
-                .getTopicConnectionsRuntime(
-                        implementation.getApplication().getInstance().streamingCluster())
-                .asTopicConnectionsRuntime()
-                .delete(implementation);
+        deployer.delete("tenant", implementation, null);
+        deployer.cleanup("tenant", implementation);
+
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));

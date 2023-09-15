@@ -27,6 +27,7 @@ topics:
       type: string
   - name: TEST_TOPIC_1
     creation-mode: create-if-not-exists
+    deletion-mode: delete
     schema:
       type: string
     keySchema:

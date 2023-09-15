@@ -89,7 +89,19 @@ public class AppController extends BaseController<ApplicationCustomResource>
     protected DeleteControl cleanupResources(
             ApplicationCustomResource resource, Context<ApplicationCustomResource> context) {
         appResourcesLimiter.onAppBeingDeleted(resource);
-        final Duration rescheduleDuration = handleJob(resource, false, true);
+        Duration rescheduleDuration = handleJob(resource, false, true);
+        if (rescheduleDuration == null) {
+            log.infof(
+                    "deployer cleanup job for %s is completed, checking setup cleanup",
+                    resource.getMetadata().getName());
+            rescheduleDuration = handleJob(resource, true, true);
+            log.infof(
+                    "setup cleanup job for %s is %s",
+                    resource.getMetadata().getName(),
+                    rescheduleDuration != null ? "not completed" : "completed");
+        } else {
+            log.infof("deployer cleanup job for %s is not completed yet", resource.getMetadata().getName());
+        }
         return rescheduleDuration != null
                 ? DeleteControl.noFinalizerRemoval().rescheduleAfter(rescheduleDuration)
                 : DeleteControl.defaultDelete();

@@ -62,8 +62,8 @@ public class GrpcAgentProcessorTest {
     private ManagedChannel channel;
     private final AtomicInteger schemaCounter = new AtomicInteger(0);
 
-    private final ProcessorGrpc.ProcessorImplBase testProcessorService =
-            new ProcessorGrpc.ProcessorImplBase() {
+    private final AgentServiceGrpc.AgentServiceImplBase testProcessorService =
+            new AgentServiceGrpc.AgentServiceImplBase() {
                 @Override
                 public StreamObserver<ProcessorRequest> process(
                         StreamObserver<ProcessorResponse> response) {
@@ -74,12 +74,12 @@ public class GrpcAgentProcessorTest {
                             if (request.hasSchema()) {
                                 schemaCounter.incrementAndGet();
                                 resp.setSchema(request.getSchema());
-                            } else if (request.getRecords().getRecordCount() > 0) {
+                            }
+                            if (request.getRecordsCount() > 0) {
                                 for (ai.langstream.agents.grpc.Record record :
-                                        request.getRecords().getRecordList()) {
-                                    ProcessorResults.Builder results = resp.getResultsBuilder();
+                                        request.getRecordsList()) {
                                     ProcessorResult.Builder resultBuilder =
-                                            results.addResultBuilder()
+                                            resp.addResultsBuilder()
                                                     .setRecordId(record.getRecordId());
                                     if (record.getOrigin().equals("failing-origin")) {
                                         resultBuilder.setError("test-error");
@@ -95,19 +95,14 @@ public class GrpcAgentProcessorTest {
                                     } else if (record.getOrigin().equals("wrong-record-id")) {
                                         resultBuilder.setRecordId(record.getRecordId() + 1);
                                     } else {
-                                        Records.Builder recordsBuilder =
-                                                resultBuilder.getRecordsBuilder();
                                         if (record.getOrigin().equals("wrong-schema-id")) {
-                                            recordsBuilder.addRecord(
-                                                    ai.langstream.agents.grpc.Record.newBuilder()
-                                                            .setValue(
-                                                                    Value.newBuilder()
-                                                                            .setSchemaId(1)
-                                                                            .setAvroValue(
-                                                                                    ByteString
-                                                                                            .EMPTY)));
+                                            resultBuilder
+                                                    .addRecordsBuilder()
+                                                    .getValueBuilder()
+                                                    .setSchemaId(1)
+                                                    .setAvroValue(ByteString.EMPTY);
                                         } else {
-                                            recordsBuilder.addRecord(record);
+                                            resultBuilder.addRecords(record);
                                         }
                                     }
                                 }
@@ -148,29 +143,33 @@ public class GrpcAgentProcessorTest {
 
     private static Stream<Arguments> primitives() {
         return Stream.of(
-                Arguments.of("test-string"),
-                Arguments.of(true),
-                Arguments.of(new Object[] {"test-string".getBytes(StandardCharsets.UTF_8)}),
-                Arguments.of((byte) 42),
-                Arguments.of((short) 42),
-                Arguments.of(42),
-                Arguments.of(42L),
-                Arguments.of(42.0f),
-                Arguments.of(42.0),
-                Arguments.of(new Object[] {null}));
+                Arguments.of("test-value", "test-key", "test-header"),
+                Arguments.of(true, true, true),
+                Arguments.of(
+                        "test-value".getBytes(StandardCharsets.UTF_8),
+                        "test-key".getBytes(StandardCharsets.UTF_8),
+                        "test-header".getBytes(StandardCharsets.UTF_8)),
+                Arguments.of((byte) 42, (byte) 43, (byte) 44),
+                Arguments.of((short) 42, (short) 43, (short) 44),
+                Arguments.of(42, 43, 44),
+                Arguments.of(42L, 43L, 44L),
+                Arguments.of(42.0f, 43.0f, 44.0f),
+                Arguments.of(42.0, 43.0, 44.0),
+                Arguments.of(null, null, null));
     }
 
     @ParameterizedTest
     @MethodSource("primitives")
-    void testProcess(Object obj) throws Exception {
+    void testProcess(Object value, Object key, Object header) throws Exception {
         GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
+        processor.setContext(new TestAgentContext());
         processor.start();
         Record inputRecord =
                 SimpleRecord.builder()
-                        .value(obj)
-                        .key(obj)
+                        .value(value)
+                        .key(key)
                         .origin("test-origin")
-                        .headers(List.of(SimpleHeader.of("test-header", obj)))
+                        .headers(List.of(SimpleHeader.of("test-header-key", header)))
                         .timestamp(42L)
                         .build();
         assertProcessSuccessful(processor, inputRecord);
@@ -181,6 +180,7 @@ public class GrpcAgentProcessorTest {
     @Test
     void testEmpty() throws Exception {
         GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
+        processor.setContext(new TestAgentContext());
         processor.start();
         assertProcessSuccessful(processor, SimpleRecord.builder().build());
         processor.close();
@@ -190,6 +190,7 @@ public class GrpcAgentProcessorTest {
     void testFailingRecord() throws Exception {
         GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
         Record inputRecord = SimpleRecord.builder().origin("failing-origin").build();
+        processor.setContext(new TestAgentContext());
         processor.start();
         CompletableFuture<Void> op = new CompletableFuture<>();
         processor.process(
@@ -238,6 +239,7 @@ public class GrpcAgentProcessorTest {
         GenericData.Record avroRecord = new GenericData.Record(schema);
         avroRecord.put("testField", "test-string");
         GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
+        processor.setContext(new TestAgentContext());
         processor.start();
         Record inputRecord =
                 SimpleRecord.builder()

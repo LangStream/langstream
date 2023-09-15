@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,12 +14,14 @@
 # limitations under the License.
 #
 
+import concurrent
 import logging
 import sys
 
-import yaml
+import grpc
 
-from . import runtime
+from langstream_grpc.grpc_service import AgentService
+from langstream_grpc.proto import agent_pb2_grpc
 
 if __name__ == "__main__":
     logging.addLevelName(logging.WARNING, "WARN")
@@ -30,10 +31,17 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
 
-    if len(sys.argv) != 2:
-        print("Missing pod configuration file argument")
+    if len(sys.argv) != 3:
+        print("Missing gRPC target and python class name")
+        print("usage: python -m langstream_grpc <target> <className>")
         sys.exit(1)
 
-    with open(sys.argv[1], "r") as file:
-        config = yaml.safe_load(file)
-        runtime.run_with_server(config)
+    target = sys.argv[1]
+    className = sys.argv[2]
+
+    server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=10))
+    agent_pb2_grpc.add_AgentServiceServicer_to_server(AgentService(), server)
+    server.add_insecure_port(target)
+    server.start()
+    logging.info("Server started, listening on " + target)
+    server.wait_for_termination()

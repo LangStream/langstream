@@ -57,3 +57,11 @@ dynamic = ["readme"]
 packages = ["langstream"]
 py-modules = ['langstream.api', 'langstream.util']
 
+[tool.ruff]
+exclude = [
+    "venv",
+    ".venv",
+    "__pycache__",
+    "proto",
+]
+

@@ -18,24 +18,25 @@ syntax = "proto3";
 option java_package = "ai.langstream.agents.grpc";
 option java_multiple_files = true;
 
-service Processor {
+
+service AgentService {
   rpc process(stream ProcessorRequest) returns (stream ProcessorResponse) {}
 }
 
 message Value {
   int32 schemaId = 1;
   oneof type_oneof {
-    bytes bytesValue = 3;
-    bool booleanValue = 4;
-    string stringValue = 5;
-    int32 byteValue = 6;
-    int32 shortValue = 7;
-    int32 intValue = 8;
-    int64 longValue = 9;
-    float floatValue = 10;
-    double doubleValue = 11;
-    string jsonValue = 12;
-    bytes avroValue = 13;
+    bytes bytesValue = 2;
+    bool booleanValue = 3;
+    string stringValue = 4;
+    int32 byteValue = 5;
+    int32 shortValue = 6;
+    int32 intValue = 7;
+    int64 longValue = 8;
+    float floatValue = 9;
+    double doubleValue = 10;
+    string jsonValue = 11;
+    bytes avroValue = 12;
   }
 }
 
@@ -46,7 +47,7 @@ message Header {
 
 message Schema {
   int32 schemaId = 1;
-  bytes value = 3;
+  bytes value = 2;
 }
 
 message Record {
@@ -58,33 +59,18 @@ message Record {
   optional int64 timestamp = 6;
 }
 
-message Records {
-  repeated Record record = 1;
-}
-
 message ProcessorRequest {
-  oneof request_oneof {
-    Schema schema = 2;
-    Records records = 3;
-  }
+  Schema schema = 1;
+  repeated Record records = 2;
 }
 
 message ProcessorResponse {
-  oneof request_oneof {
     Schema schema = 1;
-    ProcessorResults results = 2;
-  }
-}
-
-message ProcessorResults {
-  repeated ProcessorResult result = 1;
+    repeated ProcessorResult results = 2;
 }
 
 message ProcessorResult {
   int64 recordId = 1;
-  oneof result_oneof {
-    string error = 2;
-    Schema schema = 3;
-    Records records = 4;
-  }
+  optional string error = 2;
+  repeated Record records = 3;
 }

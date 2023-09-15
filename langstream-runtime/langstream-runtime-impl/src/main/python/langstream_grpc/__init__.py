@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,25 +14,4 @@
 # limitations under the License.
 #
 
-import logging
-import sys
-
-import yaml
-
-from . import runtime
-
-if __name__ == "__main__":
-    logging.addLevelName(logging.WARNING, "WARN")
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s.%(msecs)03d [%(threadName)s] %(levelname)-5s %(name).36s -- %(message)s",  # noqa: E501
-        datefmt="%H:%M:%S",
-    )
-
-    if len(sys.argv) != 2:
-        print("Missing pod configuration file argument")
-        sys.exit(1)
-
-    with open(sys.argv[1], "r") as file:
-        config = yaml.safe_load(file)
-        runtime.run_with_server(config)
+#

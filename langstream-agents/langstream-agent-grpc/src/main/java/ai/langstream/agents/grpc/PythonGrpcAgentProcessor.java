@@ -16,13 +16,21 @@
 package ai.langstream.agents.grpc;
 
 import io.grpc.ManagedChannelBuilder;
+import java.util.Map;
 import java.util.UUID;
 
 public class PythonGrpcAgentProcessor extends GrpcAgentProcessor {
 
+    private String className;
+
+    @Override
+    public void init(Map<String, Object> configuration) throws Exception {
+        className = (String) configuration.get("className");
+    }
+
     @Override
     public void start() {
-        String target = "uds:///tmp/%s.sock".formatted(UUID.randomUUID());
+        String target = "unix:///tmp/%s.sock".formatted(UUID.randomUUID());
         this.channel = ManagedChannelBuilder.forTarget(target).usePlaintext().build();
         // TODO: start the Python server
         super.start();

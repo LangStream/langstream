@@ -100,7 +100,9 @@ public class AppController extends BaseController<ApplicationCustomResource>
                     resource.getMetadata().getName(),
                     rescheduleDuration != null ? "not completed" : "completed");
         } else {
-            log.infof("deployer cleanup job for %s is not completed yet", resource.getMetadata().getName());
+            log.infof(
+                    "deployer cleanup job for %s is not completed yet",
+                    resource.getMetadata().getName());
         }
         return rescheduleDuration != null
                 ? DeleteControl.noFinalizerRemoval().rescheduleAfter(rescheduleDuration)

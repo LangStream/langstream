@@ -86,7 +86,6 @@ public class MockAssetManagerCodeProvider implements AssetManagerProvider {
             if (!remove) {
                 throw new IllegalStateException("Asset not found: " + assetDefinition);
             }
-
         }
     }
 }

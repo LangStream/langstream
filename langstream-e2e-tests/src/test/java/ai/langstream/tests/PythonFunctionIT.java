@@ -82,40 +82,40 @@ public class PythonFunctionIT extends BaseEndToEndTest {
 
         executeCommandOnClient("bin/langstream apps delete %s".formatted(applicationId).split(" "));
 
-
         Awaitility.await()
                 .atMost(1, TimeUnit.MINUTES)
-                .untilAsserted(() -> {
-                    Assertions.assertNull(
-                            client.apps()
-                                    .statefulSets()
-                                    .inNamespace(tenantNamespace)
-                                    .withName(applicationId + "-test-python-processor")
-                                    .get());
+                .untilAsserted(
+                        () -> {
+                            Assertions.assertNull(
+                                    client.apps()
+                                            .statefulSets()
+                                            .inNamespace(tenantNamespace)
+                                            .withName(applicationId + "-test-python-processor")
+                                            .get());
 
-                    Assertions.assertEquals(
-                            0,
-                            client.resources(AgentCustomResource.class)
-                                    .inNamespace(tenantNamespace)
-                                    .list()
-                                    .getItems()
-                                    .size());
+                            Assertions.assertEquals(
+                                    0,
+                                    client.resources(AgentCustomResource.class)
+                                            .inNamespace(tenantNamespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
 
-                    Assertions.assertEquals(
-                            0,
-                            client.resources(ApplicationCustomResource.class)
-                                    .inNamespace(tenantNamespace)
-                                    .list()
-                                    .getItems()
-                                    .size());
+                            Assertions.assertEquals(
+                                    0,
+                                    client.resources(ApplicationCustomResource.class)
+                                            .inNamespace(tenantNamespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
 
-                    Assertions.assertEquals(
-                            1,
-                            client.resources(Secret.class)
-                                    .inNamespace(tenantNamespace)
-                                    .list()
-                                    .getItems()
-                                    .size());
-                });
+                            Assertions.assertEquals(
+                                    1,
+                                    client.resources(Secret.class)
+                                            .inNamespace(tenantNamespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
+                        });
     }
 }

@@ -440,7 +440,6 @@ class KafkaConsumerTest {
         Map<String, TopicDescription> stats = admin.describeTopics(Set.of(topicName)).all().get();
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
-
         deployer.delete("tenant", implementation, null);
         deployer.cleanup("tenant", implementation);
 

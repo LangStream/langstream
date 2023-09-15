@@ -161,8 +161,7 @@ public final class ApplicationDeployer implements AutoCloseable {
      * @param executionPlan the application plan
      * @param codeStorageArchiveId the code storage archive id
      */
-    public void delete(
-            String tenant, ExecutionPlan executionPlan, String codeStorageArchiveId) {
+    public void delete(String tenant, ExecutionPlan executionPlan, String codeStorageArchiveId) {
         Application applicationInstance = executionPlan.getApplication();
         ComputeClusterRuntime clusterRuntime =
                 registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
@@ -176,7 +175,6 @@ public final class ApplicationDeployer implements AutoCloseable {
                 codeStorageArchiveId,
                 deployContext);
     }
-
 
     /**
      * Cleanup all the resources associated with an application.
@@ -196,7 +194,6 @@ public final class ApplicationDeployer implements AutoCloseable {
                         .asTopicConnectionsRuntime();
         topicConnectionsRuntime.delete(executionPlan);
     }
-
 
     @Override
     public void close() {

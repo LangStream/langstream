@@ -278,13 +278,19 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             switch (topic.createMode()) {
                 case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {}
                 default -> {
-                    log.info("Keeping Pulsar topic {} since creation-mode is {}", topic.name(), topic.createMode());
+                    log.info(
+                            "Keeping Pulsar topic {} since creation-mode is {}",
+                            topic.name(),
+                            topic.createMode());
                     return;
                 }
             }
 
             if (!topic.deleteMode().equals(TopicDefinition.DELETE_MODE_DELETE)) {
-                log.info("Keeping Pulsar topic {} since deletion-mode is {}", topic.name(), topic.deleteMode());
+                log.info(
+                        "Keeping Pulsar topic {} since deletion-mode is {}",
+                        topic.name(),
+                        topic.deleteMode());
                 return;
             }
 

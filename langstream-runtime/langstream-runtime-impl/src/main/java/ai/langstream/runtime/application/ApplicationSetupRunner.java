@@ -54,11 +54,10 @@ public class ApplicationSetupRunner {
         log.info("Setup application {}", applicationId);
         final Application appInstance = parseApplicationInstance(configuration, secrets);
 
-        try (NarFileHandler narFileHandler =
-                     getNarFileHandler(packagesDirectory)) {
+        try (NarFileHandler narFileHandler = getNarFileHandler(packagesDirectory)) {
             narFileHandler.scan();
             try (ApplicationDeployer deployer =
-                         buildDeployer(clusterRuntimeConfiguration, narFileHandler)) {
+                    buildDeployer(clusterRuntimeConfiguration, narFileHandler)) {
                 final ExecutionPlan executionPlan =
                         deployer.createImplementation(applicationId, appInstance);
                 deployer.setup(configuration.getTenant(), executionPlan);
@@ -78,11 +77,10 @@ public class ApplicationSetupRunner {
         log.info("Cleanup application {}", applicationId);
         final Application appInstance = parseApplicationInstance(configuration, secrets);
 
-        try (NarFileHandler narFileHandler =
-                     getNarFileHandler(packagesDirectory)) {
+        try (NarFileHandler narFileHandler = getNarFileHandler(packagesDirectory)) {
             narFileHandler.scan();
             try (ApplicationDeployer deployer =
-                         buildDeployer(clusterRuntimeConfiguration, narFileHandler)) {
+                    buildDeployer(clusterRuntimeConfiguration, narFileHandler)) {
                 final ExecutionPlan executionPlan =
                         deployer.createImplementation(applicationId, appInstance);
 
@@ -94,12 +92,11 @@ public class ApplicationSetupRunner {
 
     private NarFileHandler getNarFileHandler(Path packagesDirectory) throws Exception {
         return new NarFileHandler(
-                packagesDirectory,
-                List.of(),
-                Thread.currentThread().getContextClassLoader());
+                packagesDirectory, List.of(), Thread.currentThread().getContextClassLoader());
     }
 
-    private Application parseApplicationInstance(ApplicationSetupConfiguration configuration, Secrets secrets)
+    private Application parseApplicationInstance(
+            ApplicationSetupConfiguration configuration, Secrets secrets)
             throws JsonProcessingException {
         final String applicationConfig = configuration.getApplication();
 

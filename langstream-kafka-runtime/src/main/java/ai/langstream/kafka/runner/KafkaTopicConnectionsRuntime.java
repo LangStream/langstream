@@ -279,10 +279,16 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
                         }
                     }
                 } else {
-                    log.info("Keeping Kafka topic {} since deletion-mode is {}", topic.name(), topic.deleteMode());
+                    log.info(
+                            "Keeping Kafka topic {} since deletion-mode is {}",
+                            topic.name(),
+                            topic.deleteMode());
                 }
             }
-            default -> log.info("Keeping Kafka topic {} since creation-mode is {}", topic.name(), topic.createMode());
+            default -> log.info(
+                    "Keeping Kafka topic {} since creation-mode is {}",
+                    topic.name(),
+                    topic.createMode());
         }
     }
 

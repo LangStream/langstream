@@ -49,6 +49,8 @@
     <google-api.version>1.33.0</google-api.version>
     <logback.version>1.4.7</logback.version>
     <slf4j.version>2.0.7</slf4j.version>
+    <protobuf.version>3.24.1</protobuf.version>
+    <grpc.version>1.54.1</grpc.version>
     <maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
     <compiler-plugin.version>3.11.0</compiler-plugin.version>
     <surefire-plugin.version>3.0.0</surefire-plugin.version>
@@ -82,6 +84,7 @@
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
     <cli-jdk-target-version>11</cli-jdk-target-version>
     <extra-enforcer-rules.version>1.6.1</extra-enforcer-rules.version>
+    <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
   </properties>
 
   <scm>
@@ -225,6 +228,25 @@
             <artifactId>*</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-bom</artifactId>
+        <version>${protobuf.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>${grpc.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>javax.annotation</groupId>
+        <artifactId>javax.annotation-api</artifactId>
+        <version>${javax.annotation-api.version}</version>
       </dependency>
       <dependency>
         <groupId>ai.djl</groupId>

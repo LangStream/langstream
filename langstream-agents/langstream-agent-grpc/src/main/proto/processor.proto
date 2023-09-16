@@ -1,0 +1,90 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+option java_package = "ai.langstream.agents.grpc";
+option java_multiple_files = true;
+
+service Processor {
+  rpc process(stream ProcessorRequest) returns (stream ProcessorResponse) {}
+}
+
+message Value {
+  int32 schemaId = 1;
+  oneof type_oneof {
+    bytes bytesValue = 3;
+    bool booleanValue = 4;
+    string stringValue = 5;
+    int32 byteValue = 6;
+    int32 shortValue = 7;
+    int32 intValue = 8;
+    int64 longValue = 9;
+    float floatValue = 10;
+    double doubleValue = 11;
+    string jsonValue = 12;
+    bytes avroValue = 13;
+  }
+}
+
+message Header {
+  string name = 1;
+  Value value = 2;
+}
+
+message Schema {
+  int32 schemaId = 1;
+  bytes value = 3;
+}
+
+message Record {
+  int64 recordId = 1;
+  optional Value key = 2;
+  optional Value value = 3;
+  repeated Header headers = 4;
+  string origin = 5;
+  optional int64 timestamp = 6;
+}
+
+message Records {
+  repeated Record record = 1;
+}
+
+message ProcessorRequest {
+  oneof request_oneof {
+    Schema schema = 2;
+    Records records = 3;
+  }
+}
+
+message ProcessorResponse {
+  oneof request_oneof {
+    Schema schema = 1;
+    ProcessorResults results = 2;
+  }
+}
+
+message ProcessorResults {
+  repeated ProcessorResult result = 1;
+}
+
+message ProcessorResult {
+  int64 recordId = 1;
+  oneof result_oneof {
+    string error = 2;
+    Schema schema = 3;
+    Records records = 4;
+  }
+}

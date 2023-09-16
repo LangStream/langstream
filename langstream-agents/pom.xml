@@ -32,6 +32,7 @@
         <maven.compiler.target>17</maven.compiler.target>
     </properties>
     <modules>
+        <module>langstream-agent-grpc</module>
         <module>langstream-agent-s3</module>
         <module>langstream-agent-webcrawler</module>
         <module>langstream-agents-text-processing</module>

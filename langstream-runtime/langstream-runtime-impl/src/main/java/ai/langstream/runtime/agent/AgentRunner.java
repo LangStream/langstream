@@ -1034,11 +1034,12 @@ public class AgentRunner {
 
         @Override
         public void criticalFailure(Throwable error) {
-            log.error(
+            String errorMsg =
                     "Critical failure: %s. Shutting down the runtime..."
-                            .formatted(error.getMessage()),
-                    error);
-            AgentContext.super.criticalFailure(error);
+                            .formatted(error.getMessage());
+            log.error(errorMsg, error);
+            System.err.printf(errorMsg);
+            Runtime.getRuntime().halt(1);
         }
     }
 }

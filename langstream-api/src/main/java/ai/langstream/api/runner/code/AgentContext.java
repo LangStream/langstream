@@ -44,8 +44,5 @@ public interface AgentContext {
         return DEFAULT_BAD_RECORD_HANDLER;
     }
 
-    default void criticalFailure(Throwable error) {
-        System.err.printf("Critical failure: %s. Shutting down the runtime...", error.getMessage());
-        Runtime.getRuntime().halt(1);
-    }
+    default void criticalFailure(Throwable error) {}
 }

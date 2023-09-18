@@ -41,6 +41,14 @@
       </includes>
       <lineEnding>unix</lineEnding>
     </fileSet>
+    <fileSet>
+      <directory>target/minio</directory>
+      <outputDirectory>.</outputDirectory>
+    </fileSet>
+    <fileSet>
+      <directory>target/kafka</directory>
+      <outputDirectory>.</outputDirectory>
+    </fileSet>
   </fileSets>
   <dependencySets>
     <dependencySet>

@@ -34,5 +34,6 @@
 
     <!-- shutdown noisy loggers -->
     <logger name="org.apache.kafka.clients" level="WARN"/>
+    <logger name="org.apache.kafka.common.utils.AppInfoParser" level="ERROR" />
 
 </configuration>

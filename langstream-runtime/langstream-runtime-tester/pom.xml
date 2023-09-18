@@ -120,6 +120,41 @@
       <build>
         <plugins>
           <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>wagon-maven-plugin</artifactId>
+            <version>2.0.2</version>
+            <executions>
+              <execution>
+                <id>download-minio</id>
+                <phase>prepare-package</phase>
+                <goals>
+                  <goal>download-single</goal>
+                </goals>
+                <configuration>
+                  <url>https://dl.min.io</url>
+                  <fromFile>server/minio/release/linux-amd64/minio</fromFile>
+                  <toDir>${project.build.directory}/minio</toDir>
+                  <skipIfExists>true</skipIfExists>
+                </configuration>
+              </execution>
+
+              <execution>
+                <id>download-kafka</id>
+                <phase>prepare-package</phase>
+                <goals>
+                  <goal>download-single</goal>
+                </goals>
+                <configuration>
+                  <url>https://downloads.apache.org</url>
+                  <fromFile>kafka/3.5.1/kafka_2.13-3.5.1.tgz</fromFile>
+                  <toDir>${project.build.directory}/kafka</toDir>
+                  <skipIfExists>true</skipIfExists>
+                </configuration>
+              </execution>
+
+            </executions>
+          </plugin>
+          <plugin>
             <groupId>io.fabric8</groupId>
             <artifactId>docker-maven-plugin</artifactId>
             <configuration>

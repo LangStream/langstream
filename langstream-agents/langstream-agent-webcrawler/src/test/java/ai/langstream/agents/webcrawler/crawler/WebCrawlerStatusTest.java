@@ -17,7 +17,7 @@ package ai.langstream.agents.webcrawler.crawler;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +26,9 @@ class WebCrawlerStatusTest {
     static final String URL1 = "https://site/page1";
     static final String URL2 = "https://site/page2";
     static final String URL2_ANCHOR = "https://site/page2#anchor";
+    static final String URL3 = "https://site/page3";
+    static final String URL4 = "https://site/page4";
+    static final String URL5 = "https://site/page5";
 
     @Test
     public void testPreventCycles() {
@@ -59,6 +62,46 @@ class WebCrawlerStatusTest {
         verify(status, 1, 0, 0);
         status.addUrl(URL2_ANCHOR, URLReference.Type.PAGE, 0, false);
         verify(status, 1, 0, 0);
+    }
+
+    @Test
+    public void testMaxUrls() throws Exception {
+        WebCrawlerConfiguration configuration =
+                WebCrawlerConfiguration.builder().maxUrls(2).build();
+        WebCrawlerStatus status = new WebCrawlerStatus();
+        WebCrawler webCrawler = new WebCrawler(configuration, status, (__) -> {});
+        assertTrue(webCrawler.addPageUrl(URL1, null));
+        assertTrue(webCrawler.addPageUrl(URL2, null));
+        assertFalse(webCrawler.addPageUrl(URL3, null));
+
+        verify(status, 2, 2, 2);
+    }
+
+    @Test
+    public void testMaxDepth() {
+        WebCrawlerConfiguration configuration =
+                WebCrawlerConfiguration.builder().maxDepth(2).build();
+        WebCrawlerStatus status = new WebCrawlerStatus();
+        WebCrawler webCrawler = new WebCrawler(configuration, status, (__) -> {});
+        assertTrue(webCrawler.addPageUrl(URL1, null));
+        assertTrue(webCrawler.addPageUrl(URL2, status.getReference(URL1)));
+        assertTrue(webCrawler.addPageUrl(URL3, status.getReference(URL2)));
+
+        // coming from URL3, forbidden
+        assertFalse(webCrawler.addPageUrl(URL4, status.getReference(URL3)));
+        // coming from URL2, allowed
+        assertTrue(webCrawler.addPageUrl(URL5, status.getReference(URL2)));
+
+        // coming from URL2, allowed
+        assertTrue(webCrawler.addPageUrl(URL4, status.getReference(URL2)));
+
+        assertEquals(2, status.getReference(URL5).depth());
+        // now page 5 is found from URL1, so depth is changed
+        assertTrue(webCrawler.addPageUrl(URL5, status.getReference(URL1)));
+
+        assertEquals(1, status.getReference(URL5).depth());
+
+        verify(status, 5, 5, 5);
     }
 
     @Test
@@ -116,16 +159,18 @@ class WebCrawlerStatusTest {
 
     private static class DummyStorage implements StatusStorage {
 
-        private Map<String, Object> lastMetadata;
+        private Status lastMetadata;
 
         @Override
-        public void storeStatus(Map<String, Object> metadata) {
-            lastMetadata = new HashMap<>(metadata);
+        public void storeStatus(Status metadata) {
+            lastMetadata = metadata;
         }
 
         @Override
-        public Map<String, Object> getCurrentStatus() {
-            return lastMetadata != null ? new HashMap<>(lastMetadata) : Map.of();
+        public Status getCurrentStatus() {
+            return lastMetadata != null
+                    ? lastMetadata
+                    : new Status(List.of(), List.of(), null, null, Map.of());
         }
     }
 }

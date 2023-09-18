@@ -199,7 +199,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public void start() throws Exception {
-        crawler.getStatus().reloadFrom(statusStorage);
+        crawler.reloadStatus(statusStorage);
 
         for (String url : seedUrls) {
             crawler.crawl(url);
@@ -363,8 +363,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         private static final ObjectMapper MAPPER = new ObjectMapper();
 
         @Override
-        public void storeStatus(Map<String, Object> metadata) throws Exception {
-            byte[] content = MAPPER.writeValueAsBytes(metadata);
+        public void storeStatus(Status status) throws Exception {
+            byte[] content = MAPPER.writeValueAsBytes(status);
             log.info("Storing status in {}, {} bytes", statusFileName, content.length);
             minioClient.putObject(
                     io.minio.PutObjectArgs.builder()
@@ -376,7 +376,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
 
         @Override
-        public Map<String, Object> getCurrentStatus() throws Exception {
+        public Status getCurrentStatus() throws Exception {
             try {
                 GetObjectResponse result =
                         minioClient.getObject(
@@ -386,11 +386,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                         .build());
                 byte[] content = result.readAllBytes();
                 log.info("Restoring status from {}, {} bytes", statusFileName, content.length);
-                return MAPPER.readValue(content, Map.class);
+                return MAPPER.readValue(content, Status.class);
             } catch (ErrorResponseException e) {
                 if (e.errorResponse().code().equals("NoSuchKey")) {
                     log.info("No status file found, starting from scratch");
-                    return Map.of();
+                    return new Status(List.of(), List.of(), null, null, Map.of());
                 }
                 throw e;
             }

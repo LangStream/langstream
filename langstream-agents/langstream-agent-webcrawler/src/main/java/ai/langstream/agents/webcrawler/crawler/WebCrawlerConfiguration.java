@@ -30,6 +30,7 @@ public class WebCrawlerConfiguration {
     @Builder.Default private String userAgent = null;
     @Builder.Default private int minTimeBetweenRequests = 100;
     @Builder.Default private int maxUrls = 1000;
+    @Builder.Default private int maxDepth = 10;
     @Builder.Default private int httpTimeout = 10000;
     @Builder.Default private int maxErrorCount = 5;
     @Builder.Default private boolean handleCookies = true;

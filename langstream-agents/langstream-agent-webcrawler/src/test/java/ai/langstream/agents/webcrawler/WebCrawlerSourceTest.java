@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.webcrawler;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.forbidden;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okForContentType;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
@@ -73,7 +74,7 @@ public class WebCrawlerSourceTest {
     }
 
     @Test
-    // @Disabled("This test is disabled because it connects to a real live website")
+    @Disabled("This test is disabled because it connects to a real live website")
     void testReadWebSite() throws Exception {
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = "https://www.datastax.com/";
@@ -219,7 +220,8 @@ public class WebCrawlerSourceTest {
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = wmRuntimeInfo.getHttpBaseUrl() + "/index.html";
         String allowed = wmRuntimeInfo.getHttpBaseUrl();
-        Map<String, Object> additionalConfig = Map.of("reindex-interval-seconds", "4");
+        Map<String, Object> additionalConfig =
+                Map.of("reindex-interval-seconds", "4", "handle-robots-file", "false");
         WebCrawlerSource agentSource =
                 buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);
         List<Record> read = agentSource.read();
@@ -272,6 +274,78 @@ public class WebCrawlerSourceTest {
                  </body>
                 </html>""",
                 pages.get("thirdPage.html"));
+    }
+
+    private static final String ROBOTS =
+            """
+            User-agent: *
+            Disallow: /secondPage.html
+            Disallow: /thirdPage.html
+            """;
+
+    @Test
+    void testWithRobots(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+        stubFor(get("/robots.txt").willReturn(okForContentType("text/plain", ROBOTS)));
+        stubFor(
+                get("/index.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
+                                <a href="secondPage.html">link</a>
+                            """)));
+        stubFor(
+                get("/secondPage.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
+                                  <a href="thirdPage.html">link</a>
+                                  <a href="index.html">link to home</a>
+                              """)));
+        stubFor(get("/thirdPage.html").willReturn(forbidden()));
+
+        String bucket = "langstream-test-" + UUID.randomUUID();
+        String url = wmRuntimeInfo.getHttpBaseUrl() + "/index.html";
+        String allowed = wmRuntimeInfo.getHttpBaseUrl();
+        Map<String, Object> additionalConfig = Map.of();
+        WebCrawlerSource agentSource =
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);
+        List<Record> read = agentSource.read();
+        Set<String> urls = new HashSet<>();
+        Map<String, String> pages = new HashMap<>();
+        while (urls.size() < 2) {
+            log.info("read: {}", read);
+            for (Record r : read) {
+                String docUrl = r.key().toString();
+                String pageName = docUrl.substring(docUrl.lastIndexOf('/') + 1);
+                pages.put(pageName, new String((byte[]) r.value()));
+                assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+            }
+            agentSource.commit(read);
+            read = agentSource.read();
+        }
+        agentSource.close();
+        assertEquals(2, pages.size());
+        // please note that JSoup normalised the HTML
+        assertEquals(
+                """
+                        <html>
+                         <head></head>
+                         <body>
+                          <a href="secondPage.html">link</a>
+                         </body>
+                        </html>""",
+                pages.get("index.html"));
+        assertEquals(
+                """
+                        <html>
+                         <head></head>
+                         <body>
+                          <a href="thirdPage.html">link</a> <a href="index.html">link to home</a>
+                         </body>
+                        </html>""",
+                pages.get("secondPage.html"));
     }
 
     private WebCrawlerSource buildAgentSource(

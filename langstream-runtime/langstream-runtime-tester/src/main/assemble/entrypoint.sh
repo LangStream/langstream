@@ -18,7 +18,7 @@
 START_KAFKA=${START_BROKER:-true}
 if [ "$START_BROKER" = "true" ]; then
   echo "Starting Broker"
-  /kafka/kafka/bin/kafka-server-start.sh -daemon /kafka/kafka/config/kraft/server.properties
+  /kafka/bin/kafka-server-start.sh -daemon /kafka/config/kraft/server.properties
 fi
 
 START_MINIO=${START_MINIO:-true}

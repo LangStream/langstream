@@ -137,7 +137,7 @@ public record TopicConnectionsRuntimeAndLoader(
                     @Override
                     public Map<String, Object> getInfo() {
                         return callNoExceptionWithContextClassloader(
-                                ignore -> topicConsumerImpl.getNativeConsumer());
+                                ignore -> topicConsumerImpl.getInfo());
                     }
                 };
             }

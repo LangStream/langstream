@@ -25,9 +25,12 @@ import lombok.extern.slf4j.Slf4j;
 @Builder
 @Slf4j
 public class WebCrawlerConfiguration {
+    public static final String DEFAULT_USER_AGENT =
+            "Mozilla/5.0 (compatible; LangStream.ai/0.1; +https://langstream.ai)";
+
     @Builder.Default private Set<String> allowedDomains = Set.of();
     @Builder.Default private Set<String> forbiddenPaths = Set.of();
-    @Builder.Default private String userAgent = null;
+    @Builder.Default private String userAgent = DEFAULT_USER_AGENT;
     @Builder.Default private int minTimeBetweenRequests = 100;
     @Builder.Default private int maxUrls = 1000;
     @Builder.Default private int maxDepth = 10;

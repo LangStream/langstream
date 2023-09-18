@@ -170,7 +170,9 @@ public class WebCrawlerStatus {
         urls.put(url, new URLReference(url, type, depth));
 
         if (toScan && !wasThere) {
-            log.info("adding url {} to list", url);
+            if (log.isDebugEnabled()) {
+                log.debug("adding url {} to list", url);
+            }
             pendingUrls.add(url);
             remainingUrls.add(url);
         }

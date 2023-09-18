@@ -51,6 +51,7 @@ class WebCrawlerTest {
         WebCrawlerConfiguration configuration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
+                        .handleRobotsFile(false)
                         .maxErrorCount(5)
                         .build();
         WebCrawlerStatus status = new WebCrawlerStatus();
@@ -116,6 +117,7 @@ class WebCrawlerTest {
         WebCrawlerConfiguration configuration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
+                        .handleRobotsFile(false)
                         .maxErrorCount(3)
                         .build();
         WebCrawlerStatus status = new WebCrawlerStatus();
@@ -178,6 +180,7 @@ class WebCrawlerTest {
         WebCrawlerConfiguration configuration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
+                        .handleRobotsFile(false)
                         .build();
         WebCrawlerStatus status = new WebCrawlerStatus();
         List<Document> documents = new ArrayList<>();

@@ -73,7 +73,7 @@ public class WebCrawler {
     }
 
     public void crawl(String startUrl) {
-        if (!isUrlAllowed(startUrl)) {
+        if (isUrlForbidden(startUrl)) {
             return;
         }
 
@@ -165,7 +165,7 @@ public class WebCrawler {
             if (statusCode >= 300 && statusCode < 400) {
                 String location = response.header("Location");
                 if (!location.equals(current)) {
-                    if (isUrlAllowed(location)) {
+                    if (isUrlForbidden(location)) {
                         redirectedToForbiddenDomain = true;
                         log.warn(
                                 "A redirection to a forbidden domain happened (from {} to {})",
@@ -229,11 +229,11 @@ public class WebCrawler {
                                 element -> {
                                     if (configuration.isAllowedTag(element.tagName())) {
                                         String url = element.absUrl("href");
-                                        if (configuration.isAllowedUrl(url)) {
-                                            addPageUrl(url, reference);
-                                        } else {
+                                        if (isUrlForbidden(url)) {
                                             log.debug("Ignoring not allowed url: {}", url);
                                             discardUrl(url, reference);
+                                        } else {
+                                            addPageUrl(url, reference);
                                         }
                                     }
                                 });
@@ -242,12 +242,30 @@ public class WebCrawler {
                     new ai.langstream.agents.webcrawler.crawler.Document(current, document.html()));
         }
 
-        // prevent from being banned for flooding
+        int delayMs = getCrawlerDelayFromRobots(current);
         if (configuration.getMinTimeBetweenRequests() > 0) {
-            Thread.sleep(configuration.getMinTimeBetweenRequests());
+            if (delayMs > 0) {
+                delayMs = Math.min(configuration.getMinTimeBetweenRequests(), delayMs);
+            } else {
+                delayMs = configuration.getMinTimeBetweenRequests();
+            }
+        }
+        // prevent from being banned for flooding
+        if (delayMs > 0) {
+            Thread.sleep(delayMs);
         }
 
         return true;
+    }
+
+    private int getCrawlerDelayFromRobots(String current) {
+        String domain = getDomainFromUrl(current);
+        SimpleRobotRules rules = robotsRules.get(domain);
+        if (rules != null) {
+            return (int) rules.getCrawlDelay();
+        } else {
+            return 0;
+        }
     }
 
     static String getDomainFromUrl(String url) {
@@ -262,21 +280,21 @@ public class WebCrawler {
         return url.substring(beginDomain + 3, endDomain);
     }
 
-    private boolean isUrlAllowed(String location) {
+    private boolean isUrlForbidden(String location) {
         if (!configuration.isAllowedUrl(location)) {
-            return false;
+            return true;
         }
 
         String domain = getDomainFromUrl(location);
         SimpleRobotRules rules = robotsRules.get(domain);
         if (rules == null) {
-            return true;
+            return false;
         }
         boolean allowed = rules.isAllowed(location);
         if (!allowed) {
             log.info("Url {} is not allowed by the robots.txt file", location);
         }
-        return allowed;
+        return !allowed;
     }
 
     private void handleRobotsFile(String url) throws Exception {
@@ -317,6 +335,7 @@ public class WebCrawler {
 
     private void applyRobotsRules(String url, SimpleRobotRules simpleRobotRules) {
         String domain = getDomainFromUrl(url);
+        log.info("Applying robots rules for domain {} - rules {}", domain, simpleRobotRules);
         robotsRules.put(domain, simpleRobotRules);
     }
 

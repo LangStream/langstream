@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.webcrawler;
 
+import static ai.langstream.agents.webcrawler.crawler.WebCrawlerConfiguration.DEFAULT_USER_AGENT;
 import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
 import static ai.langstream.api.util.ConfigurationUtils.getInt;
 import static ai.langstream.api.util.ConfigurationUtils.getSet;
@@ -114,7 +115,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
         flushNext.set(maxUnflushedPages);
         int minTimeBetweenRequests = getInt("min-time-between-requests", 500, configuration);
-        String userAgent = getString("user-agent", "langstream.ai-webcrawler/1.0", configuration);
+        String userAgent = getString("user-agent", DEFAULT_USER_AGENT, configuration);
         int maxErrorCount = getInt("max-error-count", 5, configuration);
         int httpTimeout = getInt("http-timeout", 10000, configuration);
 
@@ -187,6 +188,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         } else {
             log.info("Bucket {} already exists", bucketName);
         }
+    }
+
+    public WebCrawler getCrawler() {
+        return crawler;
     }
 
     private void flushStatus() {

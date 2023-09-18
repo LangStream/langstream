@@ -20,9 +20,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okForContentType;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
+import ai.langstream.agents.webcrawler.crawler.WebCrawler;
+import ai.langstream.agents.webcrawler.crawler.WebCrawlerStatus;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSource;
@@ -279,7 +282,6 @@ public class WebCrawlerSourceTest {
     private static final String ROBOTS =
             """
             User-agent: *
-            Disallow: /secondPage.html
             Disallow: /thirdPage.html
             """;
 
@@ -311,11 +313,16 @@ public class WebCrawlerSourceTest {
         Map<String, Object> additionalConfig = Map.of();
         WebCrawlerSource agentSource =
                 buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);
+
+        WebCrawler crawler = agentSource.getCrawler();
+        WebCrawlerStatus status = crawler.getStatus();
+
         List<Record> read = agentSource.read();
         Set<String> urls = new HashSet<>();
         Map<String, String> pages = new HashMap<>();
-        while (urls.size() < 2) {
+        while (pages.size() != 2) {
             log.info("read: {}", read);
+            log.info("Known urls: {}", status.getUrls().size());
             for (Record r : read) {
                 String docUrl = r.key().toString();
                 String pageName = docUrl.substring(docUrl.lastIndexOf('/') + 1);
@@ -346,6 +353,10 @@ public class WebCrawlerSourceTest {
                          </body>
                         </html>""",
                 pages.get("secondPage.html"));
+
+        assertTrue(status.getRemainingUrls().isEmpty());
+        assertTrue(status.getPendingUrls().isEmpty());
+        assertFalse(status.getRobotsFiles().isEmpty());
     }
 
     private WebCrawlerSource buildAgentSource(

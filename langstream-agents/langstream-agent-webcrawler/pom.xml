@@ -43,6 +43,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>com.github.crawler-commons</groupId>
+      <artifactId>crawler-commons</artifactId>
+      <version>1.4</version>
+    </dependency>
+    <dependency>
       <groupId>io.minio</groupId>
       <artifactId>minio</artifactId>
     </dependency>

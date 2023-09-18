@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.webcrawler;
 
+import static ai.langstream.agents.webcrawler.crawler.WebCrawlerConfiguration.DEFAULT_USER_AGENT;
 import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
 import static ai.langstream.api.util.ConfigurationUtils.getInt;
 import static ai.langstream.api.util.ConfigurationUtils.getSet;
@@ -66,9 +67,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private String bucketName;
     private Set<String> allowedDomains;
     private Set<String> forbiddenPaths;
+    private int maxUrls;
+    private boolean handleRobotsFile;
+    private boolean scanHtmlDocuments;
     private Set<String> seedUrls;
     private MinioClient minioClient;
-    private int idleTime;
     private int reindexIntervalSeconds;
 
     private String statusFileName;
@@ -103,14 +106,17 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         String region = getString("region", "", configuration);
         allowedDomains = getSet("allowed-domains", configuration);
         forbiddenPaths = getSet("forbidden-paths", configuration);
+        maxUrls = getInt("max-urls", 1000, configuration);
+        int maxDepth = getInt("max-depth", 10, configuration);
+        handleRobotsFile = getBoolean("handle-robots-file", true, configuration);
+        scanHtmlDocuments = getBoolean("scan-html-documents", true, configuration);
         seedUrls = getSet("seed-urls", configuration);
-        idleTime = getInt("idle-time", 1, configuration);
         reindexIntervalSeconds = getInt("reindex-interval-seconds", 60 * 60 * 24, configuration);
         maxUnflushedPages = getInt("max-unflushed-pages", 100, configuration);
 
         flushNext.set(maxUnflushedPages);
         int minTimeBetweenRequests = getInt("min-time-between-requests", 500, configuration);
-        String userAgent = getString("user-agent", "langstream.ai-webcrawler/1.0", configuration);
+        String userAgent = getString("user-agent", DEFAULT_USER_AGENT, configuration);
         int maxErrorCount = getInt("max-error-count", 5, configuration);
         int httpTimeout = getInt("http-timeout", 10000, configuration);
 
@@ -124,6 +130,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         log.info("allowed-domains: {}", allowedDomains);
         log.info("forbidden-paths: {}", forbiddenPaths);
         log.info("seed-urls: {}", seedUrls);
+        log.info("max-urls: {}", maxUrls);
+        log.info("max-depth: {}", maxDepth);
+        log.info("handle-robots-file: {}", handleRobotsFile);
+        log.info("scan-html-documents: {}", scanHtmlDocuments);
         log.info("user-agent: {}", userAgent);
         log.info("max-unflushed-pages: {}", maxUnflushedPages);
         log.info("min-time-between-requests: {}", minTimeBetweenRequests);
@@ -141,7 +151,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         WebCrawlerConfiguration webCrawlerConfiguration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(allowedDomains)
+                        .maxUrls(maxUrls)
+                        .maxDepth(maxDepth)
                         .forbiddenPaths(forbiddenPaths)
+                        .handleRobotsFile(handleRobotsFile)
                         .minTimeBetweenRequests(minTimeBetweenRequests)
                         .userAgent(userAgent)
                         .handleCookies(handleCookies)
@@ -180,6 +193,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
     }
 
+    public WebCrawler getCrawler() {
+        return crawler;
+    }
+
     private void flushStatus() {
         try {
             crawler.getStatus().persist(statusStorage);
@@ -190,7 +207,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public void start() throws Exception {
-        crawler.getStatus().reloadFrom(statusStorage);
+        crawler.reloadStatus(statusStorage);
 
         for (String url : seedUrls) {
             crawler.crawl(url);
@@ -273,7 +290,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     }
 
     private List<Record> sleepForNoResults() throws Exception {
-        Thread.sleep(idleTime * 1000L);
+        Thread.sleep(100);
         return List.of();
     }
 
@@ -354,8 +371,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         private static final ObjectMapper MAPPER = new ObjectMapper();
 
         @Override
-        public void storeStatus(Map<String, Object> metadata) throws Exception {
-            byte[] content = MAPPER.writeValueAsBytes(metadata);
+        public void storeStatus(Status status) throws Exception {
+            byte[] content = MAPPER.writeValueAsBytes(status);
             log.info("Storing status in {}, {} bytes", statusFileName, content.length);
             minioClient.putObject(
                     io.minio.PutObjectArgs.builder()
@@ -367,7 +384,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
 
         @Override
-        public Map<String, Object> getCurrentStatus() throws Exception {
+        public Status getCurrentStatus() throws Exception {
             try {
                 GetObjectResponse result =
                         minioClient.getObject(
@@ -377,11 +394,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                         .build());
                 byte[] content = result.readAllBytes();
                 log.info("Restoring status from {}, {} bytes", statusFileName, content.length);
-                return MAPPER.readValue(content, Map.class);
+                return MAPPER.readValue(content, Status.class);
             } catch (ErrorResponseException e) {
                 if (e.errorResponse().code().equals("NoSuchKey")) {
                     log.info("No status file found, starting from scratch");
-                    return Map.of();
+                    return new Status(List.of(), List.of(), null, null, Map.of());
                 }
                 throw e;
             }

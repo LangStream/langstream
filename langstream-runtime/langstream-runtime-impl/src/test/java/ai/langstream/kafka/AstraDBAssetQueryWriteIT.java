@@ -128,6 +128,8 @@ class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
                         List.of(
                                 "{\"documentId\":2,\"queryresult\":{\"name\":\"A\",\"description\":\"A description\",\"id\":\"1\"},\"name\":\"A\",\"description\":\"A description\"}"));
             }
+
+            applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
         }
     }
 }

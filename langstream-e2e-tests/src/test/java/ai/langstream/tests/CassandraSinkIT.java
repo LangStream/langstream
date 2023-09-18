@@ -36,15 +36,6 @@ public class CassandraSinkIT extends BaseEndToEndTest {
     @BeforeEach
     public void setupCassandra() {
         installCassandra();
-
-        executeCQL(
-                "CREATE KEYSPACE IF NOT EXISTS vsearch WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : '1' };");
-        executeCQL(
-                "CREATE TABLE IF NOT EXISTS vsearch.products (id int PRIMARY KEY,name TEXT,description TEXT);");
-        executeCQL("SELECT * FROM vsearch.products;");
-        executeCQL(
-                "INSERT INTO vsearch.products(id, name, description) VALUES (1, 'test-init', 'test-init');");
-        executeCQL("SELECT * FROM vsearch.products;");
     }
 
     @AfterEach
@@ -76,7 +67,10 @@ public class CassandraSinkIT extends BaseEndToEndTest {
         copyFileToClientContainer(
                 Paths.get(testSecretBaseDir, "secret1.yaml").toFile(),
                 "/tmp/secrets.yaml",
-                file -> file.replace("CASSANDRA-HOST-INJECTED", cassandraHost));
+                file ->
+                        file.replace("CASSANDRA-HOST-INJECTED", cassandraHost)
+                                .replace("CASSANDRA-LOCAL-DC-INJECTED", "datacenter1")
+                                .replace("CASSANDRA-PORT-INJECTED", "9042"));
 
         executeCommandOnClient(
                 "bin/langstream apps deploy %s -app /tmp/cassandra-sink -i /tmp/instance.yaml -s /tmp/secrets.yaml"
@@ -105,6 +99,24 @@ public class CassandraSinkIT extends BaseEndToEndTest {
                             } catch (Throwable t) {
                                 log.error("Failed to execute cqlsh command: {}", t.getMessage());
                                 fail("Failed to execute cqlsh command: " + t.getMessage());
+                            }
+                        });
+
+        executeCommandOnClient("bin/langstream apps delete %s".formatted(applicationId).split(" "));
+
+        Awaitility.await()
+                .atMost(1, TimeUnit.MINUTES)
+                .pollInterval(5, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> {
+                            try {
+                                executeCQL("DESCRIBE KEYSPACE vsearch");
+                                fail("Keyspace vsearch should not exist anymore");
+                            } catch (Throwable t) {
+                                log.info("Got exception: {}", t.getMessage());
+                                assertTrue(
+                                        t.getMessage()
+                                                .contains("'vsearch' not found in keyspaces"));
                             }
                         });
     }

@@ -354,7 +354,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                 new TopicDefinition(
                         name,
                         creationMode,
-                        TopicDefinition.CREATE_MODE_NONE,
+                        inputTopicDefinition.getDeletionMode(),
                         inputTopicDefinition.isImplicit(),
                         inputTopicDefinition.getPartitions(),
                         inputTopicDefinition.getKeySchema(),

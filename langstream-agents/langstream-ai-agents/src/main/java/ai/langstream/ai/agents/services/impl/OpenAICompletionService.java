@@ -19,11 +19,10 @@ import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
 import static ai.langstream.api.util.ConfigurationUtils.getDouble;
 import static ai.langstream.api.util.ConfigurationUtils.getInteger;
 
-import com.azure.ai.openai.OpenAIClient;
+import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
 import com.azure.ai.openai.models.ChatRole;
 import com.azure.ai.openai.models.CompletionsFinishReason;
-import com.azure.core.util.IterableStream;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -36,18 +35,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 public class OpenAICompletionService implements CompletionsService {
 
-    private OpenAIClient client;
+    private OpenAIAsyncClient client;
 
-    public OpenAICompletionService(OpenAIClient client) {
+    public OpenAICompletionService(OpenAIAsyncClient client) {
         this.client = client;
     }
 
     @Override
+    @SneakyThrows
     public CompletableFuture<ChatCompletions> getChatCompletions(
             List<ChatMessage> messages,
             StreamingChunksConsumer streamingChunksConsumer,
@@ -78,13 +81,14 @@ public class OpenAICompletionService implements CompletionsService {
         // it works even if the streamingChunksConsumer is null
         if (chatCompletionsOptions.isStream()) {
             CompletableFuture<?> finished = new CompletableFuture<>();
-            IterableStream<com.azure.ai.openai.models.ChatCompletions> model =
+            Flux<com.azure.ai.openai.models.ChatCompletions> flux =
                     client.getChatCompletionsStream(
                             (String) options.get("model"), chatCompletionsOptions);
+            Stream<com.azure.ai.openai.models.ChatCompletions> model = flux.toStream();
             ChatCompletionsConsumer chatCompletionsConsumer =
                     new ChatCompletionsConsumer(
                             streamingChunksConsumer, minChunksPerMessage, finished);
-            model.stream().forEach(chatCompletionsConsumer);
+            model.forEach(chatCompletionsConsumer);
             return finished.thenApply(
                     ___ -> {
                         result.setChoices(
@@ -96,8 +100,9 @@ public class OpenAICompletionService implements CompletionsService {
                     });
         } else {
             com.azure.ai.openai.models.ChatCompletions chatCompletions =
-                    client.getChatCompletions(
-                            (String) options.get("model"), chatCompletionsOptions);
+                    client.getChatCompletions((String) options.get("model"), chatCompletionsOptions)
+                            .toFuture()
+                            .get();
             result.setChoices(
                     chatCompletions.getChoices().stream()
                             .map(c -> new ChatChoice(convertMessage(c)))

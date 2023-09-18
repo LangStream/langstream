@@ -16,7 +16,7 @@
 package ai.langstream.ai.agents.services.impl;
 
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
-import com.azure.ai.openai.OpenAIClient;
+import com.azure.ai.openai.OpenAIAsyncClient;
 import com.datastax.oss.streaming.ai.model.config.OpenAIConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
@@ -33,7 +33,7 @@ public class OpenAIServiceProvider implements ServiceProviderProvider {
         OpenAIConfig config =
                 TransformFunctionUtil.convertFromMap(
                         (Map<String, Object>) agentConfiguration.get("openai"), OpenAIConfig.class);
-        OpenAIClient client = TransformFunctionUtil.buildOpenAIClient(config);
+        OpenAIAsyncClient client = TransformFunctionUtil.buildOpenAsyncAIClient(config);
         return new com.datastax.oss.streaming.ai.services.OpenAIServiceProvider(client);
     }
 }

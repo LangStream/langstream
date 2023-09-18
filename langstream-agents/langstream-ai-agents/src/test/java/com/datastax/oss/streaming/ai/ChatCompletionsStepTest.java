@@ -24,10 +24,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ai.langstream.ai.agents.services.impl.OpenAICompletionService;
-import com.azure.ai.openai.OpenAIClient;
+import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
-import com.azure.core.util.IterableStream;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.model.config.ChatCompletionsConfig;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -60,6 +59,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class ChatCompletionsStepTest {
 
@@ -78,20 +79,15 @@ public class ChatCompletionsStepTest {
                     .replace("'", "\"");
     private static final ObjectMapper mapper = new ObjectMapper();
     private OpenAICompletionService completionService;
-    private OpenAIClient openAIClient;
+    private OpenAIAsyncClient openAIClient;
 
     @BeforeEach
     void setup() throws Exception {
-        openAIClient = mock(OpenAIClient.class);
+        openAIClient = mock(OpenAIAsyncClient.class);
         when(openAIClient.getChatCompletions(eq("test-model"), any()))
-                .thenReturn(mapper.readValue(COMPLETION, ChatCompletions.class));
+                .thenReturn(Mono.just(mapper.readValue(COMPLETION, ChatCompletions.class)));
         when(openAIClient.getChatCompletionsStream(eq("test-model"), any()))
-                .thenAnswer(
-                        a ->
-                                IterableStream.of(
-                                        List.of(
-                                                mapper.readValue(
-                                                        COMPLETION, ChatCompletions.class))));
+                .thenAnswer(a -> Flux.just(mapper.readValue(COMPLETION, ChatCompletions.class)));
         this.completionService = new OpenAICompletionService(openAIClient);
     }
 

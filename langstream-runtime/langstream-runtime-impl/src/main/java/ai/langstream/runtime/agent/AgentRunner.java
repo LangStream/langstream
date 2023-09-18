@@ -284,7 +284,9 @@ public class AgentRunner {
             Runnable beforeStopSource)
             throws Exception {
 
-        ScheduledExecutorService statsScheduler = Executors.newSingleThreadScheduledExecutor();
+        String statsThreadName = "stats-" + configuration.agent().agentId();
+        ScheduledExecutorService statsScheduler =
+                Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, statsThreadName));
         try {
 
             topicConnectionsRuntime.init(configuration.streamingCluster());

@@ -196,7 +196,7 @@ public class LocalApplicationRunner
                             Thread.currentThread()
                                     .setName(
                                             podConfiguration.agent().agentId()
-                                                    + "runner-tid-"
+                                                    + "-runner-"
                                                     + runnerExecutionId);
                             try {
                                 log.info(

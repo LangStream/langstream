@@ -87,8 +87,7 @@ public class WebCrawler {
                         url.getProtocol()
                                 + "://"
                                 + url.getHost()
-                                + ":"
-                                + url.getPort()
+                                + (url.getPort() > 0 ? ":" + url.getPort() : "")
                                 + "/robots.txt";
                 log.info("Adding robots.txt to the list of urls to crawl: {}", robotsFile);
                 // force add the url (no check on the max number of urls)

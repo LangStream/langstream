@@ -109,7 +109,7 @@ public class TransformFunctionUtil {
         } else {
             openAIClientBuilder.credential(new KeyCredential(openAIConfig.getAccessKey()));
         }
-        if (openAIConfig.getUrl() != null) {
+        if (openAIConfig.getUrl() != null && !openAIConfig.getUrl().isEmpty()) {
             openAIClientBuilder.endpoint(openAIConfig.getUrl());
 
             // this is for testing only

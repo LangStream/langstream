@@ -69,10 +69,7 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
 
     @Override
     public synchronized void start() {
-        try (var context =
-                ClassloaderUtils.withContextClassloader(this.getClass().getClassLoader())) {
-            consumer = new KafkaConsumer(configuration);
-        }
+        consumer = new KafkaConsumer(configuration);
         if (topicName != null) {
             log.info("Subscribing consumer to {}", topicName);
             consumer.subscribe(List.of(topicName), this);

@@ -123,10 +123,7 @@ class KafkaProducerWrapper implements TopicProducer {
 
     @Override
     public void start() {
-        try (var context =
-                ClassloaderUtils.withContextClassloader(this.getClass().getClassLoader())) {
-            producer = new KafkaProducer<>(copy);
-        }
+        producer = new KafkaProducer<>(copy);
     }
 
     @Override

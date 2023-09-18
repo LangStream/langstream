@@ -165,11 +165,6 @@ public abstract class AbstractApplicationRunner {
                     configuration:
                       admin:
                         bootstrap.servers: "%s"
-                        security.protocol: SASL_PLAINTEXT
-                        sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username='user' password='token: xxx';"
-                        sasl.mechanism: PLAIN
-                        session.timeout.ms: "45000"
-                        
                   computeCluster:
                      type: "kubernetes"
                 """

@@ -18,7 +18,7 @@ package ai.langstream.tests;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.nio.file.Paths;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
@@ -47,40 +47,16 @@ public class CassandraSinkIT extends BaseEndToEndTest {
     public void test() throws Exception {
         installLangStreamCluster(false);
         final String tenant = "ten-" + System.currentTimeMillis();
-        executeCommandOnClient(
-                """
-                bin/langstream tenants put %s &&
-                bin/langstream configure tenant %s"""
-                        .formatted(tenant, tenant)
-                        .replace(System.lineSeparator(), " ")
-                        .split(" "));
-        String testAppsBaseDir = "src/test/resources/apps";
-        String testInstanceBaseDir = "src/test/resources/instances";
-        String testSecretBaseDir = "src/test/resources/secrets";
+        setupTenant(tenant);
         final String applicationId = "my-test-app";
         String cassandraHost = "cassandra-0.cassandra." + namespace;
-        copyFileToClientContainer(
-                Paths.get(testAppsBaseDir, "cassandra-sink").toFile(), "/tmp/cassandra-sink");
-        copyFileToClientContainer(
-                Paths.get(testInstanceBaseDir, "kafka-kubernetes.yaml").toFile(),
-                "/tmp/instance.yaml");
-        copyFileToClientContainer(
-                Paths.get(testSecretBaseDir, "secret1.yaml").toFile(),
-                "/tmp/secrets.yaml",
-                file ->
-                        file.replace("CASSANDRA-HOST-INJECTED", cassandraHost)
-                                .replace("CASSANDRA-LOCAL-DC-INJECTED", "datacenter1")
-                                .replace("CASSANDRA-PORT-INJECTED", "9042"));
-
-        executeCommandOnClient(
-                "bin/langstream apps deploy %s -app /tmp/cassandra-sink -i /tmp/instance.yaml -s /tmp/secrets.yaml"
-                        .formatted(applicationId)
-                        .split(" "));
-        client.apps()
-                .statefulSets()
-                .inNamespace(TENANT_NAMESPACE_PREFIX + tenant)
-                .withName(applicationId + "-module-1-pipeline-1-sink-1")
-                .waitUntilReady(4, TimeUnit.MINUTES);
+        final Map<String, String> env =
+                Map.of(
+                        "CASSANDRA_CONTACT_POINTS", cassandraHost,
+                        "CASSANDRA_LOCAL_DC", "datacenter1",
+                        "CASSANDRA_PORT", "9042");
+        deployLocalApplication(applicationId, "cassandra-sink", env);
+        awaitApplicationReady(applicationId, 1);
 
         executeCommandOnClient(
                 "bin/langstream gateway produce %s produce-input -v '{\"id\": 10, \"name\": \"test-from-sink\", \"description\": \"test-from-sink\"}'"

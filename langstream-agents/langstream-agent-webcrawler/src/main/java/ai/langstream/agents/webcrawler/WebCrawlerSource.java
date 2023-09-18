@@ -107,6 +107,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         allowedDomains = getSet("allowed-domains", configuration);
         forbiddenPaths = getSet("forbidden-paths", configuration);
         maxUrls = getInt("max-urls", 1000, configuration);
+        int maxDepth = getInt("max-depth", 10, configuration);
         handleRobotsFile = getBoolean("handle-robots-file", true, configuration);
         scanHtmlDocuments = getBoolean("scan-html-documents", true, configuration);
         seedUrls = getSet("seed-urls", configuration);
@@ -130,6 +131,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         log.info("forbidden-paths: {}", forbiddenPaths);
         log.info("seed-urls: {}", seedUrls);
         log.info("max-urls: {}", maxUrls);
+        log.info("max-depth: {}", maxDepth);
         log.info("handle-robots-file: {}", handleRobotsFile);
         log.info("scan-html-documents: {}", scanHtmlDocuments);
         log.info("user-agent: {}", userAgent);
@@ -150,6 +152,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(allowedDomains)
                         .maxUrls(maxUrls)
+                        .maxDepth(maxDepth)
                         .forbiddenPaths(forbiddenPaths)
                         .handleRobotsFile(handleRobotsFile)
                         .minTimeBetweenRequests(minTimeBetweenRequests)

@@ -66,6 +66,9 @@ public class NarFileHandler
     }
 
     private static void deleteDirectory(Path dir) throws Exception {
+        if (!dir.toFile().exists()) {
+            return;
+        }
         try (DirectoryStream<Path> all = Files.newDirectoryStream(dir)) {
             for (Path file : all) {
                 if (Files.isDirectory(file)) {

@@ -146,6 +146,9 @@ public record TopicConnectionsRuntimeAndLoader(
                         code ->
                                 code.createReader(
                                         streamingCluster, configuration, initialPosition));
+                if (topicReaderImpl == null) {
+                    return null;
+                }
 
                 return new TopicReader() {
                     @Override
@@ -173,6 +176,9 @@ public record TopicConnectionsRuntimeAndLoader(
                     Map<String, Object> configuration) {
                 final TopicProducer topicProducerImpl = callNoExceptionWithContextClassloader(
                         code -> code.createProducer(agentId, streamingCluster, configuration));
+                if (topicProducerImpl == null) {
+                    return null;
+                }
 
                 return wrapTopicProducer(topicProducerImpl);
 
@@ -217,10 +223,14 @@ public record TopicConnectionsRuntimeAndLoader(
                     String agentId,
                     StreamingCluster streamingCluster,
                     Map<String, Object> configuration) {
-                return wrapTopicProducer(callNoExceptionWithContextClassloader(
+                final TopicProducer producerImpl = callNoExceptionWithContextClassloader(
                         code ->
                                 code.createDeadletterTopicProducer(
-                                        agentId, streamingCluster, configuration)));
+                                        agentId, streamingCluster, configuration));
+                if (producerImpl == null) {
+                    return null;
+                }
+                return wrapTopicProducer(producerImpl);
             }
 
             @Override
@@ -230,6 +240,9 @@ public record TopicConnectionsRuntimeAndLoader(
                     Map<String, Object> configuration) {
                 final TopicAdmin topicAdminImpl = callNoExceptionWithContextClassloader(
                         code -> code.createTopicAdmin(agentId, streamingCluster, configuration));
+                if (topicAdminImpl == null) {
+                    return null;
+                }
                 return new TopicAdmin() {
                     @Override
                     public void start() {

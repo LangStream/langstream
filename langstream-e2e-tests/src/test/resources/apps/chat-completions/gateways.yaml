@@ -15,21 +15,25 @@
 # limitations under the License.
 #
 
-secrets:
-  - name: secret1
-    id: secret1
-    data:
-      value-key: super secret value
-  - name: cassandra
-    id: cassandra
-    data:
-      contact-points: "${CASSANDRA_CONTACT_POINTS}"
-      local-dc: "${CASSANDRA_LOCAL_DC}"
-      port: "${CASSANDRA_PORT}"
-  - id: open-ai
-    data:
-      access-key: "${OPEN_AI_ACCESS_KEY}"
-      url: "${OPEN_AI_URL}"
-      provider: "${OPEN_AI_PROVIDER}"
-      embeddings-model: "${OPEN_AI_EMBEDDINGS_MODEL}"
-      chat-completions-model: "${OPEN_AI_CHAT_COMPLETIONS_MODEL}"
+gateways:
+  - id: produce-input
+    type: produce
+    topic: input-topic
+    parameters:
+      - sessionId
+    produce-options:
+      headers:
+        - key: langstream-client-session-id
+          value-from-parameters: sessionId
+
+  - id: consume-history
+    type: consume
+    topic: history-topic
+    parameters:
+      - sessionId
+    consume-options:
+      filters:
+        headers:
+          - key: langstream-client-session-id
+            value-from-parameters: sessionId
+

@@ -17,6 +17,7 @@ package ai.langstream.tests;
 
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
+import ai.langstream.tests.util.ConsumeGatewayMessage;
 import com.dajudge.kindcontainer.K3sContainer;
 import com.dajudge.kindcontainer.K3sContainerVersion;
 import com.dajudge.kindcontainer.KubernetesImageSpec;
@@ -61,10 +62,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -77,9 +78,18 @@ import org.testcontainers.containers.BindMode;
 @Slf4j
 public class BaseEndToEndTest implements TestWatcher {
 
+    public static final String CATEGORY_NEEDS_CREDENTIALS = "needs-credentials";
+
+    private static final String LANGSTREAM_TAG =
+            System.getProperty("langstream.tests.tag", "latest-dev");
+
+    private static final boolean REUSE_EXISTING_REDPANDA =
+            Boolean.parseBoolean(System.getProperty("langstream.tests.reuseRedPanda", "false"));
+
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
-    protected static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
+    protected static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+    protected static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
     protected static final String KAFKA_NAMESPACE = "kafka-ns";
 
     interface KubeServer {
@@ -92,7 +102,7 @@ public class BaseEndToEndTest implements TestWatcher {
         String getKubeConfig();
     }
 
-    static class RunningHostCluster implements PythonFunctionIT.KubeServer {
+    static class RunningHostCluster implements KubeServer {
         @Override
         public void start() {}
 
@@ -110,7 +120,7 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
-    static class LocalK3sContainer implements PythonFunctionIT.KubeServer {
+    static class LocalK3sContainer implements KubeServer {
 
         K3sContainer container;
         final Path basePath = Paths.get("/tmp", "ls-tests-image");
@@ -179,8 +189,6 @@ public class BaseEndToEndTest implements TestWatcher {
     protected static KubernetesClient client;
     protected static String namespace;
 
-    protected final Map<String, String> resolvedTopics = new HashMap<>();
-
     @Override
     public void testAborted(ExtensionContext context, Throwable cause) {
         testFailed(context, cause);
@@ -222,13 +230,7 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     @SneakyThrows
-    protected void copyFileToClientContainer(File file, String toPath) {
-        copyFileToClientContainer(file, toPath, Function.identity());
-    }
-
-    @SneakyThrows
-    protected void copyFileToClientContainer(
-            File file, String toPath, Function<String, String> contentTransformer) {
+    protected static void copyFileToClientContainer(File file, String toPath) {
         final String podName =
                 client.pods()
                         .inNamespace(namespace)
@@ -239,16 +241,9 @@ public class BaseEndToEndTest implements TestWatcher {
                         .getMetadata()
                         .getName();
         if (file.isFile()) {
-            String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
-            content = contentTransformer.apply(content);
-            final Path temp = Files.createTempFile("langstream", ".replaced");
-            for (Map.Entry<String, String> e : resolvedTopics.entrySet()) {
-                content = content.replace(e.getKey(), e.getValue());
-            }
-            Files.writeString(temp, content);
             runProcess(
                     "kubectl cp %s %s:%s -n %s"
-                            .formatted(temp.toFile().getAbsolutePath(), podName, toPath, namespace)
+                            .formatted(file.getAbsolutePath(), podName, toPath, namespace)
                             .split(" "));
         } else {
             runProcess(
@@ -259,12 +254,12 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     @SneakyThrows
-    protected String executeCommandOnClient(String... args) {
-        return executeCommandOnClient(1, TimeUnit.MINUTES, args);
+    protected static String executeCommandOnClient(String... args) {
+        return executeCommandOnClient(2, TimeUnit.MINUTES, args);
     }
 
     @SneakyThrows
-    protected String executeCommandOnClient(long timeout, TimeUnit unit, String... args) {
+    protected static String executeCommandOnClient(long timeout, TimeUnit unit, String... args) {
         final Pod pod =
                 client.pods()
                         .inNamespace(namespace)
@@ -277,6 +272,17 @@ public class BaseEndToEndTest implements TestWatcher {
                         pod.getSpec().getContainers().get(0).getName(),
                         args)
                 .get(timeout, unit);
+    }
+
+    @SneakyThrows
+    protected static ConsumeGatewayMessage consumeOneMessageFromGateway(
+            String applicationId, String gatewayId, String... extraArgs) {
+        final String command =
+                "bin/langstream gateway consume %s %s %s -n 1"
+                        .formatted(applicationId, gatewayId, String.join(" ", extraArgs));
+        final String response = executeCommandOnClient(command);
+        final String secondLine = response.lines().collect(Collectors.toList()).get(1);
+        return ConsumeGatewayMessage.readValue(secondLine);
     }
 
     protected static void runProcess(String[] allArgs) throws InterruptedException, IOException {
@@ -330,7 +336,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                 "Error executing {} encountered; \nstderr: {}\nstdout: {}",
                                 cmd,
                                 error.toString(StandardCharsets.UTF_8),
-                                out.toString(StandardCharsets.UTF_8),
+                                out.toString(),
                                 t);
                         response.completeExceptionally(t);
                     }
@@ -431,15 +437,6 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
-    @BeforeEach
-    @SneakyThrows
-    public void beforeEach() {
-        resolvedTopics.clear();
-        for (int i = 0; i < 100; i++) {
-            resolvedTopics.put("TEST_TOPIC_" + i, "topic-" + i + "-" + System.nanoTime());
-        }
-    }
-
     @BeforeAll
     @SneakyThrows
     public static void setup() {
@@ -467,6 +464,11 @@ public class BaseEndToEndTest implements TestWatcher {
             final CompletableFuture<Void> minioFuture =
                     CompletableFuture.runAsync(BaseEndToEndTest::installMinio);
             List<CompletableFuture<Void>> imagesFutures = new ArrayList<>();
+
+            final String baseImageRepository =
+                    LANGSTREAM_TAG.equals("latest-dev") ? "langstream" : "ghcr.io/langstream";
+            final String imagePullPolicy =
+                    LANGSTREAM_TAG.equals("latest-dev") ? "Never" : "IfNotPresent";
 
             imagesFutures.add(
                     CompletableFuture.runAsync(
@@ -561,75 +563,89 @@ public class BaseEndToEndTest implements TestWatcher {
                 .withName("langstream-client-role-binding")
                 .delete();
 
+        final String baseImageRepository =
+                LANGSTREAM_TAG.equals("latest-dev") ? "langstream" : "ghcr.io/langstream";
+        final String imagePullPolicy =
+                LANGSTREAM_TAG.equals("latest-dev") ? "Never" : "IfNotPresent";
         final String values =
                 """
-                controlPlane:
-                  image:
-                    repository: langstream/langstream-control-plane
-                    tag: latest-dev
-                    pullPolicy: Never
-                  resources:
-                    requests:
-                      cpu: 0.2
-                      memory: 256Mi
-                  app:
-                    config:
-                      application.storage.global.type: kubernetes
-                      application.security.enabled: false
+                        images:
+                            tag: %s
+                        controlPlane:
+                          image:
+                            repository: %s/langstream-control-plane
+                            pullPolicy: %s
+                          resources:
+                            requests:
+                              cpu: 0.2
+                              memory: 256Mi
+                          app:
+                            config:
+                              application.storage.global.type: kubernetes
+                              application.security.enabled: false
 
-                deployer:
-                  image:
-                    repository: langstream/langstream-deployer
-                    tag: latest-dev
-                    pullPolicy: Never
-                  replicaCount: 1
-                  resources:
-                    requests:
-                      cpu: 0.1
-                      memory: 256Mi
-                  app:
-                    config:
-                      agentResources:
-                        cpuPerUnit: 0.2
-                        memPerUnit: 128
-                client:
-                  image:
-                    repository: langstream/langstream-cli
-                    tag: latest-dev
-                    pullPolicy: Never
-                  resources:
-                    requests:
-                      cpu: 0.1
-                      memory: 256Mi
+                        deployer:
+                          image:
+                            repository: %s/langstream-deployer
+                            pullPolicy: %s
+                          replicaCount: 1
+                          resources:
+                            requests:
+                              cpu: 0.1
+                              memory: 256Mi
+                          app:
+                            config:
+                              agentResources:
+                                cpuPerUnit: 0.2
+                                memPerUnit: 128
+                        client:
+                          image:
+                            repository: %s/langstream-cli
+                            pullPolicy: %s
+                          resources:
+                            requests:
+                              cpu: 0.1
+                              memory: 256Mi
 
-                apiGateway:
-                  image:
-                    repository: langstream/langstream-api-gateway
-                    tag: latest-dev
-                    pullPolicy: Never
-                  resources:
-                    requests:
-                      cpu: 0.2
-                      memory: 256Mi
-                  app:
-                    config:
-                     logging.level.org.apache.tomcat.websocket: debug
+                        apiGateway:
+                          image:
+                            repository: %s/langstream-api-gateway
+                            pullPolicy: %s
+                          resources:
+                            requests:
+                              cpu: 0.2
+                              memory: 256Mi
+                          app:
+                            config:
+                             logging.level.org.apache.tomcat.websocket: debug
 
-                runtime:
-                    image: langstream/langstream-runtime:latest-dev
-                    imagePullPolicy: Never
-                tenants:
-                    defaultTenant:
-                        create: false
-                    namespacePrefix: %s
-                codeStorage:
-                  type: s3
-                  configuration:
-                    endpoint: http://minio.minio-dev.svc.cluster.local:9000
-                    access-key: minioadmin
-                    secret-key: minioadmin
-                """
-                        .formatted(TENANT_NAMESPACE_PREFIX);
+                        runtime:
+                            image: %s/langstream-runtime
+                            imagePullPolicy: %s
+                        tenants:
+                            defaultTenant:
+                                create: false
+                            namespacePrefix: %s
+                        codeStorage:
+                          type: s3
+                          configuration:
+                            endpoint: http://minio.minio-dev.svc.cluster.local:9000
+                            access-key: minioadmin
+                            secret-key: minioadmin
+                        """
+                        .formatted(
+                                LANGSTREAM_TAG,
+                                baseImageRepository,
+                                imagePullPolicy,
+                                baseImageRepository,
+                                imagePullPolicy,
+                                baseImageRepository,
+                                imagePullPolicy,
+                                baseImageRepository,
+                                imagePullPolicy,
+                                baseImageRepository,
+                                imagePullPolicy,
+                                TENANT_NAMESPACE_PREFIX);
         final Path tempFile = Files.createTempFile("langstream-test", ".yaml");
         Files.writeString(tempFile, values);
 
@@ -687,12 +703,18 @@ public class BaseEndToEndTest implements TestWatcher {
                                 .build())
                 .serverSideApply();
 
-        runProcess("helm delete redpanda --namespace kafka-ns".split(" "), true);
+        if (!REUSE_EXISTING_REDPANDA) {
+            runProcess("helm delete redpanda --namespace kafka-ns".split(" "), true);
+        }
+
         runProcess("helm repo add redpanda https://charts.redpanda.com/".split(" "), true);
         runProcess("helm repo update".split(" "));
         // ref https://github.com/redpanda-data/helm-charts/blob/main/charts/redpanda/values.yaml
         runProcess(
-                "helm install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.3 --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console.enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc.cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true"
+                ("helm upgrade --install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.3"
+                                + " --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console"
+                                + ".enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc"
+                                + ".cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true")
                         .split(" "));
         log.info("waiting kafka to be ready");
         runProcess(
@@ -704,76 +726,76 @@ public class BaseEndToEndTest implements TestWatcher {
     static void installMinio() {
         applyManifestNoNamespace(
                 """
-                # Deploys a new Namespace for the MinIO Pod
-                apiVersion: v1
-                kind: Namespace
-                metadata:
-                  name: minio-dev # Change this value if you want a different namespace name
-                  labels:
-                    name: minio-dev # Change this value to match metadata.name
-                ---
-                # Deploys a new MinIO Pod into the metadata.namespace Kubernetes namespace
-                #
-                # The `spec.containers[0].args` contains the command run on the pod
-                # The `/data` directory corresponds to the `spec.containers[0].volumeMounts[0].mountPath`
-                # That mount path corresponds to a Kubernetes HostPath which binds `/data` to a local drive or volume on the worker node where the pod runs
-                #\s
-                apiVersion: v1
-                kind: Pod
-                metadata:
-                  labels:
-                    app: minio
-                  name: minio
-                  namespace: minio-dev # Change this value to match the namespace metadata.name
-                spec:
-                  containers:
-                  - name: minio
-                    image: quay.io/minio/minio:latest
-                    command:
-                    - /bin/bash
-                    - -c
-                    args:\s
-                    - minio server /data --console-address :9090
-                    volumeMounts:
-                    - mountPath: /data
-                      name: localvolume # Corresponds to the `spec.volumes` Persistent Volume
-                    ports:
-                      -  containerPort: 9090
-                         protocol: TCP
-                         name: console
-                      -  containerPort: 9000
-                         protocol: TCP
-                         name: s3
-                    resources:
-                      requests:
-                        cpu: 50m
-                        memory: 512Mi
-                  volumes:
-                  - name: localvolume
-                    hostPath: # MinIO generally recommends using locally-attached volumes
-                      path: /mnt/disk1/data # Specify a path to a local drive or volume on the Kubernetes worker node
-                      type: DirectoryOrCreate # The path to the last directory must exist
-                ---
-                apiVersion: v1
-                kind: Service
-                metadata:
-                  labels:
-                    app: minio
-                  name: minio
-                  namespace: minio-dev # Change this value to match the namespace metadata.name
-                spec:
-                  ports:
-                    - port: 9090
-                      protocol: TCP
-                      targetPort: 9090
-                      name: console
-                    - port: 9000
-                      protocol: TCP
-                      targetPort: 9000
-                      name: s3
-                  selector:
-                    app: minio
-                """);
+                        # Deploys a new Namespace for the MinIO Pod
+                        apiVersion: v1
+                        kind: Namespace
+                        metadata:
+                          name: minio-dev # Change this value if you want a different namespace name
+                          labels:
+                            name: minio-dev # Change this value to match metadata.name
+                        ---
+                        # Deploys a new MinIO Pod into the metadata.namespace Kubernetes namespace
+                        #
+                        # The `spec.containers[0].args` contains the command run on the pod
+                        # The `/data` directory corresponds to the `spec.containers[0].volumeMounts[0].mountPath`
+                        # That mount path corresponds to a Kubernetes HostPath which binds `/data` to a local drive or volume on the worker node where the pod runs
+                        #\s
+                        apiVersion: v1
+                        kind: Pod
+                        metadata:
+                          labels:
+                            app: minio
+                          name: minio
+                          namespace: minio-dev # Change this value to match the namespace metadata.name
+                        spec:
+                          containers:
+                          - name: minio
+                            image: quay.io/minio/minio:latest
+                            command:
+                            - /bin/bash
+                            - -c
+                            args:\s
+                            - minio server /data --console-address :9090
+                            volumeMounts:
+                            - mountPath: /data
+                              name: localvolume # Corresponds to the `spec.volumes` Persistent Volume
+                            ports:
+                              -  containerPort: 9090
+                                 protocol: TCP
+                                 name: console
+                              -  containerPort: 9000
+                                 protocol: TCP
+                                 name: s3
+                            resources:
+                              requests:
+                                cpu: 50m
+                                memory: 512Mi
+                          volumes:
+                          - name: localvolume
+                            hostPath: # MinIO generally recommends using locally-attached volumes
+                              path: /mnt/disk1/data # Specify a path to a local drive or volume on the Kubernetes worker node
+                              type: DirectoryOrCreate # The path to the last directory must exist
+                        ---
+                        apiVersion: v1
+                        kind: Service
+                        metadata:
+                          labels:
+                            app: minio
+                          name: minio
+                          namespace: minio-dev # Change this value to match the namespace metadata.name
+                        spec:
+                          ports:
+                            - port: 9090
+                              protocol: TCP
+                              targetPort: 9090
+                              name: console
+                            - port: 9000
+                              protocol: TCP
+                              targetPort: 9000
+                              name: s3
+                          selector:
+                            app: minio
+                        """);
     }
 
     protected static void withPodLogs(
@@ -885,7 +907,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                         resource.getKind(),
                                         resource.getMetadata().getName()));
         try (FileWriter writer = new FileWriter(outputFile)) {
-            writer.write(MAPPER.writeValueAsString(resource));
+            writer.write(YAML_MAPPER.writeValueAsString(resource));
         } catch (Throwable e) {
             log.error("failed to write resource to file {}", outputFile, e);
         }
@@ -966,5 +988,105 @@ public class BaseEndToEndTest implements TestWatcher {
     private static String execInKafkaPod(String cmd) {
         return execInPodInNamespace(KAFKA_NAMESPACE, "redpanda-0", "redpanda", cmd.split(" "))
                 .get(1, TimeUnit.MINUTES);
+    }
+
+    protected static void setupTenant(String tenant) {
+        executeCommandOnClient(
+                """
+                        bin/langstream tenants put %s &&
+                        bin/langstream configure tenant %s"""
+                        .formatted(tenant, tenant)
+                        .replace(System.lineSeparator(), " ")
+                        .split(" "));
+    }
+
+    protected static void deployLocalApplication(String applicationId, String appDir) {
+        deployLocalApplication(applicationId, appDir, null);
+    }
+
+    protected static void awaitApplicationReady(
+            String applicationId, int expectedRunningTotalExecutors) {
+        Awaitility.await()
+                .atMost(3, TimeUnit.MINUTES)
+                .pollInterval(5, TimeUnit.SECONDS)
+                .until(() -> isApplicationReady(applicationId, expectedRunningTotalExecutors));
+    }
+
+    protected static boolean isApplicationReady(
+            String applicationId, int expectedRunningTotalExecutors) {
+        final String response =
+                executeCommandOnClient(
+                        "bin/langstream apps get %s".formatted(applicationId).split(" "));
+        final List<String> lines = response.lines().collect(Collectors.toList());
+        final String appLine = lines.get(1);
+        final List<String> lineAsList =
+                Arrays.stream(appLine.split(" "))
+                        .filter(s -> !s.isBlank())
+                        .collect(Collectors.toList());
+        System.out.println("app line " + lineAsList);
+        if (lineAsList.size() <= 5) {
+            return false;
+        }
+        final String replicasReady = lineAsList.get(5);
+        System.out.println("replicasReady " + replicasReady);
+        return replicasReady.equals(
+                expectedRunningTotalExecutors + "/" + expectedRunningTotalExecutors);
+    }
+
+    protected static void deployLocalApplication(
+            String applicationId, String appDir, Map<String, String> env) {
+        String testAppsBaseDir = "src/test/resources/apps";
+        String testInstanceBaseDir = "src/test/resources/instances";
+        String testSecretBaseDir = "src/test/resources/secrets";
+        copyFileToClientContainer(Paths.get(testAppsBaseDir, appDir).toFile(), "/tmp/app");
+        copyFileToClientContainer(
+                Paths.get(testInstanceBaseDir, "kafka-kubernetes.yaml").toFile(),
+                "/tmp/instance.yaml");
+        copyFileToClientContainer(
+                Paths.get(testSecretBaseDir, "secret1.yaml").toFile(), "/tmp/secrets.yaml");
+
+        String beforeCmd = "";
+        if (env != null) {
+            beforeCmd =
+                    env.entrySet().stream()
+                            .map(e -> "export %s=%s".formatted(e.getKey(), e.getValue()))
+                            .collect(Collectors.joining(" && "));
+            beforeCmd += " && ";
+        }
+
+        executeCommandOnClient(
+                (beforeCmd
+                                + "bin/langstream apps deploy %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml")
+                        .formatted(applicationId)
+                        .split(" "));
+    }
+
+    protected static Map<String, String> getAppEnvMapFromSystem(List<String> names) {
+        final Map<String, String> result = new HashMap<>();
+        for (String name : names) {
+            result.put(name, getAppEnvFromSystem(name));
+        }
+        return result;
+    }
+
+    protected static String getAppEnvFromSystem(String name) {
+
+        final String fromSystemProperty = System.getProperty("langstream.tests.app.env." + name);
+        if (fromSystemProperty != null) {
+            return null;
+        }
+        final String fromEnv = System.getenv("LANGSTREAM_TESTS_APP_ENV_" + name);
+        if (fromEnv != null) {
+            return fromEnv;
+        }
+
+        final String fromEnvDirect = System.getenv(name);
+        if (fromEnvDirect != null) {
+            return fromEnvDirect;
+        }
+        throw new IllegalStateException(
+                ("failed to get app env variable %s from system or env. Possible env variables: %s, "
+                                + "LANGSTREAM_TESTS_APP_ENV_%s. Possible system properties: langstream.tests.app.env.%s")
+                        .formatted(name, name, name, name));
     }
 }

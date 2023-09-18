@@ -18,7 +18,6 @@ package ai.langstream.tests;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import io.fabric8.kubernetes.api.model.Secret;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
@@ -35,35 +34,11 @@ public class PythonFunctionIT extends BaseEndToEndTest {
     public void test() {
         installLangStreamCluster(false);
         final String tenant = "ten-" + System.currentTimeMillis();
-        executeCommandOnClient(
-                """
-                bin/langstream tenants put %s &&
-                bin/langstream configure tenant %s"""
-                        .formatted(tenant, tenant)
-                        .replace(System.lineSeparator(), " ")
-                        .split(" "));
-        String testAppsBaseDir = "src/test/resources/apps";
-        String testInstanceBaseDir = "src/test/resources/instances";
-        String testSecretBaseDir = "src/test/resources/secrets";
+        setupTenant(tenant);
         final String applicationId = "my-test-app";
-        copyFileToClientContainer(
-                Paths.get(testAppsBaseDir, "python-processor").toFile(), "/tmp/python-processor");
-        copyFileToClientContainer(
-                Paths.get(testInstanceBaseDir, "kafka-kubernetes.yaml").toFile(),
-                "/tmp/instance.yaml");
-        copyFileToClientContainer(
-                Paths.get(testSecretBaseDir, "secret1.yaml").toFile(), "/tmp/secrets.yaml");
-
-        executeCommandOnClient(
-                "bin/langstream apps deploy %s -app /tmp/python-processor -i /tmp/instance.yaml -s /tmp/secrets.yaml"
-                        .formatted(applicationId)
-                        .split(" "));
+        deployLocalApplication(applicationId, "python-processor");
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
-        client.apps()
-                .statefulSets()
-                .inNamespace(tenantNamespace)
-                .withName(applicationId + "-test-python-processor")
-                .waitUntilReady(4, TimeUnit.MINUTES);
+        awaitApplicationReady(applicationId, 1);
 
         executeCommandOnClient(
                 "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30"

@@ -482,6 +482,7 @@ public class ModelBuilder {
                                 assetId,
                                 name,
                                 assetDefinition.getCreationMode(),
+                                assetDefinition.getDeletionMode(),
                                 assetDefinition.getAssetType(),
                                 assetDefinition.getConfig()));
             }
@@ -653,6 +654,9 @@ public class ModelBuilder {
 
         @JsonProperty("creation-mode")
         private String creationMode;
+
+        @JsonProperty("deletion-mode")
+        private String deletionMode;
 
         @JsonProperty("asset-type")
         private String assetType;

@@ -51,6 +51,7 @@ class WebCrawlerTest {
         WebCrawlerConfiguration configuration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
+                        .handleRobotsFile(false)
                         .maxErrorCount(5)
                         .build();
         WebCrawlerStatus status = new WebCrawlerStatus();
@@ -62,25 +63,25 @@ class WebCrawlerTest {
         assertEquals(1, documents.size());
         assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
         assertEquals(2, status.getPendingUrls().size());
-        assertEquals(3, status.getVisitedUrls().size());
+        assertEquals(3, status.getUrls().size());
 
         // process the internalErrorPage
         crawler.runCycle();
 
         assertEquals(2, status.getPendingUrls().size());
-        assertEquals(3, status.getVisitedUrls().size());
+        assertEquals(3, status.getUrls().size());
 
         // process the notFoundPage
         crawler.runCycle();
 
         assertEquals(1, status.getPendingUrls().size());
-        assertEquals(3, status.getVisitedUrls().size());
+        assertEquals(3, status.getUrls().size());
 
         // process the internalErrorPage
         crawler.runCycle();
 
         assertEquals(1, status.getPendingUrls().size());
-        assertEquals(3, status.getVisitedUrls().size());
+        assertEquals(3, status.getUrls().size());
 
         // now the error page starts to work again
         stubFor(
@@ -96,7 +97,7 @@ class WebCrawlerTest {
         crawler.runCycle();
 
         assertEquals(0, status.getPendingUrls().size());
-        assertEquals(3, status.getVisitedUrls().size());
+        assertEquals(3, status.getUrls().size());
     }
 
     @Test
@@ -116,6 +117,7 @@ class WebCrawlerTest {
         WebCrawlerConfiguration configuration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
+                        .handleRobotsFile(false)
                         .maxErrorCount(3)
                         .build();
         WebCrawlerStatus status = new WebCrawlerStatus();
@@ -127,25 +129,25 @@ class WebCrawlerTest {
         assertEquals(1, documents.size());
         assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
         assertEquals(1, status.getPendingUrls().size());
-        assertEquals(2, status.getVisitedUrls().size());
+        assertEquals(2, status.getUrls().size());
 
         // process the internalErrorPage
         crawler.runCycle();
 
         assertEquals(1, status.getPendingUrls().size());
-        assertEquals(2, status.getVisitedUrls().size());
+        assertEquals(2, status.getUrls().size());
 
         // process the internalErrorPage
         crawler.runCycle();
 
         assertEquals(1, status.getPendingUrls().size());
-        assertEquals(2, status.getVisitedUrls().size());
+        assertEquals(2, status.getUrls().size());
 
         // process the internalErrorPage
         crawler.runCycle();
 
         assertEquals(0, status.getPendingUrls().size());
-        assertEquals(2, status.getVisitedUrls().size());
+        assertEquals(2, status.getUrls().size());
 
         // nothing to do
         assertFalse(crawler.runCycle());
@@ -178,6 +180,7 @@ class WebCrawlerTest {
         WebCrawlerConfiguration configuration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
+                        .handleRobotsFile(false)
                         .build();
         WebCrawlerStatus status = new WebCrawlerStatus();
         List<Document> documents = new ArrayList<>();
@@ -188,12 +191,12 @@ class WebCrawlerTest {
         assertEquals(1, documents.size());
         assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
         assertEquals(2, status.getPendingUrls().size());
-        assertEquals(3, status.getVisitedUrls().size());
+        assertEquals(3, status.getUrls().size());
 
         // redirectToGoodWebsite
         crawler.runCycle();
         assertEquals(2, status.getPendingUrls().size());
-        assertEquals(4, status.getVisitedUrls().size());
+        assertEquals(4, status.getUrls().size());
 
         assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
         // the document that did the redirection is not reported to the DocumentVisitor
@@ -203,12 +206,12 @@ class WebCrawlerTest {
         crawler.runCycle();
 
         assertEquals(1, status.getPendingUrls().size());
-        assertEquals(4, status.getVisitedUrls().size());
+        assertEquals(4, status.getUrls().size());
 
         // goodWebsite
         crawler.runCycle();
         assertEquals(0, status.getPendingUrls().size());
-        assertEquals(4, status.getVisitedUrls().size());
+        assertEquals(4, status.getUrls().size());
 
         assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
         assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/goodWebsite.html", documents.get(1).url());

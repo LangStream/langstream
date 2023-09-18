@@ -75,6 +75,7 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
         asset.put("name", assetDefinition.getName());
         asset.put("asset-type", assetDefinition.getAssetType());
         asset.put("creation-mode", assetDefinition.getCreationMode());
+        asset.put("deletion-mode", assetDefinition.getDeletionMode());
         Map<String, Object> configuration = new HashMap<>();
         if (assetDefinition.getConfig() != null) {
             assetDefinition
@@ -121,7 +122,7 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
 
     protected static Supplier<String> describe(AssetDefinition assetDefinition) {
         return () ->
-                " assert definition, type="
+                "asset definition, type="
                         + assetDefinition.getAssetType()
                         + ", name="
                         + assetDefinition.getName()

@@ -32,14 +32,19 @@ public class AssetDefinition {
     public static final String CREATE_MODE_NONE = "none";
     public static final String CREATE_MODE_CREATE_IF_NOT_EXISTS = "create-if-not-exists";
 
+    public static final String DELETE_MODE_NONE = "none";
+    public static final String DELETE_MODE_DELETE = "delete";
+
     public AssetDefinition() {
         creationMode = CREATE_MODE_NONE;
+        deletionMode = DELETE_MODE_NONE;
     }
 
     public AssetDefinition(
             String id,
             String name,
             String creationMode,
+            String deletionMode,
             String assetType,
             Map<String, Object> config) {
         this();
@@ -48,7 +53,9 @@ public class AssetDefinition {
         this.name = name;
         this.config = config;
         this.creationMode = Objects.requireNonNullElse(creationMode, CREATE_MODE_NONE);
+        this.deletionMode = Objects.requireNonNullElse(deletionMode, DELETE_MODE_NONE);
         validateCreationMode();
+        validateDeletionMode();
     }
 
     private String id;
@@ -56,6 +63,9 @@ public class AssetDefinition {
 
     @JsonProperty("creation-mode")
     private String creationMode;
+
+    @JsonProperty("deletion-mode")
+    private String deletionMode;
 
     private Map<String, Object> config;
 
@@ -69,6 +79,16 @@ public class AssetDefinition {
                 break;
             default:
                 throw new IllegalArgumentException("Invalid creation mode: " + creationMode);
+        }
+    }
+
+    private void validateDeletionMode() {
+        switch (deletionMode) {
+            case DELETE_MODE_DELETE:
+            case DELETE_MODE_NONE:
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid deletion mode: " + deletionMode);
         }
     }
 }

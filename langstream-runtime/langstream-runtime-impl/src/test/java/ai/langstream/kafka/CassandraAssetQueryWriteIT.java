@@ -16,12 +16,14 @@
 package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import ai.langstream.AbstractApplicationRunner;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,11 +74,14 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                                   - name: "vsearch-keyspace"
                                     asset-type: "cassandra-keyspace"
                                     creation-mode: create-if-not-exists
+                                    deletion-mode: delete
                                     config:
                                        keyspace: "vsearch"
                                        datasource: "CassandraDatasource"
                                        create-statements:
                                           - "CREATE KEYSPACE vsearch WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};"
+                                       delete-statements:
+                                          - "DROP KEYSPACE vsearch;"
                                   - name: "documents-table"
                                     asset-type: "cassandra-table"
                                     creation-mode: create-if-not-exists
@@ -152,6 +157,110 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                     all.forEach(row -> log.info("row id {}", row.get("id", Integer.class)));
                     assertEquals(2, all.size());
                     assertEquals(Set.of(1, 2), documentIds);
+                }
+
+                applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
+
+                try (CqlSession cqlSession = builder.build(); ) {
+                    try {
+                        cqlSession.execute("DESCRIBE KEYSPACE vsearch");
+                        fail();
+                    } catch (InvalidQueryException e) {
+                        assertEquals("'vsearch' not found in keyspaces", e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCassandraTable() throws Exception {
+        String tenant = "tenant1";
+        String[] expectedAgents = {"app-step1", "app-step2"};
+
+        Map<String, String> application =
+                Map.of(
+                        "configuration.yaml",
+                        """
+                        configuration:
+                          resources:
+                            - type: "vector-database"
+                              name: "CassandraDatasource"
+                              configuration:
+                                service: "cassandra"
+                                contact-points: "%s"
+                                loadBalancing-localDc: "%s"
+                                port: %d
+                        """
+                                .formatted(
+                                        cassandra.getContactPoint().getHostString(),
+                                        cassandra.getLocalDatacenter(),
+                                        cassandra.getContactPoint().getPort()),
+                        "pipeline.yaml",
+                        """
+                                assets:
+                                  - name: "vsearch-keyspace"
+                                    asset-type: "cassandra-keyspace"
+                                    creation-mode: create-if-not-exists
+                                    config:
+                                       keyspace: "v1"
+                                       datasource: "CassandraDatasource"
+                                       create-statements:
+                                          - "CREATE KEYSPACE v1 WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};"
+                                  - name: "documents-table"
+                                    asset-type: "cassandra-table"
+                                    creation-mode: create-if-not-exists
+                                    deletion-mode: delete
+                                    config:
+                                       table-name: "documents"
+                                       keyspace: "v1"
+                                       datasource: "CassandraDatasource"
+                                       create-statements:
+                                          - "CREATE TABLE IF NOT EXISTS v1.documents (id int PRIMARY KEY, name text, description text);"
+                                          - "INSERT INTO v1.documents (id, name, description) VALUES (1, 'A', 'A description');"
+                                       delete-statements:
+                                          - "DROP TABLE v1.documents;"
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - id: step1
+                                    name: "Execute Query"
+                                    type: "query-vector-db"
+                                    input: "input-topic"
+                                    output: "output-topic"
+                                    configuration:
+                                      datasource: "CassandraDatasource"
+                                      query: "SELECT * FROM v1.documents WHERE id=?;"
+                                      only-first: true
+                                      output-field: "value.queryresult"
+                                      fields:
+                                        - "value.documentId"
+                                """);
+
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+
+            CqlSessionBuilder builder = new CqlSessionBuilder();
+            builder.addContactPoint(cassandra.getContactPoint());
+            builder.withLocalDatacenter(cassandra.getLocalDatacenter());
+
+            try (CqlSession cqlSession = builder.build(); ) {
+                ResultSet execute = cqlSession.execute("SELECT count(*) FROM v1.documents");
+                assertEquals(1, execute.one().getLong(0));
+            }
+
+            applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
+
+            try (CqlSession cqlSession = builder.build(); ) {
+                try {
+                    ResultSet execute = cqlSession.execute("SELECT count(*) FROM v1.documents");
+                    fail();
+                } catch (InvalidQueryException e) {
+                    assertEquals("table documents does not exist", e.getMessage());
                 }
             }
         }

@@ -47,8 +47,6 @@ pipeline:
       # with 1 chunk, then with 2 chunks....up to the min-chunks-per-message value
       # eventually we want to send bigger messages to reduce the overhead of each message on the topic
       min-chunks-per-message: 20
-      # you can turn off the streaming behavior by setting this to false
-      stream: true
       messages:
         - role: user
           content: "You are an helpful assistant. Below you can fine a question from the user. Please try to help them the best way you can.\n\n{{% value.question}}"

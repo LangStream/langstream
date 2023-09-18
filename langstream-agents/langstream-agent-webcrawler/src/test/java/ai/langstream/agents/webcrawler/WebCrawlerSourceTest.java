@@ -15,13 +15,17 @@
  */
 package ai.langstream.agents.webcrawler;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.forbidden;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okForContentType;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
+import ai.langstream.agents.webcrawler.crawler.WebCrawler;
+import ai.langstream.agents.webcrawler.crawler.WebCrawlerStatus;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSource;
@@ -74,6 +78,46 @@ public class WebCrawlerSourceTest {
 
     @Test
     @Disabled("This test is disabled because it connects to a real live website")
+    void testReadWebSite() throws Exception {
+        String bucket = "langstream-test-" + UUID.randomUUID();
+        String url = "https://www.datastax.com/";
+        String allowed = "https://www.datastax.com/";
+
+        WebCrawlerSource agentSource =
+                buildAgentSource(
+                        bucket,
+                        allowed,
+                        Set.of(),
+                        url,
+                        Map.of(
+                                "reindex-interval-seconds",
+                                "3600",
+                                "scan-html-documents",
+                                "false",
+                                "max-urls",
+                                10000));
+        List<Record> read = agentSource.read();
+        Set<String> urls = new HashSet<>();
+        agentSource.setOnReindexStart(
+                () -> {
+                    urls.clear();
+                });
+        int count = 0;
+        while (count < 10) {
+            log.info("read: {}", read);
+            for (Record r : read) {
+                String docUrl = r.key().toString();
+                assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+            }
+            count += read.size();
+            agentSource.commit(read);
+            read = agentSource.read();
+        }
+        agentSource.close();
+    }
+
+    @Test
+    @Disabled("This test is disabled because it connects to a real live website")
     void testReadLangStreamDocs() throws Exception {
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = "https://docs.langstream.ai/";
@@ -85,7 +129,7 @@ public class WebCrawlerSourceTest {
                         allowed,
                         Set.of("/pipeline-agents", "/building-applications"),
                         url,
-                        Map.of("reindex-interval-seconds", "30"));
+                        Map.of("reindex-interval-seconds", "30", "max-urls", 5));
         List<Record> read = agentSource.read();
         Set<String> urls = new HashSet<>();
         agentSource.setOnReindexStart(
@@ -179,7 +223,8 @@ public class WebCrawlerSourceTest {
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = wmRuntimeInfo.getHttpBaseUrl() + "/index.html";
         String allowed = wmRuntimeInfo.getHttpBaseUrl();
-        Map<String, Object> additionalConfig = Map.of("reindex-interval-seconds", "4");
+        Map<String, Object> additionalConfig =
+                Map.of("reindex-interval-seconds", "4", "handle-robots-file", "false");
         WebCrawlerSource agentSource =
                 buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);
         List<Record> read = agentSource.read();
@@ -232,6 +277,93 @@ public class WebCrawlerSourceTest {
                  </body>
                 </html>""",
                 pages.get("thirdPage.html"));
+    }
+
+    private static final String ROBOTS =
+            """
+            User-agent: *
+            Disallow: /thirdPage.html
+            """;
+
+    @Test
+    void testWithRobots(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+        stubFor(get("/robots.txt").willReturn(okForContentType("text/plain", ROBOTS)));
+        stubFor(
+                get("/index.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
+                                <a href="secondPage.html">link</a>
+                            """)));
+        stubFor(
+                get("/secondPage.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
+                                  <a href="thirdPage.html">link</a>
+                                  <a href="index.html">link to home</a>
+                              """)));
+        stubFor(get("/thirdPage.html").willReturn(forbidden()));
+
+        String bucket = "langstream-test-" + UUID.randomUUID();
+        String url = wmRuntimeInfo.getHttpBaseUrl() + "/index.html";
+        String allowed = wmRuntimeInfo.getHttpBaseUrl();
+        Map<String, Object> additionalConfig = Map.of();
+        WebCrawlerSource agentSource =
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);
+
+        WebCrawler crawler = agentSource.getCrawler();
+        WebCrawlerStatus status = crawler.getStatus();
+
+        List<Record> read = agentSource.read();
+        Set<String> urls = new HashSet<>();
+        Map<String, String> pages = new HashMap<>();
+        while (pages.size() != 2) {
+            log.info("read: {}", read);
+            log.info("Known urls: {}", status.getUrls().size());
+            for (Record r : read) {
+                String docUrl = r.key().toString();
+                String pageName = docUrl.substring(docUrl.lastIndexOf('/') + 1);
+                pages.put(pageName, new String((byte[]) r.value()));
+                assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+            }
+            agentSource.commit(read);
+            read = agentSource.read();
+        }
+        agentSource.close();
+        assertEquals(2, pages.size());
+        // please note that JSoup normalised the HTML
+        assertEquals(
+                """
+                        <html>
+                         <head></head>
+                         <body>
+                          <a href="secondPage.html">link</a>
+                         </body>
+                        </html>""",
+                pages.get("index.html"));
+        assertEquals(
+                """
+                        <html>
+                         <head></head>
+                         <body>
+                          <a href="thirdPage.html">link</a> <a href="index.html">link to home</a>
+                         </body>
+                        </html>""",
+                pages.get("secondPage.html"));
+
+        assertTrue(status.getRemainingUrls().isEmpty());
+        assertTrue(status.getPendingUrls().isEmpty());
+        assertFalse(status.getRobotsFiles().isEmpty());
+
+        // test reload robot rules from S3
+        WebCrawlerSource agentSource2 =
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);
+        WebCrawler crawler2 = agentSource.getCrawler();
+        assertEquals(crawler2.getStatus().getRobotsFiles(), status.getRobotsFiles());
+        agentSource2.close();
     }
 
     private WebCrawlerSource buildAgentSource(

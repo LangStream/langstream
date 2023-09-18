@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.streaming.ai.util;
 
+import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.core.credential.AzureKeyCredential;
@@ -123,6 +124,32 @@ public class TransformFunctionUtil {
         }
 
         return openAIClientBuilder.buildClient();
+    }
+
+    public static OpenAIAsyncClient buildOpenAsyncAIClient(OpenAIConfig openAIConfig) {
+        if (openAIConfig == null) {
+            return null;
+        }
+        OpenAIClientBuilder openAIClientBuilder = new OpenAIClientBuilder();
+        if (openAIConfig.getProvider() == OpenAIProvider.AZURE) {
+            openAIClientBuilder.credential(new AzureKeyCredential(openAIConfig.getAccessKey()));
+        } else {
+            openAIClientBuilder.credential(new KeyCredential(openAIConfig.getAccessKey()));
+        }
+        if (openAIConfig.getUrl() != null && !openAIConfig.getUrl().isEmpty()) {
+            openAIClientBuilder.endpoint(openAIConfig.getUrl());
+
+            // this is for testing only
+            if (openAIConfig.getUrl().startsWith("http://localhost")) {
+                HttpPipeline httpPipeline =
+                        new HttpPipelineBuilder()
+                                .httpClient(new MockHttpClient(openAIConfig.getAccessKey()))
+                                .build();
+                openAIClientBuilder.pipeline(httpPipeline);
+            }
+        }
+
+        return openAIClientBuilder.buildAsyncClient();
     }
 
     public static QueryStepDataSource buildDataSource(Map<String, Object> dataSourceConfig) {

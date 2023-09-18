@@ -16,7 +16,7 @@
 package com.datastax.oss.streaming.ai.services;
 
 import ai.langstream.ai.agents.services.impl.OpenAICompletionService;
-import com.azure.ai.openai.OpenAIClient;
+import com.azure.ai.openai.OpenAIAsyncClient;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.embeddings.OpenAIEmbeddingsService;
@@ -26,13 +26,13 @@ import java.util.Map;
 
 public class OpenAIServiceProvider implements ServiceProvider {
 
-    private final OpenAIClient client;
+    private final OpenAIAsyncClient client;
 
     public OpenAIServiceProvider(TransformStepConfig config) {
-        client = TransformFunctionUtil.buildOpenAIClient(config.getOpenai());
+        client = TransformFunctionUtil.buildOpenAsyncAIClient(config.getOpenai());
     }
 
-    public OpenAIServiceProvider(OpenAIClient client) {
+    public OpenAIServiceProvider(OpenAIAsyncClient client) {
         this.client = client;
     }
 

@@ -25,10 +25,9 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.azure.ai.openai.OpenAIClient;
+import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
-import com.azure.core.util.IterableStream;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.services.OpenAIServiceProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,6 +48,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 public class GenAITest {
@@ -186,7 +186,7 @@ public class GenAITest {
                 new Gson().fromJson(userConfig, new TypeToken<Map<String, Object>>() {}.getType());
         TransformFunction transformFunction = spy(new TransformFunction());
 
-        OpenAIClient client = mock(OpenAIClient.class);
+        OpenAIAsyncClient client = mock(OpenAIAsyncClient.class);
 
         String completion =
                 (""
@@ -205,12 +205,9 @@ public class GenAITest {
         when(client.getChatCompletionsStream(eq("test-model"), any()))
                 .thenAnswer(
                         a ->
-                                IterableStream.of(
-                                        List.of(
-                                                new ObjectMapper()
-                                                        .readValue(
-                                                                completion,
-                                                                ChatCompletions.class))));
+                                Flux.just(
+                                        new ObjectMapper()
+                                                .readValue(completion, ChatCompletions.class)));
         when(transformFunction.buildServiceProvider(any()))
                 .thenReturn(new OpenAIServiceProvider(client));
 
@@ -251,7 +248,7 @@ public class GenAITest {
                 new Gson().fromJson(userConfig, new TypeToken<Map<String, Object>>() {}.getType());
         TransformFunction transformFunction = spy(new TransformFunction());
 
-        OpenAIClient client = mock(OpenAIClient.class);
+        OpenAIAsyncClient client = mock(OpenAIAsyncClient.class);
 
         String completion =
                 (""
@@ -270,12 +267,9 @@ public class GenAITest {
         when(client.getChatCompletionsStream(eq("test-model"), any()))
                 .thenAnswer(
                         a ->
-                                IterableStream.of(
-                                        List.of(
-                                                new ObjectMapper()
-                                                        .readValue(
-                                                                completion,
-                                                                ChatCompletions.class))));
+                                Flux.just(
+                                        new ObjectMapper()
+                                                .readValue(completion, ChatCompletions.class)));
         when(transformFunction.buildServiceProvider(any()))
                 .thenReturn(new OpenAIServiceProvider(client));
 

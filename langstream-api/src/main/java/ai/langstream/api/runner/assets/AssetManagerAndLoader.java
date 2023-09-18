@@ -59,8 +59,8 @@ public record AssetManagerAndLoader(AssetManager agentCode, ClassLoader classLoa
             }
 
             @Override
-            public void deleteAsset() throws Exception {
-                executeWithContextClassloader(agentCode -> agentCode.deleteAsset());
+            public boolean deleteAssetIfExists() throws Exception {
+                return callWithContextClassloader(agentCode -> agentCode.deleteAssetIfExists());
             }
 
             @Override

@@ -17,7 +17,6 @@ package ai.langstream.kafka.runner;
 
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConsumer;
-import ai.langstream.api.util.ClassloaderUtils;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;

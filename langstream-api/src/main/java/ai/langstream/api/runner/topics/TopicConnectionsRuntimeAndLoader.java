@@ -95,18 +95,23 @@ public record TopicConnectionsRuntimeAndLoader(
                     StreamingCluster streamingCluster,
                     Map<String, Object> configuration) {
 
-
-                final TopicConsumer topicConsumerImpl = (TopicConsumer) callNoExceptionWithContextClassloader(
-                        code -> code.createConsumer(agentId, streamingCluster, configuration));
+                final TopicConsumer topicConsumerImpl =
+                        (TopicConsumer)
+                                callNoExceptionWithContextClassloader(
+                                        code ->
+                                                code.createConsumer(
+                                                        agentId, streamingCluster, configuration));
                 return new TopicConsumer() {
                     @Override
                     public long getTotalOut() {
-                        return callNoExceptionWithContextClassloader(ignore -> topicConsumerImpl.getTotalOut());
+                        return callNoExceptionWithContextClassloader(
+                                ignore -> topicConsumerImpl.getTotalOut());
                     }
 
                     @Override
                     public Object getNativeConsumer() {
-                        return callNoExceptionWithContextClassloader(ignore -> topicConsumerImpl.getNativeConsumer());
+                        return callNoExceptionWithContextClassloader(
+                                ignore -> topicConsumerImpl.getNativeConsumer());
                     }
 
                     @Override
@@ -131,10 +136,10 @@ public record TopicConnectionsRuntimeAndLoader(
 
                     @Override
                     public Map<String, Object> getInfo() {
-                        return callNoExceptionWithContextClassloader(ignore -> topicConsumerImpl.getNativeConsumer());
+                        return callNoExceptionWithContextClassloader(
+                                ignore -> topicConsumerImpl.getNativeConsumer());
                     }
                 };
-
             }
 
             @Override
@@ -142,10 +147,11 @@ public record TopicConnectionsRuntimeAndLoader(
                     StreamingCluster streamingCluster,
                     Map<String, Object> configuration,
                     TopicOffsetPosition initialPosition) {
-                TopicReader topicReaderImpl = callNoExceptionWithContextClassloader(
-                        code ->
-                                code.createReader(
-                                        streamingCluster, configuration, initialPosition));
+                TopicReader topicReaderImpl =
+                        callNoExceptionWithContextClassloader(
+                                code ->
+                                        code.createReader(
+                                                streamingCluster, configuration, initialPosition));
                 if (topicReaderImpl == null) {
                     return null;
                 }
@@ -166,7 +172,6 @@ public record TopicConnectionsRuntimeAndLoader(
                         return callWithContextClassloader(ignore -> topicReaderImpl.read());
                     }
                 };
-
             }
 
             @Override
@@ -174,46 +179,54 @@ public record TopicConnectionsRuntimeAndLoader(
                     String agentId,
                     StreamingCluster streamingCluster,
                     Map<String, Object> configuration) {
-                final TopicProducer topicProducerImpl = callNoExceptionWithContextClassloader(
-                        code -> code.createProducer(agentId, streamingCluster, configuration));
+                final TopicProducer topicProducerImpl =
+                        callNoExceptionWithContextClassloader(
+                                code ->
+                                        code.createProducer(
+                                                agentId, streamingCluster, configuration));
                 if (topicProducerImpl == null) {
                     return null;
                 }
 
                 return wrapTopicProducer(topicProducerImpl);
-
             }
 
             private TopicProducer wrapTopicProducer(TopicProducer topicProducerImpl) {
                 return new TopicProducer() {
                     @Override
                     public long getTotalIn() {
-                        return callNoExceptionWithContextClassloader(ignore -> topicProducerImpl.getTotalIn());
+                        return callNoExceptionWithContextClassloader(
+                                ignore -> topicProducerImpl.getTotalIn());
                     }
 
                     @Override
                     public void start() {
-                        executeNoExceptionWithContextClassloader(ignore -> topicProducerImpl.start());
+                        executeNoExceptionWithContextClassloader(
+                                ignore -> topicProducerImpl.start());
                     }
 
                     @Override
                     public void close() {
-                        executeNoExceptionWithContextClassloader(ignore -> topicProducerImpl.close());
+                        executeNoExceptionWithContextClassloader(
+                                ignore -> topicProducerImpl.close());
                     }
 
                     @Override
                     public CompletableFuture<?> write(Record record) {
-                        return callNoExceptionWithContextClassloader(ignore -> topicProducerImpl.write(record));
+                        return callNoExceptionWithContextClassloader(
+                                ignore -> topicProducerImpl.write(record));
                     }
 
                     @Override
                     public Object getNativeProducer() {
-                        return callNoExceptionWithContextClassloader(ignore -> topicProducerImpl.getNativeProducer());
+                        return callNoExceptionWithContextClassloader(
+                                ignore -> topicProducerImpl.getNativeProducer());
                     }
 
                     @Override
                     public Object getInfo() {
-                        return callNoExceptionWithContextClassloader(ignore -> topicProducerImpl.getInfo());
+                        return callNoExceptionWithContextClassloader(
+                                ignore -> topicProducerImpl.getInfo());
                     }
                 };
             }
@@ -223,10 +236,11 @@ public record TopicConnectionsRuntimeAndLoader(
                     String agentId,
                     StreamingCluster streamingCluster,
                     Map<String, Object> configuration) {
-                final TopicProducer producerImpl = callNoExceptionWithContextClassloader(
-                        code ->
-                                code.createDeadletterTopicProducer(
-                                        agentId, streamingCluster, configuration));
+                final TopicProducer producerImpl =
+                        callNoExceptionWithContextClassloader(
+                                code ->
+                                        code.createDeadletterTopicProducer(
+                                                agentId, streamingCluster, configuration));
                 if (producerImpl == null) {
                     return null;
                 }
@@ -238,8 +252,11 @@ public record TopicConnectionsRuntimeAndLoader(
                     String agentId,
                     StreamingCluster streamingCluster,
                     Map<String, Object> configuration) {
-                final TopicAdmin topicAdminImpl = callNoExceptionWithContextClassloader(
-                        code -> code.createTopicAdmin(agentId, streamingCluster, configuration));
+                final TopicAdmin topicAdminImpl =
+                        callNoExceptionWithContextClassloader(
+                                code ->
+                                        code.createTopicAdmin(
+                                                agentId, streamingCluster, configuration));
                 if (topicAdminImpl == null) {
                     return null;
                 }
@@ -256,7 +273,8 @@ public record TopicConnectionsRuntimeAndLoader(
 
                     @Override
                     public Object getNativeTopicAdmin() {
-                        return callNoExceptionWithContextClassloader(ignore -> topicAdminImpl.getNativeTopicAdmin());
+                        return callNoExceptionWithContextClassloader(
+                                ignore -> topicAdminImpl.getNativeTopicAdmin());
                     }
                 };
             }

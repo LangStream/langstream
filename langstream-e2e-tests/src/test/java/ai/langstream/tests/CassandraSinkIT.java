@@ -55,7 +55,7 @@ public class CassandraSinkIT extends BaseEndToEndTest {
                         "CASSANDRA_CONTACT_POINTS", cassandraHost,
                         "CASSANDRA_LOCAL_DC", "datacenter1",
                         "CASSANDRA_PORT", "9042");
-        deployLocalApplication(applicationId, "python-processor", env);
+        deployLocalApplication(applicationId, "cassandra-sink", env);
         awaitApplicationReady(applicationId, 1);
 
         executeCommandOnClient(

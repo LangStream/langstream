@@ -357,6 +357,13 @@ public class WebCrawlerSourceTest {
         assertTrue(status.getRemainingUrls().isEmpty());
         assertTrue(status.getPendingUrls().isEmpty());
         assertFalse(status.getRobotsFiles().isEmpty());
+
+        // test reload robot rules from S3
+        WebCrawlerSource agentSource2 =
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);
+        WebCrawler crawler2 = agentSource.getCrawler();
+        assertEquals(crawler2.getStatus().getRobotsFiles(), status.getRobotsFiles());
+        agentSource2.close();
     }
 
     private WebCrawlerSource buildAgentSource(

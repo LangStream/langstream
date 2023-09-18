@@ -33,7 +33,7 @@ common_flags="-DskipTests -PskipPython -Dlicense.skip -Dspotless.skip"
 build_docker_image() {
   module=$1
   ./mvnw install -am -pl $module -T 1C $common_flags
-  ./mvnw package -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)" $common_flags
+  ./mvnw clean package -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)" $common_flags
   docker images | head -n 2
 }
 

@@ -281,7 +281,11 @@ public class BaseEndToEndTest implements TestWatcher {
                 "bin/langstream gateway consume %s %s %s -n 1"
                         .formatted(applicationId, gatewayId, String.join(" ", extraArgs));
         final String response = executeCommandOnClient(command);
-        final String secondLine = response.lines().collect(Collectors.toList()).get(1);
+        final List<String> lines = response.lines().collect(Collectors.toList());
+        if (lines.size() <= 1) {
+            return null;
+        }
+        final String secondLine = lines.get(1);
         return ConsumeGatewayMessage.readValue(secondLine);
     }
 
@@ -1024,6 +1028,13 @@ public class BaseEndToEndTest implements TestWatcher {
                         .filter(s -> !s.isBlank())
                         .collect(Collectors.toList());
         System.out.println("app line " + lineAsList);
+        final String status = lineAsList.get(3);
+        if (status != null && status.equals("ERROR_DEPLOYING")) {
+            log.info("application {} is in ERROR_DEPLOYING state, dumping status", applicationId);
+            executeCommandOnClient(
+                    "bin/langstream apps get %s -o yaml".formatted(applicationId).split(" "));
+            throw new IllegalStateException("application is in ERROR_DEPLOYING state");
+        }
         if (lineAsList.size() <= 5) {
             return false;
         }

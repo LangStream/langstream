@@ -35,7 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -84,11 +83,19 @@ public class OpenAICompletionService implements CompletionsService {
             Flux<com.azure.ai.openai.models.ChatCompletions> flux =
                     client.getChatCompletionsStream(
                             (String) options.get("model"), chatCompletionsOptions);
-            Stream<com.azure.ai.openai.models.ChatCompletions> model = flux.toStream();
+
             ChatCompletionsConsumer chatCompletionsConsumer =
                     new ChatCompletionsConsumer(
                             streamingChunksConsumer, minChunksPerMessage, finished);
-            model.forEach(chatCompletionsConsumer);
+
+            flux.subscribe(chatCompletionsConsumer);
+
+            flux.doOnError(
+                    error -> {
+                        log.error("Internal error while processing the streaming response", error);
+                        finished.completeExceptionally(error);
+                    });
+
             return finished.thenApply(
                     ___ -> {
                         result.setChoices(

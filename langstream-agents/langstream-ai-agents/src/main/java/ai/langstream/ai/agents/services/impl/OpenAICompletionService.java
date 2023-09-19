@@ -88,13 +88,14 @@ public class OpenAICompletionService implements CompletionsService {
                     new ChatCompletionsConsumer(
                             streamingChunksConsumer, minChunksPerMessage, finished);
 
-            flux.subscribe(chatCompletionsConsumer);
-
             flux.doOnError(
-                    error -> {
-                        log.error("Internal error while processing the streaming response", error);
-                        finished.completeExceptionally(error);
-                    });
+                            error -> {
+                                log.error(
+                                        "Internal error while processing the streaming response",
+                                        error);
+                                finished.completeExceptionally(error);
+                            })
+                    .subscribe(chatCompletionsConsumer);
 
             return finished.thenApply(
                     ___ -> {

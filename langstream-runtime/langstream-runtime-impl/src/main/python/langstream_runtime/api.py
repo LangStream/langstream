@@ -16,13 +16,11 @@
 #
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Any, List, Tuple, Dict, Union, Optional
+from typing import Any, List, Tuple, Dict, Union
 
 __all__ = [
     "Record",
     "RecordType",
-    "AgentContext",
     "Agent",
     "Source",
     "Sink",
@@ -117,15 +115,6 @@ class TopicProducer(ABC):
         return {}
 
 
-@dataclass
-class AgentContext(object):
-    """The Agent context"""
-
-    topic_consumer: Optional[TopicConsumer] = None
-    topic_producer: Optional[TopicProducer] = None
-    global_agent_id: Optional[str] = None
-
-
 class Agent(ABC):
     """The Agent interface"""
 
@@ -144,10 +133,6 @@ class Agent(ABC):
     def agent_info(self) -> Dict[str, Any]:
         """Return the agent information."""
         return {}
-
-    def set_context(self, context: AgentContext):
-        """Set the agent context."""
-        pass
 
 
 class Source(Agent):

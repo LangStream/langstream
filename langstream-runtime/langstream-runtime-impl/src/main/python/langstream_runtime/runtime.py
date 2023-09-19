@@ -32,7 +32,6 @@ from .api import (
     Processor,
     Record,
     CommitCallback,
-    AgentContext,
     RecordType,
 )
 from .util import SingleRecordProcessor, SimpleRecord
@@ -92,7 +91,7 @@ class ComponentType(str, Enum):
 class RuntimeAgent(Agent):
     def __init__(
         self,
-        agent: Agent,
+        agent: Union[Source, Sink, Processor],
         component_type: ComponentType,
         agent_id,
         agent_type,
@@ -135,9 +134,6 @@ class RuntimeAgent(Agent):
                 },
             }
         ]
-
-    def set_context(self, context: AgentContext):
-        call_method_if_exists(self.agent, "set_context", context)
 
 
 class RuntimeSource(RuntimeAgent, Source):
@@ -328,15 +324,6 @@ def run(configuration, agent=None, agent_info: AgentInfo = AgentInfo(), max_loop
         processor = RuntimeProcessor(NoopProcessor(), "identity", "identity")
 
     agent_info.processor = processor
-
-    agent_context = AgentContext(
-        topic_consumer=consumer,
-        topic_producer=producer,
-        global_agent_id=application_agent_id,
-    )
-
-    for component in {a.agent: a for a in {source, sink, processor}}.values():
-        component.set_context(agent_context)
 
     run_main_loop(
         source,

@@ -101,7 +101,7 @@ class AgentService(AgentServiceServicer):
     def from_grpc_value(self, value: Value):
         if value is None or value.WhichOneof("type_oneof") is None:
             return None
-        if value.HasField("avroValue"):
+        if value.HasField("avro_value"):
             schema = self.client_schemas[value.schema_id]
             avro_value = BytesIO(value.avro_value)
             try:

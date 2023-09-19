@@ -23,20 +23,22 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
 public class PythonFunctionIT extends BaseEndToEndTest {
 
-    @Test
-    public void test() {
+    @ParameterizedTest
+    @ValueSource(strings = {"python-processor", "experimental-python-processor"})
+    public void test(String appDir) {
         installLangStreamCluster(false);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
         final String applicationId = "my-test-app";
-        deployLocalApplication(applicationId, "python-processor");
+        deployLocalApplication(applicationId, appDir);
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
         awaitApplicationReady(applicationId, 1);
 

@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
@@ -85,7 +86,8 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
         if (channel == null) {
             throw new IllegalStateException("Channel not initialized");
         }
-        blockingStub = AgentServiceGrpc.newBlockingStub(channel);
+        blockingStub =
+                AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
         request = AgentServiceGrpc.newStub(channel).withWaitForReady().process(responseObserver);
     }
 

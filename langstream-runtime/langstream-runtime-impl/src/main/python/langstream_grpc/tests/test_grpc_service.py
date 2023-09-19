@@ -34,7 +34,8 @@ from langstream_grpc.proto.agent_pb2 import (
     InfoResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceStub
-from langstream_runtime.util import Record, RecordType, SingleRecordProcessor
+from langstream_runtime.api import Record, RecordType
+from langstream_runtime.util import SingleRecordProcessor
 
 
 @pytest.fixture(autouse=True)
@@ -56,23 +57,23 @@ def stub():
     "input_type,output_type,value,key,header",
     [
         pytest.param(
-            "stringValue", "stringValue", "test-value", "test-key", "test-header"
+            "string_value", "string_value", "test-value", "test-key", "test-header"
         ),
         pytest.param(
-            "bytesValue", "bytesValue", b"test-value", b"test-key", b"test-header"
+            "bytes_value", "bytes_value", b"test-value", b"test-key", b"test-header"
         ),
-        pytest.param("byteValue", "longValue", 42, 43, 44),
-        pytest.param("shortValue", "longValue", 42, 43, 44),
-        pytest.param("intValue", "longValue", 42, 43, 44),
-        pytest.param("floatValue", "doubleValue", 42.0, 43.0, 44.0),
-        pytest.param("doubleValue", "doubleValue", 42.0, 43.0, 44.0),
+        pytest.param("byte_value", "long_value", 42, 43, 44),
+        pytest.param("short_value", "long_value", 42, 43, 44),
+        pytest.param("int_value", "long_value", 42, 43, 44),
+        pytest.param("float_value", "double_value", 42.0, 43.0, 44.0),
+        pytest.param("double_value", "double_value", 42.0, 43.0, 44.0),
     ],
 )
 def test_process(input_type, output_type, value, key, header, request):
     stub = request.getfixturevalue("stub")
 
     record = GrpcRecord(
-        recordId=42,
+        record_id=42,
         key=Value(**{input_type: key}),
         value=Value(**{input_type: value}),
         headers=[
@@ -87,7 +88,7 @@ def test_process(input_type, output_type, value, key, header, request):
     response: ProcessorResponse
     for response in stub.process(iter([ProcessorRequest(records=[record])])):
         assert len(response.results) == 1
-        assert response.results[0].recordId == record.recordId
+        assert response.results[0].record_id == record.record_id
         assert response.results[0].HasField("error") is False
         assert len(response.results[0].records) == 1
         result = response.results[0].records[0]
@@ -111,7 +112,7 @@ def test_avro(stub):
     canonical_schema = fastavro.schema.to_parsing_canonical_form(schema)
     requests.append(
         ProcessorRequest(
-            schema=Schema(schemaId=42, value=canonical_schema.encode("utf-8"))
+            schema=Schema(schema_id=42, value=canonical_schema.encode("utf-8"))
         )
     )
 
@@ -122,7 +123,8 @@ def test_avro(stub):
             ProcessorRequest(
                 records=[
                     GrpcRecord(
-                        recordId=43, value=Value(schemaId=42, avroValue=fp.getvalue())
+                        record_id=43,
+                        value=Value(schema_id=42, avro_value=fp.getvalue()),
                     )
                 ]
             )
@@ -135,16 +137,16 @@ def test_avro(stub):
     response_schema = responses[0]
     assert len(response_schema.results) == 0
     assert response_schema.HasField("schema")
-    assert response_schema.schema.schemaId == 1
+    assert response_schema.schema.schema_id == 1
     assert response_schema.schema.value.decode("utf-8") == canonical_schema
 
     response_record = responses[1]
     assert len(response_record.results) == 1
     result = response_record.results[0]
-    assert result.recordId == 43
+    assert result.record_id == 43
     assert len(result.records) == 1
-    assert result.records[0].value.schemaId == 1
-    fp = BytesIO(result.records[0].value.avroValue)
+    assert result.records[0].value.schema_id == 1
+    fp = BytesIO(result.records[0].value.avro_value)
     try:
         decoded = fastavro.schemaless_reader(fp, json.loads(canonical_schema))
         assert decoded == {"field": "test"}
@@ -157,7 +159,7 @@ def test_empty_record(request):
     record = GrpcRecord()
     for response in stub.process(iter([ProcessorRequest(records=[record])])):
         assert len(response.results) == 1
-        assert response.results[0].recordId == 0
+        assert response.results[0].record_id == 0
         assert response.results[0].HasField("error") is False
         assert len(response.results[0].records) == 1
         result = response.results[0].records[0]

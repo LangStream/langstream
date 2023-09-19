@@ -20,6 +20,7 @@ import io.grpc.ManagedChannelBuilder;
 import java.net.ServerSocket;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -72,7 +73,8 @@ public class PythonGrpcAgentProcessor extends GrpcAgentProcessor {
                         .directExecutor()
                         .usePlaintext()
                         .build();
-        AgentServiceGrpc.AgentServiceBlockingStub stub = AgentServiceGrpc.newBlockingStub(channel);
+        AgentServiceGrpc.AgentServiceBlockingStub stub =
+                AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
         for (int i = 0; ; i++) {
             try {
                 stub.agentInfo(Empty.getDefaultInstance());

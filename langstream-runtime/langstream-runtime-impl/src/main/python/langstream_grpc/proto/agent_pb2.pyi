@@ -20,57 +20,57 @@ class InfoResponse(_message.Message):
 
 class Value(_message.Message):
     __slots__ = [
-        "schemaId",
-        "bytesValue",
-        "booleanValue",
-        "stringValue",
-        "byteValue",
-        "shortValue",
-        "intValue",
-        "longValue",
-        "floatValue",
-        "doubleValue",
-        "jsonValue",
-        "avroValue",
+        "schema_id",
+        "bytes_value",
+        "boolean_value",
+        "string_value",
+        "byte_value",
+        "short_value",
+        "int_value",
+        "long_value",
+        "float_value",
+        "double_value",
+        "json_value",
+        "avro_value",
     ]
-    SCHEMAID_FIELD_NUMBER: _ClassVar[int]
-    BYTESVALUE_FIELD_NUMBER: _ClassVar[int]
-    BOOLEANVALUE_FIELD_NUMBER: _ClassVar[int]
-    STRINGVALUE_FIELD_NUMBER: _ClassVar[int]
-    BYTEVALUE_FIELD_NUMBER: _ClassVar[int]
-    SHORTVALUE_FIELD_NUMBER: _ClassVar[int]
-    INTVALUE_FIELD_NUMBER: _ClassVar[int]
-    LONGVALUE_FIELD_NUMBER: _ClassVar[int]
-    FLOATVALUE_FIELD_NUMBER: _ClassVar[int]
-    DOUBLEVALUE_FIELD_NUMBER: _ClassVar[int]
-    JSONVALUE_FIELD_NUMBER: _ClassVar[int]
-    AVROVALUE_FIELD_NUMBER: _ClassVar[int]
-    schemaId: int
-    bytesValue: bytes
-    booleanValue: bool
-    stringValue: str
-    byteValue: int
-    shortValue: int
-    intValue: int
-    longValue: int
-    floatValue: float
-    doubleValue: float
-    jsonValue: str
-    avroValue: bytes
+    SCHEMA_ID_FIELD_NUMBER: _ClassVar[int]
+    BYTES_VALUE_FIELD_NUMBER: _ClassVar[int]
+    BOOLEAN_VALUE_FIELD_NUMBER: _ClassVar[int]
+    STRING_VALUE_FIELD_NUMBER: _ClassVar[int]
+    BYTE_VALUE_FIELD_NUMBER: _ClassVar[int]
+    SHORT_VALUE_FIELD_NUMBER: _ClassVar[int]
+    INT_VALUE_FIELD_NUMBER: _ClassVar[int]
+    LONG_VALUE_FIELD_NUMBER: _ClassVar[int]
+    FLOAT_VALUE_FIELD_NUMBER: _ClassVar[int]
+    DOUBLE_VALUE_FIELD_NUMBER: _ClassVar[int]
+    JSON_VALUE_FIELD_NUMBER: _ClassVar[int]
+    AVRO_VALUE_FIELD_NUMBER: _ClassVar[int]
+    schema_id: int
+    bytes_value: bytes
+    boolean_value: bool
+    string_value: str
+    byte_value: int
+    short_value: int
+    int_value: int
+    long_value: int
+    float_value: float
+    double_value: float
+    json_value: str
+    avro_value: bytes
     def __init__(
         self,
-        schemaId: _Optional[int] = ...,
-        bytesValue: _Optional[bytes] = ...,
-        booleanValue: bool = ...,
-        stringValue: _Optional[str] = ...,
-        byteValue: _Optional[int] = ...,
-        shortValue: _Optional[int] = ...,
-        intValue: _Optional[int] = ...,
-        longValue: _Optional[int] = ...,
-        floatValue: _Optional[float] = ...,
-        doubleValue: _Optional[float] = ...,
-        jsonValue: _Optional[str] = ...,
-        avroValue: _Optional[bytes] = ...,
+        schema_id: _Optional[int] = ...,
+        bytes_value: _Optional[bytes] = ...,
+        boolean_value: bool = ...,
+        string_value: _Optional[str] = ...,
+        byte_value: _Optional[int] = ...,
+        short_value: _Optional[int] = ...,
+        int_value: _Optional[int] = ...,
+        long_value: _Optional[int] = ...,
+        float_value: _Optional[float] = ...,
+        double_value: _Optional[float] = ...,
+        json_value: _Optional[str] = ...,
+        avro_value: _Optional[bytes] = ...,
     ) -> None: ...
 
 class Header(_message.Message):
@@ -86,24 +86,24 @@ class Header(_message.Message):
     ) -> None: ...
 
 class Schema(_message.Message):
-    __slots__ = ["schemaId", "value"]
-    SCHEMAID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ["schema_id", "value"]
+    SCHEMA_ID_FIELD_NUMBER: _ClassVar[int]
     VALUE_FIELD_NUMBER: _ClassVar[int]
-    schemaId: int
+    schema_id: int
     value: bytes
     def __init__(
-        self, schemaId: _Optional[int] = ..., value: _Optional[bytes] = ...
+        self, schema_id: _Optional[int] = ..., value: _Optional[bytes] = ...
     ) -> None: ...
 
 class Record(_message.Message):
-    __slots__ = ["recordId", "key", "value", "headers", "origin", "timestamp"]
-    RECORDID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ["record_id", "key", "value", "headers", "origin", "timestamp"]
+    RECORD_ID_FIELD_NUMBER: _ClassVar[int]
     KEY_FIELD_NUMBER: _ClassVar[int]
     VALUE_FIELD_NUMBER: _ClassVar[int]
     HEADERS_FIELD_NUMBER: _ClassVar[int]
     ORIGIN_FIELD_NUMBER: _ClassVar[int]
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
-    recordId: int
+    record_id: int
     key: Value
     value: Value
     headers: _containers.RepeatedCompositeFieldContainer[Header]
@@ -111,7 +111,7 @@ class Record(_message.Message):
     timestamp: int
     def __init__(
         self,
-        recordId: _Optional[int] = ...,
+        record_id: _Optional[int] = ...,
         key: _Optional[_Union[Value, _Mapping]] = ...,
         value: _Optional[_Union[Value, _Mapping]] = ...,
         headers: _Optional[_Iterable[_Union[Header, _Mapping]]] = ...,
@@ -144,16 +144,16 @@ class ProcessorResponse(_message.Message):
     ) -> None: ...
 
 class ProcessorResult(_message.Message):
-    __slots__ = ["recordId", "error", "records"]
-    RECORDID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ["record_id", "error", "records"]
+    RECORD_ID_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     RECORDS_FIELD_NUMBER: _ClassVar[int]
-    recordId: int
+    record_id: int
     error: str
     records: _containers.RepeatedCompositeFieldContainer[Record]
     def __init__(
         self,
-        recordId: _Optional[int] = ...,
+        record_id: _Optional[int] = ...,
         error: _Optional[str] = ...,
         records: _Optional[_Iterable[_Union[Record, _Mapping]]] = ...,
     ) -> None: ...

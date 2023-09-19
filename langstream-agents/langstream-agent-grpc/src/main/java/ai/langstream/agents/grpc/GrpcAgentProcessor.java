@@ -167,17 +167,17 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
             return null;
         }
         return switch (value.getTypeOneofCase()) {
-            case BYTESVALUE -> value.getBytesValue().toByteArray();
-            case BOOLEANVALUE -> value.getBooleanValue();
-            case STRINGVALUE -> value.getStringValue();
-            case BYTEVALUE -> (byte) value.getByteValue();
-            case SHORTVALUE -> (short) value.getShortValue();
-            case INTVALUE -> value.getIntValue();
-            case LONGVALUE -> value.getLongValue();
-            case FLOATVALUE -> value.getFloatValue();
-            case DOUBLEVALUE -> value.getDoubleValue();
-            case JSONVALUE -> value.getJsonValue();
-            case AVROVALUE -> {
+            case BYTES_VALUE -> value.getBytesValue().toByteArray();
+            case BOOLEAN_VALUE -> value.getBooleanValue();
+            case STRING_VALUE -> value.getStringValue();
+            case BYTE_VALUE -> (byte) value.getByteValue();
+            case SHORT_VALUE -> (short) value.getShortValue();
+            case INT_VALUE -> value.getIntValue();
+            case LONG_VALUE -> value.getLongValue();
+            case FLOAT_VALUE -> value.getFloatValue();
+            case DOUBLE_VALUE -> value.getDoubleValue();
+            case JSON_VALUE -> value.getJsonValue();
+            case AVRO_VALUE -> {
                 Object serverSchema = serverSchemas.get(value.getSchemaId());
                 if (serverSchema instanceof org.apache.avro.Schema schema) {
                     yield deserializeGenericRecord(schema, value.getAvroValue().toByteArray());

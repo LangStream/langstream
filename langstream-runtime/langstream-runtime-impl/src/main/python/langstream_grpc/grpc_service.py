@@ -69,13 +69,13 @@ class AgentService(AgentServiceServicer):
         for request in requests:
             if request.HasField("schema"):
                 schema = fastavro.parse_schema(json.loads(request.schema.value))
-                self.client_schemas[request.schema.schemaId] = schema
+                self.client_schemas[request.schema.schema_id] = schema
             if len(request.records) > 0:
                 records = [self.from_grpc_record(record) for record in request.records]
                 process_result = self.agent.process(records)
                 grpc_results = []
                 for source_record, result in process_result:
-                    grpc_result = ProcessorResult(recordId=source_record.record_id)
+                    grpc_result = ProcessorResult(record_id=source_record.record_id)
                     if isinstance(result, Exception):
                         grpc_result.error = str(result)
                     else:
@@ -88,18 +88,9 @@ class AgentService(AgentServiceServicer):
 
                 yield ProcessorResponse(results=grpc_results)
 
-    def new_schema_to_send(self, value: Value):
-        if type(value).__name__ == "AvroValue":
-            schema_str = fastavro.schema.to_parsing_canonical_form(value.schema)
-            if schema_str not in self.schemas:
-                self.schema_id += 1
-                self.schemas[schema_str] = self.schema_id
-                return Schema(schemaId=self.schema_id, value=schema_str.encode("utf-8"))
-        return None
-
     def from_grpc_record(self, record: GrpcRecord) -> SimpleRecord:
         return RecordWithId(
-            record_id=record.recordId,
+            record_id=record.record_id,
             value=self.from_grpc_value(record.value),
             key=self.from_grpc_value(record.key),
             headers=[(h.name, self.from_grpc_value(h.value)) for h in record.headers],
@@ -111,8 +102,8 @@ class AgentService(AgentServiceServicer):
         if value is None or value.WhichOneof("type_oneof") is None:
             return None
         if value.HasField("avroValue"):
-            schema = self.client_schemas[value.schemaId]
-            avro_value = BytesIO(value.avroValue)
+            schema = self.client_schemas[value.schema_id]
+            avro_value = BytesIO(value.avro_value)
             try:
                 return AvroValue(
                     schema=schema, value=fastavro.schemaless_reader(avro_value, schema)
@@ -150,32 +141,32 @@ class AgentService(AgentServiceServicer):
         grpc_value = Value()
         grpc_schema = None
         if isinstance(value, bytes):
-            grpc_value.bytesValue = value
+            grpc_value.bytes_value = value
         elif isinstance(value, str):
-            grpc_value.stringValue = value
+            grpc_value.string_value = value
         elif isinstance(value, bool):
-            grpc_value.booleanValue = value
+            grpc_value.boolean_value = value
         elif isinstance(value, int):
-            grpc_value.longValue = value
+            grpc_value.long_value = value
         elif isinstance(value, float):
-            grpc_value.doubleValue = value
+            grpc_value.double_value = value
         elif type(value).__name__ == "AvroValue":
             schema_str = fastavro.schema.to_parsing_canonical_form(value.schema)
             if schema_str not in self.schemas:
                 self.schema_id += 1
                 self.schemas[schema_str] = self.schema_id
                 grpc_schema = Schema(
-                    schemaId=self.schema_id, value=schema_str.encode("utf-8")
+                    schema_id=self.schema_id, value=schema_str.encode("utf-8")
                 )
             fp = BytesIO()
             try:
                 fastavro.schemaless_writer(fp, value.schema, value.value)
-                grpc_value.avroValue = fp.getvalue()
-                grpc_value.schemaId = self.schema_id
+                grpc_value.avro_value = fp.getvalue()
+                grpc_value.schema_id = self.schema_id
             finally:
                 fp.close()
         elif isinstance(value, dict) or isinstance(value, list):
-            grpc_value.jsonValue = json.dumps(value)
+            grpc_value.json_value = json.dumps(value)
         else:
             raise TypeError(f"Got unsupported type {type(value)}")
         return grpc_schema, grpc_value

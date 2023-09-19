@@ -21,6 +21,7 @@ from typing import List, Dict, Any
 import fastavro
 import grpc
 import pytest
+from google.protobuf import empty_pb2
 
 from langstream_grpc.grpc_service import AgentServer
 from langstream_grpc.proto.agent_pb2 import (
@@ -30,7 +31,6 @@ from langstream_grpc.proto.agent_pb2 import (
     Header,
     ProcessorResponse,
     Schema,
-    Empty,
     InfoResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceStub
@@ -178,7 +178,7 @@ def test_failing_record(request):
 
 
 def test_info(stub):
-    info: InfoResponse = stub.agent_info(Empty())
+    info: InfoResponse = stub.agent_info(empty_pb2.Empty())
     assert info.json_info == '{"test-info-key": "test-info-value"}'
 
 

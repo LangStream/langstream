@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,26 +14,13 @@
 # limitations under the License.
 #
 
-from .api import (
-    Agent,
-    Record,
-    RecordType,
-    Sink,
-    Source,
-    Processor,
-    CommitCallback,
-)
-from .util import SimpleRecord, SingleRecordProcessor, AvroValue
+from langstream import SimpleRecord, SingleRecordProcessor
 
-__all__ = [
-    "Record",
-    "RecordType",
-    "Agent",
-    "Source",
-    "Sink",
-    "Processor",
-    "CommitCallback",
-    "SimpleRecord",
-    "SingleRecordProcessor",
-    "AvroValue",
-]
+
+class Exclamation(SingleRecordProcessor):
+    def init(self, config):
+        print("init", config)
+        self.secret_value = config["secret_value"]
+
+    def process_record(self, record):
+        return [SimpleRecord(record.value() + "!!" + self.secret_value)]

@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +17,7 @@
 import logging
 import sys
 
-import yaml
-
-from . import runtime
+from langstream_grpc.grpc_service import AgentServer
 
 if __name__ == "__main__":
     logging.addLevelName(logging.WARNING, "WARN")
@@ -30,10 +27,12 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
 
-    if len(sys.argv) != 2:
-        print("Missing pod configuration file argument")
+    if len(sys.argv) != 3:
+        print("Missing gRPC target and python class name")
+        print("usage: python -m langstream_grpc <target> <config>")
         sys.exit(1)
 
-    with open(sys.argv[1], "r") as file:
-        config = yaml.safe_load(file)
-        runtime.run_with_server(config)
+    server = AgentServer(sys.argv[1], sys.argv[2])
+    server.start()
+    server.grpc_server.wait_for_termination()
+    server.stop()

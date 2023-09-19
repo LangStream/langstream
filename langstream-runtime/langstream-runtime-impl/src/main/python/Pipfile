@@ -2,6 +2,8 @@
 pyYaml = "*"
 confluent-kafka = "*"
 sortedcontainers = "*"
+grpcio = "*"
+fastavro = "*"
 
 [full]
 "openai[embeddings]" = "*"
@@ -20,3 +22,4 @@ ruff = "*"
 pytest = "*"
 testcontainers-kafka = "*"
 waiting = "*"
+grpcio-tools = "*"

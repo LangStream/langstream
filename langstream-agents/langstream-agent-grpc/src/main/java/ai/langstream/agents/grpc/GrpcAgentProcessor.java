@@ -20,8 +20,11 @@ import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.code.SimpleRecord;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayOutputStream;
@@ -30,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +48,7 @@ import org.apache.avro.io.EncoderFactory;
 
 @Slf4j
 public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProcessor {
-
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected ManagedChannel channel;
     private StreamObserver<ProcessorRequest> request;
     private RecordSink sink;
@@ -65,7 +69,8 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
     private final Map<Integer, Object> serverSchemas = new ConcurrentHashMap<>();
 
     private final StreamObserver<ProcessorResponse> responseObserver = getResponseObserver();
-    private AgentContext agentContext;
+    protected AgentContext agentContext;
+    protected AgentServiceGrpc.AgentServiceBlockingStub blockingStub;
 
     private record RecordAndSink(
             ai.langstream.api.runner.code.Record sourceRecord, RecordSink sink) {}
@@ -77,16 +82,28 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
     }
 
     @Override
-    public void start() {
+    public void start() throws Exception {
         if (channel == null) {
             throw new IllegalStateException("Channel not initialized");
         }
-        request = ProcessorGrpc.newStub(channel).process(responseObserver);
+        blockingStub =
+                AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
+        request = AgentServiceGrpc.newStub(channel).withWaitForReady().process(responseObserver);
     }
 
     @Override
-    public void setContext(AgentContext context) {
+    public void setContext(AgentContext context) throws Exception {
         this.agentContext = context;
+    }
+
+    @Override
+    protected Map<String, Object> buildAdditionalInfo() {
+        try {
+            return MAPPER.readValue(
+                    blockingStub.agentInfo(Empty.getDefaultInstance()).getJsonInfo(), Map.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -96,11 +113,11 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
             sink = recordSink;
         }
 
-        Records.Builder recordsBuilder = Records.newBuilder();
+        ProcessorRequest.Builder requestBuilder = ProcessorRequest.newBuilder();
         for (ai.langstream.api.runner.code.Record record : records) {
             long rId = recordId.incrementAndGet();
             try {
-                Record.Builder recordBuilder = recordsBuilder.addRecordBuilder().setRecordId(rId);
+                Record.Builder recordBuilder = requestBuilder.addRecordsBuilder().setRecordId(rId);
 
                 if (record.value() != null) {
                     recordBuilder.setValue(toGrpc(record.value()));
@@ -132,13 +149,13 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
                 recordSink.emit(new SourceRecordAndResult(record, null, e));
             }
         }
-        if (recordsBuilder.getRecordCount() > 0) {
-            request.onNext(ProcessorRequest.newBuilder().setRecords(recordsBuilder).build());
+        if (requestBuilder.getRecordsCount() > 0) {
+            request.onNext(requestBuilder.build());
         }
     }
 
     @Override
-    public synchronized void close() {
+    public synchronized void close() throws Exception {
         if (request != null) {
             request.onCompleted();
         }
@@ -152,17 +169,17 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
             return null;
         }
         return switch (value.getTypeOneofCase()) {
-            case BYTESVALUE -> value.getBytesValue().toByteArray();
-            case BOOLEANVALUE -> value.getBooleanValue();
-            case STRINGVALUE -> value.getStringValue();
-            case BYTEVALUE -> (byte) value.getByteValue();
-            case SHORTVALUE -> (short) value.getShortValue();
-            case INTVALUE -> value.getIntValue();
-            case LONGVALUE -> value.getLongValue();
-            case FLOATVALUE -> value.getFloatValue();
-            case DOUBLEVALUE -> value.getDoubleValue();
-            case JSONVALUE -> value.getJsonValue();
-            case AVROVALUE -> {
+            case BYTES_VALUE -> value.getBytesValue().toByteArray();
+            case BOOLEAN_VALUE -> value.getBooleanValue();
+            case STRING_VALUE -> value.getStringValue();
+            case BYTE_VALUE -> (byte) value.getByteValue();
+            case SHORT_VALUE -> (short) value.getShortValue();
+            case INT_VALUE -> value.getIntValue();
+            case LONG_VALUE -> value.getLongValue();
+            case FLOAT_VALUE -> value.getFloatValue();
+            case DOUBLE_VALUE -> value.getDoubleValue();
+            case JSON_VALUE -> value.getJsonValue();
+            case AVRO_VALUE -> {
                 Object serverSchema = serverSchemas.get(value.getSchemaId());
                 if (serverSchema instanceof org.apache.avro.Schema schema) {
                     yield deserializeGenericRecord(schema, value.getAvroValue().toByteArray());
@@ -184,7 +201,7 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
             return new SourceRecordAndResult(
                     sourceRecord, null, new RuntimeException(result.getError()));
         }
-        for (Record record : result.getRecords().getRecordList()) {
+        for (Record record : result.getRecordsList()) {
             resultRecords.add(fromGrpc(record));
         }
         return new SourceRecordAndResult(sourceRecord, resultRecords, null);
@@ -296,40 +313,36 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
                             new org.apache.avro.Schema.Parser()
                                     .parse(response.getSchema().getValue().toStringUtf8());
                     serverSchemas.put(response.getSchema().getSchemaId(), schema);
-                } else {
-                    response.getResults()
-                            .getResultList()
-                            .forEach(
-                                    result -> {
-                                        RecordAndSink recordAndSink =
-                                                sourceRecords.remove(result.getRecordId());
-                                        if (recordAndSink == null) {
+                }
+                response.getResultsList()
+                        .forEach(
+                                result -> {
+                                    RecordAndSink recordAndSink =
+                                            sourceRecords.remove(result.getRecordId());
+                                    if (recordAndSink == null) {
+                                        agentContext.criticalFailure(
+                                                new RuntimeException(
+                                                        "Received unknown record id "
+                                                                + result.getRecordId()));
+                                    } else {
+                                        try {
+                                            recordAndSink
+                                                    .sink()
+                                                    .emit(
+                                                            fromGrpc(
+                                                                    recordAndSink.sourceRecord(),
+                                                                    result));
+                                        } catch (Exception e) {
                                             agentContext.criticalFailure(
                                                     new RuntimeException(
-                                                            "Received unknown record id "
-                                                                    + result.getRecordId()));
-                                        } else {
-                                            try {
-                                                recordAndSink
-                                                        .sink()
-                                                        .emit(
-                                                                fromGrpc(
-                                                                        recordAndSink
-                                                                                .sourceRecord(),
-                                                                        result));
-                                            } catch (Exception e) {
-                                                agentContext.criticalFailure(
-                                                        new RuntimeException(
-                                                                "Error while processing record %s: %s"
-                                                                        .formatted(
-                                                                                result
-                                                                                        .getRecordId(),
-                                                                                e.getMessage()),
-                                                                e));
-                                            }
+                                                            "Error while processing record %s: %s"
+                                                                    .formatted(
+                                                                            result.getRecordId(),
+                                                                            e.getMessage()),
+                                                            e));
                                         }
-                                    });
-                }
+                                    }
+                                });
             }
 
             @Override

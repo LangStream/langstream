@@ -257,6 +257,7 @@ public class ConfigurationUtils {
 
     /**
      * Remove all the secrets from the configuration. This method is used to avoid logging secrets
+     *
      * @param object
      * @return the object without secrets
      */
@@ -277,21 +278,22 @@ public class ConfigurationUtils {
         }
 
         if (object instanceof Map map) {
-            Map<Object,Object> other = new HashMap<>();
-            map.forEach((k, v) -> {
-                String keyLowercase = (String.valueOf(k)).toLowerCase();
-                if (keyLowercase.contains("password")
-                 || keyLowercase.contains("pwd")
-                 || keyLowercase.contains("secure")
-                 || keyLowercase.contains("secret")
-                 || keyLowercase.contains("serviceaccountjson")
-                 || keyLowercase.contains("access-key")
-                 || keyLowercase.contains("token")) {
-                    other.put(k, "<REDACTED>");
-                } else {
-                    other.put(k, redactSecrets(v));
-                }
-            });
+            Map<Object, Object> other = new HashMap<>();
+            map.forEach(
+                    (k, v) -> {
+                        String keyLowercase = (String.valueOf(k)).toLowerCase();
+                        if (keyLowercase.contains("password")
+                                || keyLowercase.contains("pwd")
+                                || keyLowercase.contains("secure")
+                                || keyLowercase.contains("secret")
+                                || keyLowercase.contains("serviceaccountjson")
+                                || keyLowercase.contains("access-key")
+                                || keyLowercase.contains("token")) {
+                            other.put(k, "<REDACTED>");
+                        } else {
+                            other.put(k, redactSecrets(v));
+                        }
+                    });
             return other;
         }
 

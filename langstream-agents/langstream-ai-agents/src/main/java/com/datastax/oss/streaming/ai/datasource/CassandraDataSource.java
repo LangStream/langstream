@@ -74,7 +74,9 @@ public class CassandraDataSource implements QueryStepDataSource {
 
     @Override
     public void initialize(Map<String, Object> dataSourceConfig) {
-        log.info("Initializing CassandraDataSource with config {}", ConfigurationUtils.redactSecrets(dataSourceConfig));
+        log.info(
+                "Initializing CassandraDataSource with config {}",
+                ConfigurationUtils.redactSecrets(dataSourceConfig));
         this.astraToken = ConfigurationUtils.getString("token", "", dataSourceConfig);
         this.astraEnvironment =
                 ConfigurationUtils.getString("environment", "PROD", dataSourceConfig);

@@ -145,10 +145,6 @@ class Agent(ABC):
         """Return the agent information."""
         return {}
 
-    def set_context(self, context: AgentContext):
-        """Set the agent context."""
-        pass
-
 
 class Source(Agent):
     """The Source agent interface

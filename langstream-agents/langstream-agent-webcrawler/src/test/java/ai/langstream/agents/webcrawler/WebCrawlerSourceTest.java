@@ -37,6 +37,7 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.minio.MinioClient;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -410,6 +411,11 @@ public class WebCrawlerSourceTest {
 
                     @Override
                     public TopicConnectionProvider getTopicConnectionProvider() {
+                        return null;
+                    }
+
+                    @Override
+                    public Path getCodeDirectory() {
                         return null;
                     }
                 });

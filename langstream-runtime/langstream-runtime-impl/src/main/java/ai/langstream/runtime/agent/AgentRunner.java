@@ -194,7 +194,8 @@ public class AgentRunner {
                                 topicConnectionsRuntime,
                                 agentCode,
                                 agentInfo,
-                                beforeStopSource);
+                                beforeStopSource,
+                                codeDirectory);
                     }
                 } finally {
                     if (server != null) {
@@ -281,7 +282,8 @@ public class AgentRunner {
             TopicConnectionsRuntime topicConnectionsRuntime,
             AgentCodeAndLoader agentCodeWithLoader,
             AgentInfo agentInfo,
-            Runnable beforeStopSource)
+            Runnable beforeStopSource,
+            Path codeDirectory)
             throws Exception {
 
         String statsThreadName = "stats-" + configuration.agent().agentId();
@@ -399,7 +401,8 @@ public class AgentRunner {
                                                     configuration.streamingCluster(),
                                                     config);
                                         }
-                                    });
+                                    },
+                                    codeDirectory);
                     log.info("Source: {}", source);
                     log.info("Processor: {}", mainProcessor);
                     log.info("Sink: {}", sink);
@@ -989,19 +992,23 @@ public class AgentRunner {
         private final TopicConnectionProvider topicConnectionProvider;
         private final BadRecordHandler brh;
 
+        private final Path codeDirectory;
+
         public SimpleAgentContext(
                 String agentId,
                 TopicConsumer consumer,
                 TopicProducer producer,
                 TopicAdmin topicAdmin,
                 BadRecordHandler brh,
-                TopicConnectionProvider topicConnectionProvider) {
+                TopicConnectionProvider topicConnectionProvider,
+                Path codeDirectory) {
             this.consumer = consumer;
             this.producer = producer;
             this.topicAdmin = topicAdmin;
             this.agentId = agentId;
             this.brh = brh;
             this.topicConnectionProvider = topicConnectionProvider;
+            this.codeDirectory = codeDirectory;
         }
 
         @Override
@@ -1042,6 +1049,11 @@ public class AgentRunner {
             log.error(errorMsg, error);
             System.err.printf(errorMsg);
             Runtime.getRuntime().halt(1);
+        }
+
+        @Override
+        public Path getCodeDirectory() {
+            return codeDirectory;
         }
     }
 }

@@ -18,9 +18,16 @@ syntax = "proto3";
 option java_package = "ai.langstream.agents.grpc";
 option java_multiple_files = true;
 
+import "google/protobuf/empty.proto";
+
 
 service AgentService {
+  rpc agent_info(google.protobuf.Empty) returns (InfoResponse) {}
   rpc process(stream ProcessorRequest) returns (stream ProcessorResponse) {}
+}
+
+message InfoResponse {
+  string json_info = 1;
 }
 
 message Value {

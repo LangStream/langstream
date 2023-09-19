@@ -36,6 +36,7 @@ ENV PYTHONPATH="$PYTHONPATH:/app/python_libs"
 ADD maven/lib /app/lib
 ADD maven/entrypoint.sh /app/entrypoint.sh
 ADD maven/langstream /app/python_libs/langstream
+ADD maven/langstream_grpc /app/python_libs/langstream_grpc
 ADD maven/langstream_runtime /app/python_libs/langstream_runtime
 ADD maven/agents /app/agents
 

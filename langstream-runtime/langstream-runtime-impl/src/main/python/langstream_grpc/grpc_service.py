@@ -14,9 +14,17 @@
 # limitations under the License.
 #
 
+import concurrent
+import importlib
 import json
-from typing import Iterable, Union, List, Tuple, Any
+import logging
+from io import BytesIO
+from typing import Iterable, Union, List, Tuple, Any, Optional
 
+import fastavro
+import grpc
+
+from langstream_grpc.proto import agent_pb2_grpc
 from langstream_grpc.proto.agent_pb2 import (
     ProcessorRequest,
     Record as GrpcRecord,
@@ -24,12 +32,12 @@ from langstream_grpc.proto.agent_pb2 import (
     Header,
     ProcessorResponse,
     ProcessorResult,
+    Schema,
+    InfoResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceServicer
-from fastavro import parse_schema
-
-from langstream_runtime.api import Source, Sink, Processor, Record
-from langstream_runtime.util import SimpleRecord
+from langstream_runtime.api import Source, Sink, Processor, Record, Agent
+from langstream_runtime.util import SimpleRecord, AvroValue
 
 
 class RecordWithId(SimpleRecord):
@@ -47,14 +55,20 @@ class RecordWithId(SimpleRecord):
 
 
 class AgentService(AgentServiceServicer):
-    def __init__(self, agent: Union[Source, Sink, Processor]):
+    def __init__(self, agent: Union[Agent, Source, Sink, Processor]):
         self.agent = agent
+        self.schema_id = 0
+        self.schemas = {}
         self.client_schemas = {}
+
+    def agent_info(self, _, context):
+        info = call_method_if_exists(self.agent, "agent_info") or {}
+        return InfoResponse(json_info=json.dumps(info))
 
     def process(self, requests: Iterable[ProcessorRequest], context):
         for request in requests:
             if request.HasField("schema"):
-                schema = parse_schema(request.schema.value.decode("utf-8"))
+                schema = fastavro.parse_schema(json.loads(request.schema.value))
                 self.client_schemas[request.schema.schemaId] = schema
             if len(request.records) > 0:
                 records = [self.from_grpc_record(record) for record in request.records]
@@ -66,10 +80,22 @@ class AgentService(AgentServiceServicer):
                         grpc_result.error = str(result)
                     else:
                         for r in result:
-                            grpc_result.records.append(self.to_grpc_record(r))
+                            schemas, grpc_record = self.to_grpc_record(r)
+                            for schema in schemas:
+                                yield ProcessorResponse(schema=schema)
+                            grpc_result.records.append(grpc_record)
                     grpc_results.append(grpc_result)
 
                 yield ProcessorResponse(results=grpc_results)
+
+    def new_schema_to_send(self, value: Value):
+        if type(value).__name__ == "AvroValue":
+            schema_str = fastavro.schema.to_parsing_canonical_form(value.schema)
+            if schema_str not in self.schemas:
+                self.schema_id += 1
+                self.schemas[schema_str] = self.schema_id
+                return Schema(schemaId=self.schema_id, value=schema_str.encode("utf-8"))
+        return None
 
     def from_grpc_record(self, record: GrpcRecord) -> SimpleRecord:
         return RecordWithId(
@@ -82,32 +108,47 @@ class AgentService(AgentServiceServicer):
         )
 
     def from_grpc_value(self, value: Value):
-        a = value.WhichOneof("type_oneof")
         if value is None or value.WhichOneof("type_oneof") is None:
             return None
-        # TODO: define a python type for Avro
-        # if value.HasField("avroValue"):
-        #     schema = self.client_schemas[value.schemaId]
-        #     return schemaless_reader(BytesIO(value.avroValue), schema)
+        if value.HasField("avroValue"):
+            schema = self.client_schemas[value.schemaId]
+            avro_value = BytesIO(value.avroValue)
+            try:
+                return AvroValue(
+                    schema=schema, value=fastavro.schemaless_reader(avro_value, schema)
+                )
+            finally:
+                avro_value.close()
         return getattr(value, value.WhichOneof("type_oneof"))
 
-    def to_grpc_record(self, record: Record) -> GrpcRecord:
-        return GrpcRecord(
-            value=self.to_grpc_value(record.value()),
-            key=self.to_grpc_value(record.key()),
-            headers=[
-                Header(name=name, value=self.to_grpc_value(value))
-                for name, value in record.headers()
-            ],
+    def to_grpc_record(self, record: Record) -> Tuple[List[Schema], GrpcRecord]:
+        schemas = []
+        schema, value = self.to_grpc_value(record.value())
+        if schema is not None:
+            schemas.append(schema)
+        schema, key = self.to_grpc_value(record.key())
+        if schema is not None:
+            schemas.append(schema)
+        headers = []
+        for name, header_value in record.headers():
+            schema, grpc_header_value = self.to_grpc_value(header_value)
+            if schema is not None:
+                schemas.append(schema)
+            headers.append(Header(name=name, value=grpc_header_value))
+        return schemas, GrpcRecord(
+            value=value,
+            key=key,
+            headers=headers,
             origin=record.origin(),
             timestamp=record.timestamp(),
         )
 
-    def to_grpc_value(self, value) -> Value:
+    def to_grpc_value(self, value) -> Tuple[Optional[Schema], Optional[Value]]:
         if value is None:
-            return None
+            return None, None
         # TODO: define a python type for Avro
         grpc_value = Value()
+        grpc_schema = None
         if isinstance(value, bytes):
             grpc_value.bytesValue = value
         elif isinstance(value, str):
@@ -118,8 +159,62 @@ class AgentService(AgentServiceServicer):
             grpc_value.longValue = value
         elif isinstance(value, float):
             grpc_value.doubleValue = value
+        elif type(value).__name__ == "AvroValue":
+            schema_str = fastavro.schema.to_parsing_canonical_form(value.schema)
+            if schema_str not in self.schemas:
+                self.schema_id += 1
+                self.schemas[schema_str] = self.schema_id
+                grpc_schema = Schema(
+                    schemaId=self.schema_id, value=schema_str.encode("utf-8")
+                )
+            fp = BytesIO()
+            try:
+                fastavro.schemaless_writer(fp, value.schema, value.value)
+                grpc_value.avroValue = fp.getvalue()
+                grpc_value.schemaId = self.schema_id
+            finally:
+                fp.close()
         elif isinstance(value, dict) or isinstance(value, list):
             grpc_value.jsonValue = json.dumps(value)
         else:
             raise TypeError(f"Got unsupported type {type(value)}")
-        return grpc_value
+        return grpc_schema, grpc_value
+
+
+def call_method_if_exists(klass, method, *args, **kwargs):
+    method = getattr(klass, method, None)
+    if callable(method):
+        return method(*args, **kwargs)
+    return None
+
+
+def init_agent(configuration) -> Agent:
+    full_class_name = configuration["className"]
+    class_name = full_class_name.split(".")[-1]
+    module_name = full_class_name[: -len(class_name) - 1]
+    module = importlib.import_module(module_name)
+    agent = getattr(module, class_name)()
+    call_method_if_exists(agent, "init", configuration)
+    return agent
+
+
+class AgentServer(object):
+    def __init__(self, target: str, config: str):
+        self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+        self.target = target
+        self.grpc_server = grpc.server(self.thread_pool)
+        self.port = self.grpc_server.add_insecure_port(target)
+        self.agent = init_agent(json.loads(config))
+
+    def start(self):
+        call_method_if_exists(self.agent, "start")
+        agent_pb2_grpc.add_AgentServiceServicer_to_server(
+            AgentService(self.agent), self.grpc_server
+        )
+        self.grpc_server.start()
+        logging.info("Server started, listening on " + self.target)
+
+    def stop(self):
+        self.grpc_server.stop(None)
+        call_method_if_exists(self.agent, "close")
+        self.thread_pool.shutdown(wait=True)

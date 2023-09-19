@@ -15,11 +15,12 @@
 #
 
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import Any, List, Tuple, Union
 
 from .api import Record, Processor, RecordType
 
-__all__ = ["SimpleRecord", "SingleRecordProcessor"]
+__all__ = ["SimpleRecord", "SingleRecordProcessor", "AvroValue"]
 
 
 class SimpleRecord(Record):
@@ -94,3 +95,9 @@ class SingleRecordProcessor(Processor):
             except Exception as e:
                 results.append((record, e))
         return results
+
+
+@dataclass
+class AvroValue(object):
+    schema: dict
+    value: Any

@@ -19,6 +19,7 @@ import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import java.nio.file.Path;
 
 public interface AgentContext {
     BadRecordHandler DEFAULT_BAD_RECORD_HANDLER =
@@ -45,4 +46,6 @@ public interface AgentContext {
     }
 
     default void criticalFailure(Throwable error) {}
+
+    Path getCodeDirectory();
 }

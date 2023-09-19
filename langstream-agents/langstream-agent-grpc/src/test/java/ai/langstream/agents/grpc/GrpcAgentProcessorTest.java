@@ -30,6 +30,7 @@ import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.Status;
@@ -37,7 +38,9 @@ import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -57,13 +60,23 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 public class GrpcAgentProcessorTest {
-    private String serverName;
     private Server server;
     private ManagedChannel channel;
     private final AtomicInteger schemaCounter = new AtomicInteger(0);
 
     private final AgentServiceGrpc.AgentServiceImplBase testProcessorService =
             new AgentServiceGrpc.AgentServiceImplBase() {
+
+                @Override
+                public void agentInfo(
+                        Empty request, StreamObserver<InfoResponse> responseObserver) {
+                    responseObserver.onNext(
+                            InfoResponse.newBuilder()
+                                    .setJsonInfo("{\"test-info-key\": \"test-info-value\"}")
+                                    .build());
+                    responseObserver.onCompleted();
+                }
+
                 @Override
                 public StreamObserver<ProcessorRequest> process(
                         StreamObserver<ProcessorResponse> response) {
@@ -121,7 +134,7 @@ public class GrpcAgentProcessorTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        serverName = InProcessServerBuilder.generateName();
+        String serverName = InProcessServerBuilder.generateName();
         server =
                 InProcessServerBuilder.forName(serverName)
                         .directExecutor()
@@ -254,6 +267,15 @@ public class GrpcAgentProcessorTest {
         processor.close();
     }
 
+    @Test
+    void testInfo() throws Exception {
+        GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
+        processor.setContext(new TestAgentContext());
+        processor.start();
+        Map<String, Object> info = processor.buildAdditionalInfo();
+        assertEquals("test-info-value", info.get("test-info-key"));
+    }
+
     private static void assertProcessSuccessful(GrpcAgentProcessor processor, Record inputRecord)
             throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<Void> op = new CompletableFuture<>();
@@ -326,6 +348,11 @@ public class GrpcAgentProcessorTest {
         @Override
         public void criticalFailure(Throwable error) {
             failureCalled.countDown();
+        }
+
+        @Override
+        public Path getCodeDirectory() {
+            return null;
         }
     }
 }

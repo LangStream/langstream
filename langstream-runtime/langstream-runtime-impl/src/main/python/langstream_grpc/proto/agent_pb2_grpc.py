@@ -18,6 +18,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 from langstream_grpc.proto import agent_pb2 as langstream__grpc_dot_proto_dot_agent__pb2
 
 
@@ -30,8 +31,13 @@ class AgentServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.agent_info = channel.unary_unary(
+            "/AgentService/agent_info",
+            request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.InfoResponse.FromString,
+        )
         self.process = channel.stream_stream(
-            "/langstream_grpc.proto.AgentService/process",
+            "/AgentService/process",
             request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorRequest.SerializeToString,
             response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorResponse.FromString,
         )
@@ -39,6 +45,12 @@ class AgentServiceStub(object):
 
 class AgentServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
+
+    def agent_info(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def process(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
@@ -49,6 +61,11 @@ class AgentServiceServicer(object):
 
 def add_AgentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
+        "agent_info": grpc.unary_unary_rpc_method_handler(
+            servicer.agent_info,
+            request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.InfoResponse.SerializeToString,
+        ),
         "process": grpc.stream_stream_rpc_method_handler(
             servicer.process,
             request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorRequest.FromString,
@@ -56,7 +73,7 @@ def add_AgentServiceServicer_to_server(servicer, server):
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "langstream_grpc.proto.AgentService", rpc_method_handlers
+        "AgentService", rpc_method_handlers
     )
     server.add_generic_rpc_handlers((generic_handler,))
 
@@ -64,6 +81,35 @@ def add_AgentServiceServicer_to_server(servicer, server):
 # This class is part of an EXPERIMENTAL API.
 class AgentService(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def agent_info(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/AgentService/agent_info",
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            langstream__grpc_dot_proto_dot_agent__pb2.InfoResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
 
     @staticmethod
     def process(
@@ -81,7 +127,7 @@ class AgentService(object):
         return grpc.experimental.stream_stream(
             request_iterator,
             target,
-            "/langstream_grpc.proto.AgentService/process",
+            "/AgentService/process",
             langstream__grpc_dot_proto_dot_agent__pb2.ProcessorRequest.SerializeToString,
             langstream__grpc_dot_proto_dot_agent__pb2.ProcessorResponse.FromString,
             options,

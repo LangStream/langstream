@@ -1,3 +1,4 @@
+from google.protobuf import empty_pb2 as _empty_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -10,6 +11,12 @@ from typing import (
 )
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class InfoResponse(_message.Message):
+    __slots__ = ["json_info"]
+    JSON_INFO_FIELD_NUMBER: _ClassVar[int]
+    json_info: str
+    def __init__(self, json_info: _Optional[str] = ...) -> None: ...
 
 class Value(_message.Message):
     __slots__ = [

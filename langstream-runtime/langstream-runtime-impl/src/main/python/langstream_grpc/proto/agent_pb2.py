@@ -28,8 +28,11 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
+
+
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n!langstream_grpc/proto/agent.proto\x12\x15langstream_grpc.proto"\x97\x02\n\x05Value\x12\x10\n\x08schemaId\x18\x01 \x01(\x05\x12\x14\n\nbytesValue\x18\x02 \x01(\x0cH\x00\x12\x16\n\x0c\x62ooleanValue\x18\x03 \x01(\x08H\x00\x12\x15\n\x0bstringValue\x18\x04 \x01(\tH\x00\x12\x13\n\tbyteValue\x18\x05 \x01(\x05H\x00\x12\x14\n\nshortValue\x18\x06 \x01(\x05H\x00\x12\x12\n\x08intValue\x18\x07 \x01(\x05H\x00\x12\x13\n\tlongValue\x18\x08 \x01(\x03H\x00\x12\x14\n\nfloatValue\x18\t \x01(\x02H\x00\x12\x15\n\x0b\x64oubleValue\x18\n \x01(\x01H\x00\x12\x13\n\tjsonValue\x18\x0b \x01(\tH\x00\x12\x13\n\tavroValue\x18\x0c \x01(\x0cH\x00\x42\x0c\n\ntype_oneof"C\n\x06Header\x12\x0c\n\x04name\x18\x01 \x01(\t\x12+\n\x05value\x18\x02 \x01(\x0b\x32\x1c.langstream_grpc.proto.Value")\n\x06Schema\x12\x10\n\x08schemaId\x18\x01 \x01(\x05\x12\r\n\x05value\x18\x02 \x01(\x0c"\xf4\x01\n\x06Record\x12\x10\n\x08recordId\x18\x01 \x01(\x03\x12.\n\x03key\x18\x02 \x01(\x0b\x32\x1c.langstream_grpc.proto.ValueH\x00\x88\x01\x01\x12\x30\n\x05value\x18\x03 \x01(\x0b\x32\x1c.langstream_grpc.proto.ValueH\x01\x88\x01\x01\x12.\n\x07headers\x18\x04 \x03(\x0b\x32\x1d.langstream_grpc.proto.Header\x12\x0e\n\x06origin\x18\x05 \x01(\t\x12\x16\n\ttimestamp\x18\x06 \x01(\x03H\x02\x88\x01\x01\x42\x06\n\x04_keyB\x08\n\x06_valueB\x0c\n\n_timestamp"q\n\x10ProcessorRequest\x12-\n\x06schema\x18\x01 \x01(\x0b\x32\x1d.langstream_grpc.proto.Schema\x12.\n\x07records\x18\x02 \x03(\x0b\x32\x1d.langstream_grpc.proto.Record"{\n\x11ProcessorResponse\x12-\n\x06schema\x18\x01 \x01(\x0b\x32\x1d.langstream_grpc.proto.Schema\x12\x37\n\x07results\x18\x02 \x03(\x0b\x32&.langstream_grpc.proto.ProcessorResult"q\n\x0fProcessorResult\x12\x10\n\x08recordId\x18\x01 \x01(\x03\x12\x12\n\x05\x65rror\x18\x02 \x01(\tH\x00\x88\x01\x01\x12.\n\x07records\x18\x03 \x03(\x0b\x32\x1d.langstream_grpc.proto.RecordB\x08\n\x06_error2r\n\x0c\x41gentService\x12\x62\n\x07process\x12\'.langstream_grpc.proto.ProcessorRequest\x1a(.langstream_grpc.proto.ProcessorResponse"\x00(\x01\x30\x01\x42\x1d\n\x19\x61i.langstream.agents.grpcP\x01\x62\x06proto3'
+    b'\n!langstream_grpc/proto/agent.proto\x1a\x1bgoogle/protobuf/empty.proto"!\n\x0cInfoResponse\x12\x11\n\tjson_info\x18\x01 \x01(\t"\x97\x02\n\x05Value\x12\x10\n\x08schemaId\x18\x01 \x01(\x05\x12\x14\n\nbytesValue\x18\x02 \x01(\x0cH\x00\x12\x16\n\x0c\x62ooleanValue\x18\x03 \x01(\x08H\x00\x12\x15\n\x0bstringValue\x18\x04 \x01(\tH\x00\x12\x13\n\tbyteValue\x18\x05 \x01(\x05H\x00\x12\x14\n\nshortValue\x18\x06 \x01(\x05H\x00\x12\x12\n\x08intValue\x18\x07 \x01(\x05H\x00\x12\x13\n\tlongValue\x18\x08 \x01(\x03H\x00\x12\x14\n\nfloatValue\x18\t \x01(\x02H\x00\x12\x15\n\x0b\x64oubleValue\x18\n \x01(\x01H\x00\x12\x13\n\tjsonValue\x18\x0b \x01(\tH\x00\x12\x13\n\tavroValue\x18\x0c \x01(\x0cH\x00\x42\x0c\n\ntype_oneof"-\n\x06Header\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x15\n\x05value\x18\x02 \x01(\x0b\x32\x06.Value")\n\x06Schema\x12\x10\n\x08schemaId\x18\x01 \x01(\x05\x12\r\n\x05value\x18\x02 \x01(\x0c"\xb2\x01\n\x06Record\x12\x10\n\x08recordId\x18\x01 \x01(\x03\x12\x18\n\x03key\x18\x02 \x01(\x0b\x32\x06.ValueH\x00\x88\x01\x01\x12\x1a\n\x05value\x18\x03 \x01(\x0b\x32\x06.ValueH\x01\x88\x01\x01\x12\x18\n\x07headers\x18\x04 \x03(\x0b\x32\x07.Header\x12\x0e\n\x06origin\x18\x05 \x01(\t\x12\x16\n\ttimestamp\x18\x06 \x01(\x03H\x02\x88\x01\x01\x42\x06\n\x04_keyB\x08\n\x06_valueB\x0c\n\n_timestamp"E\n\x10ProcessorRequest\x12\x17\n\x06schema\x18\x01 \x01(\x0b\x32\x07.Schema\x12\x18\n\x07records\x18\x02 \x03(\x0b\x32\x07.Record"O\n\x11ProcessorResponse\x12\x17\n\x06schema\x18\x01 \x01(\x0b\x32\x07.Schema\x12!\n\x07results\x18\x02 \x03(\x0b\x32\x10.ProcessorResult"[\n\x0fProcessorResult\x12\x10\n\x08recordId\x18\x01 \x01(\x03\x12\x12\n\x05\x65rror\x18\x02 \x01(\tH\x00\x88\x01\x01\x12\x18\n\x07records\x18\x03 \x03(\x0b\x32\x07.RecordB\x08\n\x06_error2}\n\x0c\x41gentService\x12\x35\n\nagent_info\x12\x16.google.protobuf.Empty\x1a\r.InfoResponse"\x00\x12\x36\n\x07process\x12\x11.ProcessorRequest\x1a\x12.ProcessorResponse"\x00(\x01\x30\x01\x42\x1d\n\x19\x61i.langstream.agents.grpcP\x01\x62\x06proto3'
 )
 
 _globals = globals()
@@ -40,20 +43,22 @@ _builder.BuildTopDescriptorsAndMessages(
 if _descriptor._USE_C_DESCRIPTORS == False:
     DESCRIPTOR._options = None
     DESCRIPTOR._serialized_options = b"\n\031ai.langstream.agents.grpcP\001"
-    _globals["_VALUE"]._serialized_start = 61
-    _globals["_VALUE"]._serialized_end = 340
-    _globals["_HEADER"]._serialized_start = 342
-    _globals["_HEADER"]._serialized_end = 409
-    _globals["_SCHEMA"]._serialized_start = 411
-    _globals["_SCHEMA"]._serialized_end = 452
-    _globals["_RECORD"]._serialized_start = 455
-    _globals["_RECORD"]._serialized_end = 699
-    _globals["_PROCESSORREQUEST"]._serialized_start = 701
-    _globals["_PROCESSORREQUEST"]._serialized_end = 814
-    _globals["_PROCESSORRESPONSE"]._serialized_start = 816
-    _globals["_PROCESSORRESPONSE"]._serialized_end = 939
-    _globals["_PROCESSORRESULT"]._serialized_start = 941
-    _globals["_PROCESSORRESULT"]._serialized_end = 1054
-    _globals["_AGENTSERVICE"]._serialized_start = 1056
-    _globals["_AGENTSERVICE"]._serialized_end = 1170
+    _globals["_INFORESPONSE"]._serialized_start = 66
+    _globals["_INFORESPONSE"]._serialized_end = 99
+    _globals["_VALUE"]._serialized_start = 102
+    _globals["_VALUE"]._serialized_end = 381
+    _globals["_HEADER"]._serialized_start = 383
+    _globals["_HEADER"]._serialized_end = 428
+    _globals["_SCHEMA"]._serialized_start = 430
+    _globals["_SCHEMA"]._serialized_end = 471
+    _globals["_RECORD"]._serialized_start = 474
+    _globals["_RECORD"]._serialized_end = 652
+    _globals["_PROCESSORREQUEST"]._serialized_start = 654
+    _globals["_PROCESSORREQUEST"]._serialized_end = 723
+    _globals["_PROCESSORRESPONSE"]._serialized_start = 725
+    _globals["_PROCESSORRESPONSE"]._serialized_end = 804
+    _globals["_PROCESSORRESULT"]._serialized_start = 806
+    _globals["_PROCESSORRESULT"]._serialized_end = 897
+    _globals["_AGENTSERVICE"]._serialized_start = 899
+    _globals["_AGENTSERVICE"]._serialized_end = 1024
 # @@protoc_insertion_point(module_scope)

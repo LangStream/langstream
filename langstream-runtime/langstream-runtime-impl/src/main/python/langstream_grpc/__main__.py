@@ -14,14 +14,10 @@
 # limitations under the License.
 #
 
-import concurrent
 import logging
 import sys
 
-import grpc
-
-from langstream_grpc.grpc_service import AgentService
-from langstream_grpc.proto import agent_pb2_grpc
+from langstream_grpc.grpc_service import AgentServer
 
 if __name__ == "__main__":
     logging.addLevelName(logging.WARNING, "WARN")
@@ -33,15 +29,10 @@ if __name__ == "__main__":
 
     if len(sys.argv) != 3:
         print("Missing gRPC target and python class name")
-        print("usage: python -m langstream_grpc <target> <className>")
+        print("usage: python -m langstream_grpc <target> <config>")
         sys.exit(1)
 
-    target = sys.argv[1]
-    className = sys.argv[2]
-
-    server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=10))
-    agent_pb2_grpc.add_AgentServiceServicer_to_server(AgentService(), server)
-    server.add_insecure_port(target)
+    server = AgentServer(sys.argv[1], sys.argv[2])
     server.start()
-    logging.info("Server started, listening on " + target)
-    server.wait_for_termination()
+    server.grpc_server.wait_for_termination()
+    server.stop()

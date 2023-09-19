@@ -14,20 +14,24 @@
 # limitations under the License.
 #
 
-import concurrent
-from typing import List
+import json
+from io import BytesIO
+from typing import List, Dict, Any
 
+import fastavro
 import grpc
 import pytest
 
-from langstream_grpc.grpc_service import AgentService
-from langstream_grpc.proto import agent_pb2_grpc
+from langstream_grpc.grpc_service import AgentServer
 from langstream_grpc.proto.agent_pb2 import (
     ProcessorRequest,
     Record as GrpcRecord,
     Value,
     Header,
     ProcessorResponse,
+    Schema,
+    Empty,
+    InfoResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceStub
 from langstream_runtime.util import Record, RecordType, SingleRecordProcessor
@@ -35,20 +39,17 @@ from langstream_runtime.util import Record, RecordType, SingleRecordProcessor
 
 @pytest.fixture(autouse=True)
 def stub():
-    thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
-    server = grpc.server(thread_pool)
-    agent_pb2_grpc.add_AgentServiceServicer_to_server(
-        AgentService(MyProcessor()), server
-    )
-    port = server.add_insecure_port("[::]:0")
+    config = """{
+      "className": "langstream_grpc.tests.test_grpc_service.MyProcessor"
+    }"""
+    server = AgentServer("[::]:0", config)
     server.start()
-    channel = grpc.insecure_channel("localhost:%d" % port)
+    channel = grpc.insecure_channel("localhost:%d" % server.port)
 
     yield AgentServiceStub(channel=channel)
 
     channel.close()
-    server.stop(None)
-    thread_pool.shutdown(wait=True)
+    server.stop()
 
 
 @pytest.mark.parametrize(
@@ -71,7 +72,7 @@ def test_process(input_type, output_type, value, key, header, request):
     stub = request.getfixturevalue("stub")
 
     record = GrpcRecord(
-        recordId=1,
+        recordId=42,
         key=Value(**{input_type: key}),
         value=Value(**{input_type: value}),
         headers=[
@@ -81,7 +82,7 @@ def test_process(input_type, output_type, value, key, header, request):
             )
         ],
         origin="test-origin",
-        timestamp=42,
+        timestamp=43,
     )
     response: ProcessorResponse
     for response in stub.process(iter([ProcessorRequest(records=[record])])):
@@ -97,6 +98,58 @@ def test_process(input_type, output_type, value, key, header, request):
         assert result.headers[0].value == Value(**{output_type: header})
         assert result.origin == record.origin
         assert result.timestamp == record.timestamp
+
+
+def test_avro(stub):
+    requests = []
+    schema = {
+        "type": "record",
+        "name": "Test",
+        "namespace": "test",
+        "fields": [{"name": "field", "type": {"type": "string"}}],
+    }
+    canonical_schema = fastavro.schema.to_parsing_canonical_form(schema)
+    requests.append(
+        ProcessorRequest(
+            schema=Schema(schemaId=42, value=canonical_schema.encode("utf-8"))
+        )
+    )
+
+    fp = BytesIO()
+    try:
+        fastavro.schemaless_writer(fp, schema, {"field": "test"})
+        requests.append(
+            ProcessorRequest(
+                records=[
+                    GrpcRecord(
+                        recordId=43, value=Value(schemaId=42, avroValue=fp.getvalue())
+                    )
+                ]
+            )
+        )
+    finally:
+        fp.close()
+
+    responses: list[ProcessorResponse]
+    responses = list(stub.process(iter(requests)))
+    response_schema = responses[0]
+    assert len(response_schema.results) == 0
+    assert response_schema.HasField("schema")
+    assert response_schema.schema.schemaId == 1
+    assert response_schema.schema.value.decode("utf-8") == canonical_schema
+
+    response_record = responses[1]
+    assert len(response_record.results) == 1
+    result = response_record.results[0]
+    assert result.recordId == 43
+    assert len(result.records) == 1
+    assert result.records[0].value.schemaId == 1
+    fp = BytesIO(result.records[0].value.avroValue)
+    try:
+        decoded = fastavro.schemaless_reader(fp, json.loads(canonical_schema))
+        assert decoded == {"field": "test"}
+    finally:
+        fp.close()
 
 
 def test_empty_record(request):
@@ -124,7 +177,15 @@ def test_failing_record(request):
         assert response.results[0].error == "failure"
 
 
+def test_info(stub):
+    info: InfoResponse = stub.agent_info(Empty())
+    assert info.json_info == '{"test-info-key": "test-info-value"}'
+
+
 class MyProcessor(SingleRecordProcessor):
+    def agent_info(self) -> Dict[str, Any]:
+        return {"test-info-key": "test-info-value"}
+
     def process_record(self, record: Record) -> List[RecordType]:
         if record.origin() == "failing-record":
             raise Exception("failure")

@@ -20,8 +20,11 @@ import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.code.SimpleRecord;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayOutputStream;
@@ -44,7 +47,7 @@ import org.apache.avro.io.EncoderFactory;
 
 @Slf4j
 public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProcessor {
-
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected ManagedChannel channel;
     private StreamObserver<ProcessorRequest> request;
     private RecordSink sink;
@@ -65,7 +68,8 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
     private final Map<Integer, Object> serverSchemas = new ConcurrentHashMap<>();
 
     private final StreamObserver<ProcessorResponse> responseObserver = getResponseObserver();
-    private AgentContext agentContext;
+    protected AgentContext agentContext;
+    protected AgentServiceGrpc.AgentServiceBlockingStub blockingStub;
 
     private record RecordAndSink(
             ai.langstream.api.runner.code.Record sourceRecord, RecordSink sink) {}
@@ -77,16 +81,27 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
     }
 
     @Override
-    public void start() {
+    public void start() throws Exception {
         if (channel == null) {
             throw new IllegalStateException("Channel not initialized");
         }
-        request = AgentServiceGrpc.newStub(channel).process(responseObserver);
+        blockingStub = AgentServiceGrpc.newBlockingStub(channel);
+        request = AgentServiceGrpc.newStub(channel).withWaitForReady().process(responseObserver);
     }
 
     @Override
-    public void setContext(AgentContext context) {
+    public void setContext(AgentContext context) throws Exception {
         this.agentContext = context;
+    }
+
+    @Override
+    protected Map<String, Object> buildAdditionalInfo() {
+        try {
+            return MAPPER.readValue(
+                    blockingStub.agentInfo(Empty.getDefaultInstance()).getJsonInfo(), Map.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -138,7 +153,7 @@ public class GrpcAgentProcessor extends AbstractAgentCode implements AgentProces
     }
 
     @Override
-    public synchronized void close() {
+    public synchronized void close() throws Exception {
         if (request != null) {
             request.onCompleted();
         }

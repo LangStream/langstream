@@ -40,6 +40,15 @@
       <fileMode>755</fileMode>
     </fileSet>
     <fileSet>
+      <directory>src/main/python/langstream_grpc</directory>
+      <outputDirectory>./langstream_grpc</outputDirectory>
+      <lineEnding>unix</lineEnding>
+      <fileMode>755</fileMode>
+      <excludes>
+        <exclude>tests/**</exclude>
+      </excludes>
+    </fileSet>
+    <fileSet>
       <directory>src/main/python/langstream_runtime</directory>
       <outputDirectory>./langstream_runtime</outputDirectory>
       <lineEnding>unix</lineEnding>

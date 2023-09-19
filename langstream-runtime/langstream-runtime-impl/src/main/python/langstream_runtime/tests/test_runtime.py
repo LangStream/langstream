@@ -29,7 +29,6 @@ from langstream import (
     Record,
     SimpleRecord,
     SingleRecordProcessor,
-    AgentContext,
 )
 from langstream.api import RecordType
 from langstream_runtime import runtime
@@ -67,12 +66,6 @@ def test_simple_agent(_):
       "start": 1,
       "close": 1,
       "set_commit_callback": 1,
-      "set_context": 1,
-      "agent_context": {
-        "consumer": "<class 'langstream_runtime.runtime.NoopTopicConsumer'>",
-        "producer": "<class 'langstream_runtime.runtime.NoopTopicProducer'>",
-        "global-agent-id": "testApplicationId-testAgentId"
-      },
       "records": [
         "some record 0 processed",
         "some record 1 processed"
@@ -98,12 +91,6 @@ def test_simple_agent(_):
       "start": 1,
       "close": 1,
       "set_commit_callback": 1,
-      "set_context": 1,
-      "agent_context": {
-        "consumer": "<class 'langstream_runtime.runtime.NoopTopicConsumer'>",
-        "producer": "<class 'langstream_runtime.runtime.NoopTopicProducer'>",
-        "global-agent-id": "testApplicationId-testAgentId"
-      },
       "records": [
         "some record 0 processed",
         "some record 1 processed"
@@ -129,12 +116,6 @@ def test_simple_agent(_):
       "start": 1,
       "close": 1,
       "set_commit_callback": 1,
-      "set_context": 1,
-      "agent_context": {
-        "consumer": "<class 'langstream_runtime.runtime.NoopTopicConsumer'>",
-        "producer": "<class 'langstream_runtime.runtime.NoopTopicProducer'>",
-        "global-agent-id": "testApplicationId-testAgentId"
-      },
       "records": [
         "some record 0 processed",
         "some record 1 processed"
@@ -158,8 +139,6 @@ class TestAgent(Source, Sink, SingleRecordProcessor):
             "start": 0,
             "close": 0,
             "set_commit_callback": 0,
-            "set_context": 0,
-            "agent_context": {},
             "records": [],
         }
         self.commit_callback = None
@@ -185,14 +164,6 @@ class TestAgent(Source, Sink, SingleRecordProcessor):
 
     def process_record(self, record: Record) -> List[RecordType]:
         return [(record.value() + " processed",)]
-
-    def set_context(self, agent_context: AgentContext):
-        self.context["set_context"] += 1
-        self.context["agent_context"] = {
-            "consumer": str(type(agent_context.topic_consumer)),
-            "producer": str(type(agent_context.topic_producer)),
-            "global-agent-id": agent_context.global_agent_id,
-        }
 
     def agent_info(self) -> Dict[str, Any]:
         return self.context

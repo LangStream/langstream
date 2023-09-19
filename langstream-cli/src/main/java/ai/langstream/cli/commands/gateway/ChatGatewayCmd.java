@@ -84,6 +84,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
 
         AtomicBoolean waitingProduceResponse = new AtomicBoolean(false);
         AtomicBoolean waitingConsumeMessage = new AtomicBoolean(false);
+        AtomicBoolean isStreamingOutput = new AtomicBoolean(false);
 
         final AtomicReference<CompletableFuture<Void>> loop = new AtomicReference<>();
 
@@ -102,27 +103,27 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                 map -> {
                     final Map<String, Object> record = (Map<String, Object>) map.get("record");
                     Map<String, String> headers = (Map<String, String>) record.get("headers");
-                    boolean isStreamingOutput = false;
                     boolean isLastMessage = false;
                     int streamIndex = -1;
                     if (headers != null) {
                         String streamLastMessage = headers.get("stream-last-message");
                         if (streamLastMessage != null) {
-                            isStreamingOutput = true;
+                            isStreamingOutput.set(true);
                             isLastMessage = Boolean.parseBoolean(streamLastMessage + "");
                             streamIndex =
                                     Integer.parseInt(headers.getOrDefault("stream-index", "-1"));
                         }
                     }
-                    if (isStreamingOutput) {
+                    if (isStreamingOutput.get()) {
                         if (streamIndex == 1) {
                             logServer("Server:");
                         }
                         logNoNewline(String.valueOf(record.get("value")));
                         if (isLastMessage) {
                             logServer("\n");
-                            logServer(".");
                             waitingConsumeMessage.set(false);
+                            isStreamingOutput.set(false);
+                            logServer(".");
                         }
                     } else {
                         logServer("\n");
@@ -164,6 +165,7 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                                                                 null, line, Map.of())));
                                         waitingProduceResponse.set(true);
                                         waitingConsumeMessage.set(true);
+                                        isStreamingOutput.set(false);
                                         while (waitingProduceResponse.get()) {
                                             Thread.sleep(500);
                                             if (waitingProduceResponse.get()) {
@@ -173,7 +175,13 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                                         while (waitingConsumeMessage.get()) {
                                             Thread.sleep(500);
                                             if (waitingConsumeMessage.get()) {
-                                                logUserNoNewLine(".");
+                                                // If streaming, just flush the line, otherwise
+                                                // print a dot
+                                                if (isStreamingOutput.get()) {
+                                                    logUserFlush();
+                                                } else {
+                                                    logUserNoNewLine(".");
+                                                }
                                             }
                                         }
                                     }
@@ -262,6 +270,10 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
 
     private void logUserNoNewLine(String message) {
         command.commandLine().getOut().print("\u001B[34m" + message + "\u001B[0m");
+        command.commandLine().getOut().flush();
+    }
+
+    private void logUserFlush() {
         command.commandLine().getOut().flush();
     }
 

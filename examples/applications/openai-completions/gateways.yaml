@@ -40,6 +40,13 @@ gateways:
   - id: consume-history
     type: consume
     topic: history-topic
+    parameters:
+      - sessionId
+    consume-options:
+      filters:
+        headers:
+          - key: langstream-client-session-id
+            value-from-parameters: sessionId
 
   - id: produce-input-auth
     type: produce

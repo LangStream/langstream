@@ -42,11 +42,11 @@ pipeline:
       # on the streaming answer we send the answer as whole message
       # the 'value' syntax is used to refer to the whole value of the message
       stream-response-completion-field: "value"
-      # we want to stream the answer as soon as we have 20 chunks
+      # we want to stream the answer as soon as we have 10 chunks
       # in order to reduce latency for the first message the agent sends the first message
       # with 1 chunk, then with 2 chunks....up to the min-chunks-per-message value
       # eventually we want to send bigger messages to reduce the overhead of each message on the topic
-      min-chunks-per-message: 20
+      min-chunks-per-message: 10
       messages:
         - role: user
-          content: "You are an helpful assistant. Below you can fine a question from the user. Please try to help them the best way you can.\n\n{{% value.question}}"
+          content: "You are a helpful assistant. Below you can find a question from the user. Please try to help them the best way you can.\n\n{{% value.question}}"

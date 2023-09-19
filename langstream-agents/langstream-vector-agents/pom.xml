@@ -47,6 +47,12 @@
       <groupId>com.datastax.oss</groupId>
       <artifactId>messaging-connectors-commons-core</artifactId>
       <version>1.0.15</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>java-driver-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <!-- Pinecone connector -->

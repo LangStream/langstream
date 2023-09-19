@@ -47,6 +47,10 @@
           <groupId>${project.groupId}</groupId>
           <artifactId>langstream-pulsar-runtime</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>langstream-codestorage-azure-blob-storage</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -54,6 +58,12 @@
       <artifactId>langstream-webservice</artifactId>
       <version>${project.version}</version>
       <classifier>original</classifier>
+      <exclusions>
+        <exclusion>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>langstream-codestorage-azure-blob-storage</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

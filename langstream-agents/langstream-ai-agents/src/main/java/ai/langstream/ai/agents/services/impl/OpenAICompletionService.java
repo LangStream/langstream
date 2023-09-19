@@ -95,7 +95,8 @@ public class OpenAICompletionService implements CompletionsService {
                                         error);
                                 finished.completeExceptionally(error);
                             })
-                    .subscribe(chatCompletionsConsumer);
+                    .doOnNext(chatCompletionsConsumer)
+                    .subscribe();
 
             return finished.thenApply(
                     ___ -> {
@@ -109,8 +110,7 @@ public class OpenAICompletionService implements CompletionsService {
         } else {
             com.azure.ai.openai.models.ChatCompletions chatCompletions =
                     client.getChatCompletions((String) options.get("model"), chatCompletionsOptions)
-                            .toFuture()
-                            .get();
+                            .block();
             result.setChoices(
                     chatCompletions.getChoices().stream()
                             .map(c -> new ChatChoice(convertMessage(c)))

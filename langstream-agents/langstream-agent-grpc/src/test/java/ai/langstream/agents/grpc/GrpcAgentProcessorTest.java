@@ -16,6 +16,7 @@
 package ai.langstream.agents.grpc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -193,9 +194,11 @@ public class GrpcAgentProcessorTest {
     @Test
     void testEmpty() throws Exception {
         GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
-        processor.setContext(new TestAgentContext());
+        TestAgentContext context = new TestAgentContext();
+        processor.setContext(context);
         processor.start();
         assertProcessSuccessful(processor, SimpleRecord.builder().build());
+        assertFalse(context.failureCalled.await(1, TimeUnit.SECONDS));
         processor.close();
     }
 
@@ -235,7 +238,7 @@ public class GrpcAgentProcessorTest {
         processor.start();
         processor.process(List.of(inputRecord), result -> {});
 
-        assertTrue(testAgentContext.failureCalled.await(5, TimeUnit.SECONDS));
+        assertTrue(testAgentContext.failureCalled.await(1, TimeUnit.SECONDS));
         processor.close();
     }
 

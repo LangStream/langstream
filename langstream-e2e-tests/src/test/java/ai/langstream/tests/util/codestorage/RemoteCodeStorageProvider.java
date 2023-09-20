@@ -53,8 +53,7 @@ public class RemoteCodeStorageProvider implements CodeStorageProvider {
                 CONFIG.put(key, value);
             }
         }
-        String type =
-                System.getProperty("langstream.tests.codestorageremote.type");
+        String type = System.getProperty("langstream.tests.codestorageremote.type");
         if (type == null) {
             type = System.getenv("LANGSTREAM_TESTS_CODESTORAGEREMOTE_TYPE");
         }

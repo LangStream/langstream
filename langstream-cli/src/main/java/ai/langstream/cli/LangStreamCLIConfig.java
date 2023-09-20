@@ -15,6 +15,8 @@
  */
 package ai.langstream.cli;
 
+import ai.langstream.cli.commands.profiles.BaseProfileCmd;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Map;
 import java.util.TreeMap;
 import lombok.Getter;
@@ -26,5 +28,17 @@ public class LangStreamCLIConfig extends Profile {
 
     private Map<String, NamedProfile> profiles = new TreeMap<>();
 
-    private String currentProfile = "default";
+    private String currentProfile = BaseProfileCmd.DEFAULT_PROFILE_NAME;
+
+    @JsonIgnore
+    public void updateProfile(String name, NamedProfile namedProfile) {
+        if (name.equals(BaseProfileCmd.DEFAULT_PROFILE_NAME)) {
+            setTenant(namedProfile.getTenant());
+            setToken(namedProfile.getToken());
+            setWebServiceUrl(namedProfile.getWebServiceUrl());
+            setApiGatewayUrl(namedProfile.getApiGatewayUrl());
+        } else {
+            profiles.put(name, namedProfile);
+        }
+    }
 }

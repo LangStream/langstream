@@ -36,6 +36,11 @@ class AgentServiceStub(object):
             request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.InfoResponse.FromString,
         )
+        self.read = channel.stream_stream(
+            "/AgentService/read",
+            request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.SourceRequest.SerializeToString,
+            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.SourceResponse.FromString,
+        )
         self.process = channel.stream_stream(
             "/AgentService/process",
             request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorRequest.SerializeToString,
@@ -47,6 +52,12 @@ class AgentServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def agent_info(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def read(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -65,6 +76,11 @@ def add_AgentServiceServicer_to_server(servicer, server):
             servicer.agent_info,
             request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.InfoResponse.SerializeToString,
+        ),
+        "read": grpc.stream_stream_rpc_method_handler(
+            servicer.read,
+            request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.SourceRequest.FromString,
+            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.SourceResponse.SerializeToString,
         ),
         "process": grpc.stream_stream_rpc_method_handler(
             servicer.process,
@@ -101,6 +117,35 @@ class AgentService(object):
             "/AgentService/agent_info",
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             langstream__grpc_dot_proto_dot_agent__pb2.InfoResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
+
+    @staticmethod
+    def read(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.stream_stream(
+            request_iterator,
+            target,
+            "/AgentService/read",
+            langstream__grpc_dot_proto_dot_agent__pb2.SourceRequest.SerializeToString,
+            langstream__grpc_dot_proto_dot_agent__pb2.SourceResponse.FromString,
             options,
             channel_credentials,
             insecure,

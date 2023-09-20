@@ -18,8 +18,9 @@ import concurrent
 import importlib
 import json
 import logging
+import threading
 from io import BytesIO
-from typing import Iterable, Union, List, Tuple, Any, Optional
+from typing import Iterable, Union, List, Tuple, Any, Optional, Dict
 
 import fastavro
 import grpc
@@ -34,6 +35,8 @@ from langstream_grpc.proto.agent_pb2 import (
     ProcessorResult,
     Schema,
     InfoResponse,
+    SourceRequest,
+    SourceResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceServicer
 from langstream_runtime.api import Source, Sink, Processor, Record, Agent
@@ -54,6 +57,26 @@ class RecordWithId(SimpleRecord):
         self.record_id = record_id
 
 
+def handle_requests(
+    agent: Source,
+    requests: Iterable[SourceRequest],
+    read_records: Dict[int, Record],
+    read_result,
+):
+    try:
+        for request in requests:
+            if len(request.committed_records) > 0:
+                records = []
+                for record_id in request.committed_records:
+                    record = read_records.pop(record_id, None)
+                    if record is not None:
+                        records.append(record)
+                call_method_if_exists(agent, "commit", records)
+        read_result.append(True)
+    except Exception as e:
+        read_result.append(e)
+
+
 class AgentService(AgentServiceServicer):
     def __init__(self, agent: Union[Agent, Source, Sink, Processor]):
         self.agent = agent
@@ -64,6 +87,34 @@ class AgentService(AgentServiceServicer):
     def agent_info(self, _, context):
         info = call_method_if_exists(self.agent, "agent_info") or {}
         return InfoResponse(json_info=json.dumps(info))
+
+    def read(self, requests: Iterable[SourceRequest], context):
+        read_records = {}
+        op_result = []
+        read_thread = threading.Thread(
+            target=handle_requests, args=(self.agent, requests, read_records, op_result)
+        )
+        last_record_id = 0
+        read_thread.start()
+        while True:
+            if len(op_result) > 0:
+                if op_result[0] is True:
+                    break
+                raise op_result[0]
+            records = self.agent.read()
+            if len(records) > 0:
+                grpc_records = []
+                for record in records:
+                    schemas, grpc_record = self.to_grpc_record(record)
+                    for schema in schemas:
+                        yield SourceResponse(schema=schema)
+                    grpc_records.append(grpc_record)
+                for i, record in enumerate(records):
+                    last_record_id += 1
+                    grpc_records[i].record_id = last_record_id
+                    read_records[last_record_id] = record
+                yield SourceResponse(records=grpc_records)
+        read_thread.join()
 
     def process(self, requests: Iterable[ProcessorRequest], context):
         for request in requests:
@@ -79,13 +130,12 @@ class AgentService(AgentServiceServicer):
                     if isinstance(result, Exception):
                         grpc_result.error = str(result)
                     else:
-                        for r in result:
-                            schemas, grpc_record = self.to_grpc_record(r)
+                        for record in result:
+                            schemas, grpc_record = self.to_grpc_record(record)
                             for schema in schemas:
                                 yield ProcessorResponse(schema=schema)
                             grpc_result.records.append(grpc_record)
                     grpc_results.append(grpc_result)
-
                 yield ProcessorResponse(results=grpc_results)
 
     def from_grpc_record(self, record: GrpcRecord) -> SimpleRecord:
@@ -110,6 +160,8 @@ class AgentService(AgentServiceServicer):
                 )
             finally:
                 avro_value.close()
+        if value.HasField("json_value"):
+            return json.loads(value.json_value)
         return getattr(value, value.WhichOneof("type_oneof"))
 
     def to_grpc_record(self, record: Record) -> Tuple[List[Schema], GrpcRecord]:

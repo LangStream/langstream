@@ -119,6 +119,24 @@ class Record(_message.Message):
         timestamp: _Optional[int] = ...,
     ) -> None: ...
 
+class SourceRequest(_message.Message):
+    __slots__ = ["committed_records"]
+    COMMITTED_RECORDS_FIELD_NUMBER: _ClassVar[int]
+    committed_records: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(self, committed_records: _Optional[_Iterable[int]] = ...) -> None: ...
+
+class SourceResponse(_message.Message):
+    __slots__ = ["schema", "records"]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    RECORDS_FIELD_NUMBER: _ClassVar[int]
+    schema: Schema
+    records: _containers.RepeatedCompositeFieldContainer[Record]
+    def __init__(
+        self,
+        schema: _Optional[_Union[Schema, _Mapping]] = ...,
+        records: _Optional[_Iterable[_Union[Record, _Mapping]]] = ...,
+    ) -> None: ...
+
 class ProcessorRequest(_message.Message):
     __slots__ = ["schema", "records"]
     SCHEMA_FIELD_NUMBER: _ClassVar[int]

@@ -65,10 +65,10 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
         // ref https://github.com/redpanda-data/helm-charts/blob/main/charts/redpanda/values.yaml
         log.info("running helm command to install redpanda");
         BaseEndToEndTest.runProcess(
-                ("helm upgrade --install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.3"
+                ("helm --debug upgrade --install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.3"
                                 + " --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console"
                                 + ".enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc"
-                                + ".cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true")
+                                + ".cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true --wait --timeout=5m")
                         .split(" "));
         log.info("waiting redpanda to be ready");
         BaseEndToEndTest.runProcess(

@@ -162,6 +162,6 @@ jobs:
         if: failure()
         continue-on-error: true
         with:
-          name: test-logs-${{ matrix.group }}
+          name: test-logs-e2e
           path: "**/target/e2e-test-logs/*"
           retention-days: 7

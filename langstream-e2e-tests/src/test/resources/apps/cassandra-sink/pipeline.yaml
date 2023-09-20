@@ -40,12 +40,12 @@ assets:
         - "CREATE TABLE IF NOT EXISTS vsearch.products (id int PRIMARY KEY, name TEXT, description TEXT);"
         - "INSERT INTO vsearch.products(id, name, description) VALUES (1, 'test-init', 'test-init');"
 topics:
-  - name: "TEST_TOPIC_C1"
+  - name: "ls-test-topic1"
     creation-mode: create-if-not-exists
 pipeline:
   - name: "Write to Cassandra"
     type: "sink"
-    input: "TEST_TOPIC_C1"
+    input: "ls-test-topic1"
     resources:
       size: 3
     configuration:
@@ -54,5 +54,5 @@ pipeline:
       value.converter: org.apache.kafka.connect.storage.StringConverter
       loadBalancing.localDc: "datacenter1"
       contactPoints: "{{{ secrets.cassandra.contact-points }}}"
-      topic.TEST_TOPIC_C1.vsearch.products.mapping: "id=value.id,description=value.description,name=value.name"
+      topic.ls-test-topic1.vsearch.products.mapping: "id=value.id,description=value.description,name=value.name"
       name: cassandra-sink

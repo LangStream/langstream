@@ -26,11 +26,13 @@ import ai.langstream.tests.util.kafka.RemoteKafkaProvider;
 import com.dajudge.kindcontainer.helm.Helm3Container;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Status;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
@@ -761,25 +763,35 @@ public class BaseEndToEndTest implements TestWatcher {
             BiConsumer<String, String> consumer) {
         if (podName != null) {
             try {
-                client.pods()
-                        .inNamespace(namespace)
-                        .withName(podName)
-                        .get()
-                        .getSpec()
-                        .getContainers()
-                        .forEach(
-                                container -> {
-                                    final ContainerResource containerResource =
-                                            client.pods()
-                                                    .inNamespace(namespace)
-                                                    .withName(podName)
-                                                    .inContainer(container.getName());
-                                    if (tailingLines > 0) {
-                                        containerResource.tailingLines(tailingLines);
-                                    }
-                                    final String containerLog = containerResource.getLog();
-                                    consumer.accept(container.getName(), containerLog);
-                                });
+                final PodSpec podSpec =
+                        client.pods().inNamespace(namespace).withName(podName).get().getSpec();
+                List<Container> all = new ArrayList<>();
+                final List<Container> containers = podSpec.getContainers();
+                all.addAll(containers);
+                final List<Container> init = podSpec.getInitContainers();
+                if (init != null) {
+                    all.addAll(init);
+                }
+                for (Container container : all) {
+                    try {
+                        final ContainerResource containerResource =
+                                client.pods()
+                                        .inNamespace(namespace)
+                                        .withName(podName)
+                                        .inContainer(container.getName());
+                        if (tailingLines > 0) {
+                            containerResource.tailingLines(tailingLines);
+                        }
+                        final String containerLog = containerResource.getLog();
+                        consumer.accept(container.getName(), containerLog);
+                    } catch (Throwable t) {
+                        log.error(
+                                "failed to get pod {} container {} logs: {}",
+                                podName,
+                                container.getName(),
+                                t.getMessage());
+                    }
+                }
             } catch (Throwable t) {
                 log.error("failed to get pod {} logs: {}", podName, t.getMessage());
             }

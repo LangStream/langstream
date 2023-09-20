@@ -97,6 +97,7 @@ public class BaseEndToEndTest implements TestWatcher {
     protected static Helm3Container helm3Container;
     protected static KubernetesClient client;
     protected static String namespace;
+    protected static AtomicBoolean initialized = new AtomicBoolean(false);
 
     @Override
     public void testAborted(ExtensionContext context, Throwable cause) {
@@ -356,6 +357,10 @@ public class BaseEndToEndTest implements TestWatcher {
     @BeforeAll
     @SneakyThrows
     public static void setup() {
+        if (initialized.get()) {
+            log.info("Skip setup since it's already done");
+            return;
+        }
 
         kubeCluster = getKubeCluster();
         kubeCluster.start();
@@ -424,6 +429,7 @@ public class BaseEndToEndTest implements TestWatcher {
 
             instanceFile = Files.createTempFile("ls-test", ".yaml").toFile();
             YAML_MAPPER.writeValue(instanceFile, instanceContent);
+            initialized.set(true);
 
         } catch (Throwable ee) {
             dumpTest("BeforeAll");
@@ -480,8 +486,41 @@ public class BaseEndToEndTest implements TestWatcher {
     private static void cleanupAllEndToEndTestsNamespaces() {
         client.namespaces().withLabel("app", "ls-test").delete();
         client.namespaces().list().getItems().stream()
-                .filter(ns -> ns.getMetadata().getName().startsWith(TENANT_NAMESPACE_PREFIX))
-                .forEach(ns -> client.namespaces().withName(ns.getMetadata().getName()).delete());
+                .map(ns -> ns.getMetadata().getName())
+                .filter(ns -> ns.startsWith(TENANT_NAMESPACE_PREFIX))
+                .forEach(ns -> deleteTenantNamespace(ns));
+    }
+
+    private static void deleteTenantNamespace(String ns) {
+        try {
+            final List<AgentCustomResource> agents =
+                    client.resources(AgentCustomResource.class).inNamespace(ns).list().getItems();
+            for (AgentCustomResource agent : agents) {
+                agent.getMetadata().setFinalizers(List.of());
+                client.resource(agent).inNamespace(ns).serverSideApply();
+                client.resources(AgentCustomResource.class)
+                        .inNamespace(ns)
+                        .withName(agent.getMetadata().getNamespace())
+                        .delete();
+            }
+            final List<ApplicationCustomResource> apps =
+                    client.resources(ApplicationCustomResource.class)
+                            .inNamespace(ns)
+                            .list()
+                            .getItems();
+
+            for (ApplicationCustomResource app : apps) {
+                app.getMetadata().setFinalizers(List.of());
+                client.resource(app).inNamespace(ns).serverSideApply();
+                client.resources(ApplicationCustomResource.class)
+                        .inNamespace(ns)
+                        .withName(app.getMetadata().getNamespace())
+                        .delete();
+            }
+        } catch (Throwable tt) {
+            log.error("Error deleting tenant namespace: " + ns, tt);
+        }
+        client.namespaces().withName(ns).delete();
     }
 
     @SneakyThrows

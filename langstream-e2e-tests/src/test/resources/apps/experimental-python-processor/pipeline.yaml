@@ -18,13 +18,13 @@ module: "module-1"
 id: "pipeline-1"
 name: "Exclamation processor"
 topics:
-  - name: TEST_TOPIC_0
+  - name: ls-test-topic0
     creation-mode: create-if-not-exists
     schema:
       type: string
     keySchema:
       type: string
-  - name: TEST_TOPIC_1
+  - name: ls-test-topic1
     creation-mode: create-if-not-exists
     deletion-mode: delete
     schema:
@@ -37,8 +37,8 @@ pipeline:
       size: 2
     id: "test-python-processor"
     type: "experimental-python-processor"
-    input: TEST_TOPIC_0
-    output: TEST_TOPIC_1
+    input: ls-test-topic0
+    output: ls-test-topic1
     configuration:
       secret_value: "{{ secrets.secret1.value-key }}"
       className: example.Exclamation

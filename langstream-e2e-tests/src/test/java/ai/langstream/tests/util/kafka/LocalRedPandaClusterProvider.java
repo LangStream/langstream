@@ -44,7 +44,7 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
     @Override
     @SneakyThrows
     public StreamingCluster start() {
-        log.info("installing kafka");
+        log.info("installing redpanda");
         client.resource(
                         new NamespaceBuilder()
                                 .withNewMetadata()
@@ -54,6 +54,7 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
                 .serverSideApply();
 
         if (!REUSE_EXISTING_REDPANDA) {
+            log.info("try to delete existing redpanda");
             BaseEndToEndTest.runProcess(
                     "helm delete redpanda --namespace kafka-ns".split(" "), true);
         }
@@ -62,17 +63,18 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
                 "helm repo add redpanda https://charts.redpanda.com/".split(" "), true);
         BaseEndToEndTest.runProcess("helm repo update".split(" "));
         // ref https://github.com/redpanda-data/helm-charts/blob/main/charts/redpanda/values.yaml
+        log.info("running helm command to install redpanda");
         BaseEndToEndTest.runProcess(
                 ("helm upgrade --install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.3"
                                 + " --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console"
                                 + ".enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc"
                                 + ".cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true")
                         .split(" "));
-        log.info("waiting kafka to be ready");
+        log.info("waiting redpanda to be ready");
         BaseEndToEndTest.runProcess(
                 "kubectl wait pods redpanda-0 --for=condition=Ready --timeout=5m -n kafka-ns"
                         .split(" "));
-        log.info("kafka installed");
+        log.info("redpanda installed");
 
         return new StreamingCluster(
                 "kafka",

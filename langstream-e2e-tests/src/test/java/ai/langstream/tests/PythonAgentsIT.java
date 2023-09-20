@@ -24,17 +24,18 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
-public class PythonFunctionIT extends BaseEndToEndTest {
+public class PythonAgentsIT extends BaseEndToEndTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"python-processor", "experimental-python-processor"})
-    public void test(String appDir) {
+    public void testProcessor(String appDir) {
         installLangStreamCluster(false);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
@@ -61,6 +62,38 @@ public class PythonFunctionIT extends BaseEndToEndTest {
 
         executeCommandOnClient("bin/langstream apps delete %s".formatted(applicationId).split(" "));
 
+        awaitCleanup(tenantNamespace, applicationId, "-test-python-processor");
+
+        final List<String> topics = getAllTopics();
+        Assertions.assertEquals(List.of("ls-test-topic0"), topics);
+    }
+
+    @Test
+    public void testSource() {
+        installLangStreamCluster(false);
+        final String tenant = "ten-" + System.currentTimeMillis();
+        setupTenant(tenant);
+        final String applicationId = "my-test-app";
+        deployLocalApplication(applicationId, "experimental-python-source");
+        final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
+        awaitApplicationReady(applicationId, 1);
+
+        final String output =
+                executeCommandOnClient(
+                        "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30"
+                                .formatted(applicationId)
+                                .split(" "));
+        log.info("Output: {}", output);
+        Assertions.assertTrue(
+                output.contains("{\"record\":{\"key\":null,\"value\":\"test\",\"headers\":{}}"));
+
+        executeCommandOnClient("bin/langstream apps delete %s".formatted(applicationId).split(" "));
+
+        awaitCleanup(tenantNamespace, applicationId, "-test-python-source");
+    }
+
+    private static void awaitCleanup(
+            String tenantNamespace, String applicationId, String appNameSuffix) {
         Awaitility.await()
                 .atMost(1, TimeUnit.MINUTES)
                 .untilAsserted(
@@ -69,7 +102,7 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                                     client.apps()
                                             .statefulSets()
                                             .inNamespace(tenantNamespace)
-                                            .withName(applicationId + "-test-python-processor")
+                                            .withName(applicationId + appNameSuffix)
                                             .get());
 
                             Assertions.assertEquals(
@@ -96,8 +129,5 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                                             .getItems()
                                             .size());
                         });
-
-        final List<String> topics = getAllTopics();
-        Assertions.assertEquals(List.of("ls-test-topic0"), topics);
     }
 }

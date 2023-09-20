@@ -78,10 +78,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -566,80 +562,6 @@ public class TransformFunctionUtil {
 
             public X509Certificate[] getAcceptedIssuers() {
                 return new X509Certificate[0];
-            }
-        }
-    }
-
-    /**
-     * Aggregate records in batches, depending on a batch size and a maximum idle time.
-     *
-     * @param <T>
-     */
-    public static class BatchExecutor<T> {
-        private final int batchSize;
-        private List<T> batch;
-        private long flushInterval;
-        private ScheduledExecutorService scheduledExecutorService;
-
-        private ScheduledFuture<?> scheduledFuture;
-
-        private final Consumer<List<T>> processor;
-
-        public BatchExecutor(
-                int batchSize,
-                Consumer<List<T>> processor,
-                long maxIdleTime,
-                ScheduledExecutorService scheduledExecutorService) {
-            this.batchSize = batchSize;
-            this.batch = new ArrayList<>(batchSize);
-            this.processor = processor;
-            this.flushInterval = maxIdleTime;
-            this.scheduledExecutorService = scheduledExecutorService;
-        }
-
-        public void start() {
-            if (flushInterval > 0) {
-                scheduledFuture =
-                        scheduledExecutorService.scheduleWithFixedDelay(
-                                this::flush, flushInterval, flushInterval, TimeUnit.MILLISECONDS);
-            }
-        }
-
-        public void stop() {
-            if (scheduledFuture != null) {
-                scheduledFuture.cancel(false);
-            }
-            flush();
-        }
-
-        private void flush() {
-            List<T> batchToProcess = null;
-            synchronized (this) {
-                if (batch.isEmpty()) {
-                    return;
-                }
-                if (!batch.isEmpty()) {
-                    batchToProcess = batch;
-                    batch = new ArrayList<>(batchSize);
-                }
-            }
-            // execute the processor our of the synchronized block
-            processor.accept(batchToProcess);
-        }
-
-        public void add(T t) {
-            List<T> batchToProcess = null;
-            synchronized (this) {
-                batch.add(t);
-                if (batch.size() >= batchSize || flushInterval <= 0) {
-                    batchToProcess = batch;
-                    batch = new ArrayList<>(batchSize);
-                }
-            }
-
-            // execute the processor our of the synchronized block
-            if (batchToProcess != null) {
-                processor.accept(batchToProcess);
             }
         }
     }

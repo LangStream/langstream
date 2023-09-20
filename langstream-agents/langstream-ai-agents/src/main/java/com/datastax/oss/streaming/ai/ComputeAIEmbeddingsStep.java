@@ -15,9 +15,9 @@
  */
 package com.datastax.oss.streaming.ai;
 
+import ai.langstream.api.util.BatchExecutor;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.model.JsonRecord;
-import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 import java.util.ArrayList;
@@ -39,7 +39,7 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
     private final String embeddingsFieldName;
     private final EmbeddingsService embeddingsService;
 
-    private final TransformFunctionUtil.BatchExecutor<RecordHolder> batchExecutor;
+    private final BatchExecutor<RecordHolder> batchExecutor;
 
     private final ScheduledExecutorService executorService;
     private final Map<org.apache.avro.Schema, org.apache.avro.Schema> avroValueSchemaCache =
@@ -60,8 +60,7 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
         this.executorService =
                 flushInterval > 0 ? Executors.newSingleThreadScheduledExecutor() : null;
         this.batchExecutor =
-                new TransformFunctionUtil.BatchExecutor<>(
-                        batchSize, this::processBatch, flushInterval, executorService);
+                new BatchExecutor<>(batchSize, this::processBatch, flushInterval, executorService);
     }
 
     @Override

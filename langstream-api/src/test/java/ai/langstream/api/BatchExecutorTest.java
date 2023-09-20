@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.util;
+package ai.langstream.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import ai.langstream.api.util.BatchExecutor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -26,7 +27,7 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class TransformFunctionUtilTest {
+class BatchExecutorTest {
 
     static Object[][] batchSizes() {
         return new Object[][] {
@@ -50,8 +51,8 @@ class TransformFunctionUtilTest {
             records.add("text " + i);
         }
         List<String> result = new CopyOnWriteArrayList<>();
-        TransformFunctionUtil.BatchExecutor<String> executor =
-                new TransformFunctionUtil.BatchExecutor<>(
+        BatchExecutor<String> executor =
+                new BatchExecutor<>(
                         batchSize,
                         (batch) -> {
                             result.addAll(batch);
@@ -77,8 +78,8 @@ class TransformFunctionUtilTest {
             records.add("text " + i);
         }
         List<String> result = new CopyOnWriteArrayList<>();
-        TransformFunctionUtil.BatchExecutor<String> executor =
-                new TransformFunctionUtil.BatchExecutor<>(
+        BatchExecutor<String> executor =
+                new BatchExecutor<>(
                         batchSize,
                         (batch) -> {
                             result.addAll(batch);

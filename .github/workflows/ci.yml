@@ -65,12 +65,12 @@ jobs:
       - name: 'Init: build project'
         run: |
           chmod +x mvnw
-          ./mvnw clean install -DskipTests -PskipPython
+          ./mvnw -ntp clean install -DskipTests -PskipPython
 
       - name: 'Test: Runtime'
         if: ${{ matrix.name == 'Runtime' }}
         run: |
-          ./mvnw package -pl ":langstream-runtime-impl"
+          ./mvnw -ntp package -pl ":langstream-runtime-impl"
           if [[ `git status --porcelain` ]]; then
             echo "Found runtime impl changed after building, please build the runtime impl and commit the changes. "
             git status
@@ -81,30 +81,30 @@ jobs:
       - name: 'Test: Runtime (Integration Tests)'
         if: ${{ matrix.name == 'Runtime IT' }}
         run: |
-          ./mvnw package -pl ":langstream-runtime-base-docker-image" -Pdocker -DskipTests -PskipPython
-          ./mvnw package -pl ":langstream-runtime-impl" -Pdocker -DskipTests -PskipPython
-          ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython
+          ./mvnw -ntp package -pl ":langstream-runtime-base-docker-image" -Pdocker -DskipTests -PskipPython
+          ./mvnw -ntp package -pl ":langstream-runtime-impl" -Pdocker -DskipTests -PskipPython
+          ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython
 
       - name: 'Test: Api Gateway'
         if: ${{ matrix.name == 'Api Gateway' }}
         run: |
-          ./mvnw verify -pl ":langstream-api-gateway" -Pdocker -PskipPython
+          ./mvnw -ntp verify -pl ":langstream-api-gateway" -Pdocker -PskipPython
 
       - name: 'Test: Deployer'
         if: ${{ matrix.name == 'Deployer' }}
         run: |
-          ./mvnw verify -f langstream-k8s-deployer -Pdocker -PskipPython
+          ./mvnw -ntp verify -f langstream-k8s-deployer -Pdocker -PskipPython
 
       - name: 'Test: Control plane'
         if: ${{ matrix.name == 'Control plane' }}
         run: |
-          ./mvnw verify -pl langstream-webservice -Pdocker -PskipPython
+          ./mvnw -ntp verify -pl langstream-webservice -Pdocker -PskipPython
 
       - name: 'Test: Other'
         if: ${{ matrix.name == 'Other' }}
         run: |
           #/bin/bash
-          ./mvnw verify -PtestSuiteOthers -PskipPython
+          ./mvnw -ntp verify -PtestSuiteOthers -PskipPython
       - name: 'Test: Style'
         if: ${{ matrix.name == 'Style' }}
         run: |
@@ -154,8 +154,8 @@ jobs:
           chmod +x mvnw
           uname -m
           ./dev/prepare-minikube-for-e2e-tests.sh
-          ./mvnw install -pl langstream-e2e-tests -am -DskipTests
-          ./mvnw verify -pl langstream-e2e-tests -De2eTests -DexcludedGroups="needs-credentials" -Dlangstream.tests.recycleenv=true
+          ./mvnw -ntp install -pl langstream-e2e-tests -am -DskipTests
+          ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -DexcludedGroups="needs-credentials" -Dlangstream.tests.recycleenv=true
 
       - name: Upload Surefire reports
         uses: actions/upload-artifact@v3

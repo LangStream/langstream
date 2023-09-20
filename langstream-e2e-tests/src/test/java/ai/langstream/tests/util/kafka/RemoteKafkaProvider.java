@@ -42,7 +42,7 @@ public class RemoteKafkaProvider implements StreamingClusterProvider {
         final Map<String, String> envs = System.getenv();
         for (Map.Entry<String, String> env : envs.entrySet()) {
             if (env.getKey().startsWith(ENV_PREFIX)) {
-                final String key = env.getKey().substring(ENV_PREFIX.length()).toLowerCase();
+                final String key = env.getKey().substring(ENV_PREFIX.length()).toLowerCase().replace("_", ".");
                 final String value = env.getValue();
                 log.info("Loading remote kafka admin config from env: {}={}", key, value);
                 ADMIN_CONFIG.put(key, value);

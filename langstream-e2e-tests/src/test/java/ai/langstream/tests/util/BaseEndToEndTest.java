@@ -19,6 +19,8 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.tests.util.codestorage.LocalMinioCodeStorageProvider;
+import ai.langstream.tests.util.codestorage.RemoteS3CodeStorageProvider;
 import ai.langstream.tests.util.k8s.LocalK3sContainer;
 import ai.langstream.tests.util.k8s.RunningHostCluster;
 import ai.langstream.tests.util.kafka.LocalRedPandaClusterProvider;
@@ -90,6 +92,8 @@ public class BaseEndToEndTest implements TestWatcher {
     private static final String LANGSTREAM_K8S = System.getProperty("langstream.tests.k8s", "host");
     private static final String LANGSTREAM_STREAMING =
             System.getProperty("langstream.tests.streaming", "local-redpanda");
+    private static final String LANGSTREAM_CODESTORAGE =
+            System.getProperty("langstream.tests.codestorage", "local-minio");
 
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
@@ -98,6 +102,8 @@ public class BaseEndToEndTest implements TestWatcher {
     protected static KubeCluster kubeCluster;
     protected static StreamingClusterProvider streamingClusterProvider;
     protected static File instanceFile;
+    protected static CodeStorageProvider codeStorageProvider;
+    protected static CodeStorageProvider.CodeStorageConfig codeStorageConfig;
     protected static KubernetesClient client;
     protected static String namespace;
 
@@ -136,7 +142,7 @@ public class BaseEndToEndTest implements TestWatcher {
                 .delete();
     }
 
-    protected static void applyManifestNoNamespace(String manifest) {
+    public static void applyManifestNoNamespace(String manifest) {
         client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
                 .serverSideApply();
     }
@@ -347,6 +353,10 @@ public class BaseEndToEndTest implements TestWatcher {
                 streamingClusterProvider.stop();
                 streamingClusterProvider = null;
             }
+            if (codeStorageProvider != null) {
+                codeStorageProvider.stop();
+                codeStorageProvider = null;
+            }
             if (client != null) {
                 client.close();
                 client = null;
@@ -377,6 +387,10 @@ public class BaseEndToEndTest implements TestWatcher {
             streamingClusterProvider = getStreamingClusterProvider();
         }
 
+        if (codeStorageProvider == null) {
+            codeStorageProvider = getCodeStorageProvider();
+        }
+
         try {
 
             final Path tempFile = Files.createTempFile("ls-test-kube", ".yaml");
@@ -388,8 +402,8 @@ public class BaseEndToEndTest implements TestWatcher {
 
             final CompletableFuture<StreamingCluster> streamingClusterFuture =
                     CompletableFuture.supplyAsync(() -> streamingClusterProvider.start());
-            final CompletableFuture<Void> minioFuture =
-                    CompletableFuture.runAsync(BaseEndToEndTest::installMinio);
+            final CompletableFuture<CodeStorageProvider.CodeStorageConfig> minioFuture =
+                    CompletableFuture.supplyAsync(() -> codeStorageProvider.start());
             List<CompletableFuture<Void>> imagesFutures = new ArrayList<>();
 
             imagesFutures.add(
@@ -414,7 +428,6 @@ public class BaseEndToEndTest implements TestWatcher {
                                             "langstream/langstream-api-gateway:latest-dev")));
 
             CompletableFuture.allOf(
-                            minioFuture,
                             imagesFutures.get(0),
                             imagesFutures.get(1),
                             imagesFutures.get(2),
@@ -435,6 +448,8 @@ public class BaseEndToEndTest implements TestWatcher {
             instanceFile = Files.createTempFile("ls-test", ".yaml").toFile();
             YAML_MAPPER.writeValue(instanceFile, instanceContent);
 
+            codeStorageConfig = minioFuture.join();
+
         } catch (Throwable ee) {
             dumpTest("BeforeAll");
             throw ee;
@@ -450,6 +465,18 @@ public class BaseEndToEndTest implements TestWatcher {
             default:
                 throw new IllegalArgumentException(
                         "Unknown LANGSTREAM_STREAMING: " + LANGSTREAM_STREAMING);
+        }
+    }
+
+    private static CodeStorageProvider getCodeStorageProvider() {
+        switch (LANGSTREAM_CODESTORAGE) {
+            case "local-minio":
+                return new LocalMinioCodeStorageProvider();
+            case "remote-s3":
+                return new RemoteS3CodeStorageProvider();
+            default:
+                throw new IllegalArgumentException(
+                        "Unknown LANGSTREAM_CODESTORAGE: " + LANGSTREAM_CODESTORAGE);
         }
     }
 
@@ -618,11 +645,8 @@ public class BaseEndToEndTest implements TestWatcher {
                                 create: false
                             namespacePrefix: %s
                         codeStorage:
-                          type: s3
-                          configuration:
-                            endpoint: http://minio.minio-dev.svc.cluster.local:9000
-                            access-key: minioadmin
-                            secret-key: minioadmin
+                          type: %s
+                          configuration: %s
                         """
                         .formatted(
                                 LANGSTREAM_TAG,
@@ -636,7 +660,11 @@ public class BaseEndToEndTest implements TestWatcher {
                                 imagePullPolicy,
                                 baseImageRepository,
                                 imagePullPolicy,
-                                TENANT_NAMESPACE_PREFIX);
+                                TENANT_NAMESPACE_PREFIX,
+                                codeStorageConfig.type(),
+                                JSON_MAPPER.writeValueAsString(codeStorageConfig.configuration()));
+
+        log.info("Applying values: {}", values);
         final Path tempFile = Files.createTempFile("langstream-test", ".yaml");
         Files.writeString(tempFile, values);
 
@@ -683,80 +711,7 @@ public class BaseEndToEndTest implements TestWatcher {
         log.info("api gateway ready");
     }
 
-    static void installMinio() {
-        applyManifestNoNamespace(
-                """
-                        # Deploys a new Namespace for the MinIO Pod
-                        apiVersion: v1
-                        kind: Namespace
-                        metadata:
-                          name: minio-dev # Change this value if you want a different namespace name
-                          labels:
-                            name: minio-dev # Change this value to match metadata.name
-                        ---
-                        # Deploys a new MinIO Pod into the metadata.namespace Kubernetes namespace
-                        #
-                        # The `spec.containers[0].args` contains the command run on the pod
-                        # The `/data` directory corresponds to the `spec.containers[0].volumeMounts[0].mountPath`
-                        # That mount path corresponds to a Kubernetes HostPath which binds `/data` to a local drive or volume on the worker node where the pod runs
-                        #\s
-                        apiVersion: v1
-                        kind: Pod
-                        metadata:
-                          labels:
-                            app: minio
-                          name: minio
-                          namespace: minio-dev # Change this value to match the namespace metadata.name
-                        spec:
-                          containers:
-                          - name: minio
-                            image: quay.io/minio/minio:latest
-                            command:
-                            - /bin/bash
-                            - -c
-                            args:\s
-                            - minio server /data --console-address :9090
-                            volumeMounts:
-                            - mountPath: /data
-                              name: localvolume # Corresponds to the `spec.volumes` Persistent Volume
-                            ports:
-                              -  containerPort: 9090
-                                 protocol: TCP
-                                 name: console
-                              -  containerPort: 9000
-                                 protocol: TCP
-                                 name: s3
-                            resources:
-                              requests:
-                                cpu: 50m
-                                memory: 512Mi
-                          volumes:
-                          - name: localvolume
-                            hostPath: # MinIO generally recommends using locally-attached volumes
-                              path: /mnt/disk1/data # Specify a path to a local drive or volume on the Kubernetes worker node
-                              type: DirectoryOrCreate # The path to the last directory must exist
-                        ---
-                        apiVersion: v1
-                        kind: Service
-                        metadata:
-                          labels:
-                            app: minio
-                          name: minio
-                          namespace: minio-dev # Change this value to match the namespace metadata.name
-                        spec:
-                          ports:
-                            - port: 9090
-                              protocol: TCP
-                              targetPort: 9090
-                              name: console
-                            - port: 9000
-                              protocol: TCP
-                              targetPort: 9000
-                              name: s3
-                          selector:
-                            app: minio
-                        """);
-    }
+    static void installMinio() {}
 
     protected static void withPodLogs(
             String podName,

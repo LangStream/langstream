@@ -23,6 +23,7 @@ import "google/protobuf/empty.proto";
 
 service AgentService {
   rpc agent_info(google.protobuf.Empty) returns (InfoResponse) {}
+  rpc read(stream SourceRequest) returns (stream SourceResponse) {}
   rpc process(stream ProcessorRequest) returns (stream ProcessorResponse) {}
 }
 
@@ -65,6 +66,16 @@ message Record {
   string origin = 5;
   optional int64 timestamp = 6;
 }
+
+message SourceRequest {
+  repeated int64 committed_records = 1;
+}
+
+message SourceResponse {
+  Schema schema = 1;
+  repeated Record records = 2;
+}
+
 
 message ProcessorRequest {
   Schema schema = 1;

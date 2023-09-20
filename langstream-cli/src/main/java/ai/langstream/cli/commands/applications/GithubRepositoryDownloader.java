@@ -39,6 +39,8 @@ public class GithubRepositoryDownloader {
         RequestedDirectory requestedDirectory = parseRequest(uri);
 
         final Path directory = Files.createTempDirectory("langstream");
+        logger.accept(
+                String.format("Cloning GitHub repository %s to ", uri, directory.toAbsolutePath()));
 
         final long start = System.currentTimeMillis();
         Git.cloneRepository()

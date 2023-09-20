@@ -155,7 +155,7 @@ jobs:
           uname -m
           ./dev/prepare-minikube-for-e2e-tests.sh
           ./mvnw install -pl langstream-e2e-tests -am -DskipTests
-          ./mvnw verify -pl langstream-e2e-tests -De2eTests -DexcludedGroups="needs-credentials"
+          ./mvnw verify -pl langstream-e2e-tests -De2eTests -DexcludedGroups="needs-credentials" -Dlangstream.tests.recycleenv=true
 
       - name: Upload Surefire reports
         uses: actions/upload-artifact@v3

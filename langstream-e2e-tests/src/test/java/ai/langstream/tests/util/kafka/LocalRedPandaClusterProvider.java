@@ -20,6 +20,7 @@ import ai.langstream.tests.util.BaseEndToEndTest;
 import ai.langstream.tests.util.StreamingClusterProvider;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
     protected static final String KAFKA_NAMESPACE = "kafka-ns";
 
     private final KubernetesClient client;
+    private boolean started;
 
     public LocalRedPandaClusterProvider(KubernetesClient client) {
         this.client = client;
@@ -44,6 +46,20 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
     @Override
     @SneakyThrows
     public StreamingCluster start() {
+        if (!started) {
+            internalStart();
+            started = true;
+        }
+        return new StreamingCluster(
+                "kafka",
+                Map.of(
+                        "admin",
+                        Map.of(
+                                "bootstrap.servers",
+                                "redpanda-0.redpanda.kafka-ns.svc.cluster.local:9093")));
+    }
+
+    private void internalStart() throws InterruptedException, IOException {
         log.info("installing redpanda");
         client.resource(
                         new NamespaceBuilder()
@@ -66,23 +82,15 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
         log.info("running helm command to install redpanda");
         BaseEndToEndTest.runProcess(
                 ("helm --debug upgrade --install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.3"
-                                + " --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console"
-                                + ".enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc"
-                                + ".cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true --set tuning.tune_aio_events=false --wait --timeout=5m")
+                 + " --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console"
+                 + ".enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc"
+                 + ".cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true --set tuning.tune_aio_events=false --wait --timeout=5m")
                         .split(" "));
         log.info("waiting redpanda to be ready");
         BaseEndToEndTest.runProcess(
                 "kubectl wait pods redpanda-0 --for=condition=Ready --timeout=5m -n kafka-ns"
                         .split(" "));
         log.info("redpanda installed");
-
-        return new StreamingCluster(
-                "kafka",
-                Map.of(
-                        "admin",
-                        Map.of(
-                                "bootstrap.servers",
-                                "redpanda-0.redpanda.kafka-ns.svc.cluster.local:9093")));
     }
 
     @SneakyThrows

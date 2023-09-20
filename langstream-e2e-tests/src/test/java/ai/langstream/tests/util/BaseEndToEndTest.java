@@ -23,7 +23,6 @@ import ai.langstream.tests.util.k8s.LocalK3sContainer;
 import ai.langstream.tests.util.k8s.RunningHostCluster;
 import ai.langstream.tests.util.kafka.LocalRedPandaClusterProvider;
 import ai.langstream.tests.util.kafka.RemoteKafkaProvider;
-import com.dajudge.kindcontainer.helm.Helm3Container;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Container;
@@ -82,6 +81,9 @@ public class BaseEndToEndTest implements TestWatcher {
 
     public static final String CATEGORY_NEEDS_CREDENTIALS = "needs-credentials";
 
+    private static final boolean LANGSTREAM_RECYCLE_ENV =
+            Boolean.parseBoolean(System.getProperty("langstream.tests.recycleenv", "false"));
+
     private static final String LANGSTREAM_TAG =
             System.getProperty("langstream.tests.tag", "latest-dev");
 
@@ -96,10 +98,8 @@ public class BaseEndToEndTest implements TestWatcher {
     protected static KubeCluster kubeCluster;
     protected static StreamingClusterProvider streamingClusterProvider;
     protected static File instanceFile;
-    protected static Helm3Container helm3Container;
     protected static KubernetesClient client;
     protected static String namespace;
-    protected static AtomicBoolean initialized = new AtomicBoolean(false);
 
     @Override
     public void testAborted(ExtensionContext context, Throwable cause) {
@@ -342,37 +342,40 @@ public class BaseEndToEndTest implements TestWatcher {
     @SneakyThrows
     public static void destroy() {
         cleanupAllEndToEndTestsNamespaces();
-        if (streamingClusterProvider != null) {
-            streamingClusterProvider.stop();
-        }
-        if (client != null) {
-            client.close();
-        }
-        if (helm3Container != null) {
-            helm3Container.close();
-        }
-        if (kubeCluster != null) {
-            kubeCluster.stop();
+        if (!LANGSTREAM_RECYCLE_ENV) {
+            if (streamingClusterProvider != null) {
+                streamingClusterProvider.stop();
+                streamingClusterProvider = null;
+            }
+            if (client != null) {
+                client.close();
+                client = null;
+            }
+            if (kubeCluster != null) {
+                kubeCluster.stop();
+                kubeCluster = null;
+            }
         }
     }
 
     @BeforeAll
     @SneakyThrows
     public static void setup() {
-        if (initialized.get()) {
-            log.info("Skip setup since it's already done");
-            return;
+        if (kubeCluster == null) {
+            kubeCluster = getKubeCluster();
+            kubeCluster.start();
         }
 
-        kubeCluster = getKubeCluster();
-        kubeCluster.start();
+        if (client == null) {
+            client =
+                    new KubernetesClientBuilder()
+                            .withConfig(Config.fromKubeconfig(kubeCluster.getKubeConfig()))
+                            .build();
+        }
 
-        client =
-                new KubernetesClientBuilder()
-                        .withConfig(Config.fromKubeconfig(kubeCluster.getKubeConfig()))
-                        .build();
-
-        streamingClusterProvider = getStreamingClusterProvider();
+        if (streamingClusterProvider == null) {
+            streamingClusterProvider = getStreamingClusterProvider();
+        }
 
         try {
 
@@ -431,7 +434,6 @@ public class BaseEndToEndTest implements TestWatcher {
 
             instanceFile = Files.createTempFile("ls-test", ".yaml").toFile();
             YAML_MAPPER.writeValue(instanceFile, instanceContent);
-            initialized.set(true);
 
         } catch (Throwable ee) {
             dumpTest("BeforeAll");

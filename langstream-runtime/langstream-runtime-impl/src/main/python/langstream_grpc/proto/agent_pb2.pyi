@@ -119,11 +119,27 @@ class Record(_message.Message):
         timestamp: _Optional[int] = ...,
     ) -> None: ...
 
+class PermanentFailure(_message.Message):
+    __slots__ = ["record_id", "error_message"]
+    RECORD_ID_FIELD_NUMBER: _ClassVar[int]
+    ERROR_MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    record_id: int
+    error_message: str
+    def __init__(
+        self, record_id: _Optional[int] = ..., error_message: _Optional[str] = ...
+    ) -> None: ...
+
 class SourceRequest(_message.Message):
-    __slots__ = ["committed_records"]
+    __slots__ = ["committed_records", "permanent_failure"]
     COMMITTED_RECORDS_FIELD_NUMBER: _ClassVar[int]
+    PERMANENT_FAILURE_FIELD_NUMBER: _ClassVar[int]
     committed_records: _containers.RepeatedScalarFieldContainer[int]
-    def __init__(self, committed_records: _Optional[_Iterable[int]] = ...) -> None: ...
+    permanent_failure: PermanentFailure
+    def __init__(
+        self,
+        committed_records: _Optional[_Iterable[int]] = ...,
+        permanent_failure: _Optional[_Union[PermanentFailure, _Mapping]] = ...,
+    ) -> None: ...
 
 class SourceResponse(_message.Message):
     __slots__ = ["schema", "records"]

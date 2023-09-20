@@ -67,8 +67,14 @@ message Record {
   optional int64 timestamp = 6;
 }
 
+message PermanentFailure {
+  int64 record_id = 1;
+  string error_message = 2;
+}
+
 message SourceRequest {
   repeated int64 committed_records = 1;
+  PermanentFailure permanent_failure = 2;
 }
 
 message SourceResponse {

@@ -72,6 +72,15 @@ def handle_requests(
                     if record is not None:
                         records.append(record)
                 call_method_if_exists(agent, "commit", records)
+            if request.HasField("permanent_failure"):
+                failure = request.permanent_failure
+                record = read_records.pop(failure.record_id, None)
+                call_method_if_exists(
+                    agent,
+                    "permanent_failure",
+                    record,
+                    RuntimeError(failure.error_message),
+                )
         read_result.append(True)
     except Exception as e:
         read_result.append(e)

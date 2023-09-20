@@ -31,7 +31,7 @@ pipeline:
       reindex-interval-seconds: 3600
       max-error-count: 5
       max-urls: 1000
-      max-depth: 10
+      max-depth: 50
       handle-robots-file: true
       user-agent: "" # this is computed automatically, but you can override it
       scan-html-documents: true
@@ -53,7 +53,7 @@ pipeline:
   - name: "Detect language"
     type: "language-detector"
     configuration:
-      allowedLanguages: ["en"]
+      allowedLanguages: ["en", "fr"]
       property: "language"
   - name: "Split into chunks"
     type: "text-splitter"

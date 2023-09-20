@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.tests;
+package ai.langstream.tests.util;
 
+import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
-import ai.langstream.tests.util.ConsumeGatewayMessage;
-import com.dajudge.kindcontainer.K3sContainer;
-import com.dajudge.kindcontainer.K3sContainerVersion;
-import com.dajudge.kindcontainer.KubernetesImageSpec;
+import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.tests.util.k8s.LocalK3sContainer;
+import ai.langstream.tests.util.k8s.RunningHostCluster;
+import ai.langstream.tests.util.kafka.LocalRedPandaClusterProvider;
+import ai.langstream.tests.util.kafka.RemoteKafkaProvider;
 import com.dajudge.kindcontainer.helm.Helm3Container;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -46,8 +48,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -72,119 +72,28 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestWatcher;
-import org.testcontainers.DockerClientFactory;
-import org.testcontainers.containers.BindMode;
 
 @Slf4j
 public class BaseEndToEndTest implements TestWatcher {
+
+    public static final String TOPICS_PREFIX = "ls-test-";
 
     public static final String CATEGORY_NEEDS_CREDENTIALS = "needs-credentials";
 
     private static final String LANGSTREAM_TAG =
             System.getProperty("langstream.tests.tag", "latest-dev");
 
-    private static final boolean REUSE_EXISTING_REDPANDA =
-            Boolean.parseBoolean(System.getProperty("langstream.tests.reuseRedPanda", "false"));
+    private static final String LANGSTREAM_K8S = System.getProperty("langstream.tests.k8s", "host");
+    private static final String LANGSTREAM_STREAMING =
+            System.getProperty("langstream.tests.streaming", "local-redpanda");
 
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
     protected static final ObjectMapper JSON_MAPPER = new ObjectMapper();
     protected static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
-    protected static final String KAFKA_NAMESPACE = "kafka-ns";
-
-    interface KubeServer {
-        void start();
-
-        void ensureImage(String image);
-
-        void stop();
-
-        String getKubeConfig();
-    }
-
-    static class RunningHostCluster implements KubeServer {
-        @Override
-        public void start() {}
-
-        @Override
-        public void ensureImage(String image) {}
-
-        @Override
-        public void stop() {}
-
-        @Override
-        @SneakyThrows
-        public String getKubeConfig() {
-            final String kubeConfig = Config.getKubeconfigFilename();
-            return Files.readString(Paths.get(kubeConfig), StandardCharsets.UTF_8);
-        }
-    }
-
-    static class LocalK3sContainer implements KubeServer {
-
-        K3sContainer container;
-        final Path basePath = Paths.get("/tmp", "ls-tests-image");
-
-        @Override
-        public void start() {
-            container =
-                    new K3sContainer(
-                            new KubernetesImageSpec<>(K3sContainerVersion.VERSION_1_25_0)
-                                    .withImage("rancher/k3s:v1.25.3-k3s1"));
-            container.withFileSystemBind(
-                    basePath.toFile().getAbsolutePath(), "/images", BindMode.READ_WRITE);
-            // container.withNetwork(network);
-            container.start();
-        }
-
-        @Override
-        public void ensureImage(String image) {
-            loadImage(basePath, image);
-        }
-
-        @SneakyThrows
-        private void loadImage(Path basePath, String image) {
-            final String id =
-                    DockerClientFactory.lazyClient()
-                            .inspectImageCmd(image)
-                            .exec()
-                            .getId()
-                            .replace("sha256:", "");
-
-            final Path hostPath = basePath.resolve(id);
-            if (!hostPath.toFile().exists()) {
-                log.info("Saving image {} locally", image);
-                final InputStream in = DockerClientFactory.lazyClient().saveImageCmd(image).exec();
-
-                try (final OutputStream outputStream = Files.newOutputStream(hostPath)) {
-                    in.transferTo(outputStream);
-                } catch (Exception ex) {
-                    hostPath.toFile().delete();
-                    throw ex;
-                }
-            }
-
-            log.info("Loading image {} in the k3s container", image);
-            if (container.execInContainer("ctr", "images", "import", "/images/" + id).getExitCode()
-                    != 0) {
-                throw new RuntimeException("Failed to load image " + image);
-            }
-        }
-
-        @Override
-        public void stop() {
-            if (container != null) {
-                container.stop();
-            }
-        }
-
-        @Override
-        public String getKubeConfig() {
-            return container.getKubeconfig();
-        }
-    }
-
-    protected static KubeServer kubeServer;
+    protected static KubeCluster kubeCluster;
+    protected static StreamingClusterProvider streamingClusterProvider;
+    protected static File instanceFile;
     protected static Helm3Container helm3Container;
     protected static KubernetesClient client;
     protected static String namespace;
@@ -289,11 +198,11 @@ public class BaseEndToEndTest implements TestWatcher {
         return ConsumeGatewayMessage.readValue(secondLine);
     }
 
-    protected static void runProcess(String[] allArgs) throws InterruptedException, IOException {
+    public static void runProcess(String[] allArgs) throws InterruptedException, IOException {
         runProcess(allArgs, false);
     }
 
-    private static void runProcess(String[] allArgs, boolean allowFailures)
+    public static void runProcess(String[] allArgs, boolean allowFailures)
             throws InterruptedException, IOException {
         ProcessBuilder processBuilder =
                 new ProcessBuilder(allArgs)
@@ -430,14 +339,17 @@ public class BaseEndToEndTest implements TestWatcher {
     @SneakyThrows
     public static void destroy() {
         cleanupAllEndToEndTestsNamespaces();
+        if (streamingClusterProvider != null) {
+            streamingClusterProvider.stop();
+        }
         if (client != null) {
             client.close();
         }
         if (helm3Container != null) {
             helm3Container.close();
         }
-        if (kubeServer != null) {
-            kubeServer.stop();
+        if (kubeCluster != null) {
+            kubeCluster.stop();
         }
     }
 
@@ -445,58 +357,53 @@ public class BaseEndToEndTest implements TestWatcher {
     @SneakyThrows
     public static void setup() {
 
-        // kubeServer = new LocalK3sContainer();
-        kubeServer = new RunningHostCluster();
-        kubeServer.start();
+        kubeCluster = getKubeCluster();
+        kubeCluster.start();
 
         client =
                 new KubernetesClientBuilder()
-                        .withConfig(Config.fromKubeconfig(kubeServer.getKubeConfig()))
+                        .withConfig(Config.fromKubeconfig(kubeCluster.getKubeConfig()))
                         .build();
+
+        streamingClusterProvider = getStreamingClusterProvider();
 
         try {
 
             final Path tempFile = Files.createTempFile("ls-test-kube", ".yaml");
-            Files.writeString(tempFile, kubeServer.getKubeConfig());
+            Files.writeString(tempFile, kubeCluster.getKubeConfig());
             System.out.println(
                     "To inspect the container\nKUBECONFIG="
                             + tempFile.toFile().getAbsolutePath()
                             + " k9s");
 
-            final CompletableFuture<Void> kafkaFuture =
-                    CompletableFuture.runAsync(BaseEndToEndTest::installKafka);
+            final CompletableFuture<StreamingCluster> streamingClusterFuture =
+                    CompletableFuture.supplyAsync(() -> streamingClusterProvider.start());
             final CompletableFuture<Void> minioFuture =
                     CompletableFuture.runAsync(BaseEndToEndTest::installMinio);
             List<CompletableFuture<Void>> imagesFutures = new ArrayList<>();
 
-            final String baseImageRepository =
-                    LANGSTREAM_TAG.equals("latest-dev") ? "langstream" : "ghcr.io/langstream";
-            final String imagePullPolicy =
-                    LANGSTREAM_TAG.equals("latest-dev") ? "Never" : "IfNotPresent";
-
             imagesFutures.add(
                     CompletableFuture.runAsync(
                             () ->
-                                    kubeServer.ensureImage(
+                                    kubeCluster.ensureImage(
                                             "langstream/langstream-control-plane:latest-dev")));
             imagesFutures.add(
                     CompletableFuture.runAsync(
                             () ->
-                                    kubeServer.ensureImage(
+                                    kubeCluster.ensureImage(
                                             "langstream/langstream-deployer:latest-dev")));
             imagesFutures.add(
                     CompletableFuture.runAsync(
                             () ->
-                                    kubeServer.ensureImage(
+                                    kubeCluster.ensureImage(
                                             "langstream/langstream-runtime:latest-dev")));
             imagesFutures.add(
                     CompletableFuture.runAsync(
                             () ->
-                                    kubeServer.ensureImage(
+                                    kubeCluster.ensureImage(
                                             "langstream/langstream-api-gateway:latest-dev")));
 
             CompletableFuture.allOf(
-                            kafkaFuture,
                             minioFuture,
                             imagesFutures.get(0),
                             imagesFutures.get(1),
@@ -504,9 +411,46 @@ public class BaseEndToEndTest implements TestWatcher {
                             imagesFutures.get(3))
                     .join();
 
+            final StreamingCluster streamingCluster = streamingClusterFuture.join();
+
+            final Map<String, Map<String, Object>> instanceContent =
+                    Map.of(
+                            "instance",
+                            Map.of(
+                                    "streamingCluster",
+                                    streamingCluster,
+                                    "computeCluster",
+                                    Map.of("type", "kubernetes")));
+
+            instanceFile = Files.createTempFile("ls-test", ".yaml").toFile();
+            YAML_MAPPER.writeValue(instanceFile, instanceContent);
+
         } catch (Throwable ee) {
             dumpTest("BeforeAll");
             throw ee;
+        }
+    }
+
+    private static StreamingClusterProvider getStreamingClusterProvider() {
+        switch (LANGSTREAM_STREAMING) {
+            case "local-redpanda":
+                return new LocalRedPandaClusterProvider(client);
+            case "remote-kafka":
+                return new RemoteKafkaProvider();
+            default:
+                throw new IllegalArgumentException(
+                        "Unknown LANGSTREAM_STREAMING: " + LANGSTREAM_STREAMING);
+        }
+    }
+
+    private static KubeCluster getKubeCluster() {
+        switch (LANGSTREAM_K8S) {
+            case "k3s":
+                return new LocalK3sContainer();
+            case "host":
+                return new RunningHostCluster();
+            default:
+                throw new IllegalArgumentException("Unknown LANGSTREAM_K8S: " + LANGSTREAM_K8S);
         }
     }
 
@@ -530,7 +474,7 @@ public class BaseEndToEndTest implements TestWatcher {
     @AfterEach
     public void cleanupAfterEach() {
         cleanupAllEndToEndTestsNamespaces();
-        execInKafkaPod("rpk topic delete -r \".*\"");
+        streamingClusterProvider.cleanup();
     }
 
     private static void cleanupAllEndToEndTestsNamespaces() {
@@ -694,37 +638,6 @@ public class BaseEndToEndTest implements TestWatcher {
                         120,
                         TimeUnit.SECONDS);
         log.info("api gateway ready");
-    }
-
-    @SneakyThrows
-    private static void installKafka() {
-        log.info("installing kafka");
-        client.resource(
-                        new NamespaceBuilder()
-                                .withNewMetadata()
-                                .withName(KAFKA_NAMESPACE)
-                                .endMetadata()
-                                .build())
-                .serverSideApply();
-
-        if (!REUSE_EXISTING_REDPANDA) {
-            runProcess("helm delete redpanda --namespace kafka-ns".split(" "), true);
-        }
-
-        runProcess("helm repo add redpanda https://charts.redpanda.com/".split(" "), true);
-        runProcess("helm repo update".split(" "));
-        // ref https://github.com/redpanda-data/helm-charts/blob/main/charts/redpanda/values.yaml
-        runProcess(
-                ("helm upgrade --install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.3"
-                                + " --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console"
-                                + ".enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc"
-                                + ".cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true")
-                        .split(" "));
-        log.info("waiting kafka to be ready");
-        runProcess(
-                "kubectl wait pods redpanda-0 --for=condition=Ready --timeout=5m -n kafka-ns"
-                        .split(" "));
-        log.info("kafka installed");
     }
 
     static void installMinio() {
@@ -969,29 +882,8 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     @SneakyThrows
-    protected static List<String> getAllTopicsFromKafka() {
-        final String result = execInKafkaPod("rpk topic list");
-        if (result == null) {
-            throw new IllegalStateException("failed to get topics from kafka");
-        }
-
-        final List<String> topics = new ArrayList<>();
-        final List<String> lines = result.lines().collect(Collectors.toList());
-        boolean first = true;
-        for (String line : lines) {
-            if (first) {
-                first = false;
-                continue;
-            }
-            topics.add(line.split(" ")[0]);
-        }
-        return topics;
-    }
-
-    @SneakyThrows
-    private static String execInKafkaPod(String cmd) {
-        return execInPodInNamespace(KAFKA_NAMESPACE, "redpanda-0", "redpanda", cmd.split(" "))
-                .get(1, TimeUnit.MINUTES);
+    protected static List<String> getAllTopics() {
+        return streamingClusterProvider.getTopics();
     }
 
     protected static void setupTenant(String tenant) {
@@ -1044,17 +936,19 @@ public class BaseEndToEndTest implements TestWatcher {
                 expectedRunningTotalExecutors + "/" + expectedRunningTotalExecutors);
     }
 
+    @SneakyThrows
     protected static void deployLocalApplication(
-            String applicationId, String appDir, Map<String, String> env) {
+            String applicationId, String appDirName, Map<String, String> env) {
         String testAppsBaseDir = "src/test/resources/apps";
-        String testInstanceBaseDir = "src/test/resources/instances";
         String testSecretBaseDir = "src/test/resources/secrets";
-        copyFileToClientContainer(Paths.get(testAppsBaseDir, appDir).toFile(), "/tmp/app");
-        copyFileToClientContainer(
-                Paths.get(testInstanceBaseDir, "kafka-kubernetes.yaml").toFile(),
-                "/tmp/instance.yaml");
-        copyFileToClientContainer(
-                Paths.get(testSecretBaseDir, "secret1.yaml").toFile(), "/tmp/secrets.yaml");
+
+        final File appDir = Paths.get(testAppsBaseDir, appDirName).toFile();
+        final File secretFile = Paths.get(testSecretBaseDir, "secret1.yaml").toFile();
+        validateApp(appDir, secretFile);
+        copyFileToClientContainer(appDir, "/tmp/app");
+        copyFileToClientContainer(instanceFile, "/tmp/instance.yaml");
+
+        copyFileToClientContainer(secretFile, "/tmp/secrets.yaml");
 
         String beforeCmd = "";
         if (env != null) {
@@ -1070,6 +964,32 @@ public class BaseEndToEndTest implements TestWatcher {
                                 + "bin/langstream apps deploy %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml")
                         .formatted(applicationId)
                         .split(" "));
+    }
+
+    private static void validateApp(File appDir, File secretFile) throws Exception {
+        final ModelBuilder.ApplicationWithPackageInfo model =
+                ModelBuilder.buildApplicationInstance(
+                        List.of(appDir.toPath()),
+                        Files.readString(instanceFile.toPath()),
+                        Files.readString(secretFile.toPath()));
+        model.getApplication()
+                .getModules()
+                .values()
+                .forEach(
+                        m -> {
+                            m.getTopics()
+                                    .keySet()
+                                    .forEach(
+                                            t -> {
+                                                if (!t.startsWith(TOPICS_PREFIX)) {
+                                                    throw new IllegalStateException(
+                                                            "All topics must start with "
+                                                                    + TOPICS_PREFIX
+                                                                    + ". Found "
+                                                                    + t);
+                                                }
+                                            });
+                        });
     }
 
     protected static Map<String, String> getAppEnvMapFromSystem(List<String> names) {

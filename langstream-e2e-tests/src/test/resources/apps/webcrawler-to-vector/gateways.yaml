@@ -18,7 +18,7 @@
 gateways:
   - id: "user-input"
     type: produce
-    topic: "questions-topic"
+    topic: "ls-test-questions-topic"
     parameters:
       - sessionId
     produceOptions:
@@ -28,7 +28,7 @@ gateways:
 
   - id: "bot-output"
     type: consume
-    topic: "answers-topic"
+    topic: "ls-test-answers-topic"
     parameters:
       - sessionId
     consumeOptions:
@@ -40,7 +40,7 @@ gateways:
 
   - id: "llm-debug"
     type: consume
-    topic: "log-topic"
+    topic: "ls-test-log-topic"
     parameters:
       - sessionId
     consumeOptions:

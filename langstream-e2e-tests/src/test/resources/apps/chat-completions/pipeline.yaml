@@ -15,26 +15,26 @@
 #
 
 topics:
-  - name: "input-topic"
+  - name: "ls-test-input-topic"
     creation-mode: create-if-not-exists
-  - name: "output-topic"
+  - name: "ls-test-output-topic"
     creation-mode: create-if-not-exists
-  - name: "history-topic"
+  - name: "ls-test-history-topic"
     creation-mode: create-if-not-exists
 pipeline:
   - name: "convert-to-json"
     type: "document-to-json"
-    input: "input-topic"
+    input: "ls-test-input-topic"
     configuration:
       text-field: "question"
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
-    output: "history-topic"
+    output: "ls-test-history-topic"
     configuration:
       model: "{{{secrets.open-ai.chat-completions-model}}}"
       completion-field: "value.answer"
       log-field: "value.prompt"
-      stream-to-topic: "output-topic"
+      stream-to-topic: "ls-test-output-topic"
       stream-response-completion-field: "value"
       min-chunks-per-message: 20
       messages:

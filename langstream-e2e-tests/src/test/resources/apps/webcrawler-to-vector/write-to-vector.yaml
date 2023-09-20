@@ -16,7 +16,7 @@
 
 name: "Write to vector"
 topics:
-  - name: "chunks-topic"
+  - name: "ls-test-chunks-topic"
     creation-mode: create-if-not-exists
 assets:
   - name: "langstream-keyspace"
@@ -55,7 +55,7 @@ assets:
 pipeline:
   - name: "Write to Astra"
     type: "vector-db-sink"
-    input: "chunks-topic"
+    input: "ls-test-chunks-topic"
     resources:
       size: 2
     configuration:

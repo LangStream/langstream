@@ -18,6 +18,7 @@ package ai.langstream.tests;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import ai.langstream.tests.util.BaseEndToEndTest;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;

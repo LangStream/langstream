@@ -31,19 +31,31 @@ import org.apache.kafka.clients.admin.Admin;
 public class RemoteKafkaProvider implements StreamingClusterProvider {
 
     private static final String SYS_PROPERTIES_PREFIX = "langstream.tests.remotekafka.props.";
+    private static final String ENV_PREFIX = "LANGSTREAM_TESTS_REMOTEKAFKA_PROPS_";
     private static final Map<String, Object> ADMIN_CONFIG;
 
     private org.apache.kafka.clients.admin.Admin admin;
 
     static {
         ADMIN_CONFIG = new HashMap<>();
+
+        final Map<String, String> envs = System.getenv();
+        for (Map.Entry<String, String> env : envs.entrySet()) {
+            if (env.getKey().startsWith(ENV_PREFIX)) {
+                final String key = env.getKey().substring(ENV_PREFIX.length()).toLowerCase();
+                final String value = env.getValue();
+                log.info("Loading remote kafka admin config from env: {}={}", key, value);
+                ADMIN_CONFIG.put(key, value);
+            }
+        }
+
         final Set<Object> props = System.getProperties().keySet();
         for (Object prop : props) {
             String asString = prop.toString();
             if (asString.startsWith(SYS_PROPERTIES_PREFIX)) {
                 final String key = asString.substring(SYS_PROPERTIES_PREFIX.length());
                 final String value = System.getProperty(asString);
-                log.info("Loading remote kafka admin config: {}={}", key, value);
+                log.info("Loading remote kafka admin config from sys: {}={}", key, value);
                 ADMIN_CONFIG.put(key, value);
             }
         }

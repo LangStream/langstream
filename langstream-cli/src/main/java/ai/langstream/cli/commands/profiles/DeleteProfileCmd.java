@@ -29,7 +29,8 @@ public class DeleteProfileCmd extends BaseProfileCmd {
     public void run() {
         checkGlobalFlags();
         if (DEFAULT_PROFILE_NAME.equals(name)) {
-            throw new IllegalArgumentException(String.format("Profile name %s can't be deleted", name));
+            throw new IllegalArgumentException(
+                    String.format("Profile name %s can't be deleted", name));
         }
         getProfileOrThrow(name);
         updateConfig(

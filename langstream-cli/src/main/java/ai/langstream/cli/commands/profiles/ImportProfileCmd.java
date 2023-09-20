@@ -42,7 +42,8 @@ public class ImportProfileCmd extends BaseProfileCmd {
 
     @CommandLine.Option(
             names = {"-u", "--update"},
-            description = "Allow updating the profile if it already exists. Note that the configuration will be overwritten and NOT merged")
+            description =
+                    "Allow updating the profile if it already exists. Note that the configuration will be overwritten and NOT merged")
     private boolean allowUpdate;
 
     @CommandLine.Option(
@@ -96,10 +97,8 @@ public class ImportProfileCmd extends BaseProfileCmd {
         validateProfile(newProfile);
         final NamedProfile existing = getProfile(name);
         if (!allowUpdate && existing != null) {
-            throw new IllegalArgumentException(
-                    String.format("Profile %s already exists", name));
+            throw new IllegalArgumentException(String.format("Profile %s already exists", name));
         }
-
 
         updateConfig(
                 langStreamCLIConfig -> {

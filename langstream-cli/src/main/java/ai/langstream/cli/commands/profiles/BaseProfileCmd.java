@@ -84,5 +84,4 @@ public abstract class BaseProfileCmd extends BaseCmd {
                         .map(NamedProfile::getName)
                         .collect(Collectors.joining(", ")));
     }
-
 }

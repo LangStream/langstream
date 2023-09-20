@@ -62,6 +62,15 @@ def stub():
         pytest.param(
             "bytes_value", "bytes_value", b"test-value", b"test-key", b"test-header"
         ),
+        pytest.param(
+            "json_value",
+            "json_value",
+            '{"test": "value"}',
+            '{"test": "key"}',
+            '{"test": "header"}',
+        ),
+        pytest.param("boolean_value", "boolean_value", True, False, True),
+        pytest.param("boolean_value", "boolean_value", False, True, False),
         pytest.param("byte_value", "long_value", 42, 43, 44),
         pytest.param("short_value", "long_value", 42, 43, 44),
         pytest.param("int_value", "long_value", 42, 43, 44),

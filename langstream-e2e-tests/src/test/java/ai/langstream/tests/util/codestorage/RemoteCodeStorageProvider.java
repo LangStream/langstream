@@ -22,10 +22,11 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class RemoteS3CodeStorageProvider implements CodeStorageProvider {
+public class RemoteCodeStorageProvider implements CodeStorageProvider {
 
-    private static final String SYS_PROPERTIES_PREFIX = "langstream.tests.remotes3.props.";
-    private static final String ENV_PREFIX = "LANGSTREAM_TESTS_REMOTES3_PROPS_";
+    private static final String SYS_PROPERTIES_PREFIX = "langstream.tests.codestorageremote.props.";
+    private static final String ENV_PREFIX = "LANGSTREAM_TESTS_CODESTORAGEREMOTE_PROPS_";
+    private static final String TYPE;
     private static final Map<String, String> CONFIG;
 
     static {
@@ -37,7 +38,7 @@ public class RemoteS3CodeStorageProvider implements CodeStorageProvider {
                 final String key =
                         env.getKey().substring(ENV_PREFIX.length()).toLowerCase().replace("_", ".");
                 final String value = env.getValue();
-                log.info("Loading remote s3 config from env: {}={}", key, value);
+                log.info("Loading remote codestorage config from env: {}={}", key, value);
                 CONFIG.put(key, value);
             }
         }
@@ -48,15 +49,25 @@ public class RemoteS3CodeStorageProvider implements CodeStorageProvider {
             if (asString.startsWith(SYS_PROPERTIES_PREFIX)) {
                 final String key = asString.substring(SYS_PROPERTIES_PREFIX.length());
                 final String value = System.getProperty(asString);
-                log.info("Loading remote s3 config from sys: {}={}", key, value);
+                log.info("Loading remote codestorage config from sys: {}={}", key, value);
                 CONFIG.put(key, value);
             }
         }
+        String type =
+                System.getProperty("langstream.tests.codestorageremote.type");
+        if (type == null) {
+            type = System.getenv("LANGSTREAM_TESTS_CODESTORAGEREMOTE_TYPE");
+        }
+        TYPE = type;
     }
 
     @Override
     public CodeStorageConfig start() {
-        return new CodeStorageConfig("s3", CONFIG);
+        if (TYPE == null) {
+            throw new IllegalArgumentException(
+                    "langstream.tests.codestorageremote.type must be set");
+        }
+        return new CodeStorageConfig(TYPE, CONFIG);
     }
 
     @Override

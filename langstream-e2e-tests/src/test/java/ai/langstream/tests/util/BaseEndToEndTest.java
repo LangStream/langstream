@@ -20,7 +20,7 @@ import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.tests.util.codestorage.LocalMinioCodeStorageProvider;
-import ai.langstream.tests.util.codestorage.RemoteS3CodeStorageProvider;
+import ai.langstream.tests.util.codestorage.RemoteCodeStorageProvider;
 import ai.langstream.tests.util.k8s.LocalK3sContainer;
 import ai.langstream.tests.util.k8s.RunningHostCluster;
 import ai.langstream.tests.util.kafka.LocalRedPandaClusterProvider;
@@ -472,8 +472,8 @@ public class BaseEndToEndTest implements TestWatcher {
         switch (LANGSTREAM_CODESTORAGE) {
             case "local-minio":
                 return new LocalMinioCodeStorageProvider();
-            case "remote-s3":
-                return new RemoteS3CodeStorageProvider();
+            case "remote":
+                return new RemoteCodeStorageProvider();
             default:
                 throw new IllegalArgumentException(
                         "Unknown LANGSTREAM_CODESTORAGE: " + LANGSTREAM_CODESTORAGE);
@@ -710,8 +710,6 @@ public class BaseEndToEndTest implements TestWatcher {
                         TimeUnit.SECONDS);
         log.info("api gateway ready");
     }
-
-    static void installMinio() {}
 
     protected static void withPodLogs(
             String podName,

@@ -283,22 +283,31 @@ class ProfilesCmdTest extends CommandTestBase {
 
         result = executeCommand("profiles", "create", "default");
         assertEquals(1, result.exitCode());
-        assertEquals("Profile name default is reserved", result.err());
+        assertEquals("Profile default already exists", result.err());
         assertEquals("", result.out());
 
-        result = executeCommand("profiles", "update", "default");
-        assertEquals(1, result.exitCode());
-        assertEquals("Profile name default is reserved", result.err());
-        assertEquals("", result.out());
+        result = executeCommand("profiles", "update", "default", "--token", "tok2", "--web-service-url", "http://my.localhost:8080", "--api-gateway-url", "ws://my.localhost:8091");
+        assertEquals(0, result.exitCode());
+        assertEquals("", result.err());
+        assertEquals("profile default updated", result.out());
+        assertEquals("tok2", getConfig().getToken());
+        assertEquals("my-tenant", getConfig().getTenant());
+        assertEquals("http://my.localhost:8080", getConfig().getWebServiceUrl());
+        assertEquals("ws://my.localhost:8091", getConfig().getApiGatewayUrl());
 
-        result = executeCommand("profiles", "import", "default");
-        assertEquals(1, result.exitCode());
-        assertEquals("Profile name default is reserved", result.err());
-        assertEquals("", result.out());
+        result = executeCommand("profiles", "import", "default", "--inline", "{\"webServiceUrl\":\"http://my0.localhost/ls\",\"tenant\":\"a-new\"}", "-u");
+        assertEquals(0, result.exitCode());
+        assertEquals("", result.err());
+        assertEquals("profile default updated", result.out());
+        assertEquals("a-new", getConfig().getTenant());
+        assertEquals("http://my0.localhost/ls", getConfig().getWebServiceUrl());
+        assertNull(getConfig().getToken());
+        assertNull(getConfig().getApiGatewayUrl());
+
 
         result = executeCommand("profiles", "delete", "default");
         assertEquals(1, result.exitCode());
-        assertEquals("Profile name default is reserved", result.err());
+        assertEquals("Profile name default can't be deleted", result.err());
         assertEquals("", result.out());
     }
 

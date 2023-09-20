@@ -42,7 +42,7 @@ public class ImportProfileCmd extends BaseProfileCmd {
 
     @CommandLine.Option(
             names = {"-u", "--update"},
-            description = "Allow updating the profile if it already exists")
+            description = "Allow updating the profile if it already exists. Note that the configuration will be overwritten and NOT merged")
     private boolean allowUpdate;
 
     @CommandLine.Option(
@@ -54,7 +54,6 @@ public class ImportProfileCmd extends BaseProfileCmd {
     @SneakyThrows
     public void run() {
         checkGlobalFlags();
-        checkProfileName(name);
 
         if (fromFile == null && inline == null) {
             throw new IllegalArgumentException("Either --file or --inline must be specified");
@@ -95,16 +94,16 @@ public class ImportProfileCmd extends BaseProfileCmd {
         newProfile.setToken(profile.getToken());
 
         validateProfile(newProfile);
+        final NamedProfile existing = getProfile(name);
+        if (!allowUpdate && existing != null) {
+            throw new IllegalArgumentException(
+                    String.format("Profile %s already exists", name));
+        }
+
 
         updateConfig(
                 langStreamCLIConfig -> {
-                    final NamedProfile existing = langStreamCLIConfig.getProfiles().get(name);
-                    if (!allowUpdate && existing != null) {
-                        throw new IllegalArgumentException(
-                                String.format("Profile %s already exists", name));
-                    }
-
-                    langStreamCLIConfig.getProfiles().put(name, newProfile);
+                    langStreamCLIConfig.updateProfile(name, newProfile);
                     if (existing == null) {
                         log(String.format("profile %s created", name));
                     } else {

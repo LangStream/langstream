@@ -53,9 +53,8 @@ public abstract class CreateUpdateProfileCmd extends BaseProfileCmd {
     @SneakyThrows
     public void run() {
         checkGlobalFlags();
-        checkProfileName(name);
 
-        NamedProfile profile = getConfig().getProfiles().get(name);
+        NamedProfile profile = getProfile(name);
         if (isCreate()) {
             if (profile != null) {
                 throw new IllegalArgumentException(
@@ -87,7 +86,7 @@ public abstract class CreateUpdateProfileCmd extends BaseProfileCmd {
 
         updateConfig(
                 langStreamCLIConfig -> {
-                    langStreamCLIConfig.getProfiles().put(name, finalProfile);
+                    langStreamCLIConfig.updateProfile(name, finalProfile);
                     if (isCreate()) {
                         log(String.format("profile %s created", name));
                     } else {

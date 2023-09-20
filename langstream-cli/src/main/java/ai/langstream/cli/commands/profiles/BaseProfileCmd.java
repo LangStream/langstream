@@ -60,11 +60,16 @@ public abstract class BaseProfileCmd extends BaseCmd {
         return all;
     }
 
-    protected NamedProfile getProfileOrThrow(String name) {
+    protected NamedProfile getProfile(String name) {
         if (DEFAULT_PROFILE_NAME.equals(name)) {
             return getDefaultProfile();
         }
         final NamedProfile profile = getConfig().getProfiles().get(name);
+        return profile;
+    }
+
+    protected NamedProfile getProfileOrThrow(String name) {
+        final NamedProfile profile = getProfile(name);
         if (profile == null) {
             throw new IllegalArgumentException(getProfileNotFoundMessage(name));
         }
@@ -80,9 +85,4 @@ public abstract class BaseProfileCmd extends BaseCmd {
                         .collect(Collectors.joining(", ")));
     }
 
-    protected void checkProfileName(String name) {
-        if (DEFAULT_PROFILE_NAME.equals(name)) {
-            throw new IllegalArgumentException(String.format("Profile name %s is reserved", name));
-        }
-    }
 }

@@ -15,8 +15,10 @@
  */
 package ai.langstream.api.util;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -251,5 +253,50 @@ public class ConfigurationUtils {
             throw new IllegalArgumentException(
                     "Expecting a list in the field '" + name + "' in " + definition.get());
         }
+    }
+
+    /**
+     * Remove all the secrets from the configuration. This method is used to avoid logging secrets
+     *
+     * @param object
+     * @return the object without secrets
+     */
+    public static Object redactSecrets(Object object) {
+        if (object == null) {
+            return null;
+        }
+
+        if (object instanceof List list) {
+            List<Object> other = new ArrayList<>(list.size());
+            list.forEach(o -> other.add(redactSecrets(o)));
+            return other;
+        }
+        if (object instanceof Set set) {
+            Set<Object> other = new HashSet<>(set.size());
+            set.forEach(o -> other.add(redactSecrets(o)));
+            return other;
+        }
+
+        if (object instanceof Map map) {
+            Map<Object, Object> other = new HashMap<>();
+            map.forEach(
+                    (k, v) -> {
+                        String keyLowercase = (String.valueOf(k)).toLowerCase();
+                        if (keyLowercase.contains("password")
+                                || keyLowercase.contains("pwd")
+                                || keyLowercase.contains("secure")
+                                || keyLowercase.contains("secret")
+                                || keyLowercase.contains("serviceaccountjson")
+                                || keyLowercase.contains("access-key")
+                                || keyLowercase.contains("token")) {
+                            other.put(k, "<REDACTED>");
+                        } else {
+                            other.put(k, redactSecrets(v));
+                        }
+                    });
+            return other;
+        }
+
+        return object;
     }
 }

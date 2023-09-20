@@ -17,6 +17,7 @@ package ai.langstream.tests;
 
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
+import ai.langstream.tests.util.BaseEndToEndTest;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -96,7 +97,7 @@ public class PythonFunctionIT extends BaseEndToEndTest {
                                             .size());
                         });
 
-        final List<String> topics = getAllTopicsFromKafka();
-        Assertions.assertEquals(List.of("TEST_TOPIC_0"), topics);
+        final List<String> topics = getAllTopics();
+        Assertions.assertEquals(List.of("ls-test-topic0"), topics);
     }
 }

@@ -16,7 +16,7 @@
 
 name: "Crawl a website"
 topics:
-  - name: "chunks-topic"
+  - name: "ls-test-chunks-topic"
     creation-mode: create-if-not-exists
 resources:
   size: 2
@@ -87,7 +87,7 @@ pipeline:
   - name: "compute-embeddings"
     id: "step1"
     type: "compute-ai-embeddings"
-    output: "chunks-topic"
+    output: "ls-test-chunks-topic"
     configuration:
       model: "{{{secrets.open-ai.embeddings-model}}}"
       embeddings-field: "value.embeddings_vector"

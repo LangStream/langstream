@@ -15,11 +15,11 @@
 #
 
 topics:
-  - name: "questions-topic"
+  - name: "ls-test-questions-topic"
     creation-mode: create-if-not-exists
-  - name: "answers-topic"
+  - name: "ls-test-answers-topic"
     creation-mode: create-if-not-exists
-  - name: "log-topic"
+  - name: "ls-test-log-topic"
     creation-mode: create-if-not-exists
 errors:
     on-failure: "skip"
@@ -28,7 +28,7 @@ resources:
 pipeline:
   - name: "convert-to-structure"
     type: "document-to-json"
-    input: "questions-topic"
+    input: "ls-test-questions-topic"
     configuration:
       text-field: "question"
   - name: "compute-embeddings"
@@ -51,13 +51,13 @@ pipeline:
 
     configuration:
       model: "{{{secrets.open-ai.chat-completions-model}}}" # This needs to be set to the model deployment name, not the base name
-      # on the log-topic we add a field with the answer
+      # on the ls-test-log-topic we add a field with the answer
       completion-field: "value.answer"
       # we are also logging the prompt we sent to the LLM
       log-field: "value.prompt"
       # here we configure the streaming behavior
-      # as soon as the LLM answers with a chunk we send it to the answers-topic
-      stream-to-topic: "answers-topic"
+      # as soon as the LLM answers with a chunk we send it to the ls-test-answers-topic
+      stream-to-topic: "ls-test-answers-topic"
       # on the streaming answer we send the answer as whole message
       # the 'value' syntax is used to refer to the whole value of the message
       stream-response-completion-field: "value"
@@ -83,7 +83,7 @@ pipeline:
           content: "{{% value.question}}"
   - name: "cleanup-response"
     type: "drop-fields"
-    output: "log-topic"
+    output: "ls-test-log-topic"
     configuration:
       fields:
         - "question_embeddings"

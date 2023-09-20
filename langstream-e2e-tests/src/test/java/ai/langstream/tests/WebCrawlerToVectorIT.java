@@ -15,6 +15,7 @@
  */
 package ai.langstream.tests;
 
+import ai.langstream.tests.util.BaseEndToEndTest;
 import ai.langstream.tests.util.ConsumeGatewayMessage;
 import java.util.List;
 import java.util.Map;

@@ -28,7 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 public class GrpcAgentsProvider extends AbstractComposableAgentProvider {
 
     private static final Set<String> SUPPORTED_AGENT_TYPES =
-            Set.of("experimental-python-source", "experimental-python-processor");
+            Set.of(
+                    "experimental-python-source",
+                    "experimental-python-processor",
+                    "experimental-python-sink");
 
     public GrpcAgentsProvider() {
         super(SUPPORTED_AGENT_TYPES, List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
@@ -39,6 +42,7 @@ public class GrpcAgentsProvider extends AbstractComposableAgentProvider {
         return switch (agentConfiguration.getType()) {
             case "experimental-python-source" -> ComponentType.SOURCE;
             case "experimental-python-processor" -> ComponentType.PROCESSOR;
+            case "experimental-python-sink" -> ComponentType.SINK;
             default -> throw new IllegalStateException(
                     "Unexpected agent type: " + agentConfiguration.getType());
         };

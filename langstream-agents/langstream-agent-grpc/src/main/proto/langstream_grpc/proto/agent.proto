@@ -25,6 +25,7 @@ service AgentService {
   rpc agent_info(google.protobuf.Empty) returns (InfoResponse) {}
   rpc read(stream SourceRequest) returns (stream SourceResponse) {}
   rpc process(stream ProcessorRequest) returns (stream ProcessorResponse) {}
+  rpc write(stream SinkRequest) returns (stream SinkResponse) {}
 }
 
 message InfoResponse {
@@ -89,12 +90,22 @@ message ProcessorRequest {
 }
 
 message ProcessorResponse {
-    Schema schema = 1;
-    repeated ProcessorResult results = 2;
+  Schema schema = 1;
+  repeated ProcessorResult results = 2;
 }
 
 message ProcessorResult {
   int64 record_id = 1;
   optional string error = 2;
   repeated Record records = 3;
+}
+
+message SinkRequest {
+  Schema schema = 1;
+  Record record = 2;
+}
+
+message SinkResponse {
+  int64 record_id = 1;
+  optional string error = 2;
 }

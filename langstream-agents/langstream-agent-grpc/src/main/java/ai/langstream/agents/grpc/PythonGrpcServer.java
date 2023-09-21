@@ -73,10 +73,7 @@ public class PythonGrpcServer {
         processBuilder.environment().put("NLTK_DATA", "/app/nltk_data");
         pythonProcess = processBuilder.start();
         ManagedChannel channel =
-                ManagedChannelBuilder.forAddress("localhost", port)
-                        .directExecutor()
-                        .usePlaintext()
-                        .build();
+                ManagedChannelBuilder.forAddress("localhost", port).usePlaintext().build();
         AgentServiceGrpc.AgentServiceBlockingStub stub =
                 AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
         for (int i = 0; ; i++) {

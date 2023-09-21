@@ -21,18 +21,18 @@ import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
 
-    private static final int MAX_RECORDS_PER_READ = 10_000;
+    private static final int MAX_RECORDS_PER_READ = 1000;
+    public static final int READ_BUFER_SIZE = 1000;
     private StreamObserver<SourceRequest> request;
     private final StreamObserver<SourceResponse> responseObserver;
-
-    // TODO: use a bounded queue ? backpressure ?
-    private final ConcurrentLinkedQueue<Record> readRecords = new ConcurrentLinkedQueue<>();
+    private final LinkedBlockingQueue<Record> readRecords =
+            new LinkedBlockingQueue<>(READ_BUFER_SIZE);
 
     public GrpcAgentSource() {
         super();

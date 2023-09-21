@@ -37,24 +37,15 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
     public CompletableFuture<List<List<Double>>> computeEmbeddings(List<String> texts) {
         try {
             EmbeddingsOptions embeddingsOptions = new EmbeddingsOptions(texts);
-            CompletableFuture<List<List<Double>>> result =
-                    openAIClient
-                            .getEmbeddings(model, embeddingsOptions)
-                            .toFuture()
-                            .thenApply(
-                                    embeddings ->
-                                            embeddings.getData().stream()
-                                                    .map(embedding -> embedding.getEmbedding())
-                                                    .collect(Collectors.toList()));
+            return openAIClient
+                    .getEmbeddings(model, embeddingsOptions)
+                    .toFuture()
+                    .thenApply(
+                            embeddings ->
+                                    embeddings.getData().stream()
+                                            .map(embedding -> embedding.getEmbedding())
+                                            .collect(Collectors.toList()));
 
-            // we need to wait, in order to guarantee ordering
-            // TODO: we should not wait, but instead use an ordered executor (per key)
-            try {
-                result.join();
-            } catch (Throwable err) {
-                log.error("Cannot compute embeddings", err);
-            }
-            return result;
         } catch (RuntimeException err) {
             log.error("Cannot compute embeddings", err);
             return CompletableFuture.failedFuture(err);

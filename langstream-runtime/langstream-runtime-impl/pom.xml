@@ -416,7 +416,7 @@
         <executions>
           <execution>
             <id>copy</id>
-            <phase>package</phase>
+            <phase>generate-test-sources</phase>
             <goals>
               <goal>copy</goal>
             </goals>

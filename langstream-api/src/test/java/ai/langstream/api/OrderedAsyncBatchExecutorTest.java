@@ -106,6 +106,9 @@ class OrderedAsyncBatchExecutorTest {
                 new OrderedAsyncBatchExecutor<>(
                         batchSize,
                         (batch, future) -> {
+                            // as flush interval is zero, this is called immediately
+                            log.info("processed batch {}", batch);
+                            assertEquals(1, batch.size());
                             result.addAll(batch);
                             future.complete(null);
                         },
@@ -216,6 +219,83 @@ class OrderedAsyncBatchExecutorTest {
                         });
         executor.stop();
         executorService.shutdown();
+        completionsExecutorService.shutdown();
+    }
+
+    @ParameterizedTest
+    @MethodSource("batchSizesAndDelays")
+    void executeInBatchesTestWithKeyOrderingWithoutFlush(
+            int numRecords, int batchSize, long delay) {
+
+        record KeyValue(int key, String value) {}
+
+        long flushInterval = 0;
+        int numBuckets = 4;
+        Function<KeyValue, Integer> hashFunction = KeyValue::key;
+        ScheduledExecutorService executorService = null;
+        ScheduledExecutorService completionsExecutorService = Executors.newScheduledThreadPool(4);
+
+        List<KeyValue> records = new ArrayList<>();
+        Map<Integer, List<KeyValue>> recordsByKey = new HashMap<>();
+
+        for (int i = 0; i < numRecords; i++) {
+            int key = i % 7;
+            KeyValue record = new KeyValue(key, "text " + i);
+            records.add(record);
+            List<KeyValue> valuesForKey =
+                    recordsByKey.computeIfAbsent(record.key, l -> new ArrayList<>());
+            valuesForKey.add(record);
+        }
+
+        Random random = new Random();
+
+        Map<Integer, List<KeyValue>> results = new ConcurrentHashMap<>();
+        OrderedAsyncBatchExecutor<KeyValue> executor =
+                new OrderedAsyncBatchExecutor<>(
+                        batchSize,
+                        (batch, future) -> {
+                            for (KeyValue record : batch) {
+                                List<KeyValue> resultsForKey =
+                                        results.computeIfAbsent(record.key, l -> new ArrayList<>());
+                                resultsForKey.add(record);
+                            }
+                            if (delay == 0) {
+                                // execute the completions in the same thread
+                                future.complete(null);
+                            } else {
+                                // delay the completion of the future, and do it in a separate
+                                // thread
+                                long delayMillis = random.nextInt((int) delay);
+                                completionsExecutorService.schedule(
+                                        () -> future.complete(null),
+                                        delayMillis,
+                                        TimeUnit.MILLISECONDS);
+                            }
+                        },
+                        flushInterval,
+                        numBuckets,
+                        hashFunction,
+                        executorService);
+        executor.start();
+        records.forEach(executor::add);
+        // this flushes the pending records
+        executor.stop();
+        // this may happen after some time
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            recordsByKey.forEach(
+                                    (key, values) -> {
+                                        List<KeyValue> resultsForKey = results.get(key);
+                                        log.info(
+                                                "key: {}, values: {}, results: {}",
+                                                key,
+                                                values,
+                                                resultsForKey);
+                                        // the order must be preserved
+                                        assertEquals(values, resultsForKey);
+                                    });
+                        });
         completionsExecutorService.shutdown();
     }
 }

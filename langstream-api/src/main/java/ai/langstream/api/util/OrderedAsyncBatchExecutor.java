@@ -20,18 +20,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Aggregate records in batches, depending on a batch size and a maximum idle time.
  *
  * @param <T>
  */
+@Slf4j
 public class OrderedAsyncBatchExecutor<T> {
     private final int batchSize;
     private final Bucket[] buckets;
@@ -101,6 +105,8 @@ public class OrderedAsyncBatchExecutor<T> {
         private final Queue<List<T>> pendingBatches = new ArrayDeque<>();
         private final List<T> currentBatch = new ArrayList<>();
 
+        private final AtomicReference<UUID> processing = new AtomicReference<>();
+
         synchronized void add(T t) {
             currentBatch.add(t);
             if (currentBatch.size() >= batchSize || flushInterval <= 0) {
@@ -126,7 +132,7 @@ public class OrderedAsyncBatchExecutor<T> {
         }
 
         private synchronized void addToPendingBatches(List<T> batchToProcess) {
-            if (pendingBatches.isEmpty()) {
+            if (processing.get() == null) {
                 executeBatch(batchToProcess);
             } else {
                 pendingBatches.add(batchToProcess);
@@ -134,11 +140,30 @@ public class OrderedAsyncBatchExecutor<T> {
         }
 
         private void executeBatch(List<T> batchToProcess) {
+            UUID batchId = UUID.randomUUID();
             CompletableFuture<?> currentBatchHandle = new CompletableFuture<>();
             currentBatchHandle.whenComplete(
                     (result, error) -> {
-                        processNextBatch();
+                        boolean check = processing.compareAndSet(batchId, null);
+                        if (!check) {
+                            log.error(
+                                    "Something went wrong, batch {} was not processed",
+                                    processing.get());
+                        } else {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Batch {} completed", batchId);
+                            }
+                            processNextBatch();
+                        }
                     });
+            boolean check = processing.compareAndSet(null, batchId);
+            if (!check) {
+                throw new IllegalStateException(
+                        "Something went wrong, the processor is still processing");
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("Batch {} in bucket {} started for {}", batchId, this, batchToProcess);
+            }
             processor.accept(batchToProcess, currentBatchHandle);
         }
 

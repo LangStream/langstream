@@ -90,8 +90,7 @@ public class BaseEndToEndTest implements TestWatcher {
     private static final boolean LANGSTREAM_RECYCLE_ENV =
             Boolean.parseBoolean(System.getProperty("langstream.tests.recycleenv", "false"));
 
-    private static final String LANGSTREAM_REPO =
-            System.getProperty("langstream.tests.repository");
+    private static final String LANGSTREAM_REPO = System.getProperty("langstream.tests.repository");
 
     private static final String LANGSTREAM_TAG =
             System.getProperty("langstream.tests.tag", "latest-dev");
@@ -590,8 +589,11 @@ public class BaseEndToEndTest implements TestWatcher {
                 .delete();
 
         final String baseImageRepository =
-                LANGSTREAM_REPO != null ? LANGSTREAM_REPO:
-                        (LANGSTREAM_TAG.equals("latest-dev") ? "langstream" : "ghcr.io/langstream");
+                LANGSTREAM_REPO != null
+                        ? LANGSTREAM_REPO
+                        : (LANGSTREAM_TAG.equals("latest-dev")
+                                ? "langstream"
+                                : "ghcr.io/langstream");
         final String imagePullPolicy =
                 LANGSTREAM_TAG.equals("latest-dev") ? "Never" : "IfNotPresent";
         final Map<String, String> controlPlaneConfig = new HashMap<>();

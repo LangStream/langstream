@@ -56,9 +56,15 @@ jobs:
           tag_and_push langstream-control-plane
           tag_and_push langstream-api-gateway
 
+      - name: Package mini-langstream
+        run: |
+          version=${GITHUB_REF/refs\/tags\/v/}
+          ./bin/mini-langstream/package.sh $version
+          
+
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "langstream-cli/target/langstream-*.zip,helm/crds/*.yml"
+          artifacts: "langstream-cli/target/langstream-*.zip,helm/crds/*.yml,target/mini-langstream-*.zip"
           token: ${{ secrets.GITHUB_TOKEN }}
           generateReleaseNotes: true
           prerelease: false

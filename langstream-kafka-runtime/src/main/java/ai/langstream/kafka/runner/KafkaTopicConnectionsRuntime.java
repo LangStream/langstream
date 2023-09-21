@@ -184,11 +184,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
             switch (topic.createMode()) {
                 case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
                     log.info("Creating Kafka topic {}", topic.name());
-                    NewTopic newTopic =
-                            new NewTopic(
-                                    topic.name(),
-                                    topic.partitions(),
-                                    (short) topic.replicationFactor());
+                    NewTopic newTopic = new NewTopic(topic.name(), topic.partitions(), (short) 1);
                     if (topic.config() != null) {
                         newTopic.configs(
                                 topic.config().entrySet().stream()

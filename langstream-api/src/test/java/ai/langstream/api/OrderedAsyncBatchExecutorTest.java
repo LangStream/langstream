@@ -179,7 +179,8 @@ class OrderedAsyncBatchExecutorTest {
                         (batch, future) -> {
                             for (KeyValue record : batch) {
                                 List<KeyValue> resultsForKey =
-                                        results.computeIfAbsent(record.key, l -> new ArrayList<>());
+                                        results.computeIfAbsent(
+                                                record.key, l -> new CopyOnWriteArrayList<>());
                                 resultsForKey.add(record);
                             }
                             if (delay == 0) {
@@ -256,7 +257,8 @@ class OrderedAsyncBatchExecutorTest {
                         (batch, future) -> {
                             for (KeyValue record : batch) {
                                 List<KeyValue> resultsForKey =
-                                        results.computeIfAbsent(record.key, l -> new ArrayList<>());
+                                        results.computeIfAbsent(
+                                                record.key, l -> new CopyOnWriteArrayList<>());
                                 resultsForKey.add(record);
                             }
                             if (delay == 0) {

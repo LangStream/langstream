@@ -1,0 +1,468 @@
+#!/bin/bash
+
+set -e
+set -o errexit -o pipefail -o nounset
+check_command() {
+  if ! command -v $1 &> /dev/null
+  then
+    echo "Command $1 could not be found. $2"
+    exit
+  fi
+}
+
+check_command docker
+check_command minikube
+check_command helm
+check_command kubectl
+check_command langstream "Please install LangStream CLI using the instructions at https://github.com/LangStream/langstream#installation"
+
+
+help() {
+  echo """
+mini-langstream, LangStream local cluster on Minikube.
+
+Syntax: mini-langstream [command] [options]
+
+Commands:
+  start                     Start the LangStream local cluster.
+  delete                    Delete the LangStream local cluster and local data.
+  langstream|cli <command>  Run the LangStream CLI with the given command.
+  get-instance              Get the path to the LangStream app instance YAML file.
+  get-config                Get the path to the Kubernetes configuration file.
+  get-values                Get the path to the Helm values.
+  kubectl <command>         Run kubectl with the given command.
+  k9s <command>             Run K9s with the given command.
+  helm <command>            Run Helm with the given command.
+  help                      Print this help message. 
+  dev                       Dev commands. It's required to run the command from the LangStream repository root directory.
+      start [--load]        Start the LangStream local cluster in development mode. This will use the latest development images that are built locally.
+                              --load   Load LangStream images instead of building them.
+      load <image>          Load a specific Docker image into Minikube.
+      build <component>     Build docker image for a specific LangStream component and restart it. No arguments to rebuild all the images.
+      get-values            Get the path to the Helm values. This values file is used when the cluster is started in dev mode.
+
+"""
+}
+
+
+# Constants
+minikube_profile=mini-langstream
+k8s_namespace=langstream
+app_home=$HOME/.mini-langstream
+data_dir=$app_home/data
+conf_dir=$app_home/conf
+kubeconfig_path=$data_dir/kube-config
+cli_config=$data_dir/cli.yaml
+app_instance_file=$conf_dir/app-instance.yaml
+values_file=$conf_dir/values.yaml
+dev_values_file=$conf_dir/dev-values.yaml
+
+mkdir -p $app_home
+mkdir -p $data_dir
+mkdir -p $conf_dir
+touch $cli_config
+
+
+cat > $app_instance_file <<EOF
+instance:
+  streamingCluster:
+    type: "kafka"
+    configuration:
+      admin:
+        bootstrap.servers: host.minikube.internal:39092
+EOF
+
+
+rm -fr $dev_values_file
+cat > $dev_values_file <<EOF
+controlPlane:
+  image:
+    pullPolicy: Never
+    repository: langstream/langstream-control-plane
+    tag: "latest-dev"
+  app:
+    config:
+      logging.level.ai.langstream.webservice: debug
+      application.storage.global.type: kubernetes
+
+deployer:
+  replicaCount: 1
+  image:
+    repository: langstream/langstream-deployer
+    pullPolicy: Never
+    tag: "latest-dev"
+  app:
+    config: {}
+
+runtime:
+  image: langstream/langstream-runtime:latest-dev
+  imagePullPolicy: Never
+
+client:
+  replicaCount: 1
+  image:
+    repository: langstream/langstream-cli
+    pullPolicy: Never
+    tag: "latest-dev"
+
+apiGateway:
+  image:
+    repository: langstream/langstream-api-gateway
+    pullPolicy: Never
+    tag: "latest-dev"
+  app:
+    config:
+      logging.level.ai.langstream.apigateway: debug
+
+
+codeStorage:
+  type: s3
+  configuration:
+    endpoint: http://host.minikube.internal:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+EOF
+
+rm -rf $values_file
+cat > $values_file <<EOF
+controlPlane:
+  app:
+    config:
+      logging.level.ai.langstream.webservice: debug
+      application.storage.global.type: kubernetes
+
+deployer:
+  app:
+    config: {}
+
+apiGateway:
+  app:
+    config:
+      logging.level.ai.langstream.apigateway: debug
+
+
+codeStorage:
+  type: s3
+  configuration:
+    endpoint: http://host.minikube.internal:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+EOF
+
+minikube_cmd() {
+  KUBECONFIG=$kubeconfig_path minikube --profile $minikube_profile "$@"
+}
+
+start_minikube() {
+  if minikube_cmd status | grep -q "host: Running"; then
+    echo "Minikube: ✅"
+    return
+  fi
+  echo -n "Minikube: "
+  minikube_cmd start --cpus 4 >/dev/null
+  kubectl_cmd config set-context --current --namespace=$k8s_namespace >/dev/null
+  echo "✅"
+}
+
+delete_minikube() {
+  echo -n "Deleting minikube: "
+  minikube_cmd delete --purge
+  echo "✅"
+}
+
+helm_cmd() {
+  helm --kubeconfig $kubeconfig_path "$@"
+}
+kubectl_cmd() {
+  KUBECONFIG=$kubeconfig_path kubectl "$@"
+}
+
+load_image_if_not_exists() {
+  local image=$1
+  echo -n "Image $image: "
+  (minikube_cmd image list | grep -q $image) || load_image $image
+  echo "✅"
+}
+load_image() {
+  local image=$1
+  minikube_cmd image load $image
+}
+
+install_langstream() {
+  local dev="$1"
+  local load="$2"
+  helm_cmd repo add langstream https://datastax.github.io/langstream &> /dev/null || true
+  helm_cmd repo update &> /dev/null
+  if [ "$dev" == "true" ]; then
+    if [ "$load" == "false" ]; then
+      echo -n "Building images: "
+      build_no_restart
+      echo "✅"
+    else
+      load_image_if_not_exists langstream/langstream-control-plane:latest-dev
+      load_image_if_not_exists langstream/langstream-cli:latest-dev
+      load_image_if_not_exists langstream/langstream-deployer:latest-dev
+      load_image_if_not_exists langstream/langstream-runtime:latest-dev
+      load_image_if_not_exists langstream/langstream-api-gateway:latest-dev
+    fi
+
+    echo -n "LangStream: "
+    helm_cmd upgrade --install langstream -n $k8s_namespace --create-namespace langstream/langstream --values $dev_values_file > /dev/null
+  else
+    echo -n "LangStream: "
+    helm_cmd upgrade --install langstream langstream/langstream -n $k8s_namespace --create-namespace --values $values_file > /dev/null
+  fi
+  echo "✅"
+
+}
+
+start_port_forward() {
+  local service=$1
+  local file=$(mktemp)
+
+  minikube_cmd service $1 --url -n $k8s_namespace &> $file &
+  grep -q 'http' <(tail -f $file)
+  url=$(grep -e http $file)
+  echo "$url"
+}
+
+kafka_hostname=langstream-kafka
+
+install_kafka() {
+  if [ "$(docker ps -q -f name=$kafka_hostname)" ]; then
+    echo "Kafka: ✅"
+    return
+  fi
+
+  if [ "$(docker ps -a -q -f name=$kafka_hostname)" ]; then
+    docker rm -f $kafka_hostname
+  fi
+
+
+  (docker run \
+    -d \
+    --name $kafka_hostname \
+    -p 39092:39092 \
+    -e KAFKA_LISTENERS=BROKER://0.0.0.0:19092,EXTERNAL://0.0.0.0:39092,CONTROLLER://0.0.0.0:9093 \
+    -e KAFKA_ADVERTISED_LISTENERS=BROKER://localhost:19092,EXTERNAL://host.minikube.internal:39092 \
+    -e KAFKA_INTER_BROKER_LISTENER_NAME=BROKER \
+    -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+    -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT \
+    -e KAFKA_PROCESS_ROLES='controller,broker' \
+    -e KAFKA_NODE_ID=1 \
+    -e KAFKA_CONTROLLER_QUORUM_VOTERS='1@0.0.0.0:9093' \
+    -e KAFKA_LOG_DIRS='/tmp/kraft-combined-logs' \
+    -e CLUSTER_ID=ciWo7IWazngRchmPES6q5A== \
+    -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+    -v $data_dir/kafka:/var/lib/kafka/data \
+    confluentinc/cp-kafka:7.5.0) > /dev/null
+    echo "Kafka: ✅"
+}
+delete_kafka() {
+    delete_docker_container $kafka_hostname
+    rm -rf $data_dir/kafka
+}
+
+minio_hostname=langstream-minio
+
+install_minio() {
+
+  if [ "$(docker ps -q -f name=$minio_hostname)" ]; then
+    echo "Minio: ✅"
+    return
+  fi
+
+  if [ "$(docker ps -a -q -f name=$minio_hostname)" ]; then
+    docker rm -f $minio_hostname
+  fi
+  (docker run \
+   -d \
+   --name $minio_hostname \
+   -p 9090:9090 \
+   -p 9000:9000 \
+   -v $data_dir/minio:/data \
+   quay.io/minio/minio:latest \
+   server /data --console-address :9090) > /dev/null
+   echo "Minio: ✅"
+}
+delete_minio() {
+    delete_docker_container $minio_hostname
+    rm -rf $data_dir/minio
+}
+
+configure_cli() {
+  control_plane_url=$(start_port_forward langstream-control-plane)
+  api_gateway_url=$(start_port_forward langstream-api-gateway)
+  langstream -V
+  langstream profiles delete local-langstream-cluster &> /dev/null || true
+  langstream profiles create local-langstream-cluster --web-service-url $control_plane_url --api-gateway-url ${api_gateway_url/http/ws} --tenant default >/dev/null
+  echo "CLI: ✅"
+}
+
+run_cli() {
+  langstream -p local-langstream-cluster "$@"
+}
+cleanup_docker_env() {
+  echo -n "Docker: "
+  docker system prune -f &> /dev/null
+  docker volume prune -f &> /dev/null
+  echo "✅"
+}
+start() {
+  local dev="false"
+  local load="false"
+  while [[ "$#" -gt 0 ]]; do
+      case $1 in
+          --dev) dev="true"; shift ;;
+          --load) load="true"; shift ;;
+          *) echo "Unknown parameter passed: $1"; exit 1 ;;
+      esac
+  done
+  cleanup_docker_env
+  start_minikube
+  install_minio
+  install_langstream "$dev" "$load"
+  install_kafka
+  configure_cli
+  echo "Ready 🚀"
+  echo "Deploy your first app with:"
+  echo "mini-langstream cli apps deploy app -i \$(mini-langstream get-instance)" -s https://raw.githubusercontent.com/LangStream/langstream/main/examples/secrets/secrets.yaml -app https://github.com/LangStream/langstream/tree/main/examples/applications/python-processor-exclamation 
+  echo "mini-langstream cli apps get app"
+}
+
+delete_docker_container() {
+    local container=$1
+    echo -n "Deleting $container: "
+    docker rm -f $container &> /dev/null || true
+    echo "✅"
+}
+ 
+delete() {
+  delete_kafka
+  delete_minikube
+  delete_minio
+}
+
+handle_load() {
+  local image=$1
+  if [[ $image == "control-plane" ]]; then
+    image=langstream/langstream-control-plane:latest-dev
+  elif [[ $image == "deployer" ]]; then
+    image=langstream/langstream-deployer:latest-dev
+  elif [[ $image == "api-gateway" ]]; then
+    image=langstream/langstream-api-gateway:latest-dev
+  elif [[ $image == "cli" ]]; then
+    image=langstream/langstream-cli:latest-dev
+  elif [[ $image == "runtime" ]]; then
+    image=langstream/langstream-runtime:latest-dev
+  fi
+  load_image $image
+  label=""
+  if [[ $image == *"langstream-control-plane"* ]]; then
+    label=langstream-control-plane
+  elif [[ $image == *"langstream-deployer"* ]]; then
+    label=langstream-deployer
+  elif [[ $image == *"langstream-api-gateway"* ]]; then
+    label=langstream-api-gateway
+  elif [[ $image == *"langstream-cli"* ]]; then
+    label=langstream-client
+  fi
+  if [ ! -z "$label" ]; then
+    kubectl_cmd -n $k8s_namespace delete pod -l app.kubernetes.io/name=$label
+    echo "Pod $label: ✅"
+  fi
+}
+build_no_restart() {
+  eval $(minikube_cmd docker-env)
+  ./docker/build.sh "$@"
+  eval $(minikube_cmd docker-env -u)
+}
+
+handle_build() {
+  eval $(minikube_cmd docker-env)
+  ./docker/build.sh "$@"
+  eval $(minikube_cmd docker-env -u)
+
+  docker_build_input=$1 
+  if [[ "$docker_build_input" == "control-plane" ]]; then
+    labels=(langstream-control-plane)
+  elif [[ "$docker_build_input" == "operator" || "$docker_build_input" == "deployer" ]]; then
+    labels=(langstream-deployer)
+  elif [[ "$docker_build_input" == "cli" ]]; then
+    labels=(langstream-client)
+  elif [[ "$docker_build_input" == "api-gateway" ]]; then
+    labels=(langstream-api-gateway)
+  elif [[ "$docker_build_input" == "runtime" ]]; then
+    labels=()
+  else 
+    labels=(langstream-control-plane langstream-deployer langstream-api-gateway langstream-client)
+  fi
+
+  if (( ${#labels[@]} )); then
+    for label in "${labels[@]}"; do
+        deploy_name=$(kubectl_cmd -n $k8s_namespace get deployment -l app.kubernetes.io/name=$label | awk '{print $1}' | grep langstream)
+        output=$(kubectl_cmd -n $k8s_namespace patch deployment $deploy_name -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"langstream\",\"image\":\"langstream/$label:latest-dev\"}]}}}}")
+        if echo "$output" | grep -q "(no change)"; then
+            kubectl_cmd -n $k8s_namespace delete pod -l app.kubernetes.io/name=$label > /dev/null
+        fi
+        echo "Pod $label: ✅"
+    done
+  fi
+}
+
+
+arg1=${1:-""}
+if [ "$arg1" == "" ] || [ "$arg1" == "help" ]; then
+  help
+elif [ "$arg1" == "start" ]; then
+  shift
+  start "$@"
+elif [ "$arg1" == "delete" ]; then
+  shift
+  delete "$@"
+elif [ "$arg1" == "langstream" ] || [ "$arg1" == "cli" ]; then
+  shift
+  run_cli "$@"
+elif [ "$arg1" == "get-instance" ]; then
+  shift
+  echo "$(realpath $app_instance_file)"
+elif [ "$arg1" == "get-config" ]; then
+  shift
+  echo "$kubeconfig_path"
+elif [ "$arg1" == "kubectl" ]; then
+  shift
+  kubectl_cmd "$@"
+elif [ "$arg1" == "k9s" ]; then
+  shift
+  KUBECONFIG=$kubeconfig_path k9s "$@"
+elif [ "$arg1" == "helm" ]; then
+  shift
+  helm_cmd "$@"
+elif [ "$arg1" == "get-values" ]; then
+  shift
+  echo "$(realpath $values_file)"
+elif [ "$arg1" == "dev" ]; then
+  shift
+  devarg1=${1:-""}
+  if [ "$devarg1" == "start" ]; then
+    shift
+    start --dev "$@"
+  elif [ "$devarg1" == "load" ]; then
+    shift
+    handle_load "$@"
+  elif [ "$devarg1" == "build" ]; then
+    shift
+    handle_build "$@"
+  elif [ "$devarg1" == "get-values" ]; then
+    shift
+    echo "$(realpath $dev_values_file)"
+  else 
+    echo "Unknown command $arg1"
+    help
+    exit 1
+  fi
+else
+  echo "Unknown command $arg1"
+  help
+  exit 1
+fi

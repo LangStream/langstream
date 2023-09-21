@@ -21,16 +21,15 @@ help() {
   echo """
 mini-langstream, LangStream local cluster on Minikube.
 
-Syntax: $0 [options]
+Syntax: $0 [command] [options]
 
-Options:
+Commands:
   start                     Start the LangStream local cluster.
   delete                    Delete the LangStream local cluster and local data.
   langstream|cli <command>  Run the LangStream CLI with the given command.
   get-instance              Get the path to the LangStream app instance YAML file.
   get-config                Get the path to the Kubernetes configuration file.
-  get-config                Get the path to the Kubernetes configuration file.
-  get-values                Get the path to the Helm values. 
+  get-values                Get the path to the Helm values.
   kubectl <command>         Run kubectl with the given command.
   k9s <command>             Run K9s with the given command.
   helm <command>            Run Helm with the given command.
@@ -54,13 +53,17 @@ data_dir=$app_home/data
 conf_dir=$app_home/conf
 kubeconfig_path=$data_dir/kube-config
 cli_config=$data_dir/cli.yaml
+app_instance_file=$conf_dir/app-instance.yaml
+values_file=$conf_dir/values.yaml
+dev_values_file=$conf_dir/dev-values.yaml
 
 mkdir -p $app_home
 mkdir -p $data_dir
+mkdir -p $conf_dir
 touch $cli_config
 
 
-cat > $conf_dir/app-instance.yaml <<EOF
+cat > $app_instance_file <<EOF
 instance:
   streamingCluster:
     type: "kafka"
@@ -70,8 +73,8 @@ instance:
 EOF
 
 
-rm -fr $conf_dir/dev-values.yaml
-cat > $conf_dir/dev-values.yaml <<EOF
+rm -fr $dev_values_file
+cat > $dev_values_file <<EOF
 controlPlane:
   image:
     pullPolicy: Never
@@ -120,8 +123,8 @@ codeStorage:
     secret-key: minioadmin
 EOF
 
-rm -rf $conf_dir/values.yaml
-cat > $conf_dir/values.yaml <<EOF
+rm -rf $values_file
+cat > $values_file <<EOF
 controlPlane:
   app:
     config:
@@ -204,10 +207,10 @@ install_langstream() {
     fi
 
     echo -n "LangStream: "
-    helm_cmd upgrade --install langstream -n $k8s_namespace --create-namespace langstream/langstream --values $data_dir/dev-values.yaml > /dev/null
+    helm_cmd upgrade --install langstream -n $k8s_namespace --create-namespace langstream/langstream --values $dev_values_file > /dev/null
   else
     echo -n "LangStream: "
-    helm_cmd upgrade --install langstream langstream/langstream -n $k8s_namespace --create-namespace --values $data_dir/values.yaml > /dev/null
+    helm_cmd upgrade --install langstream langstream/langstream -n $k8s_namespace --create-namespace --values $values_file > /dev/null
   fi
   echo "✅"
 
@@ -422,7 +425,7 @@ elif [ "$arg1" == "langstream" ] || [ "$arg1" == "cli" ]; then
   run_cli "$@"
 elif [ "$arg1" == "get-instance" ]; then
   shift
-  echo "$(realpath $data_dir/app-instance.yaml)"
+  echo "$(realpath $app_instance_file)"
 elif [ "$arg1" == "get-config" ]; then
   shift
   echo "$kubeconfig_path"
@@ -437,7 +440,7 @@ elif [ "$arg1" == "helm" ]; then
   helm_cmd "$@"
 elif [ "$arg1" == "get-values" ]; then
   shift
-  echo "$data_dir/values.yaml"
+  echo "$(realpath $values_file)"
 elif [ "$arg1" == "dev" ]; then
   shift
   devarg1=${1:-""}
@@ -452,7 +455,7 @@ elif [ "$arg1" == "dev" ]; then
     handle_build "$@"
   elif [ "$devarg1" == "get-values" ]; then
     shift
-    echo "$data_dir/dev-values.yaml"
+    echo "$(realpath $dev_values_file)"
   else 
     echo "Unknown command $arg1"
     help

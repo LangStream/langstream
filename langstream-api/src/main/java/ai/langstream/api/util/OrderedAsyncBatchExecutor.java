@@ -17,9 +17,8 @@ package ai.langstream.api.util;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,10 +34,10 @@ import java.util.function.Function;
  */
 public class OrderedAsyncBatchExecutor<T> {
     private final int batchSize;
-    private final Map<Integer, Bucket> buckets;
+    private final Bucket[] buckets;
     private final int numBuckets;
-    private long flushInterval;
-    private ScheduledExecutorService scheduledExecutorService;
+    private final long flushInterval;
+    private final ScheduledExecutorService scheduledExecutorService;
 
     private ScheduledFuture<?> scheduledFuture;
 
@@ -55,10 +54,12 @@ public class OrderedAsyncBatchExecutor<T> {
             ScheduledExecutorService scheduledExecutorService) {
         this.numBuckets = numBuckets;
         this.hashFunction = hashFunction;
-        this.buckets = new HashMap<>();
+        Object[] buckets = new Object[numBuckets];
         for (int i = 0; i < numBuckets; i++) {
-            buckets.put(i, new Bucket());
+            buckets[i] = new Bucket();
         }
+        // try to avoid "generic array creation compile error"
+        this.buckets = Arrays.copyOf(buckets, numBuckets, Bucket[].class);
         this.batchSize = batchSize;
         this.processor = processor;
         this.flushInterval = maxIdleTime;
@@ -81,17 +82,18 @@ public class OrderedAsyncBatchExecutor<T> {
     }
 
     private void flush() {
-
-        buckets.values().forEach(Bucket::flush);
+        for (Bucket bucket : buckets) {
+            bucket.flush();
+        }
     }
 
-    private Bucket bucket(int bucket) {
-        return buckets.get(Math.abs(bucket % numBuckets));
+    private Bucket bucket(int hash) {
+        return buckets[Math.abs(hash % numBuckets)];
     }
 
     public void add(T t) {
-        int bucketIndex = hashFunction.apply(t);
-        Bucket bucket = bucket(bucketIndex);
+        int hash = hashFunction.apply(t);
+        Bucket bucket = bucket(hash);
         bucket.add(t);
     }
 

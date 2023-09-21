@@ -19,9 +19,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
@@ -37,17 +35,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @WireMockTest
@@ -266,8 +263,9 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
         }
     }
 
-    @Test
-    public void testComputeBatchEmbeddings() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testComputeBatchEmbeddings(boolean sameKey) throws Exception {
         wireMockRuntimeInfo
                 .getWireMock()
                 .allStubMappings()
@@ -277,6 +275,9 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                             log.info("Removing stub {}", stubMapping);
                             wireMockRuntimeInfo.getWireMock().removeStubMapping(stubMapping);
                         });
+        String embeddingFirst = "[1.0,5.4,8.7]";
+        String embeddingSecond = "[2.0,5.4,8.7]";
+        String embeddingThird = "[3.0,5.4,8.7]";
         stubFor(
                 post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-08-01-preview")
                         .willReturn(
@@ -285,17 +286,17 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                                {
                                                    "data": [
                                                      {
-                                                       "embedding": [1.0, 5.4, 8.7],
+                                                       "embedding": %s,
                                                        "index": 0,
                                                        "object": "embedding"
                                                      },
                                                      {
-                                                       "embedding": [2.0, 5.4, 8.7],
+                                                       "embedding": %s,
                                                        "index": 0,
                                                        "object": "embedding"
                                                      },
                                                      {
-                                                       "embedding": [3.0, 5.4, 8.7],
+                                                       "embedding": %s,
                                                        "index": 0,
                                                        "object": "embedding"
                                                      }
@@ -307,7 +308,11 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                                      "total_tokens": 5
                                                    }
                                                  }
-                                            """)));
+                                            """
+                                                .formatted(
+                                                        embeddingFirst,
+                                                        embeddingSecond,
+                                                        embeddingThird))));
         // wait for WireMock to be ready
         Thread.sleep(1000);
 
@@ -381,39 +386,56 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                     KafkaConsumer<String, String> consumer = createConsumer(outputTopic)) {
 
                 // produce 10 messages to the input-topic
-                List<Consumer<Object>> expected = new ArrayList<>();
+                List<String> expected = new ArrayList<>();
                 for (int i = 0; i < 9; i++) {
                     String name = "name_" + i;
+                    String key = sameKey ? "key" : "key_" + (i % 3);
                     sendMessage(
                             inputTopic,
+                            key,
                             "{\"name\": \" " + name + "\", \"description\": \"some description\"}",
+                            List.of(),
                             producer);
-                    int _i = i;
-                    expected.add(
-                            text -> {
-                                String embeddings = "";
-                                if (_i % 3 == 0) {
-                                    embeddings = "[1.0,5.4,8.7]";
-                                } else if (_i % 3 == 1) {
-                                    embeddings = "[2.0,5.4,8.7]";
-                                } else if (_i % 3 == 2) {
-                                    embeddings = "[3.0,5.4,8.7]";
-                                } else {
-                                    fail();
-                                }
-                                assertEquals(
-                                        "{\"name\":\" "
-                                                + name
-                                                + "\",\"description\":\"some description\",\"embeddings\":"
-                                                + embeddings
-                                                + "}",
-                                        text.toString());
-                            });
+
+                    String embeddings;
+                    if (sameKey) {
+                        if (i % 3 == 0) {
+                            embeddings = embeddingFirst;
+                        } else if (i % 3 == 1) {
+                            embeddings = embeddingSecond;
+                        } else {
+                            embeddings = embeddingThird;
+                        }
+                    } else {
+                        // this may look weird, but given the key distribution, we build 3 batches
+                        // that contain 3 messages each
+                        // the first 3 messages become the head of each batch, the next 3 messages
+                        // are the second element of each batch, and so on
+                        embeddings =
+                                switch (i) {
+                                    case 0, 1, 2 -> embeddingFirst;
+                                    case 3, 4, 5 -> embeddingSecond;
+                                    case 6, 7, 8 -> embeddingThird;
+                                    default -> throw new IllegalStateException();
+                                };
+                    }
+                    String expectedContent =
+                            "{\"name\":\" "
+                                    + name
+                                    + "\",\"description\":\"some description\",\"embeddings\":"
+                                    + embeddings
+                                    + "}";
+                    expected.add(expectedContent);
                 }
 
                 executeAgentRunners(applicationRuntime);
 
-                waitForMessages(consumer, expected);
+                if (sameKey) {
+                    // all the messages have the same key, so they must be processed in order
+                    waitForMessages(consumer, expected);
+                } else {
+                    waitForMessagesInAnyOrder(consumer, expected);
+                }
             }
         }
     }

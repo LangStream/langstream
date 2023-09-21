@@ -23,7 +23,21 @@ topics:
     creation-mode: create-if-not-exists
     schema:
       type: avro
-      schema: '{"type":"record","namespace":"examples","name":"Product","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"price","type":"double"},{"name":"category","type":"string"},{"name":"item-vector","type":"bytes"}]}}'
+      schema: |
+          {
+            "type":"record",
+            "namespace":"examples",
+            "name":"Product",
+            "fields":
+              [
+                {"name":"id","type":"string"},
+                {"name":"name","type":"string"},
+                {"name":"description","type":"string"},
+                {"name":"price","type":"double"},
+                {"name":"category","type":"string"},
+                {"name":"itemvector","type":"bytes"}
+             ]
+          }
 pipeline:
   - name: "Compute Vector using Embeddings API"
     type: "compute-embeddings"
@@ -31,9 +45,9 @@ pipeline:
     configuration:
       model: "gpt-3"
       template: "{{% name}} {{% description}}"
-      embeddings-field: "item-vector"
+      embeddings-field: "itemvector"
   - name: "Write to Database"
     type: "cassandra-sink"
     configuration:
       table: "{{globals.tableName}}"
-      mappings: "id=value.id,name=value.name,description=value.description,item_vector=value.item_vector"
+      mappings: "id=value.id,name=value.name,description=value.description,itemvector=value.itemvector"

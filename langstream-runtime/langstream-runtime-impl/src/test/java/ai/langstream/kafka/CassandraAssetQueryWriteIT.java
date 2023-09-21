@@ -43,7 +43,9 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
 
     @Container
     private CassandraContainer cassandra =
-            new CassandraContainer(new DockerImageName("cassandra", "latest"));
+            new CassandraContainer(
+                    new DockerImageName("stargateio/dse-next", "4.0.7-0cf63a3d0b6d")
+                            .asCompatibleSubstituteFor("cassandra"));
 
     @Test
     public void testCassandra() throws Exception {
@@ -90,7 +92,7 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                                        keyspace: "vsearch"
                                        datasource: "CassandraDatasource"
                                        create-statements:
-                                          - "CREATE TABLE IF NOT EXISTS vsearch.documents (id int PRIMARY KEY, name text, description text);"
+                                          - "CREATE TABLE IF NOT EXISTS vsearch.documents (id int PRIMARY KEY, name text, description text, v VECTOR<FLOAT,5>);"
                                           - "INSERT INTO vsearch.documents (id, name, description) VALUES (1, 'A', 'A description');"
                                 topics:
                                   - name: "input-topic"

@@ -126,6 +126,18 @@ public class GrpcAgentSourceTest {
         source.close();
     }
 
+    @Test
+    void testPermanentFailure() throws Exception {
+        GrpcAgentSource source = new GrpcAgentSource(channel);
+        source.setContext(new TestAgentContext());
+        source.start();
+        List<Record> read = readRecords(source, 1);
+        source.permanentFailure(read.get(0), new RuntimeException("permanent-failure"));
+        assertEquals(testSourceService.permanentFailure.getRecordId(), 42);
+        assertEquals(testSourceService.permanentFailure.getErrorMessage(), "permanent-failure");
+        source.close();
+    }
+
     static List<Record> readRecords(GrpcAgentSource source, int numberOfRecords) {
         List<Record> read = new ArrayList<>();
         await().atMost(5, TimeUnit.SECONDS)
@@ -151,6 +163,7 @@ public class GrpcAgentSourceTest {
     static class TestSourceService extends AgentServiceGrpc.AgentServiceImplBase {
 
         final List<Long> committedRecords = new CopyOnWriteArrayList<>();
+        PermanentFailure permanentFailure;
 
         @Override
         public StreamObserver<SourceRequest> read(StreamObserver<SourceResponse> responseObserver) {
@@ -200,6 +213,9 @@ public class GrpcAgentSourceTest {
                 @Override
                 public void onNext(SourceRequest request) {
                     committedRecords.addAll(request.getCommittedRecordsList());
+                    if (request.hasPermanentFailure()) {
+                        permanentFailure = request.getPermanentFailure();
+                    }
                     if (request.getCommittedRecordsList().contains(43L)) {
                         responseObserver.onError(new RuntimeException("test error"));
                     } else if (request.getCommittedRecordsList().contains(44L)) {

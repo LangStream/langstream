@@ -69,6 +69,22 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
     }
 
     @Override
+    public void permanentFailure(Record record, Exception error) throws Exception {
+        if (record instanceof GrpcAgentRecord grpcAgentRecord) {
+            request.onNext(
+                    SourceRequest.newBuilder()
+                            .setPermanentFailure(
+                                    PermanentFailure.newBuilder()
+                                            .setRecordId(grpcAgentRecord.id())
+                                            .setErrorMessage(error.getMessage()))
+                            .build());
+        } else {
+            throw new IllegalArgumentException(
+                    "Record %s is not a GrpcAgentRecord".formatted(record));
+        }
+    }
+
+    @Override
     public void commit(List<Record> records) throws Exception {
         SourceRequest.Builder requestBuilder = SourceRequest.newBuilder();
         for (Record record : records) {

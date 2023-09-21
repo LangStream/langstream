@@ -45,6 +45,7 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.dsl.ContainerResource;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.jsonwebtoken.Jwts;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -55,8 +56,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +90,8 @@ public class BaseEndToEndTest implements TestWatcher {
     private static final boolean LANGSTREAM_RECYCLE_ENV =
             Boolean.parseBoolean(System.getProperty("langstream.tests.recycleenv", "false"));
 
+    private static final String LANGSTREAM_REPO = System.getProperty("langstream.tests.repository");
+
     private static final String LANGSTREAM_TAG =
             System.getProperty("langstream.tests.tag", "latest-dev");
 
@@ -106,6 +112,7 @@ public class BaseEndToEndTest implements TestWatcher {
     protected static CodeStorageProvider.CodeStorageConfig codeStorageConfig;
     protected static KubernetesClient client;
     protected static String namespace;
+    protected static KeyPair controlPlaneAuthKeyPair;
 
     @Override
     public void testAborted(ExtensionContext context, Throwable cause) {
@@ -555,7 +562,7 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     @SneakyThrows
-    protected void installLangStreamCluster(boolean authentication) {
+    protected static void installLangStreamCluster(boolean authentication) {
         CompletableFuture.runAsync(() -> installLangStream(authentication)).get();
         awaitControlPlaneReady();
         awaitApiGatewayReady();
@@ -582,9 +589,29 @@ public class BaseEndToEndTest implements TestWatcher {
                 .delete();
 
         final String baseImageRepository =
-                LANGSTREAM_TAG.equals("latest-dev") ? "langstream" : "ghcr.io/langstream";
+                LANGSTREAM_REPO != null
+                        ? LANGSTREAM_REPO
+                        : (LANGSTREAM_TAG.equals("latest-dev")
+                                ? "langstream"
+                                : "ghcr.io/langstream");
         final String imagePullPolicy =
                 LANGSTREAM_TAG.equals("latest-dev") ? "Never" : "IfNotPresent";
+        final Map<String, String> controlPlaneConfig = new HashMap<>();
+        if (authentication) {
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+            kpg.initialize(2048);
+            controlPlaneAuthKeyPair = kpg.generateKeyPair();
+            final String publicKeyEncoded =
+                    Base64.getEncoder()
+                            .encodeToString(controlPlaneAuthKeyPair.getPublic().getEncoded());
+            controlPlaneConfig.put("application.security.enabled", "true");
+            controlPlaneConfig.put("application.security.token.public-key", publicKeyEncoded);
+            controlPlaneConfig.put("application.security.token.auth-claim", "sub");
+            controlPlaneConfig.put("application.security.token.admin-roles", "super-admin");
+        } else {
+            controlPlaneAuthKeyPair = null;
+        }
+
         final String values =
                 """
                         images:
@@ -598,9 +625,7 @@ public class BaseEndToEndTest implements TestWatcher {
                               cpu: 0.2
                               memory: 256Mi
                           app:
-                            config:
-                              application.storage.global.type: kubernetes
-                              application.security.enabled: false
+                            config: %s
 
                         deployer:
                           image:
@@ -652,6 +677,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                 LANGSTREAM_TAG,
                                 baseImageRepository,
                                 imagePullPolicy,
+                                JSON_MAPPER.writeValueAsString(controlPlaneConfig),
                                 baseImageRepository,
                                 imagePullPolicy,
                                 baseImageRepository,
@@ -893,13 +919,27 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     protected static void setupTenant(String tenant) {
-        executeCommandOnClient(
-                """
-                        bin/langstream tenants put %s &&
-                        bin/langstream configure tenant %s"""
-                        .formatted(tenant, tenant)
-                        .replace(System.lineSeparator(), " ")
-                        .split(" "));
+        if (controlPlaneAuthKeyPair != null) {
+            final String adminToken = generateControlPlaneAdminToken();
+            final String token = generateControlPlaneAdminToken();
+            executeCommandOnClient(
+                    """
+                            bin/langstream configure token %s &&
+                            bin/langstream tenants put %s &&
+                            bin/langstream configure tenant %s &&
+                            bin/langstream configure token %s"""
+                            .formatted(adminToken, tenant, tenant, token)
+                            .replace(System.lineSeparator(), " ")
+                            .split(" "));
+        } else {
+            executeCommandOnClient(
+                    """
+                            bin/langstream tenants put %s &&
+                            bin/langstream configure tenant %s"""
+                            .formatted(tenant, tenant)
+                            .replace(System.lineSeparator(), " ")
+                            .split(" "));
+        }
     }
 
     protected static void deployLocalApplication(String applicationId, String appDir) {
@@ -1025,5 +1065,20 @@ public class BaseEndToEndTest implements TestWatcher {
                 ("failed to get app env variable %s from system or env. Possible env variables: %s, "
                                 + "LANGSTREAM_TESTS_APP_ENV_%s. Possible system properties: langstream.tests.app.env.%s")
                         .formatted(name, name, name, name));
+    }
+
+    protected static String generateControlPlaneAdminToken() {
+        return generateControlPlaneToken("super-admin");
+    }
+
+    protected static String generateControlPlaneToken(String subject) {
+        if (controlPlaneAuthKeyPair == null) {
+            throw new IllegalStateException(
+                    "controlPlaneAuthKeyPair is null, no auth configured in this test ?");
+        }
+        return Jwts.builder()
+                .claim("sub", subject)
+                .signWith(controlPlaneAuthKeyPair.getPrivate())
+                .compact();
     }
 }

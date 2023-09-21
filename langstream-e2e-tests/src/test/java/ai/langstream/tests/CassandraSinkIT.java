@@ -46,7 +46,7 @@ public class CassandraSinkIT extends BaseEndToEndTest {
 
     @Test
     public void test() throws Exception {
-        installLangStreamCluster(false);
+        installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
         final String applicationId = "my-test-app";

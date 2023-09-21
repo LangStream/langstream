@@ -232,7 +232,7 @@ public abstract class AbstractApplicationRunner {
                                 received.add(record.value());
                                 result.add(record);
                             }
-                            log.info("Result: {}", received);
+                            log.info("Result:  {}", received);
                             received.forEach(r -> log.info("Received |{}|", r));
 
                             assertEquals(expected.size(), received.size());

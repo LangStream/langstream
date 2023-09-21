@@ -36,7 +36,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
     @ParameterizedTest
     @ValueSource(strings = {"python-processor", "experimental-python-processor"})
     public void testProcessor(String appDir) {
-        installLangStreamCluster(false);
+        installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
         final String applicationId = "my-test-app";
@@ -70,7 +70,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
 
     @Test
     public void testSource() {
-        installLangStreamCluster(false);
+        installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
         final String applicationId = "my-test-app";

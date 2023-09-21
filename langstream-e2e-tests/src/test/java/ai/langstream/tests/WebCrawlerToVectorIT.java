@@ -54,7 +54,7 @@ public class WebCrawlerToVectorIT extends BaseEndToEndTest {
 
     @Test
     public void test() throws Exception {
-        installLangStreamCluster(false);
+        installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
 

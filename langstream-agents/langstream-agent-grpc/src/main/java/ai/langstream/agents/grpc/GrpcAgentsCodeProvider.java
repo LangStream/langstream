@@ -22,7 +22,10 @@ import java.util.Set;
 public class GrpcAgentsCodeProvider implements AgentCodeProvider {
 
     private static final Set<String> SUPPORTED_AGENT_TYPES =
-            Set.of("experimental-python-source", "experimental-python-processor");
+            Set.of(
+                    "experimental-python-source",
+                    "experimental-python-processor",
+                    "experimental-python-sink");
 
     @Override
     public boolean supports(String agentType) {
@@ -34,6 +37,7 @@ public class GrpcAgentsCodeProvider implements AgentCodeProvider {
         return switch (agentType) {
             case "experimental-python-source" -> new PythonGrpcAgentSource();
             case "experimental-python-processor" -> new PythonGrpcAgentProcessor();
+            case "experimental-python-sink" -> new PythonGrpcAgentSink();
             default -> throw new IllegalStateException("Unexpected agent type: " + agentType);
         };
     }

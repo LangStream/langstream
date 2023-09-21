@@ -306,6 +306,7 @@ public class TransformFunctionUtil {
                 config.getEmbeddingsFieldName(),
                 config.getBatchSize(),
                 config.getFlushInterval(),
+                config.getConcurrency(),
                 embeddingsService);
     }
 

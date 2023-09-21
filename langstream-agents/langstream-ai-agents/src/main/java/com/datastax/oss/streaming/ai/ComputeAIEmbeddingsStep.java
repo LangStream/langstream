@@ -59,13 +59,14 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
             String embeddingsFieldName,
             int batchSize,
             long flushInterval,
+            int concurrency,
             EmbeddingsService embeddingsService) {
         this.template = Mustache.compiler().compile(text);
         this.embeddingsFieldName = embeddingsFieldName;
         this.embeddingsService = embeddingsService;
         this.executorService =
                 flushInterval > 0 ? Executors.newSingleThreadScheduledExecutor() : null;
-        int numBuckets = 4;
+        int numBuckets = concurrency > 0 ? concurrency : 1;
         this.batchExecutor =
                 new OrderedAsyncBatchExecutor<>(
                         batchSize,

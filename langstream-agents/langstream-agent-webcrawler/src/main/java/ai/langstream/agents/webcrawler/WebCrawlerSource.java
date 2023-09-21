@@ -32,7 +32,6 @@ import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
@@ -58,6 +57,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -75,7 +75,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private MinioClient minioClient;
     private int reindexIntervalSeconds;
 
-    private String statusFileName;
+    @Getter private String statusFileName;
 
     private WebCrawler crawler;
 
@@ -369,9 +369,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     }
 
     private class S3StatusStorage implements StatusStorage {
-        private static final ObjectMapper MAPPER =
-                new ObjectMapper()
-                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        private static final ObjectMapper MAPPER = new ObjectMapper();
 
         @Override
         public void storeStatus(Status status) throws Exception {
@@ -397,7 +395,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                         .build());
                 byte[] content = result.readAllBytes();
                 log.info("Restoring status from {}, {} bytes", statusFileName, content.length);
-                return MAPPER.readValue(content, Status.class);
+                try {
+                    return MAPPER.readValue(content, Status.class);
+                } catch (IOException e) {
+                    log.error("Error parsing status file, restarting from scratch", e);
+                    return null;
+                }
             } catch (ErrorResponseException e) {
                 if (e.errorResponse().code().equals("NoSuchKey")) {
                     log.info("No status file found, starting from scratch");

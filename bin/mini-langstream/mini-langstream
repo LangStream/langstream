@@ -21,7 +21,7 @@ help() {
   echo """
 mini-langstream, LangStream local cluster on Minikube.
 
-Syntax: $0 [command] [options]
+Syntax: mini-langstream [command] [options]
 
 Commands:
   start                     Start the LangStream local cluster.

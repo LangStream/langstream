@@ -37,8 +37,8 @@ Commands:
   dev                       Dev commands. It's required to run the command from the LangStream repository root directory.
       start [--load]        Start the LangStream local cluster in development mode. This will use the latest development images that are built locally.
                               --load   Load LangStream images instead of building them.
-      load <image>              Load a specific Docker image into Minikube.
-      build <component>         Build docker image for a specific LangStream component and restart it. No arguments to rebuild all the images.
+      load <image>          Load a specific Docker image into Minikube.
+      build <component>     Build docker image for a specific LangStream component and restart it. No arguments to rebuild all the images.
       get-values            Get the path to the Helm values. This values file is used when the cluster is started in dev mode.
 
 """

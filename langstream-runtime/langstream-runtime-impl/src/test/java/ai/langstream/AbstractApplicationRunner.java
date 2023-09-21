@@ -40,9 +40,9 @@ import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -210,9 +210,15 @@ public abstract class AbstractApplicationRunner {
     protected void sendMessage(
             String topic, Object content, List<Header> headers, KafkaProducer producer)
             throws Exception {
+        sendMessage(topic, "key", content, headers, producer);
+    }
+
+    protected void sendMessage(
+            String topic, Object key, Object content, List<Header> headers, KafkaProducer producer)
+            throws Exception {
         producer.send(
                         new ProducerRecord<>(
-                                topic, null, System.currentTimeMillis(), "key", content, headers))
+                                topic, null, System.currentTimeMillis(), key, content, headers))
                 .get();
         producer.flush();
     }
@@ -253,7 +259,7 @@ public abstract class AbstractApplicationRunner {
     }
 
     protected List<ConsumerRecord> waitForMessagesInAnyOrder(
-            KafkaConsumer consumer, Set<String> expected) {
+            KafkaConsumer consumer, Collection<String> expected) {
         List<ConsumerRecord> result = new ArrayList<>();
         List<Object> received = new ArrayList<>();
 
@@ -281,6 +287,17 @@ public abstract class AbstractApplicationRunner {
                                                 + expectedValue
                                                 + " not found in "
                                                 + received);
+                            }
+
+                            for (Object receivedValue : received) {
+                                // this doesn't work for byte[]
+                                assertFalse(receivedValue instanceof byte[]);
+                                assertTrue(
+                                        expected.contains(receivedValue),
+                                        "Received value "
+                                                + receivedValue
+                                                + " not found in "
+                                                + expected);
                             }
                         });
 

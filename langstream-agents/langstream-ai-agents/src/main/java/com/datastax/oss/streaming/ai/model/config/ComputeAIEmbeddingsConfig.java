@@ -34,6 +34,9 @@ public class ComputeAIEmbeddingsConfig extends StepConfig {
     @JsonProperty("batch-size")
     private int batchSize = 10;
 
+    @JsonProperty("concurrency")
+    private int concurrency = 4;
+
     // we disable flushing by default in order to avoid latency spikes
     // you should enable this feature in the case of background processing
     @JsonProperty("flush-interval")

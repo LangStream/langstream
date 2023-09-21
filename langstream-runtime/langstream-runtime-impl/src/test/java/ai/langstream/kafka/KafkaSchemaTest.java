@@ -73,25 +73,35 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
                 Map.of(
                         "module.yaml",
                         """
-                        module: "module-1"
-                        id: "pipeline-1"
-                        topics:
-                          - name: "input-topic"
-                            creation-mode: create-if-not-exists
-                            schema:
-                              type: avro
-                              schema: '%s'
-                          - name: "output-topic"
-                            creation-mode: create-if-not-exists
-                            schema:
-                              type: avro
-                        pipeline:
-                          - name: "identity"
-                            id: "step1"
-                            type: "identity"
-                            input: "input-topic"
-                            output: "output-topic"
-                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                      type: avro
+                                      schema: '%s'
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                      type: avro
+                                      schema: |
+                                           {
+                                              "type" : "record",
+                                              "name" : "Pojo",
+                                              "namespace" : "mynamespace",
+                                              "fields" : [ {
+                                                "name" : "name",
+                                                "type" : "string"
+                                              } ]
+                                            }
+                                pipeline:
+                                  - name: "identity"
+                                    id: "step1"
+                                    type: "identity"
+                                    input: "input-topic"
+                                    output: "output-topic"
+                                """
                                 .formatted(schemaDefinition));
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(

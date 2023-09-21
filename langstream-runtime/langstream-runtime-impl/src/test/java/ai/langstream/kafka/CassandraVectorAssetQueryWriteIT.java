@@ -16,6 +16,7 @@
 package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import ai.langstream.AbstractApplicationRunner;
@@ -23,6 +24,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.data.CqlVector;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import java.util.List;
 import java.util.Map;
@@ -39,11 +41,13 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
+class CassandraVectorAssetQueryWriteIT extends AbstractApplicationRunner {
 
     @Container
     private CassandraContainer cassandra =
-            new CassandraContainer(new DockerImageName("cassandra", "latest"));
+            new CassandraContainer(
+                    new DockerImageName("stargateio/dse-next", "4.0.7-0cf63a3d0b6d")
+                            .asCompatibleSubstituteFor("cassandra"));
 
     @Test
     public void testCassandra() throws Exception {
@@ -56,7 +60,7 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                         """
                         configuration:
                           resources:
-                            - type: "datasource"
+                            - type: "vector-database"
                               name: "CassandraDatasource"
                               configuration:
                                 service: "cassandra"
@@ -90,7 +94,7 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                                        keyspace: "vsearch"
                                        datasource: "CassandraDatasource"
                                        create-statements:
-                                          - "CREATE TABLE IF NOT EXISTS vsearch.documents (id int PRIMARY KEY, name text, description text);"
+                                          - "CREATE TABLE IF NOT EXISTS vsearch.documents (id int PRIMARY KEY, name text, description text, embeddings VECTOR<FLOAT,5>);"
                                           - "INSERT INTO vsearch.documents (id, name, description) VALUES (1, 'A', 'A description');"
                                 topics:
                                   - name: "input-topic"
@@ -128,7 +132,7 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                                       datasource: "CassandraDatasource"
                                       table-name: "documents"
                                       keyspace: "vsearch"
-                                      mapping: "id=value.documentId,name=value.name,description=value.description"
+                                      mapping: "id=value.documentId,name=value.name,description=value.description,embeddings=value.embeddings"
                                 """);
 
         try (ApplicationRuntime applicationRuntime =
@@ -137,13 +141,16 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
             try (KafkaProducer<String, String> producer = createProducer();
                     KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
 
-                sendMessage("input-topic", "{\"documentId\":1}", producer);
+                sendMessage(
+                        "input-topic",
+                        "{\"documentId\":1, \"embeddings\":[0.1,0.2,0.3,0.4,0.5]}",
+                        producer);
 
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"documentId\":2,\"queryresult\":{\"name\":\"A\",\"description\":\"A description\",\"id\":\"1\"},\"name\":\"A\",\"description\":\"A description\"}"));
+                                "{\"documentId\":2,\"embeddings\":[0.1,0.2,0.3,0.4,0.5],\"queryresult\":{\"embeddings\":null,\"name\":\"A\",\"description\":\"A description\",\"id\":\"1\"},\"name\":\"A\",\"description\":\"A description\"}"));
 
                 CqlSessionBuilder builder = new CqlSessionBuilder();
                 builder.addContactPoint(cassandra.getContactPoint());
@@ -154,7 +161,21 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                     List<Row> all = execute.all();
                     Set<Integer> documentIds =
                             all.stream().map(row -> row.getInt("id")).collect(Collectors.toSet());
-                    all.forEach(row -> log.info("row id {}", row.get("id", Integer.class)));
+                    all.forEach(
+                            row -> {
+                                int id = row.getInt("id");
+                                CqlVector<?> embeddings = row.getCqlVector("embeddings");
+                                log.info("ID {} Embeddings: {}", id, embeddings);
+                                if (id == 2) {
+                                    assertEquals(
+                                            embeddings,
+                                            CqlVector.builder()
+                                                    .add(0.1f, 0.2f, 0.3f, 0.4f, 0.5f)
+                                                    .build());
+                                } else {
+                                    assertNull(embeddings);
+                                }
+                            });
                     assertEquals(2, all.size());
                     assertEquals(Set.of(1, 2), documentIds);
                 }
@@ -168,99 +189,6 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                     } catch (InvalidQueryException e) {
                         assertEquals("'vsearch' not found in keyspaces", e.getMessage());
                     }
-                }
-            }
-        }
-    }
-
-    @Test
-    public void testCassandraTable() throws Exception {
-        String tenant = "tenant1";
-        String[] expectedAgents = {"app-step1", "app-step2"};
-
-        Map<String, String> application =
-                Map.of(
-                        "configuration.yaml",
-                        """
-                        configuration:
-                          resources:
-                            - type: "vector-database"
-                              name: "CassandraDatasource"
-                              configuration:
-                                service: "cassandra"
-                                contact-points: "%s"
-                                loadBalancing-localDc: "%s"
-                                port: %d
-                        """
-                                .formatted(
-                                        cassandra.getContactPoint().getHostString(),
-                                        cassandra.getLocalDatacenter(),
-                                        cassandra.getContactPoint().getPort()),
-                        "pipeline.yaml",
-                        """
-                                assets:
-                                  - name: "vsearch-keyspace"
-                                    asset-type: "cassandra-keyspace"
-                                    creation-mode: create-if-not-exists
-                                    config:
-                                       keyspace: "v1"
-                                       datasource: "CassandraDatasource"
-                                       create-statements:
-                                          - "CREATE KEYSPACE v1 WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};"
-                                  - name: "documents-table"
-                                    asset-type: "cassandra-table"
-                                    creation-mode: create-if-not-exists
-                                    deletion-mode: delete
-                                    config:
-                                       table-name: "documents"
-                                       keyspace: "v1"
-                                       datasource: "CassandraDatasource"
-                                       create-statements:
-                                          - "CREATE TABLE IF NOT EXISTS v1.documents (id int PRIMARY KEY, name text, description text);"
-                                          - "INSERT INTO v1.documents (id, name, description) VALUES (1, 'A', 'A description');"
-                                       delete-statements:
-                                          - "DROP TABLE v1.documents;"
-                                topics:
-                                  - name: "input-topic"
-                                    creation-mode: create-if-not-exists
-                                  - name: "output-topic"
-                                    creation-mode: create-if-not-exists
-                                pipeline:
-                                  - id: step1
-                                    name: "Execute Query"
-                                    type: "query-vector-db"
-                                    input: "input-topic"
-                                    output: "output-topic"
-                                    configuration:
-                                      datasource: "CassandraDatasource"
-                                      query: "SELECT * FROM v1.documents WHERE id=?;"
-                                      only-first: true
-                                      output-field: "value.queryresult"
-                                      fields:
-                                        - "value.documentId"
-                                """);
-
-        try (ApplicationRuntime applicationRuntime =
-                deployApplication(
-                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-
-            CqlSessionBuilder builder = new CqlSessionBuilder();
-            builder.addContactPoint(cassandra.getContactPoint());
-            builder.withLocalDatacenter(cassandra.getLocalDatacenter());
-
-            try (CqlSession cqlSession = builder.build(); ) {
-                ResultSet execute = cqlSession.execute("SELECT count(*) FROM v1.documents");
-                assertEquals(1, execute.one().getLong(0));
-            }
-
-            applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
-
-            try (CqlSession cqlSession = builder.build(); ) {
-                try {
-                    ResultSet execute = cqlSession.execute("SELECT count(*) FROM v1.documents");
-                    fail();
-                } catch (InvalidQueryException e) {
-                    assertEquals("table documents does not exist", e.getMessage());
                 }
             }
         }

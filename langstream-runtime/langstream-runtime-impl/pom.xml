@@ -232,15 +232,8 @@
       <artifactId>tools</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- <dependency>
-      <groupId>com.snowflake</groupId>
-      <artifactId>snowflake-kafka-connector</artifactId>
-      <version>1.7.2</version>
-      <scope>test</scope>
-    </dependency> -->
 
-
-    <!--    Agents: ensure this module is dependant from agents modules-->
+    <!--    Agents: ensure this module is dependant from agents modules, DO NOT REMOVE-->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>langstream-kafka-runtime</artifactId>
@@ -286,6 +279,13 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>langstream-vector-agents</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agent-grpc</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>

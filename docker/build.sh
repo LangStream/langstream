@@ -27,7 +27,7 @@ docker_platforms() {
   fi
 }
 
-common_flags="-DskipTests -PskipPython -Dlicense.skip -Dspotless.skip"
+common_flags="-DskipTests -PskipPython -Dlicense.skip -Dspotless.skip -ntp"
 
 
 build_docker_image() {

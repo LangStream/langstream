@@ -108,7 +108,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         allowedDomains = getSet("allowed-domains", configuration);
         forbiddenPaths = getSet("forbidden-paths", configuration);
         maxUrls = getInt("max-urls", 1000, configuration);
-        int maxDepth = getInt("max-depth", 10, configuration);
+        int maxDepth = getInt("max-depth", 50, configuration);
         handleRobotsFile = getBoolean("handle-robots-file", true, configuration);
         scanHtmlDocuments = getBoolean("scan-html-documents", true, configuration);
         seedUrls = getSet("seed-urls", configuration);

@@ -57,6 +57,14 @@ class RecordWithId(SimpleRecord):
         self.record_id = record_id
 
 
+def wrap_in_record(record):
+    if isinstance(record, tuple) or isinstance(record, list):
+        return SimpleRecord(*record)
+    if isinstance(record, dict):
+        return SimpleRecord(**record)
+    return record
+
+
 def handle_requests(
     agent: Source,
     requests: Iterable[SourceRequest],
@@ -112,6 +120,7 @@ class AgentService(AgentServiceServicer):
                 raise op_result[0]
             records = self.agent.read()
             if len(records) > 0:
+                records = [wrap_in_record(record) for record in records]
                 grpc_records = []
                 for record in records:
                     schemas, grpc_record = self.to_grpc_record(record)
@@ -140,7 +149,9 @@ class AgentService(AgentServiceServicer):
                         grpc_result.error = str(result)
                     else:
                         for record in result:
-                            schemas, grpc_record = self.to_grpc_record(record)
+                            schemas, grpc_record = self.to_grpc_record(
+                                wrap_in_record(record)
+                            )
                             for schema in schemas:
                                 yield ProcessorResponse(schema=schema)
                             grpc_result.records.append(grpc_record)

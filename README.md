@@ -1,7 +1,9 @@
 # LangStream
-[Have a question? Join our Slack channel!](https://join.slack.com/t/langstream/shared_invite/zt-21leloc9c-lNaGLdiecHuWU5N31L2AeQ)
+Check out our [website](https://langstream.ai).
 
-For the complete documentation, go [here](https://docs.langstream.ai)
+Have a question? Join our community on [Slack](https://join.slack.com/t/langstream/shared_invite/zt-21leloc9c-lNaGLdiecHuWU5N31L2AeQ) or [Linen](https://www.linen.dev/invite/langstream)!
+
+For the complete documentation, go [here](https://docs.langstream.ai).
 
 Get the LangStream VS Code extension [here](https://marketplace.visualstudio.com/items?itemName=DataStax.langstream).
 

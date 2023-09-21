@@ -17,8 +17,8 @@
 from langstream import SimpleRecord
 import logging
 
-class TestSource(object):
 
+class TestSource(object):
     def __init__(self):
         self.sent = False
 

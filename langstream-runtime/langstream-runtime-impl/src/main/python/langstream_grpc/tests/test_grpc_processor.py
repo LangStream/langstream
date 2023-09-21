@@ -200,4 +200,24 @@ class MyProcessor(SingleRecordProcessor):
     def process_record(self, record: Record) -> List[RecordType]:
         if record.origin() == "failing-record":
             raise Exception("failure")
-        return [record]
+        if isinstance(record.value(), str):
+            return [record]
+        if isinstance(record.value(), float):
+            return [
+                {
+                    "value": record.value(),
+                    "key": record.key(),
+                    "headers": record.headers(),
+                    "origin": record.origin(),
+                    "timestamp": record.timestamp(),
+                }
+            ]
+        return [
+            (
+                record.value(),
+                record.key(),
+                record.headers(),
+                record.origin(),
+                record.timestamp(),
+            )
+        ]

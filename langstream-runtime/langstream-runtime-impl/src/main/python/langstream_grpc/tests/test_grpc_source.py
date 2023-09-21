@@ -16,6 +16,7 @@
 
 import json
 import queue
+import time
 from io import BytesIO
 from typing import List
 
@@ -31,7 +32,7 @@ from langstream_grpc.proto.agent_pb2 import (
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceStub
 from langstream_runtime.api import Record, RecordType, Source
-from langstream_runtime.util import SimpleRecord, AvroValue
+from langstream_runtime.util import AvroValue, SimpleRecord
 
 
 @pytest.fixture(autouse=True)
@@ -52,8 +53,19 @@ def server_and_stub():
 def test_read(server_and_stub):
     server, stub = server_and_stub
 
-    responses: list[SourceResponse]
-    responses = list(stub.read(iter([])))
+    stop = False
+
+    def requests():
+        while not stop:
+            time.sleep(0.1)
+        yield from ()
+
+    responses: list[SourceResponse] = []
+    i = 0
+    for response in stub.read(iter(requests())):
+        responses.append(response)
+        i += 1
+        stop = i == 4
 
     response_schema = responses[0]
     assert len(response_schema.records) == 0
@@ -77,6 +89,18 @@ def test_read(server_and_stub):
     finally:
         fp.close()
 
+    response_record = responses[2]
+    assert len(response_schema.records) == 0
+    record = response_record.records[0]
+    assert record.record_id == 2
+    assert record.value.long_value == 42
+
+    response_record = responses[3]
+    assert len(response_schema.records) == 0
+    record = response_record.records[0]
+    assert record.record_id == 3
+    assert record.value.long_value == 43
+
 
 def test_commit(server_and_stub):
     server, stub = server_and_stub
@@ -84,7 +108,7 @@ def test_commit(server_and_stub):
 
     def send_commit():
         committed = 0
-        while committed < 2:
+        while committed < 3:
             try:
                 commit_id = to_commit.get(True, 1)
                 yield SourceRequest(committed_records=[commit_id])
@@ -98,8 +122,9 @@ def test_commit(server_and_stub):
             for record in response.records:
                 to_commit.put(record.record_id)
 
-    assert len(server.agent.committed) == 1
+    assert len(server.agent.committed) == 2
     assert server.agent.committed[0] == server.agent.sent[0]
+    assert server.agent.committed[1].value() == server.agent.sent[1]["value"]
 
 
 def test_permanent_failure(server_and_stub):
@@ -141,7 +166,8 @@ class MySource(Source):
                     value={"field": "test"},
                 )
             ),
-            SimpleRecord(value=42),
+            {"value": 42},
+            (43,),
         ]
         self.sent = []
         self.committed = []
@@ -156,7 +182,7 @@ class MySource(Source):
 
     def commit(self, records: List[Record]):
         for record in records:
-            if record.value() == 42:
+            if record.value() == 43:
                 raise Exception("test error")
         self.committed.extend(records)
 

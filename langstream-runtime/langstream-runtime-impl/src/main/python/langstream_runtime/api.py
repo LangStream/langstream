@@ -60,7 +60,7 @@ class Record(ABC):
         pass
 
 
-RecordType = Union[Record, list, tuple]
+RecordType = Union[Record, dict, list, tuple]
 
 
 class TopicConsumer(ABC):
@@ -146,7 +146,12 @@ class Source(Agent):
         """The Source agent generates records and returns them as list of records.
 
         :returns: the list of records. The records must either respect the Record
-        API contract (have methods value(), key() and so on) or be tuples/list.
+        API contract (have methods value(), key() and so on) or be a dict or
+        tuples/list.
+        If the records are dict, the keys if present shall be "value", "key",
+        "headers", "origin" and "timestamp".
+        Eg:
+        * if you return [{"value": "foo"}] a record Record(value="foo") will be built.
         If the records are tuples/list, the framework will automatically construct
         Record objects from them with the values in the following order : value, key,
         headers, origin, timestamp.
@@ -192,7 +197,13 @@ class Processor(Agent):
         exception.
         Eg: [(input_record, RuntimeError("Could not process"))]
         When the processing is successful, the output records must either respect the
-        Record API contract (have methods value(), key() and so on) or be tuples/list.
+        Record API contract (have methods value(), key() and so on) or be a dict or
+        tuples/list.
+        If the records are dict, the keys if present shall be "value", "key",
+        "headers", "origin" and "timestamp".
+        Eg:
+        * if you return [(input_record, [{"value": "foo"}])] a record
+        Record(value="foo") will be built.
         If the output records are tuples/list, the framework will automatically
         construct Record objects from them with the values in the following order :
         value, key, headers, origin, timestamp.

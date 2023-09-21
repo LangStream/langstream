@@ -357,6 +357,8 @@ def wrap_in_record(records):
     for i, record in enumerate(records):
         if isinstance(record, tuple) or isinstance(record, list):
             records[i] = SimpleRecord(*record)
+        if isinstance(record, dict):
+            records[i] = SimpleRecord(**record)
     return records
 
 

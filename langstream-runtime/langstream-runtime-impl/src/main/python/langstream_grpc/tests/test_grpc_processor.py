@@ -41,7 +41,7 @@ from langstream_runtime.util import SingleRecordProcessor
 @pytest.fixture(autouse=True)
 def stub():
     config = """{
-      "className": "langstream_grpc.tests.test_grpc_service.MyProcessor"
+      "className": "langstream_grpc.tests.test_grpc_processor.MyProcessor"
     }"""
     server = AgentServer("[::]:0", config)
     server.start()

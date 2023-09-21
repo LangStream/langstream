@@ -6,7 +6,7 @@ if [ -z "$version" ]; then
 fi
 temp_dir=$(mktemp -d)
 mkdir -p $temp_dir/bin
-cp bin/mini-langstream/mini-langstream $temp_dir/bin/mini-langstream
+cp mini-langstream/mini-langstream $temp_dir/bin/mini-langstream
 
 mkdir -p target
 target_filename=$(realpath target/mini-langstream-$version.zip)

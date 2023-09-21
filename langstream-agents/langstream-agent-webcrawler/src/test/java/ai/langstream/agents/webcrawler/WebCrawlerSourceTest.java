@@ -36,7 +36,11 @@ import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -421,5 +425,46 @@ public class WebCrawlerSourceTest {
                 });
         agentSource.start();
         return (WebCrawlerSource) agentSource;
+    }
+
+    @Test
+    void testRecoverFromWrongJsonFile() throws Exception {
+        String bucket = "langstream-test-" + UUID.randomUUID();
+        String url = "https://www.datastax.com/";
+        String allowed = "https://www.datastax.com/";
+
+        String objectName = "test-global-agent-id.webcrawler.status.json";
+        String json =
+                """
+                {
+                    "some-field": "some-value"
+                }
+                """;
+        minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(bucket)
+                        .contentType("application/json")
+                        .object(objectName)
+                        .stream(
+                                new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                                json.length(),
+                                5 * 1024 * 1024)
+                        .build());
+        WebCrawlerSource agentSource =
+                buildAgentSource(
+                        bucket,
+                        allowed,
+                        Set.of(),
+                        url,
+                        Map.of(
+                                "reindex-interval-seconds",
+                                "3600",
+                                "scan-html-documents",
+                                "false",
+                                "max-urls",
+                                10000));
+        assertEquals(objectName, agentSource.getStatusFileName());
+        agentSource.close();
     }
 }

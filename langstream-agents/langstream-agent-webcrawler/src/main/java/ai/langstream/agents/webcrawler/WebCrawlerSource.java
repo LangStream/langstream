@@ -57,6 +57,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -74,7 +75,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private MinioClient minioClient;
     private int reindexIntervalSeconds;
 
-    private String statusFileName;
+    @Getter private String statusFileName;
 
     private WebCrawler crawler;
 
@@ -107,7 +108,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         allowedDomains = getSet("allowed-domains", configuration);
         forbiddenPaths = getSet("forbidden-paths", configuration);
         maxUrls = getInt("max-urls", 1000, configuration);
-        int maxDepth = getInt("max-depth", 10, configuration);
+        int maxDepth = getInt("max-depth", 50, configuration);
         handleRobotsFile = getBoolean("handle-robots-file", true, configuration);
         scanHtmlDocuments = getBoolean("scan-html-documents", true, configuration);
         seedUrls = getSet("seed-urls", configuration);
@@ -394,7 +395,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                         .build());
                 byte[] content = result.readAllBytes();
                 log.info("Restoring status from {}, {} bytes", statusFileName, content.length);
-                return MAPPER.readValue(content, Status.class);
+                try {
+                    return MAPPER.readValue(content, Status.class);
+                } catch (IOException e) {
+                    log.error("Error parsing status file, restarting from scratch", e);
+                    return null;
+                }
             } catch (ErrorResponseException e) {
                 if (e.errorResponse().code().equals("NoSuchKey")) {
                     log.info("No status file found, starting from scratch");

@@ -44,8 +44,8 @@ class MilvusDataSourceTest {
         String collectionName = "book";
         String databaseName = "default";
 
-        int milvusPort = milvus.getMappedPort(19530);
-        String milvusHost = milvus.getHost();
+        int milvusPort = 19530;
+        String milvusHost = "localhost";
         log.info("Connecting to Milvus at {}:{}", milvusHost, milvusPort);
 
         MilvusDataSource dataSource = new MilvusDataSource();

@@ -132,7 +132,7 @@ class MilvusVectorAssetQueryWriteIT extends AbstractApplicationRunner {
                                 creation-mode: create-if-not-exists
                             pipeline:
                               - id: step1
-                                name: "Write a record to Milvus"
+                                name: "Read a record from Milvus"
                                 type: "query-vector-db"
                                 input: "questions-topic"
                                 output: "answers-topic"

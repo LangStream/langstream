@@ -23,8 +23,7 @@ assets:
     asset-type: "milvus-collection"
     creation-mode: create-if-not-exists
     config:
-      table-name: "documents"
-      keyspace: "documents"
+      collection-name: "documents"
       datasource: "MilvusDatasource"
       create-statements:
         - - name: "documents-table"

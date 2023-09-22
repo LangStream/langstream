@@ -14,18 +14,18 @@
 # limitations under the License.
 #
 
-name: "Write to AstraDB"
+name: "Write to DB"
 topics:
   - name: "chunks-topic"
     creation-mode: create-if-not-exists
 assets:
   - name: "documents-table"
-    asset-type: "cassandra-table"
+    asset-type: "milvus-collection"
     creation-mode: create-if-not-exists
     config:
       table-name: "documents"
       keyspace: "documents"
-      datasource: "AstraDatasource"
+      datasource: "MilvusDatasource"
       create-statements:
         - - name: "documents-table"
             asset-type: "milvus-collection"

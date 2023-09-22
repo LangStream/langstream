@@ -36,7 +36,7 @@ assets:
                          {
                             "name": "id",
                             "primary-key": true,
-                            "data-type": "Int64"
+                            "data-type": "Int64",
                             "auto-id": true
                          },
                          {
@@ -58,7 +58,7 @@ assets:
                         {
                             "name": "text",
                             "data-type": "string"
-                         },
+                         }
                       ]
                   }
 pipeline:

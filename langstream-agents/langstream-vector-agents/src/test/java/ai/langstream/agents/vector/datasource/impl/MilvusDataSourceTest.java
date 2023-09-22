@@ -29,28 +29,32 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
+import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
 class MilvusDataSourceTest {
 
-    /*
+    @Container
+    private GenericContainer milvus =
+            new GenericContainer(new DockerImageName("langstream/milvus-lite:latest-dev"))
+                    .withExposedPorts(19530)
+                    .withLogConsumer(new Slf4jLogConsumer(log).withPrefix("milvus"))
+                    .waitingFor(new LogMessageWaitStrategy().withRegEx(".*http.*"));
 
-        @Container
-        public DockerComposeContainer<?> environment =
-                new DockerComposeContainer<>(new File("src/test/resources/milvus-compose-test.yml"))
-                        .withExposedService("milvus", 19530)
-                        .withLogConsumer("milvus", new Slf4jLogConsumer(log).withPrefix("milvus"));
-    */
     @Test
     void testMilvusQuery() throws Exception {
 
         String collectionName = "book";
         String databaseName = "default";
 
-        int milvusPort = 19530;
-        String milvusHost = "localhost";
+        int milvusPort = milvus.getMappedPort(19530);
+        String milvusHost = milvus.getHost();
         log.info("Connecting to Milvus at {}:{}", milvusHost, milvusPort);
 
         MilvusDataSource dataSource = new MilvusDataSource();
@@ -91,7 +95,7 @@ class MilvusDataSourceTest {
                                   "data-type": "Int64"
                                },
                                {
-                                  "name": "text-chunk",
+                                  "name": "text",
                                   "data-type": "string"
                                }
                             ]
@@ -120,7 +124,7 @@ class MilvusDataSourceTest {
                                             "vector",
                                             "expression",
                                             "fn:toListOfFloat(value.vector)"),
-                                    Map.of("name", "text-chunk", "expression", "value.text"),
+                                    Map.of("name", "text", "expression", "value.text"),
                                     Map.of("name", "id", "expression", "fn:toLong(key.id)"))));
 
             SimpleRecord record =
@@ -143,7 +147,8 @@ class MilvusDataSourceTest {
                                   "collection-name": "%s",
                                   "database-name": "%s",
                                   "consistency-level": "STRONG",
-                                  "params": ""
+                                  "params": "",
+                                  "output-fields": ["id", "distance", "text"]
                             }
                             """
                             .formatted(collectionName, databaseName);
@@ -154,6 +159,7 @@ class MilvusDataSourceTest {
             assertEquals(1, results.size());
             assertEquals("10", results.get(0).get("id"));
             assertEquals("0.0", results.get(0).get("distance"));
+            assertEquals("Lorem ipsum...", results.get(0).get("text"));
         }
     }
 }

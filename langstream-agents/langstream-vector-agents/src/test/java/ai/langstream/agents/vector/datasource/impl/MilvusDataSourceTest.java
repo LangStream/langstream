@@ -45,6 +45,7 @@ class MilvusDataSourceTest {
             new GenericContainer(new DockerImageName("langstream/milvus-lite:latest-dev"))
                     .withExposedPorts(19530)
                     .withLogConsumer(new Slf4jLogConsumer(log).withPrefix("milvus"))
+                    .withStartupTimeout(java.time.Duration.ofMinutes(5)) // on M1 it is slower
                     .waitingFor(new LogMessageWaitStrategy().withRegEx(".*http.*"));
 
     @Test

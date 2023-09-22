@@ -80,6 +80,28 @@ public class JstlFunctions {
         return JstlTypeConverter.INSTANCE.coerceToInteger(input);
     }
 
+    public static Object toLong(Object input) {
+        if (input == null) {
+            return null;
+        }
+        return JstlTypeConverter.INSTANCE.coerceToLong(input);
+    }
+
+    public static Object toListOfFloat(Object input) {
+        if (input == null) {
+            return null;
+        }
+        if (input instanceof Collection<?> collection) {
+            List<Float> result = new ArrayList<>(collection.size());
+            for (Object o : collection) {
+                result.add(JstlTypeConverter.INSTANCE.coerceToFloat(o));
+            }
+            return result;
+        } else {
+            throw new IllegalArgumentException("Cannot convert " + input + " to list of float");
+        }
+    }
+
     public static List<String> split(Object input, Object separatorExpression) {
         if (input == null) {
             return null;

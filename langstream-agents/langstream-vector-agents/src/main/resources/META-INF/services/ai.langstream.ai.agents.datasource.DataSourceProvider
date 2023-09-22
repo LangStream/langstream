@@ -1,1 +1,2 @@
 ai.langstream.agents.vector.pinecone.PineconeDataSource
+ai.langstream.agents.vector.milvus.MilvusDataSource

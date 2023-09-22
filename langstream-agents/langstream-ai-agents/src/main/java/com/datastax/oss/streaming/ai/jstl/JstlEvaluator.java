@@ -109,6 +109,15 @@ public class JstlEvaluator<T> {
                 .getFunctionMapper()
                 .mapFunction(
                         "fn",
+                        "toListOfFloat",
+                        JstlFunctions.class.getMethod("toListOfFloat", Object.class));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction("fn", "toLong", JstlFunctions.class.getMethod("toLong", Object.class));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn",
                         "replace",
                         JstlFunctions.class.getMethod(
                                 "replace", Object.class, Object.class, Object.class));

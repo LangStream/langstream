@@ -44,7 +44,7 @@ public class VectorDatabaseResourceProvider extends DataSourceResourceProvider
         validateEnumField(
                 configuration,
                 "service",
-                Set.of("astra", "cassandra", "pinecone"),
+                Set.of("astra", "cassandra", "pinecone", "milvus"),
                 describe(resource));
 
         switch (service) {
@@ -57,11 +57,24 @@ public class VectorDatabaseResourceProvider extends DataSourceResourceProvider
             case "pinecone":
                 validatePineconeDatabaseResource(resource);
                 break;
+            case "milvus":
+                validateMilvusDatabaseResource(resource);
+                break;
             default:
                 throw new IllegalStateException();
         }
 
         return resource.configuration();
+    }
+
+    private void validateMilvusDatabaseResource(Resource resource) {
+        Map<String, Object> configuration = resource.configuration();
+
+        requiredNonEmptyField(configuration, "user", describe(resource));
+        requiredNonEmptyField(configuration, "host", describe(resource));
+        requiredNonEmptyField(configuration, "password", describe(resource));
+        requiredNonEmptyField(configuration, "index-name", describe(resource));
+        ConfigurationUtils.validateInteger(configuration, "port", 1, 300000, describe(resource));
     }
 
     protected void validatePineconeDatabaseResource(Resource resource) {

@@ -22,14 +22,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.milvus.param.collection.CreateCollectionParam;
+import io.milvus.param.collection.FieldType;
 import io.milvus.param.dml.SearchParam;
 import io.milvus.param.highlevel.collection.CreateSimpleCollectionParam;
 import io.milvus.param.highlevel.dml.SearchSimpleParam;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,10 +50,22 @@ public class MilvusModel {
                 new MilvusBuilderDeserializer<>(
                         CreateSimpleCollectionParam.Builder.class,
                         CreateSimpleCollectionParam::newBuilder));
+
+        module.addDeserializer(
+                CreateCollectionParam.Builder.class,
+                new MilvusBuilderDeserializer<>(
+                        CreateCollectionParam.Builder.class, CreateCollectionParam::newBuilder));
+
         module.addDeserializer(
                 SearchParam.Builder.class,
                 new MilvusBuilderDeserializer<>(
                         SearchParam.Builder.class, SearchParam::newBuilder));
+
+        module.addDeserializer(
+                FieldType.class,
+                new MultistepMilvusBuilderDeserializer<>(
+                        FieldType.class, FieldType::newBuilder, FieldType.Builder::build));
+
         module.addDeserializer(
                 SearchSimpleParam.Builder.class,
                 new MilvusBuilderDeserializer<>(
@@ -134,27 +150,78 @@ public class MilvusModel {
 
                 T builder = creator.get();
 
-                Method[] methods = builder.getClass().getMethods();
-                for (Method m : methods) {
-                    String name = m.getName();
-                    log.info("Method name: {}", m.getName());
-                    if (name.startsWith("with")) {
-                        String propertyName = name.substring(4);
-                        log.info("Property name: {}", propertyName);
-                        String jsonStilePropertyName = convertToJSONName(propertyName);
-                        log.info("JSON Property name: {}", jsonStilePropertyName);
-                        JsonNode jsonNode = node.get(jsonStilePropertyName);
-                        if (jsonNode != null) {
-                            Object value =
-                                    jp.getCodec().treeToValue(jsonNode, m.getParameterTypes()[0]);
-                            log.info("raw value: {}", value);
-                            value = fieldValueConverter.apply(jsonStilePropertyName, value);
-                            log.info("Applying value: {}", value);
-                            m.invoke(builder, value);
-                        }
-                    }
-                }
+                applyProperties(jp, builder, node, fieldValueConverter);
                 return builder;
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+        }
+    }
+
+    private static <T> void applyProperties(
+            JsonParser jp,
+            T builder,
+            JsonNode node,
+            BiFunction<String, Object, Object> fieldValueConverter)
+            throws JsonProcessingException, IllegalAccessException, InvocationTargetException {
+        Method[] methods = builder.getClass().getMethods();
+        for (Method m : methods) {
+            String name = m.getName();
+            log.info("Method name: {}", m.getName());
+            String propertyName;
+            if (name.startsWith("with")) {
+                propertyName = name.substring(4);
+            } else {
+                propertyName = name;
+            }
+            log.info("Property name: {}", propertyName);
+            String jsonStilePropertyName = convertToJSONName(propertyName);
+            log.info("JSON Property name: {}", jsonStilePropertyName);
+            JsonNode jsonNode = node.get(jsonStilePropertyName);
+            if (jsonNode != null) {
+                Class<?> parameterType = m.getParameterTypes()[0];
+                Object value = jp.getCodec().treeToValue(jsonNode, parameterType);
+                log.info("raw value: {}", value.getClass());
+                value = fieldValueConverter.apply(jsonStilePropertyName, value);
+                log.info("Applying value: {}", value);
+                m.invoke(builder, value);
+            }
+        }
+    }
+
+    private static class MultistepMilvusBuilderDeserializer<T, R> extends StdDeserializer<T> {
+
+        private final Supplier<R> builderCreator;
+        private final Function<R, T> builderCaller;
+        private final BiFunction<String, Object, Object> fieldValueConverter;
+
+        public MultistepMilvusBuilderDeserializer(
+                Class<T> vc, Supplier<R> builderCreator, Function<R, T> builderCaller) {
+            super(vc);
+            this.builderCreator = builderCreator;
+            this.builderCaller = builderCaller;
+            this.fieldValueConverter = (key, value) -> value;
+        }
+
+        public MultistepMilvusBuilderDeserializer(
+                Class<T> vc,
+                Supplier<R> builderCreator,
+                Function<R, T> builderCaller,
+                BiFunction<String, Object, Object> fieldValueConverter) {
+            super(vc);
+            this.builderCreator = builderCreator;
+            this.builderCaller = builderCaller;
+            this.fieldValueConverter = fieldValueConverter;
+        }
+
+        @Override
+        public T deserialize(JsonParser jp, DeserializationContext ctxt)
+                throws IOException, JsonProcessingException {
+            try {
+                JsonNode node = jp.getCodec().readTree(jp);
+                R builder = builderCreator.get();
+                applyProperties(jp, builder, node, fieldValueConverter);
+                return builderCaller.apply(builder);
             } catch (Exception e) {
                 throw new IOException(e);
             }

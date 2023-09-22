@@ -24,6 +24,7 @@ import ai.langstream.api.util.ConfigurationUtils;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DescribeCollectionResponse;
 import io.milvus.param.R;
+import io.milvus.param.collection.CreateCollectionParam;
 import io.milvus.param.collection.DescribeCollectionParam;
 import io.milvus.param.collection.DropCollectionParam;
 import io.milvus.param.collection.HasCollectionParam;
@@ -119,14 +120,26 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
             MilvusServiceClient milvusClient = datasource.getMilvusClient();
             for (String statement : statements) {
                 log.info("Executing: {}", statement);
-                CreateSimpleCollectionParam parsedQuery =
-                        buildObjectFromJson(
-                                        statement,
-                                        CreateSimpleCollectionParam.Builder.class,
-                                        List.of(),
-                                        MilvusModel.getMapper())
-                                .build();
-                milvusClient.createCollection(parsedQuery);
+
+                if (statement.contains("fieldTypes")) {
+                    CreateCollectionParam parsedQuery =
+                            buildObjectFromJson(
+                                            statement,
+                                            CreateCollectionParam.Builder.class,
+                                            List.of(),
+                                            MilvusModel.getMapper())
+                                    .build();
+                    milvusClient.createCollection(parsedQuery);
+                } else {
+                    CreateSimpleCollectionParam parsedQuery =
+                            buildObjectFromJson(
+                                            statement,
+                                            CreateSimpleCollectionParam.Builder.class,
+                                            List.of(),
+                                            MilvusModel.getMapper())
+                                    .build();
+                    milvusClient.createCollection(parsedQuery);
+                }
             }
         }
 

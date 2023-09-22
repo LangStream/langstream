@@ -27,6 +27,7 @@ import io.milvus.param.ConnectParam;
 import io.milvus.param.R;
 import io.milvus.param.highlevel.dml.SearchSimpleParam;
 import io.milvus.param.highlevel.dml.response.SearchResponse;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
@@ -110,10 +111,22 @@ public class MilvusDataSource implements DataSourceProvider {
                 data.getRowRecords()
                         .forEach(
                                 r -> {
-                                    log.info("Record ");
+                                    log.info("Record {}", r);
                                 });
 
-                return List.of();
+                return data.getRowRecords().stream()
+                        .map(
+                                r -> {
+                                    Map<String, String> result = new HashMap<>();
+                                    r.getFieldValues()
+                                            .forEach(
+                                                    (k, v) -> {
+                                                        result.put(
+                                                                k, v == null ? null : v.toString());
+                                                    });
+                                    return result;
+                                })
+                        .toList();
 
             } catch (Exception e) {
                 throw new RuntimeException(e);

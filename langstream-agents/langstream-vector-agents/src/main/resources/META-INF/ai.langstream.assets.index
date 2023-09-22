@@ -1,3 +1,4 @@
 cassandra-table
 cassandra-keyspace
 astra-keyspace
+milvus-collection

@@ -24,16 +24,9 @@ assets:
     creation-mode: create-if-not-exists
     config:
       collection-name: "documents"
+      database-name: "default"
       datasource: "MilvusDatasource"
       create-statements:
-        - - name: "documents-table"
-            asset-type: "milvus-collection"
-            creation-mode: create-if-not-exists
-            config:
-              collection-name: "documents"
-              database-name: "default"
-              datasource: "MilvusDatasource"
-              create-statements:
                 - |
                   {
                       "collection-name": "documents",

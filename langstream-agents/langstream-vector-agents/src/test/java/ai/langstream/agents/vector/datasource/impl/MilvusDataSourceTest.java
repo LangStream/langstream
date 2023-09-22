@@ -30,23 +30,15 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
 class MilvusDataSourceTest {
 
     // @Container
-    private GenericContainer milvus =
-            new GenericContainer(new DockerImageName("langstream/milvus-lite:latest-dev"))
-                    .withExposedPorts(19530)
-                    .withLogConsumer(new Slf4jLogConsumer(log).withPrefix("milvus"));
-
     @Test
-    @Disabled
+    @Disabled() // "This test requires a running Milvus instance"
     void testMilvusQuery() throws Exception {
 
         String collectionName = "book";

@@ -15,6 +15,8 @@
  */
 package ai.langstream.agents.vector.pinecone;
 
+import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson;
+
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -44,8 +46,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class PineconeDataSource implements DataSourceProvider {
@@ -116,136 +118,16 @@ public class PineconeDataSource implements DataSourceProvider {
         @Override
         public List<Map<String, String>> fetchData(String query, List<Object> params) {
             try {
-                Query parsedQuery;
-                try {
-                    log.info("Query {}", query);
-                    params.forEach(
-                            param ->
-                                    log.info(
-                                            "Param {} {}",
-                                            param,
-                                            param != null ? param.getClass() : null));
-                    // interpolate the query
-                    query = interpolate(query, params);
-                    log.info("Interpolated query {}", query);
+                Query parsedQuery = buildObjectFromJson(query, Query.class, params);
 
-                    parsedQuery = MAPPER.readValue(query, Query.class);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-                log.info("Parsed query: {}", parsedQuery);
-
-                QueryVector.Builder builder = QueryVector.newBuilder();
-
-                if (parsedQuery.vector != null) {
-                    builder.addAllValues(parsedQuery.vector);
-                }
-
-                if (parsedQuery.sparseVector != null) {
-                    builder.setSparseValues(
-                            SparseValues.newBuilder()
-                                    .addAllValues(parsedQuery.sparseVector.getValues())
-                                    .addAllIndices(parsedQuery.sparseVector.getIndices())
-                                    .build());
-                }
-
-                if (parsedQuery.filter != null && !parsedQuery.filter.isEmpty()) {
-                    builder.setFilter(buildFilter(parsedQuery.filter));
-                }
-
-                if (parsedQuery.namespace != null) {
-                    builder.setNamespace(parsedQuery.namespace);
-                }
-
-                QueryVector queryVector = builder.build();
-                QueryRequest.Builder requestBuilder = QueryRequest.newBuilder();
-
-                if (parsedQuery.namespace != null) {
-                    requestBuilder.setNamespace(parsedQuery.namespace);
-                }
-
-                QueryRequest batchQueryRequest =
-                        requestBuilder
-                                .addQueries(queryVector)
-                                .setTopK(parsedQuery.topK)
-                                .setIncludeMetadata(parsedQuery.includeMetadata)
-                                .setIncludeValues(parsedQuery.includeValues)
-                                .build();
+                QueryRequest batchQueryRequest = mapQueryToQueryRequest(parsedQuery);
 
                 List<Map<String, String>> results;
 
                 if (clientConfig.getEndpoint() == null) {
-
-                    QueryResponse queryResponse =
-                            connection.getBlockingStub().query(batchQueryRequest);
-
-                    if (log.isDebugEnabled()) {
-                        log.debug("Query response: {}", queryResponse);
-                    }
-                    log.info("Query response: {}", queryResponse);
-
-                    results = new ArrayList<>();
-                    queryResponse
-                            .getResultsList()
-                            .forEach(
-                                    res ->
-                                            res.getMatchesList()
-                                                    .forEach(
-                                                            match -> {
-                                                                String id = match.getId();
-                                                                Map<String, String> row =
-                                                                        new HashMap<>();
-
-                                                                if (parsedQuery.includeMetadata) {
-                                                                    // put all the metadata
-                                                                    if (match.getMetadata()
-                                                                            != null) {
-                                                                        match.getMetadata()
-                                                                                .getFieldsMap()
-                                                                                .forEach(
-                                                                                        (key,
-                                                                                                value) -> {
-                                                                                            if (log
-                                                                                                    .isDebugEnabled()) {
-                                                                                                log
-                                                                                                        .debug(
-                                                                                                                "Key: {}, value: {} {}",
-                                                                                                                key,
-                                                                                                                value,
-                                                                                                                value
-                                                                                                                                != null
-                                                                                                                        ? value
-                                                                                                                                .getClass()
-                                                                                                                        : null);
-                                                                                            }
-                                                                                            Object
-                                                                                                    converted =
-                                                                                                            valueToObject(
-                                                                                                                    value);
-                                                                                            row.put(
-                                                                                                    key,
-                                                                                                    converted
-                                                                                                                    != null
-                                                                                                            ? converted
-                                                                                                                    .toString()
-                                                                                                            : null);
-                                                                                        });
-                                                                    }
-                                                                }
-                                                                row.put("id", id);
-                                                                results.add(row);
-                                                            }));
+                    results = executeQueryUsingClien(batchQueryRequest, parsedQuery);
                 } else {
-                    HttpClient client = HttpClient.newHttpClient();
-                    HttpRequest request =
-                            HttpRequest.newBuilder(URI.create(clientConfig.getEndpoint()))
-                                    .POST(
-                                            HttpRequest.BodyPublishers.ofString(
-                                                    batchQueryRequest.toString()))
-                                    .build();
-                    String body = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
-                    log.info("Mock result {}", body);
-                    results = MAPPER.readValue(body, new TypeReference<>() {});
+                    results = executeQueryWithMockHttpService(batchQueryRequest);
                 }
                 return results;
             } catch (IOException | StatusRuntimeException | InterruptedException e) {
@@ -253,28 +135,120 @@ public class PineconeDataSource implements DataSourceProvider {
             }
         }
 
-        static String interpolate(String query, List<Object> array) {
-            if (query == null || !query.contains("?")) {
-                return query;
-            }
-            for (Object value : array) {
-                int questionMark = query.indexOf("?");
-                if (questionMark < 0) {
-                    return query;
-                }
-                Object valueAsString = convertValueToJson(value);
-                query =
-                        query.substring(0, questionMark)
-                                + valueAsString
-                                + query.substring(questionMark + 1);
-            }
-
-            return query;
+        private List<Map<String, String>> executeQueryWithMockHttpService(
+                QueryRequest batchQueryRequest) throws IOException, InterruptedException {
+            List<Map<String, String>> results;
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request =
+                    HttpRequest.newBuilder(URI.create(clientConfig.getEndpoint()))
+                            .POST(HttpRequest.BodyPublishers.ofString(batchQueryRequest.toString()))
+                            .build();
+            String body = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            log.info("Mock result {}", body);
+            results = MAPPER.readValue(body, new TypeReference<>() {});
+            return results;
         }
 
-        @SneakyThrows
-        private static String convertValueToJson(Object value) {
-            return MAPPER.writeValueAsString(value);
+        @NotNull
+        private List<Map<String, String>> executeQueryUsingClien(
+                QueryRequest batchQueryRequest, Query parsedQuery) {
+            List<Map<String, String>> results;
+            QueryResponse queryResponse = connection.getBlockingStub().query(batchQueryRequest);
+
+            if (log.isDebugEnabled()) {
+                log.debug("Query response: {}", queryResponse);
+            }
+            log.info("Query response: {}", queryResponse);
+
+            results = new ArrayList<>();
+            queryResponse
+                    .getResultsList()
+                    .forEach(
+                            res ->
+                                    res.getMatchesList()
+                                            .forEach(
+                                                    match -> {
+                                                        String id = match.getId();
+                                                        Map<String, String> row = new HashMap<>();
+
+                                                        if (parsedQuery.includeMetadata) {
+                                                            // put all the metadata
+                                                            if (match.getMetadata() != null) {
+                                                                match.getMetadata()
+                                                                        .getFieldsMap()
+                                                                        .forEach(
+                                                                                (key, value) -> {
+                                                                                    if (log
+                                                                                            .isDebugEnabled()) {
+                                                                                        log.debug(
+                                                                                                "Key: {}, value: {} {}",
+                                                                                                key,
+                                                                                                value,
+                                                                                                value
+                                                                                                                != null
+                                                                                                        ? value
+                                                                                                                .getClass()
+                                                                                                        : null);
+                                                                                    }
+                                                                                    Object
+                                                                                            converted =
+                                                                                                    valueToObject(
+                                                                                                            value);
+                                                                                    row.put(
+                                                                                            key,
+                                                                                            converted
+                                                                                                            != null
+                                                                                                    ? converted
+                                                                                                            .toString()
+                                                                                                    : null);
+                                                                                });
+                                                            }
+                                                        }
+                                                        row.put("id", id);
+                                                        results.add(row);
+                                                    }));
+            return results;
+        }
+
+        @NotNull
+        private QueryRequest mapQueryToQueryRequest(Query parsedQuery) {
+            QueryVector.Builder builder = QueryVector.newBuilder();
+
+            if (parsedQuery.vector != null) {
+                builder.addAllValues(parsedQuery.vector);
+            }
+
+            if (parsedQuery.sparseVector != null) {
+                builder.setSparseValues(
+                        SparseValues.newBuilder()
+                                .addAllValues(parsedQuery.sparseVector.getValues())
+                                .addAllIndices(parsedQuery.sparseVector.getIndices())
+                                .build());
+            }
+
+            if (parsedQuery.filter != null && !parsedQuery.filter.isEmpty()) {
+                builder.setFilter(buildFilter(parsedQuery.filter));
+            }
+
+            if (parsedQuery.namespace != null) {
+                builder.setNamespace(parsedQuery.namespace);
+            }
+
+            QueryVector queryVector = builder.build();
+            QueryRequest.Builder requestBuilder = QueryRequest.newBuilder();
+
+            if (parsedQuery.namespace != null) {
+                requestBuilder.setNamespace(parsedQuery.namespace);
+            }
+
+            QueryRequest batchQueryRequest =
+                    requestBuilder
+                            .addQueries(queryVector)
+                            .setTopK(parsedQuery.topK)
+                            .setIncludeMetadata(parsedQuery.includeMetadata)
+                            .setIncludeValues(parsedQuery.includeValues)
+                            .build();
+            return batchQueryRequest;
         }
 
         public static Object valueToObject(Value value) {

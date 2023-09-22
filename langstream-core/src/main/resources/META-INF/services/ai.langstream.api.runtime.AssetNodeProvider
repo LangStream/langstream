@@ -1,1 +1,2 @@
 ai.langstream.impl.assets.CassandraAssetsProvider
+ai.langstream.impl.assets.MilvusAssetsProvider

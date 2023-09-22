@@ -15,23 +15,22 @@
  */
 package ai.langstream.agents.vector.milvus;
 
+import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson;
+
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.milvus.client.MilvusServiceClient;
-import io.milvus.common.clientenum.ConsistencyLevelEnum;
-import io.milvus.grpc.SearchResults;
 import io.milvus.param.ConnectParam;
-import io.milvus.param.MetricType;
 import io.milvus.param.R;
-import io.milvus.param.dml.SearchParam;
-import io.milvus.response.SearchResultsWrapper;
+import io.milvus.param.highlevel.dml.SearchSimpleParam;
+import io.milvus.param.highlevel.dml.response.SearchResponse;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
-import lombok.SneakyThrows;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -62,7 +61,7 @@ public class MilvusDataSource implements DataSourceProvider {
     }
 
     @Override
-    public QueryStepDataSource createDataSourceImplementation(
+    public MilvusQueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
 
         MilvusConfig clientConfig = MAPPER.convertValue(dataSourceConfig, MilvusConfig.class);
@@ -70,10 +69,10 @@ public class MilvusDataSource implements DataSourceProvider {
         return new MilvusQueryStepDataSource(clientConfig);
     }
 
-    private static class MilvusQueryStepDataSource implements QueryStepDataSource {
+    public static class MilvusQueryStepDataSource implements QueryStepDataSource {
 
         private final MilvusConfig clientConfig;
-        private MilvusServiceClient milvusClient;
+        @Getter private MilvusServiceClient milvusClient;
 
         public MilvusQueryStepDataSource(MilvusConfig clientConfig) {
             this.clientConfig = clientConfig;
@@ -93,47 +92,22 @@ public class MilvusDataSource implements DataSourceProvider {
         @Override
         public List<Map<String, String>> fetchData(String query, List<Object> params) {
             try {
-                Query parsedQuery;
-                try {
-                    log.info("Query {}", query);
-                    params.forEach(
-                            param ->
-                                    log.info(
-                                            "Param {} {}",
-                                            param,
-                                            param != null ? param.getClass() : null));
-                    // interpolate the query
-                    query = interpolate(query, params);
-                    log.info("Interpolated query {}", query);
-
-                    parsedQuery = MAPPER.readValue(query, Query.class);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-                log.info("Parsed query: {}", parsedQuery);
-
-                SearchParam searchParam =
-                        SearchParam.newBuilder()
-                                .withCollectionName(parsedQuery.collectionName)
-                                .withConsistencyLevel(ConsistencyLevelEnum.STRONG)
-                                .withMetricType(MetricType.L2)
-                                .withOutFields(parsedQuery.outputFields)
-                                .withTopK(parsedQuery.topK)
-                                .withVectors(parsedQuery.vector)
-                                .withVectorFieldName(parsedQuery.vectorFieldName)
-                                .withParams(parsedQuery.params)
+                SearchSimpleParam searchParam =
+                        buildObjectFromJson(
+                                        query,
+                                        SearchSimpleParam.Builder.class,
+                                        params,
+                                        MilvusModel.getMapper())
                                 .build();
-                R<SearchResults> respSearch = milvusClient.search(searchParam);
+                R<SearchResponse> respSearch = milvusClient.search(searchParam);
 
                 if (respSearch.getException() != null) {
                     throw new RuntimeException(respSearch.getException());
                 }
 
-                SearchResultsWrapper wrapperSearch =
-                        new SearchResultsWrapper(respSearch.getData().getResults());
+                SearchResponse data = respSearch.getData();
 
-                wrapperSearch
-                        .getRowRecords()
+                data.getRowRecords()
                         .forEach(
                                 r -> {
                                     log.info("Record ");
@@ -146,57 +120,11 @@ public class MilvusDataSource implements DataSourceProvider {
             }
         }
 
-        static String interpolate(String query, List<Object> array) {
-            if (query == null || !query.contains("?")) {
-                return query;
-            }
-            for (Object value : array) {
-                int questionMark = query.indexOf("?");
-                if (questionMark < 0) {
-                    return query;
-                }
-                Object valueAsString = convertValueToJson(value);
-                query =
-                        query.substring(0, questionMark)
-                                + valueAsString
-                                + query.substring(questionMark + 1);
-            }
-
-            return query;
-        }
-
-        @SneakyThrows
-        private static String convertValueToJson(Object value) {
-            return MAPPER.writeValueAsString(value);
-        }
-
         @Override
         public void close() {
             if (milvusClient != null) {
                 milvusClient.close();
             }
         }
-    }
-
-    /** JSON model for a Milvus query. */
-    @Data
-    public static final class Query {
-        @JsonProperty("vector")
-        private List<Float> vector;
-
-        @JsonProperty("outputFields")
-        private List<String> outputFields;
-
-        @JsonProperty("collectionName")
-        private String collectionName;
-
-        @JsonProperty("topK")
-        private int topK = 1;
-
-        @JsonProperty("vectorFieldName")
-        private String vectorFieldName;
-
-        @JsonProperty("params")
-        private String params;
     }
 }

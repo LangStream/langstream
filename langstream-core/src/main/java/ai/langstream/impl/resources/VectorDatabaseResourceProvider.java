@@ -44,7 +44,7 @@ public class VectorDatabaseResourceProvider extends DataSourceResourceProvider
         validateEnumField(
                 configuration,
                 "service",
-                Set.of("astra", "cassandra", "pinecone"),
+                Set.of("astra", "cassandra", "pinecone", "milvus"),
                 describe(resource));
 
         switch (service) {

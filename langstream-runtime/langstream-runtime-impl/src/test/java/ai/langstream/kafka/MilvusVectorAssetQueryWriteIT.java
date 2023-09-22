@@ -138,7 +138,6 @@ class MilvusVectorAssetQueryWriteIT extends AbstractApplicationRunner {
                                 output: "answers-topic"
                                 configuration:
                                   datasource: "MilvusDatasource"
-                                  collection-name: "documents"
                                   query: |
                                         {
                                           "collection-name": "documents",

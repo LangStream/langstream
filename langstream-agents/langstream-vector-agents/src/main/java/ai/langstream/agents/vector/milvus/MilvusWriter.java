@@ -169,7 +169,9 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
                                 "No primary key value found for record " + record);
                     }
                     String escaped =
-                            value instanceof String ? ("'" + value + "'") : value.toString();
+                            value instanceof String
+                                    ? ("'" + ((String) value).replace("'", "\\'") + "'")
+                                    : value.toString();
                     String deleteExpression = String.format("%s in [%s]", primaryKeyField, escaped);
                     log.info("Delete expression: {}", deleteExpression);
                     // TODO: how do we escape the value?

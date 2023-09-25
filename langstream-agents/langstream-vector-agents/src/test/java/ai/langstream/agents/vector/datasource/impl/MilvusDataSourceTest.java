@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -39,6 +40,7 @@ class MilvusDataSourceTest {
 
     // @Container
     @ParameterizedTest
+    @Disabled("Milvus is not available in the CI environment")
     @ValueSource(booleans = {true, false})
     void testMilvusQuery(boolean useCreateSimpleCollection) throws Exception {
 
@@ -167,9 +169,10 @@ class MilvusDataSourceTest {
 
             writer.initialise(Map.of("collection-name", collectionName, "fields", fields));
 
+            // the PK contains a single quote in order to test escaping values in deletion
             SimpleRecord record =
                     SimpleRecord.of(
-                            "{\"name\": \"doc1\", \"chunk_id\": 1}",
+                            "{\"name\": \"do'c1\", \"chunk_id\": 1}",
                             """
                     {
                         "vector": [1,2,3,4,5],
@@ -197,12 +200,12 @@ class MilvusDataSourceTest {
             log.info("Results: {}", results);
 
             assertEquals(1, results.size());
-            assertEquals("doc11", results.get(0).get("name"));
+            assertEquals("do'c11", results.get(0).get("name"));
             assertEquals("Lorem ipsum...", results.get(0).get("text"));
 
             SimpleRecord recordUpdated =
                     SimpleRecord.of(
-                            "{\"name\": \"doc1\", \"chunk_id\": 1}",
+                            "{\"name\": \"do'c1\", \"chunk_id\": 1}",
                             """
                     {
                         "vector": [1,2,3,4,6],
@@ -216,11 +219,11 @@ class MilvusDataSourceTest {
             log.info("Results: {}", results2);
 
             assertEquals(1, results2.size());
-            assertEquals("doc11", results2.get(0).get("name"));
+            assertEquals("do'c11", results2.get(0).get("name"));
             assertEquals("Lorem ipsum changed...", results2.get(0).get("text"));
 
             SimpleRecord recordDelete =
-                    SimpleRecord.of("{\"name\": \"doc1\", \"chunk_id\": 1}", null);
+                    SimpleRecord.of("{\"name\": \"do'c1\", \"chunk_id\": 1}", null);
             writer.upsert(recordDelete, Map.of()).get();
 
             List<Map<String, String>> results3 = datasource.fetchData(query, params2);

@@ -21,6 +21,7 @@ import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.TolerationBuilder;
@@ -105,11 +106,24 @@ class AgentResourcesFactoryTest {
                                   value: /app-code-download
                                 image: busybox
                                 imagePullPolicy: Never
+                                livenessProbe:
+                                  httpGet:
+                                    path: /metrics
+                                    port: http
+                                  initialDelaySeconds: 10
+                                  periodSeconds: 30
+                                  timeoutSeconds: 5
                                 name: runtime
                                 ports:
                                 - containerPort: 8080
                                   name: http
-                                  protocol: TCP
+                                readinessProbe:
+                                  httpGet:
+                                    path: /metrics
+                                    port: http
+                                  initialDelaySeconds: 10
+                                  periodSeconds: 30
+                                  timeoutSeconds: 5
                                 resources:
                                   limits:
                                     cpu: 0.500000
@@ -265,6 +279,124 @@ class AgentResourcesFactoryTest {
         assertEquals(
                 "value1",
                 statefulSet.getSpec().getTemplate().getMetadata().getAnnotations().get("ann1"));
+    }
+
+    @Test
+    void testProbes() {
+        final AgentCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Agent
+                metadata:
+                  name: test-agent1
+                  namespace: default
+                spec:
+                    image: busybox
+                    imagePullPolicy: Never
+                    agentConfigSecretRef: agent-config
+                    agentConfigSecretRefChecksum: xx
+                    tenant: my-tenant
+                    applicationId: the-'app
+                    agentId: my-agent
+                    resources:
+                        parallelism: 2
+                        size: 4
+                """);
+
+        final AgentResourceUnitConfiguration config = new AgentResourceUnitConfiguration();
+        config.setEnableReadinessProbe(false);
+
+        StatefulSet statefulSet =
+                AgentResourcesFactory.generateStatefulSet(
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(resource)
+                                .agentResourceUnitConfiguration(config)
+                                .build());
+        assertNull(
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getReadinessProbe());
+        assertNotNull(
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getLivenessProbe());
+        config.setEnableReadinessProbe(true);
+        config.setEnableLivenessProbe(false);
+
+        statefulSet =
+                AgentResourcesFactory.generateStatefulSet(
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(resource)
+                                .agentResourceUnitConfiguration(config)
+                                .build());
+
+        assertNull(
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getLivenessProbe());
+        assertNotNull(
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getReadinessProbe());
+
+        config.setEnableLivenessProbe(true);
+        config.setLivenessProbeInitialDelaySeconds(25);
+        config.setLivenessProbeTimeoutSeconds(10);
+        config.setLivenessProbePeriodSeconds(60);
+
+        config.setReadinessProbeInitialDelaySeconds(35);
+        config.setReadinessProbeTimeoutSeconds(8);
+        config.setReadinessProbePeriodSeconds(80);
+
+        statefulSet =
+                AgentResourcesFactory.generateStatefulSet(
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(resource)
+                                .agentResourceUnitConfiguration(config)
+                                .build());
+
+        final Probe liveness =
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getLivenessProbe();
+
+        assertEquals(25, liveness.getInitialDelaySeconds());
+        assertEquals(10, liveness.getTimeoutSeconds());
+        assertEquals(60, liveness.getPeriodSeconds());
+
+        final Probe readiness =
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getReadinessProbe();
+
+        assertEquals(35, readiness.getInitialDelaySeconds());
+        assertEquals(8, readiness.getTimeoutSeconds());
+        assertEquals(80, readiness.getPeriodSeconds());
     }
 
     private AgentCustomResource getCr(String yaml) {

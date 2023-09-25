@@ -17,8 +17,8 @@ package ai.langstream.tests.util.kafka;
 
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.tests.util.BaseEndToEndTest;
-import ai.langstream.tests.util.SystemOrEnv;
 import ai.langstream.tests.util.StreamingClusterProvider;
+import ai.langstream.tests.util.SystemOrEnv;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,11 +38,13 @@ public class RemoteKafkaProvider implements StreamingClusterProvider {
 
     static {
         ADMIN_CONFIG = new HashMap<>();
-        final Map<String, String> props = SystemOrEnv.getProperties(ENV_PREFIX, SYS_PROPERTIES_PREFIX);
-        props.forEach((key, value) -> {
-            log.info("Loading remote kafka admin config: {}={}", key, value);
-            ADMIN_CONFIG.put(key, value);
-        });
+        final Map<String, String> props =
+                SystemOrEnv.getProperties(ENV_PREFIX, SYS_PROPERTIES_PREFIX);
+        props.forEach(
+                (key, value) -> {
+                    log.info("Loading remote kafka admin config: {}={}", key, value);
+                    ADMIN_CONFIG.put(key, value);
+                });
     }
 
     @Override

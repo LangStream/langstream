@@ -98,15 +98,22 @@ public class BaseEndToEndTest implements TestWatcher {
     private static final String LANGSTREAM_K8S =
             SystemOrEnv.getProperty("LANGSTREAM_TESTS_K8S", "langstream.tests.k8s", "host");
     private static final String LANGSTREAM_STREAMING =
-            SystemOrEnv.getProperty("LANGSTREAM_TESTS_STREAMING", "langstream.tests.streaming", "local-redpanda");
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_STREAMING", "langstream.tests.streaming", "local-redpanda");
     private static final String LANGSTREAM_CODESTORAGE =
-            SystemOrEnv.getProperty("LANGSTREAM_TESTS_CODESTORAGE", "langstream.tests.codestorage", "local-minio");
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_CODESTORAGE", "langstream.tests.codestorage", "local-minio");
 
     private static final String LANGSTREAM_APPS_RESOURCES_CPU =
-            SystemOrEnv.getProperty("LANGSTREAM_TESTS_APPS_RESOURCES_CPU", "langstream.tests.apps.resources.cpu", "0.4");
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_APPS_RESOURCES_CPU",
+                    "langstream.tests.apps.resources.cpu",
+                    "0.4");
     private static final String LANGSTREAM_APPS_RESOURCES_MEM =
-            SystemOrEnv.getProperty("LANGSTREAM_TESTS_APPS_RESOURCES_MEM", "langstream.tests.apps.resources.mem", "256");
-
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_APPS_RESOURCES_MEM",
+                    "langstream.tests.apps.resources.mem",
+                    "256");
 
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";

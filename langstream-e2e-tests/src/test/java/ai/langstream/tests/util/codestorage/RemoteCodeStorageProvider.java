@@ -31,12 +31,17 @@ public class RemoteCodeStorageProvider implements CodeStorageProvider {
 
     static {
         CONFIG = new HashMap<>();
-        final Map<String, String> props = SystemOrEnv.getProperties(ENV_PREFIX, SYS_PROPERTIES_PREFIX);
-        props.forEach((key, value) -> {
-            log.info("Loading remote codestorage config: {}={}", key, value);
-            CONFIG.put(key, value);
-        });
-        TYPE = SystemOrEnv.getProperty("LANGSTREAM_TESTS_CODESTORAGEREMOTE_TYPE", "langstream.tests.codestorageremote.type");
+        final Map<String, String> props =
+                SystemOrEnv.getProperties(ENV_PREFIX, SYS_PROPERTIES_PREFIX);
+        props.forEach(
+                (key, value) -> {
+                    log.info("Loading remote codestorage config: {}={}", key, value);
+                    CONFIG.put(key, value);
+                });
+        TYPE =
+                SystemOrEnv.getProperty(
+                        "LANGSTREAM_TESTS_CODESTORAGEREMOTE_TYPE",
+                        "langstream.tests.codestorageremote.type");
     }
 
     @Override

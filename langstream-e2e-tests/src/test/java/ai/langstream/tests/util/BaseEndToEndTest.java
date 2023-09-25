@@ -673,7 +673,7 @@ public class BaseEndToEndTest implements TestWatcher {
                               memory: 256Mi
                           app:
                             config:
-                             logging.level.org.apache.tomcat.websocket: debug
+                             logging.level.ai.langstream.apigateway.websocket: debug
 
                         runtime:
                             image: %s/langstream-runtime
@@ -1026,6 +1026,18 @@ public class BaseEndToEndTest implements TestWatcher {
     @SneakyThrows
     protected static void deployLocalApplication(
             String applicationId, String appDirName, Map<String, String> env) {
+        deployLocalApplication(false, applicationId, appDirName, env);
+    }
+
+    @SneakyThrows
+    protected static void updateLocalApplication(
+            String applicationId, String appDirName, Map<String, String> env) {
+        deployLocalApplication(true, applicationId, appDirName, env);
+    }
+
+    @SneakyThrows
+    private static void deployLocalApplication(
+            boolean isUpdate, String applicationId, String appDirName, Map<String, String> env) {
         String testAppsBaseDir = "src/test/resources/apps";
         String testSecretBaseDir = "src/test/resources/secrets";
 
@@ -1048,8 +1060,8 @@ public class BaseEndToEndTest implements TestWatcher {
 
         executeCommandOnClient(
                 (beforeCmd
-                                + "bin/langstream apps deploy %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml")
-                        .formatted(applicationId)
+                                + "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml")
+                        .formatted(isUpdate ? "update" : "deploy", applicationId)
                         .split(" "));
     }
 

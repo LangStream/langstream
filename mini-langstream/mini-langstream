@@ -383,7 +383,7 @@ handle_build() {
   ./docker/build.sh "$@"
   eval $(minikube_cmd docker-env -u)
 
-  docker_build_input=$1 
+  docker_build_input=${1:-""}
   if [[ "$docker_build_input" == "control-plane" ]]; then
     labels=(langstream-control-plane)
   elif [[ "$docker_build_input" == "operator" || "$docker_build_input" == "deployer" ]]; then

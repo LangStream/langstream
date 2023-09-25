@@ -19,6 +19,19 @@ gateways:
   - id: produce-input
     type: produce
     topic: ls-test-topic0
+    parameters:
+      - sessionId
+    produce-options:
+      headers:
+        - key: langstream-client-session-id
+          value-from-parameters: sessionId
   - id: consume-output
     type: consume
     topic: ls-test-topic1
+    parameters:
+      - sessionId
+    consume-options:
+      filters:
+        headers:
+          - key: langstream-client-session-id
+            value-from-parameters: sessionId

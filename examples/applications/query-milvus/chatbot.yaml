@@ -37,12 +37,12 @@ pipeline:
       text: "{{% value.question }}"
       flush-interval: 0
   - name: "lookup-related-documents-in-llm"
-    type: "query"
+    type: "query-vector-db"
     configuration:
       datasource: "MilvusDatasource"
       query: |
         {
-          "collection-name": "documents",
+          "collection-name": "docs",
           "vectors": ?,
           "top-k": 1
           "output-fields": ["text"]

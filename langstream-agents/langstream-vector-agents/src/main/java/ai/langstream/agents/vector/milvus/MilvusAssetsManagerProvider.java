@@ -21,14 +21,21 @@ import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.assets.AssetManager;
 import ai.langstream.api.runner.assets.AssetManagerProvider;
 import ai.langstream.api.util.ConfigurationUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DescribeCollectionResponse;
+import io.milvus.param.Constant;
+import io.milvus.param.IndexType;
+import io.milvus.param.MetricType;
 import io.milvus.param.R;
+import io.milvus.param.RpcStatus;
 import io.milvus.param.collection.CreateCollectionParam;
 import io.milvus.param.collection.DescribeCollectionParam;
 import io.milvus.param.collection.DropCollectionParam;
 import io.milvus.param.collection.HasCollectionParam;
+import io.milvus.param.collection.LoadCollectionParam;
 import io.milvus.param.highlevel.collection.CreateSimpleCollectionParam;
+import io.milvus.param.index.CreateIndexParam;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -114,31 +121,121 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
             List<String> statements =
                     ConfigurationUtils.getList("create-statements", assetDefinition.getConfig());
             execStatements(statements);
+
+            MilvusServiceClient milvusClient = datasource.getMilvusClient();
+            R<DescribeCollectionResponse> describeCollectionResponse =
+                    milvusClient.describeCollection(
+                            DescribeCollectionParam.newBuilder()
+                                    .withCollectionName(getCollectionName())
+                                    .withDatabaseName(getDatabaseName())
+                                    .build());
+            if (describeCollectionResponse.getException() != null) {
+                throw describeCollectionResponse.getException();
+            }
+            log.info(
+                    "Describe collection {} in database {}",
+                    getCollectionName(),
+                    getDatabaseName());
+            log.info("Result: {}", describeCollectionResponse.getData());
         }
 
-        private void execStatements(List<String> statements) {
+        private void execStatements(List<String> statements) throws Exception {
             MilvusServiceClient milvusClient = datasource.getMilvusClient();
             for (String statement : statements) {
                 log.info("Executing: {}", statement);
 
-                if (statement.contains("fieldTypes")) {
-                    CreateCollectionParam parsedQuery =
-                            buildObjectFromJson(
-                                            statement,
-                                            CreateCollectionParam.Builder.class,
-                                            List.of(),
-                                            MilvusModel.getMapper())
-                                    .build();
-                    milvusClient.createCollection(parsedQuery);
-                } else {
-                    CreateSimpleCollectionParam parsedQuery =
-                            buildObjectFromJson(
-                                            statement,
-                                            CreateSimpleCollectionParam.Builder.class,
-                                            List.of(),
-                                            MilvusModel.getMapper())
-                                    .build();
-                    milvusClient.createCollection(parsedQuery);
+                Map<String, Object> statementMap =
+                        MilvusModel.getMapper()
+                                .readValue(statement, new TypeReference<Map<String, Object>>() {});
+                String command = ConfigurationUtils.getString("command", "", statementMap);
+
+                if (command.isEmpty()) {
+                    throw new IllegalArgumentException("Command is empty");
+                }
+
+                switch (command) {
+                    case "create-collection":
+                        {
+                            CreateCollectionParam parsedQuery =
+                                    buildObjectFromJson(
+                                                    statement,
+                                                    CreateCollectionParam.Builder.class,
+                                                    List.of(),
+                                                    MilvusModel.getMapper())
+                                            .build();
+                            log.info("Command: {}", parsedQuery);
+                            R<RpcStatus> resultCreate = milvusClient.createCollection(parsedQuery);
+                            if (resultCreate.getException() != null) {
+                                throw resultCreate.getException();
+                            }
+
+                            R<RpcStatus> indexResult =
+                                    milvusClient.createIndex(
+                                            CreateIndexParam.newBuilder()
+                                                    .withCollectionName(
+                                                            parsedQuery.getCollectionName())
+                                                    .withDatabaseName(parsedQuery.getDatabaseName())
+                                                    .withIndexType(IndexType.AUTOINDEX)
+                                                    .withIndexName(
+                                                            Constant.VECTOR_INDEX_NAME_DEFAULT)
+                                                    .withFieldName(
+                                                            Constant.VECTOR_FIELD_NAME_DEFAULT)
+                                                    .withMetricType(MetricType.L2)
+                                                    .withSyncMode(true)
+                                                    .build());
+                            if (indexResult.getException() != null) {
+                                throw indexResult.getException();
+                            }
+
+                            R<RpcStatus> result =
+                                    milvusClient.loadCollection(
+                                            LoadCollectionParam.newBuilder()
+                                                    .withCollectionName(
+                                                            parsedQuery.getCollectionName())
+                                                    .withDatabaseName(parsedQuery.getDatabaseName())
+                                                    .withSyncLoad(true)
+                                                    .withSyncLoadWaitingInterval(2000L)
+                                                    .build());
+
+                            if (result.getException() != null) {
+                                throw result.getException();
+                            }
+                            break;
+                        }
+                    case "load-collection":
+                        {
+                            R<RpcStatus> result =
+                                    milvusClient.loadCollection(
+                                            LoadCollectionParam.newBuilder()
+                                                    .withCollectionName(getCollectionName())
+                                                    .withDatabaseName(getDatabaseName())
+                                                    .withSyncLoad(true)
+                                                    .withSyncLoadWaitingInterval(2000L)
+                                                    .build());
+
+                            if (result.getException() != null) {
+                                throw result.getException();
+                            }
+                            break;
+                        }
+                    case "create-simple-collection":
+                        {
+                            CreateSimpleCollectionParam parsedQuery =
+                                    buildObjectFromJson(
+                                                    statement,
+                                                    CreateSimpleCollectionParam.Builder.class,
+                                                    List.of(),
+                                                    MilvusModel.getMapper())
+                                            .build();
+                            log.info("Command: {}", parsedQuery);
+                            R<RpcStatus> createResult = milvusClient.createCollection(parsedQuery);
+                            if (createResult.getException() != null) {
+                                throw createResult.getException();
+                            }
+                            break;
+                        }
+                    default:
+                        throw new IllegalStateException("Unexpected command: " + command);
                 }
             }
         }

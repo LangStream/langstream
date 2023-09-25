@@ -15,13 +15,16 @@
  */
 package ai.langstream.agents.vector.milvus;
 
+import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.milvus.grpc.DataType;
 import io.milvus.param.collection.CreateCollectionParam;
 import io.milvus.param.collection.FieldType;
 import io.milvus.param.dml.SearchParam;
@@ -31,11 +34,13 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.IteratorUtils;
 
 @Slf4j
 public class MilvusModel {
@@ -46,6 +51,27 @@ public class MilvusModel {
         ObjectMapper mapper = new ObjectMapper();
         SimpleModule module = new SimpleModule();
         module.addDeserializer(
+                DataType.class,
+                new StdScalarDeserializer<>(DataType.class) {
+                    @Override
+                    public DataType deserialize(JsonParser p, DeserializationContext ctxt)
+                            throws IOException, JacksonException {
+                        String text = p.getText();
+                        List<DataType> dataTypes = Arrays.asList(DataType.values());
+                        return dataTypes.stream()
+                                .filter(s -> s.name().equalsIgnoreCase(text))
+                                .findFirst()
+                                .orElseThrow(
+                                        () ->
+                                                new IllegalArgumentException(
+                                                        "Cannot find a Milvus datatype "
+                                                                + text
+                                                                + ", only "
+                                                                + dataTypes));
+                    }
+                });
+
+        module.addDeserializer(
                 CreateSimpleCollectionParam.Builder.class,
                 new MilvusBuilderDeserializer<>(
                         CreateSimpleCollectionParam.Builder.class,
@@ -54,7 +80,29 @@ public class MilvusModel {
         module.addDeserializer(
                 CreateCollectionParam.Builder.class,
                 new MilvusBuilderDeserializer<>(
-                        CreateCollectionParam.Builder.class, CreateCollectionParam::newBuilder));
+                        CreateCollectionParam.Builder.class,
+                        CreateCollectionParam::newBuilder,
+                        (key, value) -> {
+                            log.info("Key: {}, value: {} {}", key, value, value.getClass());
+                            switch (key) {
+                                case "field-types":
+                                    {
+                                        if (value instanceof List list) {
+                                            List<FieldType> fieldTypes = new ArrayList<>();
+                                            for (Object n : list) {
+                                                FieldType fieldType =
+                                                        mapper.convertValue(n, FieldType.class);
+                                                fieldTypes.add(fieldType);
+                                            }
+                                            return fieldTypes;
+                                        } else {
+                                            return value;
+                                        }
+                                    }
+                                default:
+                                    return value;
+                            }
+                        }));
 
         module.addDeserializer(
                 SearchParam.Builder.class,
@@ -167,24 +215,42 @@ public class MilvusModel {
         Method[] methods = builder.getClass().getMethods();
         for (Method m : methods) {
             String name = m.getName();
-            log.info("Method name: {}", m.getName());
+            if (m.getParameterTypes().length != 1) {
+                // this doesn't look like a setter
+                continue;
+            }
             String propertyName;
             if (name.startsWith("with")) {
                 propertyName = name.substring(4);
             } else {
                 propertyName = name;
             }
-            log.info("Property name: {}", propertyName);
+            if (log.isDebugEnabled()) {
+                log.debug("Method name: {}", m.getName());
+            }
             String jsonStilePropertyName = convertToJSONName(propertyName);
-            log.info("JSON Property name: {}", jsonStilePropertyName);
+            if (log.isDebugEnabled()) {
+                log.debug("JSON Property name: {}", jsonStilePropertyName);
+            }
             JsonNode jsonNode = node.get(jsonStilePropertyName);
             if (jsonNode != null) {
                 Class<?> parameterType = m.getParameterTypes()[0];
                 Object value = jp.getCodec().treeToValue(jsonNode, parameterType);
-                log.info("raw value: {}", value.getClass());
+                if (log.isDebugEnabled()) {
+                    log.debug("raw value: {}", value.getClass());
+                }
                 value = fieldValueConverter.apply(jsonStilePropertyName, value);
-                log.info("Applying value: {}", value);
+                if (log.isDebugEnabled()) {
+                    log.debug("Applying value: {}", value);
+                }
                 m.invoke(builder, value);
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                            "Property {} not found, only {}",
+                            jsonStilePropertyName,
+                            IteratorUtils.toList(node.fieldNames()));
+                }
             }
         }
     }

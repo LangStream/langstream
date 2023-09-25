@@ -18,6 +18,49 @@ name: "Crawl a website"
 topics:
   - name: "chunks-topic"
     creation-mode: create-if-not-exists
+assets:
+  - name: "documents-table"
+    asset-type: "milvus-collection"
+    creation-mode: create-if-not-exists
+    config:
+      collection-name: "documents"
+      database-name: "default"
+      datasource: "MilvusDatasource"
+      create-statements:
+        - |
+          {
+              "command": "create-collection",
+              "collection-name": "docs",
+              "database-name": "default",
+              "field-types": [
+                 {
+                    "name": "filename",
+                    "primary-key": true,
+                    "data-type": "Varchar",
+                    "max-length": 256
+                 },
+                {
+                    "name": "chunk_id",
+                    "primary-key": true,
+                    "data-type": "Int32"
+                 },
+                 {
+                    "name": "text",
+                    "data-type": "Varchar",
+                    "max-length": 256
+                 },
+                {
+                    "name": "language",
+                    "data-type": "Varchar",
+                    "max-length": 3
+                 },
+                 {
+                    "name": "vector",
+                    "data-type": "FloatVector",
+                    "dimension": 1536
+                 }
+              ]
+          }
 resources:
       size: 2
 pipeline:
@@ -88,10 +131,27 @@ pipeline:
   - name: "compute-embeddings"
     id: "step1"
     type: "compute-ai-embeddings"
-    output: "chunks-topic"
     configuration:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings_vector"
       text: "{{% value.text }}"
       batch-size: 10
       flush-interval: 500
+  - name: "Write to Milvus"
+    type: "vector-db-sink"
+    configuration:
+      datasource: "MilvusDatasource"
+      collection-name: "docs"
+      fields:
+        - name: filename
+          expression: "value.filename"
+        - name: chunk_id
+          expression: "value.chunk_id"
+        - name: vector
+          expression: "fn:toListOfFloat(value.embeddings_vector)"
+        - name: language
+          expression: "value.language"
+        - name: text
+          expression: "value.text"
+        - name: num_tokens
+          expression: "value.chunk_num_tokens"

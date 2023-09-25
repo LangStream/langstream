@@ -18,12 +18,9 @@ package ai.langstream.deployer.k8s.controllers;
 import ai.langstream.deployer.k8s.ResolvedDeployerConfiguration;
 import ai.langstream.deployer.k8s.TenantLimitsChecker;
 import ai.langstream.deployer.k8s.api.crds.BaseStatus;
-import ai.langstream.deployer.k8s.util.JSONComparator;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
-import ai.langstream.deployer.k8s.util.SpecDiffer;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.openshift.api.model.config.v1.Update;
 import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
@@ -31,7 +28,6 @@ import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import jakarta.inject.Inject;
 import java.util.concurrent.TimeUnit;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.jbosslog.JBossLog;
 
@@ -53,7 +49,6 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
             return patchResult;
         }
 
-
         public PatchResult(UpdateControl<?> updateControl) {
             this.updateControl = updateControl;
         }
@@ -61,11 +56,9 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
         UpdateControl<?> updateControl;
         Object lastApplied;
 
-
         public PatchResult withLastApplied(Object lastApplied) {
             this.lastApplied = lastApplied;
             return this;
-
         }
     }
 
@@ -103,7 +96,10 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
         try {
             final PatchResult patchResult = patchResources(resource, context);
             result = patchResult.getUpdateControl();
-            final Object lastAppliedObject = patchResult.getLastApplied() == null ? resource.getSpec() : patchResult.getLastApplied();
+            final Object lastAppliedObject =
+                    patchResult.getLastApplied() == null
+                            ? resource.getSpec()
+                            : patchResult.getLastApplied();
             lastApplied = SerializationUtil.writeAsJson(lastAppliedObject);
             baseStatus.setLastApplied(lastApplied);
             log.infof(
@@ -122,5 +118,4 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
         }
         return (UpdateControl<T>) result;
     }
-
 }

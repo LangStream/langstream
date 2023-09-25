@@ -59,10 +59,10 @@ public class PythonAgentsIT extends BaseEndToEndTest {
         Assertions.assertTrue(
                 output.contains(
                         "{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value\","
-                                + "\"headers\":{}}"));
+                                + "\"headers\":{\"langstream-client-session-id\":\"s1\"}}"));
 
-
-        updateLocalApplication(applicationId, appDir, Map.of("SECRET1_VK", "super secret value - changed"));
+        updateLocalApplication(
+                applicationId, appDir, Map.of("SECRET1_VK", "super secret value - changed"));
         Thread.sleep(5000);
         awaitApplicationReady(applicationId, 1);
 
@@ -73,14 +73,14 @@ public class PythonAgentsIT extends BaseEndToEndTest {
 
         output =
                 executeCommandOnClient(
-                        "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30 -p sessionId=s1"
+                        "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30 -p sessionId=s2"
                                 .formatted(applicationId)
                                 .split(" "));
         log.info("Output2: {}", output);
         Assertions.assertTrue(
                 output.contains(
                         "{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value - changed\","
-                        + "\"headers\":{}}"));
+                                + "\"headers\":{\"langstream-client-session-id\":\"s2\"}}"));
 
         executeCommandOnClient("bin/langstream apps delete %s".formatted(applicationId).split(" "));
 

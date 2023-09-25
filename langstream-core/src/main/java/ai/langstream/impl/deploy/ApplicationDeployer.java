@@ -247,5 +247,6 @@ public final class ApplicationDeployer implements AutoCloseable {
     @Override
     public void close() {
         registry.close();
+        deployContext.close();
     }
 }

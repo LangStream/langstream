@@ -20,7 +20,6 @@ import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.ResolvedDeployerConfiguration;
 import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
-import ai.langstream.deployer.k8s.api.crds.BaseStatus;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentStatus;
 import ai.langstream.deployer.k8s.controllers.BaseController;
@@ -31,7 +30,6 @@ import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.deployer.k8s.util.SpecDiffer;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
-import io.fabric8.kubernetes.client.CustomResource;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -87,7 +85,8 @@ public class AgentController extends BaseController<AgentCustomResource>
             return PatchResult.patch(UpdateControl.updateStatus(agent));
         } else {
             agent.getStatus().setStatus(AgentLifecycleStatus.DEPLOYING);
-            return PatchResult.patch(UpdateControl.updateStatus(agent).rescheduleAfter(5, TimeUnit.SECONDS));
+            return PatchResult.patch(
+                    UpdateControl.updateStatus(agent).rescheduleAfter(5, TimeUnit.SECONDS));
         }
     }
 
@@ -218,7 +217,6 @@ public class AgentController extends BaseController<AgentCustomResource>
         private String imagePullPolicy;
         private PodTemplate podTemplate;
     }
-
 
     protected static boolean areSpecChanged(AgentCustomResource cr) {
         final String lastApplied = cr.getStatus().getLastApplied();

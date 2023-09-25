@@ -16,7 +16,6 @@
 package ai.langstream.deployer.k8s.controllers.apps;
 
 import ai.langstream.api.model.ApplicationLifecycleStatus;
-import ai.langstream.deployer.k8s.api.crds.BaseStatus;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationStatus;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
@@ -30,7 +29,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
-import io.fabric8.kubernetes.client.CustomResource;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -39,7 +37,6 @@ import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import java.time.Duration;
-import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
@@ -127,7 +124,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
             log.infof(
                     "deployer cleanup job for %s is completed, checking setup cleanup",
                     resource.getMetadata().getName());
-            rescheduleDuration = handleJob(resource, appLastApplied,true, true);
+            rescheduleDuration = handleJob(resource, appLastApplied, true, true);
             log.infof(
                     "setup cleanup job for %s is %s",
                     resource.getMetadata().getName(),
@@ -143,7 +140,10 @@ public class AppController extends BaseController<ApplicationCustomResource>
     }
 
     private Duration handleJob(
-            ApplicationCustomResource application, AppLastApplied appLastApplied, boolean isSetupJob, boolean delete) {
+            ApplicationCustomResource application,
+            AppLastApplied appLastApplied,
+            boolean isSetupJob,
+            boolean delete) {
         final String applicationId = application.getMetadata().getName();
 
         final String jobName =
@@ -213,17 +213,18 @@ public class AppController extends BaseController<ApplicationCustomResource>
         KubeUtil.patchJob(client, job);
     }
 
-
-
-    private static boolean areSpecChanged(ApplicationCustomResource cr, AppLastApplied appLastApplied, boolean checkSetup) {
+    private static boolean areSpecChanged(
+            ApplicationCustomResource cr, AppLastApplied appLastApplied, boolean checkSetup) {
         if (appLastApplied == null) {
             return true;
         }
-        final String lastAppliedAsString = checkSetup ? appLastApplied.getSetup() : appLastApplied.getRuntimeDeployer();
+        final String lastAppliedAsString =
+                checkSetup ? appLastApplied.getSetup() : appLastApplied.getRuntimeDeployer();
         if (lastAppliedAsString == null) {
             return true;
         }
-        final JSONComparator.Result diff = SpecDiffer.generateDiff(lastAppliedAsString, cr.getSpec());
+        final JSONComparator.Result diff =
+                SpecDiffer.generateDiff(lastAppliedAsString, cr.getSpec());
         if (!diff.areEquals()) {
             log.infof("Spec changed for %s", cr.getMetadata().getName());
             SpecDiffer.logDetailedSpecDiff(diff);
@@ -240,7 +241,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
         if (app.getStatus().getLastApplied() == null) {
             return null;
         }
-        return lastAppliedJsonMapper.readValue(app.getStatus().getLastApplied(), AppLastApplied.class);
-
+        return lastAppliedJsonMapper.readValue(
+                app.getStatus().getLastApplied(), AppLastApplied.class);
     }
 }

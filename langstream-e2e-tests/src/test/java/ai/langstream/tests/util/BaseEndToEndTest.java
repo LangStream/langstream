@@ -660,7 +660,7 @@ public class BaseEndToEndTest implements TestWatcher {
                               memory: 256Mi
                           app:
                             config:
-                             logging.level.org.apache.tomcat.websocket: debug
+                             logging.level.ai.langstream.apigateway.websocket: debug
 
                         runtime:
                             image: %s/langstream-runtime
@@ -988,18 +988,15 @@ public class BaseEndToEndTest implements TestWatcher {
         deployLocalApplication(false, applicationId, appDirName, env);
     }
 
-
     @SneakyThrows
     protected static void updateLocalApplication(
             String applicationId, String appDirName, Map<String, String> env) {
         deployLocalApplication(true, applicationId, appDirName, env);
     }
 
-
     @SneakyThrows
     private static void deployLocalApplication(
-            boolean isUpdate,
-            String applicationId, String appDirName, Map<String, String> env) {
+            boolean isUpdate, String applicationId, String appDirName, Map<String, String> env) {
         String testAppsBaseDir = "src/test/resources/apps";
         String testSecretBaseDir = "src/test/resources/secrets";
 
@@ -1015,14 +1012,14 @@ public class BaseEndToEndTest implements TestWatcher {
         if (env != null) {
             beforeCmd =
                     env.entrySet().stream()
-                            .map(e -> "export %s=%s".formatted(e.getKey(), e.getValue()))
+                            .map(e -> "export %s=\"%s\"".formatted(e.getKey(), e.getValue()))
                             .collect(Collectors.joining(" && "));
             beforeCmd += " && ";
         }
 
         executeCommandOnClient(
                 (beforeCmd
-                 + "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml")
+                                + "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml")
                         .formatted(isUpdate ? "update" : "deploy", applicationId)
                         .split(" "));
     }

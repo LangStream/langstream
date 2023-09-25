@@ -125,11 +125,13 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
                         (name, evaluator) -> {
                             Object value = evaluator.evaluate(transformContext);
                             if (value != null) {
-                                log.info(
-                                        "setting value {} ({}) for field {}",
-                                        value,
-                                        value.getClass(),
-                                        name);
+                                if (log.isDebugEnabled()) {
+                                    log.debug(
+                                            "setting value {} ({}) for field {}",
+                                            value,
+                                            value.getClass(),
+                                            name);
+                                }
                                 row.put(name, value);
                             } else {
                                 // in Milvus you must not send null values

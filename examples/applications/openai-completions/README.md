@@ -1,6 +1,6 @@
-# OpenAI Completions
+# OpenAI Chat Completions
 
-This sample application shows how to execute completion using the OpenAI library using the Azure OpenAI API endpoint.
+This sample application shows how to execute Chat Completions using the OpenAI library using the Azure OpenAI API endpoint.
 
 ## Configure you OpenAI API Key
 

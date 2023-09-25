@@ -344,7 +344,8 @@ public class VertexAIProvider implements ServiceProviderProvider {
                     List<String> prompt,
                     StreamingChunksConsumer streamingChunksConsumer,
                     Map<String, Object> options) {
-                throw new UnsupportedOperationException();
+                return CompletableFuture.failedFuture(
+                        new UnsupportedOperationException("Not implemented"));
             }
 
             @Data

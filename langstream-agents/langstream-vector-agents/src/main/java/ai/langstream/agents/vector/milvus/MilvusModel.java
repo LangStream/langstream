@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.milvus.grpc.DataType;
+import io.milvus.param.R;
 import io.milvus.param.collection.CreateCollectionParam;
 import io.milvus.param.collection.FieldType;
 import io.milvus.param.dml.SearchParam;
@@ -39,6 +40,8 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import io.milvus.param.highlevel.dml.response.SearchResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.IteratorUtils;
 
@@ -168,6 +171,12 @@ public class MilvusModel {
         }
 
         return result.toString();
+    }
+
+    public static void handleException(R<?> response) throws Exception {
+        if (response.getException() != null) {
+            throw response.getException();
+        }
     }
 
     private static class MilvusBuilderDeserializer<T> extends StdDeserializer<T> {

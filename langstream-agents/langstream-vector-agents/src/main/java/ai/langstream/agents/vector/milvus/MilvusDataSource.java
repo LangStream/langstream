@@ -100,11 +100,10 @@ public class MilvusDataSource implements DataSourceProvider {
                                         params,
                                         MilvusModel.getMapper())
                                 .build();
+                log.info("Command {}", searchParam);
                 R<SearchResponse> respSearch = milvusClient.search(searchParam);
-
-                if (respSearch.getException() != null) {
-                    throw new RuntimeException(respSearch.getException());
-                }
+                log.info("Response {}", respSearch);
+                MilvusModel.handleException(respSearch);
 
                 SearchResponse data = respSearch.getData();
 

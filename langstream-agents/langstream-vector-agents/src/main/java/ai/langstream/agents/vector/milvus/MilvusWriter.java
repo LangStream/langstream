@@ -102,9 +102,7 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
                             .build();
             R<DescribeCollectionResponse> describeCollectionResponse =
                     milvusClient.describeCollection(describe);
-            if (describeCollectionResponse.getException() != null) {
-                throw describeCollectionResponse.getException();
-            }
+            MilvusModel.handleException(describeCollectionResponse);
             CollectionSchema schema = describeCollectionResponse.getData().getSchema();
             Optional<FieldSchema> primaryKey =
                     schema.getFieldsList().stream().filter(f -> f.getIsPrimaryKey()).findFirst();

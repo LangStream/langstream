@@ -44,7 +44,7 @@ pipeline:
         {
           "collection-name": "docs",
           "vectors": ?,
-          "top-k": 1
+          "top-k": 10,
           "output-fields": ["text"]
         }
       fields:

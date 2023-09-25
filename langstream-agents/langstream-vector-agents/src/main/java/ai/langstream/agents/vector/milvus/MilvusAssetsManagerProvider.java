@@ -87,9 +87,7 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
                                     .withDatabaseName(databaseName)
                                     .build());
 
-            if (hasCollection.getException() != null) {
-                throw hasCollection.getException();
-            }
+            MilvusModel.handleException(hasCollection);
 
             if (hasCollection.getData() != null && hasCollection.getData()) {
                 log.info("Table {} exists", collectionName);
@@ -129,9 +127,9 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
                                     .withCollectionName(getCollectionName())
                                     .withDatabaseName(getDatabaseName())
                                     .build());
-            if (describeCollectionResponse.getException() != null) {
-                throw describeCollectionResponse.getException();
-            }
+
+            MilvusModel.handleException(describeCollectionResponse);
+
             log.info(
                     "Describe collection {} in database {}",
                     getCollectionName(),
@@ -165,9 +163,8 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
                                             .build();
                             log.info("Command: {}", parsedQuery);
                             R<RpcStatus> resultCreate = milvusClient.createCollection(parsedQuery);
-                            if (resultCreate.getException() != null) {
-                                throw resultCreate.getException();
-                            }
+
+                            MilvusModel.handleException(resultCreate);
 
                             R<RpcStatus> indexResult =
                                     milvusClient.createIndex(
@@ -183,9 +180,7 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
                                                     .withMetricType(MetricType.L2)
                                                     .withSyncMode(true)
                                                     .build());
-                            if (indexResult.getException() != null) {
-                                throw indexResult.getException();
-                            }
+                            MilvusModel.handleException(indexResult);
 
                             R<RpcStatus> result =
                                     milvusClient.loadCollection(
@@ -197,9 +192,7 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
                                                     .withSyncLoadWaitingInterval(2000L)
                                                     .build());
 
-                            if (result.getException() != null) {
-                                throw result.getException();
-                            }
+                            MilvusModel.handleException(result);
                             break;
                         }
                     case "load-collection":
@@ -213,9 +206,7 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
                                                     .withSyncLoadWaitingInterval(2000L)
                                                     .build());
 
-                            if (result.getException() != null) {
-                                throw result.getException();
-                            }
+                            MilvusModel.handleException(result);
                             break;
                         }
                     case "create-simple-collection":
@@ -229,9 +220,7 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
                                             .build();
                             log.info("Command: {}", parsedQuery);
                             R<RpcStatus> createResult = milvusClient.createCollection(parsedQuery);
-                            if (createResult.getException() != null) {
-                                throw createResult.getException();
-                            }
+                            MilvusModel.handleException(createResult);
                             break;
                         }
                     default:

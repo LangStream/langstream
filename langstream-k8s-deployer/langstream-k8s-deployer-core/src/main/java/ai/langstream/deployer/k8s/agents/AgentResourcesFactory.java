@@ -213,10 +213,8 @@ public class AgentResourcesFactory {
                         .withTerminationMessagePolicy("FallbackToLogsOnError")
                         .build();
 
-        final ContainerPort port = new ContainerPortBuilder()
-                .withName("http")
-                .withContainerPort(8080)
-                .build();
+        final ContainerPort port =
+                new ContainerPortBuilder().withName("http").withContainerPort(8080).build();
 
         final Container container =
                 new ContainerBuilder()
@@ -327,7 +325,8 @@ public class AgentResourcesFactory {
                 .build();
     }
 
-    private static Probe createLivenessProbe(AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+    private static Probe createLivenessProbe(
+            AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
         return new ProbeBuilder()
                 .withNewHttpGet()
                 .withNewPort()
@@ -336,13 +335,14 @@ public class AgentResourcesFactory {
                 .withPath("/metrics")
                 .endHttpGet()
                 .withTimeoutSeconds(agentResourceUnitConfiguration.getLivenessProbeTimeoutSeconds())
-                .withInitialDelaySeconds(agentResourceUnitConfiguration.getLivenessProbeInitialDelaySeconds())
+                .withInitialDelaySeconds(
+                        agentResourceUnitConfiguration.getLivenessProbeInitialDelaySeconds())
                 .withPeriodSeconds(agentResourceUnitConfiguration.getLivenessProbePeriodSeconds())
                 .build();
     }
 
-
-    private static Probe createReadinessProbe(AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+    private static Probe createReadinessProbe(
+            AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
         return new ProbeBuilder()
                 .withNewHttpGet()
                 .withNewPort()
@@ -350,8 +350,10 @@ public class AgentResourcesFactory {
                 .endPort()
                 .withPath("/metrics")
                 .endHttpGet()
-                .withTimeoutSeconds(agentResourceUnitConfiguration.getReadinessProbeTimeoutSeconds())
-                .withInitialDelaySeconds(agentResourceUnitConfiguration.getReadinessProbeInitialDelaySeconds())
+                .withTimeoutSeconds(
+                        agentResourceUnitConfiguration.getReadinessProbeTimeoutSeconds())
+                .withInitialDelaySeconds(
+                        agentResourceUnitConfiguration.getReadinessProbeInitialDelaySeconds())
                 .withPeriodSeconds(agentResourceUnitConfiguration.getReadinessProbePeriodSeconds())
                 .build();
     }
@@ -464,14 +466,14 @@ public class AgentResourcesFactory {
                         "%f"
                                 .formatted(
                                         memCpuUnits
-                                        * agentResourceUnitConfiguration.getCpuPerUnit())));
+                                                * agentResourceUnitConfiguration.getCpuPerUnit())));
         quantities.put(
                 "memory",
                 Quantity.parse(
                         "%dM"
                                 .formatted(
                                         memCpuUnits
-                                        * agentResourceUnitConfiguration.getMemPerUnit())));
+                                                * agentResourceUnitConfiguration.getMemPerUnit())));
 
         return new ResourceRequirementsBuilder()
                 .withRequests(quantities)
@@ -610,8 +612,8 @@ public class AgentResourcesFactory {
                                                 agentsStatus);
                                         ApplicationStatus.AgentWorkerStatus
                                                 agentWorkerStatusWithInfo =
-                                                agentWorkerStatus.applyAgentStatus(
-                                                        agentsStatus);
+                                                        agentWorkerStatus.applyAgentStatus(
+                                                                agentsStatus);
                                         result.complete(agentWorkerStatusWithInfo);
                                     } else {
                                         log.warn(
@@ -707,9 +709,9 @@ public class AgentResourcesFactory {
                                                 podStatus.getUrl(), podStatus.getMessage());
                                         default -> throw new RuntimeException(
                                                 "Unexpected pod state: "
-                                                + podStatus.getState()
-                                                + " "
-                                                + e.getKey());
+                                                        + podStatus.getState()
+                                                        + " "
+                                                        + e.getKey());
                                     };
                             if (agentRunnerSpec != null) {
                                 status =
@@ -752,7 +754,7 @@ public class AgentResourcesFactory {
         if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(fullAgentId).matches()) {
             throw new IllegalArgumentException(
                     ("Agent id '%s' (computed as '%s') contains illegal characters. "
-                     + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.")
+                                    + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.")
                             .formatted(agentId, fullAgentId));
         }
         if (agentId.length() > MAX_AGENT_ID_LENGTH) {

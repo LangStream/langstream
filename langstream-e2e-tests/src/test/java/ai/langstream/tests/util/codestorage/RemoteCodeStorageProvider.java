@@ -35,8 +35,9 @@ public class RemoteCodeStorageProvider implements CodeStorageProvider {
                 SystemOrEnv.getProperties(ENV_PREFIX, SYS_PROPERTIES_PREFIX);
         props.forEach(
                 (key, value) -> {
-                    log.info("Loading remote codestorage config: {}={}", key, value);
-                    CONFIG.put(key, value);
+                    final String newValue = value.replace("_", "-");
+                    CONFIG.put(key, newValue);
+                    log.info("Loading remote codestorage config: {}={}", key, newValue);
                 });
         TYPE =
                 SystemOrEnv.getProperty(

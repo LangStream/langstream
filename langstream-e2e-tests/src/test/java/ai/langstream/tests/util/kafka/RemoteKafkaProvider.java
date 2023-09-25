@@ -42,8 +42,9 @@ public class RemoteKafkaProvider implements StreamingClusterProvider {
                 SystemOrEnv.getProperties(ENV_PREFIX, SYS_PROPERTIES_PREFIX);
         props.forEach(
                 (key, value) -> {
-                    log.info("Loading remote kafka admin config: {}={}", key, value);
-                    ADMIN_CONFIG.put(key, value);
+                    final String newValue = value.replace("_", ".");
+                    ADMIN_CONFIG.put(key, newValue);
+                    log.info("Loading remote kafka admin config: {}={}", key, newValue);
                 });
     }
 

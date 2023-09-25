@@ -29,7 +29,7 @@ public class SystemOrEnv {
         for (Map.Entry<String, String> env : envs.entrySet()) {
             if (env.getKey().startsWith(envPrefix)) {
                 final String key =
-                        env.getKey().substring(envPrefix.length()).toLowerCase().replace("_", ".");
+                        env.getKey().substring(envPrefix.length()).toLowerCase();
                 final String value = env.getValue();
                 result.put(key, value);
             }

@@ -57,6 +57,20 @@ assets:
                  }
               ]
           }
+        - |
+          {
+             "command": "create-index",
+             "collection-name": "docs",
+             "database-name": "default",
+             "field-name": "vector",
+             "index-name": "vector_index",
+             "index-type": "AUTOINDEX",
+             "metric-type": "L2"
+          }
+        - |
+          {
+             "command": "load-collection"
+          }
 resources:
       size: 2
 pipeline:

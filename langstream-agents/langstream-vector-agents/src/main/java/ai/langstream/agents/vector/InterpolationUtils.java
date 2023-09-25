@@ -55,19 +55,28 @@ public class InterpolationUtils {
             String json, Class<R> jsonModel, List<Object> params) {
         R parsedQuery;
         try {
-            log.info("Query {}", json);
-            params.forEach(
-                    param ->
-                            log.info(
-                                    "Param {} {}", param, param != null ? param.getClass() : null));
+            if (log.isDebugEnabled()) {
+                log.debug("Query {}", json);
+                params.forEach(
+                        param ->
+                                log.debug(
+                                        "Param {} {}",
+                                        param,
+                                        param != null ? param.getClass() : null));
+            }
+
             // interpolate the query
             json = interpolate(json, params);
-            log.info("Interpolated query {}", json);
+            if (log.isDebugEnabled()) {
+                log.debug("Interpolated query {}", json);
+            }
             parsedQuery = MAPPER.readValue(json, jsonModel);
         } catch (Exception e) {
             throw new IllegalArgumentException(e);
         }
-        log.info("Parsed query: {}", parsedQuery);
+        if (log.isDebugEnabled()) {
+            log.debug("Parsed query: {}", parsedQuery);
+        }
         return parsedQuery;
     }
 
@@ -75,19 +84,25 @@ public class InterpolationUtils {
             String json, Class<R> jsonModel, List<Object> params, ObjectMapper mapper) {
         R parsedQuery;
         try {
-            log.info("Query {}", json);
+            if (log.isDebugEnabled()) {
+                log.debug("Query {}", json);
+            }
             params.forEach(
                     param ->
                             log.info(
                                     "Param {} {}", param, param != null ? param.getClass() : null));
             // interpolate the query
             json = interpolate(json, params);
-            log.info("Interpolated query {}", json);
+            if (log.isDebugEnabled()) {
+                log.debug("Interpolated query {}", json);
+            }
             parsedQuery = mapper.readValue(json, jsonModel);
         } catch (Exception e) {
             throw new IllegalArgumentException(e);
         }
-        log.info("Parsed query: {}", parsedQuery);
+        if (log.isDebugEnabled()) {
+            log.debug("Parsed query: {}", parsedQuery);
+        }
         return parsedQuery;
     }
 }

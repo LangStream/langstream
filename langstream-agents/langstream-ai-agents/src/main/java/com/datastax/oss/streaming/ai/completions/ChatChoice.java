@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatChoice implements Chunk{
+public class ChatChoice implements Chunk {
     private ChatMessage message;
 
     @Override

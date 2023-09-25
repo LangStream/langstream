@@ -15,11 +15,6 @@
  */
 package com.datastax.oss.streaming.ai.completions;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 public interface Chunk {
     String content();
 }

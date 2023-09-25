@@ -29,8 +29,6 @@ import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
-import com.datastax.oss.streaming.ai.model.config.TextCompletionsConfig;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
@@ -214,8 +212,10 @@ public class OpenAICompletionService implements CompletionsService {
     }
 
     @Override
-    public CompletableFuture<String> getTextCompletions(List<String> prompt, StreamingChunksConsumer streamingChunksConsumer,
-                                                        Map<String, Object> options) {
+    public CompletableFuture<String> getTextCompletions(
+            List<String> prompt,
+            StreamingChunksConsumer streamingChunksConsumer,
+            Map<String, Object> options) {
         int minChunksPerMessage = getInteger("min-chunks-per-message", 20, options);
         CompletionsOptions completionsOptions =
                 new CompletionsOptions(prompt)
@@ -234,8 +234,7 @@ public class OpenAICompletionService implements CompletionsService {
         if (completionsOptions.isStream()) {
             CompletableFuture<?> finished = new CompletableFuture<>();
             Flux<com.azure.ai.openai.models.Completions> flux =
-                    client.getCompletionsStream(
-                            (String) options.get("model"), completionsOptions);
+                    client.getCompletionsStream((String) options.get("model"), completionsOptions);
 
             TextCompletionsConsumer textCompletionsConsumer =
                     new TextCompletionsConsumer(
@@ -251,19 +250,15 @@ public class OpenAICompletionService implements CompletionsService {
                     .doOnNext(textCompletionsConsumer)
                     .subscribe();
 
-            return finished.thenApply(
-                    ___ -> textCompletionsConsumer.totalAnswer.toString());
+            return finished.thenApply(___ -> textCompletionsConsumer.totalAnswer.toString());
         } else {
             com.azure.ai.openai.models.Completions completions =
                     client.getCompletions((String) options.get("model"), completionsOptions)
                             .block();
-            final String text = completions.getChoices()
-                    .get(0)
-                    .getText();
+            final String text = completions.getChoices().get(0).getText();
             return CompletableFuture.completedFuture(text);
         }
     }
-
 
     private static class TextCompletionsConsumer
             implements Consumer<com.azure.ai.openai.models.Completions> {
@@ -296,8 +291,7 @@ public class OpenAICompletionService implements CompletionsService {
 
         @Override
         @SneakyThrows
-        public synchronized void accept(
-                com.azure.ai.openai.models.Completions completions) {
+        public synchronized void accept(com.azure.ai.openai.models.Completions completions) {
             List<com.azure.ai.openai.models.Choice> choices = completions.getChoices();
             String answerId = completions.getId();
             if (!choices.isEmpty()) {
@@ -310,7 +304,8 @@ public class OpenAICompletionService implements CompletionsService {
                     return;
                 }
                 if (firstChunk.compareAndSet(true, false)) {
-                    // Some models return two line break at the beginning of the first response, even though this is not documented
+                    // Some models return two line break at the beginning of the first response,
+                    // even though this is not documented
                     // https://community.openai.com/t/output-starts-often-with-linebreaks/36333/4
                     if (content.isBlank()) {
                         return;
@@ -339,6 +334,5 @@ public class OpenAICompletionService implements CompletionsService {
                 }
             }
         }
-
     }
 }

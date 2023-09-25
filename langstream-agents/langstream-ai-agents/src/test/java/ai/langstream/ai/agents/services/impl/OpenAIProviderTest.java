@@ -85,10 +85,7 @@ class OpenAIProviderTest {
                                 new CompletionsService.StreamingChunksConsumer() {
                                     @Override
                                     public void consumeChunk(
-                                            String answerId,
-                                            int index,
-                                            Chunk chunk,
-                                            boolean last) {
+                                            String answerId, int index, Chunk chunk, boolean last) {
                                         ChatChoice chatChoice = (ChatChoice) chunk;
                                         chunks.add(chunk.content());
                                         log.info(
@@ -116,7 +113,6 @@ class OpenAIProviderTest {
         assertEquals(" a vehicle", chunks.get(2));
     }
 
-
     @Test
     void testStreamingTextCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
 
@@ -126,17 +122,17 @@ class OpenAIProviderTest {
                                 okJson(
                                         """
                                                 data: {"choices":[{"text":"\\n\\n","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-                                                
+
                                                 data: {"choices":[{"text":"Am","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-                                                
+
                                                 data: {"choices":[{"text":"o","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-                                                
+
                                                 data: {"choices":[{"text":" le","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-                                                
+
                                                 data: {"choices":[{"text":" mac","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-                                                
+
                                                 data: {"choices":[{"text":"chine","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-                                                
+
                                                 data: {"choices":[{"text":"","index":0,"logprobs":null,"finish_reason":"stop","content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
 
                                                 data: [DONE]
@@ -159,18 +155,14 @@ class OpenAIProviderTest {
         CompletionsService service = implementation.getCompletionsService(Map.of());
         String completions =
                 service.getTextCompletions(
-                                List.of("Translate from English to Italian: \"I love cars\" with quotes"),
+                                List.of(
+                                        "Translate from English to Italian: \"I love cars\" with quotes"),
                                 new CompletionsService.StreamingChunksConsumer() {
                                     @Override
                                     public void consumeChunk(
-                                            String answerId,
-                                            int index,
-                                            Chunk chunk,
-                                            boolean last) {
+                                            String answerId, int index, Chunk chunk, boolean last) {
                                         chunks.add(chunk.content());
-                                        log.info(
-                                                "chunk: (last={}) {}",
-                                                last, chunk.content());
+                                        log.info("chunk: (last={}) {}", last, chunk.content());
                                     }
                                 },
                                 Map.of(
@@ -182,8 +174,7 @@ class OpenAIProviderTest {
                                         3))
                         .get();
         log.info("result: {}", completions);
-        assertEquals("Amo le macchine",
-                completions);
+        assertEquals("Amo le macchine", completions);
         assertEquals(3, chunks.size());
         assertEquals("Am", chunks.get(0));
         assertEquals("o le", chunks.get(1));

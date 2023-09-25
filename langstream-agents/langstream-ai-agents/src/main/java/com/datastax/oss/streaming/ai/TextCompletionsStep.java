@@ -16,15 +16,11 @@
 package com.datastax.oss.streaming.ai;
 
 import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.convertToMap;
-import com.azure.ai.openai.models.ChatCompletionsOptions;
+
 import com.azure.ai.openai.models.CompletionsOptions;
-import com.datastax.oss.streaming.ai.completions.ChatChoice;
-import com.datastax.oss.streaming.ai.completions.ChatCompletions;
-import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.model.JsonRecord;
-import com.datastax.oss.streaming.ai.model.config.ChatCompletionsConfig;
 import com.datastax.oss.streaming.ai.model.config.TextCompletionsConfig;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumer;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumerFactory;
@@ -55,7 +51,6 @@ public class TextCompletionsStep implements TransformStep {
 
     private StreamingAnswersConsumer streamingAnswersConsumer;
 
-
     public TextCompletionsStep(
             CompletionsService completionsService,
             StreamingAnswersConsumerFactory streamingAnswersConsumerFactory,
@@ -64,12 +59,7 @@ public class TextCompletionsStep implements TransformStep {
         this.completionsService = completionsService;
         this.config = config;
         this.streamingAnswersConsumer = (index, message, last, record) -> {};
-        config.getPrompt()
-                .forEach(
-                        p ->
-                                messageTemplates.put(
-                                        p,
-                                        Mustache.compiler().compile(p)));
+        config.getPrompt().forEach(p -> messageTemplates.put(p, Mustache.compiler().compile(p)));
     }
 
     @Override
@@ -94,11 +84,7 @@ public class TextCompletionsStep implements TransformStep {
 
         List<String> prompt =
                 config.getPrompt().stream()
-                        .map(
-                                p ->
-                                        messageTemplates
-                                                .get(p)
-                                                .execute(jsonRecord))
+                        .map(p -> messageTemplates.get(p).execute(jsonRecord))
                         .collect(Collectors.toList());
 
         CompletionsOptions completionsOptions =

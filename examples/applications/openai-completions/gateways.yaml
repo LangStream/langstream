@@ -26,6 +26,12 @@ gateways:
         - key: langstream-client-session-id
           value-from-parameters: sessionId
 
+  - id: chat
+    type: chat
+    chat-options:
+      answers-topic: output-topic
+      questions-topic: input-topic
+
   - id: consume-output
     type: consume
     topic: output-topic

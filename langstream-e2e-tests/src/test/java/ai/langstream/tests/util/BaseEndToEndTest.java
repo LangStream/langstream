@@ -35,6 +35,7 @@ import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Status;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRole;
@@ -45,6 +46,7 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.dsl.ContainerResource;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.fabric8.kubernetes.client.readiness.Readiness;
 import io.jsonwebtoken.Jwts;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -58,6 +60,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -95,11 +98,25 @@ public class BaseEndToEndTest implements TestWatcher {
     private static final String LANGSTREAM_TAG =
             System.getProperty("langstream.tests.tag", "latest-dev");
 
-    private static final String LANGSTREAM_K8S = System.getProperty("langstream.tests.k8s", "host");
+    private static final String LANGSTREAM_K8S =
+            SystemOrEnv.getProperty("LANGSTREAM_TESTS_K8S", "langstream.tests.k8s", "host");
     private static final String LANGSTREAM_STREAMING =
-            System.getProperty("langstream.tests.streaming", "local-redpanda");
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_STREAMING", "langstream.tests.streaming", "local-redpanda");
     private static final String LANGSTREAM_CODESTORAGE =
-            System.getProperty("langstream.tests.codestorage", "local-minio");
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_CODESTORAGE", "langstream.tests.codestorage", "local-minio");
+
+    private static final String LANGSTREAM_APPS_RESOURCES_CPU =
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_APPS_RESOURCES_CPU",
+                    "langstream.tests.apps.resources.cpu",
+                    "0.4");
+    private static final String LANGSTREAM_APPS_RESOURCES_MEM =
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_APPS_RESOURCES_MEM",
+                    "langstream.tests.apps.resources.mem",
+                    "256");
 
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
@@ -157,14 +174,7 @@ public class BaseEndToEndTest implements TestWatcher {
     @SneakyThrows
     protected static void copyFileToClientContainer(File file, String toPath) {
         final String podName =
-                client.pods()
-                        .inNamespace(namespace)
-                        .withLabel("app.kubernetes.io/name", "langstream-client")
-                        .list()
-                        .getItems()
-                        .get(0)
-                        .getMetadata()
-                        .getName();
+                getFirstPodFromDeployment("langstream-client").getMetadata().getName();
         if (file.isFile()) {
             runProcess(
                     "kubectl cp %s %s:%s -n %s"
@@ -178,6 +188,15 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
+    private static Pod getFirstPodFromDeployment(String deploymentName) {
+        return client.pods()
+                .inNamespace(namespace)
+                .withLabel("app.kubernetes.io/name", deploymentName)
+                .list()
+                .getItems()
+                .get(0);
+    }
+
     @SneakyThrows
     protected static String executeCommandOnClient(String... args) {
         return executeCommandOnClient(2, TimeUnit.MINUTES, args);
@@ -185,13 +204,7 @@ public class BaseEndToEndTest implements TestWatcher {
 
     @SneakyThrows
     protected static String executeCommandOnClient(long timeout, TimeUnit unit, String... args) {
-        final Pod pod =
-                client.pods()
-                        .inNamespace(namespace)
-                        .withLabel("app.kubernetes.io/name", "langstream-client")
-                        .list()
-                        .getItems()
-                        .get(0);
+        final Pod pod = getFirstPodFromDeployment("langstream-client");
         return execInPod(
                         pod.getMetadata().getName(),
                         pod.getSpec().getContainers().get(0).getName(),
@@ -639,8 +652,8 @@ public class BaseEndToEndTest implements TestWatcher {
                           app:
                             config:
                               agentResources:
-                                cpuPerUnit: 0.2
-                                memPerUnit: 128
+                                cpuPerUnit: %s
+                                memPerUnit: %s
                         client:
                           image:
                             repository: %s/langstream-cli
@@ -680,6 +693,8 @@ public class BaseEndToEndTest implements TestWatcher {
                                 JSON_MAPPER.writeValueAsString(controlPlaneConfig),
                                 baseImageRepository,
                                 imagePullPolicy,
+                                LANGSTREAM_APPS_RESOURCES_CPU,
+                                LANGSTREAM_APPS_RESOURCES_MEM,
                                 baseImageRepository,
                                 imagePullPolicy,
                                 baseImageRepository,
@@ -706,35 +721,60 @@ public class BaseEndToEndTest implements TestWatcher {
 
     private static void awaitControlPlaneReady() {
         log.info("waiting for control plane to be ready");
-
-        client.apps()
-                .deployments()
-                .inNamespace(namespace)
-                .withName("langstream-control-plane")
-                .waitUntilCondition(
-                        d ->
-                                d.getStatus().getReadyReplicas() != null
-                                        && d.getStatus().getReadyReplicas() == 1,
-                        120,
-                        TimeUnit.SECONDS);
+        final String deploymentName = "langstream-control-plane";
+        awaitDeploymentReady(deploymentName);
         log.info("control plane ready");
+    }
+
+    private static void awaitDeploymentReady(String deploymentName) {
+        Awaitility.await()
+                .pollInterval(Duration.ofSeconds(5))
+                .atMost(2, TimeUnit.MINUTES)
+                .until(
+                        () -> {
+                            final Deployment deployment =
+                                    client.apps()
+                                            .deployments()
+                                            .inNamespace(namespace)
+                                            .withName(deploymentName)
+                                            .get();
+                            if (deployment == null) {
+                                return false;
+                            }
+                            final Pod pod = getFirstPodFromDeployment(deploymentName);
+                            final boolean ready = Readiness.getInstance().isReady(pod);
+                            if (!ready) {
+                                log.info(
+                                        "pod {} not ready, logs:\n{}",
+                                        pod.getMetadata().getName(),
+                                        getPodLogs(
+                                                pod.getMetadata().getName(),
+                                                pod.getMetadata().getNamespace(),
+                                                30));
+                                return false;
+                            }
+                            return true;
+                        });
     }
 
     @SneakyThrows
     private static void awaitApiGatewayReady() {
         log.info("waiting for api gateway to be ready");
-
-        client.apps()
-                .deployments()
-                .inNamespace(namespace)
-                .withName("langstream-api-gateway")
-                .waitUntilCondition(
-                        d ->
-                                d.getStatus().getReadyReplicas() != null
-                                        && d.getStatus().getReadyReplicas() == 1,
-                        120,
-                        TimeUnit.SECONDS);
+        awaitDeploymentReady("langstream-api-gateway");
         log.info("api gateway ready");
+    }
+
+    protected static String getPodLogs(String podName, String namespace, int tailingLines) {
+        final StringBuilder sb = new StringBuilder();
+        withPodLogs(
+                podName,
+                namespace,
+                tailingLines,
+                (container, logs) -> {
+                    sb.append("container: ").append(container).append("\n");
+                    sb.append(logs).append("\n");
+                });
+        return sb.toString();
     }
 
     protected static void withPodLogs(
@@ -814,6 +854,7 @@ public class BaseEndToEndTest implements TestWatcher {
         final List<String> namespaces = getAllUserNamespaces();
         dumpResources(filePrefix, Pod.class, namespaces);
         dumpResources(filePrefix, StatefulSet.class, namespaces);
+        dumpResources(filePrefix, Deployment.class, namespaces);
         dumpResources(filePrefix, Job.class, namespaces);
         dumpResources(filePrefix, AgentCustomResource.class, namespaces);
         dumpResources(filePrefix, ApplicationCustomResource.class, namespaces);
@@ -1000,7 +1041,7 @@ public class BaseEndToEndTest implements TestWatcher {
         if (env != null) {
             beforeCmd =
                     env.entrySet().stream()
-                            .map(e -> "export %s=%s".formatted(e.getKey(), e.getValue()))
+                            .map(e -> "export \"%s\"=\"%s\"".formatted(e.getKey(), e.getValue()))
                             .collect(Collectors.joining(" && "));
             beforeCmd += " && ";
         }

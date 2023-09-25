@@ -198,7 +198,8 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
             context.setKeyNativeSchema(((GenericRecord) record.key()).getSchema());
         }
         context.setValueObject(record.value());
-        context.setValueSchemaType(getSchemaType(record.value().getClass()));
+        context.setValueSchemaType(
+                record.value() == null ? null : getSchemaType(record.value().getClass()));
         // TODO: temporary hack. We should be able to get the schema from the record
         if (record.value() instanceof GenericRecord) {
             context.setKeyNativeSchema(((GenericRecord) record.value()).getSchema());

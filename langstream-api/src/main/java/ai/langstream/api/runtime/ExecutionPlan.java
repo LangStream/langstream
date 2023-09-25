@@ -95,11 +95,13 @@ public final class ExecutionPlan {
                 .filter(
                         e -> {
                             boolean res = e.getValue().equals(topicImplementation);
-                            log.info(
-                                    "Compare {} with {}: {}",
-                                    topicImplementation,
-                                    e.getValue(),
-                                    res);
+                            if (log.isDebugEnabled()) {
+                                log.debug(
+                                        "Compare {} with {}: {}",
+                                        topicImplementation,
+                                        e.getValue(),
+                                        res);
+                            }
                             return res;
                         })
                 .findFirst()

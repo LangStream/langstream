@@ -26,12 +26,18 @@ import com.datastax.oss.streaming.ai.jstl.JstlEvaluator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.milvus.client.MilvusServiceClient;
+import io.milvus.grpc.CollectionSchema;
+import io.milvus.grpc.DescribeCollectionResponse;
+import io.milvus.grpc.FieldSchema;
 import io.milvus.grpc.MutationResult;
 import io.milvus.param.R;
+import io.milvus.param.collection.DescribeCollectionParam;
+import io.milvus.param.dml.DeleteParam;
 import io.milvus.param.dml.UpsertParam;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,6 +64,9 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
         private String databaseName;
         private Map<String, JstlEvaluator> fields = new HashMap<>();
 
+        private String primaryKeyField;
+        private MilvusServiceClient milvusClient;
+
         public MilvusVectorDatabaseWriter(Map<String, Object> datasourceConfig) {
             MilvusDataSource dataSourceProvider = new MilvusDataSource();
             dataSource = dataSourceProvider.createDataSourceImplementation(datasourceConfig);
@@ -69,7 +78,7 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
         }
 
         @Override
-        public void initialise(Map<String, Object> agentConfiguration) {
+        public void initialise(Map<String, Object> agentConfiguration) throws Exception {
             this.collectionName =
                     ConfigurationUtils.getString("collection-name", "", agentConfiguration);
             this.databaseName =
@@ -84,6 +93,24 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
                                 buildEvaluator(field, "expression", Object.class));
                     });
             dataSource.initialize(null);
+
+            milvusClient = dataSource.getMilvusClient();
+            DescribeCollectionParam describe =
+                    DescribeCollectionParam.newBuilder()
+                            .withCollectionName(collectionName)
+                            .withDatabaseName(databaseName)
+                            .build();
+            R<DescribeCollectionResponse> describeCollectionResponse =
+                    milvusClient.describeCollection(describe);
+            MilvusModel.handleException(describeCollectionResponse);
+            CollectionSchema schema = describeCollectionResponse.getData().getSchema();
+            Optional<FieldSchema> primaryKey =
+                    schema.getFieldsList().stream().filter(f -> f.getIsPrimaryKey()).findFirst();
+            if (primaryKey.isEmpty()) {
+                throw new IllegalStateException(
+                        "No primary key found for collection " + collectionName);
+            }
+            this.primaryKeyField = primaryKey.get().getName();
         }
 
         @Override
@@ -93,32 +120,73 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
                 TransformContext transformContext =
                         GenAIToolKitAgent.recordToTransformContext(record, true);
 
-                MilvusServiceClient milvusClient = dataSource.getMilvusClient();
-
-                UpsertParam.Builder builder = UpsertParam.newBuilder();
-                builder.withCollectionName(collectionName);
-
-                if (databaseName != null && !databaseName.isEmpty()) {
-                    // this doesn't work at the moment, see
-                    // https://github.com/milvus-io/milvus-sdk-java/pull/644
-                    builder.withDatabaseName(databaseName);
-                }
-
                 JSONObject row = new JSONObject();
                 fields.forEach(
                         (name, evaluator) -> {
                             Object value = evaluator.evaluate(transformContext);
-                            row.put(name, value);
+                            if (value != null) {
+                                if (log.isDebugEnabled()) {
+                                    log.debug(
+                                            "setting value {} ({}) for field {}",
+                                            value,
+                                            value.getClass(),
+                                            name);
+                                }
+                                row.put(name, value);
+                            } else {
+                                // in Milvus you must not send null values
+                                if (log.isDebugEnabled()) {
+                                    log.debug("ignore null value for field {}", name);
+                                }
+                            }
                         });
-                builder.withRows(List.of(row));
-                UpsertParam upsert = builder.build();
 
-                R<MutationResult> upsertResponse = milvusClient.upsert(upsert);
-                log.info("Result {}", upsertResponse);
-                if (upsertResponse.getException() != null) {
-                    handle.completeExceptionally(upsertResponse.getException());
+                if (record.value() != null) {
+
+                    UpsertParam.Builder builder = UpsertParam.newBuilder();
+                    builder.withCollectionName(collectionName);
+
+                    if (databaseName != null && !databaseName.isEmpty()) {
+                        // this doesn't work at the moment, see
+                        // https://github.com/milvus-io/milvus-sdk-java/pull/644
+                        builder.withDatabaseName(databaseName);
+                    }
+
+                    builder.withRows(List.of(row));
+                    UpsertParam upsert = builder.build();
+
+                    R<MutationResult> upsertResponse = milvusClient.upsert(upsert);
+                    log.info("Result {}", upsertResponse);
+                    if (upsertResponse.getException() != null) {
+                        handle.completeExceptionally(upsertResponse.getException());
+                    } else {
+                        handle.complete(null);
+                    }
                 } else {
-                    handle.complete(null);
+                    Object value = row.get(primaryKeyField);
+                    if (value == null) {
+                        throw new IllegalStateException(
+                                "No primary key value found for record " + record);
+                    }
+                    String escaped =
+                            value instanceof String
+                                    ? ("'" + ((String) value).replace("'", "\\'") + "'")
+                                    : value.toString();
+                    String deleteExpression = String.format("%s in [%s]", primaryKeyField, escaped);
+                    log.info("Delete expression: {}", deleteExpression);
+                    // TODO: how do we escape the value?
+                    DeleteParam delete =
+                            DeleteParam.newBuilder()
+                                    .withCollectionName(collectionName)
+                                    .withExpr(deleteExpression)
+                                    .build();
+                    R<MutationResult> upsertResponse = milvusClient.delete(delete);
+                    log.info("Result {}", upsertResponse);
+                    if (upsertResponse.getException() != null) {
+                        handle.completeExceptionally(upsertResponse.getException());
+                    } else {
+                        handle.complete(null);
+                    }
                 }
             } catch (Exception e) {
                 handle.completeExceptionally(e);

@@ -27,9 +27,11 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
@@ -37,12 +39,61 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class MilvusDataSourceTest {
 
     // @Container
-    @Test
-    @Disabled() // "This test requires a running Milvus instance"
-    void testMilvusQuery() throws Exception {
+    @ParameterizedTest
+    @Disabled("Milvus is not available in the CI environment")
+    @ValueSource(booleans = {true, false})
+    void testMilvusQuery(boolean useCreateSimpleCollection) throws Exception {
 
-        String collectionName = "book";
+        String collectionName = "coll" + UUID.randomUUID().toString().replace("-", "");
         String databaseName = "default";
+
+        List<String> createCollectionStatements =
+                List.of(
+                        """
+                        {
+                            "command": "create-collection",
+                            "collection-name": "%s",
+                            "database-name": "%s",
+                            "field-types": [
+                               {
+                                  "name": "name",
+                                  "primary-key": true,
+                                  "data-type": "Varchar",
+                                  "max-length": 256
+                               },
+                               {
+                                  "name": "text",
+                                  "data-type": "Varchar",
+                                  "max-length": 256
+                               },
+                               {
+                                  "name": "vector",
+                                  "data-type": "FloatVector",
+                                  "dimension": 5
+                               }
+                            ]
+                        }
+                        """
+                                .formatted(collectionName, databaseName),
+                        """
+                           {
+                               "command": "load-collection"
+                           }
+                        """);
+
+        List<String> createSimpleCollectionCommands =
+                List.of(
+                        """
+                        {
+                            "command": "create-simple-collection",
+                            "collection-name": "%s",
+                            "database-name": "%s",
+                            "dimension": 5,
+                            "auto-id": false,
+                            "output-field": ["name", "text"]
+                        }
+                        """
+                                .formatted(collectionName, databaseName));
 
         int milvusPort = 19530;
         String milvusHost = "localhost";
@@ -73,26 +124,9 @@ class MilvusDataSourceTest {
                         "database-name",
                         databaseName,
                         "create-statements",
-                        List.of(
-                                """
-                        {
-                            "collection-name": "%s",
-                            "database-name": "%s",
-                            "dimension": 5,
-                            "field-types": [
-                               {
-                                  "name": "id",
-                                  "primary-key": true,
-                                  "data-type": "Int64"
-                               },
-                               {
-                                  "name": "text",
-                                  "data-type": "string"
-                               }
-                            ]
-                        }
-                        """
-                                        .formatted(collectionName, databaseName))));
+                        useCreateSimpleCollection
+                                ? createSimpleCollectionCommands
+                                : createCollectionStatements));
         collectionManager.initialize(assetDefinition);
         collectionManager.deleteAssetIfExists();
         assertFalse(collectionManager.assetExists());
@@ -104,23 +138,41 @@ class MilvusDataSourceTest {
 
             datasource.initialize(null);
 
-            writer.initialise(
-                    Map.of(
-                            "collection-name",
-                            collectionName,
-                            "fields",
-                            List.of(
+            // with a "SimpleCollection" the PK is always "id"
+            List<Map<String, Object>> fields =
+                    useCreateSimpleCollection
+                            ? List.of(
+                                    Map.of("name", "id", "expression", "1"),
+                                    Map.of(
+                                            "name",
+                                            "name",
+                                            "expression",
+                                            "fn:concat(key.name, key.chunk_id)"),
                                     Map.of(
                                             "name",
                                             "vector",
                                             "expression",
                                             "fn:toListOfFloat(value.vector)"),
-                                    Map.of("name", "text", "expression", "value.text"),
-                                    Map.of("name", "id", "expression", "fn:toLong(key.id)"))));
+                                    Map.of("name", "text", "expression", "value.text"))
+                            : List.of(
+                                    Map.of(
+                                            "name",
+                                            "name",
+                                            "expression",
+                                            "fn:concat(key.name, key.chunk_id)"),
+                                    Map.of(
+                                            "name",
+                                            "vector",
+                                            "expression",
+                                            "fn:toListOfFloat(value.vector)"),
+                                    Map.of("name", "text", "expression", "value.text"));
 
+            writer.initialise(Map.of("collection-name", collectionName, "fields", fields));
+
+            // the PK contains a single quote in order to test escaping values in deletion
             SimpleRecord record =
                     SimpleRecord.of(
-                            "{\"id\": 10}",
+                            "{\"name\": \"do'c1\", \"chunk_id\": 1}",
                             """
                     {
                         "vector": [1,2,3,4,5],
@@ -139,7 +191,7 @@ class MilvusDataSourceTest {
                                   "database-name": "%s",
                                   "consistency-level": "STRONG",
                                   "params": "",
-                                  "output-fields": ["id", "distance", "text"]
+                                  "output-fields": ["name", "text"]
                             }
                             """
                             .formatted(collectionName, databaseName);
@@ -148,9 +200,35 @@ class MilvusDataSourceTest {
             log.info("Results: {}", results);
 
             assertEquals(1, results.size());
-            assertEquals("10", results.get(0).get("id"));
-            assertEquals("0.0", results.get(0).get("distance"));
+            assertEquals("do'c11", results.get(0).get("name"));
             assertEquals("Lorem ipsum...", results.get(0).get("text"));
+
+            SimpleRecord recordUpdated =
+                    SimpleRecord.of(
+                            "{\"name\": \"do'c1\", \"chunk_id\": 1}",
+                            """
+                    {
+                        "vector": [1,2,3,4,6],
+                        "text": "Lorem ipsum changed..."
+                    }
+                    """);
+            writer.upsert(recordUpdated, Map.of()).get();
+
+            List<Object> params2 = List.of(List.of(1f, 2f, 3f, 4f, 6f));
+            List<Map<String, String>> results2 = datasource.fetchData(query, params2);
+            log.info("Results: {}", results2);
+
+            assertEquals(1, results2.size());
+            assertEquals("do'c11", results2.get(0).get("name"));
+            assertEquals("Lorem ipsum changed...", results2.get(0).get("text"));
+
+            SimpleRecord recordDelete =
+                    SimpleRecord.of("{\"name\": \"do'c1\", \"chunk_id\": 1}", null);
+            writer.upsert(recordDelete, Map.of()).get();
+
+            List<Map<String, String>> results3 = datasource.fetchData(query, params2);
+            log.info("Results: {}", results3);
+            assertEquals(0, results3.size());
         }
     }
 }

@@ -60,6 +60,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -727,6 +728,8 @@ public class BaseEndToEndTest implements TestWatcher {
 
     private static void awaitDeploymentReady(String deploymentName) {
         Awaitility.await()
+                .pollInterval(Duration.ofSeconds(5))
+                .atMost(2, TimeUnit.MINUTES)
                 .until(
                         () -> {
                             final Deployment deployment =

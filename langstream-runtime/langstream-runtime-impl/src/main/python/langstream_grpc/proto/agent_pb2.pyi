@@ -191,3 +191,25 @@ class ProcessorResult(_message.Message):
         error: _Optional[str] = ...,
         records: _Optional[_Iterable[_Union[Record, _Mapping]]] = ...,
     ) -> None: ...
+
+class SinkRequest(_message.Message):
+    __slots__ = ["schema", "record"]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    RECORD_FIELD_NUMBER: _ClassVar[int]
+    schema: Schema
+    record: Record
+    def __init__(
+        self,
+        schema: _Optional[_Union[Schema, _Mapping]] = ...,
+        record: _Optional[_Union[Record, _Mapping]] = ...,
+    ) -> None: ...
+
+class SinkResponse(_message.Message):
+    __slots__ = ["record_id", "error"]
+    RECORD_ID_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    record_id: int
+    error: str
+    def __init__(
+        self, record_id: _Optional[int] = ..., error: _Optional[str] = ...
+    ) -> None: ...

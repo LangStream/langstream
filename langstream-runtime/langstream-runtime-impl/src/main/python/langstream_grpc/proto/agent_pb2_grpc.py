@@ -46,6 +46,11 @@ class AgentServiceStub(object):
             request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorRequest.SerializeToString,
             response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorResponse.FromString,
         )
+        self.write = channel.stream_stream(
+            "/AgentService/write",
+            request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkRequest.SerializeToString,
+            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkResponse.FromString,
+        )
 
 
 class AgentServiceServicer(object):
@@ -69,6 +74,12 @@ class AgentServiceServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def write(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
 
 def add_AgentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -86,6 +97,11 @@ def add_AgentServiceServicer_to_server(servicer, server):
             servicer.process,
             request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorRequest.FromString,
             response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorResponse.SerializeToString,
+        ),
+        "write": grpc.stream_stream_rpc_method_handler(
+            servicer.write,
+            request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkRequest.FromString,
+            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkResponse.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -175,6 +191,35 @@ class AgentService(object):
             "/AgentService/process",
             langstream__grpc_dot_proto_dot_agent__pb2.ProcessorRequest.SerializeToString,
             langstream__grpc_dot_proto_dot_agent__pb2.ProcessorResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
+
+    @staticmethod
+    def write(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.stream_stream(
+            request_iterator,
+            target,
+            "/AgentService/write",
+            langstream__grpc_dot_proto_dot_agent__pb2.SinkRequest.SerializeToString,
+            langstream__grpc_dot_proto_dot_agent__pb2.SinkResponse.FromString,
             options,
             channel_credentials,
             insecure,

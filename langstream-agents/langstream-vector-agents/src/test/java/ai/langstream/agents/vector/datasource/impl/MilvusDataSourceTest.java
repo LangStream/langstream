@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -40,7 +39,7 @@ class MilvusDataSourceTest {
 
     // @Container
     @ParameterizedTest
-    //@Disabled("Milvus is not available in the CI environment")
+    // @Disabled("Milvus is not available in the CI environment")
     @ValueSource(booleans = {true, false})
     void testMilvusQuery(boolean useCreateSimpleCollection) throws Exception {
 
@@ -85,7 +84,8 @@ class MilvusDataSourceTest {
                                        "index-type": "AUTOINDEX",
                                        "metric-type": "L2"
                                    }
-                                """.formatted(collectionName, databaseName),
+                                """
+                                .formatted(collectionName, databaseName),
                         """
                            {
                                "command": "load-collection"

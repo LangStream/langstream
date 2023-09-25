@@ -31,6 +31,7 @@ import io.milvus.param.collection.FieldType;
 import io.milvus.param.dml.SearchParam;
 import io.milvus.param.highlevel.collection.CreateSimpleCollectionParam;
 import io.milvus.param.highlevel.dml.SearchSimpleParam;
+import io.milvus.param.index.CreateIndexParam;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -40,8 +41,6 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import io.milvus.param.index.CreateIndexParam;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.IteratorUtils;
 
@@ -83,8 +82,7 @@ public class MilvusModel {
         module.addDeserializer(
                 CreateIndexParam.Builder.class,
                 new MilvusBuilderDeserializer<>(
-                        CreateIndexParam.Builder.class,
-                        CreateIndexParam::newBuilder));
+                        CreateIndexParam.Builder.class, CreateIndexParam::newBuilder));
 
         module.addDeserializer(
                 CreateCollectionParam.Builder.class,

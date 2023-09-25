@@ -24,9 +24,6 @@ import ai.langstream.api.util.ConfigurationUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DescribeCollectionResponse;
-import io.milvus.param.Constant;
-import io.milvus.param.IndexType;
-import io.milvus.param.MetricType;
 import io.milvus.param.R;
 import io.milvus.param.RpcStatus;
 import io.milvus.param.collection.CreateCollectionParam;
@@ -168,22 +165,20 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
                             break;
                         }
                     case "create-index":
-                    {
+                        {
+                            CreateIndexParam parsedQuery =
+                                    buildObjectFromJson(
+                                                    statement,
+                                                    CreateIndexParam.Builder.class,
+                                                    List.of(),
+                                                    MilvusModel.getMapper())
+                                            .build();
+                            log.info("Command: {}", parsedQuery);
 
-                        CreateIndexParam parsedQuery =
-                                buildObjectFromJson(
-                                        statement,
-                                        CreateIndexParam.Builder.class,
-                                        List.of(),
-                                        MilvusModel.getMapper())
-                                        .build();
-                        log.info("Command: {}", parsedQuery);
-
-                        R<RpcStatus> indexResult =
-                                milvusClient.createIndex(parsedQuery);
-                        MilvusModel.handleException(indexResult);
-                        break;
-                    }
+                            R<RpcStatus> indexResult = milvusClient.createIndex(parsedQuery);
+                            MilvusModel.handleException(indexResult);
+                            break;
+                        }
                     case "load-collection":
                         {
                             R<RpcStatus> result =

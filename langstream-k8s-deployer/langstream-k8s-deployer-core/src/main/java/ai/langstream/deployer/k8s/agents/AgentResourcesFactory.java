@@ -35,9 +35,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
+import io.fabric8.kubernetes.api.model.ContainerPortBuilder;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Probe;
+import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
@@ -210,14 +213,19 @@ public class AgentResourcesFactory {
                         .withTerminationMessagePolicy("FallbackToLogsOnError")
                         .build();
 
+        final ContainerPort port = new ContainerPortBuilder()
+                .withName("http")
+                .withContainerPort(8080)
+                .build();
+
         final Container container =
                 new ContainerBuilder()
                         .withName("runtime")
                         .withImage(image)
                         .withImagePullPolicy(imagePullPolicy)
-                        .withPorts(List.of(new ContainerPort(8080, null, null, "http", "TCP")))
-                        //                .withLivenessProbe(createLivenessProbe())
-                        //                .withReadinessProbe(createReadinessProbe())
+                        .withPorts(List.of(port))
+                        .withLivenessProbe(createLivenessProbe(agentResourceUnitConfiguration))
+                        .withReadinessProbe(createReadinessProbe(agentResourceUnitConfiguration))
                         .withResources(
                                 convertResources(
                                         spec.getResources(), agentResourceUnitConfiguration))
@@ -316,6 +324,35 @@ public class AgentResourcesFactory {
                 .endSpec()
                 .endTemplate()
                 .endSpec()
+                .build();
+    }
+
+    private static Probe createLivenessProbe(AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+        return new ProbeBuilder()
+                .withNewHttpGet()
+                .withNewPort()
+                .withValue("http")
+                .endPort()
+                .withPath("/metrics")
+                .endHttpGet()
+                .withTimeoutSeconds(agentResourceUnitConfiguration.getLivenessProbeTimeoutSeconds())
+                .withInitialDelaySeconds(agentResourceUnitConfiguration.getLivenessProbeInitialDelaySeconds())
+                .withPeriodSeconds(agentResourceUnitConfiguration.getLivenessProbePeriodSeconds())
+                .build();
+    }
+
+
+    private static Probe createReadinessProbe(AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+        return new ProbeBuilder()
+                .withNewHttpGet()
+                .withNewPort()
+                .withValue("http")
+                .endPort()
+                .withPath("/metrics")
+                .endHttpGet()
+                .withTimeoutSeconds(agentResourceUnitConfiguration.getReadinessProbeTimeoutSeconds())
+                .withInitialDelaySeconds(agentResourceUnitConfiguration.getReadinessProbeInitialDelaySeconds())
+                .withPeriodSeconds(agentResourceUnitConfiguration.getReadinessProbePeriodSeconds())
                 .build();
     }
 
@@ -427,14 +464,14 @@ public class AgentResourcesFactory {
                         "%f"
                                 .formatted(
                                         memCpuUnits
-                                                * agentResourceUnitConfiguration.getCpuPerUnit())));
+                                        * agentResourceUnitConfiguration.getCpuPerUnit())));
         quantities.put(
                 "memory",
                 Quantity.parse(
                         "%dM"
                                 .formatted(
                                         memCpuUnits
-                                                * agentResourceUnitConfiguration.getMemPerUnit())));
+                                        * agentResourceUnitConfiguration.getMemPerUnit())));
 
         return new ResourceRequirementsBuilder()
                 .withRequests(quantities)
@@ -573,8 +610,8 @@ public class AgentResourcesFactory {
                                                 agentsStatus);
                                         ApplicationStatus.AgentWorkerStatus
                                                 agentWorkerStatusWithInfo =
-                                                        agentWorkerStatus.applyAgentStatus(
-                                                                agentsStatus);
+                                                agentWorkerStatus.applyAgentStatus(
+                                                        agentsStatus);
                                         result.complete(agentWorkerStatusWithInfo);
                                     } else {
                                         log.warn(
@@ -670,9 +707,9 @@ public class AgentResourcesFactory {
                                                 podStatus.getUrl(), podStatus.getMessage());
                                         default -> throw new RuntimeException(
                                                 "Unexpected pod state: "
-                                                        + podStatus.getState()
-                                                        + " "
-                                                        + e.getKey());
+                                                + podStatus.getState()
+                                                + " "
+                                                + e.getKey());
                                     };
                             if (agentRunnerSpec != null) {
                                 status =
@@ -715,7 +752,7 @@ public class AgentResourcesFactory {
         if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(fullAgentId).matches()) {
             throw new IllegalArgumentException(
                     ("Agent id '%s' (computed as '%s') contains illegal characters. "
-                                    + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.")
+                     + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.")
                             .formatted(agentId, fullAgentId));
         }
         if (agentId.length() > MAX_AGENT_ID_LENGTH) {

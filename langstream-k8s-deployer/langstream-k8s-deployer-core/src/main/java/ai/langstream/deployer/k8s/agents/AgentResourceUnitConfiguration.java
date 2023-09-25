@@ -32,4 +32,12 @@ public class AgentResourceUnitConfiguration {
     private int maxInstanceUnits = 8;
 
     private int defaultMaxTotalResourceUnitsPerTenant = 0;
+
+    private int livenessProbeInitialDelaySeconds = 10;
+    private int livenessProbePeriodSeconds = 30;
+    private int livenessProbeTimeoutSeconds = 5;
+
+    private int readinessProbeInitialDelaySeconds = 10;
+    private int readinessProbePeriodSeconds = 30;
+    private int readinessProbeTimeoutSeconds = 5;
 }

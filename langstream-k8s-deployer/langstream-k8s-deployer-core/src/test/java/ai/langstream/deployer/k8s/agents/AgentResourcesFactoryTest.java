@@ -281,7 +281,6 @@ class AgentResourcesFactoryTest {
                 statefulSet.getSpec().getTemplate().getMetadata().getAnnotations().get("ann1"));
     }
 
-
     @Test
     void testProbes() {
         final AgentCustomResource resource =
@@ -314,17 +313,24 @@ class AgentResourcesFactoryTest {
                                 .agentCustomResource(resource)
                                 .agentResourceUnitConfiguration(config)
                                 .build());
-        assertNull(statefulSet.getSpec().getTemplate().getSpec()
-                .getContainers()
-                .get(0)
-                .getReadinessProbe());
-        assertNotNull(statefulSet.getSpec().getTemplate().getSpec()
-                .getContainers()
-                .get(0)
-                .getLivenessProbe());
+        assertNull(
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getReadinessProbe());
+        assertNotNull(
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getLivenessProbe());
         config.setEnableReadinessProbe(true);
         config.setEnableLivenessProbe(false);
-
 
         statefulSet =
                 AgentResourcesFactory.generateStatefulSet(
@@ -333,14 +339,22 @@ class AgentResourcesFactoryTest {
                                 .agentResourceUnitConfiguration(config)
                                 .build());
 
-        assertNull(statefulSet.getSpec().getTemplate().getSpec()
-                .getContainers()
-                .get(0)
-                .getLivenessProbe());
-        assertNotNull(statefulSet.getSpec().getTemplate().getSpec()
-                .getContainers()
-                .get(0)
-                .getReadinessProbe());
+        assertNull(
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getLivenessProbe());
+        assertNotNull(
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getReadinessProbe());
 
         config.setEnableLivenessProbe(true);
         config.setLivenessProbeInitialDelaySeconds(25);
@@ -358,26 +372,32 @@ class AgentResourcesFactoryTest {
                                 .agentResourceUnitConfiguration(config)
                                 .build());
 
-        final Probe liveness = statefulSet.getSpec().getTemplate().getSpec()
-                .getContainers()
-                .get(0)
-                .getLivenessProbe();
+        final Probe liveness =
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getLivenessProbe();
 
         assertEquals(25, liveness.getInitialDelaySeconds());
         assertEquals(10, liveness.getTimeoutSeconds());
         assertEquals(60, liveness.getPeriodSeconds());
 
-
-        final Probe readiness = statefulSet.getSpec().getTemplate().getSpec()
-                .getContainers()
-                .get(0)
-                .getReadinessProbe();
+        final Probe readiness =
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getReadinessProbe();
 
         assertEquals(35, readiness.getInitialDelaySeconds());
         assertEquals(8, readiness.getTimeoutSeconds());
         assertEquals(80, readiness.getPeriodSeconds());
     }
-
 
     private AgentCustomResource getCr(String yaml) {
         return SerializationUtil.readYaml(yaml, AgentCustomResource.class);

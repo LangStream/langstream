@@ -21,11 +21,14 @@ if [ -z "$version" ]; then
     exit 1
 fi
 temp_dir=$(mktemp -d)
-mkdir -p $temp_dir/bin
-cp mini-langstream/mini-langstream $temp_dir/bin/mini-langstream
+mkdir -p $temp_dir/mini-langstream-$version
+mkdir -p $temp_dir/mini-langstream-$version/bin
+
+cp mini-langstream/mini-langstream $temp_dir/mini-langstream-$version/bin/mini-langstream
 
 mkdir -p target
-target_filename=$(realpath target/mini-langstream-$version.zip)
+HERE=$(pwd)
+target_filename=$HERE/target/mini-langstream-$version.zip
 rm -rf $target_filename
 cd $temp_dir
 zip -r $target_filename .

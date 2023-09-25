@@ -23,14 +23,17 @@ import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
 import com.azure.ai.openai.models.ChatRole;
 import com.azure.ai.openai.models.CompletionsFinishReason;
+import com.azure.ai.openai.models.CompletionsOptions;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
+import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -205,6 +208,131 @@ public class OpenAICompletionService implements CompletionsService {
 
         public ChatMessage buildTotalAnswerMessage() {
             return new ChatMessage(role.get(), totalAnswer.toString());
+        }
+    }
+
+    @Override
+    public CompletableFuture<String> getTextCompletions(
+            List<String> prompt,
+            StreamingChunksConsumer streamingChunksConsumer,
+            Map<String, Object> options) {
+        int minChunksPerMessage = getInteger("min-chunks-per-message", 20, options);
+        CompletionsOptions completionsOptions =
+                new CompletionsOptions(prompt)
+                        .setMaxTokens(getInteger("max-tokens", null, options))
+                        .setTemperature(getDouble("temperature", null, options))
+                        .setTopP(getDouble("top-p", null, options))
+                        .setLogitBias((Map<String, Integer>) options.get("logit-bias"))
+                        .setStream(getBoolean("stream", true, options))
+                        .setUser((String) options.get("user"))
+                        .setStop((List<String>) options.get("stop"))
+                        .setPresencePenalty(getDouble("presence-penalty", null, options))
+                        .setFrequencyPenalty(getDouble("frequency-penalty", null, options));
+
+        // this is the default behavior, as it is async
+        // it works even if the streamingChunksConsumer is null
+        if (completionsOptions.isStream()) {
+            CompletableFuture<?> finished = new CompletableFuture<>();
+            Flux<com.azure.ai.openai.models.Completions> flux =
+                    client.getCompletionsStream((String) options.get("model"), completionsOptions);
+
+            TextCompletionsConsumer textCompletionsConsumer =
+                    new TextCompletionsConsumer(
+                            streamingChunksConsumer, minChunksPerMessage, finished);
+
+            flux.doOnError(
+                            error -> {
+                                log.error(
+                                        "Internal error while processing the streaming response",
+                                        error);
+                                finished.completeExceptionally(error);
+                            })
+                    .doOnNext(textCompletionsConsumer)
+                    .subscribe();
+
+            return finished.thenApply(___ -> textCompletionsConsumer.totalAnswer.toString());
+        } else {
+            com.azure.ai.openai.models.Completions completions =
+                    client.getCompletions((String) options.get("model"), completionsOptions)
+                            .block();
+            final String text = completions.getChoices().get(0).getText();
+            return CompletableFuture.completedFuture(text);
+        }
+    }
+
+    private static class TextCompletionsConsumer
+            implements Consumer<com.azure.ai.openai.models.Completions> {
+        private final StreamingChunksConsumer streamingChunksConsumer;
+        private final CompletableFuture<?> finished;
+
+        private final AtomicReference<String> role = new AtomicReference<>();
+        private final StringWriter totalAnswer = new StringWriter();
+
+        private final StringWriter writer = new StringWriter();
+        private final AtomicInteger numberOfChunks = new AtomicInteger();
+        private final int minChunksPerMessage;
+
+        private AtomicInteger currentChunkSize = new AtomicInteger(1);
+        private AtomicInteger index = new AtomicInteger();
+
+        private final AtomicBoolean firstChunk = new AtomicBoolean(true);
+
+        public TextCompletionsConsumer(
+                StreamingChunksConsumer streamingChunksConsumer,
+                int minChunksPerMessage,
+                CompletableFuture<?> finished) {
+            this.minChunksPerMessage = minChunksPerMessage;
+            this.streamingChunksConsumer =
+                    streamingChunksConsumer != null
+                            ? streamingChunksConsumer
+                            : (answerId, index, chunk, last) -> {};
+            this.finished = finished;
+        }
+
+        @Override
+        @SneakyThrows
+        public synchronized void accept(com.azure.ai.openai.models.Completions completions) {
+            List<com.azure.ai.openai.models.Choice> choices = completions.getChoices();
+            String answerId = completions.getId();
+            if (!choices.isEmpty()) {
+                com.azure.ai.openai.models.Choice first = choices.get(0);
+
+                CompletionsFinishReason finishReason = first.getFinishReason();
+                boolean last = finishReason != null;
+                final String content = first.getText();
+                if (content == null) {
+                    return;
+                }
+                if (firstChunk.compareAndSet(true, false)) {
+                    // Some models return two line break at the beginning of the first response,
+                    // even though this is not documented
+                    // https://community.openai.com/t/output-starts-often-with-linebreaks/36333/4
+                    if (content.isBlank()) {
+                        return;
+                    }
+                }
+                writer.write(content);
+                totalAnswer.write(content);
+                numberOfChunks.incrementAndGet();
+
+                // start from 1 chunk, then double the size until we reach the minChunksPerMessage
+                // this gives better latencies for the first message
+                int currentMinChunksPerMessage = currentChunkSize.get();
+
+                if (numberOfChunks.get() >= currentMinChunksPerMessage || last) {
+                    currentChunkSize.set(
+                            Math.min(currentMinChunksPerMessage * 2, minChunksPerMessage));
+                    final String chunkContent = writer.toString();
+                    final Chunk chunk = () -> chunkContent;
+                    streamingChunksConsumer.consumeChunk(
+                            answerId, index.incrementAndGet(), chunk, last);
+                    writer.getBuffer().setLength(0);
+                    numberOfChunks.set(0);
+                }
+                if (last) {
+                    finished.complete(null);
+                }
+            }
         }
     }
 }

@@ -15,20 +15,6 @@
  */
 package com.datastax.oss.streaming.ai.completions;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ChatChoice implements Chunk {
-    private ChatMessage message;
-
-    @Override
-    public String content() {
-        return message.getContent();
-    }
+public interface Chunk {
+    String content();
 }

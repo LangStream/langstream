@@ -8,3 +8,4 @@ compute
 compute-ai-embeddings
 query
 ai-chat-completions
+ai-text-completions

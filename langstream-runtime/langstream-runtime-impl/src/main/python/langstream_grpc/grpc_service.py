@@ -18,6 +18,7 @@ import concurrent
 import importlib
 import json
 import logging
+import queue
 import threading
 from io import BytesIO
 from typing import Iterable, Union, List, Tuple, Any, Optional, Dict
@@ -37,9 +38,18 @@ from langstream_grpc.proto.agent_pb2 import (
     InfoResponse,
     SourceRequest,
     SourceResponse,
+    SinkRequest,
+    SinkResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceServicer
-from langstream_runtime.api import Source, Sink, Processor, Record, Agent
+from langstream_runtime.api import (
+    Source,
+    Sink,
+    Processor,
+    Record,
+    Agent,
+    CommitCallback,
+)
 from langstream_runtime.util import SimpleRecord, AvroValue
 
 
@@ -65,35 +75,6 @@ def wrap_in_record(record):
     return record
 
 
-def handle_requests(
-    agent: Source,
-    requests: Iterable[SourceRequest],
-    read_records: Dict[int, Record],
-    read_result,
-):
-    try:
-        for request in requests:
-            if len(request.committed_records) > 0:
-                records = []
-                for record_id in request.committed_records:
-                    record = read_records.pop(record_id, None)
-                    if record is not None:
-                        records.append(record)
-                call_method_if_exists(agent, "commit", records)
-            if request.HasField("permanent_failure"):
-                failure = request.permanent_failure
-                record = read_records.pop(failure.record_id, None)
-                call_method_if_exists(
-                    agent,
-                    "permanent_failure",
-                    record,
-                    RuntimeError(failure.error_message),
-                )
-        read_result.append(True)
-    except Exception as e:
-        read_result.append(e)
-
-
 class AgentService(AgentServiceServicer):
     def __init__(self, agent: Union[Agent, Source, Sink, Processor]):
         self.agent = agent
@@ -101,15 +82,16 @@ class AgentService(AgentServiceServicer):
         self.schemas = {}
         self.client_schemas = {}
 
-    def agent_info(self, _, context):
+    def agent_info(self, _, __):
         info = call_method_if_exists(self.agent, "agent_info") or {}
         return InfoResponse(json_info=json.dumps(info))
 
-    def read(self, requests: Iterable[SourceRequest], context):
+    def read(self, requests: Iterable[SourceRequest], _):
         read_records = {}
         op_result = []
         read_thread = threading.Thread(
-            target=handle_requests, args=(self.agent, requests, read_records, op_result)
+            target=self.handle_read_requests,
+            args=(requests, read_records, op_result),
         )
         last_record_id = 0
         read_thread.start()
@@ -134,7 +116,35 @@ class AgentService(AgentServiceServicer):
                 yield SourceResponse(records=grpc_records)
         read_thread.join()
 
-    def process(self, requests: Iterable[ProcessorRequest], context):
+    def handle_read_requests(
+        self,
+        requests: Iterable[SourceRequest],
+        read_records: Dict[int, Record],
+        read_result,
+    ):
+        try:
+            for request in requests:
+                if len(request.committed_records) > 0:
+                    records = []
+                    for record_id in request.committed_records:
+                        record = read_records.pop(record_id, None)
+                        if record is not None:
+                            records.append(record)
+                    call_method_if_exists(self.agent, "commit", records)
+                if request.HasField("permanent_failure"):
+                    failure = request.permanent_failure
+                    record = read_records.pop(failure.record_id, None)
+                    call_method_if_exists(
+                        self.agent,
+                        "permanent_failure",
+                        record,
+                        RuntimeError(failure.error_message),
+                    )
+            read_result.append(True)
+        except Exception as e:
+            read_result.append(e)
+
+    def process(self, requests: Iterable[ProcessorRequest], _):
         for request in requests:
             if request.HasField("schema"):
                 schema = fastavro.parse_schema(json.loads(request.schema.value))
@@ -157,6 +167,46 @@ class AgentService(AgentServiceServicer):
                             grpc_result.records.append(grpc_record)
                     grpc_results.append(grpc_result)
                 yield ProcessorResponse(results=grpc_results)
+
+    def write(self, requests: Iterable[SinkRequest], _):
+        write_results = queue.Queue(1000)
+
+        class GrpcCommitCallback(CommitCallback):
+            def commit(self, records: List[RecordWithId]):
+                for record in records:
+                    write_results.put(record.record_id)
+
+        self.agent.set_commit_callback(GrpcCommitCallback())
+        write_thread = threading.Thread(
+            target=self.handle_write_requests, args=(requests, write_results)
+        )
+        write_thread.start()
+
+        while True:
+            try:
+                result = write_results.get(True, 0.1)
+                if isinstance(result, Exception):
+                    yield SinkResponse(error=str(result))
+                elif isinstance(result, bool):
+                    break
+                else:
+                    yield SinkResponse(record_id=result)
+            except queue.Empty:
+                pass
+        write_thread.join()
+
+    def handle_write_requests(self, requests: Iterable[SinkRequest], write_results):
+        for request in requests:
+            if request.HasField("schema"):
+                schema = fastavro.parse_schema(json.loads(request.schema.value))
+                self.client_schemas[request.schema.schema_id] = schema
+            if request.HasField("record"):
+                record = self.from_grpc_record(request.record)
+                try:
+                    self.agent.write([record])
+                except Exception as e:
+                    write_results.put(e)
+        write_results.put(True)
 
     def from_grpc_record(self, record: GrpcRecord) -> SimpleRecord:
         return RecordWithId(

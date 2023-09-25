@@ -29,7 +29,7 @@ public interface AgentProcessor extends AgentCode {
      * records as it received.
      *
      * @param records the list of input records, this is never empty
-     * @return the list of output records
+     * @param recordSink the sink to emit records and errors to
      */
     void process(List<Record> records, RecordSink recordSink);
 

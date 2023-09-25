@@ -25,7 +25,12 @@ public interface CompletionsService {
             StreamingChunksConsumer streamingChunksConsumer,
             Map<String, Object> options);
 
+    CompletableFuture<String> getTextCompletions(
+            List<String> prompt,
+            StreamingChunksConsumer streamingChunksConsumer,
+            Map<String, Object> options);
+
     interface StreamingChunksConsumer {
-        void consumeChunk(String answerId, int index, ChatChoice chunk, boolean last);
+        void consumeChunk(String answerId, int index, Chunk chunk, boolean last);
     }
 }

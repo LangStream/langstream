@@ -16,8 +16,8 @@
 package com.datastax.oss.streaming.ai;
 
 import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.convertToMap;
-
 import com.azure.ai.openai.models.ChatCompletionsOptions;
+import com.azure.ai.openai.models.CompletionsOptions;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -25,6 +25,7 @@ import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.model.JsonRecord;
 import com.datastax.oss.streaming.ai.model.config.ChatCompletionsConfig;
+import com.datastax.oss.streaming.ai.model.config.TextCompletionsConfig;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumer;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumerFactory;
 import com.samskivert.mustache.Mustache;
@@ -39,55 +40,36 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
 
 @Slf4j
-public class ChatCompletionsStep implements TransformStep {
+public class TextCompletionsStep implements TransformStep {
 
     private final CompletionsService completionsService;
 
-    private final ChatCompletionsConfig config;
+    private final TextCompletionsConfig config;
 
     private final Map<Schema, Schema> avroValueSchemaCache = new ConcurrentHashMap<>();
 
     private final Map<Schema, Schema> avroKeySchemaCache = new ConcurrentHashMap<>();
 
-    private final Map<ChatMessage, Template> messageTemplates = new ConcurrentHashMap<>();
+    private final Map<String, Template> messageTemplates = new ConcurrentHashMap<>();
     private final StreamingAnswersConsumerFactory streamingAnswersConsumerFactory;
 
     private StreamingAnswersConsumer streamingAnswersConsumer;
 
-    // for tests
-    public ChatCompletionsStep(
-            CompletionsService completionsService, ChatCompletionsConfig config) {
-        this(
-                completionsService,
-                (topicName) -> {
-                    return new StreamingAnswersConsumer() {
-                        @Override
-                        public void streamAnswerChunk(
-                                int index,
-                                String message,
-                                boolean last,
-                                TransformContext outputMessage) {
-                            log.info("index: {}, message: {}, last: {}", index, message, last);
-                        }
-                    };
-                },
-                config);
-    }
 
-    public ChatCompletionsStep(
+    public TextCompletionsStep(
             CompletionsService completionsService,
             StreamingAnswersConsumerFactory streamingAnswersConsumerFactory,
-            ChatCompletionsConfig config) {
+            TextCompletionsConfig config) {
         this.streamingAnswersConsumerFactory = streamingAnswersConsumerFactory;
         this.completionsService = completionsService;
         this.config = config;
         this.streamingAnswersConsumer = (index, message, last, record) -> {};
-        config.getMessages()
+        config.getPrompt()
                 .forEach(
-                        chatMessage ->
+                        p ->
                                 messageTemplates.put(
-                                        chatMessage,
-                                        Mustache.compiler().compile(chatMessage.getContent())));
+                                        p,
+                                        Mustache.compiler().compile(p)));
     }
 
     @Override
@@ -110,19 +92,17 @@ public class ChatCompletionsStep implements TransformStep {
     public CompletableFuture<?> processAsync(TransformContext transformContext) {
         JsonRecord jsonRecord = transformContext.toJsonRecord();
 
-        List<ChatMessage> messages =
-                config.getMessages().stream()
+        List<String> prompt =
+                config.getPrompt().stream()
                         .map(
-                                message ->
-                                        new ChatMessage(message.getRole())
-                                                .setContent(
-                                                        messageTemplates
-                                                                .get(message)
-                                                                .execute(jsonRecord)))
+                                p ->
+                                        messageTemplates
+                                                .get(p)
+                                                .execute(jsonRecord))
                         .collect(Collectors.toList());
 
-        ChatCompletionsOptions chatCompletionsOptions =
-                new ChatCompletionsOptions(List.of())
+        CompletionsOptions completionsOptions =
+                new CompletionsOptions(List.of())
                         .setMaxTokens(config.getMaxTokens())
                         .setTemperature(config.getTemperature())
                         .setTopP(config.getTopP())
@@ -132,14 +112,14 @@ public class ChatCompletionsStep implements TransformStep {
                         .setStop(config.getStop())
                         .setPresencePenalty(config.getPresencePenalty())
                         .setFrequencyPenalty(config.getFrequencyPenalty());
-        Map<String, Object> options = convertToMap(chatCompletionsOptions);
+        Map<String, Object> options = convertToMap(completionsOptions);
         options.put("model", config.getModel());
         options.put("min-chunks-per-message", config.getMinChunksPerMessage());
         options.remove("messages");
 
-        CompletableFuture<ChatCompletions> chatCompletionsHandle =
-                completionsService.getChatCompletions(
-                        messages,
+        CompletableFuture<String> chatCompletionsHandle =
+                completionsService.getTextCompletions(
+                        prompt,
                         new CompletionsService.StreamingChunksConsumer() {
                             @Override
                             public void consumeChunk(
@@ -163,20 +143,19 @@ public class ChatCompletionsStep implements TransformStep {
                         options);
 
         return chatCompletionsHandle.thenApply(
-                chatCompletions -> {
-                    ChatChoice chatChoice = chatCompletions.getChoices().get(0);
-                    applyResultFieldToContext(transformContext, chatChoice.content(), false);
+                content -> {
+                    applyResultFieldToContext(transformContext, content, false);
 
                     String logField = config.getLogField();
                     if (logField != null && !logField.isEmpty()) {
                         Map<String, Object> logMap = new HashMap<>();
                         logMap.put("model", config.getModel());
                         logMap.put("options", options);
-                        logMap.put("messages", messages);
+                        logMap.put("messages", prompt);
                         transformContext.setResultField(
                                 TransformContext.toJson(logMap),
                                 logField,
-                                org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING),
+                                Schema.create(Schema.Type.STRING),
                                 avroKeySchemaCache,
                                 avroValueSchemaCache);
                     }

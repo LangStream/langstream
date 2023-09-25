@@ -33,6 +33,7 @@ public class GenAIAgentCodeProvider implements AgentCodeProvider {
                     "compute-ai-embeddings",
                     "query",
                     "ai-chat-completions",
+                    "ai-text-completions",
                     "ai-tools" // legacy
                     );
 

@@ -162,6 +162,13 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
             }
 
             @Override
+            public CompletableFuture<String> getTextCompletions(List<String> prompt,
+                                                                StreamingChunksConsumer streamingChunksConsumer,
+                                                                Map<String, Object> options) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             @SneakyThrows
             public CompletableFuture<ChatCompletions> getChatCompletions(
                     List<ChatMessage> list,

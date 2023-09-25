@@ -26,7 +26,8 @@ import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ComponentType;
-import com.datastax.oss.streaming.ai.ChatCompletionsStep;
+import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumer;
+import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumerFactory;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -337,13 +338,13 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     }
 
     private static class TopicProducerStreamingAnswersConsumerFactory
-            implements ChatCompletionsStep.StreamingAnswersConsumerFactory {
+            implements StreamingAnswersConsumerFactory {
         private AgentContext agentContext;
 
         public TopicProducerStreamingAnswersConsumerFactory() {}
 
         @Override
-        public ChatCompletionsStep.StreamingAnswersConsumer create(String topicName) {
+        public StreamingAnswersConsumer create(String topicName) {
             TopicProducer topicProducer =
                     agentContext
                             .getTopicConnectionProvider()
@@ -359,7 +360,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     }
 
     private static class TopicStreamingAnswersConsumer
-            implements ChatCompletionsStep.StreamingAnswersConsumer {
+            implements StreamingAnswersConsumer {
         private TopicProducer topicProducer;
 
         public TopicStreamingAnswersConsumer(TopicProducer topicProducer) {

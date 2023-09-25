@@ -285,7 +285,7 @@
 						<paths>
 							<path>src/main/docker/jib</path>
 							<path>
-								<from>${pom.build.directory}/agents</from>
+								<from>${project.build.directory}/agents</from>
 								<into>/app/agents</into>
 							</path>
 						</paths>

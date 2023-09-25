@@ -35,6 +35,7 @@ import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Status;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRole;
@@ -45,6 +46,7 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.dsl.ContainerResource;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.fabric8.kubernetes.client.readiness.Readiness;
 import io.jsonwebtoken.Jwts;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -171,14 +173,7 @@ public class BaseEndToEndTest implements TestWatcher {
     @SneakyThrows
     protected static void copyFileToClientContainer(File file, String toPath) {
         final String podName =
-                client.pods()
-                        .inNamespace(namespace)
-                        .withLabel("app.kubernetes.io/name", "langstream-client")
-                        .list()
-                        .getItems()
-                        .get(0)
-                        .getMetadata()
-                        .getName();
+                getFirstPodFromDeployment("langstream-client").getMetadata().getName();
         if (file.isFile()) {
             runProcess(
                     "kubectl cp %s %s:%s -n %s"
@@ -192,6 +187,15 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
+    private static Pod getFirstPodFromDeployment(String deploymentName) {
+        return client.pods()
+                .inNamespace(namespace)
+                .withLabel("app.kubernetes.io/name", deploymentName)
+                .list()
+                .getItems()
+                .get(0);
+    }
+
     @SneakyThrows
     protected static String executeCommandOnClient(String... args) {
         return executeCommandOnClient(2, TimeUnit.MINUTES, args);
@@ -199,13 +203,7 @@ public class BaseEndToEndTest implements TestWatcher {
 
     @SneakyThrows
     protected static String executeCommandOnClient(long timeout, TimeUnit unit, String... args) {
-        final Pod pod =
-                client.pods()
-                        .inNamespace(namespace)
-                        .withLabel("app.kubernetes.io/name", "langstream-client")
-                        .list()
-                        .getItems()
-                        .get(0);
+        final Pod pod = getFirstPodFromDeployment("langstream-client");
         return execInPod(
                         pod.getMetadata().getName(),
                         pod.getSpec().getContainers().get(0).getName(),
@@ -722,35 +720,58 @@ public class BaseEndToEndTest implements TestWatcher {
 
     private static void awaitControlPlaneReady() {
         log.info("waiting for control plane to be ready");
-
-        client.apps()
-                .deployments()
-                .inNamespace(namespace)
-                .withName("langstream-control-plane")
-                .waitUntilCondition(
-                        d ->
-                                d.getStatus().getReadyReplicas() != null
-                                        && d.getStatus().getReadyReplicas() == 1,
-                        120,
-                        TimeUnit.SECONDS);
+        final String deploymentName = "langstream-control-plane";
+        awaitDeploymentReady(deploymentName);
         log.info("control plane ready");
+    }
+
+    private static void awaitDeploymentReady(String deploymentName) {
+        Awaitility.await()
+                .until(
+                        () -> {
+                            final Deployment deployment =
+                                    client.apps()
+                                            .deployments()
+                                            .inNamespace(namespace)
+                                            .withName(deploymentName)
+                                            .get();
+                            if (deployment == null) {
+                                return false;
+                            }
+                            final Pod pod = getFirstPodFromDeployment(deploymentName);
+                            final boolean ready = Readiness.getInstance().isReady(pod);
+                            if (!ready) {
+                                log.info(
+                                        "pod {} not ready, logs:\n{}",
+                                        pod.getMetadata().getName(),
+                                        getPodLogs(
+                                                pod.getMetadata().getName(),
+                                                pod.getMetadata().getNamespace(),
+                                                30));
+                                return false;
+                            }
+                            return true;
+                        });
     }
 
     @SneakyThrows
     private static void awaitApiGatewayReady() {
         log.info("waiting for api gateway to be ready");
-
-        client.apps()
-                .deployments()
-                .inNamespace(namespace)
-                .withName("langstream-api-gateway")
-                .waitUntilCondition(
-                        d ->
-                                d.getStatus().getReadyReplicas() != null
-                                        && d.getStatus().getReadyReplicas() == 1,
-                        120,
-                        TimeUnit.SECONDS);
+        awaitDeploymentReady("langstream-api-gateway");
         log.info("api gateway ready");
+    }
+
+    protected static String getPodLogs(String podName, String namespace, int tailingLines) {
+        final StringBuilder sb = new StringBuilder();
+        withPodLogs(
+                podName,
+                namespace,
+                tailingLines,
+                (container, logs) -> {
+                    sb.append("container: ").append(container).append("\n");
+                    sb.append(logs).append("\n");
+                });
+        return sb.toString();
     }
 
     protected static void withPodLogs(
@@ -830,6 +851,7 @@ public class BaseEndToEndTest implements TestWatcher {
         final List<String> namespaces = getAllUserNamespaces();
         dumpResources(filePrefix, Pod.class, namespaces);
         dumpResources(filePrefix, StatefulSet.class, namespaces);
+        dumpResources(filePrefix, Deployment.class, namespaces);
         dumpResources(filePrefix, Job.class, namespaces);
         dumpResources(filePrefix, AgentCustomResource.class, namespaces);
         dumpResources(filePrefix, ApplicationCustomResource.class, namespaces);

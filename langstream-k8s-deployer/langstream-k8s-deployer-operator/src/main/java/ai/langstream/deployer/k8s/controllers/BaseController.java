@@ -23,6 +23,7 @@ import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.deployer.k8s.util.SpecDiffer;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.openshift.api.model.config.v1.Update;
 import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
@@ -30,6 +31,8 @@ import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import jakarta.inject.Inject;
 import java.util.concurrent.TimeUnit;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.extern.jbosslog.JBossLog;
 
 @JBossLog
@@ -42,7 +45,31 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
 
     @Inject protected TenantLimitsChecker appResourcesLimiter;
 
-    protected abstract UpdateControl<T> patchResources(T resource, Context<T> context);
+    @Getter
+    protected static class PatchResult {
+
+        public static PatchResult patch(UpdateControl<?> updateControl) {
+            final PatchResult patchResult = new PatchResult(updateControl);
+            return patchResult;
+        }
+
+
+        public PatchResult(UpdateControl<?> updateControl) {
+            this.updateControl = updateControl;
+        }
+
+        UpdateControl<?> updateControl;
+        Object lastApplied;
+
+
+        public PatchResult withLastApplied(Object lastApplied) {
+            this.lastApplied = lastApplied;
+            return this;
+
+        }
+    }
+
+    protected abstract PatchResult patchResources(T resource, Context<T> context);
 
     protected abstract DeleteControl cleanupResources(T resource, Context<T> context);
 
@@ -71,11 +98,13 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
     @Override
     public UpdateControl<T> reconcile(T resource, Context<T> context) {
         String lastApplied;
-        UpdateControl<T> result;
+        UpdateControl<?> result;
         final BaseStatus baseStatus = resource.getStatus();
         try {
-            result = patchResources(resource, context);
-            lastApplied = SerializationUtil.writeAsJson(resource.getSpec());
+            final PatchResult patchResult = patchResources(resource, context);
+            result = patchResult.getUpdateControl();
+            final Object lastAppliedObject = patchResult.getLastApplied() == null ? resource.getSpec() : patchResult.getLastApplied();
+            lastApplied = SerializationUtil.writeAsJson(lastAppliedObject);
             baseStatus.setLastApplied(lastApplied);
             log.infof(
                     "Reconciled application %s, reschedule: %s, status: %s",
@@ -91,20 +120,7 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
                     throwable.getMessage());
             result = UpdateControl.updateStatus(resource).rescheduleAfter(5, TimeUnit.SECONDS);
         }
-        return result;
+        return (UpdateControl<T>) result;
     }
 
-    protected static boolean areSpecChanged(CustomResource<?, ? extends BaseStatus> cr) {
-        final String lastApplied = cr.getStatus().getLastApplied();
-        if (lastApplied == null) {
-            return true;
-        }
-        final JSONComparator.Result diff = SpecDiffer.generateDiff(lastApplied, cr.getSpec());
-        if (!diff.areEquals()) {
-            log.infof("Spec changed for %s", cr.getMetadata().getName());
-            SpecDiffer.logDetailedSpecDiff(diff);
-            return true;
-        }
-        return false;
-    }
 }

@@ -20,6 +20,7 @@ import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.tests.util.BaseEndToEndTest;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
@@ -35,23 +36,23 @@ public class PythonAgentsIT extends BaseEndToEndTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"python-processor", "experimental-python-processor"})
-    public void testProcessor(String appDir) {
+    public void testProcessor(String appDir) throws Exception {
         installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
         final String applicationId = "my-test-app";
-        deployLocalApplication(applicationId, appDir);
+        deployLocalApplication(applicationId, appDir, Map.of("SECRET1_VK", "super secret value"));
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
         awaitApplicationReady(applicationId, 1);
 
         executeCommandOnClient(
-                "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30"
+                "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30 -p sessionId=s1"
                         .formatted(applicationId)
                         .split(" "));
 
-        final String output =
+        String output =
                 executeCommandOnClient(
-                        "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30"
+                        "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30 -p sessionId=s1"
                                 .formatted(applicationId)
                                 .split(" "));
         log.info("Output: {}", output);
@@ -59,6 +60,27 @@ public class PythonAgentsIT extends BaseEndToEndTest {
                 output.contains(
                         "{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value\","
                                 + "\"headers\":{}}"));
+
+
+        updateLocalApplication(applicationId, appDir, Map.of("SECRET1_VK", "super secret value - changed"));
+        Thread.sleep(5000);
+        awaitApplicationReady(applicationId, 1);
+
+        executeCommandOnClient(
+                "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30 -p sessionId=s2"
+                        .formatted(applicationId)
+                        .split(" "));
+
+        output =
+                executeCommandOnClient(
+                        "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30 -p sessionId=s1"
+                                .formatted(applicationId)
+                                .split(" "));
+        log.info("Output2: {}", output);
+        Assertions.assertTrue(
+                output.contains(
+                        "{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value - changed\","
+                        + "\"headers\":{}}"));
 
         executeCommandOnClient("bin/langstream apps delete %s".formatted(applicationId).split(" "));
 

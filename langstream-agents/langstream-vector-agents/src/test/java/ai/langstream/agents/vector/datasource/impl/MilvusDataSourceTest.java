@@ -76,6 +76,18 @@ class MilvusDataSourceTest {
                         """
                                 .formatted(collectionName, databaseName),
                         """
+                                   {
+                                       "command": "create-index",
+                                       "collection-name": "%s",
+                                       "database-name": "%s",
+                                       "field-name": "vector",
+                                       "index-name": "vector_index",
+                                       "index-type": "AUTOINDEX",
+                                       "metric-type": "L2"
+                                   }
+                                """
+                                .formatted(collectionName, databaseName),
+                        """
                            {
                                "command": "load-collection"
                            }

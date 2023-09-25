@@ -26,7 +26,6 @@ import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ComponentType;
-import com.datastax.oss.streaming.ai.ChatCompletionsStep;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -35,6 +34,8 @@ import com.datastax.oss.streaming.ai.model.TransformSchemaType;
 import com.datastax.oss.streaming.ai.model.config.StepConfig;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
+import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumer;
+import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumerFactory;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -338,13 +339,13 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     }
 
     private static class TopicProducerStreamingAnswersConsumerFactory
-            implements ChatCompletionsStep.StreamingAnswersConsumerFactory {
+            implements StreamingAnswersConsumerFactory {
         private AgentContext agentContext;
 
         public TopicProducerStreamingAnswersConsumerFactory() {}
 
         @Override
-        public ChatCompletionsStep.StreamingAnswersConsumer create(String topicName) {
+        public StreamingAnswersConsumer create(String topicName) {
             TopicProducer topicProducer =
                     agentContext
                             .getTopicConnectionProvider()
@@ -359,8 +360,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         }
     }
 
-    private static class TopicStreamingAnswersConsumer
-            implements ChatCompletionsStep.StreamingAnswersConsumer {
+    private static class TopicStreamingAnswersConsumer implements StreamingAnswersConsumer {
         private TopicProducer topicProducer;
 
         public TopicStreamingAnswersConsumer(TopicProducer topicProducer) {

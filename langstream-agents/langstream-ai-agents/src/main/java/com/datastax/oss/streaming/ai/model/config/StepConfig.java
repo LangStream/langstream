@@ -34,6 +34,7 @@ import lombok.Getter;
                     value = ComputeAIEmbeddingsConfig.class,
                     name = "compute-ai-embeddings"),
             @JsonSubTypes.Type(value = ChatCompletionsConfig.class, name = "ai-chat-completions"),
+            @JsonSubTypes.Type(value = TextCompletionsConfig.class, name = "ai-text-completions"),
             @JsonSubTypes.Type(value = QueryConfig.class, name = "query")
         })
 @Getter

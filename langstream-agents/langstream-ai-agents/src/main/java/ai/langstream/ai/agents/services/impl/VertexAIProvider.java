@@ -339,6 +339,15 @@ public class VertexAIProvider implements ServiceProviderProvider {
                 }
             }
 
+            @Override
+            public CompletableFuture<String> getTextCompletions(
+                    List<String> prompt,
+                    StreamingChunksConsumer streamingChunksConsumer,
+                    Map<String, Object> options) {
+                return CompletableFuture.failedFuture(
+                        new UnsupportedOperationException("Not implemented"));
+            }
+
             @Data
             static class Predictions {
 

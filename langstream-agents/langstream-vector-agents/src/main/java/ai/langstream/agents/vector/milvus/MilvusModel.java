@@ -31,6 +31,7 @@ import io.milvus.param.collection.FieldType;
 import io.milvus.param.dml.SearchParam;
 import io.milvus.param.highlevel.collection.CreateSimpleCollectionParam;
 import io.milvus.param.highlevel.dml.SearchSimpleParam;
+import io.milvus.param.index.CreateIndexParam;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -77,6 +78,11 @@ public class MilvusModel {
                 new MilvusBuilderDeserializer<>(
                         CreateSimpleCollectionParam.Builder.class,
                         CreateSimpleCollectionParam::newBuilder));
+
+        module.addDeserializer(
+                CreateIndexParam.Builder.class,
+                new MilvusBuilderDeserializer<>(
+                        CreateIndexParam.Builder.class, CreateIndexParam::newBuilder));
 
         module.addDeserializer(
                 CreateCollectionParam.Builder.class,

@@ -24,6 +24,7 @@ import ai.langstream.ai.agents.services.ServiceProviderProvider;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
+import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -39,7 +40,7 @@ import org.junit.jupiter.api.Test;
 class OpenAIProviderTest {
 
     @Test
-    void testStreamingCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
+    void testStreamingChatCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
 
         stubFor(
                 post("/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-08-01-preview")
@@ -84,16 +85,14 @@ class OpenAIProviderTest {
                                 new CompletionsService.StreamingChunksConsumer() {
                                     @Override
                                     public void consumeChunk(
-                                            String answerId,
-                                            int index,
-                                            ChatChoice chunk,
-                                            boolean last) {
-                                        chunks.add(chunk.getMessage().getContent());
+                                            String answerId, int index, Chunk chunk, boolean last) {
+                                        ChatChoice chatChoice = (ChatChoice) chunk;
+                                        chunks.add(chunk.content());
                                         log.info(
                                                 "chunk: (last={}) {} {}",
                                                 last,
-                                                chunk.getMessage().getRole(),
-                                                chunk.getMessage().getContent());
+                                                chatChoice.getMessage().getRole(),
+                                                chatChoice.getMessage().getContent());
                                     }
                                 },
                                 Map.of(
@@ -112,5 +111,73 @@ class OpenAIProviderTest {
         assertEquals("A", chunks.get(0));
         assertEquals(" car is", chunks.get(1));
         assertEquals(" a vehicle", chunks.get(2));
+    }
+
+    @Test
+    void testStreamingTextCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
+
+        stubFor(
+                post("/openai/deployments/gpt-35-turbo-instruct/completions?api-version=2023-08-01-preview")
+                        .willReturn(
+                                okJson(
+                                        """
+                                                data: {"choices":[{"text":"\\n\\n","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
+
+                                                data: {"choices":[{"text":"Am","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
+
+                                                data: {"choices":[{"text":"o","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
+
+                                                data: {"choices":[{"text":" le","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
+
+                                                data: {"choices":[{"text":" mac","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
+
+                                                data: {"choices":[{"text":"chine","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
+
+                                                data: {"choices":[{"text":"","index":0,"logprobs":null,"finish_reason":"stop","content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
+
+                                                data: [DONE]
+                                                 """)));
+
+        ServiceProviderProvider provider = new OpenAIServiceProvider();
+        ServiceProvider implementation =
+                provider.createImplementation(
+                        Map.of(
+                                "openai",
+                                Map.of(
+                                        "provider",
+                                        "azure",
+                                        "access-key",
+                                        "xxxxxxx",
+                                        "url",
+                                        vmRuntimeInfo.getHttpBaseUrl())));
+
+        List<String> chunks = new CopyOnWriteArrayList<>();
+        CompletionsService service = implementation.getCompletionsService(Map.of());
+        String completions =
+                service.getTextCompletions(
+                                List.of(
+                                        "Translate from English to Italian: \"I love cars\" with quotes"),
+                                new CompletionsService.StreamingChunksConsumer() {
+                                    @Override
+                                    public void consumeChunk(
+                                            String answerId, int index, Chunk chunk, boolean last) {
+                                        chunks.add(chunk.content());
+                                        log.info("chunk: (last={}) {}", last, chunk.content());
+                                    }
+                                },
+                                Map.of(
+                                        "model",
+                                        "gpt-35-turbo-instruct",
+                                        "stream",
+                                        true,
+                                        "min-chunks-per-message",
+                                        3))
+                        .get();
+        log.info("result: {}", completions);
+        assertEquals("Amo le macchine", completions);
+        assertEquals(3, chunks.size());
+        assertEquals("Am", chunks.get(0));
+        assertEquals("o le", chunks.get(1));
+        assertEquals(" macchine", chunks.get(2));
     }
 }

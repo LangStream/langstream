@@ -13,22 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.completions;
+package com.datastax.oss.streaming.ai.streaming;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ChatChoice implements Chunk {
-    private ChatMessage message;
-
-    @Override
-    public String content() {
-        return message.getContent();
-    }
+public interface StreamingAnswersConsumerFactory {
+    StreamingAnswersConsumer create(String topicName);
 }

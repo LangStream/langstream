@@ -35,6 +35,7 @@ import com.datastax.oss.streaming.ai.DropStep;
 import com.datastax.oss.streaming.ai.FlattenStep;
 import com.datastax.oss.streaming.ai.MergeKeyValueStep;
 import com.datastax.oss.streaming.ai.QueryStep;
+import com.datastax.oss.streaming.ai.TextCompletionsStep;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.UnwrapKeyValueStep;
@@ -57,9 +58,11 @@ import com.datastax.oss.streaming.ai.model.config.OpenAIConfig;
 import com.datastax.oss.streaming.ai.model.config.OpenAIProvider;
 import com.datastax.oss.streaming.ai.model.config.QueryConfig;
 import com.datastax.oss.streaming.ai.model.config.StepConfig;
+import com.datastax.oss.streaming.ai.model.config.TextCompletionsConfig;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.model.config.UnwrapKeyValueConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
+import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumerFactory;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -169,7 +172,7 @@ public class TransformFunctionUtil {
             TransformStepConfig transformConfig,
             ServiceProvider serviceProvider,
             QueryStepDataSource dataSource,
-            ChatCompletionsStep.StreamingAnswersConsumerFactory streamingAnswersConsumerFactory,
+            StreamingAnswersConsumerFactory streamingAnswersConsumerFactory,
             StepConfig step)
             throws Exception {
         TransformStep transformStep;
@@ -205,6 +208,13 @@ public class TransformFunctionUtil {
                 transformStep =
                         newChatCompletionsFunction(
                                 (ChatCompletionsConfig) step,
+                                serviceProvider,
+                                streamingAnswersConsumerFactory);
+                break;
+            case "ai-text-completions":
+                transformStep =
+                        newTextCompletionsFunction(
+                                (TextCompletionsConfig) step,
                                 serviceProvider,
                                 streamingAnswersConsumerFactory);
                 break;
@@ -315,21 +325,31 @@ public class TransformFunctionUtil {
     }
 
     public static Map<String, Object> convertToMap(Object object) {
-        return new ObjectMapper().convertValue(object, Map.class);
+        return OBJECT_MAPPER.convertValue(object, Map.class);
     }
 
     public static <T> T convertFromMap(Map<String, Object> map, Class<T> type) {
-        return new ObjectMapper().convertValue(map, type);
+        return OBJECT_MAPPER.convertValue(map, type);
     }
 
     public static ChatCompletionsStep newChatCompletionsFunction(
             ChatCompletionsConfig config,
             ServiceProvider serviceProvider,
-            ChatCompletionsStep.StreamingAnswersConsumerFactory streamingAnswersConsumerFactory)
+            StreamingAnswersConsumerFactory streamingAnswersConsumerFactory)
             throws Exception {
         CompletionsService completionsService =
                 serviceProvider.getCompletionsService(convertToMap(config));
         return new ChatCompletionsStep(completionsService, streamingAnswersConsumerFactory, config);
+    }
+
+    public static TextCompletionsStep newTextCompletionsFunction(
+            TextCompletionsConfig config,
+            ServiceProvider serviceProvider,
+            StreamingAnswersConsumerFactory streamingAnswersConsumerFactory)
+            throws Exception {
+        CompletionsService completionsService =
+                serviceProvider.getCompletionsService(convertToMap(config));
+        return new TextCompletionsStep(completionsService, streamingAnswersConsumerFactory, config);
     }
 
     public static TransformStep newQuery(QueryConfig config, QueryStepDataSource dataSource) {

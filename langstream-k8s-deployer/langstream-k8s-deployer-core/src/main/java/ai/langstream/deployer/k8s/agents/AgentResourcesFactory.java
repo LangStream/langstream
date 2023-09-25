@@ -327,6 +327,9 @@ public class AgentResourcesFactory {
 
     private static Probe createLivenessProbe(
             AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+        if (!agentResourceUnitConfiguration.isEnableLivenessProbe()) {
+            return null;
+        }
         return new ProbeBuilder()
                 .withNewHttpGet()
                 .withNewPort()
@@ -343,6 +346,9 @@ public class AgentResourcesFactory {
 
     private static Probe createReadinessProbe(
             AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
+        if (!agentResourceUnitConfiguration.isEnableReadinessProbe()) {
+            return null;
+        }
         return new ProbeBuilder()
                 .withNewHttpGet()
                 .withNewPort()

@@ -17,11 +17,11 @@ package ai.langstream.tests.util.kafka;
 
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.tests.util.BaseEndToEndTest;
+import ai.langstream.tests.util.SystemOrEnv;
 import ai.langstream.tests.util.StreamingClusterProvider;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -38,28 +38,11 @@ public class RemoteKafkaProvider implements StreamingClusterProvider {
 
     static {
         ADMIN_CONFIG = new HashMap<>();
-
-        final Map<String, String> envs = System.getenv();
-        for (Map.Entry<String, String> env : envs.entrySet()) {
-            if (env.getKey().startsWith(ENV_PREFIX)) {
-                final String key =
-                        env.getKey().substring(ENV_PREFIX.length()).toLowerCase().replace("_", ".");
-                final String value = env.getValue();
-                log.info("Loading remote kafka admin config from env: {}={}", key, value);
-                ADMIN_CONFIG.put(key, value);
-            }
-        }
-
-        final Set<Object> props = System.getProperties().keySet();
-        for (Object prop : props) {
-            String asString = prop.toString();
-            if (asString.startsWith(SYS_PROPERTIES_PREFIX)) {
-                final String key = asString.substring(SYS_PROPERTIES_PREFIX.length());
-                final String value = System.getProperty(asString);
-                log.info("Loading remote kafka admin config from sys: {}={}", key, value);
-                ADMIN_CONFIG.put(key, value);
-            }
-        }
+        final Map<String, String> props = SystemOrEnv.getProperties(ENV_PREFIX, SYS_PROPERTIES_PREFIX);
+        props.forEach((key, value) -> {
+            log.info("Loading remote kafka admin config: {}={}", key, value);
+            ADMIN_CONFIG.put(key, value);
+        });
     }
 
     @Override

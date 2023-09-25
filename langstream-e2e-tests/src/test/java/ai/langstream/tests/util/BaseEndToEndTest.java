@@ -95,11 +95,18 @@ public class BaseEndToEndTest implements TestWatcher {
     private static final String LANGSTREAM_TAG =
             System.getProperty("langstream.tests.tag", "latest-dev");
 
-    private static final String LANGSTREAM_K8S = System.getProperty("langstream.tests.k8s", "host");
+    private static final String LANGSTREAM_K8S =
+            SystemOrEnv.getProperty("LANGSTREAM_TESTS_K8S", "langstream.tests.k8s", "host");
     private static final String LANGSTREAM_STREAMING =
-            System.getProperty("langstream.tests.streaming", "local-redpanda");
+            SystemOrEnv.getProperty("LANGSTREAM_TESTS_STREAMING", "langstream.tests.streaming", "local-redpanda");
     private static final String LANGSTREAM_CODESTORAGE =
-            System.getProperty("langstream.tests.codestorage", "local-minio");
+            SystemOrEnv.getProperty("LANGSTREAM_TESTS_CODESTORAGE", "langstream.tests.codestorage", "local-minio");
+
+    private static final String LANGSTREAM_APPS_RESOURCES_CPU =
+            SystemOrEnv.getProperty("LANGSTREAM_TESTS_APPS_RESOURCES_CPU", "langstream.tests.apps.resources.cpu", "0.4");
+    private static final String LANGSTREAM_APPS_RESOURCES_MEM =
+            SystemOrEnv.getProperty("LANGSTREAM_TESTS_APPS_RESOURCES_MEM", "langstream.tests.apps.resources.mem", "256");
+
 
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
@@ -639,8 +646,8 @@ public class BaseEndToEndTest implements TestWatcher {
                           app:
                             config:
                               agentResources:
-                                cpuPerUnit: 0.2
-                                memPerUnit: 128
+                                cpuPerUnit: %s
+                                memPerUnit: %s
                         client:
                           image:
                             repository: %s/langstream-cli
@@ -680,6 +687,8 @@ public class BaseEndToEndTest implements TestWatcher {
                                 JSON_MAPPER.writeValueAsString(controlPlaneConfig),
                                 baseImageRepository,
                                 imagePullPolicy,
+                                LANGSTREAM_APPS_RESOURCES_CPU,
+                                LANGSTREAM_APPS_RESOURCES_MEM,
                                 baseImageRepository,
                                 imagePullPolicy,
                                 baseImageRepository,

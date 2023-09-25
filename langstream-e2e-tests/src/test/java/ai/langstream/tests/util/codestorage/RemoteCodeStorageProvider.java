@@ -16,9 +16,9 @@
 package ai.langstream.tests.util.codestorage;
 
 import ai.langstream.tests.util.CodeStorageProvider;
+import ai.langstream.tests.util.SystemOrEnv;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -31,33 +31,12 @@ public class RemoteCodeStorageProvider implements CodeStorageProvider {
 
     static {
         CONFIG = new HashMap<>();
-
-        final Map<String, String> envs = System.getenv();
-        for (Map.Entry<String, String> env : envs.entrySet()) {
-            if (env.getKey().startsWith(ENV_PREFIX)) {
-                final String key =
-                        env.getKey().substring(ENV_PREFIX.length()).toLowerCase().replace("_", ".");
-                final String value = env.getValue();
-                log.info("Loading remote codestorage config from env: {}={}", key, value);
-                CONFIG.put(key, value);
-            }
-        }
-
-        final Set<Object> props = System.getProperties().keySet();
-        for (Object prop : props) {
-            String asString = prop.toString();
-            if (asString.startsWith(SYS_PROPERTIES_PREFIX)) {
-                final String key = asString.substring(SYS_PROPERTIES_PREFIX.length());
-                final String value = System.getProperty(asString);
-                log.info("Loading remote codestorage config from sys: {}={}", key, value);
-                CONFIG.put(key, value);
-            }
-        }
-        String type = System.getProperty("langstream.tests.codestorageremote.type");
-        if (type == null) {
-            type = System.getenv("LANGSTREAM_TESTS_CODESTORAGEREMOTE_TYPE");
-        }
-        TYPE = type;
+        final Map<String, String> props = SystemOrEnv.getProperties(ENV_PREFIX, SYS_PROPERTIES_PREFIX);
+        props.forEach((key, value) -> {
+            log.info("Loading remote codestorage config: {}={}", key, value);
+            CONFIG.put(key, value);
+        });
+        TYPE = SystemOrEnv.getProperty("LANGSTREAM_TESTS_CODESTORAGEREMOTE_TYPE", "langstream.tests.codestorageremote.type");
     }
 
     @Override

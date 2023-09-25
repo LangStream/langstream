@@ -1016,7 +1016,7 @@ public class BaseEndToEndTest implements TestWatcher {
         if (env != null) {
             beforeCmd =
                     env.entrySet().stream()
-                            .map(e -> "export %s=%s".formatted(e.getKey(), e.getValue()))
+                            .map(e -> "export \"%s\"=\"%s\"".formatted(e.getKey(), e.getValue()))
                             .collect(Collectors.joining(" && "));
             beforeCmd += " && ";
         }

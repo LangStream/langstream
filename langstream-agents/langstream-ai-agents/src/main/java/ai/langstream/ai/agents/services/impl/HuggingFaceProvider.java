@@ -27,6 +27,7 @@ import com.datastax.oss.streaming.ai.embeddings.HuggingFaceRestEmbeddingService;
 import com.datastax.oss.streaming.ai.model.config.ComputeProvider;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -162,12 +163,13 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
             }
 
             @Override
+            @SneakyThrows
             public CompletableFuture<String> getTextCompletions(
                     List<String> prompt,
                     StreamingChunksConsumer streamingChunksConsumer,
                     Map<String, Object> options) {
-                return CompletableFuture.failedFuture(
-                        new UnsupportedOperationException("Not implemented"));
+                return callHFService(prompt, options)
+                        .thenApply(r -> r.get(0).sequence);
             }
 
             @Override
@@ -177,15 +179,20 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                     StreamingChunksConsumer streamingChunksConsumer,
                     Map<String, Object> map) {
 
+
+                return callHFService(list.stream()
+                        .map(ChatMessage::getContent)
+                        .collect(Collectors.toList()), map)
+                        .thenApply(r -> responseBeanToChatCompletions(r));
+            }
+
+            private CompletableFuture<List<ResponseBean>> callHFService(List<String> content, Map<String, Object> map)
+                    throws JsonProcessingException {
                 String model = (String) map.get("model");
                 // https://huggingface.co/docs/api-inference/quicktour
                 String url = this.url + "/models/%s";
                 String finalUrl = url.formatted(model);
-                String request =
-                        MAPPER.writeValueAsString(
-                                list.stream()
-                                        .map(ChatMessage::getContent)
-                                        .collect(Collectors.toList()));
+                String request = MAPPER.writeValueAsString(content);
                 log.info("URL: {}", finalUrl);
                 log.info("Request: {}", request);
                 CompletableFuture<HttpResponse<String>> responseHandle =
@@ -198,19 +205,20 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                                         .build(),
                                 HttpResponse.BodyHandlers.ofString());
                 return responseHandle.thenApply(
-                        response -> {
-                            ChatCompletions result = convertResponse(response);
-                            return result;
-                        });
+                        response -> convertResponse(response));
             }
 
             @SneakyThrows
-            private static ChatCompletions convertResponse(HttpResponse<String> response) {
+            private static List<ResponseBean> convertResponse(HttpResponse<String> response) {
                 String body = response.body();
                 if (log.isDebugEnabled()) {
                     log.debug("Response: {}", body);
                 }
                 List<ResponseBean> responseBeans = MAPPER.readValue(body, new TypeReference<>() {});
+                return responseBeans;
+            }
+
+            private static ChatCompletions responseBeanToChatCompletions(List<ResponseBean> responseBeans) {
                 ChatCompletions result = new ChatCompletions();
                 result.setChoices(
                         responseBeans.stream()

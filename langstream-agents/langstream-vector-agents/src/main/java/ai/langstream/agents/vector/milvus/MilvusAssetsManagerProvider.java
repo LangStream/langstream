@@ -118,13 +118,14 @@ public class MilvusAssetsManagerProvider implements AssetManagerProvider {
             execStatements(statements);
 
             MilvusServiceClient milvusClient = datasource.getMilvusClient();
+            DescribeCollectionParam.Builder builder =
+                    DescribeCollectionParam.newBuilder().withCollectionName(getCollectionName());
+            String databaseName = getDatabaseName();
+            if (databaseName != null && !databaseName.isEmpty()) {
+                builder.withDatabaseName(databaseName);
+            }
             R<DescribeCollectionResponse> describeCollectionResponse =
-                    milvusClient.describeCollection(
-                            DescribeCollectionParam.newBuilder()
-                                    .withCollectionName(getCollectionName())
-                                    .withDatabaseName(getDatabaseName())
-                                    .build());
-
+                    milvusClient.describeCollection(builder.build());
             MilvusModel.handleException(describeCollectionResponse);
 
             log.info(

@@ -48,14 +48,24 @@ public class MilvusDataSource implements DataSourceProvider {
     @Data
     public static final class MilvusConfig {
 
-        @JsonProperty(value = "user", required = true)
+        // Milvus OSS
+
+        @JsonProperty(value = "user")
         private String user = "default";
 
-        @JsonProperty(value = "password", required = true)
+        @JsonProperty(value = "password")
         private String password;
 
-        @JsonProperty(value = "host", required = true)
+        @JsonProperty(value = "host")
         private String host;
+
+        // Zillis service
+
+        @JsonProperty(value = "url")
+        private String url;
+
+        @JsonProperty(value = "token")
+        private String token;
 
         @JsonProperty(value = "port")
         private int port = 19530;
@@ -81,13 +91,24 @@ public class MilvusDataSource implements DataSourceProvider {
 
         @Override
         public void initialize(Map<String, Object> config) {
-            this.milvusClient =
-                    new MilvusServiceClient(
-                            ConnectParam.newBuilder()
-                                    .withHost(clientConfig.host)
-                                    .withPort(clientConfig.port)
-                                    .withAuthorization(clientConfig.user, clientConfig.password)
-                                    .build());
+            if (clientConfig.url != null && !clientConfig.url.isEmpty()) {
+                log.info("Connecting to Milvus service at {}", clientConfig.url);
+                this.milvusClient =
+                        new MilvusServiceClient(
+                                ConnectParam.newBuilder()
+                                        .withUri(clientConfig.url)
+                                        .withToken(clientConfig.token)
+                                        .build());
+            } else {
+                log.info("Connecting to Milvus at {}:{}", clientConfig.host, clientConfig.port);
+                this.milvusClient =
+                        new MilvusServiceClient(
+                                ConnectParam.newBuilder()
+                                        .withHost(clientConfig.host)
+                                        .withPort(clientConfig.port)
+                                        .withAuthorization(clientConfig.user, clientConfig.password)
+                                        .build());
+            }
         }
 
         @Override

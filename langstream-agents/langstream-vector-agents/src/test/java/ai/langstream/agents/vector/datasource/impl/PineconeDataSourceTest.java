@@ -28,7 +28,7 @@ class PineconeDataSourceTest {
 
     @Test
     @Disabled
-    void testPineconeQuery() {
+    void testPineconeQuery() throws Exception {
         PineconeDataSource dataSource = new PineconeDataSource();
         Map<String, Object> config =
                 Map.of(
@@ -53,7 +53,7 @@ class PineconeDataSourceTest {
 
     @Test
     @Disabled
-    void testPineconeQueryWithFilter() {
+    void testPineconeQueryWithFilter() throws Exception {
         PineconeDataSource dataSource = new PineconeDataSource();
         Map<String, Object> config =
                 Map.of(

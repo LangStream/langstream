@@ -21,7 +21,7 @@ import java.util.Map;
 
 public interface QueryStepDataSource extends AutoCloseable {
 
-    default void initialize(Map<String, Object> config) {}
+    default void initialize(Map<String, Object> config) throws Exception {}
 
     default List<Map<String, String>> fetchData(String query, List<Object> params) {
         return Collections.emptyList();

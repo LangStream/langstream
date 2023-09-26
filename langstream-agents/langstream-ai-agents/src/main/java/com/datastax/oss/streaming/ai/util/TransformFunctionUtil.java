@@ -151,6 +151,7 @@ public class TransformFunctionUtil {
         return openAIClientBuilder.buildAsyncClient();
     }
 
+    @SneakyThrows
     public static QueryStepDataSource buildDataSource(Map<String, Object> dataSourceConfig) {
         if (dataSourceConfig == null) {
             return new QueryStepDataSource() {};

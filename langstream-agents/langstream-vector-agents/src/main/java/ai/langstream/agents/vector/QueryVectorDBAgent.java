@@ -45,7 +45,7 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
     private Collection<StepPredicatePair> steps;
 
     @Override
-    public void init(Map<String, Object> configuration) {
+    public void init(Map<String, Object> configuration) throws Exception {
 
         Map<String, Object> datasourceConfiguration =
                 (Map<String, Object>) configuration.get("datasource");

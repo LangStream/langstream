@@ -43,6 +43,12 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.herddb</groupId>
+      <artifactId>herddb-jdbc</artifactId>
+      <version>0.27.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <!-- DataStax Cassandra Connector for Apache Kafka -->
       <groupId>com.datastax.oss</groupId>
       <artifactId>messaging-connectors-commons-core</artifactId>

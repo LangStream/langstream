@@ -22,6 +22,7 @@ import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.auth.oauth2.Credential;
@@ -209,10 +210,14 @@ public class VertexAIProvider implements ServiceProviderProvider {
         }
 
         private <R, T> CompletableFuture<T> executeVertexCall(
-                R requestEmbeddings, Class<T> responseType, String model)
-                throws IOException, InterruptedException {
+                R requestEmbeddings, Class<T> responseType, String model) {
             String finalUrl = VERTEX_URL_TEMPLATE.formatted(url, project, region, model);
-            String request = MAPPER.writeValueAsString(requestEmbeddings);
+            String request;
+            try {
+                request = MAPPER.writeValueAsString(requestEmbeddings);
+            } catch (JsonProcessingException e) {
+                return CompletableFuture.failedFuture(e);
+            }
             log.info("URL: {}", finalUrl);
             log.info("Request: {}", request);
 
@@ -247,7 +252,6 @@ public class VertexAIProvider implements ServiceProviderProvider {
             }
 
             @Override
-            @SneakyThrows
             public CompletableFuture<ChatCompletions> getChatCompletions(
                     List<ChatMessage> list,
                     StreamingChunksConsumer streamingChunksConsumer,
@@ -359,7 +363,6 @@ public class VertexAIProvider implements ServiceProviderProvider {
             }
 
             @Override
-            @SneakyThrows
             public CompletableFuture<String> getTextCompletions(
                     List<String> prompt,
                     StreamingChunksConsumer streamingChunksConsumer,

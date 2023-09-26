@@ -30,7 +30,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 public class PythonAgentsIT extends BaseEndToEndTest {
 
     @ParameterizedTest
-    @ValueSource(strings = {"python-processor" /*, "experimental-python-processor"*/})
+    @ValueSource(strings = {"python-processor" , "experimental-python-processor"})
     public void testProcessor(String appDir) throws Exception {
         installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();

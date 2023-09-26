@@ -30,6 +30,7 @@ __pycache__
 dist
 *.egg-info
 .pytest_cache
+.ruff_cache
 .tox
 build/
 venv/

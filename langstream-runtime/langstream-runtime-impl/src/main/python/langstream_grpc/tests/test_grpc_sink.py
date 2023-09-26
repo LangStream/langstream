@@ -21,6 +21,7 @@ import fastavro
 import grpc
 import pytest
 
+from langstream_grpc.api import Record, Sink, CommitCallback
 from langstream_grpc.grpc_service import AgentServer
 from langstream_grpc.proto.agent_pb2 import (
     Record as GrpcRecord,
@@ -30,7 +31,6 @@ from langstream_grpc.proto.agent_pb2 import (
     SinkResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceStub
-from langstream_runtime.api import Record, Sink, CommitCallback
 
 
 @pytest.fixture(autouse=True)

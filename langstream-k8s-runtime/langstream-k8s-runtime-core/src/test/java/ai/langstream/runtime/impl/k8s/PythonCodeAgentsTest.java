@@ -73,6 +73,7 @@ class PythonCodeAgentsTest {
                                       agent.class: my.python.module.MyClass
                                       config1: value1
                                       config2: value2
+                                      composable: false
                                   - name: "sink1"
                                     id: "sink1"
                                     type: "python-sink"

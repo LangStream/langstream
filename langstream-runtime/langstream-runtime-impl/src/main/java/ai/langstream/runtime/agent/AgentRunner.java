@@ -41,15 +41,12 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.agent.api.AgentInfoServlet;
-import ai.langstream.runtime.agent.api.GetFromUriServlet;
 import ai.langstream.runtime.agent.api.MetricsHttpServlet;
-import ai.langstream.runtime.agent.python.PythonCodeAgentProvider;
 import ai.langstream.runtime.agent.simple.IdentityAgentProvider;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.prometheus.client.hotspot.DefaultExports;
-import jakarta.servlet.Servlet;
 import java.io.IOException;
 import java.lang.management.BufferPoolMXBean;
 import java.lang.management.ManagementFactory;
@@ -106,18 +103,13 @@ public class AgentRunner {
         context.setContextPath("/");
         server.setHandler(context);
         context.addServlet(new ServletHolder(new MetricsHttpServlet()), "/metrics");
-        Servlet infoServlet =
-                agentInfo != null
-                        ? new AgentInfoServlet(agentInfo)
-                        : new GetFromUriServlet("http://localhost:8081/info");
-        context.addServlet(new ServletHolder(infoServlet), "/info");
+        context.addServlet(new ServletHolder(new AgentInfoServlet(agentInfo)), "/info");
         server.start();
         return server;
     }
 
     public static void runAgent(
             RuntimePodConfiguration configuration,
-            Path podRuntimeConfiguration,
             Path codeDirectory,
             Path agentsDirectory,
             AgentInfo agentInfo,
@@ -128,7 +120,6 @@ public class AgentRunner {
         new AgentRunner()
                 .run(
                         configuration,
-                        podRuntimeConfiguration,
                         codeDirectory,
                         agentsDirectory,
                         agentInfo,
@@ -139,7 +130,6 @@ public class AgentRunner {
 
     public void run(
             RuntimePodConfiguration configuration,
-            Path podRuntimeConfiguration,
             Path codeDirectory,
             Path agentsDirectory,
             AgentInfo agentInfo,
@@ -182,21 +172,16 @@ public class AgentRunner {
                 AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
                 Server server = null;
                 try {
-                    if (PythonCodeAgentProvider.isPythonCodeAgent(agentCode.agentCode())) {
-                        server = startHttpServer ? bootstrapHttpServer(null) : null;
-                        runPythonAgent(podRuntimeConfiguration, codeDirectory);
-                    } else {
-                        server = startHttpServer ? bootstrapHttpServer(agentInfo) : null;
-                        runJavaAgent(
-                                configuration,
-                                continueLoop,
-                                agentId,
-                                topicConnectionsRuntime,
-                                agentCode,
-                                agentInfo,
-                                beforeStopSource,
-                                codeDirectory);
-                    }
+                    server = startHttpServer ? bootstrapHttpServer(agentInfo) : null;
+                    runJavaAgent(
+                            configuration,
+                            continueLoop,
+                            agentId,
+                            topicConnectionsRuntime,
+                            agentCode,
+                            agentInfo,
+                            beforeStopSource,
+                            codeDirectory);
                 } finally {
                     if (server != null) {
                         server.stop();
@@ -236,43 +221,6 @@ public class AgentRunner {
             return jars;
         }
         return List.of();
-    }
-
-    private static void runPythonAgent(Path podRuntimeConfiguration, Path codeDirectory)
-            throws Exception {
-
-        Path pythonCodeDirectory = codeDirectory.resolve("python");
-        log.info("Python code directory {}", pythonCodeDirectory);
-
-        final String pythonPath = System.getenv("PYTHONPATH");
-        final String newPythonPath =
-                "%s:%s:%s"
-                        .formatted(
-                                pythonPath,
-                                pythonCodeDirectory.toAbsolutePath(),
-                                pythonCodeDirectory.resolve("lib").toAbsolutePath());
-
-        // copy input/output to standard input/output of the java process
-        // this allows to use "kubectl logs" easily
-        ProcessBuilder processBuilder =
-                new ProcessBuilder(
-                                "python3",
-                                "-m",
-                                "langstream_runtime",
-                                podRuntimeConfiguration.toAbsolutePath().toString())
-                        .inheritIO()
-                        .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-                        .redirectError(ProcessBuilder.Redirect.INHERIT);
-        processBuilder.environment().put("PYTHONPATH", newPythonPath);
-        processBuilder.environment().put("NLTK_DATA", "/app/nltk_data");
-        Process process = processBuilder.start();
-
-        int exitCode = process.waitFor();
-        log.info("Python process exited with code {}", exitCode);
-
-        if (exitCode != 0) {
-            throw new Exception("Python code exited with code " + exitCode);
-        }
     }
 
     private static void runJavaAgent(

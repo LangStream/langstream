@@ -1,1 +1,1 @@
-ai.langstream.agents.grpc.GrpcAgentsCodeProvider
+ai.langstream.agents.grpc.PythonAgentsCodeProvider

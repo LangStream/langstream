@@ -1,7 +1,4 @@
 [packages]
-pyYaml = "*"
-confluent-kafka = "*"
-sortedcontainers = "*"
 grpcio = "*"
 fastavro = "*"
 
@@ -20,6 +17,4 @@ tox = "*"
 black = "*"
 ruff = "*"
 pytest = "*"
-testcontainers-kafka = "*"
-waiting = "*"
 grpcio-tools = "*"

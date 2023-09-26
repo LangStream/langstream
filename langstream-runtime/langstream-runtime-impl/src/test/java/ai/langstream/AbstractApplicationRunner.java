@@ -353,7 +353,6 @@ public abstract class AbstractApplicationRunner {
                                 AgentRunner.runAgent(
                                         podConfiguration,
                                         null,
-                                        null,
                                         agentsDirectory,
                                         agentInfo,
                                         () -> {

@@ -17,7 +17,7 @@ package ai.langstream.runtime.impl.k8s.agents;
 
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
-import ai.langstream.impl.common.AbstractAgentProvider;
+import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /** Implements support for custom Agents written in Python. */
 @Slf4j
-public class PythonCodeAgentProvider extends AbstractAgentProvider {
+public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
 
     public PythonCodeAgentProvider() {
         super(

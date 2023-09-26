@@ -678,6 +678,7 @@
                 <exclude>**/.pytest_cache/**</exclude>
                 <exclude>**/.ruff_cache/**</exclude>
                 <exclude>**/__pycache__/**</exclude>
+                <exclude>**/python/lib/**</exclude>
               </excludes>
             </licenseSet>
           </licenseSets>

@@ -49,15 +49,6 @@
       </excludes>
     </fileSet>
     <fileSet>
-      <directory>src/main/python/langstream_runtime</directory>
-      <outputDirectory>./langstream_runtime</outputDirectory>
-      <lineEnding>unix</lineEnding>
-      <fileMode>755</fileMode>
-      <excludes>
-        <exclude>tests/**</exclude>
-      </excludes>
-    </fileSet>
-    <fileSet>
       <directory>src/main/python/</directory>
       <includes>
         <include>Pipfile.lock</include>

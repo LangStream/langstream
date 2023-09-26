@@ -110,7 +110,6 @@ public class AgentRunnerStarter extends RuntimeStarter {
 
         agentRunner.run(
                 configuration,
-                podRuntimeConfiguration,
                 codeDirectory,
                 agentsDirectory,
                 new AgentInfo(),

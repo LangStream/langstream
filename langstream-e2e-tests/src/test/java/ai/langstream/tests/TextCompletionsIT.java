@@ -53,9 +53,7 @@ public class TextCompletionsIT extends BaseEndToEndTest {
 
         final String applicationId = "app";
 
-        deployLocalApplication(applicationId, "text-completions", appEnv);
-        awaitApplicationReady(applicationId, 1);
-
+        deployLocalApplicationAndAwaitReady(tenant, applicationId, "text-completions", appEnv, 1);
         final String sessionId = UUID.randomUUID().toString();
 
         executeCommandOnClient(

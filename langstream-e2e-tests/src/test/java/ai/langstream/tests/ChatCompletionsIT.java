@@ -53,8 +53,7 @@ public class ChatCompletionsIT extends BaseEndToEndTest {
 
         final String applicationId = "app";
 
-        deployLocalApplication(applicationId, "chat-completions", appEnv);
-        awaitApplicationReady(applicationId, 1);
+        deployLocalApplicationAndAwaitReady(tenant, applicationId, "chat-completions", appEnv, 1);
 
         final String sessionId = UUID.randomUUID().toString();
 

@@ -15,6 +15,9 @@
  */
 package ai.langstream.tests.util;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
@@ -34,6 +37,7 @@ import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodSpec;
+import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.Status;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
@@ -78,6 +82,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -733,6 +738,7 @@ public class BaseEndToEndTest implements TestWatcher {
     private static void awaitDeploymentReady(String deploymentName) {
         Awaitility.await()
                 .pollInterval(Duration.ofSeconds(10))
+                .pollDelay(Duration.ZERO)
                 .atMost(2, TimeUnit.MINUTES)
                 .until(
                         () -> {
@@ -746,6 +752,9 @@ public class BaseEndToEndTest implements TestWatcher {
                                 return false;
                             }
                             final Pod pod = getFirstPodFromDeployment(deploymentName);
+                            if (pod == null) {
+                                return false;
+                            }
                             final boolean ready = Readiness.getInstance().isReady(pod);
                             if (!ready) {
                                 String podLogs;
@@ -869,6 +878,7 @@ public class BaseEndToEndTest implements TestWatcher {
         dumpResources(filePrefix, Pod.class, namespaces);
         dumpResources(filePrefix, StatefulSet.class, namespaces);
         dumpResources(filePrefix, Deployment.class, namespaces);
+        dumpResources(filePrefix, Secret.class, namespaces);
         dumpResources(filePrefix, Job.class, namespaces);
         dumpResources(filePrefix, AgentCustomResource.class, namespaces);
         dumpResources(filePrefix, ApplicationCustomResource.class, namespaces);
@@ -997,10 +1007,6 @@ public class BaseEndToEndTest implements TestWatcher {
         }
     }
 
-    protected static void deployLocalApplication(String applicationId, String appDir) {
-        deployLocalApplication(applicationId, appDir, null);
-    }
-
     protected static void awaitApplicationReady(
             String applicationId, int expectedRunningTotalExecutors) {
         Awaitility.await()
@@ -1031,26 +1037,40 @@ public class BaseEndToEndTest implements TestWatcher {
             return false;
         }
         final String replicasReady = lineAsList.get(5);
-        System.out.println("replicasReady " + replicasReady);
         return replicasReady.equals(
                 expectedRunningTotalExecutors + "/" + expectedRunningTotalExecutors);
     }
 
     @SneakyThrows
-    protected static void deployLocalApplication(
-            String applicationId, String appDirName, Map<String, String> env) {
-        deployLocalApplication(false, applicationId, appDirName, env);
+    protected static void deployLocalApplicationAndAwaitReady(
+            String tenant,
+            String applicationId,
+            String appDirName,
+            Map<String, String> env,
+            int expectedNumExecutors) {
+        deployLocalApplicationAndAwaitReady(
+                tenant, false, applicationId, appDirName, env, expectedNumExecutors);
     }
 
     @SneakyThrows
-    protected static void updateLocalApplication(
-            String applicationId, String appDirName, Map<String, String> env) {
-        deployLocalApplication(true, applicationId, appDirName, env);
+    protected static void updateLocalApplicationAndAwaitReady(
+            String tenant,
+            String applicationId,
+            String appDirName,
+            Map<String, String> env,
+            int expectedNumExecutors) {
+        deployLocalApplicationAndAwaitReady(
+                tenant, true, applicationId, appDirName, env, expectedNumExecutors);
     }
 
     @SneakyThrows
-    private static void deployLocalApplication(
-            boolean isUpdate, String applicationId, String appDirName, Map<String, String> env) {
+    private static void deployLocalApplicationAndAwaitReady(
+            String tenant,
+            boolean isUpdate,
+            String applicationId,
+            String appDirName,
+            Map<String, String> env,
+            int expectedNumExecutors) {
         String testAppsBaseDir = "src/test/resources/apps";
         String testSecretBaseDir = "src/test/resources/secrets";
 
@@ -1070,12 +1090,66 @@ public class BaseEndToEndTest implements TestWatcher {
                             .collect(Collectors.joining(" && "));
             beforeCmd += " && ";
         }
+        final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
 
+        final String podUids;
+        if (isUpdate) {
+            podUids =
+                    client
+                            .pods()
+                            .inNamespace(tenantNamespace)
+                            .withLabels(
+                                    Map.of(
+                                            "langstream-application",
+                                            applicationId,
+                                            "app",
+                                            "langstream-runtime"))
+                            .list()
+                            .getItems()
+                            .stream()
+                            .map(p -> p.getMetadata().getUid())
+                            .sorted()
+                            .collect(Collectors.joining(","));
+        } else {
+            podUids = "";
+        }
         executeCommandOnClient(
                 (beforeCmd
                                 + "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml")
                         .formatted(isUpdate ? "update" : "deploy", applicationId)
                         .split(" "));
+
+        awaitApplicationReady(applicationId, expectedNumExecutors);
+        Awaitility.await()
+                .atMost(1, TimeUnit.MINUTES)
+                .untilAsserted(
+                        () -> {
+                            log.info("waiting new executors to be ready");
+                            final List<Pod> pods =
+                                    client.pods()
+                                            .inNamespace(tenantNamespace)
+                                            .withLabels(
+                                                    Map.of(
+                                                            "langstream-application",
+                                                            applicationId,
+                                                            "app",
+                                                            "langstream-runtime"))
+                                            .list()
+                                            .getItems();
+                            if (pods.size() != expectedNumExecutors) {
+                                fail("too many pods: " + pods.size());
+                            }
+                            final String currentUids =
+                                    pods.stream()
+                                            .map(p -> p.getMetadata().getUid())
+                                            .sorted()
+                                            .collect(Collectors.joining(","));
+                            Assertions.assertNotEquals(podUids, currentUids);
+                            for (Pod pod : pods) {
+                                log.info("checking pod readiness {}", pod.getMetadata().getName());
+                                assertTrue(Readiness.getInstance().isReady(pod));
+                            }
+                        });
     }
 
     private static void validateApp(File appDir, File secretFile) throws Exception {
@@ -1146,5 +1220,53 @@ public class BaseEndToEndTest implements TestWatcher {
                 .claim("sub", subject)
                 .signWith(controlPlaneAuthKeyPair.getPrivate())
                 .compact();
+    }
+
+    protected void deleteAppAndAwaitCleanup(String tenant, String applicationId) {
+        executeCommandOnClient("bin/langstream apps delete %s".formatted(applicationId).split(" "));
+
+        awaitCleanup(tenant, applicationId);
+    }
+
+    private static void awaitCleanup(String tenant, String applicationId) {
+        final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
+        Awaitility.await()
+                .atMost(1, TimeUnit.MINUTES)
+                .untilAsserted(
+                        () -> {
+                            Assertions.assertEquals(
+                                    0,
+                                    client.apps()
+                                            .statefulSets()
+                                            .inNamespace(tenantNamespace)
+                                            .withLabel("langstream-application", applicationId)
+                                            .list()
+                                            .getItems()
+                                            .size());
+
+                            Assertions.assertEquals(
+                                    0,
+                                    client.resources(AgentCustomResource.class)
+                                            .inNamespace(tenantNamespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
+
+                            Assertions.assertEquals(
+                                    0,
+                                    client.resources(ApplicationCustomResource.class)
+                                            .inNamespace(tenantNamespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
+
+                            Assertions.assertEquals(
+                                    1,
+                                    client.resources(Secret.class)
+                                            .inNamespace(tenantNamespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
+                        });
     }
 }

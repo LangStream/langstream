@@ -20,7 +20,9 @@ import ai.langstream.tests.util.CodeStorageProvider;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class LocalMinioCodeStorageProvider implements CodeStorageProvider {
 
     private final KubernetesClient client;
@@ -53,6 +55,7 @@ public class LocalMinioCodeStorageProvider implements CodeStorageProvider {
                                 .endMetadata()
                                 .build())
                 .serverSideApply();
+        log.info("Deploying MinIO");
         BaseEndToEndTest.applyManifest(
                 """
                         # Deploys a new MinIO Pod into the metadata.namespace Kubernetes namespace

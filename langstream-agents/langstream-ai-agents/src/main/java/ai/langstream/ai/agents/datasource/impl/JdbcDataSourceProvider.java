@@ -17,6 +17,7 @@ package ai.langstream.ai.agents.datasource.impl;
 
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -44,36 +45,27 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
     }
 
     @Override
-    @SneakyThrows
-    public QueryStepDataSource createDataSourceImplementation(
-            Map<String, Object> dataSourceConfig) {
-        return new DataSourceImpl(dataSourceConfig);
+    public JdbcDataSourceImpl createDataSourceImplementation(Map<String, Object> dataSourceConfig) {
+        return new JdbcDataSourceImpl(dataSourceConfig);
     }
 
-    private static class DataSourceImpl implements QueryStepDataSource {
+    public static class JdbcDataSourceImpl implements QueryStepDataSource {
 
         Connection connection;
+        Map<String, Object> dataSourceConfig;
 
-        public DataSourceImpl(Map<String, Object> dataSourceConfig) throws Exception {
-            Properties properties = new Properties();
-            properties.putAll(dataSourceConfig);
-            String driverClass = properties.getProperty("driverClass", "");
-            log.info("Connecting to {}, config {}", properties.getProperty("url"), properties);
-            if (!driverClass.isEmpty()) {
-                log.info("Loading JDBC Driver {}", driverClass);
-                Driver driver =
-                        (Driver)
-                                Class.forName(
-                                                driverClass,
-                                                true,
-                                                Thread.currentThread().getContextClassLoader())
-                                        .getConstructor()
-                                        .newInstance();
-                // https://www.kfu.com/~nsayer/Java/dyn-jdbc.html
-                DriverManager.registerDriver(new DriverShim(driver));
-            }
-            connection = DriverManager.getConnection((String) properties.get("url"), properties);
+        public JdbcDataSourceImpl(Map<String, Object> dataSourceConfig) {
+            this.dataSourceConfig = dataSourceConfig;
+        }
+
+        @Override
+        public void initialize(Map<String, Object> config) throws Exception {
+            connection = buildConnection(dataSourceConfig);
             connection.setAutoCommit(true);
+        }
+
+        public Connection getConnection() {
+            return connection;
         }
 
         @Override
@@ -110,6 +102,33 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
                 }
             }
         }
+    }
+
+    public static Connection buildConnection(Map<String, Object> dataSourceConfig)
+            throws InstantiationException,
+                    IllegalAccessException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    ClassNotFoundException,
+                    SQLException {
+        Properties properties = new Properties();
+        properties.putAll(dataSourceConfig);
+        String driverClass = properties.getProperty("driverClass", "");
+        log.info("Connecting to {}, config {}", properties.getProperty("url"), properties);
+        if (!driverClass.isEmpty()) {
+            log.info("Loading JDBC Driver {}", driverClass);
+            Driver driver =
+                    (Driver)
+                            Class.forName(
+                                            driverClass,
+                                            true,
+                                            Thread.currentThread().getContextClassLoader())
+                                    .getConstructor()
+                                    .newInstance();
+            // https://www.kfu.com/~nsayer/Java/dyn-jdbc.html
+            DriverManager.registerDriver(new DriverShim(driver));
+        }
+        return DriverManager.getConnection((String) properties.get("url"), properties);
     }
 
     static class DriverShim implements Driver {

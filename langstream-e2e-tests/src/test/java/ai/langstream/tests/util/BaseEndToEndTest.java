@@ -154,7 +154,7 @@ public class BaseEndToEndTest implements TestWatcher {
         dumpProcessOutput(prefix, "kubectl-nodes", "kubectl describe nodes".split(" "));
     }
 
-    protected static void applyManifest(String manifest, String namespace) {
+    public static void applyManifest(String manifest, String namespace) {
         client.load(new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
                 .inNamespace(namespace)
                 .serverSideApply();
@@ -189,12 +189,16 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     private static Pod getFirstPodFromDeployment(String deploymentName) {
-        return client.pods()
-                .inNamespace(namespace)
-                .withLabel("app.kubernetes.io/name", deploymentName)
-                .list()
-                .getItems()
-                .get(0);
+        final List<Pod> items =
+                client.pods()
+                        .inNamespace(namespace)
+                        .withLabel("app.kubernetes.io/name", deploymentName)
+                        .list()
+                        .getItems();
+        if (items.isEmpty()) {
+            return null;
+        }
+        return items.get(0);
     }
 
     @SneakyThrows
@@ -491,7 +495,7 @@ public class BaseEndToEndTest implements TestWatcher {
     private static CodeStorageProvider getCodeStorageProvider() {
         switch (LANGSTREAM_CODESTORAGE) {
             case "local-minio":
-                return new LocalMinioCodeStorageProvider();
+                return new LocalMinioCodeStorageProvider(client);
             case "remote":
                 return new RemoteCodeStorageProvider();
             default:
@@ -728,7 +732,7 @@ public class BaseEndToEndTest implements TestWatcher {
 
     private static void awaitDeploymentReady(String deploymentName) {
         Awaitility.await()
-                .pollInterval(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofSeconds(10))
                 .atMost(2, TimeUnit.MINUTES)
                 .until(
                         () -> {
@@ -744,13 +748,20 @@ public class BaseEndToEndTest implements TestWatcher {
                             final Pod pod = getFirstPodFromDeployment(deploymentName);
                             final boolean ready = Readiness.getInstance().isReady(pod);
                             if (!ready) {
+                                String podLogs;
+                                try {
+                                    podLogs =
+                                            getPodLogs(
+                                                    pod.getMetadata().getName(),
+                                                    pod.getMetadata().getNamespace(),
+                                                    15);
+                                } catch (Throwable e) {
+                                    podLogs = "failed to get pod logs: " + e.getMessage();
+                                }
                                 log.info(
                                         "pod {} not ready, logs:\n{}",
                                         pod.getMetadata().getName(),
-                                        getPodLogs(
-                                                pod.getMetadata().getName(),
-                                                pod.getMetadata().getNamespace(),
-                                                30));
+                                        podLogs);
                                 return false;
                             }
                             return true;
@@ -1006,7 +1017,6 @@ public class BaseEndToEndTest implements TestWatcher {
                 Arrays.stream(appLine.split(" "))
                         .filter(s -> !s.isBlank())
                         .collect(Collectors.toList());
-        System.out.println("app line " + lineAsList);
         final String status = lineAsList.get(3);
         if (status != null && status.equals("ERROR_DEPLOYING")) {
             log.info("application {} is in ERROR_DEPLOYING state, dumping status", applicationId);

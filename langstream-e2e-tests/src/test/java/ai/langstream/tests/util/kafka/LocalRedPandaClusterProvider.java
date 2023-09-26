@@ -32,9 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
 
-    private static final boolean REUSE_EXISTING_REDPANDA =
-            Boolean.parseBoolean(System.getProperty("langstream.tests.reuseRedPanda", "false"));
-    protected static final String KAFKA_NAMESPACE = "kafka-ns";
+    protected static final String NAMESPACE = "ls-test-redpanda";
 
     private final KubernetesClient client;
     private boolean started;
@@ -56,24 +54,19 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
                         "admin",
                         Map.of(
                                 "bootstrap.servers",
-                                "redpanda-0.redpanda.kafka-ns.svc.cluster.local:9093")));
+                                "redpanda-0.redpanda.%s.svc.cluster.local:9093"
+                                        .formatted(NAMESPACE))));
     }
 
     private void internalStart() throws InterruptedException, IOException {
-        log.info("installing redpanda");
+        log.info("installing redpanda on namespace {}", NAMESPACE);
         client.resource(
                         new NamespaceBuilder()
                                 .withNewMetadata()
-                                .withName(KAFKA_NAMESPACE)
+                                .withName(NAMESPACE)
                                 .endMetadata()
                                 .build())
                 .serverSideApply();
-
-        if (!REUSE_EXISTING_REDPANDA) {
-            log.info("try to delete existing redpanda");
-            BaseEndToEndTest.runProcess(
-                    "helm delete redpanda --namespace kafka-ns".split(" "), true);
-        }
 
         BaseEndToEndTest.runProcess(
                 "helm repo add redpanda https://charts.redpanda.com/".split(" "), true);
@@ -81,14 +74,17 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
         // ref https://github.com/redpanda-data/helm-charts/blob/main/charts/redpanda/values.yaml
         log.info("running helm command to install redpanda");
         BaseEndToEndTest.runProcess(
-                ("helm upgrade --install redpanda redpanda/redpanda --namespace kafka-ns --set resources.cpu.cores=0.3"
+                ("helm upgrade --install redpanda redpanda/redpanda --namespace %s --set resources.cpu.cores=0.3"
+                                        .formatted(NAMESPACE)
                                 + " --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console"
-                                + ".enabled=false --set tls.enabled=false --set external.domain=redpanda-external.kafka-ns.svc"
+                                + ".enabled=false --set tls.enabled=false --set external.domain=redpanda-external.%s.svc"
+                                        .formatted(NAMESPACE)
                                 + ".cluster.local --set statefulset.initContainers.setDataDirOwnership.enabled=true --set tuning.tune_aio_events=false --wait --timeout=5m")
                         .split(" "));
         log.info("waiting redpanda to be ready");
         BaseEndToEndTest.runProcess(
-                "kubectl wait pods redpanda-0 --for=condition=Ready --timeout=5m -n kafka-ns"
+                "kubectl wait pods redpanda-0 --for=condition=Ready --timeout=5m -n %s"
+                        .formatted(NAMESPACE)
                         .split(" "));
         log.info("redpanda installed");
     }
@@ -96,7 +92,7 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
     @SneakyThrows
     private static String execInKafkaPod(String cmd) {
         return BaseEndToEndTest.execInPodInNamespace(
-                        KAFKA_NAMESPACE, "redpanda-0", "redpanda", cmd.split(" "))
+                        NAMESPACE, "redpanda-0", "redpanda", cmd.split(" "))
                 .get(1, TimeUnit.MINUTES);
     }
 
@@ -126,5 +122,7 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
     }
 
     @Override
-    public void stop() {}
+    public void stop() {
+        client.namespaces().withName(NAMESPACE).delete();
+    }
 }

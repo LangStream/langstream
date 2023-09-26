@@ -22,5 +22,4 @@ gateways:
       answers-topic: answers
       questions-topic: questions
       headers:
-        - key: langstream-client-session-id
-          value-from-parameters: sessionId
+        - value-from-parameters: sessionId

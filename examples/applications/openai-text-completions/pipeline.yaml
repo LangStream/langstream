@@ -48,4 +48,4 @@ pipeline:
       # eventually we want to send bigger messages to reduce the overhead of each message on the topic
       min-chunks-per-message: 10
       prompt:
-        - "{{{% value.question}}}"
+        - "{{% value.question }}"

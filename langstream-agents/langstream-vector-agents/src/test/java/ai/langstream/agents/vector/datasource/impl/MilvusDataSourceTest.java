@@ -25,6 +25,7 @@ import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.assets.AssetManager;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -43,9 +44,18 @@ class MilvusDataSourceTest {
     @Disabled("Milvus is not available in the CI environment")
     @ValueSource(booleans = {true, false})
     void testMilvusQuery(boolean useCreateSimpleCollection) throws Exception {
+        int dimension = 32; // minimum for Zillis
+
+        int milvusPort = 443;
+
+        boolean usingZillisService = false;
+        String milvusHost = "localhost";
+        String writeMode = usingZillisService ? "delete-insert" : "upsert";
+        String url = "";
+        String token = "";
 
         String collectionName = "coll" + UUID.randomUUID().toString().replace("-", "");
-        String databaseName = "default";
+        String databaseName = "";
 
         List<String> createCollectionStatements =
                 List.of(
@@ -69,12 +79,12 @@ class MilvusDataSourceTest {
                                {
                                   "name": "vector",
                                   "data-type": "FloatVector",
-                                  "dimension": 5
+                                  "dimension": %d
                                }
                             ]
                         }
                         """
-                                .formatted(collectionName, databaseName),
+                                .formatted(collectionName, databaseName, dimension),
                         """
                                    {
                                        "command": "create-index",
@@ -100,20 +110,24 @@ class MilvusDataSourceTest {
                             "command": "create-simple-collection",
                             "collection-name": "%s",
                             "database-name": "%s",
-                            "dimension": 5,
+                            "dimension": 32,
                             "auto-id": false,
                             "output-field": ["name", "text"]
                         }
                         """
                                 .formatted(collectionName, databaseName));
 
-        int milvusPort = 19530;
-        String milvusHost = "localhost";
         log.info("Connecting to Milvus at {}:{}", milvusHost, milvusPort);
 
         MilvusDataSource dataSource = new MilvusDataSource();
         Map<String, Object> config =
                 Map.of(
+                        "write-mode",
+                        writeMode,
+                        "url",
+                        url,
+                        "token",
+                        token,
                         "user",
                         "root",
                         "password",
@@ -143,6 +157,15 @@ class MilvusDataSourceTest {
         collectionManager.deleteAssetIfExists();
         assertFalse(collectionManager.assetExists());
         collectionManager.deployAsset();
+
+        List<Float> vector = new ArrayList<>();
+        List<Float> vector2 = new ArrayList<>();
+        for (int i = 0; i < dimension; i++) {
+            vector.add(i * 1f / dimension);
+            vector2.add((i + 1) * 1f / dimension);
+        }
+        String vectorAsString = vector.toString();
+        String vector2AsString = vector2.toString();
 
         try (QueryStepDataSource datasource = dataSource.createDataSourceImplementation(config);
                 MilvusWriter.MilvusVectorDatabaseWriter writer =
@@ -187,10 +210,11 @@ class MilvusDataSourceTest {
                             "{\"name\": \"do'c1\", \"chunk_id\": 1}",
                             """
                     {
-                        "vector": [1,2,3,4,5],
+                        "vector": %s,
                         "text": "Lorem ipsum..."
                     }
-                    """);
+                    """
+                                    .formatted(vectorAsString));
             writer.upsert(record, Map.of()).get();
 
             String query =
@@ -207,7 +231,7 @@ class MilvusDataSourceTest {
                             }
                             """
                             .formatted(collectionName, databaseName);
-            List<Object> params = List.of(List.of(1f, 2f, 3f, 4f, 5f));
+            List<Object> params = List.of(vector);
             List<Map<String, String>> results = datasource.fetchData(query, params);
             log.info("Results: {}", results);
 
@@ -220,13 +244,14 @@ class MilvusDataSourceTest {
                             "{\"name\": \"do'c1\", \"chunk_id\": 1}",
                             """
                     {
-                        "vector": [1,2,3,4,6],
+                        "vector": %s,
                         "text": "Lorem ipsum changed..."
                     }
-                    """);
+                    """
+                                    .formatted(vector2AsString));
             writer.upsert(recordUpdated, Map.of()).get();
 
-            List<Object> params2 = List.of(List.of(1f, 2f, 3f, 4f, 6f));
+            List<Object> params2 = List.of(vector2);
             List<Map<String, String>> results2 = datasource.fetchData(query, params2);
             log.info("Results: {}", results2);
 

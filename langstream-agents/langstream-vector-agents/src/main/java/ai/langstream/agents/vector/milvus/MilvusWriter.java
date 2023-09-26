@@ -33,6 +33,7 @@ import io.milvus.grpc.MutationResult;
 import io.milvus.param.R;
 import io.milvus.param.collection.DescribeCollectionParam;
 import io.milvus.param.dml.DeleteParam;
+import io.milvus.param.dml.InsertParam;
 import io.milvus.param.dml.UpsertParam;
 import java.util.HashMap;
 import java.util.List;
@@ -62,6 +63,7 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
         private final MilvusDataSource.MilvusQueryStepDataSource dataSource;
         private String collectionName;
         private String databaseName;
+        private String writeMode;
         private Map<String, JstlEvaluator> fields = new HashMap<>();
 
         private String primaryKeyField;
@@ -69,6 +71,7 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
 
         public MilvusVectorDatabaseWriter(Map<String, Object> datasourceConfig) {
             MilvusDataSource dataSourceProvider = new MilvusDataSource();
+            writeMode = ConfigurationUtils.getString("write-mode", "upsert", datasourceConfig);
             dataSource = dataSourceProvider.createDataSourceImplementation(datasourceConfig);
         }
 
@@ -142,48 +145,35 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
                         });
 
                 if (record.value() != null) {
-
-                    UpsertParam.Builder builder = UpsertParam.newBuilder();
-                    builder.withCollectionName(collectionName);
-
-                    if (databaseName != null && !databaseName.isEmpty()) {
-                        // this doesn't work at the moment, see
-                        // https://github.com/milvus-io/milvus-sdk-java/pull/644
-                        builder.withDatabaseName(databaseName);
-                    }
-
-                    builder.withRows(List.of(row));
-                    UpsertParam upsert = builder.build();
-
-                    R<MutationResult> upsertResponse = milvusClient.upsert(upsert);
-                    log.info("Result {}", upsertResponse);
-                    if (upsertResponse.getException() != null) {
-                        handle.completeExceptionally(upsertResponse.getException());
+                    if (writeMode.equals("upsert")) {
+                        R<MutationResult> upsertResponse = performUpsert(row);
+                        log.info("Result {}", upsertResponse);
+                        if (upsertResponse.getException() != null) {
+                            handle.completeExceptionally(upsertResponse.getException());
+                        } else {
+                            handle.complete(null);
+                        }
+                    } else if (writeMode.equals("delete-insert")) {
+                        R<MutationResult> deleteResponse = performDelete(record, row);
+                        if (deleteResponse.getException() != null) {
+                            handle.completeExceptionally(deleteResponse.getException());
+                        } else {
+                            R<MutationResult> insertResponse = performInsert(row);
+                            log.info("Result {}", insertResponse);
+                            if (insertResponse.getException() != null) {
+                                handle.completeExceptionally(insertResponse.getException());
+                            } else {
+                                handle.complete(null);
+                            }
+                        }
                     } else {
-                        handle.complete(null);
+                        handle.completeExceptionally(new UnsupportedOperationException());
                     }
                 } else {
-                    Object value = row.get(primaryKeyField);
-                    if (value == null) {
-                        throw new IllegalStateException(
-                                "No primary key value found for record " + record);
-                    }
-                    String escaped =
-                            value instanceof String
-                                    ? ("'" + ((String) value).replace("'", "\\'") + "'")
-                                    : value.toString();
-                    String deleteExpression = String.format("%s in [%s]", primaryKeyField, escaped);
-                    log.info("Delete expression: {}", deleteExpression);
-                    // TODO: how do we escape the value?
-                    DeleteParam delete =
-                            DeleteParam.newBuilder()
-                                    .withCollectionName(collectionName)
-                                    .withExpr(deleteExpression)
-                                    .build();
-                    R<MutationResult> upsertResponse = milvusClient.delete(delete);
-                    log.info("Result {}", upsertResponse);
-                    if (upsertResponse.getException() != null) {
-                        handle.completeExceptionally(upsertResponse.getException());
+                    R<MutationResult> deleteResponse = performDelete(record, row);
+                    log.info("Result {}", deleteResponse);
+                    if (deleteResponse.getException() != null) {
+                        handle.completeExceptionally(deleteResponse.getException());
                     } else {
                         handle.complete(null);
                     }
@@ -192,6 +182,59 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
                 handle.completeExceptionally(e);
             }
             return handle;
+        }
+
+        private R<MutationResult> performUpsert(JSONObject row) {
+            UpsertParam.Builder builder = UpsertParam.newBuilder();
+            builder.withCollectionName(collectionName);
+
+            if (databaseName != null && !databaseName.isEmpty()) {
+                // this doesn't work at the moment, see
+                // https://github.com/milvus-io/milvus-sdk-java/pull/644
+                builder.withDatabaseName(databaseName);
+            }
+
+            builder.withRows(List.of(row));
+            UpsertParam upsert = builder.build();
+
+            return milvusClient.upsert(upsert);
+        }
+
+        private R<MutationResult> performInsert(JSONObject row) {
+            InsertParam.Builder builder = InsertParam.newBuilder();
+            builder.withCollectionName(collectionName);
+
+            if (databaseName != null && !databaseName.isEmpty()) {
+                // this doesn't work at the moment, see
+                // https://github.com/milvus-io/milvus-sdk-java/pull/644
+                builder.withDatabaseName(databaseName);
+            }
+
+            builder.withRows(List.of(row));
+            InsertParam insert = builder.build();
+
+            return milvusClient.insert(insert);
+        }
+
+        private R<MutationResult> performDelete(Record record, JSONObject row) {
+            Object value = row.get(primaryKeyField);
+            if (value == null) {
+                throw new IllegalStateException("No primary key value found for record " + record);
+            }
+            String escaped =
+                    value instanceof String
+                            ? ("'" + ((String) value).replace("'", "\\'") + "'")
+                            : value.toString();
+            String deleteExpression = String.format("%s in [%s]", primaryKeyField, escaped);
+            log.info("Delete expression: {}", deleteExpression);
+            // TODO: how do we escape the value?
+            DeleteParam delete =
+                    DeleteParam.newBuilder()
+                            .withCollectionName(collectionName)
+                            .withExpr(deleteExpression)
+                            .build();
+            R<MutationResult> deleteResponse = milvusClient.delete(delete);
+            return deleteResponse;
         }
     }
 

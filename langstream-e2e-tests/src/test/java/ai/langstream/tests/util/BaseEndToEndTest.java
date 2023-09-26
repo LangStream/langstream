@@ -43,7 +43,6 @@ import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.dsl.ContainerResource;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Loggable;
@@ -807,17 +806,17 @@ public class BaseEndToEndTest implements TestWatcher {
                 }
                 for (Container container : all) {
                     try {
-                        final Loggable loggable = tailingLines > 0 ?
-                                client.pods()
-                                        .inNamespace(namespace)
-                                        .withName(podName)
-                                        .inContainer(container.getName())
-                                        .tailingLines(tailingLines)
-                                :
-                                client.pods()
-                                        .inNamespace(namespace)
-                                        .withName(podName)
-                                        .inContainer(container.getName());
+                        final Loggable loggable =
+                                tailingLines > 0
+                                        ? client.pods()
+                                                .inNamespace(namespace)
+                                                .withName(podName)
+                                                .inContainer(container.getName())
+                                                .tailingLines(tailingLines)
+                                        : client.pods()
+                                                .inNamespace(namespace)
+                                                .withName(podName)
+                                                .inContainer(container.getName());
                         final String containerLog = loggable.getLog();
                         consumer.accept(container.getName(), containerLog);
                     } catch (Throwable t) {

@@ -1083,7 +1083,7 @@ public class BaseEndToEndTest implements TestWatcher {
         copyFileToClientContainer(secretFile, "/tmp/secrets.yaml");
 
         String beforeCmd = "";
-        if (env != null) {
+        if (env != null && !env.isEmpty()) {
             beforeCmd =
                     env.entrySet().stream()
                             .map(e -> "export \"%s\"=\"%s\"".formatted(e.getKey(), e.getValue()))

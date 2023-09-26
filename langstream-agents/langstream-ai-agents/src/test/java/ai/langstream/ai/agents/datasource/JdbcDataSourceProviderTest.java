@@ -44,6 +44,7 @@ public class JdbcDataSourceProviderTest {
                                 "sa",
                                 "driverClass",
                                 "org.h2.Driver"));
+        implementation.initialize(null);
 
         try (Connection conn = DriverManager.getConnection("jdbc:h2:mem:test", "sa", "sa");
                 Statement statement = conn.createStatement()) {

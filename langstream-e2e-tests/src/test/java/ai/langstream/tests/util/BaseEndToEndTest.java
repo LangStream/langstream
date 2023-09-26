@@ -129,6 +129,7 @@ public class BaseEndToEndTest implements TestWatcher {
     protected static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
     protected static KubeCluster kubeCluster;
     protected static StreamingClusterProvider streamingClusterProvider;
+    protected static StreamingCluster streamingCluster;
     protected static File instanceFile;
     protected static CodeStorageProvider codeStorageProvider;
     protected static CodeStorageProvider.CodeStorageConfig codeStorageConfig;
@@ -463,7 +464,7 @@ public class BaseEndToEndTest implements TestWatcher {
                             imagesFutures.get(3))
                     .join();
 
-            final StreamingCluster streamingCluster = streamingClusterFuture.join();
+            streamingCluster = streamingClusterFuture.join();
 
             final Map<String, Map<String, Object>> instanceContent =
                     Map.of(

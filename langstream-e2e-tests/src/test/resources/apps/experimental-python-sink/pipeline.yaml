@@ -14,17 +14,25 @@
 # limitations under the License.
 #
 
-from langstream import SimpleRecord, SingleRecordProcessor
-
-
-class Exclamation(SingleRecordProcessor):
-    def init(self, config):
-        print("init", config)
-        self.secret_value = config["secret_value"]
-
-    def process_record(self, record):
-        return [
-            SimpleRecord(
-                record.value() + "!!" + self.secret_value, headers=record.headers()
-            )
-        ]
+module: "module-1"
+id: "pipeline-1"
+name: "Test Sink"
+topics:
+  - name: ls-test-input
+    creation-mode: create-if-not-exists
+    schema:
+      type: string
+  - name: ls-test-output
+    creation-mode: create-if-not-exists
+    schema:
+      type: string
+pipeline:
+  - name: "Sink using Python"
+    resources:
+      size: 2
+    id: "test-python-sink"
+    type: "experimental-python-sink"
+    input: ls-test-input
+    configuration:
+      className: example.TestSink
+      bootstrapServers: "{{ secrets.kafka.bootstrap-servers }}"

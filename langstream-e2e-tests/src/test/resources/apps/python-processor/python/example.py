@@ -23,4 +23,8 @@ class Exclamation(SingleRecordProcessor):
         self.secret_value = config["secret_value"]
 
     def process_record(self, record):
-        return [SimpleRecord(record.value() + "!!" + self.secret_value, headers=record.headers())]
+        return [
+            SimpleRecord(
+                record.value() + "!!" + self.secret_value, headers=record.headers()
+            )
+        ]

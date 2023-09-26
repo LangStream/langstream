@@ -104,4 +104,40 @@ public class PythonAgentsIT extends BaseEndToEndTest {
 
         deleteAppAndAwaitCleanup(tenant, applicationId);
     }
+
+    @Test
+    public void testSink() {
+        installLangStreamCluster(true);
+        final String tenant = "ten-" + System.currentTimeMillis();
+        setupTenant(tenant);
+        final String applicationId = "my-test-app";
+        Map<String, Object> admin =
+                (Map<String, Object>)
+                        streamingCluster.configuration().getOrDefault("admin", Map.of());
+        String bootStrapServers =
+                (String) admin.getOrDefault("bootstrap.servers", "localhost:9092");
+        deployLocalApplicationAndAwaitReady(
+                tenant,
+                applicationId,
+                "experimental-python-sink",
+                Map.of("KAFKA_BOOTSTRAP_SERVERS", bootStrapServers),
+                1);
+
+        executeCommandOnClient(
+                "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30"
+                        .formatted(applicationId)
+                        .split(" "));
+
+        final String output =
+                executeCommandOnClient(
+                        "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30"
+                                .formatted(applicationId)
+                                .split(" "));
+        log.info("Output: {}", output);
+        Assertions.assertTrue(
+                output.contains(
+                        "{\"record\":{\"key\":null,\"value\":\"write: my-value\",\"headers\":{}}"));
+
+        deleteAppAndAwaitCleanup(tenant, applicationId);
+    }
 }

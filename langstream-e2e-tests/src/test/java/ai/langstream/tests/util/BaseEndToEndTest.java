@@ -46,6 +46,7 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.dsl.ContainerResource;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.fabric8.kubernetes.client.dsl.Loggable;
 import io.fabric8.kubernetes.client.readiness.Readiness;
 import io.jsonwebtoken.Jwts;
 import java.io.ByteArrayInputStream;
@@ -806,15 +807,18 @@ public class BaseEndToEndTest implements TestWatcher {
                 }
                 for (Container container : all) {
                     try {
-                        final ContainerResource containerResource =
+                        final Loggable loggable = tailingLines > 0 ?
+                                client.pods()
+                                        .inNamespace(namespace)
+                                        .withName(podName)
+                                        .inContainer(container.getName())
+                                        .tailingLines(tailingLines)
+                                :
                                 client.pods()
                                         .inNamespace(namespace)
                                         .withName(podName)
                                         .inContainer(container.getName());
-                        if (tailingLines > 0) {
-                            containerResource.tailingLines(tailingLines);
-                        }
-                        final String containerLog = containerResource.getLog();
+                        final String containerLog = loggable.getLog();
                         consumer.accept(container.getName(), containerLog);
                     } catch (Throwable t) {
                         log.error(

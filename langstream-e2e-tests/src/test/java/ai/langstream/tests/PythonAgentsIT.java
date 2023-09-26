@@ -19,6 +19,7 @@ import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.tests.util.BaseEndToEndTest;
 import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -61,10 +62,29 @@ public class PythonAgentsIT extends BaseEndToEndTest {
                         "{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value\","
                                 + "\"headers\":{\"langstream-client-session-id\":\"s1\"}}"));
 
+        final StatefulSet sts = client.apps().statefulSets().inNamespace(tenantNamespace)
+                .withLabel("langstream-application", applicationId)
+                .list()
+                .getItems()
+                .get(0);
+        final String resourceVersion = sts.getMetadata().getResourceVersion();
+
         updateLocalApplication(
                 applicationId, appDir, Map.of("SECRET1_VK", "super secret value - changed"));
-        Thread.sleep(5000);
         awaitApplicationReady(applicationId, 1);
+
+        Awaitility
+                .await()
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+            final StatefulSet sts2 = client.apps().statefulSets().inNamespace(tenantNamespace)
+                    .withLabel("langstream-application", applicationId)
+                    .list()
+                    .getItems()
+                    .get(0);
+            Assertions.assertNotEquals(resourceVersion, sts2.getMetadata().getResourceVersion());
+        });
+
 
         executeCommandOnClient(
                 "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30 -p sessionId=s2"

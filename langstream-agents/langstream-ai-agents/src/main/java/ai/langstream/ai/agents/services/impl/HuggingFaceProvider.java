@@ -168,8 +168,7 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                     List<String> prompt,
                     StreamingChunksConsumer streamingChunksConsumer,
                     Map<String, Object> options) {
-                return callHFService(prompt, options)
-                        .thenApply(r -> r.get(0).sequence);
+                return callHFService(prompt, options).thenApply(r -> r.get(0).sequence);
             }
 
             @Override
@@ -179,15 +178,16 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                     StreamingChunksConsumer streamingChunksConsumer,
                     Map<String, Object> map) {
 
-
-                return callHFService(list.stream()
-                        .map(ChatMessage::getContent)
-                        .collect(Collectors.toList()), map)
+                return callHFService(
+                                list.stream()
+                                        .map(ChatMessage::getContent)
+                                        .collect(Collectors.toList()),
+                                map)
                         .thenApply(r -> responseBeanToChatCompletions(r));
             }
 
-            private CompletableFuture<List<ResponseBean>> callHFService(List<String> content, Map<String, Object> map)
-                    throws JsonProcessingException {
+            private CompletableFuture<List<ResponseBean>> callHFService(
+                    List<String> content, Map<String, Object> map) throws JsonProcessingException {
                 String model = (String) map.get("model");
                 // https://huggingface.co/docs/api-inference/quicktour
                 String url = this.url + "/models/%s";
@@ -204,8 +204,7 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                                         .POST(HttpRequest.BodyPublishers.ofString(request))
                                         .build(),
                                 HttpResponse.BodyHandlers.ofString());
-                return responseHandle.thenApply(
-                        response -> convertResponse(response));
+                return responseHandle.thenApply(response -> convertResponse(response));
             }
 
             @SneakyThrows
@@ -218,7 +217,8 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                 return responseBeans;
             }
 
-            private static ChatCompletions responseBeanToChatCompletions(List<ResponseBean> responseBeans) {
+            private static ChatCompletions responseBeanToChatCompletions(
+                    List<ResponseBean> responseBeans) {
                 ChatCompletions result = new ChatCompletions();
                 result.setChoices(
                         responseBeans.stream()

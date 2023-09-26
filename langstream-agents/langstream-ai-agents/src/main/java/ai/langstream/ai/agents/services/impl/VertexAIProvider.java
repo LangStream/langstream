@@ -275,7 +275,6 @@ public class VertexAIProvider implements ServiceProviderProvider {
                 request.instances.add(instance);
                 appendRequestParameters(additionalConfiguration, request);
 
-
                 CompletableFuture<ChatPredictions> predictionsResult =
                         executeVertexCall(request, ChatPredictions.class, model);
                 return predictionsResult.thenApply(
@@ -312,7 +311,8 @@ public class VertexAIProvider implements ServiceProviderProvider {
                         });
             }
 
-            private void appendRequestParameters(Map<String, Object> additionalConfiguration, CompletionRequest request) {
+            private void appendRequestParameters(
+                    Map<String, Object> additionalConfiguration, CompletionRequest request) {
                 request.parameters = new HashMap<>();
 
                 if (additionalConfiguration.containsKey("temperature")) {
@@ -377,7 +377,6 @@ public class VertexAIProvider implements ServiceProviderProvider {
                 CompletionRequest request = new CompletionRequest();
                 request.instances.add(instance);
                 appendRequestParameters(options, request);
-
 
                 CompletableFuture<TextPredictions> predictionsResult =
                         executeVertexCall(request, TextPredictions.class, model);

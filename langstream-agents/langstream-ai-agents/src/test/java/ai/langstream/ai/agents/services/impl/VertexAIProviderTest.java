@@ -41,7 +41,7 @@ class VertexAIProviderTest {
     void testCallEmbeddings(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
         stubFor(
                 post("/v1/projects/the-project/locations/us-central1/publishers/google/models/textembedding-gecko"
-                     + ":predict")
+                                + ":predict")
                         .willReturn(
                                 okJson(
                                         """
@@ -168,7 +168,6 @@ class VertexAIProviderTest {
                 chatCompletions.getChoices().get(0).getMessage().getContent());
     }
 
-
     @Test
     void testCallTextCompletion(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
         stubFor(
@@ -225,10 +224,7 @@ class VertexAIProviderTest {
                                 "top-k",
                                 3.0));
         String textCompletions =
-                service.getTextCompletions(
-                                List.of("explain a car"),
-                                null,
-                                Map.of("max_tokens", 3))
+                service.getTextCompletions(List.of("explain a car"), null, Map.of("max_tokens", 3))
                         .get();
         log.info("result: {}", textCompletions);
         assertEquals(

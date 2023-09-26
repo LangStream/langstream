@@ -1,4 +1,14 @@
 # LangStream
+
+<div class="column" align="middle">
+ <img src="https://avatars.githubusercontent.com/u/142052382?s=200&v=4" alt="banner">
+</div>
+<div class="column" align="middle">
+  <img src="https://img.shields.io/github/license/LangStream/langstream" alt="license"/> 
+  <img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/LangStream/langstream">
+   <a href="https://join.slack.com/t/langstream/shared_invite/zt-21leloc9c-lNaGLdiecHuWU5N31L2AeQ"><img src="https://img.shields.io/badge/Join-Slack-blue?logo=slack&amp;logoColor=white&style=flat-square"></a>
+</div>
+
 Check out our [website](https://langstream.ai).
 
 Have a question? Join our community on [Slack](https://join.slack.com/t/langstream/shared_invite/zt-21leloc9c-lNaGLdiecHuWU5N31L2AeQ) or [Linen](https://www.linen.dev/invite/langstream)!

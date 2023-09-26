@@ -22,6 +22,7 @@ import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.auth.oauth2.Credential;
@@ -192,21 +193,31 @@ public class VertexAIProvider implements ServiceProviderProvider {
 
         @Override
         public CompletionsService getCompletionsService(Map<String, Object> map) throws Exception {
-            String model = (String) map.getOrDefault("model", "chat-bison");
+            String model = (String) map.get("model");
+            if (model == null) {
+                throw new IllegalArgumentException("'model' is required for completions service");
+            }
             return new VertexAICompletionsService(model);
         }
 
         @Override
         public EmbeddingsService getEmbeddingsService(Map<String, Object> map) throws Exception {
-            String model = (String) map.getOrDefault("model", "textembedding-gecko");
+            String model = (String) map.get("model");
+            if (model == null) {
+                throw new IllegalArgumentException("'model' is required for embeddings service");
+            }
             return new VertexAIEmbeddingsService(model);
         }
 
         private <R, T> CompletableFuture<T> executeVertexCall(
-                R requestEmbeddings, Class<T> responseType, String model)
-                throws IOException, InterruptedException {
+                R requestEmbeddings, Class<T> responseType, String model) {
             String finalUrl = VERTEX_URL_TEMPLATE.formatted(url, project, region, model);
-            String request = MAPPER.writeValueAsString(requestEmbeddings);
+            String request;
+            try {
+                request = MAPPER.writeValueAsString(requestEmbeddings);
+            } catch (JsonProcessingException e) {
+                return CompletableFuture.failedFuture(e);
+            }
             log.info("URL: {}", finalUrl);
             log.info("Request: {}", request);
 
@@ -227,7 +238,11 @@ public class VertexAIProvider implements ServiceProviderProvider {
         }
 
         @Override
-        public void close() {}
+        public void close() {
+            if (refreshTokenExecutor != null) {
+                refreshTokenExecutor.shutdownNow();
+            }
+        }
 
         private class VertexAICompletionsService implements CompletionsService {
             private final String model;
@@ -237,48 +252,31 @@ public class VertexAIProvider implements ServiceProviderProvider {
             }
 
             @Override
-            @SneakyThrows
             public CompletableFuture<ChatCompletions> getChatCompletions(
                     List<ChatMessage> list,
                     StreamingChunksConsumer streamingChunksConsumer,
                     Map<String, Object> additionalConfiguration) {
                 // https://cloud.google.com/vertex-ai/docs/generative-ai/chat/chat-prompts
-                CompletionRequest request = new CompletionRequest();
-                CompletionRequest.Instance instance = new CompletionRequest.Instance();
-                request.instances.add(instance);
-                request.parameters = new HashMap<>();
-
-                if (additionalConfiguration.containsKey("temperature")) {
-                    request.parameters.put(
-                            "temperature", additionalConfiguration.get("temperature"));
-                }
-                if (additionalConfiguration.containsKey("max-tokens")) {
-                    request.parameters.put(
-                            "maxOutputTokens", additionalConfiguration.get("max-tokens"));
-                }
-                if (additionalConfiguration.containsKey("topP")) {
-                    request.parameters.put("topP", additionalConfiguration.get("topP"));
-                }
-                if (additionalConfiguration.containsKey("topK")) {
-                    request.parameters.put("topK", additionalConfiguration.get("topK"));
-                }
-
+                CompletionRequest.ChatInstance instance = new CompletionRequest.ChatInstance();
                 instance.context = "";
                 instance.examples = new ArrayList<>();
                 instance.messages =
                         list.stream()
                                 .map(
                                         m -> {
-                                            CompletionRequest.Message message =
-                                                    new CompletionRequest.Message();
+                                            CompletionRequest.ChatMessage message =
+                                                    new CompletionRequest.ChatMessage();
                                             message.content = m.getContent();
                                             message.author = m.getRole();
                                             return message;
                                         })
                                 .collect(Collectors.toList());
+                CompletionRequest request = new CompletionRequest();
+                request.instances.add(instance);
+                appendRequestParameters(additionalConfiguration, request);
 
-                CompletableFuture<Predictions> predictionsResult =
-                        executeVertexCall(request, Predictions.class, model);
+                CompletableFuture<ChatPredictions> predictionsResult =
+                        executeVertexCall(request, ChatPredictions.class, model);
                 return predictionsResult.thenApply(
                         predictions -> {
                             ChatCompletions completions = new ChatCompletions();
@@ -313,29 +311,54 @@ public class VertexAIProvider implements ServiceProviderProvider {
                         });
             }
 
+            private void appendRequestParameters(
+                    Map<String, Object> additionalConfiguration, CompletionRequest request) {
+                request.parameters = new HashMap<>();
+
+                if (additionalConfiguration.containsKey("temperature")) {
+                    request.parameters.put(
+                            "temperature", additionalConfiguration.get("temperature"));
+                }
+                if (additionalConfiguration.containsKey("max-tokens")) {
+                    request.parameters.put(
+                            "maxOutputTokens", additionalConfiguration.get("max-tokens"));
+                }
+                if (additionalConfiguration.containsKey("topP")) {
+                    request.parameters.put("topP", additionalConfiguration.get("topP"));
+                }
+                if (additionalConfiguration.containsKey("topK")) {
+                    request.parameters.put("topK", additionalConfiguration.get("topK"));
+                }
+            }
+
             @Data
             static class CompletionRequest {
                 Map<String, Object> parameters;
 
-                List<Instance> instances = new ArrayList<>();
+                List<Object> instances = new ArrayList<>();
 
                 @Data
-                static class Instance {
+                static class ChatInstance {
                     String context;
-                    List<Example> examples = new ArrayList<>();
-                    List<Message> messages = new ArrayList<>();
+                    List<ChatInstanceExample> examples = new ArrayList<>();
+                    List<ChatMessage> messages = new ArrayList<>();
                 }
 
                 @Data
-                static class Example {
+                static class ChatInstanceExample {
                     Map<String, Object> input;
                     Map<String, Object> output;
                 }
 
                 @Data
-                static class Message {
+                static class ChatMessage {
                     String author;
                     String content;
+                }
+
+                @Data
+                static class TextInstance {
+                    String prompt;
                 }
             }
 
@@ -344,12 +367,25 @@ public class VertexAIProvider implements ServiceProviderProvider {
                     List<String> prompt,
                     StreamingChunksConsumer streamingChunksConsumer,
                     Map<String, Object> options) {
-                return CompletableFuture.failedFuture(
-                        new UnsupportedOperationException("Not implemented"));
+                if (prompt.size() != 1) {
+                    throw new IllegalArgumentException(
+                            "Vertex AI only supports a single prompt for text completions.");
+                }
+                // https://cloud.google.com/vertex-ai/docs/generative-ai/chat/chat-prompts
+                CompletionRequest.TextInstance instance = new CompletionRequest.TextInstance();
+                instance.prompt = prompt.get(0);
+                CompletionRequest request = new CompletionRequest();
+                request.instances.add(instance);
+                appendRequestParameters(options, request);
+
+                CompletableFuture<TextPredictions> predictionsResult =
+                        executeVertexCall(request, TextPredictions.class, model);
+                return predictionsResult.thenApply(
+                        predictions -> predictions.predictions.get(0).content);
             }
 
             @Data
-            static class Predictions {
+            static class ChatPredictions {
 
                 List<Prediction> predictions;
 
@@ -363,6 +399,18 @@ public class VertexAIProvider implements ServiceProviderProvider {
                         String author;
                         String content;
                     }
+                }
+            }
+
+            @Data
+            static class TextPredictions {
+
+                List<Prediction> predictions;
+
+                @Data
+                static class Prediction {
+
+                    String content;
                 }
             }
         }
@@ -424,6 +472,10 @@ public class VertexAIProvider implements ServiceProviderProvider {
 
     @SneakyThrows
     private static <T> T handleResponse(Class<T> responseType, HttpResponse<String> response) {
+        if (response.statusCode() != 200) {
+            throw new IllegalStateException(
+                    "Unexpected status code: " + response.statusCode() + " " + response.body());
+        }
         String body = response.body();
         log.info("Response: {}", body);
         return MAPPER.readValue(body, responseType);

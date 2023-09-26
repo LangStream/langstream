@@ -40,24 +40,25 @@ class VertexAIProviderTest {
     @Test
     void testCallEmbeddings(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
         stubFor(
-                post("/v1/projects/the-project/locations/us-central1/publishers/google/models/textembedding-gecko:predict")
+                post("/v1/projects/the-project/locations/us-central1/publishers/google/models/textembedding-gecko"
+                                + ":predict")
                         .willReturn(
                                 okJson(
                                         """
-                   {
-                      "predictions": [
-                        {
-                          "embeddings": {
-                            "statistics": {
-                              "truncated": false,
-                              "token_count": 6
-                            },
-                            "values": [ 1.0, 5.4, 8.7]
-                          }
-                        }
-                      ]
-                    }
-                """)));
+                                                   {
+                                                      "predictions": [
+                                                        {
+                                                          "embeddings": {
+                                                            "statistics": {
+                                                              "truncated": false,
+                                                              "token_count": 6
+                                                            },
+                                                            "values": [ 1.0, 5.4, 8.7]
+                                                          }
+                                                        }
+                                                      ]
+                                                    }
+                                                """)));
 
         VertexAIProvider provider = new VertexAIProvider();
         ServiceProvider implementation =
@@ -90,43 +91,43 @@ class VertexAIProviderTest {
                         .willReturn(
                                 okJson(
                                         """
-                   {
-                     "predictions": [
-                       {
-                         "safetyAttributes": [
-                           {
-                             "blocked": false,
-                             "scores": [],
-                             "categories": []
-                           }
-                         ],
-                         "citationMetadata": [
-                           {
-                             "citations": []
-                           }
-                         ],
-                         "candidates": [
-                           {
-                             "author": "1",
-                             "content": "A car is a wheeled, self-propelled motor vehicle used for transportation."
-                           }
-                         ]
-                       }
-                     ],
-                     "metadata": {
-                       "tokenMetadata": {
-                         "inputTokenCount": {
-                           "totalTokens": 5,
-                           "totalBillableCharacters": 11
-                         },
-                         "outputTokenCount": {
-                           "totalBillableCharacters": 63,
-                           "totalTokens": 15
-                         }
-                       }
-                     }
-                   }
-                """)));
+                                                   {
+                                                     "predictions": [
+                                                       {
+                                                         "safetyAttributes": [
+                                                           {
+                                                             "blocked": false,
+                                                             "scores": [],
+                                                             "categories": []
+                                                           }
+                                                         ],
+                                                         "citationMetadata": [
+                                                           {
+                                                             "citations": []
+                                                           }
+                                                         ],
+                                                         "candidates": [
+                                                           {
+                                                             "author": "1",
+                                                             "content": "A car is a wheeled, self-propelled motor vehicle used for transportation."
+                                                           }
+                                                         ]
+                                                       }
+                                                     ],
+                                                     "metadata": {
+                                                       "tokenMetadata": {
+                                                         "inputTokenCount": {
+                                                           "totalTokens": 5,
+                                                           "totalBillableCharacters": 11
+                                                         },
+                                                         "outputTokenCount": {
+                                                           "totalBillableCharacters": 63,
+                                                           "totalTokens": 15
+                                                         }
+                                                       }
+                                                     }
+                                                   }
+                                                """)));
 
         VertexAIProvider provider = new VertexAIProvider();
         ServiceProvider implementation =
@@ -165,6 +166,70 @@ class VertexAIProviderTest {
         assertEquals(
                 "A car is a wheeled, self-propelled motor vehicle used for transportation.",
                 chatCompletions.getChoices().get(0).getMessage().getContent());
+    }
+
+    @Test
+    void testCallTextCompletion(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+        stubFor(
+                post("/v1/projects/the-project/locations/us-central1/publishers/google/models/text-bison:predict")
+                        .willReturn(
+                                okJson(
+                                        """
+                                                   {
+                                                                                     "predictions": [
+                                                                                       {
+                                                                                         "citationMetadata": {
+                                                                                           "citations": []
+                                                                                         },
+                                                                                         "safetyAttributes": {
+                                                                                           "scores": [
+                                                                                             0.1
+                                                                                           ],
+                                                                                           "categories": [
+                                                                                             "Finance"
+                                                                                           ],
+                                                                                           "blocked": false
+                                                                                         },
+                                                                                         "content": "A car is a wheeled, self-propelled motor vehicle used for transportation."
+                                                                                       }
+                                                                                     ]
+                                                                                   }
+                                                """)));
+
+        VertexAIProvider provider = new VertexAIProvider();
+        ServiceProvider implementation =
+                provider.createImplementation(
+                        Map.of(
+                                "vertex",
+                                Map.of(
+                                        "url",
+                                        wmRuntimeInfo.getHttpBaseUrl(),
+                                        "project",
+                                        "the-project",
+                                        "region",
+                                        "us-central1",
+                                        "token",
+                                        "xxxx")));
+        CompletionsService service =
+                implementation.getCompletionsService(
+                        Map.of(
+                                "model",
+                                "text-bison",
+                                "max-tokens",
+                                3,
+                                "temperature",
+                                0.5,
+                                "top-p",
+                                1.0,
+                                "top-k",
+                                3.0));
+        String textCompletions =
+                service.getTextCompletions(List.of("explain a car"), null, Map.of("max_tokens", 3))
+                        .get();
+        log.info("result: {}", textCompletions);
+        assertEquals(
+                "A car is a wheeled, self-propelled motor vehicle used for transportation.",
+                textCompletions);
     }
 
     @Test

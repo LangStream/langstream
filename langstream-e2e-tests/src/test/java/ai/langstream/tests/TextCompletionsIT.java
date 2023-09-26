@@ -30,7 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
 @Tag(BaseEndToEndTest.CATEGORY_NEEDS_CREDENTIALS)
-public class ChatCompletionsIT extends BaseEndToEndTest {
+public class TextCompletionsIT extends BaseEndToEndTest {
 
     static Map<String, String> appEnv;
 
@@ -41,7 +41,7 @@ public class ChatCompletionsIT extends BaseEndToEndTest {
                         List.of(
                                 "OPEN_AI_ACCESS_KEY",
                                 "OPEN_AI_URL",
-                                "OPEN_AI_CHAT_COMPLETIONS_MODEL",
+                                "OPEN_AI_TEXT_COMPLETIONS_MODEL",
                                 "OPEN_AI_PROVIDER"));
     }
 
@@ -53,12 +53,11 @@ public class ChatCompletionsIT extends BaseEndToEndTest {
 
         final String applicationId = "app";
 
-        deployLocalApplicationAndAwaitReady(tenant, applicationId, "chat-completions", appEnv, 1);
-
+        deployLocalApplicationAndAwaitReady(tenant, applicationId, "text-completions", appEnv, 1);
         final String sessionId = UUID.randomUUID().toString();
 
         executeCommandOnClient(
-                "bin/langstream gateway produce %s produce-input -v 'Who was the first president of the United States?' -p sessionId=%s"
+                "bin/langstream gateway produce %s produce-input -v 'Translate \"Good morning\" to French.' -p sessionId=%s"
                         .formatted(applicationId, sessionId)
                         .split(" "));
 
@@ -70,6 +69,6 @@ public class ChatCompletionsIT extends BaseEndToEndTest {
                                 .formatted(sessionId)
                                 .split(" "));
         log.info("Output: {}", message);
-        Assertions.assertTrue(message.getAnswerFromChatCompletionsValue().contains("Washington"));
+        Assertions.assertTrue(message.getAnswerFromChatCompletionsValue().contains("Bounjour"));
     }
 }

@@ -17,22 +17,47 @@ package ai.langstream.tests.util.codestorage;
 
 import ai.langstream.tests.util.BaseEndToEndTest;
 import ai.langstream.tests.util.CodeStorageProvider;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class LocalMinioCodeStorageProvider implements CodeStorageProvider {
+
+    private final KubernetesClient client;
+    protected static final String NAMESPACE = "ls-test-minio";
+    private boolean started;
+
+    public LocalMinioCodeStorageProvider(KubernetesClient client) {
+        this.client = client;
+    }
 
     @Override
     public CodeStorageConfig start() {
-        BaseEndToEndTest.applyManifestNoNamespace(
+        if (!started) {
+            deploy();
+            started = true;
+        }
+        return new CodeStorageConfig(
+                "s3",
+                Map.of(
+                        "endpoint", "http://minio.%s.svc.cluster.local:9000".formatted(NAMESPACE),
+                        "access-key", "minioadmin",
+                        "secret-key", "minioadmin"));
+    }
+
+    private void deploy() {
+        client.resource(
+                        new NamespaceBuilder()
+                                .withNewMetadata()
+                                .withName(NAMESPACE)
+                                .endMetadata()
+                                .build())
+                .serverSideApply();
+        log.info("Deploying MinIO");
+        BaseEndToEndTest.applyManifest(
                 """
-                        # Deploys a new Namespace for the MinIO Pod
-                        apiVersion: v1
-                        kind: Namespace
-                        metadata:
-                          name: minio-dev # Change this value if you want a different namespace name
-                          labels:
-                            name: minio-dev # Change this value to match metadata.name
-                        ---
                         # Deploys a new MinIO Pod into the metadata.namespace Kubernetes namespace
                         #
                         # The `spec.containers[0].args` contains the command run on the pod
@@ -45,7 +70,6 @@ public class LocalMinioCodeStorageProvider implements CodeStorageProvider {
                           labels:
                             app: minio
                           name: minio
-                          namespace: minio-dev # Change this value to match the namespace metadata.name
                         spec:
                           containers:
                           - name: minio
@@ -81,7 +105,6 @@ public class LocalMinioCodeStorageProvider implements CodeStorageProvider {
                           labels:
                             app: minio
                           name: minio
-                          namespace: minio-dev # Change this value to match the namespace metadata.name
                         spec:
                           ports:
                             - port: 9090
@@ -94,19 +117,15 @@ public class LocalMinioCodeStorageProvider implements CodeStorageProvider {
                               name: s3
                           selector:
                             app: minio
-                        """);
-
-        return new CodeStorageConfig(
-                "s3",
-                Map.of(
-                        "endpoint", "http://minio.minio-dev.svc.cluster.local:9000",
-                        "access-key", "minioadmin",
-                        "secret-key", "minioadmin"));
+                        """,
+                NAMESPACE);
     }
 
     @Override
     public void cleanup() {}
 
     @Override
-    public void stop() {}
+    public void stop() {
+        client.namespaces().withName(NAMESPACE).delete();
+    }
 }

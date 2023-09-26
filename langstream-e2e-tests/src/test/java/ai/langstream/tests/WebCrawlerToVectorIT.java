@@ -60,8 +60,8 @@ public class WebCrawlerToVectorIT extends BaseEndToEndTest {
 
         final String applicationId = "app";
 
-        deployLocalApplication(applicationId, "webcrawler-to-vector", appEnv);
-        awaitApplicationReady(applicationId, 3);
+        deployLocalApplicationAndAwaitReady(
+                tenant, applicationId, "webcrawler-to-vector", appEnv, 3);
 
         final String sessionId = UUID.randomUUID().toString();
 

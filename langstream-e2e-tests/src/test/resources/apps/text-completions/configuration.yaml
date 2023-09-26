@@ -15,11 +15,11 @@
 # limitations under the License.
 #
 
-gateways:
-  - id: chat
-    type: chat
-    chat-options:
-      answers-topic: answers
-      questions-topic: questions
-      headers:
-        - value-from-parameters: sessionId
+configuration:
+  resources:
+    - type: "open-ai-configuration"
+      name: "OpenAI Azure configuration"
+      configuration:
+        url: "{{ secrets.open-ai.url }}"
+        access-key: "{{ secrets.open-ai.access-key }}"
+        provider: "{{ secrets.open-ai.provider }}"

@@ -56,8 +56,7 @@ public class CassandraSinkIT extends BaseEndToEndTest {
                         "CASSANDRA_CONTACT_POINTS", cassandraHost,
                         "CASSANDRA_LOCAL_DC", "datacenter1",
                         "CASSANDRA_PORT", "9042");
-        deployLocalApplication(applicationId, "cassandra-sink", env);
-        awaitApplicationReady(applicationId, 1);
+        deployLocalApplicationAndAwaitReady(tenant, applicationId, "cassandra-sink", env, 1);
 
         executeCommandOnClient(
                 "bin/langstream gateway produce %s produce-input -v '{\"id\": 10, \"name\": \"test-from-sink\", \"description\": \"test-from-sink\"}'"

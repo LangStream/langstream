@@ -16,10 +16,24 @@
 #
 
 gateways:
-  - id: chat
-    type: chat
-    chat-options:
-      answers-topic: answers
-      questions-topic: questions
+  - id: produce-input
+    type: produce
+    topic: ls-test-input-topic
+    parameters:
+      - sessionId
+    produce-options:
       headers:
-        - value-from-parameters: sessionId
+        - key: langstream-client-session-id
+          value-from-parameters: sessionId
+
+  - id: consume-history
+    type: consume
+    topic: ls-test-history-topic
+    parameters:
+      - sessionId
+    consume-options:
+      filters:
+        headers:
+          - key: langstream-client-session-id
+            value-from-parameters: sessionId
+

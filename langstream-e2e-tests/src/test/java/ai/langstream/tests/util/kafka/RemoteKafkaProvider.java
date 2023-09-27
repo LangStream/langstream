@@ -63,12 +63,10 @@ public class RemoteKafkaProvider implements StreamingClusterProvider {
         final List<String> topics = getTopics();
         if (!topics.isEmpty()) {
             log.info("Deleting topics: {}", topics);
-            for (String topic : topics) {
-                admin.deleteTopics(List.of(topic)).all().get();
-            }
-
-            // admin.deleteTopics(topics).all().get();
+            admin.deleteTopics(topics).all().get();
+            log.info("Deleted topics: {}", topics);
         }
+        log.info("Topics after cleanup: {}", getTopics());
     }
 
     @Override

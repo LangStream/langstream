@@ -17,6 +17,7 @@ package ai.langstream.runtime.impl.k8s;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
@@ -751,6 +752,75 @@ class GenAIAgentsTest {
             assertEquals(1, steps.size());
 
             AbstractCompositeAgentProvider.getProcessorConfigurationAt(step, 2, "cast");
+        }
+    }
+
+    @Test
+    public void testForceAiService() throws Exception {
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "configuration.yaml",
+                                        """
+                                configuration:
+                                  resources:
+                                    - name: open-ai
+                                      type: open-ai-configuration
+                                      configuration:
+                                        url: "http://something"
+                                        access-key: "xxcxcxc"
+                                        provider: "azure"
+                                    - name: vertex
+                                      type: vertex-configuration
+                                      configuration:
+                                        url: "http://something"
+                                        token: xx
+                                        project: yy
+                                  """,
+                                        "module.yaml",
+                                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "compute-embeddings"
+                                    id: "step1"
+                                    type: "compute-ai-embeddings"
+                                    input: "input-topic"
+                                    output: "output-topic"
+                                    configuration:
+                                      service: "vertex"
+                                      model: "text-embedding-ada-002"
+                                      embeddings-field: "value.embeddings"
+                                      text: "{{% value.name }} {{% value.description }}"
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
+
+        try (ApplicationDeployer deployer =
+                     ApplicationDeployer.builder()
+                             .registry(new ClusterRuntimeRegistry())
+                             .pluginsRegistry(new PluginsRegistry())
+                             .build()) {
+
+            Module module = applicationInstance.getModule("module-1");
+
+            ExecutionPlan implementation =
+                    deployer.createImplementation("app", applicationInstance);
+            assertEquals(1, implementation.getAgents().size());
+            AgentNode agentImplementation = implementation.getAgentImplementation(module, "step1");
+            assertNotNull(agentImplementation);
+            DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
+            Map<String, Object> configuration = step.getConfiguration();
+            log.info("Configuration: {}", configuration);
+            assertNull(configuration.get("openai"));
+            assertNotNull(configuration.get("vertex"));
+            assertNull(configuration.get("service"));
         }
     }
 }

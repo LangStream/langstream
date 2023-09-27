@@ -369,11 +369,12 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
     private void generateAIProvidersConfiguration(
             Application applicationInstance,
+            Map<String, Object> originalConfiguration,
             Map<String, Object> configuration,
             ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
         // let the user force the provider or detect it automatically
-        String service = (String) configuration.remove("service");
+        String service = (String) originalConfiguration.get("service");
         for (Resource resource : applicationInstance.getResources().values()) {
             Map<String, Object> configurationCopy =
                     clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
@@ -382,7 +383,6 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                     if (service == null || service.equals("vertex")) {
                         configuration.put("vertex", configurationCopy);
                     }
-                    configuration.put("vertex", configurationCopy);
                     break;
                 case "hugging-face-configuration":
                     if (service == null || service.equals("hugging-face")) {
@@ -443,7 +443,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         Map<String, Object> configuration = new HashMap<>();
 
         generateAIProvidersConfiguration(
-                executionPlan.getApplication(), configuration, clusterRuntime, pluginsRegistry);
+                executionPlan.getApplication(),
+                originalConfiguration,
+                configuration, clusterRuntime, pluginsRegistry);
 
         generateSteps(
                 module,

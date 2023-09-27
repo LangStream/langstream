@@ -617,8 +617,12 @@ public class BaseEndToEndTest implements TestWatcher {
                         : (LANGSTREAM_TAG.equals("latest-dev")
                                 ? "langstream"
                                 : "ghcr.io/langstream");
+
         final String imagePullPolicy =
-                LANGSTREAM_TAG.equals("latest-dev") ? "Never" : "IfNotPresent";
+                switch (LANGSTREAM_TAG) {
+                    case "latest-dev" -> "Never";
+                    default -> "IfNotPresent";
+                };
         final Map<String, String> controlPlaneConfig = new HashMap<>();
         if (authentication) {
             KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
@@ -756,26 +760,25 @@ public class BaseEndToEndTest implements TestWatcher {
                             if (pod == null) {
                                 return false;
                             }
-                            final boolean ready = Readiness.getInstance().isReady(pod);
-                            if (!ready) {
-                                String podLogs;
-                                try {
-                                    podLogs =
-                                            getPodLogs(
-                                                    pod.getMetadata().getName(),
-                                                    pod.getMetadata().getNamespace(),
-                                                    15);
-                                } catch (Throwable e) {
-                                    podLogs = "failed to get pod logs: " + e.getMessage();
-                                }
-                                log.info(
-                                        "pod {} not ready, logs:\n{}",
-                                        pod.getMetadata().getName(),
-                                        podLogs);
-                                return false;
-                            }
-                            return true;
+                            return checkPodReadiness(pod);
                         });
+    }
+
+    private static boolean checkPodReadiness(Pod pod) {
+        final boolean ready = Readiness.getInstance().isReady(pod);
+        if (!ready) {
+            String podLogs;
+            try {
+                podLogs =
+                        getPodLogs(
+                                pod.getMetadata().getName(), pod.getMetadata().getNamespace(), 30);
+            } catch (Throwable e) {
+                podLogs = "failed to get pod logs: " + e.getMessage();
+            }
+            log.info("pod {} not ready, logs:\n{}", pod.getMetadata().getName(), podLogs);
+            return false;
+        }
+        return true;
     }
 
     @SneakyThrows
@@ -792,8 +795,10 @@ public class BaseEndToEndTest implements TestWatcher {
                 namespace,
                 tailingLines,
                 (container, logs) -> {
-                    sb.append("container: ").append(container).append("\n");
-                    sb.append(logs).append("\n");
+                    if (!logs.isBlank()) {
+                        sb.append("container: ").append(container).append("\n");
+                        sb.append(logs).append("\n");
+                    }
                 });
         return sb.toString();
     }
@@ -1122,7 +1127,9 @@ public class BaseEndToEndTest implements TestWatcher {
 
         awaitApplicationReady(applicationId, expectedNumExecutors);
         Awaitility.await()
-                .atMost(1, TimeUnit.MINUTES)
+                .atMost(2, TimeUnit.MINUTES)
+                .pollDelay(Duration.ZERO)
+                .pollInterval(5, TimeUnit.SECONDS)
                 .untilAsserted(
                         () -> {
                             log.info("waiting new executors to be ready");
@@ -1148,7 +1155,7 @@ public class BaseEndToEndTest implements TestWatcher {
                             Assertions.assertNotEquals(podUids, currentUids);
                             for (Pod pod : pods) {
                                 log.info("checking pod readiness {}", pod.getMetadata().getName());
-                                assertTrue(Readiness.getInstance().isReady(pod));
+                                assertTrue(checkPodReadiness(pod));
                             }
                         });
     }

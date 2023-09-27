@@ -155,7 +155,9 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         configuration.remove("vertex");
         config = MAPPER.convertValue(configuration, TransformStepConfig.class);
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
-        dataSource.initialize(datasourceConfiguration);
+        if (dataSource != null) {
+            dataSource.initialize(datasourceConfiguration);
+        }
         streamingAnswersConsumerFactory = new TopicProducerStreamingAnswersConsumerFactory();
         List<StepConfig> stepsConfig = config.getSteps();
         if (stepsConfig.size() != 1) {

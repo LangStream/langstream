@@ -157,13 +157,14 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
             log.info("Topics {}", topics);
             assertTrue(topics.contains(applicationRuntime.getGlobal("input-topic")));
             assertTrue(topics.contains(applicationRuntime.getGlobal("output-topic")));
-            assertTrue(topics.contains(applicationRuntime.getGlobal("stream-topic")));
+            final String streamToTopic = applicationRuntime.getGlobal("stream-topic");
+            assertTrue(topics.contains(streamToTopic));
 
             try (KafkaProducer<String, String> producer = createProducer();
                     KafkaConsumer<String, String> consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic"));
                     KafkaConsumer<String, String> streamConsumer =
-                            createConsumer(applicationRuntime.getGlobal("stream-topic"))) {
+                            createConsumer(streamToTopic)) {
 
                 // produce one message to the input-topic
                 // simulate a session-id header
@@ -182,7 +183,8 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                         waitForMessages(
                                 consumer,
                                 List.of(
-                                        "{\"question\":\"the car\",\"session-id\":\"2139847128764192\",\"answer\":\"A car is a vehicle\",\"prompt\":\"{\\\"options\\\":{\\\"max_tokens\\\":null,\\\"temperature\\\":null,\\\"top_p\\\":null,\\\"logit_bias\\\":null,\\\"user\\\":null,\\\"n\\\":null,\\\"stop\\\":null,\\\"presence_penalty\\\":null,\\\"frequency_penalty\\\":null,\\\"stream\\\":true,\\\"model\\\":\\\"gpt-35-turbo\\\",\\\"functions\\\":null,\\\"function_call\\\":null,\\\"dataSources\\\":null,\\\"min-chunks-per-message\\\":3},\\\"messages\\\":[{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"What can you tell me about the car ?\\\"}],\\\"model\\\":\\\"gpt-35-turbo\\\"}\"}"));
+                                        """
+                                                {"question":"the car","session-id":"2139847128764192","answer":"A car is a vehicle","prompt":"{\\"options\\":{\\"type\\":\\"ai-chat-completions\\",\\"when\\":null,\\"model\\":\\"gpt-35-turbo\\",\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about {{ value.question}} ?\\"}],\\"stream-to-topic\\":\\"%s\\",\\"stream-response-completion-field\\":\\"value\\",\\"min-chunks-per-message\\":3,\\"completion-field\\":\\"value.answer\\",\\"stream\\":true,\\"log-field\\":\\"value.prompt\\",\\"max-tokens\\":null,\\"temperature\\":null,\\"top-p\\":null,\\"logit-bias\\":null,\\"user\\":null,\\"stop\\":null,\\"presence-penalty\\":null,\\"frequency-penalty\\":null},\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about the car ?\\"}],\\"model\\":\\"gpt-35-turbo\\"}"}""".formatted(streamToTopic)));
                 ConsumerRecord record = mainOutputRecords.get(0);
 
                 assertNull(record.headers().lastHeader("stream-id"));

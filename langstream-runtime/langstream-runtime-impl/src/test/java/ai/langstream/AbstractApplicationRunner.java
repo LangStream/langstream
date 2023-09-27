@@ -250,6 +250,8 @@ public abstract class AbstractApplicationRunner {
                                 } else if (expectedValue instanceof byte[]) {
                                     assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
                                 } else {
+                                    log.info("expected: {}", expectedValue);
+                                    log.info("got: {}", actualValue);
                                     assertEquals(expectedValue, actualValue);
                                 }
                             }

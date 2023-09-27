@@ -59,7 +59,7 @@ jobs:
       - name: Package mini-langstream
         run: |
           version=${GITHUB_REF/refs\/tags\/v/}
-          ./bin/mini-langstream/package.sh $version
+          ./mini-langstream/package.sh $version
           
 
       - uses: ncipollo/release-action@v1

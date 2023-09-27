@@ -22,7 +22,7 @@ configuration:
       configuration:
         service: "jdbc"
         driverClass: "herddb.jdbc.Driver"
-        url: "jdbc:herddb:local"
+        url: "jdbc:herddb:localhost:7000"
     - type: "open-ai-configuration"
       name: "OpenAI Azure configuration"
       configuration:

@@ -32,7 +32,7 @@ assets:
           filename TEXT,
           chunk_id int,
           num_tokens int,
-          language TEXT,
+          lang TEXT,
           text TEXT,
           embeddings_vector FLOATA,
           PRIMARY KEY (filename, chunk_id));
@@ -122,11 +122,13 @@ pipeline:
       fields:
         - name: "filename"
           expression: "value.filename"
+          primary-key: true
         - name: "chunkid"
           expression: "value.chunk_id"
+          primary-key: true
         - name: "vector"
           expression: "fn:toListOfFloat(value.embeddings_vector)"
-        - name: "language"
+        - name: "lang"
           expression: "value.language"
         - name: "text"
           expression: "value.text"

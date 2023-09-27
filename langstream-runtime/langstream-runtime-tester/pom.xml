@@ -149,6 +149,20 @@
               </execution>
 
               <execution>
+                <id>download-herddb</id>
+                <phase>prepare-package</phase>
+                <goals>
+                  <goal>download-single</goal>
+                </goals>
+                <configuration>
+                  <url>https://github.com</url>
+                  <fromFile>diennea/herddb/releases/download/v0.28.0/herddb-services-0.28.0.zip</fromFile>
+                  <toDir>${project.build.directory}/herddb</toDir>
+                  <skipIfExists>true</skipIfExists>
+                </configuration>
+              </execution>
+
+              <execution>
                 <id>download-kafka</id>
                 <phase>prepare-package</phase>
                 <goals>

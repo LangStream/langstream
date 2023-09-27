@@ -75,7 +75,7 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
                         ApplicationSetupConstants.APP_CONFIG_ENV_DEFAULT);
         final Path secretsPath = getOptionalPathFromEnv(ApplicationSetupConstants.APP_SECRETS_ENV);
         final Path codeDirectory =
-                getPathFromEnv(
+                getOptionalPathFromEnv(
                         ApplicationSetupConstants.DOWNLOADED_CODE_PATH_ENV,
                         ApplicationSetupConstants.DOWNLOADED_CODE_PATH_ENV_DEFAULT);
         final Path packagesDirectory =

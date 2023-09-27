@@ -53,6 +53,11 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
     private boolean startS3 = true;
 
     @CommandLine.Option(
+            names = {"--start-database"},
+            description = "Start the embedded HerdDB database")
+    private boolean startDatabase = true;
+
+    @CommandLine.Option(
             names = {"--start-webservices"},
             description = "Start LangStream webservices")
     private boolean startWebservices = true;
@@ -140,6 +145,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
         log("Start broker: " + startBroker);
         log("Start S3: " + startS3);
+        log("Start Database: " + startDatabase);
         log("Start Webservices " + startWebservices);
 
         if (appDirectory == null) {
@@ -151,34 +157,33 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         final String secretsContents;
         final String instanceContents;
 
-        try {
-            if (instanceFile != null) {
-
+        if (instanceFile != null) {
+            try {
                 instanceContents =
                         LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
                                 instanceFile.toPath());
-            } else {
-                if (startBroker) {
-                    instanceContents =
-                            "instance:\n"
-                                    + "  streamingCluster:\n"
-                                    + "    type: \"kafka\"\n"
-                                    + "    configuration:\n"
-                                    + "      admin:\n"
-                                    + "        bootstrap.servers: localhost:9092";
-                    log(
-                            "Using default instance file that connects to the Kafka broker inside the docker container");
-                } else {
-                    throw new IllegalArgumentException(
-                            "instance file is required if broker is not started");
-                }
+            } catch (Exception e) {
+                log(
+                        "Failed to resolve instance file references. Please double check the file path: "
+                                + instanceFile.toPath());
+                e.printStackTrace();
+                throw e;
             }
-        } catch (Exception e) {
-            log(
-                    "Failed to resolve instance file references. Please double check the file path: "
-                            + instanceFile.toPath());
-            e.printStackTrace();
-            throw e;
+        } else {
+            if (startBroker) {
+                instanceContents =
+                        "instance:\n"
+                                + "  streamingCluster:\n"
+                                + "    type: \"kafka\"\n"
+                                + "    configuration:\n"
+                                + "      admin:\n"
+                                + "        bootstrap.servers: localhost:9092";
+                log(
+                        "Using default instance file that connects to the Kafka broker inside the docker container");
+            } else {
+                throw new IllegalArgumentException(
+                        "instance file is required if broker is not started");
+            }
         }
 
         if (secretsFile != null) {
@@ -205,7 +210,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 secretsContents,
                 startBroker,
                 startS3,
-                startWebservices);
+                startWebservices,
+                startDatabase);
     }
 
     private void executeOnDocker(
@@ -217,7 +223,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             String secretsContents,
             boolean startBroker,
             boolean startS3,
-            boolean startWebservices)
+            boolean startWebservices,
+            boolean startDatabase)
             throws Exception {
         File tmpInstanceFile = Files.createTempFile("instance", ".yaml").toFile();
         Files.write(tmpInstanceFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));
@@ -235,7 +242,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add("-e");
         commandLine.add("START_BROKER=" + startBroker);
         commandLine.add("-e");
-        commandLine.add("START_S3=" + startS3);
+        commandLine.add("START_MINIO=" + startS3);
+        commandLine.add("-e");
+        commandLine.add("START_HERDDB=" + startDatabase);
         commandLine.add("-e");
         commandLine.add("LANSGSTREAM_TESTER_TENANT=" + tenant);
         commandLine.add("-e");

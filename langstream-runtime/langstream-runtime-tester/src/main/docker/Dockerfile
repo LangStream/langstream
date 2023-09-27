@@ -21,6 +21,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 USER 0
 
 ADD maven/minio /minio/minio
+ADD maven/herddb-services-0.28.0.zip /herddb/herddb-services-0.28.0.zip
 COPY maven/kafka_2.13-3.5.1.tgz /kafka/kafka.tgz
 
 RUN chmod -R g+w /kafka \
@@ -30,7 +31,14 @@ RUN chmod -R g+w /kafka \
        && bin/kafka-storage.sh format -t $UUID -c config/kraft/server.properties \
        && mkdir -p /tmp/kraft-combined-logs \
        && chmod a+rwx /tmp/kraft-combined-logs \
-       && chmod a+x /minio/minio
+       && chmod a+x /minio/minio \
+       && chmod a+x /herddb \
+       && cd /herddb \
+       && unzip herddb-services-0.28.0.zip \
+       && mv herddb-services-0.28.0 herddb \
+       && chmod a+x /herddb/herddb \
+       && chmod a+x /herddb/herddb/bin/* \
+       && chown 10000:0 -R /herddb
 
 # Add the runtime code at the end. This optimizes docker layers to not depend on artifacts-specific changes.
 ADD maven/lib /app/tester/lib

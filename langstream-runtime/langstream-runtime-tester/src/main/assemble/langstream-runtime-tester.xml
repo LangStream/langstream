@@ -49,6 +49,10 @@
       <directory>target/kafka</directory>
       <outputDirectory>.</outputDirectory>
     </fileSet>
+    <fileSet>
+      <directory>target/herddb</directory>
+      <outputDirectory>.</outputDirectory>
+    </fileSet>
   </fileSets>
   <dependencySets>
     <dependencySet>

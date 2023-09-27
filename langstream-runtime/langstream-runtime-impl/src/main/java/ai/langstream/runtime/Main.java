@@ -19,9 +19,7 @@ import ai.langstream.runtime.agent.AgentCodeDownloaderStarter;
 import ai.langstream.runtime.agent.AgentRunnerStarter;
 import ai.langstream.runtime.application.ApplicationSetupRunnerStarter;
 import ai.langstream.runtime.deployer.RuntimeDeployerStarter;
-import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
 import java.util.List;
-import java.util.Map;
 
 public class Main {
 

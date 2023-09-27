@@ -17,12 +17,12 @@ HerdDB supports basic Vector search scalar functions, so it is perfect for suppo
 Since the application opens a gateway, we can use the gateway API to send and consume messages.
 
 ```
-./bin/langstream gateway chat test -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
+./bin/langstream gateway chat test -cg bot-output -pg user-input -p sessionId=$(uuidgen)
 ```
 
-Insert a JSON with "id", "name" and "description":
+Responses are streamed to the output-topic. If you want to inspect the history of the raw answers you can
+consume from the log-topic using the llm-debug gateway:
 
 ```
-{"id": 1, "name": "test", "description": "test"}
+./bin/langstream gateway consume test llm-debug
 ```
-

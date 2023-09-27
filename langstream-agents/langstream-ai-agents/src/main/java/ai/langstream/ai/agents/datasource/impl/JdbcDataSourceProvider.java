@@ -64,10 +64,6 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
             connection.setAutoCommit(true);
         }
 
-        public Connection getConnection() {
-            return connection;
-        }
-
         @Override
         @SneakyThrows
         public List<Map<String, String>> fetchData(String query, List<Object> params) {

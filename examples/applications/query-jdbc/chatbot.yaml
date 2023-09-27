@@ -37,7 +37,7 @@ pipeline:
       text: "{{% value.question }}"
       flush-interval: 0
   - name: "lookup-related-documents"
-    type: "query"
+    type: "query-vector-db"
     configuration:
       datasource: "JdbcDatasource"
       query: "SELECT text FROM documents ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) LIMIT 5"

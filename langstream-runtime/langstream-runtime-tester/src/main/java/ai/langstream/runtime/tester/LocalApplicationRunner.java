@@ -215,7 +215,8 @@ public class LocalApplicationRunner
                                         agentInfo,
                                         continueLoop::get,
                                         () -> {},
-                                        false);
+                                        false,
+                                        narFileHandler);
                                 List<?> infos = agentInfo.serveWorkerStatus();
                                 log.info(
                                         "{} AgentPod {} AgentInfo {}",

@@ -123,7 +123,8 @@ public class AgentRunner {
             AgentInfo agentInfo,
             Supplier<Boolean> continueLoop,
             Runnable beforeStopSource,
-            boolean startHttpServer)
+            boolean startHttpServer,
+            NarFileHandler narFileHandler)
             throws Exception {
         new AgentRunner()
                 .run(
@@ -134,7 +135,8 @@ public class AgentRunner {
                         agentInfo,
                         continueLoop,
                         beforeStopSource,
-                        startHttpServer);
+                        startHttpServer,
+                        narFileHandler);
     }
 
     public void run(
@@ -145,7 +147,8 @@ public class AgentRunner {
             AgentInfo agentInfo,
             Supplier<Boolean> continueLoop,
             Runnable beforeStopSource,
-            boolean startHttpServer)
+            boolean startHttpServer,
+            NarFileHandler sharedNarFileHandler)
             throws Exception {
         if (log.isDebugEnabled()) {
             log.debug("Pod Configuration {}", configuration);
@@ -160,11 +163,14 @@ public class AgentRunner {
         log.info("Code directory {}", codeDirectory);
 
         List<URL> customLibClasspath = buildCustomLibClasspath(codeDirectory);
-        try (NarFileHandler narFileHandler =
-                new NarFileHandler(
-                        agentsDirectory,
-                        customLibClasspath,
-                        Thread.currentThread().getContextClassLoader())) {
+        NarFileHandler narFileHandler =
+                sharedNarFileHandler != null
+                        ? sharedNarFileHandler
+                        : new NarFileHandler(
+                                agentsDirectory,
+                                customLibClasspath,
+                                Thread.currentThread().getContextClassLoader());
+        try {
             narFileHandler.scan();
 
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
@@ -205,6 +211,10 @@ public class AgentRunner {
                 }
             } finally {
                 topicConnectionsRuntimeWithClassloader.close();
+            }
+        } finally {
+            if (sharedNarFileHandler == null) {
+                narFileHandler.close();
             }
         }
     }

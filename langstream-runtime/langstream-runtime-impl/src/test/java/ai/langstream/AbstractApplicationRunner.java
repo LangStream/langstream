@@ -361,7 +361,8 @@ public abstract class AbstractApplicationRunner {
                                             return numLoops.incrementAndGet() <= 10;
                                         },
                                         () -> validateAgentInfoBeforeStop(agentInfo),
-                                        false);
+                                        false,
+                                        narFileHandler);
                                 List<?> infos = agentInfo.serveWorkerStatus();
                                 log.info(
                                         "{} AgentPod {} AgentInfo {}",

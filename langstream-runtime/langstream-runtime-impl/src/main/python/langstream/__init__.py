@@ -22,9 +22,8 @@ from .api import (
     Sink,
     Source,
     Processor,
-    CommitCallback,
 )
-from .util import SimpleRecord, SingleRecordProcessor, AvroValue
+from .util import SimpleRecord, AvroValue
 
 __all__ = [
     "Record",
@@ -33,8 +32,6 @@ __all__ = [
     "Source",
     "Sink",
     "Processor",
-    "CommitCallback",
     "SimpleRecord",
-    "SingleRecordProcessor",
     "AvroValue",
 ]

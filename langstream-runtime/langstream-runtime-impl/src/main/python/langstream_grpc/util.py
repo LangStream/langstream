@@ -14,13 +14,12 @@
 # limitations under the License.
 #
 
-from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Tuple
 
-from .api import Record, Processor, RecordType
+from .api import Record
 
-__all__ = ["SimpleRecord", "SingleRecordProcessor", "AvroValue"]
+__all__ = ["SimpleRecord", "AvroValue"]
 
 
 class SimpleRecord(Record):
@@ -57,44 +56,13 @@ class SimpleRecord(Record):
 
     def __str__(self):
         return (
-            f"Record(value={self._value}, key={self._key}, origin={self._origin}, "
-            f"timestamp={self._timestamp}, headers={self._headers})"
+            f"SimpleRecord(value={self._value}, key={self._key}, "
+            f"origin={self._origin},timestamp={self._timestamp}, "
+            f"headers={self._headers})"
         )
 
     def __repr__(self):
         return self.__str__()
-
-
-class SingleRecordProcessor(Processor):
-    """A Processor that processes records one-by-one"""
-
-    @abstractmethod
-    def process_record(self, record: Record) -> List[RecordType]:
-        """Process one record and return a list of records or raise an exception.
-
-        :returns: the list of processed records. The records must either respect the
-        Record API contract (have methods value(), key() and so on) or be tuples/list.
-        If the records are tuples/list, the framework will automatically construct
-        Record objects from them with the values in the following order : value, key,
-        headers, origin, timestamp.
-        Eg:
-        * if you return [("foo",)] a record Record(value="foo") will be built.
-        * if you return [("foo", "bar")] a record Record(value="foo", key="bar") will
-        be built.
-        """
-        pass
-
-    def process(
-        self, records: List[Record]
-    ) -> List[Tuple[Record, Union[List[RecordType], Exception]]]:
-        results = []
-        for record in records:
-            try:
-                processed = self.process_record(record)
-                results.append((record, processed))
-            except Exception as e:
-                results.append((record, e))
-        return results
 
 
 @dataclass

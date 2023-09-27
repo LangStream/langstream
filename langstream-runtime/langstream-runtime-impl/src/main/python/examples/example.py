@@ -27,12 +27,9 @@ class Example(object):
         print(f"read {records}")
         return records
 
-    def set_commit_callback(self, cb):
-        pass
+    def process(self, record):
+        print(f"process {record}")
+        return [record]
 
-    def process(self, records):
-        print(f"process {records}")
-        return [(record, [record]) for record in records]
-
-    def write(self, records):
-        print(f"write {records}")
+    def write(self, record):
+        print(f"write {record}")

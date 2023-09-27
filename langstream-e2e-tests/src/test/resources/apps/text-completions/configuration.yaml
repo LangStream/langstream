@@ -25,6 +25,7 @@ configuration:
         provider: "{{ secrets.open-ai.provider }}"
     - type: "vertex-configuration"
       name: "Google Vertex AI configuration"
+      id: "vertex"
       configuration:
         url: "{{ secrets.vertex-ai.url }}"
         token: "{{ secrets.vertex-ai.token }}"

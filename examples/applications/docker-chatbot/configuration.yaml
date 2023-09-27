@@ -22,7 +22,9 @@ configuration:
       configuration:
         service: "jdbc"
         driverClass: "herddb.jdbc.Driver"
-        url: "jdbc:herddb:server:localhost:7000"
+        url: "{{secrets.herddb.url}}"
+        user: "{{secrets.herddb.user}}"
+        password: "{{secrets.herddb.password}}"
     - type: "open-ai-configuration"
       name: "OpenAI Azure configuration"
       configuration:

@@ -265,10 +265,15 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             commandLine.add("-v");
             commandLine.add(tmpSecretsFile.getAbsolutePath() + ":/code/secrets.yaml");
         }
+
+        // with this tricks K8S examples work on Docker seamlessly
         commandLine.add("--add-host");
         commandLine.add("minio.minio-dev.svc.cluster.local:127.0.0.1");
         commandLine.add("--add-host");
+        commandLine.add("herddb.herddb-dev.svc.cluster.local:127.0.0.1");
+        commandLine.add("--add-host");
         commandLine.add("my-cluster-kafka-bootstrap.kafka:127.0.0.1");
+
         // gateway
         commandLine.add("-p");
         commandLine.add("8091:8091");

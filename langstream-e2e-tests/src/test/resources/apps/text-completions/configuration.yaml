@@ -18,6 +18,7 @@
 configuration:
   resources:
     - type: "open-ai-configuration"
+      id: "open-ai"
       name: "OpenAI Azure configuration"
       configuration:
         url: "{{ secrets.open-ai.url }}"

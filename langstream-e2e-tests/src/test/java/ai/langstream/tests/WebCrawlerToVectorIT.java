@@ -15,6 +15,8 @@
  */
 package ai.langstream.tests;
 
+import static ai.langstream.tests.TextCompletionsIT.getAppEnvForAIServiceProvider;
+
 import ai.langstream.tests.util.BaseEndToEndTest;
 import ai.langstream.tests.util.ConsumeGatewayMessage;
 import java.util.List;
@@ -36,20 +38,20 @@ public class WebCrawlerToVectorIT extends BaseEndToEndTest {
 
     @BeforeAll
     public static void checkCredentials() {
-        appEnv =
+        appEnv = getAppEnvForAIServiceProvider();
+        appEnv.putAll(
+                getAppEnvMapFromSystem(
+                        List.of("CHAT_COMPLETIONS_MODEL", "CHAT_COMPLETIONS_SERVICE")));
+        appEnv.putAll(getAppEnvMapFromSystem(List.of("EMBEDDINGS_MODEL", "EMBEDDINGS_SERVICE")));
+
+        appEnv.putAll(
                 getAppEnvMapFromSystem(
                         List.of(
-                                "OPEN_AI_ACCESS_KEY",
-                                "OPEN_AI_URL",
-                                "OPEN_AI_EMBEDDINGS_MODEL",
-                                "OPEN_AI_CHAT_COMPLETIONS_MODEL",
-                                "OPEN_AI_PROVIDER",
                                 "ASTRA_TOKEN",
                                 "ASTRA_CLIENT_ID",
                                 "ASTRA_SECRET",
-                                "ASTRA_SECURE_BUNDLE",
                                 "ASTRA_ENVIRONMENT",
-                                "ASTRA_DATABASE"));
+                                "ASTRA_DATABASE")));
     }
 
     @Test

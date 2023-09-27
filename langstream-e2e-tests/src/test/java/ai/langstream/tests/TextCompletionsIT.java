@@ -36,24 +36,25 @@ public class TextCompletionsIT extends BaseEndToEndTest {
 
     @BeforeAll
     public static void checkCredentials() {
-        try {
-            appEnv =
-                    getAppEnvMapFromSystem(
-                            List.of("OPEN_AI_ACCESS_KEY", "OPEN_AI_URL", "OPEN_AI_PROVIDER"));
-        } catch (Throwable t) {
-            // no openai - try vertex
-            appEnv =
-                    getAppEnvMapFromSystem(
-                            List.of(
-                                    "VERTEX_AI_URL",
-                                    "VERTEX_AI_TOKEN",
-                                    "VERTEX_AI_REGION",
-                                    "VERTEX_AI_PROJECT"));
-        }
-
+        appEnv = getAppEnvForAIServiceProvider();
         appEnv.putAll(
                 getAppEnvMapFromSystem(
                         List.of("TEXT_COMPLETIONS_MODEL", "TEXT_COMPLETIONS_SERVICE")));
+    }
+
+    public static Map<String, String> getAppEnvForAIServiceProvider() {
+        try {
+            return getAppEnvMapFromSystem(
+                    List.of("OPEN_AI_ACCESS_KEY", "OPEN_AI_URL", "OPEN_AI_PROVIDER"));
+        } catch (Throwable t) {
+            // no openai - try vertex
+            return getAppEnvMapFromSystem(
+                    List.of(
+                            "VERTEX_AI_URL",
+                            "VERTEX_AI_TOKEN",
+                            "VERTEX_AI_REGION",
+                            "VERTEX_AI_PROJECT"));
+        }
     }
 
     @Test
@@ -80,6 +81,6 @@ public class TextCompletionsIT extends BaseEndToEndTest {
                                 .formatted(sessionId)
                                 .split(" "));
         log.info("Output: {}", message);
-        Assertions.assertTrue(message.getAnswerFromChatCompletionsValue().contains("Bounjour"));
+        Assertions.assertTrue(message.getAnswerFromChatCompletionsValue().contains("Bonjour"));
     }
 }

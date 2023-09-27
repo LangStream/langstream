@@ -16,6 +16,7 @@
 package ai.langstream.ai.agents.services.impl;
 
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
+import ai.langstream.api.util.ConfigurationUtils;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -315,19 +316,33 @@ public class VertexAIProvider implements ServiceProviderProvider {
                     Map<String, Object> additionalConfiguration, CompletionRequest request) {
                 request.parameters = new HashMap<>();
 
-                if (additionalConfiguration.containsKey("temperature")) {
-                    request.parameters.put(
-                            "temperature", additionalConfiguration.get("temperature"));
+                appendDoubleValue("temperature", "temperature", additionalConfiguration, request);
+                appendIntValue("max-tokens", "maxOutputTokens", additionalConfiguration, request);
+                appendDoubleValue("topP", "topP", additionalConfiguration, request);
+                appendIntValue("topK", "topK", additionalConfiguration, request);
+            }
+
+            private void appendDoubleValue(
+                    String key,
+                    String toKey,
+                    Map<String, Object> additionalConfiguration,
+                    CompletionRequest request) {
+                final Double typedValue =
+                        ConfigurationUtils.getDouble(key, null, additionalConfiguration);
+                if (typedValue != null) {
+                    request.parameters.put(toKey, typedValue);
                 }
-                if (additionalConfiguration.containsKey("max-tokens")) {
-                    request.parameters.put(
-                            "maxOutputTokens", additionalConfiguration.get("max-tokens"));
-                }
-                if (additionalConfiguration.containsKey("topP")) {
-                    request.parameters.put("topP", additionalConfiguration.get("topP"));
-                }
-                if (additionalConfiguration.containsKey("topK")) {
-                    request.parameters.put("topK", additionalConfiguration.get("topK"));
+            }
+
+            private void appendIntValue(
+                    String key,
+                    String toKey,
+                    Map<String, Object> additionalConfiguration,
+                    CompletionRequest request) {
+                final Integer typedValue =
+                        ConfigurationUtils.getInteger(key, null, additionalConfiguration);
+                if (typedValue != null) {
+                    request.parameters.put(toKey, typedValue);
                 }
             }
 

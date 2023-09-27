@@ -231,10 +231,11 @@ public class OpenAICompletionService implements CompletionsService {
 
         // this is the default behavior, as it is async
         // it works even if the streamingChunksConsumer is null
+        final String model = (String) options.get("model");
         if (completionsOptions.isStream()) {
             CompletableFuture<?> finished = new CompletableFuture<>();
             Flux<com.azure.ai.openai.models.Completions> flux =
-                    client.getCompletionsStream((String) options.get("model"), completionsOptions);
+                    client.getCompletionsStream(model, completionsOptions);
 
             TextCompletionsConsumer textCompletionsConsumer =
                     new TextCompletionsConsumer(
@@ -253,8 +254,7 @@ public class OpenAICompletionService implements CompletionsService {
             return finished.thenApply(___ -> textCompletionsConsumer.totalAnswer.toString());
         } else {
             com.azure.ai.openai.models.Completions completions =
-                    client.getCompletions((String) options.get("model"), completionsOptions)
-                            .block();
+                    client.getCompletions(model, completionsOptions).block();
             final String text = completions.getChoices().get(0).getText();
             return CompletableFuture.completedFuture(text);
         }

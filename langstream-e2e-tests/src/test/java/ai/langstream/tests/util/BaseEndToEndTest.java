@@ -526,6 +526,9 @@ public class BaseEndToEndTest implements TestWatcher {
     public void setupSingleTest() {
         // cleanup previous runs
         cleanupAllEndToEndTestsNamespaces();
+        codeStorageProvider.cleanup();
+        streamingClusterProvider.cleanup();
+
         namespace = "ls-test-" + UUID.randomUUID().toString().substring(0, 8);
 
         client.resource(
@@ -1132,7 +1135,6 @@ public class BaseEndToEndTest implements TestWatcher {
                 .pollInterval(5, TimeUnit.SECONDS)
                 .untilAsserted(
                         () -> {
-                            log.info("waiting new executors to be ready");
                             final List<Pod> pods =
                                     client.pods()
                                             .inNamespace(tenantNamespace)
@@ -1144,6 +1146,10 @@ public class BaseEndToEndTest implements TestWatcher {
                                                             "langstream-runtime"))
                                             .list()
                                             .getItems();
+                            log.info(
+                                    "waiting new executors to be ready, found {}, expected {}",
+                                    pods.size(),
+                                    expectedNumExecutors);
                             if (pods.size() != expectedNumExecutors) {
                                 fail("too many pods: " + pods.size());
                             }

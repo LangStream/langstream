@@ -11,7 +11,7 @@ export OPENAI_ACCESS_KEY=...
 
 ## Deploy the LangStream application
 ```
-langstream docker run test -app https://github.com/LangStream/langstream/examples/applications/openai-text-completions -s https://raw.githubusercontent.com/LangStream/langstream/main/examples/secrets/secrets.yaml 
+langstream docker run test -app examples/applications/openai-text-completions -s examples/secrets/secrets.yaml 
 ```
 
 ## Chat with the model

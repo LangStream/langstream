@@ -770,7 +770,7 @@ class GenAIAgentsTest {
                                         url: "http://something"
                                         access-key: "xxcxcxc"
                                         provider: "azure"
-                                    - name: vertex
+                                    - name: my-vertex
                                       type: vertex-configuration
                                       configuration:
                                         url: "http://something"
@@ -793,7 +793,7 @@ class GenAIAgentsTest {
                                     input: "input-topic"
                                     output: "output-topic"
                                     configuration:
-                                      service: "vertex"
+                                      ai-service: "my-vertex"
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
                                       text: "{{% value.name }} {{% value.description }}"
@@ -803,10 +803,10 @@ class GenAIAgentsTest {
                         .getApplication();
 
         try (ApplicationDeployer deployer =
-                     ApplicationDeployer.builder()
-                             .registry(new ClusterRuntimeRegistry())
-                             .pluginsRegistry(new PluginsRegistry())
-                             .build()) {
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build()) {
 
             Module module = applicationInstance.getModule("module-1");
 

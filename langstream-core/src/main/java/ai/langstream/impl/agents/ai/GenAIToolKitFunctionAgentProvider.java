@@ -280,6 +280,11 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                 }
             };
     private static final Map<String, StepConfigurationInitializer> STEP_TYPES;
+    protected static final String SERVICE_VERTEX = "vertex-configuration";
+    protected static final String SERVICE_HUGGING_FACE = "hugging-face-configuration";
+    protected static final String SERVICE_OPEN_AI = "open-ai-configuration";
+    protected static final List<String> AI_SERVICES =
+            List.of(SERVICE_VERTEX, SERVICE_HUGGING_FACE, SERVICE_OPEN_AI);
 
     static {
         final Map<String, StepConfigurationInitializer> steps = new HashMap<>();
@@ -374,28 +379,42 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
         // let the user force the provider or detect it automatically
-        String service = (String) originalConfiguration.get("service");
-        for (Resource resource : applicationInstance.getResources().values()) {
-            Map<String, Object> configurationCopy =
-                    clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
-            switch (resource.type()) {
-                case "vertex-configuration":
-                    if (service == null || service.equals("vertex")) {
-                        configuration.put("vertex", configurationCopy);
-                    }
-                    break;
-                case "hugging-face-configuration":
-                    if (service == null || service.equals("hugging-face")) {
-                        configuration.put("huggingface", configurationCopy);
-                    }
-                    break;
-                case "open-ai-configuration":
-                    if (service == null || service.equals("open-ai")) {
-                        configuration.put("openai", configurationCopy);
-                    }
-                    break;
-                default:
-                    // ignore
+        String resourceId = (String) originalConfiguration.get("ai-service");
+        if (resourceId != null) {
+            Resource resource = applicationInstance.getResources().get(resourceId);
+            log.info("Generating ai provider configuration for {}", resourceId);
+            if (resource != null) {
+                if (!AI_SERVICES.contains(resource.type())) {
+                    throw new IllegalArgumentException(
+                            "Resource " + resourceId + " is not in types: " + AI_SERVICES);
+                }
+                Map<String, Object> resourceImplementation =
+                        clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
+                final String configKey =
+                        switch (resource.type()) {
+                            case SERVICE_VERTEX -> "vertex";
+                            case SERVICE_HUGGING_FACE -> "huggingface";
+                            case SERVICE_OPEN_AI -> "openai";
+                            default -> throw new IllegalStateException();
+                        };
+                configuration.put(configKey, resourceImplementation);
+            } else {
+                throw new IllegalArgumentException("Resource " + resourceId + " not found");
+            }
+        } else {
+            for (Resource resource : applicationInstance.getResources().values()) {
+                Map<String, Object> configurationCopy =
+                        clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
+                final String configKey =
+                        switch (resource.type()) {
+                            case SERVICE_VERTEX -> "vertex";
+                            case SERVICE_HUGGING_FACE -> "huggingface";
+                            case SERVICE_OPEN_AI -> "openai";
+                            default -> null;
+                        };
+                if (configKey != null) {
+                    configuration.put(configKey, configurationCopy);
+                }
             }
         }
     }
@@ -445,7 +464,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         generateAIProvidersConfiguration(
                 executionPlan.getApplication(),
                 originalConfiguration,
-                configuration, clusterRuntime, pluginsRegistry);
+                configuration,
+                clusterRuntime,
+                pluginsRegistry);
 
         generateSteps(
                 module,

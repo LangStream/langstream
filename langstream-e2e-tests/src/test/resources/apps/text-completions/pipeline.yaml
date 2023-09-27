@@ -31,7 +31,7 @@ pipeline:
     type: "ai-text-completions"
     output: "ls-test-history-topic"
     configuration:
-      service: "{{{secrets.text-completions.service}}}"
+      ai-service: "{{{secrets.text-completions.service}}}"
       model: "{{{secrets.text-completions.model}}}"
       completion-field: "value.answer"
       log-field: "value.prompt"

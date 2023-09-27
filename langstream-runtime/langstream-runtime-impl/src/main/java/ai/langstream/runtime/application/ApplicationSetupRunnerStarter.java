@@ -111,7 +111,8 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
     }
 
     @SneakyThrows
-    private Path downloadApplicationCode(ApplicationSetupConfiguration applicationSetupConfiguration) {
+    private Path downloadApplicationCode(
+            ApplicationSetupConfiguration applicationSetupConfiguration) {
         if (applicationSetupConfiguration.getCodeArchiveId() == null) {
             log.warn(
                     "No code archive id provided, skipping download of application code. This might be an old version of the deployer/runtime.");
@@ -146,12 +147,16 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
         AgentCodeDownloader downloader = new AgentCodeDownloader();
 
         final DownloadAgentCodeConfiguration downloadConfig =
-                new DownloadAgentCodeConfiguration(downloadDirectory.toFile().getAbsolutePath(),
+                new DownloadAgentCodeConfiguration(
+                        downloadDirectory.toFile().getAbsolutePath(),
                         applicationSetupConfiguration.getTenant(),
                         applicationSetupConfiguration.getApplicationId(),
                         applicationSetupConfiguration.getCodeArchiveId());
 
-        log.info("Downloading application code {} with cluster config {}", downloadConfig, clusterConfiguration);
+        log.info(
+                "Downloading application code {} with cluster config {}",
+                downloadConfig,
+                clusterConfiguration);
         downloader.downloadCustomCode(clusterConfiguration, token, downloadConfig);
         log.info("Downloaded application code to {}", downloadDirectory);
         return downloadDirectory;

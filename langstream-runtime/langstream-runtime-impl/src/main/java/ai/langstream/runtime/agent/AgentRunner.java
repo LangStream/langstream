@@ -46,8 +46,6 @@ import ai.langstream.runtime.agent.api.MetricsHttpServlet;
 import ai.langstream.runtime.agent.python.PythonCodeAgentProvider;
 import ai.langstream.runtime.agent.simple.IdentityAgentProvider;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.prometheus.client.hotspot.DefaultExports;
 import jakarta.servlet.Servlet;
 import java.io.IOException;

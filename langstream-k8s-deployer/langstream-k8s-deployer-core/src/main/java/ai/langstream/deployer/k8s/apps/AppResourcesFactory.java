@@ -233,8 +233,8 @@ public class AppResourcesFactory {
                 resolveContainerImagePullPolicy(imagePullPolicy, spec);
 
         final ApplicationSetupConfiguration config =
-                new ApplicationSetupConfiguration(applicationId, tenant, spec.getApplication(), spec.getCodeArchiveId());
-
+                new ApplicationSetupConfiguration(
+                        applicationId, tenant, spec.getApplication(), spec.getCodeArchiveId());
 
         Map<String, Object> initContainerConfigs = new LinkedHashMap<>();
         initContainerConfigs.put(appConfigVolumeName, config);

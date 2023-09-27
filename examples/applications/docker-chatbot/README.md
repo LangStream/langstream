@@ -25,7 +25,7 @@ the default settings, you can change them by exporting other ENV variables.
 The default docker runner starts Minio, Kafka and HerdDB, so you can run the application locally.
 
 ```
-./bin/langstream docker run test -app examples/applications/docker-chatbot -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
+./bin/langstream docker run test -app examples/applications/docker-chatbot -s examples/secrets/secrets.yaml
 ```
 
 

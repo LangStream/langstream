@@ -33,6 +33,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -77,9 +78,10 @@ public class LocalApplicationRunner
     public LocalApplicationRunner(Path agentsDirectory, Path codeDirectory) throws Exception {
         this.codeDirectory = codeDirectory;
         this.agentsDirectory = agentsDirectory;
+        List<URL> customLib = AgentRunner.buildCustomLibClasspath(codeDirectory);
         this.narFileHandler =
                 new NarFileHandler(
-                        agentsDirectory, List.of(), Thread.currentThread().getContextClassLoader());
+                        agentsDirectory, customLib, Thread.currentThread().getContextClassLoader());
         TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
                 new TopicConnectionsRuntimeRegistry();
         narFileHandler.scan();

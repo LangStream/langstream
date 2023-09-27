@@ -209,7 +209,7 @@ public class AgentRunner {
         }
     }
 
-    private static List<URL> buildCustomLibClasspath(Path codeDirectory) throws IOException {
+    public static List<URL> buildCustomLibClasspath(Path codeDirectory) throws IOException {
         if (codeDirectory == null) {
             return List.of();
         }

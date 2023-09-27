@@ -1,2 +1,3 @@
 ai.langstream.impl.assets.CassandraAssetsProvider
 ai.langstream.impl.assets.MilvusAssetsProvider
+ai.langstream.impl.assets.JdbcAssetsProvider

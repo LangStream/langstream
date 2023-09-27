@@ -16,9 +16,9 @@
 #
 
 gateways:
-  - id: "user-input"
+  - id: produce-input
     type: produce
-    topic: "questions-topic"
+    topic: input-topic
     parameters:
       - sessionId
     produceOptions:
@@ -26,9 +26,9 @@ gateways:
         - key: langstream-client-session-id
           valueFromParameters: sessionId
 
-  - id: "bot-output"
+  - id: consume-output
     type: consume
-    topic: "answers-topic"
+    topic: output-topic
     parameters:
       - sessionId
     consumeOptions:
@@ -37,7 +37,3 @@ gateways:
           - key: langstream-client-session-id
             valueFromParameters: sessionId
 
-
-  - id: "llm-debug"
-    type: consume
-    topic: "log-topic"

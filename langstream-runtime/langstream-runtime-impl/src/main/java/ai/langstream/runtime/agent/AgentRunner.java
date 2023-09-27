@@ -157,6 +157,7 @@ public class AgentRunner {
                 configuration.agent().applicationId() + "-" + configuration.agent().agentId();
 
         log.info("Starting agent {}", agentId);
+        log.info("Code directory {}", codeDirectory);
 
         List<URL> customLibClasspath = buildCustomLibClasspath(codeDirectory);
         try (NarFileHandler narFileHandler =

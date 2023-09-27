@@ -16,20 +16,23 @@
 package ai.langstream.agents.vector.datasource.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ai.langstream.agents.vector.jdbc.JdbcAssetsManagerProvider;
 import ai.langstream.agents.vector.jdbc.JdbcWriter;
 import ai.langstream.ai.agents.datasource.impl.JdbcDataSourceProvider;
+import ai.langstream.api.model.AssetDefinition;
+import ai.langstream.api.runner.assets.AssetManager;
+import ai.langstream.api.runner.assets.AssetManagerProvider;
 import ai.langstream.api.runner.code.SimpleRecord;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-@Disabled("Waiting for HerdDB 2.28.0 release")
 public class JdbcWriterTest {
 
     static final String CREATE_TABLE =
@@ -41,11 +44,17 @@ public class JdbcWriterTest {
                     + "  PRIMARY KEY(NAME, CHUNK_ID) \n"
                     + ")";
 
+    static final String DROP_TABLE = "DROP TABLE DOCUMENTS";
+
     @Test
     void testWrite() throws Exception {
         JdbcDataSourceProvider dataSourceProvider = new JdbcDataSourceProvider();
         Map<String, Object> config =
-                Map.of("url", "jdbc:herddb:local", "driverClass", "herddb.jdbc.Driver");
+                Map.of(
+                        "url",
+                        "jdbc:herddb:local",
+                        "driverClass",
+                        herddb.jdbc.Driver.class.getName());
 
         String tableName = "documents";
         int dimension = 32;
@@ -64,79 +73,105 @@ public class JdbcWriterTest {
                         new JdbcWriter().createImplementation(config)) {
             datasource.initialize(null);
 
-            try (Statement statement = datasource.getConnection().createStatement(); ) {
-                statement.execute(CREATE_TABLE);
+            AssetManagerProvider assetsManagerProvider = new JdbcAssetsManagerProvider();
+            try (AssetManager tableManager = assetsManagerProvider.createInstance("jdbc-table"); ) {
+                AssetDefinition assetDefinition = new AssetDefinition();
+                assetDefinition.setAssetType("jdbc-table");
+                assetDefinition.setConfig(
+                        Map.of(
+                                "table-name",
+                                tableName,
+                                "datasource",
+                                Map.of("configuration", config),
+                                "create-statements",
+                                List.of(CREATE_TABLE),
+                                "delete-statements",
+                                List.of(DROP_TABLE)));
+                tableManager.initialize(assetDefinition);
+                tableManager.deleteAssetIfExists();
+
+                assertFalse(tableManager.assetExists());
+                tableManager.deployAsset();
+
+                List<Map<String, Object>> fields =
+                        List.of(
+                                Map.of(
+                                        "name",
+                                        "name",
+                                        "expression",
+                                        "key.name",
+                                        "primary-key",
+                                        true),
+                                Map.of(
+                                        "name",
+                                        "chunk_id",
+                                        "expression",
+                                        "key.chunk_id",
+                                        "primary-key",
+                                        true),
+                                Map.of(
+                                        "name",
+                                        "vector",
+                                        "expression",
+                                        "fn:toListOfFloat(value.vector)"),
+                                Map.of("name", "text", "expression", "value.text"));
+
+                writer.initialise(Map.of("table-name", tableName, "fields", fields));
+
+                // the PK contains a single quote in order to test escaping values in deletion
+                SimpleRecord record =
+                        SimpleRecord.of(
+                                "{\"name\": \"do'c1\", \"chunk_id\": 1}",
+                                """
+                                        {
+                                            "vector": %s,
+                                            "text": "Lorem ipsum..."
+                                        }
+                                        """
+                                        .formatted(vectorAsString));
+                writer.upsert(record, Map.of()).get();
+
+                String query =
+                        "SELECT name,text from documents order by cosine_similarity(vector,cast(? as float array)) DESC";
+                List<Object> params = List.of(vector);
+                List<Map<String, String>> results = datasource.fetchData(query, params);
+                log.info("Results: {}", results);
+
+                assertEquals(1, results.size());
+                assertEquals("do'c1", results.get(0).get("name"));
+                assertEquals("Lorem ipsum...", results.get(0).get("text"));
+
+                SimpleRecord recordUpdated =
+                        SimpleRecord.of(
+                                "{\"name\": \"do'c1\", \"chunk_id\": 1}",
+                                """
+                                        {
+                                            "vector": %s,
+                                            "text": "Lorem ipsum changed..."
+                                        }
+                                        """
+                                        .formatted(vector2AsString));
+                writer.upsert(recordUpdated, Map.of()).get();
+
+                List<Object> params2 = List.of(vector2);
+                List<Map<String, String>> results2 = datasource.fetchData(query, params2);
+                log.info("Results: {}", results2);
+
+                assertEquals(1, results2.size());
+                assertEquals("do'c1", results2.get(0).get("name"));
+                assertEquals("Lorem ipsum changed...", results2.get(0).get("text"));
+
+                SimpleRecord recordDelete =
+                        SimpleRecord.of("{\"name\": \"do'c1\", \"chunk_id\": 1}", null);
+                writer.upsert(recordDelete, Map.of()).get();
+
+                List<Map<String, String>> results3 = datasource.fetchData(query, params2);
+                log.info("Results: {}", results3);
+                assertEquals(0, results3.size());
+
+                assertTrue(tableManager.assetExists());
+                tableManager.deleteAssetIfExists();
             }
-
-            List<Map<String, Object>> fields =
-                    List.of(
-                            Map.of("name", "name", "expression", "key.name", "primary-key", true),
-                            Map.of(
-                                    "name",
-                                    "chunk_id",
-                                    "expression",
-                                    "key.chunk_id",
-                                    "primary-key",
-                                    true),
-                            Map.of(
-                                    "name",
-                                    "vector",
-                                    "expression",
-                                    "fn:toListOfFloat(value.vector)"),
-                            Map.of("name", "text", "expression", "value.text"));
-
-            writer.initialise(Map.of("table-name", tableName, "fields", fields));
-
-            // the PK contains a single quote in order to test escaping values in deletion
-            SimpleRecord record =
-                    SimpleRecord.of(
-                            "{\"name\": \"do'c1\", \"chunk_id\": 1}",
-                            """
-                                    {
-                                        "vector": %s,
-                                        "text": "Lorem ipsum..."
-                                    }
-                                    """
-                                    .formatted(vectorAsString));
-            writer.upsert(record, Map.of()).get();
-
-            String query =
-                    "SELECT name,text from documents order by cosine_similarity(vector,cast(? as float array)) DESC";
-            List<Object> params = List.of(vector);
-            List<Map<String, String>> results = datasource.fetchData(query, params);
-            log.info("Results: {}", results);
-
-            assertEquals(1, results.size());
-            assertEquals("do'c1", results.get(0).get("name"));
-            assertEquals("Lorem ipsum...", results.get(0).get("text"));
-
-            SimpleRecord recordUpdated =
-                    SimpleRecord.of(
-                            "{\"name\": \"do'c1\", \"chunk_id\": 1}",
-                            """
-                                    {
-                                        "vector": %s,
-                                        "text": "Lorem ipsum changed..."
-                                    }
-                                    """
-                                    .formatted(vector2AsString));
-            writer.upsert(recordUpdated, Map.of()).get();
-
-            List<Object> params2 = List.of(vector2);
-            List<Map<String, String>> results2 = datasource.fetchData(query, params2);
-            log.info("Results: {}", results2);
-
-            assertEquals(1, results2.size());
-            assertEquals("do'c1", results2.get(0).get("name"));
-            assertEquals("Lorem ipsum changed...", results2.get(0).get("text"));
-
-            SimpleRecord recordDelete =
-                    SimpleRecord.of("{\"name\": \"do'c1\", \"chunk_id\": 1}", null);
-            writer.upsert(recordDelete, Map.of()).get();
-
-            List<Map<String, String>> results3 = datasource.fetchData(query, params2);
-            log.info("Results: {}", results3);
-            assertEquals(0, results3.size());
         }
     }
 }

@@ -37,16 +37,10 @@ pipeline:
       text: "{{% value.question }}"
       flush-interval: 0
   - name: "lookup-related-documents"
-    type: "query-vector-db"
+    type: "query"
     configuration:
-      datasource: "MilvusDatasource"
-      query: |
-        {
-          "collection-name": "docs",
-          "vectors": ?,
-          "top-k": 10,
-          "output-fields": ["text"]
-        }
+      datasource: "JdbcDatasource"
+      query: "SELECT text FROM documents ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) LIMIT 5"
       fields:
         - "value.question_embeddings"
       output-field: "value.related_documents"

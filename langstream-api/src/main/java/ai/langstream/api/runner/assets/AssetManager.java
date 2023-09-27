@@ -18,7 +18,7 @@ package ai.langstream.api.runner.assets;
 import ai.langstream.api.model.AssetDefinition;
 
 /** Body of the agent */
-public interface AssetManager {
+public interface AssetManager extends AutoCloseable {
 
     void initialize(AssetDefinition assetDefinition) throws Exception;
 

@@ -118,15 +118,15 @@ pipeline:
     input: chunks-topic
     configuration:
       datasource: "JdbcDatasource"
-      table-name: "docs"
+      table-name: "documents"
       fields:
         - name: "filename"
           expression: "value.filename"
           primary-key: true
-        - name: "chunkid"
+        - name: "chunk_id"
           expression: "value.chunk_id"
           primary-key: true
-        - name: "vector"
+        - name: "embeddings_vector"
           expression: "fn:toListOfFloat(value.embeddings_vector)"
         - name: "lang"
           expression: "value.language"

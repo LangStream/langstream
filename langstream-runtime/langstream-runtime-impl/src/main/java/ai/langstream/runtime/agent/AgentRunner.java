@@ -84,8 +84,6 @@ import org.eclipse.jetty.servlet.ServletHolder;
 /** This is the main entry point for the pods that run the LangStream runtime and Java code. */
 @Slf4j
 public class AgentRunner {
-    private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
-
     private static MainErrorHandler mainErrorHandler =
             error -> {
                 log.error("Unexpected error", error);

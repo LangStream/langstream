@@ -26,4 +26,5 @@ public class ApplicationSetupConfiguration {
     private String applicationId;
     private String tenant;
     private String application;
+    private String codeArchiveId;
 }

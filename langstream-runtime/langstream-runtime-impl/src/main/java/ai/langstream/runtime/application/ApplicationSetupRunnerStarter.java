@@ -19,12 +19,18 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKN
 
 import ai.langstream.api.model.Secrets;
 import ai.langstream.runtime.RuntimeStarter;
+import ai.langstream.runtime.agent.AgentCodeDownloader;
+import ai.langstream.runtime.api.ClusterConfiguration;
+import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
+import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
 import ai.langstream.runtime.api.application.ApplicationSetupConfiguration;
 import ai.langstream.runtime.api.application.ApplicationSetupConstants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -74,10 +80,6 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
                         ApplicationSetupConstants.APP_CONFIG_ENV,
                         ApplicationSetupConstants.APP_CONFIG_ENV_DEFAULT);
         final Path secretsPath = getOptionalPathFromEnv(ApplicationSetupConstants.APP_SECRETS_ENV);
-        final Path codeDirectory =
-                getOptionalPathFromEnv(
-                        ApplicationSetupConstants.DOWNLOADED_CODE_PATH_ENV,
-                        ApplicationSetupConstants.DOWNLOADED_CODE_PATH_ENV_DEFAULT);
         final Path packagesDirectory =
                 getPathFromEnv(
                         ApplicationSetupConstants.AGENTS_ENV,
@@ -88,6 +90,7 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
         final ApplicationSetupConfiguration configuration =
                 loadApplicationSetupConfiguration(appConfigPath);
         final Secrets secrets = loadSecrets(secretsPath);
+        final Path codeDirectory = downloadApplicationCode(configuration);
 
         final String arg0 = args[0];
         switch (arg0) {
@@ -105,6 +108,53 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
                     codeDirectory);
             default -> throw new IllegalArgumentException("Unknown command " + arg0);
         }
+    }
+
+    @SneakyThrows
+    private Path downloadApplicationCode(ApplicationSetupConfiguration applicationSetupConfiguration) {
+        if (applicationSetupConfiguration.getCodeArchiveId() == null) {
+            log.warn(
+                    "No code archive id provided, skipping download of application code. This might be an old version of the deployer/runtime.");
+            return null;
+        }
+
+        final Path clusterConfigPath =
+                getOptionalPathFromEnv(
+                        AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV,
+                        AgentCodeDownloaderConstants.CLUSTER_CONFIG_ENV_DEFAULT);
+        if (clusterConfigPath == null) {
+            log.warn(
+                    "No cluster config provided, skipping download of application code. This might be an old version of the deployer/runtime.");
+            return null;
+        }
+        final Path tokenPath =
+                getOptionalPathFromEnv(
+                        AgentCodeDownloaderConstants.TOKEN_ENV,
+                        AgentCodeDownloaderConstants.TOKEN_ENV_DEFAULT);
+        final String token;
+        if (tokenPath != null) {
+            token = Files.readString(tokenPath);
+        } else {
+            token = null;
+        }
+
+        final Path downloadDirectory = Files.createTempDirectory("langstream-code");
+
+        ClusterConfiguration clusterConfiguration =
+                MAPPER.readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
+
+        AgentCodeDownloader downloader = new AgentCodeDownloader();
+
+        final DownloadAgentCodeConfiguration downloadConfig =
+                new DownloadAgentCodeConfiguration(downloadDirectory.toFile().getAbsolutePath(),
+                        applicationSetupConfiguration.getTenant(),
+                        applicationSetupConfiguration.getApplicationId(),
+                        applicationSetupConfiguration.getCodeArchiveId());
+
+        log.info("Downloading application code {} with cluster config {}", downloadConfig, clusterConfiguration);
+        downloader.downloadCustomCode(clusterConfiguration, token, downloadConfig);
+        log.info("Downloaded application code to {}", downloadDirectory);
+        return downloadDirectory;
     }
 
     private Secrets loadSecrets(Path secretsPath) throws IOException {

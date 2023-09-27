@@ -306,6 +306,10 @@ class AppResourcesFactoryTest {
                                   value: /cluster-runtime-config/config
                                 - name: LANGSTREAM_APPLICATION_SETUP_APP_SECRETS
                                   value: /app-secrets/secrets
+                                - name: LANGSTREAM_APPLICATION_SETUP_CLUSTER_CONFIGURATION
+                                  value: /cluster-config/config
+                                - name: LANGSTREAM_APPLICATION_SETUP_TOKEN
+                                  value: /var/run/secrets/kubernetes.io/serviceaccount/token
                                 image: ubuntu
                                 imagePullPolicy: Always
                                 name: setup
@@ -321,9 +325,11 @@ class AppResourcesFactoryTest {
                                   name: app-secrets
                                 - mountPath: /cluster-runtime-config
                                   name: cluster-runtime-config
+                                - mountPath: /cluster-config
+                                  name: cluster-config
                               initContainers:
                               - args:
-                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
                                 command:
                                 - bash
                                 - -c
@@ -345,6 +351,12 @@ class AppResourcesFactoryTest {
                                   secretName: test-'app
                               - emptyDir: {}
                                 name: cluster-runtime-config
+                              - name: cluster-config
+                                secret:
+                                  items:
+                                  - key: cluster-config
+                                    path: config
+                                  secretName: langstream-cluster-config
                         """,
                 SerializationUtil.writeAsYaml(
                         AppResourcesFactory.generateSetupJob(
@@ -390,6 +402,10 @@ class AppResourcesFactoryTest {
                                   value: /cluster-runtime-config/config
                                 - name: LANGSTREAM_APPLICATION_SETUP_APP_SECRETS
                                   value: /app-secrets/secrets
+                                - name: LANGSTREAM_APPLICATION_SETUP_CLUSTER_CONFIGURATION
+                                  value: /cluster-config/config
+                                - name: LANGSTREAM_APPLICATION_SETUP_TOKEN
+                                  value: /var/run/secrets/kubernetes.io/serviceaccount/token
                                 image: ubuntu
                                 imagePullPolicy: Always
                                 name: setup
@@ -405,9 +421,11 @@ class AppResourcesFactoryTest {
                                   name: app-secrets
                                 - mountPath: /cluster-runtime-config
                                   name: cluster-runtime-config
+                                - mountPath: /cluster-config
+                                  name: cluster-config
                               initContainers:
                               - args:
-                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
                                 command:
                                 - bash
                                 - -c
@@ -429,6 +447,12 @@ class AppResourcesFactoryTest {
                                   secretName: test-'app
                               - emptyDir: {}
                                 name: cluster-runtime-config
+                              - name: cluster-config
+                                secret:
+                                  items:
+                                  - key: cluster-config
+                                    path: config
+                                  secretName: langstream-cluster-config
                         """,
                 SerializationUtil.writeAsYaml(
                         AppResourcesFactory.generateSetupJob(

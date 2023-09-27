@@ -226,13 +226,15 @@ public class AppResourcesFactory {
 
         final String clusterRuntimeConfigVolumeName = "cluster-runtime-config";
         final String appConfigVolumeName = "app-config";
+        final String clusterConfigVolume = "cluster-config";
 
         final String containerImage = resolveContainerImage(image, spec);
         final String containerImagePullPolicy =
                 resolveContainerImagePullPolicy(imagePullPolicy, spec);
 
         final ApplicationSetupConfiguration config =
-                new ApplicationSetupConfiguration(applicationId, tenant, spec.getApplication());
+                new ApplicationSetupConfiguration(
+                        applicationId, tenant, spec.getApplication(), spec.getCodeArchiveId());
 
         Map<String, Object> initContainerConfigs = new LinkedHashMap<>();
         initContainerConfigs.put(appConfigVolumeName, config);
@@ -256,6 +258,10 @@ public class AppResourcesFactory {
                         new VolumeMountBuilder()
                                 .withName(clusterRuntimeConfigVolumeName)
                                 .withMountPath("/%s".formatted(clusterRuntimeConfigVolumeName))
+                                .build(),
+                        new VolumeMountBuilder()
+                                .withName(clusterConfigVolume)
+                                .withMountPath("/cluster-config")
                                 .build());
         final List<EnvVar> envVars =
                 List.of(
@@ -270,6 +276,14 @@ public class AppResourcesFactory {
                         new EnvVarBuilder()
                                 .withName(ApplicationSetupConstants.APP_SECRETS_ENV)
                                 .withValue("/app-secrets/secrets")
+                                .build(),
+                        new EnvVarBuilder()
+                                .withName(ApplicationSetupConstants.CLUSTER_CONFIG_ENV)
+                                .withValue("/cluster-config/config")
+                                .build(),
+                        new EnvVarBuilder()
+                                .withName(ApplicationSetupConstants.TOKEN_ENV)
+                                .withValue("/var/run/secrets/kubernetes.io/serviceaccount/token")
                                 .build());
         final String cmd = isDeleteJob ? "cleanup" : "deploy";
 
@@ -300,6 +314,19 @@ public class AppResourcesFactory {
                         new VolumeBuilder()
                                 .withName(clusterRuntimeConfigVolumeName)
                                 .withEmptyDir(new EmptyDirVolumeSource())
+                                .build(),
+                        new VolumeBuilder()
+                                .withName(clusterConfigVolume)
+                                .withNewSecret()
+                                .withSecretName(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET)
+                                .withItems(
+                                        new KeyToPathBuilder()
+                                                .withKey(
+                                                        CRDConstants
+                                                                .TENANT_CLUSTER_CONFIG_SECRET_KEY)
+                                                .withPath("config")
+                                                .build())
+                                .endSecret()
                                 .build());
         final String jobName = getSetupJobName(applicationId, isDeleteJob);
 

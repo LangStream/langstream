@@ -46,8 +46,6 @@ import ai.langstream.runtime.agent.api.MetricsHttpServlet;
 import ai.langstream.runtime.agent.python.PythonCodeAgentProvider;
 import ai.langstream.runtime.agent.simple.IdentityAgentProvider;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.prometheus.client.hotspot.DefaultExports;
 import jakarta.servlet.Servlet;
 import java.io.IOException;
@@ -84,8 +82,6 @@ import org.eclipse.jetty.servlet.ServletHolder;
 /** This is the main entry point for the pods that run the LangStream runtime and Java code. */
 @Slf4j
 public class AgentRunner {
-    private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
-
     private static MainErrorHandler mainErrorHandler =
             error -> {
                 log.error("Unexpected error", error);

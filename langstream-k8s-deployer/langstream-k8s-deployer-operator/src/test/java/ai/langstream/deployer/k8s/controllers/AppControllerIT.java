@@ -294,7 +294,7 @@ public class AppControllerIT {
         assertEquals("-c", initContainer.getCommand().get(1));
         assertEquals(
                 "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": "
-                + "{}}\",\"codeArchiveId\":null}' > /app-config/config && echo '{}' > /cluster-runtime-config/config",
+                        + "{}}\",\"codeArchiveId\":null}' > /app-config/config && echo '{}' > /cluster-runtime-config/config",
                 initContainer.getArgs().get(0));
     }
 
@@ -368,8 +368,8 @@ public class AppControllerIT {
         assertEquals("-c", initContainer.getCommand().get(1));
         assertEquals(
                 "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": "
-                + "{}}\",\"codeStorageArchiveId\":null}' > /app-config/config && echo '{}' > "
-                + "/cluster-runtime-config/config",
+                        + "{}}\",\"codeStorageArchiveId\":null}' > /app-config/config && echo '{}' > "
+                        + "/cluster-runtime-config/config",
                 initContainer.getArgs().get(0));
     }
 

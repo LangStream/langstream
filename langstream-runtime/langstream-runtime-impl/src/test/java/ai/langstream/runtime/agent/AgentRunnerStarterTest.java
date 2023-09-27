@@ -88,7 +88,6 @@ class AgentRunnerStarterTest {
                         Mockito.any(),
                         Mockito.any(),
                         Mockito.any(),
-                        Mockito.any(),
                         Mockito.any(Supplier.class),
                         Mockito.any(),
                         eq(true),

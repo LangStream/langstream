@@ -1,4 +1,3 @@
 ai.langstream.runtime.agent.simple.NoOpAgentProvider
 ai.langstream.runtime.agent.simple.IdentityAgentProvider
-ai.langstream.runtime.agent.python.PythonCodeAgentProvider
 ai.langstream.runtime.agent.CompositeAgentProcessorProvider

@@ -22,22 +22,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
 public class PythonAgentsIT extends BaseEndToEndTest {
 
-    @ParameterizedTest
-    @ValueSource(strings = {"python-processor", "experimental-python-processor"})
-    public void testProcessor(String appDir) throws Exception {
+    @Test
+    public void testProcessor() throws Exception {
         installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
         final String applicationId = "my-test-app";
         deployLocalApplicationAndAwaitReady(
-                tenant, applicationId, appDir, Map.of("SECRET1_VK", "super secret value"), 1);
+                tenant,
+                applicationId,
+                "python-processor",
+                Map.of("SECRET1_VK", "super secret value"),
+                1);
         executeCommandOnClient(
                 "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30 -p sessionId=s1"
                         .formatted(applicationId)
@@ -58,7 +59,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
         updateLocalApplicationAndAwaitReady(
                 tenant,
                 applicationId,
-                appDir,
+                "python-processor",
                 Map.of("SECRET1_VK", "super secret value - changed"),
                 1);
 
@@ -91,8 +92,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
         final String applicationId = "my-test-app";
-        deployLocalApplicationAndAwaitReady(
-                tenant, applicationId, "experimental-python-source", Map.of(), 1);
+        deployLocalApplicationAndAwaitReady(tenant, applicationId, "python-source", Map.of(), 1);
         final String output =
                 executeCommandOnClient(
                         "bin/langstream gateway consume %s consume-output --position earliest -n 1 --connect-timeout 30"
@@ -119,7 +119,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
         deployLocalApplicationAndAwaitReady(
                 tenant,
                 applicationId,
-                "experimental-python-sink",
+                "python-sink",
                 Map.of("KAFKA_BOOTSTRAP_SERVERS", bootStrapServers),
                 1);
 

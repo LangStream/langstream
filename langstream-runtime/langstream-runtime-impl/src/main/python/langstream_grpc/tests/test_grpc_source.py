@@ -24,6 +24,7 @@ import fastavro
 import grpc
 import pytest
 
+from langstream_grpc.api import Record, RecordType, Source
 from langstream_grpc.grpc_service import AgentServer
 from langstream_grpc.proto.agent_pb2 import (
     SourceResponse,
@@ -31,8 +32,7 @@ from langstream_grpc.proto.agent_pb2 import (
     PermanentFailure,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceStub
-from langstream_runtime.api import Record, RecordType, Source
-from langstream_runtime.util import AvroValue, SimpleRecord
+from langstream_grpc.util import AvroValue, SimpleRecord
 
 
 @pytest.fixture(autouse=True)

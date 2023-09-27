@@ -189,7 +189,7 @@ public class LocalApplicationRunner
             ExecutorService executorService = Executors.newCachedThreadPool();
             List<CompletableFuture> futures = new ArrayList<>();
             for (RuntimePodConfiguration podConfiguration : pods) {
-                Path podRuntimeConfigurationFile = persistPodConfiguration(podConfiguration);
+                persistPodConfiguration(podConfiguration);
                 CompletableFuture<?> handle = new CompletableFuture<>();
                 futures.add(handle);
                 executorService.submit(
@@ -209,7 +209,6 @@ public class LocalApplicationRunner
                                 allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
                                 AgentRunner.runAgent(
                                         podConfiguration,
-                                        podRuntimeConfigurationFile,
                                         codeDirectory,
                                         agentsDirectory,
                                         agentInfo,

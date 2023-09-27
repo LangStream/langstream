@@ -23,6 +23,7 @@ import grpc
 import pytest
 from google.protobuf import empty_pb2
 
+from langstream_grpc.api import Record, RecordType
 from langstream_grpc.grpc_service import AgentServer
 from langstream_grpc.proto.agent_pb2 import (
     ProcessorRequest,
@@ -34,8 +35,7 @@ from langstream_grpc.proto.agent_pb2 import (
     InfoResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceStub
-from langstream_runtime.api import Record, RecordType
-from langstream_runtime.util import SingleRecordProcessor
+from langstream_grpc.util import SingleRecordProcessor
 
 
 @pytest.fixture(autouse=True)

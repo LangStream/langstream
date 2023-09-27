@@ -42,7 +42,7 @@ from langstream_grpc.proto.agent_pb2 import (
     SinkResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceServicer
-from langstream_runtime.api import (
+from .api import (
     Source,
     Sink,
     Processor,
@@ -50,7 +50,7 @@ from langstream_runtime.api import (
     Agent,
     CommitCallback,
 )
-from langstream_runtime.util import SimpleRecord, AvroValue
+from .util import SimpleRecord, AvroValue
 
 
 class RecordWithId(SimpleRecord):

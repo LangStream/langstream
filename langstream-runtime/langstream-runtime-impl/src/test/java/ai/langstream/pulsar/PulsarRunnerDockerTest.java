@@ -158,7 +158,6 @@ class PulsarRunnerDockerTest {
             AgentRunner.runAgent(
                     runtimePodConfiguration,
                     null,
-                    null,
                     AbstractApplicationRunner.agentsDirectory,
                     new AgentInfo(),
                     () -> numLoops.incrementAndGet() <= 5,

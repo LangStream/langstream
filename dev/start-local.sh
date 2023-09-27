@@ -57,6 +57,9 @@ fi
 # Start MinIO (S3 blobstorage)
 kubectl apply -f helm/examples/minio-dev.yaml
 
+# Start HerdDB (Simple Vector Database)
+kubectl apply -f helm/examples/herddb-dev.yaml
+
 # Start LangStream
 helm repo add langstream https://langstream.github.io/charts
 helm repo update

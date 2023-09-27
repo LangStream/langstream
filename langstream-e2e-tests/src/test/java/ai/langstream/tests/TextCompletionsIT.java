@@ -36,13 +36,24 @@ public class TextCompletionsIT extends BaseEndToEndTest {
 
     @BeforeAll
     public static void checkCredentials() {
-        appEnv =
+        try {
+            appEnv =
+                    getAppEnvMapFromSystem(
+                            List.of("OPEN_AI_ACCESS_KEY", "OPEN_AI_URL", "OPEN_AI_PROVIDER"));
+        } catch (Throwable t) {
+            // no openai - try vertex
+            appEnv =
+                    getAppEnvMapFromSystem(
+                            List.of(
+                                    "VERTEX_AI_URL",
+                                    "VERTEX_AI_TOKEN",
+                                    "VERTEX_AI_REGION",
+                                    "VERTEX_AI_PROJECT"));
+        }
+
+        appEnv.putAll(
                 getAppEnvMapFromSystem(
-                        List.of(
-                                "OPEN_AI_ACCESS_KEY",
-                                "OPEN_AI_URL",
-                                "OPEN_AI_TEXT_COMPLETIONS_MODEL",
-                                "OPEN_AI_PROVIDER"));
+                        List.of("TEXT_COMPLETIONS_MODEL", "TEXT_COMPLETIONS_SERVICE")));
     }
 
     @Test

@@ -36,6 +36,7 @@ public class AIProvidersResourceProvider implements ResourceNodeProvider {
 
     private static final Set<String> SUPPORTED_TYPES =
             Set.of("open-ai-configuration", "hugging-face-configuration", "vertex-configuration");
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Override
     public Map<String, Object> createImplementation(
@@ -77,7 +78,7 @@ public class AIProvidersResourceProvider implements ResourceNodeProvider {
         }
         if (!serviceAccountJson.isEmpty()) {
             try {
-                new ObjectMapper().readValue(serviceAccountJson, Map.class);
+                MAPPER.readValue(serviceAccountJson, Map.class);
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "Invalid JSON for field serviceAccountJson in " + describe(resource).get(),

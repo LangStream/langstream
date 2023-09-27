@@ -1095,7 +1095,12 @@ public class BaseEndToEndTest implements TestWatcher {
         if (env != null && !env.isEmpty()) {
             beforeCmd =
                     env.entrySet().stream()
-                            .map(e -> "export \"%s\"=\"%s\"".formatted(e.getKey(), e.getValue()))
+                            .map(
+                                    e ->
+                                            "export '%s'='%s'"
+                                                    .formatted(
+                                                            e.getKey(),
+                                                            e.getValue().replace("'", "''")))
                             .collect(Collectors.joining(" && "));
             beforeCmd += " && ";
         }
@@ -1122,11 +1127,10 @@ public class BaseEndToEndTest implements TestWatcher {
         } else {
             podUids = "";
         }
-        executeCommandOnClient(
-                (beforeCmd
-                                + "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml")
-                        .formatted(isUpdate ? "update" : "deploy", applicationId)
-                        .split(" "));
+        final String command =
+                "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml"
+                        .formatted(isUpdate ? "update" : "deploy", applicationId);
+        executeCommandOnClient((beforeCmd + command).split(" "));
 
         awaitApplicationReady(applicationId, expectedNumExecutors);
         Awaitility.await()

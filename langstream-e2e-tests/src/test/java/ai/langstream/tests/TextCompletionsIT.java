@@ -51,7 +51,7 @@ public class TextCompletionsIT extends BaseEndToEndTest {
             return getAppEnvMapFromSystem(
                     List.of(
                             "VERTEX_AI_URL",
-                            "VERTEX_AI_TOKEN",
+                            "VERTEX_AI_SERVICE_ACCOUNT_JSON",
                             "VERTEX_AI_REGION",
                             "VERTEX_AI_PROJECT"));
         }
@@ -69,7 +69,7 @@ public class TextCompletionsIT extends BaseEndToEndTest {
         final String sessionId = UUID.randomUUID().toString();
 
         executeCommandOnClient(
-                "bin/langstream gateway produce %s produce-input -v 'Translate \"Good morning\" to French.' -p sessionId=%s"
+                "bin/langstream gateway produce %s produce-input -v 'Translate \"Apple\" to French, lowercase.' -p sessionId=%s"
                         .formatted(applicationId, sessionId)
                         .split(" "));
 
@@ -81,6 +81,6 @@ public class TextCompletionsIT extends BaseEndToEndTest {
                                 .formatted(sessionId)
                                 .split(" "));
         log.info("Output: {}", message);
-        Assertions.assertTrue(message.getAnswerFromChatCompletionsValue().contains("Bonjour"));
+        Assertions.assertTrue(message.getAnswerFromChatCompletionsValue().contains("pomme"));
     }
 }

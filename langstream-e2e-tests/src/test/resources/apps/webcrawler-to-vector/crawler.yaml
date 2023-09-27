@@ -39,7 +39,7 @@ pipeline:
       handle-cookies: true
       max-unflushed-pages: 100
       bucketName: "langstream-test-crawler-to-vector"
-      endpoint: http://minio.minio-dev.svc.cluster.local:9000
+      endpoint: http://minio.ls-test-minio.svc.cluster.local:9000
       access-key: minioadmin
       secret-key: minioadmin
   - name: "Extract text"

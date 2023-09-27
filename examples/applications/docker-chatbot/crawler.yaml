@@ -24,7 +24,6 @@ assets:
     creation-mode: create-if-not-exists
     config:
       table-name: "documents"
-      keyspace: "documents"
       datasource: "JdbcDatasource"
       create-statements:
         - |

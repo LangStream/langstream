@@ -15,6 +15,8 @@
  */
 package ai.langstream.tests;
 
+import static ai.langstream.tests.TextCompletionsIT.getAppEnvForAIServiceProvider;
+
 import ai.langstream.tests.util.BaseEndToEndTest;
 import ai.langstream.tests.util.ConsumeGatewayMessage;
 import java.util.List;
@@ -36,13 +38,10 @@ public class ChatCompletionsIT extends BaseEndToEndTest {
 
     @BeforeAll
     public static void checkCredentials() {
-        appEnv =
+        appEnv = getAppEnvForAIServiceProvider();
+        appEnv.putAll(
                 getAppEnvMapFromSystem(
-                        List.of(
-                                "OPEN_AI_ACCESS_KEY",
-                                "OPEN_AI_URL",
-                                "OPEN_AI_CHAT_COMPLETIONS_MODEL",
-                                "OPEN_AI_PROVIDER"));
+                        List.of("CHAT_COMPLETIONS_MODEL", "CHAT_COMPLETIONS_SERVICE")));
     }
 
     @Test

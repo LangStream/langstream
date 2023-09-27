@@ -34,5 +34,6 @@ pipeline:
       completion-field: "value.answer"
       # we are also logging the prompt we sent to the LLM
       log-field: "value.prompt"
+      max-tokens: 20
       prompt:
         - "{{% value.question}}"

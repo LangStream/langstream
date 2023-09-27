@@ -38,5 +38,6 @@ pipeline:
       stream-to-topic: "ls-test-output-topic"
       stream-response-completion-field: "value"
       min-chunks-per-message: 20
+      max-tokens: 20
       prompt:
         - "{{% value.question}}"

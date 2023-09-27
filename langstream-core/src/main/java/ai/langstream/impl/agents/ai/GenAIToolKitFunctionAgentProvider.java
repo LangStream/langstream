@@ -403,8 +403,6 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             }
         } else {
             for (Resource resource : applicationInstance.getResources().values()) {
-                Map<String, Object> configurationCopy =
-                        clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
                 final String configKey =
                         switch (resource.type()) {
                             case SERVICE_VERTEX -> "vertex";
@@ -413,6 +411,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                             default -> null;
                         };
                 if (configKey != null) {
+                    Map<String, Object> configurationCopy =
+                            clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
                     configuration.put(configKey, configurationCopy);
                 }
             }

@@ -17,7 +17,6 @@ package com.datastax.oss.streaming.ai;
 
 import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.convertToMap;
 
-import com.azure.ai.openai.models.CompletionsOptions;
 import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.model.JsonRecord;
@@ -87,21 +86,8 @@ public class TextCompletionsStep implements TransformStep {
                         .map(p -> messageTemplates.get(p).execute(jsonRecord))
                         .collect(Collectors.toList());
 
-        CompletionsOptions completionsOptions =
-                new CompletionsOptions(List.of())
-                        .setMaxTokens(config.getMaxTokens())
-                        .setTemperature(config.getTemperature())
-                        .setTopP(config.getTopP())
-                        .setLogitBias(config.getLogitBias())
-                        .setStream(config.isStream())
-                        .setUser(config.getUser())
-                        .setStop(config.getStop())
-                        .setPresencePenalty(config.getPresencePenalty())
-                        .setFrequencyPenalty(config.getFrequencyPenalty());
-        Map<String, Object> options = convertToMap(completionsOptions);
-        options.put("model", config.getModel());
+        final Map<String, Object> options = convertToMap(config);
         options.put("min-chunks-per-message", config.getMinChunksPerMessage());
-        options.remove("messages");
 
         CompletableFuture<String> chatCompletionsHandle =
                 completionsService.getTextCompletions(

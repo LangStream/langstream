@@ -30,7 +30,7 @@ public interface ServiceProvider extends AutoCloseable {
 
     void close();
 
-    public static class NoopServiceProvider implements ServiceProvider {
+    class NoopServiceProvider implements ServiceProvider {
         @Override
         public CompletionsService getCompletionsService(
                 Map<String, Object> additionalConfiguration) {

@@ -163,8 +163,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
             try (KafkaProducer<String, String> producer = createProducer();
                     KafkaConsumer<String, String> consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic"));
-                    KafkaConsumer<String, String> streamConsumer =
-                            createConsumer(streamToTopic)) {
+                    KafkaConsumer<String, String> streamConsumer = createConsumer(streamToTopic)) {
 
                 // produce one message to the input-topic
                 // simulate a session-id header
@@ -184,7 +183,8 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                 consumer,
                                 List.of(
                                         """
-                                                {"question":"the car","session-id":"2139847128764192","answer":"A car is a vehicle","prompt":"{\\"options\\":{\\"type\\":\\"ai-chat-completions\\",\\"when\\":null,\\"model\\":\\"gpt-35-turbo\\",\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about {{ value.question}} ?\\"}],\\"stream-to-topic\\":\\"%s\\",\\"stream-response-completion-field\\":\\"value\\",\\"min-chunks-per-message\\":3,\\"completion-field\\":\\"value.answer\\",\\"stream\\":true,\\"log-field\\":\\"value.prompt\\",\\"max-tokens\\":null,\\"temperature\\":null,\\"top-p\\":null,\\"logit-bias\\":null,\\"user\\":null,\\"stop\\":null,\\"presence-penalty\\":null,\\"frequency-penalty\\":null},\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about the car ?\\"}],\\"model\\":\\"gpt-35-turbo\\"}"}""".formatted(streamToTopic)));
+                                                {"question":"the car","session-id":"2139847128764192","answer":"A car is a vehicle","prompt":"{\\"options\\":{\\"type\\":\\"ai-chat-completions\\",\\"when\\":null,\\"model\\":\\"gpt-35-turbo\\",\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about {{ value.question}} ?\\"}],\\"stream-to-topic\\":\\"%s\\",\\"stream-response-completion-field\\":\\"value\\",\\"min-chunks-per-message\\":3,\\"completion-field\\":\\"value.answer\\",\\"stream\\":true,\\"log-field\\":\\"value.prompt\\",\\"max-tokens\\":null,\\"temperature\\":null,\\"top-p\\":null,\\"logit-bias\\":null,\\"user\\":null,\\"stop\\":null,\\"presence-penalty\\":null,\\"frequency-penalty\\":null},\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about the car ?\\"}],\\"model\\":\\"gpt-35-turbo\\"}"}"""
+                                                .formatted(streamToTopic)));
                 ConsumerRecord record = mainOutputRecords.get(0);
 
                 assertNull(record.headers().lastHeader("stream-id"));

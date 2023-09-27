@@ -285,12 +285,12 @@ public class GenAITest {
         assertEquals("result", valueAvroRecord.get("completion").toString());
         assertEquals(
                 "{\"options\":{\"type\":\"ai-chat-completions\",\"when\":null,\"model\":\"test-model\","
-                + "\"messages\":[{\"role\":\"user\",\"content\":\"{{ value.valueField1 }} {{ key.keyField2 }}\"}],"
-                + "\"stream-to-topic\":null,\"stream-response-completion-field\":null,\"min-chunks-per-message\":20,"
-                + "\"completion-field\":\"value.completion\",\"stream\":true,\"log-field\":\"value.log\","
-                + "\"max-tokens\":null,\"temperature\":null,\"top-p\":null,\"logit-bias\":null,\"user\":null,"
-                + "\"stop\":null,\"presence-penalty\":null,\"frequency-penalty\":null},"
-                + "\"messages\":[{\"role\":\"user\",\"content\":\"value1 key2\"}],\"model\":\"test-model\"}",
+                        + "\"messages\":[{\"role\":\"user\",\"content\":\"{{ value.valueField1 }} {{ key.keyField2 }}\"}],"
+                        + "\"stream-to-topic\":null,\"stream-response-completion-field\":null,\"min-chunks-per-message\":20,"
+                        + "\"completion-field\":\"value.completion\",\"stream\":true,\"log-field\":\"value.log\","
+                        + "\"max-tokens\":null,\"temperature\":null,\"top-p\":null,\"logit-bias\":null,\"user\":null,"
+                        + "\"stop\":null,\"presence-penalty\":null,\"frequency-penalty\":null},"
+                        + "\"messages\":[{\"role\":\"user\",\"content\":\"value1 key2\"}],\"model\":\"test-model\"}",
                 valueAvroRecord.get("log").toString());
     }
 

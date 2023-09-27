@@ -36,7 +36,7 @@ pipeline:
       embeddings-field: "value.question_embeddings"
       text: "{{% value.question }}"
       flush-interval: 0
-  - name: "lookup-related-documents-in-llm"
+  - name: "lookup-related-documents"
     type: "query"
     configuration:
       datasource: "AstraDatasource"

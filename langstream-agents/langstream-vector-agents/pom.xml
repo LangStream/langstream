@@ -45,7 +45,7 @@
     <dependency>
       <groupId>org.herddb</groupId>
       <artifactId>herddb-jdbc</artifactId>
-      <version>0.27.0</version>
+      <version>0.28.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>

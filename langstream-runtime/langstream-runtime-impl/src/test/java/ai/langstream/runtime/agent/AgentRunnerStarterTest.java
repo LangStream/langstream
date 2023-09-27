@@ -91,7 +91,8 @@ class AgentRunnerStarterTest {
                         Mockito.any(),
                         Mockito.any(Supplier.class),
                         Mockito.any(),
-                        eq(true));
+                        eq(true),
+                        Mockito.any());
     }
 
     static class TestDeployer extends AgentRunnerStarter {

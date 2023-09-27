@@ -31,8 +31,6 @@ public class AstraDataSource implements DataSourceProvider {
     @Override
     public QueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
-        CassandraDataSource result = new CassandraDataSource();
-        result.initialize(dataSourceConfig);
-        return result;
+        return new CassandraDataSource();
     }
 }

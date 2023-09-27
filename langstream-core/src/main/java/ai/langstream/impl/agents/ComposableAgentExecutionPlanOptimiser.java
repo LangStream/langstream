@@ -57,9 +57,6 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
             log.debug("canMerge {}", agentImplementation);
             log.debug("canMerge RESULT: {}", result);
         }
-        log.info("canMerge {}", previousAgent);
-        log.info("canMerge {}", agentImplementation);
-        log.info("canMerge RESULT: {}", result);
         return result;
     }
 

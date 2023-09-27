@@ -163,7 +163,8 @@ class PulsarRunnerDockerTest {
                     new AgentInfo(),
                     () -> numLoops.incrementAndGet() <= 5,
                     null,
-                    false);
+                    false,
+                    narFileHandler);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
             Message<byte[]> record = consumer.receive();

@@ -74,6 +74,10 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
                         ApplicationSetupConstants.APP_CONFIG_ENV,
                         ApplicationSetupConstants.APP_CONFIG_ENV_DEFAULT);
         final Path secretsPath = getOptionalPathFromEnv(ApplicationSetupConstants.APP_SECRETS_ENV);
+        final Path codeDirectory =
+                getOptionalPathFromEnv(
+                        ApplicationSetupConstants.DOWNLOADED_CODE_PATH_ENV,
+                        ApplicationSetupConstants.DOWNLOADED_CODE_PATH_ENV_DEFAULT);
         final Path packagesDirectory =
                 getPathFromEnv(
                         ApplicationSetupConstants.AGENTS_ENV,
@@ -88,9 +92,17 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
         final String arg0 = args[0];
         switch (arg0) {
             case "deploy" -> applicationSetupRunner.runSetup(
-                    clusterRuntimeConfiguration, configuration, secrets, packagesDirectory);
+                    clusterRuntimeConfiguration,
+                    configuration,
+                    secrets,
+                    packagesDirectory,
+                    codeDirectory);
             case "cleanup" -> applicationSetupRunner.runCleanup(
-                    clusterRuntimeConfiguration, configuration, secrets, packagesDirectory);
+                    clusterRuntimeConfiguration,
+                    configuration,
+                    secrets,
+                    packagesDirectory,
+                    codeDirectory);
             default -> throw new IllegalArgumentException("Unknown command " + arg0);
         }
     }

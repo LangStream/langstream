@@ -64,10 +64,6 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
             connection.setAutoCommit(true);
         }
 
-        public Connection getConnection() {
-            return connection;
-        }
-
         @Override
         @SneakyThrows
         public List<Map<String, String>> fetchData(String query, List<Object> params) {
@@ -116,13 +112,11 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
         String driverClass = properties.getProperty("driverClass", "");
         log.info("Connecting to {}, config {}", properties.getProperty("url"), properties);
         if (!driverClass.isEmpty()) {
-            log.info("Loading JDBC Driver {}", driverClass);
+            ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+            log.info("Loading JDBC Driver {} from classloader {}", driverClass, currentClassLoader);
             Driver driver =
                     (Driver)
-                            Class.forName(
-                                            driverClass,
-                                            true,
-                                            Thread.currentThread().getContextClassLoader())
+                            Class.forName(driverClass, true, currentClassLoader)
                                     .getConstructor()
                                     .newInstance();
             // https://www.kfu.com/~nsayer/Java/dyn-jdbc.html

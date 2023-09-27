@@ -116,6 +116,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
                 new AgentInfo(),
                 continueLoop::get,
                 null,
-                true);
+                true,
+                null);
     }
 }

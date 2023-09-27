@@ -26,9 +26,11 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.nar.NarFileHandler;
+import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.api.application.ApplicationSetupConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -47,14 +49,15 @@ public class ApplicationSetupRunner {
             Map<String, Map<String, Object>> clusterRuntimeConfiguration,
             ApplicationSetupConfiguration configuration,
             Secrets secrets,
-            Path packagesDirectory)
+            Path packagesDirectory,
+            Path codeDirectory)
             throws Exception {
 
         final String applicationId = configuration.getApplicationId();
         log.info("Setup application {}", applicationId);
         final Application appInstance = parseApplicationInstance(configuration, secrets);
 
-        try (NarFileHandler narFileHandler = getNarFileHandler(packagesDirectory)) {
+        try (NarFileHandler narFileHandler = getNarFileHandler(packagesDirectory, codeDirectory)) {
             narFileHandler.scan();
             try (ApplicationDeployer deployer =
                     buildDeployer(clusterRuntimeConfiguration, narFileHandler)) {
@@ -70,14 +73,15 @@ public class ApplicationSetupRunner {
             Map<String, Map<String, Object>> clusterRuntimeConfiguration,
             ApplicationSetupConfiguration configuration,
             Secrets secrets,
-            Path packagesDirectory)
+            Path packagesDirectory,
+            Path codeDirectory)
             throws Exception {
 
         final String applicationId = configuration.getApplicationId();
         log.info("Cleanup application {}", applicationId);
         final Application appInstance = parseApplicationInstance(configuration, secrets);
 
-        try (NarFileHandler narFileHandler = getNarFileHandler(packagesDirectory)) {
+        try (NarFileHandler narFileHandler = getNarFileHandler(packagesDirectory, codeDirectory)) {
             narFileHandler.scan();
             try (ApplicationDeployer deployer =
                     buildDeployer(clusterRuntimeConfiguration, narFileHandler)) {
@@ -90,9 +94,11 @@ public class ApplicationSetupRunner {
         }
     }
 
-    private NarFileHandler getNarFileHandler(Path packagesDirectory) throws Exception {
+    private NarFileHandler getNarFileHandler(Path packagesDirectory, Path codeDirectory)
+            throws Exception {
+        List<URL> customLib = AgentRunner.buildCustomLibClasspath(codeDirectory);
         return new NarFileHandler(
-                packagesDirectory, List.of(), Thread.currentThread().getContextClassLoader());
+                packagesDirectory, customLib, Thread.currentThread().getContextClassLoader());
     }
 
     private Application parseApplicationInstance(

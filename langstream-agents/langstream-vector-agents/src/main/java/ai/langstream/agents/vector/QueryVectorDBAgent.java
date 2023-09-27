@@ -60,12 +60,16 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
 
     @Override
     public List<Record> processRecord(Record record) throws Exception {
-        log.info("Processing record {}", record);
+        if (log.isDebugEnabled()) {
+            log.debug("Processing record {}", record);
+        }
         TransformContext context = GenAIToolKitAgent.recordToTransformContext(record, true);
         TransformFunctionUtil.processTransformSteps(context, steps);
         context.convertMapToStringOrBytes();
         Optional<Record> recordResult = GenAIToolKitAgent.transformContextToRecord(context);
-        log.info("recordResult {}", recordResult);
+        if (log.isDebugEnabled()) {
+            log.debug("recordResult {}", recordResult);
+        }
         return recordResult.map(List::of).orElseGet(List::of);
     }
 

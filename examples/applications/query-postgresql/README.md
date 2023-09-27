@@ -1,7 +1,6 @@
-# Querying a JDBC Database
+# Querying a PostGre Database
 
-This sample application shows how to perform queries against a JDBC database using the DataStax Java driver.
-
+This sample application shows how to perform queries against a JDBC database using the PostGre JDBC driver.
 
 ## Prerequisites
 
@@ -57,7 +56,7 @@ Insert some data:
 ## Deploy the LangStream application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/query-jdbc -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/query-postgresql -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 
 ## Talk with the Chat bot using the CLI

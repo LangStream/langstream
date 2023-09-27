@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-START_KAFKA=${START_BROKER:-true}
+START_BROKER=${START_BROKER:-true}
 if [ "$START_BROKER" = "true" ]; then
   echo "Starting Broker"
   /kafka/bin/kafka-server-start.sh -daemon /kafka/config/kraft/server.properties
@@ -25,6 +25,12 @@ START_MINIO=${START_MINIO:-true}
 if [ "$START_MINIO" = "true" ]; then
   echo "Starting Minio"
   /minio/minio server /tmp &
+fi
+
+START_HERDDB=${START_HERDDB:-true}
+if [ "$START_HERDDB" = "true" ]; then
+  echo "Starting Herddb"
+  /herddb/herddb/bin/service server start
 fi
 
 exec java ${JAVA_OPTS} -Dlogging.config=/app/logback.xml -Djdk.lang.Process.launchMechanism=vfork -cp "/app/lib/*:/app/tester/lib/*" "ai.langstream.runtime.tester.Main"

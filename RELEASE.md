@@ -20,10 +20,17 @@ After this command:
 
 ## Update the HomeBrew formula
 
-Update the formulae with the new version tarball url:
+Update the CLI formulae with the new version tarball url:
 1. Open the file [`langstream.rb`](https://github.com/LangStream/homebrew-langstream/blob/main/langstream.rb)
 2. Insert the new version
 3. Update the sha256 checksum (`sha256sum langstream-<version>.zip`)
+
+
+Update the mini-langstream formulae with the new version tarball url:
+1. Open the file [`langstream.rb`](https://github.com/LangStream/homebrew-langstream/blob/main/mini-langstream.rb)
+2. Insert the new version
+3. Update the sha256 checksum (`sha256sum mini-langstream-<version>.zip`)
+
 
 ## Update the Helm chart
 

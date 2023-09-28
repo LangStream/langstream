@@ -16,9 +16,6 @@
 #
 
 configuration:
-  defaults:
-    globals:
-       website: "https://docs.langstream.ai/"
   resources:
     - type: "datasource"
       name: "JdbcDatasource"

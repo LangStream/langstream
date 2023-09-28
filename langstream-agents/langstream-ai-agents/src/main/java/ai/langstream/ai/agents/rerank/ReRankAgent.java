@@ -24,10 +24,11 @@ import ai.langstream.api.util.ConfigurationUtils;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.jstl.JstlEvaluator;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
@@ -39,33 +40,57 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
     public static final String ALGORITHM_NONE = "none";
     public static final String ALGORITHM_MMR = "MMR";
 
-    private String field;
     private String outputField;
     private String algorithm = "none";
-    private String query;
 
-    private String fieldInRecord;
+    private double mmr_lambda;
 
-    private double lambda;
+    // BM25 parameters
+    private double bm25_k1;
+    private double bm25_b;
 
     private final Map<Schema, Schema> avroValueSchemaCache = new ConcurrentHashMap<>();
 
     private final Map<Schema, Schema> avroKeySchemaCache = new ConcurrentHashMap<>();
 
+    private JstlEvaluator<Object> fieldAccessor;
+
+    private JstlEvaluator<String> queryAccessor;
+
+    private JstlEvaluator<Object> queryEmbeddingsAccessor;
+
+    private JstlEvaluator<String> recordTextAccessor;
+    private JstlEvaluator<Object> recordEmbeddingsAccessor;
+
     @Override
     public void init(Map<String, Object> configuration) {
-        field =
+        String field =
                 ConfigurationUtils.requiredNonEmptyField(
                         configuration, "field", () -> "re-rank agent");
         outputField =
                 ConfigurationUtils.requiredNonEmptyField(
                         configuration, "output-field", () -> "re-rank agent");
         algorithm = ConfigurationUtils.getString("algorithm", ALGORITHM_NONE, configuration);
-        query = ConfigurationUtils.getString("query", "", configuration);
-        fieldInRecord = ConfigurationUtils.getString("field-in-record", "text", configuration);
+        String queryEmbeddingsField =
+                ConfigurationUtils.getString("query-embeddings", "", configuration);
+        String queryField = ConfigurationUtils.getString("query-text", "", configuration);
+        String embeddingsInRecord =
+                ConfigurationUtils.getString("embeddings-field", "", configuration);
+        String textInRecord = ConfigurationUtils.getString("text-field", "", configuration);
 
-        lambda = ConfigurationUtils.getDouble("lambda", 0.5, configuration);
+        mmr_lambda = ConfigurationUtils.getDouble("lambda", 0.5, configuration);
+        bm25_k1 = ConfigurationUtils.getDouble("k1", 1.5, configuration);
+        bm25_b = ConfigurationUtils.getDouble("b", 0.75, configuration);
+
+        fieldAccessor = new JstlEvaluator<>("${" + field + "}", List.class);
+        queryEmbeddingsAccessor =
+                new JstlEvaluator<>("${" + queryEmbeddingsField + "}", List.class);
+        queryAccessor = new JstlEvaluator<>("${" + queryField + "}", String.class);
+        recordEmbeddingsAccessor = new JstlEvaluator<>("${" + embeddingsInRecord + "}", List.class);
+        recordTextAccessor = new JstlEvaluator<>("${" + textInRecord + "}", String.class);
     }
+
+    record TextWithEmbeddings(String text, float[] embeddings) {}
 
     @Override
     public List<Record> processRecord(Record record) throws Exception {
@@ -74,20 +99,29 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         }
         TransformContext transformContext =
                 GenAIToolKitAgent.recordToTransformContext(record, true).copy();
-        JstlEvaluator<List<Object>> fieldAccessor =
-                new JstlEvaluator("${" + field + "}", List.class);
-        List<Object> currentList = fieldAccessor.evaluate(transformContext);
-        Function<Object, String> textExtractor =
+
+        List<Object> currentList = (List<Object>) fieldAccessor.evaluate(transformContext);
+
+        TextWithEmbeddings query =
+                new TextWithEmbeddings(
+                        queryAccessor.evaluate(transformContext),
+                        toArrayOfFloat(queryEmbeddingsAccessor.evaluate(transformContext)));
+
+        Function<Object, TextWithEmbeddings> recordExtractor =
                 (Object o) -> {
-                    if (o instanceof String) {
-                        return (String) o;
-                    } else if (o instanceof Map) {
-                        return ((Map<String, Object>) o).getOrDefault(fieldInRecord, "").toString();
-                    } else {
-                        return o.toString();
+                    TransformContext context = new TransformContext();
+                    context.setRecordObject(o);
+                    String text = recordTextAccessor.evaluate(context);
+                    float[] embeddings = toArrayOfFloat(recordEmbeddingsAccessor.evaluate(context));
+                    log.info("Text: {}", text);
+                    log.info("Embeddings: {}", embeddings);
+                    if (embeddings == null || text == null) {
+                        throw new IllegalArgumentException(
+                                "Text or embeddings are null in record " + o);
                     }
+                    return new TextWithEmbeddings(text, embeddings);
                 };
-        List<Object> result = rerank(currentList, textExtractor);
+        List<Object> result = rerank(currentList, query, recordExtractor);
         transformContext.setResultField(
                 result, outputField, null, avroKeySchemaCache, avroValueSchemaCache);
         transformContext.convertMapToStringOrBytes();
@@ -95,10 +129,13 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         return recordResult.map(List::of).orElse(List.of());
     }
 
-    private List<Object> rerank(List<Object> currentList, Function<Object, String> textExtractor) {
+    private List<Object> rerank(
+            List<Object> currentList,
+            TextWithEmbeddings query,
+            Function<Object, TextWithEmbeddings> recordExtractor) {
         switch (algorithm) {
             case ALGORITHM_MMR:
-                return rerankMMR(currentList, query, lambda, textExtractor);
+                return rerankMMR(currentList, query, mmr_lambda, bm25_k1, bm25_b, recordExtractor);
             case ALGORITHM_NONE:
                 return currentList;
             default:
@@ -108,61 +145,223 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
 
     private static List<Object> rerankMMR(
             List<Object> documents,
-            String query,
+            TextWithEmbeddings query,
             double lambda,
-            Function<Object, String> textExtractor) {
+            double bm25_k1,
+            double bm25_b,
+            Function<Object, TextWithEmbeddings> recordExtractor) {
         List<Object> rankedDocuments = new ArrayList<>();
         List<Object> remainingDocuments = new ArrayList<>(documents);
 
         while (!remainingDocuments.isEmpty()) {
-            log.info("Remaining documents: {}", remainingDocuments);
             Object topDocument =
-                    calculateTopDocumentMMR(
-                            remainingDocuments, rankedDocuments, textExtractor, query, lambda);
+                    calculateTopDocumentMMR_BM25_CosineSimilarity(
+                            remainingDocuments,
+                            rankedDocuments,
+                            recordExtractor,
+                            query,
+                            lambda,
+                            bm25_k1,
+                            bm25_b);
             rankedDocuments.add(topDocument);
-            log.info("Removing top document: {}", topDocument);
             remainingDocuments.remove(topDocument);
         }
 
         return rankedDocuments;
     }
 
-    public static Object calculateTopDocumentMMR(
+    private static Object calculateTopDocumentMMR_BM25_CosineSimilarity(
             List<Object> remainingDocuments,
             List<Object> rankedDocuments,
-            Function<Object, String> textExtractor,
-            String query,
-            double lambda) {
+            Function<Object, TextWithEmbeddings> recordExtractor,
+            TextWithEmbeddings query,
+            double lambda,
+            double bm25_k1,
+            double bm25_b) {
         Object topDocument = null;
         double topScore = Double.NEGATIVE_INFINITY;
 
-        for (Object documentObject : remainingDocuments) {
-            String document = textExtractor.apply(documentObject);
-            double relevance = calculateRelevance(document, query);
-            double diversity = calculateDiversity(document, rankedDocuments, textExtractor);
-            double score = lambda * relevance - (1 - lambda) * diversity;
+        List<TextWithEmbeddings> texts = remainingDocuments.stream().map(recordExtractor).toList();
 
+        double[] bm25scores = calculateBM25Scores(texts, query, bm25_k1, bm25_b);
+
+        for (int i = 0; i < remainingDocuments.size(); i++) {
+            Object documentObject = remainingDocuments.get(i);
+            TextWithEmbeddings document = texts.get(i);
+            double bm25score = bm25scores[i];
+            double relevance = bm25score;
+            double diversity = calculateDiversity(document, rankedDocuments, recordExtractor);
+            double score = lambda * relevance - (1 - lambda) * diversity;
             if (score > topScore) {
                 topScore = score;
                 topDocument = documentObject;
             }
         }
 
+        if (topDocument == null) {
+            throw new IllegalStateException("topDocument is null, among " + remainingDocuments);
+        }
+
         return topDocument;
     }
 
-    public static double calculateRelevance(String document, String query) {
-        // Implement your relevance calculation logic here
-        // For example, you can use TF-IDF, BM25, or other relevance metrics.
-        return document.hashCode()
-                * 1.0
-                / query.hashCode(); // Placeholder, replace with actual relevance score.
+    private static double calculateDiversity(
+            TextWithEmbeddings document,
+            List<Object> rankedDocuments,
+            Function<Object, TextWithEmbeddings> textExtractor) {
+        log.info("Calculating diversity for document: {}", document);
+        log.info("Other documents: {}", rankedDocuments);
+
+        if (rankedDocuments.isEmpty()) {
+            // there is no document, the diversity is 0
+            return 0;
+        }
+
+        double sumCosineSimilarity = 0.0;
+        float[] embeddings = document.embeddings;
+
+        // Convert embeddings to RealVector objects for cosine similarity calculation
+
+        for (Object otherDocument : rankedDocuments) {
+            TextWithEmbeddings text = textExtractor.apply(otherDocument);
+            float[] otherVector = text.embeddings;
+
+            // Calculate cosine similarity between target and other embeddings
+            double cosineSimilarity = cosineSimilarity(embeddings, otherVector);
+
+            // Add the cosine similarity to the sum
+            sumCosineSimilarity += cosineSimilarity;
+        }
+
+        // Calculate the average cosine similarity as the diversity score
+        return sumCosineSimilarity / rankedDocuments.size();
     }
 
-    public static double calculateDiversity(
-            String document, List<Object> rankedDocuments, Function<Object, String> textExtractor) {
-        // Implement your diversity calculation logic here
-        // For example, you can use cosine similarity, Jaccard index, or other diversity metrics.
-        return new Random().nextDouble(); // Placeholder, replace with actual diversity score.
+    private static float euclideanNorm(float[] arr) {
+        float sumOfSquares = 0.0f;
+        for (float value : arr) {
+            sumOfSquares += value * value;
+        }
+        return (float) Math.sqrt(sumOfSquares);
+    }
+
+    public static float cosineSimilarity(float[] arr1, float[] arr2) {
+        float norm1 = euclideanNorm(arr1);
+        if (norm1 == 0) {
+            return 0;
+        }
+        float norm2 = euclideanNorm(arr2);
+        if (norm2 == 0) {
+            return 0.0f;
+        }
+        float dotProduct = dotProduct(arr1, arr2);
+        return dotProduct / (norm1 * norm2);
+    }
+
+    public static double[] calculateBM25Scores(
+            List<TextWithEmbeddings> documents, TextWithEmbeddings query, double k1, double b) {
+        int N = documents.size(); // Total number of documents
+        double avgdl = calculateAverageDocumentLength(documents);
+        Map<String, Integer>[] documentTermFrequencies =
+                calculateDocumentTermFrequencies(documents);
+
+        String[] queryTerms = tokenise(query.text);
+        double[] bm25Scores = new double[N];
+
+        for (int i = 0; i < N; i++) {
+            String text = documents.get(i).text;
+            String[] documentTerms = tokenise(text);
+            double documentLength = documentTerms.length;
+
+            for (String term : queryTerms) {
+                int tf = documentTermFrequencies[i].getOrDefault(term, 0);
+                double idf = calculateIDF(term, documentTermFrequencies, N);
+
+                double numerator = tf * (k1 + 1);
+                double denominator = tf + k1 * (1 - b + b * (documentLength / avgdl));
+
+                bm25Scores[i] += idf * (numerator / denominator);
+            }
+        }
+
+        return bm25Scores;
+    }
+
+    public static double calculateAverageDocumentLength(List<TextWithEmbeddings> documents) {
+        int totalTerms = 0;
+        for (TextWithEmbeddings document : documents) {
+            String text = document.text;
+            String[] terms = tokenise(text);
+            totalTerms += terms.length;
+        }
+        return (double) totalTerms / documents.size();
+    }
+
+    private static String[] tokenise(String text) {
+        return text.split("\\s+");
+    }
+
+    public static Map<String, Integer>[] calculateDocumentTermFrequencies(
+            List<TextWithEmbeddings> documents) {
+        Map<String, Integer>[] termFrequencies = new Map[documents.size()];
+
+        for (int i = 0; i < documents.size(); i++) {
+            termFrequencies[i] = new HashMap<>();
+            String text = documents.get(i).text;
+            String[] terms = tokenise(text);
+            for (String term : terms) {
+                termFrequencies[i].put(term, termFrequencies[i].getOrDefault(term, 0) + 1);
+            }
+        }
+
+        return termFrequencies;
+    }
+
+    public static double calculateIDF(
+            String term, Map<String, Integer>[] documentTermFrequencies, int N) {
+        int documentCountWithTerm = 0;
+        for (Map<String, Integer> termFrequency : documentTermFrequencies) {
+            if (termFrequency.containsKey(term)) {
+                documentCountWithTerm++;
+            }
+        }
+        return Math.log((N - documentCountWithTerm + 0.5) / (documentCountWithTerm + 0.5) + 1.0);
+    }
+
+    public static float[] toArrayOfFloat(Object input) {
+        if (input == null) {
+            return null;
+        }
+        if (input instanceof Collection<?> collection) {
+            float[] result = new float[collection.size()];
+            int i = 0;
+            for (Object o : collection) {
+                result[i++] = coerceToFloat(o);
+            }
+            return result;
+        } else {
+            throw new IllegalArgumentException("Cannot convert " + input + " to list of float");
+        }
+    }
+
+    private static float dotProduct(float[] arr1, float[] arr2) {
+        if (arr1.length != arr2.length) {
+            throw new IllegalArgumentException("Arrays must have the same length");
+        }
+
+        float result = 0.0f;
+        for (int i = 0; i < arr1.length; i++) {
+            result += arr1[i] * arr2[i];
+        }
+
+        return result;
+    }
+
+    private static float coerceToFloat(Object o) {
+        if (o instanceof Number n) {
+            return n.floatValue();
+        } else {
+            throw new IllegalArgumentException("Cannot convert " + o + " to float");
+        }
     }
 }

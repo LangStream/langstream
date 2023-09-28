@@ -235,12 +235,25 @@ public class ModelBuilder {
             throws Exception {
         final ApplicationWithPackageInfo applicationWithPackageInfo =
                 new ApplicationWithPackageInfo(new Application());
+        DefaultsHolder defaultsHolder = new DefaultsHolder();
         for (Map.Entry<String, String> entry : files.entrySet()) {
-            parseApplicationFile(entry.getKey(), entry.getValue(), applicationWithPackageInfo);
+            parseApplicationFile(
+                    entry.getKey(), entry.getValue(), applicationWithPackageInfo, defaultsHolder);
         }
         if (instanceContent != null) {
             applicationWithPackageInfo.hasInstanceDefinition = true;
-            parseInstance(instanceContent, applicationWithPackageInfo.getApplication());
+            parseInstance(
+                    instanceContent,
+                    applicationWithPackageInfo.getApplication(),
+                    defaultsHolder.globals);
+        } else {
+            if (defaultsHolder.globals != null && !defaultsHolder.globals.isEmpty()) {
+                applicationWithPackageInfo.hasInstanceDefinition = true;
+                parseInstance(
+                        "instance:",
+                        applicationWithPackageInfo.getApplication(),
+                        defaultsHolder.globals);
+            }
         }
 
         if (secretsContent != null) {
@@ -251,7 +264,10 @@ public class ModelBuilder {
     }
 
     private static void parseApplicationFile(
-            String fileName, String content, ApplicationWithPackageInfo applicationWithPackageInfo)
+            String fileName,
+            String content,
+            ApplicationWithPackageInfo applicationWithPackageInfo,
+            DefaultsHolder defaultsHolder)
             throws IOException {
         if (!isPipelineFile(fileName)) {
             // skip
@@ -268,7 +284,8 @@ public class ModelBuilder {
                         "secrets.yaml must not be included in the application zip");
             case "configuration.yaml":
                 applicationWithPackageInfo.hasAppDefinition = true;
-                parseConfiguration(content, applicationWithPackageInfo.getApplication());
+                parseConfiguration(
+                        content, applicationWithPackageInfo.getApplication(), defaultsHolder);
                 break;
             case "gateways.yaml":
                 applicationWithPackageInfo.hasAppDefinition = true;
@@ -285,10 +302,24 @@ public class ModelBuilder {
         return fileName.endsWith(".yaml");
     }
 
-    private static void parseConfiguration(String content, Application application)
+    @Data
+    private static class DefaultsHolder {
+        private Map<String, Object> globals;
+        private List<Secret> secrets;
+    }
+
+    private static void parseConfiguration(
+            String content, Application application, DefaultsHolder defaultsHolder)
             throws IOException {
         ConfigurationFileModel configurationFileModel =
                 mapper.readValue(content, ConfigurationFileModel.class);
+        if (configurationFileModel.configuration == null) {
+            throw new IllegalArgumentException(
+                    "configuration entry is not present in configuration.yaml");
+        }
+        if (configurationFileModel.configuration.defaults != null) {
+            defaultsHolder.setGlobals(configurationFileModel.configuration.defaults.globals);
+        }
         ConfigurationNodeModel configurationNode = configurationFileModel.configuration();
         if (configurationNode != null && configurationNode.resources != null) {
             configurationNode.resources.forEach(
@@ -573,11 +604,10 @@ public class ModelBuilder {
             log.debug("Secrets: {}", secretsFileModel);
         }
         final Set<String> ids = new HashSet<>();
-        secretsFileModel.secrets.stream()
-                .forEach(
-                        s -> {
-                            validateSecret(s, ids);
-                        });
+        secretsFileModel.secrets.forEach(
+                s -> {
+                    validateSecret(s, ids);
+                });
         application.setSecrets(
                 new Secrets(
                         secretsFileModel.secrets().stream()
@@ -593,10 +623,15 @@ public class ModelBuilder {
         }
     }
 
-    private static void parseInstance(String content, Application application) throws IOException {
+    private static void parseInstance(
+            String content, Application application, Map<String, Object> defaultValues)
+            throws IOException {
         InstanceFileModel instanceModel = mapper.readValue(content, InstanceFileModel.class);
         log.info("Instance Configuration: {}", instanceModel);
         Instance instance = instanceModel.instance;
+        if (instance == null) {
+            instance = new Instance(null, null, Map.of());
+        }
 
         // add default "kubernetes" compute cluster if not present
         if (instance.computeCluster() == null) {
@@ -606,6 +641,24 @@ public class ModelBuilder {
                             new ComputeCluster("kubernetes", Map.of()),
                             instance.globals());
         }
+
+        if (defaultValues != null) {
+            Map<String, Object> currentGlobals = instance.globals();
+            if (currentGlobals == null) {
+                currentGlobals = Map.of();
+            }
+            Map<String, Object> finalGlobals = new HashMap<>(currentGlobals);
+            for (Map.Entry<String, Object> entry : defaultValues.entrySet()) {
+                if (!currentGlobals.containsKey(entry.getKey())) {
+                    finalGlobals.put(entry.getKey(), entry.getValue());
+                }
+            }
+
+            instance =
+                    new Instance(
+                            instance.streamingCluster(), instance.computeCluster(), finalGlobals);
+        }
+
         application.setInstance(instance);
     }
 
@@ -696,7 +749,10 @@ public class ModelBuilder {
         }
     }
 
-    public record ConfigurationNodeModel(List<Resource> resources, List<Dependency> dependencies) {}
+    public record ConfigurationNodeModel(
+            DefaultsModel defaults, List<Resource> resources, List<Dependency> dependencies) {}
+
+    public record DefaultsModel(Map<String, Object> globals) {}
 
     public record ConfigurationFileModel(ConfigurationNodeModel configuration) {}
 

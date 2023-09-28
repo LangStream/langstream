@@ -41,8 +41,8 @@ pipeline:
   - name: "Crawl the WebSite"
     type: "webcrawler-source"
     configuration:
-      seed-urls: ["https://docs.langstream.ai/"]
-      allowed-domains: ["https://docs.langstream.ai"]
+      seed-urls: ["{{{globals.website}}}"]
+      allowed-domains: ["{{{globals.website}}}"]
       forbidden-paths: []
       min-time-between-requests: 500
       reindex-interval-seconds: 3600

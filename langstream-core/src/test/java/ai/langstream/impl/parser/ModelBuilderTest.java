@@ -19,9 +19,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Gateway;
+import ai.langstream.api.model.Secrets;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -133,5 +135,110 @@ class ModelBuilderTest {
         assertEquals("t1", gateway.getTopic());
         assertEquals("google", gateway.getAuthentication().getProvider());
         assertTrue(gateway.getAuthentication().isAllowTestMode());
+    }
+
+    @Test
+    void testParseRealDirectoryWithDefaults() throws Exception {
+        final Path path = Paths.get("src/test/resources/application1");
+        String instanceContent =
+                """
+                instance:
+                   globals:
+                      var1: "value1"
+                      var2: "value2"
+                      var-array1:
+                        - "value1"
+                        - "value2"
+                      var-array2:
+                        - "value1"
+                        - "value2"
+                """;
+        String secretsContent =
+                """
+                secrets:
+                  - id: secret1
+                    data:
+                      var2: secret-value2
+                      var1: secret-value1
+                """;
+
+        // with an instance file with globals
+        ModelBuilder.ApplicationWithPackageInfo applicationWithPackageInfo =
+                ModelBuilder.buildApplicationInstance(
+                        List.of(path),
+                        instanceContent,
+                        secretsContent,
+                        new StrChecksumFunction(),
+                        new StrChecksumFunction());
+        Application applicationInstance = applicationWithPackageInfo.getApplication();
+        Map<String, Object> globals = applicationInstance.getInstance().globals();
+        assertEquals("value1", globals.get("var1"));
+        assertEquals("value2", globals.get("var2"));
+        assertEquals("default-value3", globals.get("var3"));
+
+        assertEquals(List.of("value1", "value2"), globals.get("var-array1"));
+        assertEquals(List.of("value1", "value2"), globals.get("var-array2"));
+        assertEquals(
+                List.of("default-value1", "default-value2", "default-value3"),
+                globals.get("var-array3"));
+
+        Secrets secrets = applicationInstance.getSecrets();
+
+        Map<String, Object> secret1 = secrets.secrets().get("secret1").data();
+        assertEquals("secret-value1", secret1.get("var1"));
+        assertEquals("secret-value2", secret1.get("var2"));
+
+        // with an instance file without globals
+        String instanceContentWithoutGlobals =
+                """
+                instance:
+                   computeCluster:
+                      type: kafka
+                """;
+        applicationWithPackageInfo =
+                ModelBuilder.buildApplicationInstance(
+                        List.of(path),
+                        instanceContentWithoutGlobals,
+                        secretsContent,
+                        new StrChecksumFunction(),
+                        new StrChecksumFunction());
+        applicationInstance = applicationWithPackageInfo.getApplication();
+        globals = applicationInstance.getInstance().globals();
+        assertEquals("default-value1", globals.get("var1"));
+        assertEquals("default-value2", globals.get("var2"));
+        assertEquals("default-value3", globals.get("var3"));
+
+        // with an instance file with empty globals
+        String instanceContentWithEmptyGlobals =
+                """
+                instance:
+                    globals:
+                """;
+        applicationWithPackageInfo =
+                ModelBuilder.buildApplicationInstance(
+                        List.of(path),
+                        instanceContentWithEmptyGlobals,
+                        secretsContent,
+                        new StrChecksumFunction(),
+                        new StrChecksumFunction());
+        applicationInstance = applicationWithPackageInfo.getApplication();
+        globals = applicationInstance.getInstance().globals();
+        assertEquals("default-value1", globals.get("var1"));
+        assertEquals("default-value2", globals.get("var2"));
+        assertEquals("default-value3", globals.get("var3"));
+
+        // without an instance file
+        applicationWithPackageInfo =
+                ModelBuilder.buildApplicationInstance(
+                        List.of(path),
+                        null,
+                        secretsContent,
+                        new StrChecksumFunction(),
+                        new StrChecksumFunction());
+        applicationInstance = applicationWithPackageInfo.getApplication();
+        globals = applicationInstance.getInstance().globals();
+        assertEquals("default-value1", globals.get("var1"));
+        assertEquals("default-value2", globals.get("var2"));
+        assertEquals("default-value3", globals.get("var3"));
     }
 }

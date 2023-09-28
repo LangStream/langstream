@@ -27,7 +27,7 @@ Update the CLI formulae with the new version tarball url:
 
 
 Update the mini-langstream formulae with the new version tarball url:
-1. Open the file [`langstream.rb`](https://github.com/LangStream/homebrew-langstream/blob/main/mini-langstream.rb)
+1. Open the file [`mini-langstream.rb`](https://github.com/LangStream/homebrew-langstream/blob/main/mini-langstream.rb)
 2. Insert the new version
 3. Update the sha256 checksum (`sha256sum mini-langstream-<version>.zip`)
 

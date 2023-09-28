@@ -14,15 +14,12 @@
 # limitations under the License.
 #
 
+from concurrent.futures import ThreadPoolExecutor, Future
 from io import BytesIO
-from typing import List, Optional
 
 import fastavro
-import grpc
-import pytest
 
-from langstream_grpc.api import Record, Sink, CommitCallback
-from langstream_grpc.grpc_service import AgentServer
+from langstream_grpc.api import Record, Sink
 from langstream_grpc.proto.agent_pb2 import (
     Record as GrpcRecord,
     SinkRequest,
@@ -30,91 +27,113 @@ from langstream_grpc.proto.agent_pb2 import (
     Value,
     SinkResponse,
 )
-from langstream_grpc.proto.agent_pb2_grpc import AgentServiceStub
+from langstream_grpc.tests.server_and_stub import ServerAndStub
 
 
-@pytest.fixture(autouse=True)
-def server_and_stub():
-    config = """{
-      "className": "langstream_grpc.tests.test_grpc_sink.MySink"
-    }"""
-    server = AgentServer("[::]:0", config)
-    server.start()
-    channel = grpc.insecure_channel("localhost:%d" % server.port)
+def test_write():
+    with ServerAndStub(
+        "langstream_grpc.tests.test_grpc_sink.MySink"
+    ) as server_and_stub:
 
-    yield server, AgentServiceStub(channel=channel)
+        def requests():
+            schema = {
+                "type": "record",
+                "name": "Test",
+                "namespace": "test",
+                "fields": [{"name": "field", "type": {"type": "string"}}],
+            }
+            canonical_schema = fastavro.schema.to_parsing_canonical_form(schema)
+            yield SinkRequest(
+                schema=Schema(schema_id=42, value=canonical_schema.encode("utf-8"))
+            )
 
-    channel.close()
-    server.stop()
+            fp = BytesIO()
+            try:
+                fastavro.schemaless_writer(fp, schema, {"field": "test"})
+                yield SinkRequest(
+                    record=GrpcRecord(
+                        record_id=43,
+                        value=Value(schema_id=42, avro_value=fp.getvalue()),
+                    )
+                )
+            finally:
+                fp.close()
 
-
-def test_write(server_and_stub):
-    server, stub = server_and_stub
-
-    def requests():
-        schema = {
-            "type": "record",
-            "name": "Test",
-            "namespace": "test",
-            "fields": [{"name": "field", "type": {"type": "string"}}],
-        }
-        canonical_schema = fastavro.schema.to_parsing_canonical_form(schema)
-        yield SinkRequest(
-            schema=Schema(schema_id=42, value=canonical_schema.encode("utf-8"))
+        responses: list[SinkResponse]
+        responses = list(server_and_stub.stub.write(iter(requests())))
+        assert len(responses) == 1
+        assert responses[0].record_id == 43
+        assert len(server_and_stub.server.agent.written_records) == 1
+        assert (
+            server_and_stub.server.agent.written_records[0].value().value["field"]
+            == "test"
         )
 
-        fp = BytesIO()
-        try:
-            fastavro.schemaless_writer(fp, schema, {"field": "test"})
-            yield SinkRequest(
-                record=GrpcRecord(
-                    record_id=43,
-                    value=Value(schema_id=42, avro_value=fp.getvalue()),
+
+def test_write_error():
+    with ServerAndStub(
+        "langstream_grpc.tests.test_grpc_sink.MyErrorSink"
+    ) as server_and_stub:
+        responses: list[SinkResponse]
+        responses = list(
+            server_and_stub.stub.write(
+                iter(
+                    [
+                        SinkRequest(
+                            record=GrpcRecord(
+                                value=Value(string_value="test"),
+                            )
+                        )
+                    ]
                 )
             )
-        finally:
-            fp.close()
-
-    responses: list[SinkResponse]
-    responses = list(stub.write(iter(requests())))
-    assert len(responses) == 1
-    assert responses[0].record_id == 43
-    assert len(server.agent.written_records) == 1
-    assert server.agent.written_records[0].value().value["field"] == "test"
+        )
+        assert len(responses) == 1
+        assert responses[0].error == "test-error"
 
 
-def test_write_error(server_and_stub):
-    server, stub = server_and_stub
-
-    responses: list[SinkResponse]
-    responses = list(
-        stub.write(
-            iter(
-                [
-                    SinkRequest(
-                        record=GrpcRecord(
-                            value=Value(string_value="test"), origin="failing-record"
+def test_write_future():
+    with ServerAndStub(
+        "langstream_grpc.tests.test_grpc_sink.MyFutureSink"
+    ) as server_and_stub:
+        responses: list[SinkResponse]
+        responses = list(
+            server_and_stub.stub.write(
+                iter(
+                    [
+                        SinkRequest(
+                            record=GrpcRecord(
+                                record_id=42,
+                                value=Value(string_value="test"),
+                            )
                         )
-                    )
-                ]
+                    ]
+                )
             )
         )
-    )
-    assert len(responses) == 1
-    assert responses[0].error == "test-error"
+        assert len(responses) == 1
+        assert responses[0].record_id == 42
+        assert len(server_and_stub.server.agent.written_records) == 1
+        assert server_and_stub.server.agent.written_records[0].value() == "test"
 
 
 class MySink(Sink):
     def __init__(self):
-        self.commit_callback: Optional[CommitCallback] = None
         self.written_records = []
 
-    def write(self, records: List[Record]):
-        for record in records:
-            if record.origin() == "failing-record":
-                raise RuntimeError("test-error")
-        self.written_records.extend(records)
-        self.commit_callback.commit(records)
+    def write(self, record: Record):
+        self.written_records.append(record)
 
-    def set_commit_callback(self, commit_callback: CommitCallback):
-        self.commit_callback = commit_callback
+
+class MyErrorSink(Sink):
+    def write(self, record: Record):
+        raise RuntimeError("test-error")
+
+
+class MyFutureSink(Sink):
+    def __init__(self):
+        self.written_records = []
+        self.executor = ThreadPoolExecutor(max_workers=10)
+
+    def write(self, record: Record) -> Future[None]:
+        return self.executor.submit(lambda r: self.written_records.append(r), record)

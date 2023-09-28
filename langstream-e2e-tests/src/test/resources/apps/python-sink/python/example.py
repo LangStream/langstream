@@ -20,25 +20,19 @@ from confluent_kafka import Producer
 
 class TestSink(object):
     def __init__(self):
-        self.commit_callback = None
         self.producer = None
 
     def init(self, config):
         logging.info("Init config: " + str(config))
         self.producer = Producer({"bootstrap.servers": config["bootstrapServers"]})
 
-    def write(self, records):
-        logging.info("Write records: " + str(records))
+    def write(self, record):
+        logging.info("Write record: " + str(record))
         try:
-            for record in records:
-                self.producer.produce(
-                    "ls-test-output", value=("write: " + record.value()).encode("utf-8")
-                )
+            self.producer.produce(
+                "ls-test-output", value=("write: " + record.value()).encode("utf-8")
+            )
             self.producer.flush()
-            self.commit_callback.commit(records)
         except Exception as e:
             logging.error("Error writing records: " + str(e))
             raise e
-
-    def set_commit_callback(self, commit_callback):
-        self.commit_callback = commit_callback

@@ -16,7 +16,8 @@
 #
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Dict, Union
+from concurrent.futures import Future
+from typing import Any, List, Tuple, Dict, Union, Optional
 
 __all__ = [
     "Record",
@@ -25,7 +26,6 @@ __all__ = [
     "Source",
     "Sink",
     "Processor",
-    "CommitCallback",
 ]
 
 
@@ -91,9 +91,9 @@ class Source(Agent):
     def read(self) -> List[RecordType]:
         """The Source agent generates records and returns them as list of records.
 
-        :returns: the list of records. The records must either respect the Record
-        API contract (have methods value(), key() and so on) or be a dict or
-        tuples/list.
+        :returns: the list of records.
+        The records must either respect the Record API contract (have methods value(),
+        key() and so on) or be a dict or tuples/list.
         If the records are dict, the keys if present shall be "value", "key",
         "headers", "origin" and "timestamp".
         Eg:
@@ -108,15 +108,15 @@ class Source(Agent):
         """
         pass
 
-    def commit(self, records: List[Record]):
-        """Called by the framework to indicate the records that have been successfully
+    def commit(self, record: Record):
+        """Called by the framework to indicate that a record has been successfully
         processed."""
         pass
 
     def permanent_failure(self, record: Record, error: Exception):
         """Called by the framework to indicate that the agent has permanently failed to
-        process the record.
-        The Source agent may send the records to a dead letter queue or raise an error.
+        process a record.
+        The Source agent may send the record to a dead letter queue or raise an error.
         """
         raise error
 
@@ -129,44 +129,27 @@ class Processor(Agent):
 
     @abstractmethod
     def process(
-        self, records: List[Record]
-    ) -> List[Tuple[Record, Union[List[RecordType], Exception]]]:
-        """The agent processes records and returns a list containing the associations of
-        these records with the result of these record processing.
-        The result of each record processing is a list of new records or an exception.
-        The transactionality of the function is guaranteed by the runtime.
+        self, record: Record
+    ) -> Union[List[RecordType], Future[List[RecordType]]]:
+        """The agent processes a record and returns a list of new records.
 
-        :returns: the list of associations between an input record and the output
-        records processed from it.
-        Eg: [(input_record, [output_record1, output_record2])]
-        If an input record cannot be processed, the associated element shall be an
-        exception.
-        Eg: [(input_record, RuntimeError("Could not process"))]
+        :returns: the list of records or a concurrent.futures.Future that will complete
+        with the list of records.
         When the processing is successful, the output records must either respect the
         Record API contract (have methods value(), key() and so on) or be a dict or
         tuples/list.
         If the records are dict, the keys if present shall be "value", "key",
         "headers", "origin" and "timestamp".
         Eg:
-        * if you return [(input_record, [{"value": "foo"}])] a record
-        Record(value="foo") will be built.
+        * if you return {"value": "foo"} a record Record(value="foo") will be built.
         If the output records are tuples/list, the framework will automatically
         construct Record objects from them with the values in the following order :
         value, key, headers, origin, timestamp.
         Eg:
-        * if you return [(input_record, [("foo",)])] a record Record(value="foo") will
-        be built.
-        * if you return [(input_record, [("foo", "bar")])] a record
-        Record(value="foo", key="bar") will be built.
+        * if you return ("foo",) a record Record(value="foo") will be built.
+        * if you return ("foo", "bar") a record Record(value="foo", key="bar") will be
+        built.
         """
-        pass
-
-
-class CommitCallback(ABC):
-    @abstractmethod
-    def commit(self, records: List[Record]):
-        """Called by a Sink to indicate the records that have been successfully
-        written."""
         pass
 
 
@@ -177,13 +160,13 @@ class Sink(Agent):
     """
 
     @abstractmethod
-    def write(self, records: List[Record]):
+    def write(self, record: Record) -> Optional[Future[None]]:
         """The Sink agent receives records from the framework and typically writes them
-        to an external service."""
-        pass
+        to an external service.
+        For a synchronous result, return None/nothing if successful or otherwise raise
+        an Exception.
+        For an asynchronous result, return a concurrent.futures.Future.
 
-    @abstractmethod
-    def set_commit_callback(self, commit_callback: CommitCallback):
-        """Called by the framework to specify a CommitCallback that shall be used by the
-        Sink to indicate the records that have been written."""
+        :returns: nothing if the write is successful or a concurrent.futures.Future
+        """
         pass

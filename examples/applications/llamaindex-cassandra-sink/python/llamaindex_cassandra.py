@@ -16,19 +16,18 @@
 
 import base64
 import io
-from typing import List, Optional, Dict, Any
+from typing import Dict, Any
 
 import openai
 from cassandra.auth import PlainTextAuthProvider
 from cassandra.cluster import Cluster
-from langstream import Sink, CommitCallback, Record
+from langstream import Sink, Record
 from llama_index import VectorStoreIndex, Document
 from llama_index.vector_stores import CassandraVectorStore
 
 
 class LlamaIndexCassandraSink(Sink):
     def __init__(self):
-        self.commit_cb: Optional[CommitCallback] = None
         self.config = None
         self.session = None
         self.index = None
@@ -63,13 +62,8 @@ class LlamaIndexCassandraSink(Sink):
 
         self.index = VectorStoreIndex.from_vector_store(vector_store)
 
-    def write(self, records: List[Record]):
-        for record in records:
-            self.index.insert(Document(text=record.value()))
-            self.commit_cb.commit([record])
-
-    def set_commit_callback(self, commit_callback: CommitCallback):
-        self.commit_cb = commit_callback
+    def write(self, record: Record):
+        self.index.insert(Document(text=record.value()))
 
     def close(self):
         if self.session:

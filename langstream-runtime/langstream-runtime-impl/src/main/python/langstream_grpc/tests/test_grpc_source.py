@@ -25,34 +25,24 @@ import grpc
 import pytest
 
 from langstream_grpc.api import Record, RecordType, Source
-from langstream_grpc.grpc_service import AgentServer
 from langstream_grpc.proto.agent_pb2 import (
     SourceResponse,
     SourceRequest,
     PermanentFailure,
 )
-from langstream_grpc.proto.agent_pb2_grpc import AgentServiceStub
+from langstream_grpc.tests.server_and_stub import ServerAndStub
 from langstream_grpc.util import AvroValue, SimpleRecord
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def server_and_stub():
-    config = """{
-      "className": "langstream_grpc.tests.test_grpc_source.MySource"
-    }"""
-    server = AgentServer("[::]:0", config)
-    server.start()
-    channel = grpc.insecure_channel("localhost:%d" % server.port)
-
-    yield server, AgentServiceStub(channel=channel)
-
-    channel.close()
-    server.stop()
+    with ServerAndStub(
+        "langstream_grpc.tests.test_grpc_source.MySource"
+    ) as server_and_stub:
+        yield server_and_stub
 
 
 def test_read(server_and_stub):
-    server, stub = server_and_stub
-
     stop = False
 
     def requests():
@@ -62,7 +52,7 @@ def test_read(server_and_stub):
 
     responses: list[SourceResponse] = []
     i = 0
-    for response in stub.read(iter(requests())):
+    for response in server_and_stub.stub.read(iter(requests())):
         responses.append(response)
         i += 1
         stop = i == 4
@@ -103,7 +93,6 @@ def test_read(server_and_stub):
 
 
 def test_commit(server_and_stub):
-    server, stub = server_and_stub
     to_commit = queue.Queue()
 
     def send_commit():
@@ -118,17 +107,18 @@ def test_commit(server_and_stub):
 
     with pytest.raises(grpc.RpcError):
         response: SourceResponse
-        for response in stub.read(iter(send_commit())):
+        for response in server_and_stub.stub.read(iter(send_commit())):
             for record in response.records:
                 to_commit.put(record.record_id)
 
-    assert len(server.agent.committed) == 2
-    assert server.agent.committed[0] == server.agent.sent[0]
-    assert server.agent.committed[1].value() == server.agent.sent[1]["value"]
+    sent = server_and_stub.server.agent.sent
+    committed = server_and_stub.server.agent.committed
+    assert len(committed) == 2
+    assert committed[0] == sent[0]
+    assert committed[1].value() == sent[1]["value"]
 
 
 def test_permanent_failure(server_and_stub):
-    server, stub = server_and_stub
     to_fail = queue.Queue()
 
     def send_failure():
@@ -143,13 +133,14 @@ def test_permanent_failure(server_and_stub):
             pass
 
     response: SourceResponse
-    for response in stub.read(iter(send_failure())):
+    for response in server_and_stub.stub.read(iter(send_failure())):
         for record in response.records:
             to_fail.put(record.record_id)
 
-    assert len(server.agent.failures) == 1
-    assert server.agent.failures[0][0] == server.agent.sent[0]
-    assert str(server.agent.failures[0][1]) == "failure"
+    failures = server_and_stub.server.agent.failures
+    assert len(failures) == 1
+    assert failures[0][0] == server_and_stub.server.agent.sent[0]
+    assert str(failures[0][1]) == "failure"
 
 
 class MySource(Source):
@@ -180,11 +171,10 @@ class MySource(Source):
             return [record]
         return []
 
-    def commit(self, records: List[Record]):
-        for record in records:
-            if record.value() == 43:
-                raise Exception("test error")
-        self.committed.extend(records)
+    def commit(self, record: Record):
+        if record.value() == 43:
+            raise Exception("test error")
+        self.committed.append(record)
 
     def permanent_failure(self, record: Record, error: Exception):
         self.failures.append((record, error))

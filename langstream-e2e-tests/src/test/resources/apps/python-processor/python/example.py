@@ -14,15 +14,15 @@
 # limitations under the License.
 #
 
-from langstream import SimpleRecord, SingleRecordProcessor
+from langstream import SimpleRecord, Processor
 
 
-class Exclamation(SingleRecordProcessor):
+class Exclamation(Processor):
     def init(self, config):
         print("init", config)
         self.secret_value = config["secret_value"]
 
-    def process_record(self, record):
+    def process(self, record):
         return [
             SimpleRecord(
                 record.value() + "!!" + self.secret_value, headers=record.headers()

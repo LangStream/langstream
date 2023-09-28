@@ -32,12 +32,21 @@ class ReRankAgentTest {
         try (ReRankAgent agent = new ReRankAgent(); ) {
             agent.init(
                     Map.of(
-                            "field",
-                            "value.field",
-                            "output-field",
-                            "value.output-field",
-                            "algorithm",
-                            "none"));
+                            // field to re-rank
+                            "field", "value.field",
+                            // new field to store re-ranked results
+                            "output-field", "value.output_field",
+                            // field in the message that contains the query
+                            "query-text", "value.query",
+                            // field in the message that contains the embeddings computed for the
+                            // query
+                            "query-embeddings", "value.query_embeddings",
+                            // field in the record that contains the text
+                            "text-field", "record.text",
+                            // field in the record that contains the embeddings
+                            "embeddings-field", "record.embeddings",
+                            // algorithm to use
+                            "algorithm", "none"));
             SimpleRecord record =
                     SimpleRecord.of(
                             "key",
@@ -50,7 +59,7 @@ class ReRankAgentTest {
             Record result = agent.processRecord(record).get(0);
             assertEquals(
                     """
-                    {"field":[],"output-field":[]}""",
+                    {"field":[],"output_field":[]}""",
                     result.value().toString());
         }
     }

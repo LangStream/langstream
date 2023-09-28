@@ -67,10 +67,13 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         String field =
                 ConfigurationUtils.requiredNonEmptyField(
                         configuration, "field", () -> "re-rank agent");
+
+        fieldAccessor = new JstlEvaluator<>("${" + field + "}", List.class);
         outputField =
                 ConfigurationUtils.requiredNonEmptyField(
                         configuration, "output-field", () -> "re-rank agent");
         algorithm = ConfigurationUtils.getString("algorithm", ALGORITHM_NONE, configuration);
+
         String queryEmbeddingsField =
                 ConfigurationUtils.getString("query-embeddings", "", configuration);
         String queryField = ConfigurationUtils.getString("query-text", "", configuration);
@@ -82,7 +85,6 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         bm25_k1 = ConfigurationUtils.getDouble("k1", 1.5, configuration);
         bm25_b = ConfigurationUtils.getDouble("b", 0.75, configuration);
 
-        fieldAccessor = new JstlEvaluator<>("${" + field + "}", List.class);
         queryEmbeddingsAccessor =
                 new JstlEvaluator<>("${" + queryEmbeddingsField + "}", List.class);
         queryAccessor = new JstlEvaluator<>("${" + queryField + "}", String.class);

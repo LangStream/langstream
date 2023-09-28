@@ -56,6 +56,15 @@ public class WebCrawlerToVectorIT extends BaseEndToEndTest {
 
     @Test
     public void test() throws Exception {
+        if (!codeStorageConfig.type().equals("s3")) {
+            throw new IllegalStateException(
+                    "This test can only run with S3 code storage, but got: "
+                            + codeStorageConfig.type());
+        }
+
+        appEnv.put("S3_ENDPOINT", codeStorageConfig.configuration().get("endpoint"));
+        appEnv.put("S3_ACCESS_KEY", codeStorageConfig.configuration().get("access-key"));
+        appEnv.put("S3_SECRET_KEY", codeStorageConfig.configuration().get("secret-key"));
         installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);

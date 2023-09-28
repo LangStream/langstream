@@ -526,8 +526,7 @@ public class BaseEndToEndTest implements TestWatcher {
     public void setupSingleTest() {
         // cleanup previous runs
         cleanupAllEndToEndTestsNamespaces();
-        codeStorageProvider.cleanup();
-        streamingClusterProvider.cleanup();
+        cleanupEnv();
 
         namespace = "ls-test-" + UUID.randomUUID().toString().substring(0, 8);
 
@@ -541,18 +540,29 @@ public class BaseEndToEndTest implements TestWatcher {
                 .serverSideApply();
     }
 
+    private void cleanupEnv() {
+        if (codeStorageProvider != null) {
+            codeStorageProvider.cleanup();
+        }
+        if (streamingClusterProvider != null) {
+            streamingClusterProvider.cleanup();
+        }
+    }
+
     @AfterEach
     public void cleanupAfterEach() {
         cleanupAllEndToEndTestsNamespaces();
-        streamingClusterProvider.cleanup();
+        cleanupEnv();
     }
 
     private static void cleanupAllEndToEndTestsNamespaces() {
-        client.namespaces().withLabel("app", "ls-test").delete();
-        client.namespaces().list().getItems().stream()
-                .map(ns -> ns.getMetadata().getName())
-                .filter(ns -> ns.startsWith(TENANT_NAMESPACE_PREFIX))
-                .forEach(ns -> deleteTenantNamespace(ns));
+        if (client != null) {
+            client.namespaces().withLabel("app", "ls-test").delete();
+            client.namespaces().list().getItems().stream()
+                    .map(ns -> ns.getMetadata().getName())
+                    .filter(ns -> ns.startsWith(TENANT_NAMESPACE_PREFIX))
+                    .forEach(ns -> deleteTenantNamespace(ns));
+        }
     }
 
     private static void deleteTenantNamespace(String ns) {

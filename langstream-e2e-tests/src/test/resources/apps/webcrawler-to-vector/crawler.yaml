@@ -39,15 +39,9 @@ pipeline:
       handle-cookies: true
       max-unflushed-pages: 100
       bucketName: "langstream-test-crawler-to-vector"
-<<<<<<< Updated upstream
-      endpoint: http://minio.ls-test-minio.svc.cluster.local:9000
-      access-key: minioadmin
-      secret-key: minioadmin
-=======
       endpoint: "{{{secrets.s3.endpoint}}}"
       access-key: "{{{secrets.s3.access-key}}}"
       secret-key: "{{{secrets.s3.secret-key}}}"
->>>>>>> Stashed changes
   - name: "Extract text"
     type: "text-extractor"
   - name: "Normalise text"

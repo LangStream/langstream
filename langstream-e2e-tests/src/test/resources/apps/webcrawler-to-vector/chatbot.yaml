@@ -34,7 +34,8 @@ pipeline:
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"
     configuration:
-      model: "{{{secrets.open-ai.embeddings-model}}}"
+      ai-service: "{{{secrets.embeddings.service}}}"
+      model: "{{{secrets.embeddings.model}}}"
       embeddings-field: "value.question_embeddings"
       text: "{{% value.question }}"
       flush-interval: 0

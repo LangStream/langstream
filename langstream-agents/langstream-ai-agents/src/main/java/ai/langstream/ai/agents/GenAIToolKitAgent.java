@@ -338,6 +338,9 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         if (JsonNode.class.isAssignableFrom(javaType)) {
             return TransformSchemaType.JSON;
         }
+        if (Map.class.isAssignableFrom(javaType)) {
+            return TransformSchemaType.MAP;
+        }
         throw new IllegalArgumentException("Unsupported data type: " + javaType);
     }
 

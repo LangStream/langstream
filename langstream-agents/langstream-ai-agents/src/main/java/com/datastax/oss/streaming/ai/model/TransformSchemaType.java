@@ -34,7 +34,8 @@ public enum TransformSchemaType {
     BYTES,
     AVRO,
     JSON,
-    PROTOBUF;
+    PROTOBUF,
+    MAP;
 
     public boolean isPrimitive() {
         return isPrimitiveType(this);

@@ -1,1 +1,2 @@
 ai.langstream.ai.agents.GenAIAgentCodeProvider
+ai.langstream.ai.agents.ReRankAgentCodeProvider

@@ -16,6 +16,13 @@
 #
 
 configuration:
+  defaults:
+    globals:
+      website: "https://docs.langstream.ai/"
+      table-name: "documents"
+      var1: default-value1
+      var2: default-value2
+      var3: default-value3
   resources:
     - type: "open-ai-configuration"
       name: "OpenAI Azure configuration"

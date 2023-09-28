@@ -19,9 +19,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Gateway;
+import ai.langstream.api.model.Secrets;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -133,5 +135,42 @@ class ModelBuilderTest {
         assertEquals("t1", gateway.getTopic());
         assertEquals("google", gateway.getAuthentication().getProvider());
         assertTrue(gateway.getAuthentication().isAllowTestMode());
+    }
+
+    @Test
+    void testParseRealDirectoryWithDefaults() throws Exception {
+        final Path path = Paths.get("src/test/resources/application1");
+        String instanceContent =
+                """
+                instance:
+                   globals:
+                      var1: "value1"
+                      var2: "value2"
+                """;
+        String secretsContent =
+                """
+                secrets:
+                  - id: secret1
+                    data:
+                      var2: secret-value2
+                      var1: secret-value1
+                """;
+        ModelBuilder.ApplicationWithPackageInfo applicationWithPackageInfo =
+                ModelBuilder.buildApplicationInstance(
+                        List.of(path),
+                        instanceContent,
+                        secretsContent,
+                        new StrChecksumFunction(),
+                        new StrChecksumFunction());
+        Application applicationInstance = applicationWithPackageInfo.getApplication();
+        Map<String, Object> globals = applicationInstance.getInstance().globals();
+        assertEquals("value1", globals.get("var1"));
+        assertEquals("value2", globals.get("var2"));
+        assertEquals("default-value3", globals.get("var3"));
+        Secrets secrets = applicationInstance.getSecrets();
+
+        Map<String, Object> secret1 = secrets.secrets().get("secret1").data();
+        assertEquals("secret-value1", secret1.get("var1"));
+        assertEquals("secret-value2", secret1.get("var2"));
     }
 }

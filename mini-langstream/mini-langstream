@@ -191,8 +191,7 @@ load_image() {
 install_langstream() {
   local dev="$1"
   local load="$2"
-  helm_cmd repo add langstream https://datastax.github.io/langstream &> /dev/null || true
-  helm_cmd repo update &> /dev/null
+
   if [ "$dev" == "true" ]; then
     if [ "$load" == "false" ]; then
       echo -n "Building images: "
@@ -207,9 +206,13 @@ install_langstream() {
     fi
 
     echo -n "LangStream: "
+    helm_cmd repo add langstream https://datastax.github.io/langstream &> /dev/null || true
+    helm_cmd repo update &> /dev/null
     helm_cmd upgrade --install langstream -n $k8s_namespace --create-namespace langstream/langstream --values $dev_values_file > /dev/null
   else
     echo -n "LangStream: "
+    helm_cmd repo add langstream https://datastax.github.io/langstream &> /dev/null || true
+    helm_cmd repo update &> /dev/null
     helm_cmd upgrade --install langstream langstream/langstream -n $k8s_namespace --create-namespace --values $values_file > /dev/null
   fi
   echo "✅"
@@ -290,6 +293,34 @@ delete_minio() {
     rm -rf $data_dir/minio
 }
 
+
+herddb_hostname=langstream-herddb
+
+install_herddb() {
+  if [ "$(docker ps -q -f name=$herddb_hostname)" ]; then
+    echo "HerdDB: ✅"
+    return
+  fi
+
+  if [ "$(docker ps -a -q -f name=$herddb_hostname)" ]; then
+    docker rm -f $herddb_hostname
+  fi
+
+  (docker run \
+    -d \
+    --name $herddb_hostname \
+    -p 7000:7000 \
+    -v "$data_dir/herddb:/opt/herddb/dbdata" \
+    -e server.port=7000 \
+    -e server.advertised.host=host.minikube.internal:7000 \
+    herddb/herddb:0.28.0) > /dev/null
+    echo "HerdDB: ✅"
+}
+delete_herddb() {
+    delete_docker_container $herddb_hostname
+    rm -rf $data_dir/herddb
+}
+
 configure_cli() {
   control_plane_url=$(start_port_forward langstream-control-plane)
   api_gateway_url=$(start_port_forward langstream-api-gateway)
@@ -300,6 +331,7 @@ configure_cli() {
 }
 
 run_cli() {
+  export HERDDB_URL=jdbc:herddb:server:host.minikube.internal:7000
   langstream -p local-langstream-cluster "$@"
 }
 cleanup_docker_env() {
@@ -323,6 +355,7 @@ start() {
   install_minio
   install_langstream "$dev" "$load"
   install_kafka
+  install_herddb
   configure_cli
   echo "Ready 🚀"
   echo "Deploy your first app with:"
@@ -338,9 +371,10 @@ delete_docker_container() {
 }
  
 delete() {
-  delete_kafka
   delete_minikube
+  delete_kafka
   delete_minio
+  delete_herddb
 }
 
 handle_load() {

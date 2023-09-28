@@ -55,6 +55,8 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
     public static void main(String... args) {
         try {
             new ApplicationSetupRunnerStarter(new ApplicationSetupRunner()).start(args);
+            // exit as soon as possible, we don't want to wait for the daemon threads
+            System.exit(0);
         } catch (Throwable error) {
             errorHandler.handleError(error);
         }

@@ -246,6 +246,14 @@ public class ModelBuilder {
                     instanceContent,
                     applicationWithPackageInfo.getApplication(),
                     defaultsHolder.globals);
+        } else {
+            if (defaultsHolder.globals != null && !defaultsHolder.globals.isEmpty()) {
+                applicationWithPackageInfo.hasInstanceDefinition = true;
+                parseInstance(
+                        "instance:",
+                        applicationWithPackageInfo.getApplication(),
+                        defaultsHolder.globals);
+            }
         }
 
         if (secretsContent != null) {
@@ -621,6 +629,10 @@ public class ModelBuilder {
         InstanceFileModel instanceModel = mapper.readValue(content, InstanceFileModel.class);
         log.info("Instance Configuration: {}", instanceModel);
         Instance instance = instanceModel.instance;
+        if (instance == null) {
+            instance = new Instance(null, null, Map.of());
+        }
+
         // add default "kubernetes" compute cluster if not present
         if (instance.computeCluster() == null) {
             instance =
@@ -631,11 +643,20 @@ public class ModelBuilder {
         }
 
         if (defaultValues != null) {
+            Map<String, Object> currentGlobals = instance.globals();
+            if (currentGlobals == null) {
+                currentGlobals = Map.of();
+            }
+            Map<String, Object> finalGlobals = new HashMap<>(currentGlobals);
             for (Map.Entry<String, Object> entry : defaultValues.entrySet()) {
-                if (!instance.globals().containsKey(entry.getKey())) {
-                    instance.globals().put(entry.getKey(), entry.getValue());
+                if (!currentGlobals.containsKey(entry.getKey())) {
+                    finalGlobals.put(entry.getKey(), entry.getValue());
                 }
             }
+
+            instance =
+                    new Instance(
+                            instance.streamingCluster(), instance.computeCluster(), finalGlobals);
         }
 
         application.setInstance(instance);

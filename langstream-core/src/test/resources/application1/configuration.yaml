@@ -23,6 +23,9 @@ configuration:
       var1: default-value1
       var2: default-value2
       var3: default-value3
+      var-array1: [default-value1, default-value2, default-value3]
+      var-array2: [default-value1, default-value2, default-value3]
+      var-array3: [default-value1, default-value2, default-value3]
   resources:
     - type: "open-ai-configuration"
       name: "OpenAI Azure configuration"

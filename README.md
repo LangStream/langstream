@@ -80,7 +80,7 @@ langstream gateway chat test -cg consume-output -pg produce-input -p sessionId=$
 ![chat](https://langstream.ai/images/chatbot-us-presidents.gif)
 
 
-See more sample applications in the [examples](https://github.com/LangStream/langstream/blob/main/examples) folder.
+See more sample applications in the [examples](https://github.com/LangStream/langstream/blob/main/examples/applications) folder.
 
 ## Create your own application
 
@@ -89,7 +89,11 @@ To create your own application, refer to the [developer documentation](https://d
 
 ## Run LangStream on Kubernetes
 LangStream is production-ready, and it's highly suggested deploying it on a Kubernetes cluster.
-Minikube, AWS EKS, Azure AKS, Google GKE are all supported and tested.
+The following Kubernetes distributions are supported:
+* Amazon EKS
+* Azure AKS
+* Google GKE
+* Minikube
 
 To run a LangStream cluster, you need to the following *external* components:
 - Apache Kafka or Apache Pulsar cluster

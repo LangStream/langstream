@@ -52,6 +52,7 @@ public class RuntimeDeployerStarter extends RuntimeStarter {
     public static void main(String... args) {
         try {
             new RuntimeDeployerStarter(new RuntimeDeployer()).start(args);
+            // exit as soon as possible, we don't want to wait for the daemon threads
         } catch (Throwable error) {
             errorHandler.handleError(error);
         }

@@ -95,7 +95,11 @@ public class InMemoryApplicationStore implements ApplicationStore {
                         applicationInstance,
                         codeArchiveReference,
                         executionPlan));
-        SECRETS.put(getKey(tenant, applicationId), applicationInstance.getSecrets());
+        Secrets secrets = applicationInstance.getSecrets();
+        if (secrets == null) {
+            secrets = new Secrets(Map.of());
+        }
+        SECRETS.put(getKey(tenant, applicationId), secrets);
     }
 
     @Override

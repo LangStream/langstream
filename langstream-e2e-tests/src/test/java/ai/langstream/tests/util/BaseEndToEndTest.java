@@ -526,8 +526,7 @@ public class BaseEndToEndTest implements TestWatcher {
     public void setupSingleTest() {
         // cleanup previous runs
         cleanupAllEndToEndTestsNamespaces();
-        codeStorageProvider.cleanup();
-        streamingClusterProvider.cleanup();
+        cleanupEnv();
 
         namespace = "ls-test-" + UUID.randomUUID().toString().substring(0, 8);
 
@@ -541,18 +540,29 @@ public class BaseEndToEndTest implements TestWatcher {
                 .serverSideApply();
     }
 
+    private void cleanupEnv() {
+        if (codeStorageProvider != null) {
+            codeStorageProvider.cleanup();
+        }
+        if (streamingClusterProvider != null) {
+            streamingClusterProvider.cleanup();
+        }
+    }
+
     @AfterEach
     public void cleanupAfterEach() {
         cleanupAllEndToEndTestsNamespaces();
-        streamingClusterProvider.cleanup();
+        cleanupEnv();
     }
 
     private static void cleanupAllEndToEndTestsNamespaces() {
-        client.namespaces().withLabel("app", "ls-test").delete();
-        client.namespaces().list().getItems().stream()
-                .map(ns -> ns.getMetadata().getName())
-                .filter(ns -> ns.startsWith(TENANT_NAMESPACE_PREFIX))
-                .forEach(ns -> deleteTenantNamespace(ns));
+        if (client != null) {
+            client.namespaces().withLabel("app", "ls-test").delete();
+            client.namespaces().list().getItems().stream()
+                    .map(ns -> ns.getMetadata().getName())
+                    .filter(ns -> ns.startsWith(TENANT_NAMESPACE_PREFIX))
+                    .forEach(ns -> deleteTenantNamespace(ns));
+        }
     }
 
     private static void deleteTenantNamespace(String ns) {
@@ -1095,7 +1105,12 @@ public class BaseEndToEndTest implements TestWatcher {
         if (env != null && !env.isEmpty()) {
             beforeCmd =
                     env.entrySet().stream()
-                            .map(e -> "export \"%s\"=\"%s\"".formatted(e.getKey(), e.getValue()))
+                            .map(
+                                    e ->
+                                            "export '%s'='%s'"
+                                                    .formatted(
+                                                            e.getKey(),
+                                                            e.getValue().replace("'", "''")))
                             .collect(Collectors.joining(" && "));
             beforeCmd += " && ";
         }
@@ -1122,11 +1137,10 @@ public class BaseEndToEndTest implements TestWatcher {
         } else {
             podUids = "";
         }
-        executeCommandOnClient(
-                (beforeCmd
-                                + "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml")
-                        .formatted(isUpdate ? "update" : "deploy", applicationId)
-                        .split(" "));
+        final String command =
+                "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml"
+                        .formatted(isUpdate ? "update" : "deploy", applicationId);
+        executeCommandOnClient((beforeCmd + command).split(" "));
 
         awaitApplicationReady(applicationId, expectedNumExecutors);
         Awaitility.await()

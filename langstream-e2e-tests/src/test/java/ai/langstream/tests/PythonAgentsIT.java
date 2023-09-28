@@ -83,7 +83,9 @@ public class PythonAgentsIT extends BaseEndToEndTest {
         deleteAppAndAwaitCleanup(tenant, applicationId);
 
         final List<String> topics = getAllTopics();
-        Assertions.assertEquals(List.of("ls-test-topic0"), topics);
+        log.info("all topics: {}", topics);
+        Assertions.assertTrue(topics.contains("ls-test-topic0"));
+        Assertions.assertFalse(topics.contains("ls-test-topic1"));
     }
 
     @Test

@@ -15,6 +15,7 @@
  */
 package ai.langstream.api.runner.code;
 
+import ai.langstream.api.runner.code.doc.AgentConfigurationModel;
 import ai.langstream.api.runtime.ComponentType;
 import java.util.List;
 import java.util.Map;

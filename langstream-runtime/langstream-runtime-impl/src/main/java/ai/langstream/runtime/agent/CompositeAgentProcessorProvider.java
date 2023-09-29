@@ -17,15 +17,25 @@ package ai.langstream.runtime.agent;
 
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
+import java.util.Collection;
+import java.util.List;
 
 public class CompositeAgentProcessorProvider implements AgentCodeProvider {
+
+    protected static final List<String> TYPES = List.of("composite-agent");
+
     @Override
     public boolean supports(String agentType) {
-        return "composite-agent".equals(agentType);
+        return TYPES.contains(agentType);
     }
 
     @Override
     public AgentCode createInstance(String agentType) {
         return new CompositeAgentProcessor();
+    }
+
+    @Override
+    public Collection<String> getSupportedAgentTypes() {
+        return TYPES;
     }
 }

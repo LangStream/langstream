@@ -17,6 +17,7 @@ package ai.langstream.agents.grpc;
 
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
+import java.util.Collection;
 import java.util.Set;
 
 public class PythonAgentsCodeProvider implements AgentCodeProvider {
@@ -37,5 +38,10 @@ public class PythonAgentsCodeProvider implements AgentCodeProvider {
             case "python-sink" -> new PythonGrpcAgentSink();
             default -> throw new IllegalStateException("Unexpected agent type: " + agentType);
         };
+    }
+
+    @Override
+    public Collection<String> getSupportedAgentTypes() {
+        return SUPPORTED_AGENT_TYPES;
     }
 }

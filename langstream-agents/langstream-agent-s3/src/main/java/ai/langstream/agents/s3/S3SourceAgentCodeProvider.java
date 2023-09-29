@@ -17,15 +17,29 @@ package ai.langstream.agents.s3;
 
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collection;
+import java.util.Set;
 
 public class S3SourceAgentCodeProvider implements AgentCodeProvider {
+
+    
+
+    protected static final Set<String> TYPES = Set.of("s3-source");
+
     @Override
     public boolean supports(String agentType) {
-        return "s3-source".equals(agentType);
+        return TYPES.contains(agentType);
     }
 
     @Override
     public AgentCode createInstance(String agentType) {
         return new S3Source();
+    }
+
+    @Override
+    public Collection<String> getSupportedAgentTypes() {
+        return TYPES;
     }
 }

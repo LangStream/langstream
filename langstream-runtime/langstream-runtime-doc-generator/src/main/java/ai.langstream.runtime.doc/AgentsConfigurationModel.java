@@ -13,23 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.runner.code;
+package ai.langstream.runtime.doc;
 
-import java.util.Collection;
-import java.util.List;
+import ai.langstream.api.runner.code.doc.AgentConfigurationModel;
+import java.util.Map;
 
-/** Factory */
-public interface AgentCodeProvider {
-
-    boolean supports(String agentType);
-
-    /**
-     * Create a new AgentCode for the given agent type
-     *
-     * @return the new AgentCode
-     */
-    AgentCode createInstance(String agentType);
-
-
-    Collection<String> getSupportedAgentTypes();
-}
+public record AgentsConfigurationModel(String version, Map<String, AgentConfigurationModel> agents) {}

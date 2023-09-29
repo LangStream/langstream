@@ -60,11 +60,14 @@ jobs:
         run: |
           version=${GITHUB_REF/refs\/tags\/v/}
           ./mini-langstream/package.sh $version
+      - name: Generate agents doc
+        run: |
+          ./mvnw package -pl langstream-runtime/langstream-runtime-impl -PgenerateDoc,skipPython -DskipTests -Dspotless.skip -nsu 
           
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "langstream-cli/target/langstream-*.zip,helm/crds/*.yml,target/mini-langstream-*.zip"
+          artifacts: "langstream-cli/target/langstream-*.zip,helm/crds/*.yml,target/mini-langstream-*.zip,langstream-runtime/langstream-runtime-impl/target/agents.json"
           token: ${{ secrets.GITHUB_TOKEN }}
           generateReleaseNotes: true
           prerelease: false

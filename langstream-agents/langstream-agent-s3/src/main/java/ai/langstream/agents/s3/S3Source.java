@@ -19,6 +19,8 @@ import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
@@ -49,32 +51,29 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class S3Source extends AbstractAgentCode implements AgentSource {
+
+    protected static ObjectMapper configMapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
     private String bucketName;
     private MinioClient minioClient;
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
     private int idleTime;
 
     public static final String ALL_FILES = "*";
-    public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
     private Set<String> extensions = Set.of();
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
-        bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
-        String endpoint =
-                configuration
-                        .getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090")
-                        .toString();
-        String username = configuration.getOrDefault("access-key", "minioadmin").toString();
-        String password = configuration.getOrDefault("secret-key", "minioadmin").toString();
-        String region = configuration.getOrDefault("region", "").toString();
-        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
-        extensions =
-                Set.of(
-                        configuration
-                                .getOrDefault("file-extensions", DEFAULT_EXTENSIONS_FILTER)
-                                .toString()
-                                .split(","));
+        final S3SourceConfiguration s3SourceConfiguration =
+                configMapper.convertValue(configuration, S3SourceConfiguration.class);
+        bucketName = s3SourceConfiguration.getBucketName();
+        String endpoint = s3SourceConfiguration.getEndpoint();
+        String username = s3SourceConfiguration.getAccessKey();
+        String password = s3SourceConfiguration.getSecretKey();
+        String region = s3SourceConfiguration.getRegion();
+        idleTime = s3SourceConfiguration.getIdleTime();
+        extensions = Set.of(s3SourceConfiguration.getFileExtensions().split(","));
 
         log.info(
                 "Connecting to S3 Bucket at {} in region {} with user {}",
@@ -95,14 +94,14 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
 
     private void makeBucketIfNotExists(String bucketName)
             throws ServerException,
-                    InsufficientDataException,
-                    ErrorResponseException,
-                    IOException,
-                    NoSuchAlgorithmException,
-                    InvalidKeyException,
-                    InvalidResponseException,
-                    XmlParserException,
-                    InternalException {
+            InsufficientDataException,
+            ErrorResponseException,
+            IOException,
+            NoSuchAlgorithmException,
+            InvalidKeyException,
+            InvalidResponseException,
+            XmlParserException,
+            InternalException {
         if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
             log.info("Creating bucket {}", bucketName);
             minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());

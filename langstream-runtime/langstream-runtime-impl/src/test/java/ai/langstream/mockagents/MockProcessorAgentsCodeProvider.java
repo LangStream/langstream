@@ -24,6 +24,7 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import ai.langstream.api.runtime.ComponentType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -58,6 +59,11 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
             default:
                 throw new IllegalStateException();
         }
+    }
+
+    @Override
+    public Collection<String> getSupportedAgentTypes() {
+        throw new UnsupportedOperationException();
     }
 
     private static class AsyncProcessor extends AbstractAgentCode implements AgentProcessor {

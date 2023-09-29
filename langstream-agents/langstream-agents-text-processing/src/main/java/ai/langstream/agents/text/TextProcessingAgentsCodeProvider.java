@@ -17,6 +17,7 @@ package ai.langstream.agents.text;
 
 import ai.langstream.api.runner.code.AgentCodeProvider;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -38,5 +39,10 @@ public class TextProcessingAgentsCodeProvider implements AgentCodeProvider {
     @Override
     public SingleRecordAgentProcessor createInstance(String agentType) {
         return FACTORIES.get(agentType).get();
+    }
+
+    @Override
+    public Collection<String> getSupportedAgentTypes() {
+        return FACTORIES.keySet();
     }
 }

@@ -16,7 +16,8 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <artifactId>langstream-runtime</artifactId>
     <groupId>ai.langstream</groupId>
@@ -47,6 +48,7 @@
       <artifactId>langstream-runtime-api</artifactId>
       <version>${project.version}</version>
     </dependency>
+
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>langstream-admin-client</artifactId>
@@ -123,7 +125,6 @@
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
-
 
 
     <!-- used by Pulsar and Pinecone -->
@@ -327,18 +328,20 @@
             <configuration>
               <target>
                 <echo>copy python runtime files</echo>
-                <mkdir dir="${basedir}/target/python" />
-                <copydir src="${basedir}/src/main/python" dest="${basedir}/target/python" />
-                <copydir src="${basedir}/src/main/python/langstream" dest="${basedir}/target/python/langstream" />
-                <copydir src="${basedir}/src/main/python/langstream_grpc" dest="${basedir}/target/python/langstream_grpc" />
-                <copy file="${basedir}/src/main/python/LICENSE" todir="${basedir}/target/python" />
-                <copy file="${basedir}/src/main/python/Pipfile" todir="${basedir}/target/python" />
-                <copy file="${basedir}/src/main/python/Pipfile.lock" todir="${basedir}/target/python" />
-                <copy file="${basedir}/src/main/python/pyproject.toml" todir="${basedir}/target/python" />
-                <replaceregexp file="${basedir}/target/python/pyproject.toml" match="version = &quot;0.0.0&quot;" replace="version=&quot;${pythonpackage.version}&quot;" />
-                <copy file="${basedir}/src/main/python/README.md" todir="${basedir}/target/python" />
-                <copy file="${basedir}/src/main/python/setup.py" todir="${basedir}/target/python" />
-                <copy file="${basedir}/src/main/python/tox.ini" todir="${basedir}/target/python" />
+                <mkdir dir="${basedir}/target/python"/>
+                <copydir src="${basedir}/src/main/python" dest="${basedir}/target/python"/>
+                <copydir src="${basedir}/src/main/python/langstream" dest="${basedir}/target/python/langstream"/>
+                <copydir src="${basedir}/src/main/python/langstream_grpc"
+                         dest="${basedir}/target/python/langstream_grpc"/>
+                <copy file="${basedir}/src/main/python/LICENSE" todir="${basedir}/target/python"/>
+                <copy file="${basedir}/src/main/python/Pipfile" todir="${basedir}/target/python"/>
+                <copy file="${basedir}/src/main/python/Pipfile.lock" todir="${basedir}/target/python"/>
+                <copy file="${basedir}/src/main/python/pyproject.toml" todir="${basedir}/target/python"/>
+                <replaceregexp file="${basedir}/target/python/pyproject.toml" match="version = &quot;0.0.0&quot;"
+                               replace="version=&quot;${pythonpackage.version}&quot;"/>
+                <copy file="${basedir}/src/main/python/README.md" todir="${basedir}/target/python"/>
+                <copy file="${basedir}/src/main/python/setup.py" todir="${basedir}/target/python"/>
+                <copy file="${basedir}/src/main/python/tox.ini" todir="${basedir}/target/python"/>
               </target>
             </configuration>
           </execution>
@@ -455,13 +458,13 @@
                 </artifactItem>
 
                 <artifactItem>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>langstream-agents-text-processing</artifactId>
-                    <version>${project.version}</version>
-                    <type>nar</type>
-                    <classifier>nar</classifier>
-                    <overWrite>false</overWrite>
-                    <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>langstream-agents-text-processing</artifactId>
+                  <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
                 </artifactItem>
 
                 <artifactItem>
@@ -510,6 +513,42 @@
           </execution>
         </executions>
       </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <phase>none</phase>
+            <id>generate-agents-doc</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <includePluginDependencies>true</includePluginDependencies>
+          <executableDependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>langstream-runtime-doc-generator</artifactId>
+          </executableDependency>
+          <mainClass>ai.langstream.runtime.doc.AgentDocumentationGenerator</mainClass>
+          <arguments>
+            <argument>${project.build.directory}/agents.json</argument>
+            <argument>${project.version}</argument>
+            <argument>${project.build.directory}/agents</argument>
+          </arguments>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>langstream-runtime-doc-generator</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -595,6 +634,23 @@
               <execution>
                 <id>python-package</id>
                 <phase>none</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>generateDoc</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>generate-agents-doc</id>
+                <phase>package</phase>
               </execution>
             </executions>
           </plugin>

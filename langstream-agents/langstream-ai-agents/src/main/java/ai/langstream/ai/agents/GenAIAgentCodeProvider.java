@@ -17,6 +17,9 @@ package ai.langstream.ai.agents;
 
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 public class GenAIAgentCodeProvider implements AgentCodeProvider {
@@ -45,5 +48,10 @@ public class GenAIAgentCodeProvider implements AgentCodeProvider {
     @Override
     public AgentCode createInstance(String agentType) {
         return new GenAIToolKitAgent();
+    }
+
+    @Override
+    public Collection<String> getSupportedAgentTypes() {
+        return STEP_TYPES;
     }
 }

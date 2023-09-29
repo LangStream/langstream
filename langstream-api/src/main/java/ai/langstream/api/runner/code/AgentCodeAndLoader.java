@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
-public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
+public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) implements AutoCloseable {
 
     public boolean isSource() {
         return agentCode instanceof AgentSource;
@@ -256,6 +256,7 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
         };
     }
 
+    @Override
     public void close() throws Exception {
         executeWithContextClassloader(AgentCode::close);
     }

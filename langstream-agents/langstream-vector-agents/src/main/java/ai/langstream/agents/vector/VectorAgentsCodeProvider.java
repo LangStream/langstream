@@ -17,14 +17,16 @@ package ai.langstream.agents.vector;
 
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
+import java.util.Collection;
+import java.util.Set;
 
 public class VectorAgentsCodeProvider implements AgentCodeProvider {
+
+    protected static final Set<String> TYPES = Set.of("query-vector-db", "vector-db-sink");
+
     @Override
     public boolean supports(String agentType) {
-        return switch (agentType) {
-            case "query-vector-db", "vector-db-sink" -> true;
-            default -> false;
-        };
+        return TYPES.contains(agentType);
     }
 
     @Override
@@ -34,5 +36,10 @@ public class VectorAgentsCodeProvider implements AgentCodeProvider {
             case "vector-db-sink" -> new VectorDBSinkAgent();
             default -> throw new IllegalStateException();
         };
+    }
+
+    @Override
+    public Collection<String> getSupportedAgentTypes() {
+        return TYPES;
     }
 }

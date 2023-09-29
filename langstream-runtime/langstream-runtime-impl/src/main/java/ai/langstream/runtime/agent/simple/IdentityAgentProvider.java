@@ -19,17 +19,27 @@ import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public class IdentityAgentProvider implements AgentCodeProvider {
+
+    protected static final Set<String> TYPES = Set.of("identity");
+
     @Override
     public boolean supports(String agentType) {
-        return "identity".equals(agentType);
+        return TYPES.contains(agentType);
     }
 
     @Override
     public AgentCode createInstance(String agentType) {
         return new IdentityAgentCode();
+    }
+
+    @Override
+    public Collection<String> getSupportedAgentTypes() {
+        return TYPES;
     }
 
     public static class IdentityAgentCode extends SingleRecordAgentProcessor {

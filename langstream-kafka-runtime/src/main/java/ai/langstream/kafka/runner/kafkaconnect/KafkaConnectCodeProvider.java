@@ -17,13 +17,18 @@ package ai.langstream.kafka.runner.kafkaconnect;
 
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
+import java.util.Collection;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class KafkaConnectCodeProvider implements AgentCodeProvider {
+
+    protected static final Set<String> TYPES = Set.of("sink", "source");
+
     @Override
     public boolean supports(String agentType) {
-        return "sink".equals(agentType) || "source".equals(agentType);
+        return TYPES.contains(agentType);
     }
 
     @Override
@@ -35,5 +40,10 @@ public class KafkaConnectCodeProvider implements AgentCodeProvider {
             case "source" -> new KafkaConnectSourceAgent();
             default -> throw new IllegalStateException();
         };
+    }
+
+    @Override
+    public Collection<String> getSupportedAgentTypes() {
+        return TYPES;
     }
 }

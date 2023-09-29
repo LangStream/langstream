@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
@@ -128,6 +129,9 @@ class ClassConfigValidatorTest {
                             }
                           }
                         }""",
-                new ObjectMapper().writeValueAsString(model));
+                new ObjectMapper()
+                        .configure(SerializationFeature.INDENT_OUTPUT, true)
+                        .setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+                        .writeValueAsString(model));
     }
 }

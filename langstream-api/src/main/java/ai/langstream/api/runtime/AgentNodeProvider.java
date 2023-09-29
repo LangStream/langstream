@@ -18,6 +18,8 @@ package ai.langstream.api.runtime;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
+import ai.langstream.api.doc.AgentConfigurationModel;
+import java.util.Map;
 
 public interface AgentNodeProvider {
 
@@ -49,4 +51,8 @@ public interface AgentNodeProvider {
      * @return true if this provider can create the implementation
      */
     boolean supports(String type, ComputeClusterRuntime clusterRuntime);
+
+    default Map<String, AgentConfigurationModel> generateSupportedTypesDocumentation() {
+        return Map.of();
+    }
 }

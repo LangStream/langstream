@@ -315,6 +315,27 @@
 					</extraDirectories>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<phase>none</phase>
+						<id>generate-doc</id>
+						<goals>
+							<goal>java</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<mainClass>ai.langstream.webservice.doc.DocumentationGeneratorStarter</mainClass>
+					<arguments>
+						<argument>${project.build.directory}</argument>
+						<argument>${project.version}</argument>
+					</arguments>
+				</configuration>
+			</plugin>
 		</plugins>
 		<defaultGoal>spring-boot:run</defaultGoal>
 	</build>
@@ -336,6 +357,23 @@
 								<goals>
 									<goal>dockerBuild</goal>
 								</goals>
+								<phase>package</phase>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>generateDoc</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>generate-doc</id>
 								<phase>package</phase>
 							</execution>
 						</executions>

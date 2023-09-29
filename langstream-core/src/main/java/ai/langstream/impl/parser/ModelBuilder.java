@@ -454,147 +454,154 @@ public class ModelBuilder {
 
     private static void parsePipelineFile(String filename, String content, Application application)
             throws IOException {
-        PipelineFileModel pipelineConfiguration =
-                mapper.readValue(content, PipelineFileModel.class);
-        if (pipelineConfiguration.getModule() == null) {
-            pipelineConfiguration.setModule(Module.DEFAULT_MODULE);
-        }
-        Module module = application.getModule(pipelineConfiguration.getModule());
-        log.info("Configuration: {}", pipelineConfiguration);
-        String id = pipelineConfiguration.getId();
-        if (id == null) {
-            id = filename.replace(".yaml", "").replace(".yml", "");
-        }
-        Pipeline pipeline = module.addPipeline(id);
-        pipeline.setName(pipelineConfiguration.getName());
-        pipeline.setResources(
-                pipelineConfiguration.getResources() != null
-                        ? pipelineConfiguration
-                                .getResources()
-                                .withDefaultsFrom(ResourcesSpec.DEFAULT)
-                        : ResourcesSpec.DEFAULT);
-        pipeline.setErrors(
-                pipelineConfiguration.getErrors() != null
-                        ? pipelineConfiguration.getErrors().withDefaultsFrom(ErrorsSpec.DEFAULT)
-                        : ErrorsSpec.DEFAULT);
-        validateErrorsSpec(pipeline.getErrors());
-        AgentConfiguration last = null;
-
-        if (pipelineConfiguration.getTopics() != null) {
-            for (TopicDefinitionModel topicDefinition : pipelineConfiguration.getTopics()) {
-                module.addTopic(
-                        new TopicDefinition(
-                                topicDefinition.getName(),
-                                topicDefinition.getCreationMode(),
-                                topicDefinition.getDeletionMode(),
-                                false,
-                                topicDefinition.getPartitions(),
-                                topicDefinition.getKeySchema(),
-                                topicDefinition.getSchema(),
-                                topicDefinition.getOptions(),
-                                topicDefinition.getConfig()));
+        try {
+            PipelineFileModel pipelineConfiguration =
+                    mapper.readValue(content, PipelineFileModel.class);
+            if (pipelineConfiguration.getModule() == null) {
+                pipelineConfiguration.setModule(Module.DEFAULT_MODULE);
             }
-        }
-
-        if (pipelineConfiguration.getAssets() != null) {
-            for (AssetDefinitionModel assetDefinition : pipelineConfiguration.getAssets()) {
-                String assetId =
-                        Objects.requireNonNullElse(
-                                assetDefinition.getId(), assetDefinition.getName());
-                if (assetId == null || assetId.isEmpty()) {
-                    throw new IllegalArgumentException("Asset id or name are required");
-                }
-                String name = assetDefinition.getName();
-                if (assetDefinition.getName() == null) {
-                    name = assetDefinition.getId();
-                }
-                module.addAsset(
-                        new AssetDefinition(
-                                assetId,
-                                name,
-                                assetDefinition.getCreationMode(),
-                                assetDefinition.getDeletionMode(),
-                                assetDefinition.getAssetType(),
-                                assetDefinition.getConfig()));
+            Module module = application.getModule(pipelineConfiguration.getModule());
+            log.info("Configuration: {}", pipelineConfiguration);
+            String id = pipelineConfiguration.getId();
+            if (id == null) {
+                id = filename.replace(".yaml", "").replace(".yml", "");
             }
-        }
+            Pipeline pipeline = module.addPipeline(id);
+            pipeline.setName(pipelineConfiguration.getName());
+            pipeline.setResources(
+                    pipelineConfiguration.getResources() != null
+                            ? pipelineConfiguration
+                                    .getResources()
+                                    .withDefaultsFrom(ResourcesSpec.DEFAULT)
+                            : ResourcesSpec.DEFAULT);
+            pipeline.setErrors(
+                    pipelineConfiguration.getErrors() != null
+                            ? pipelineConfiguration.getErrors().withDefaultsFrom(ErrorsSpec.DEFAULT)
+                            : ErrorsSpec.DEFAULT);
+            validateErrorsSpec(pipeline.getErrors());
+            AgentConfiguration last = null;
 
-        int autoId = 1;
-        if (pipelineConfiguration.getPipeline() != null) {
-            for (AgentModel agent : pipelineConfiguration.getPipeline()) {
-                AgentConfiguration agentConfiguration = agent.toAgentConfiguration(pipeline);
-                if (agentConfiguration.getType() == null
-                        || agentConfiguration.getType().isBlank()) {
-                    if (agentConfiguration.getId() != null) {
-                        throw new IllegalArgumentException(
-                                "Agent type is always required (check agent id "
-                                        + agentConfiguration.getId()
-                                        + ")");
-                    } else if (agentConfiguration.getName() != null) {
-                        throw new IllegalArgumentException(
-                                "Agent type is always required (check agent name "
-                                        + agentConfiguration.getName()
-                                        + ")");
-                    } else {
-                        throw new IllegalArgumentException(
-                                "Agent type is always required (there is an agent without type, id or name)");
+            if (pipelineConfiguration.getTopics() != null) {
+                for (TopicDefinitionModel topicDefinition : pipelineConfiguration.getTopics()) {
+                    module.addTopic(
+                            new TopicDefinition(
+                                    topicDefinition.getName(),
+                                    topicDefinition.getCreationMode(),
+                                    topicDefinition.getDeletionMode(),
+                                    false,
+                                    topicDefinition.getPartitions(),
+                                    topicDefinition.getKeySchema(),
+                                    topicDefinition.getSchema(),
+                                    topicDefinition.getOptions(),
+                                    topicDefinition.getConfig()));
+                }
+            }
+
+            if (pipelineConfiguration.getAssets() != null) {
+                for (AssetDefinitionModel assetDefinition : pipelineConfiguration.getAssets()) {
+                    String assetId =
+                            Objects.requireNonNullElse(
+                                    assetDefinition.getId(), assetDefinition.getName());
+                    if (assetId == null || assetId.isEmpty()) {
+                        throw new IllegalArgumentException("Asset id or name are required");
                     }
-                }
-                ErrorsSpec errorsSpec = validateErrorsSpec(agentConfiguration.getErrors());
-                if (agentConfiguration.getId() == null) {
-                    // ensure that we always have an id
-                    // please note that this algorithm should not be changed in order to not break
-                    // compatibility with existing pipelineConfiguration files
-                    String moduleAutoId;
-                    if (Objects.equals(Module.DEFAULT_MODULE, module.getId())) {
-                        moduleAutoId = "";
-                    } else {
-                        moduleAutoId = module.getId() + "-";
+                    String name = assetDefinition.getName();
+                    if (assetDefinition.getName() == null) {
+                        name = assetDefinition.getId();
                     }
-                    String autoIdStr =
-                            moduleAutoId
-                                    + pipeline.getId()
-                                    + "-"
-                                    + agentConfiguration.getType()
-                                    + "-"
-                                    + autoId;
-                    agentConfiguration.setId(autoIdStr);
-                    autoId++;
+                    module.addAsset(
+                            new AssetDefinition(
+                                    assetId,
+                                    name,
+                                    assetDefinition.getCreationMode(),
+                                    assetDefinition.getDeletionMode(),
+                                    assetDefinition.getAssetType(),
+                                    assetDefinition.getConfig()));
                 }
+            }
 
-                if (agent.getInput() != null) {
-                    agentConfiguration.setInput(
-                            Connection.fromTopic(module.resolveTopic(agent.getInput())));
-                }
-                if (agent.getOutput() != null) {
-                    agentConfiguration.setOutput(
-                            Connection.fromTopic(module.resolveTopic(agent.getOutput())));
-                }
-                Connection input = agentConfiguration.getInput();
-                if (last != null && input == null) {
-                    // assume that the previous agent is the output of this one
-                    agentConfiguration.setInput(Connection.fromAgent(last));
-
-                    // if the previous agent does not have an output, bind to this agent
-                    if (last.getOutput() == null) {
-                        last.setOutput(Connection.fromAgent(agentConfiguration));
-
-                        ErrorsSpec otherAgentErrorSpecs = agentConfiguration.getErrors();
-                        if (Objects.equals(otherAgentErrorSpecs.getOnFailure(), DEAD_LETTER)) {
-                            last.setOutput(last.getOutput().withDeadletter(true));
+            int autoId = 1;
+            if (pipelineConfiguration.getPipeline() != null) {
+                for (AgentModel agent : pipelineConfiguration.getPipeline()) {
+                    AgentConfiguration agentConfiguration = agent.toAgentConfiguration(pipeline);
+                    if (agentConfiguration.getType() == null
+                            || agentConfiguration.getType().isBlank()) {
+                        if (agentConfiguration.getId() != null) {
+                            throw new IllegalArgumentException(
+                                    "Agent type is always required (check agent id "
+                                            + agentConfiguration.getId()
+                                            + ")");
+                        } else if (agentConfiguration.getName() != null) {
+                            throw new IllegalArgumentException(
+                                    "Agent type is always required (check agent name "
+                                            + agentConfiguration.getName()
+                                            + ")");
+                        } else {
+                            throw new IllegalArgumentException(
+                                    "Agent type is always required (there is an agent without type, id or name)");
                         }
                     }
-                }
+                    ErrorsSpec errorsSpec = validateErrorsSpec(agentConfiguration.getErrors());
+                    if (agentConfiguration.getId() == null) {
+                        // ensure that we always have an id
+                        // please note that this algorithm should not be changed in order to not
+                        // break
+                        // compatibility with existing pipelineConfiguration files
+                        String moduleAutoId;
+                        if (Objects.equals(Module.DEFAULT_MODULE, module.getId())) {
+                            moduleAutoId = "";
+                        } else {
+                            moduleAutoId = module.getId() + "-";
+                        }
+                        String autoIdStr =
+                                moduleAutoId
+                                        + pipeline.getId()
+                                        + "-"
+                                        + agentConfiguration.getType()
+                                        + "-"
+                                        + autoId;
+                        agentConfiguration.setId(autoIdStr);
+                        autoId++;
+                    }
 
-                // activate deadletter on the input connection if the agent has deadletter enabled
-                if (Objects.equals(errorsSpec.getOnFailure(), DEAD_LETTER)
-                        && agentConfiguration.getInput() != null) {
-                    agentConfiguration.setInput(agentConfiguration.getInput().withDeadletter(true));
-                }
+                    if (agent.getInput() != null) {
+                        agentConfiguration.setInput(
+                                Connection.fromTopic(module.resolveTopic(agent.getInput())));
+                    }
+                    if (agent.getOutput() != null) {
+                        agentConfiguration.setOutput(
+                                Connection.fromTopic(module.resolveTopic(agent.getOutput())));
+                    }
+                    Connection input = agentConfiguration.getInput();
+                    if (last != null && input == null) {
+                        // assume that the previous agent is the output of this one
+                        agentConfiguration.setInput(Connection.fromAgent(last));
 
-                pipeline.addAgentConfiguration(agentConfiguration);
-                last = agentConfiguration;
+                        // if the previous agent does not have an output, bind to this agent
+                        if (last.getOutput() == null) {
+                            last.setOutput(Connection.fromAgent(agentConfiguration));
+
+                            ErrorsSpec otherAgentErrorSpecs = agentConfiguration.getErrors();
+                            if (Objects.equals(otherAgentErrorSpecs.getOnFailure(), DEAD_LETTER)) {
+                                last.setOutput(last.getOutput().withDeadletter(true));
+                            }
+                        }
+                    }
+
+                    // activate deadletter on the input connection if the agent has deadletter
+                    // enabled
+                    if (Objects.equals(errorsSpec.getOnFailure(), DEAD_LETTER)
+                            && agentConfiguration.getInput() != null) {
+                        agentConfiguration.setInput(
+                                agentConfiguration.getInput().withDeadletter(true));
+                    }
+
+                    pipeline.addAgentConfiguration(agentConfiguration);
+                    last = agentConfiguration;
+                }
             }
+        } catch (IOException error) {
+            throw new IOException("Cannot parse file " + filename + " : " + error, error);
         }
     }
 

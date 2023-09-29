@@ -38,6 +38,7 @@ import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -83,6 +84,16 @@ public abstract class AbstractApplicationRunner {
     protected static ApplicationDeployer applicationDeployer;
     private static NarFileHandler narFileHandler;
     private static TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+
+    private Path codeDirectory;
+
+    public Path getCodeDirectory() {
+        return codeDirectory;
+    }
+
+    public void setCodeDirectory(Path codeDirectory) {
+        this.codeDirectory = codeDirectory;
+    }
 
     protected record ApplicationRuntime(
             String tenant,
@@ -174,9 +185,12 @@ public abstract class AbstractApplicationRunner {
 
     @BeforeAll
     public static void setup() throws Exception {
+        Path codeDirectory = Paths.get("target/test-jdbc-drivers");
         narFileHandler =
                 new NarFileHandler(
-                        agentsDirectory, List.of(), Thread.currentThread().getContextClassLoader());
+                        agentsDirectory,
+                        AgentRunner.buildCustomLibClasspath(codeDirectory),
+                        Thread.currentThread().getContextClassLoader());
         topicConnectionsRuntimeRegistry = new TopicConnectionsRuntimeRegistry();
         narFileHandler.scan();
         topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
@@ -354,7 +368,7 @@ public abstract class AbstractApplicationRunner {
                                 AtomicInteger numLoops = new AtomicInteger();
                                 AgentRunner.runAgent(
                                         podConfiguration,
-                                        null,
+                                        codeDirectory,
                                         agentsDirectory,
                                         agentInfo,
                                         () -> {

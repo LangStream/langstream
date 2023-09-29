@@ -40,13 +40,26 @@ pipeline:
     type: "query"
     configuration:
       datasource: "AstraDatasource"
-      query: "SELECT text FROM documents.documents ORDER BY embeddings_vector ANN OF ? LIMIT 5"
+      query: "SELECT text,embeddings_vector FROM documents.documents ORDER BY embeddings_vector ANN OF ? LIMIT 20"
       fields:
         - "value.question_embeddings"
       output-field: "value.related_documents"
+  - name: "re-rank documents with MMR"
+    type: "re-rank"
+    configuration:
+      max: 5 # keep only the top 5 documents, because we have an hard limit on the prompt size
+      field: "value.related_documents"
+      query-text: "value.question"
+      query-embeddings: "value.question_embeddings"
+      output-field: "value.related_documents"
+      text-field: "record.text"
+      embeddings-field: "record.embeddings_vector"
+      algorithm: "MMR"
+      lambda: 0.5
+      k1: 1.5
+      b: 0.7
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
-
     configuration:
       model: "{{{secrets.open-ai.chat-completions-model}}}" # This needs to be set to the model deployment name, not the base name
       # on the log-topic we add a field with the answer

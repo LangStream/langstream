@@ -135,11 +135,17 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
             List<Object> currentList,
             TextWithEmbeddings query,
             Function<Object, TextWithEmbeddings> recordExtractor) {
+
+        if (query.text == null || query.text.isEmpty()) {
+            return new ArrayList<>(currentList);
+        }
+
         switch (algorithm) {
             case ALGORITHM_MMR:
-                return rerankMMR(currentList, max, query, mmr_lambda, bm25_k1, bm25_b, recordExtractor);
+                return rerankMMR(
+                        currentList, max, query, mmr_lambda, bm25_k1, bm25_b, recordExtractor);
             case ALGORITHM_NONE:
-                return currentList;
+                return new ArrayList<>(currentList);
             default:
                 throw new IllegalStateException();
         }
@@ -156,8 +162,7 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         List<Object> rankedDocuments = new ArrayList<>();
         List<Object> remainingDocuments = new ArrayList<>(documents);
 
-        while (!remainingDocuments.isEmpty()
-                && rankedDocuments.size() < max) {
+        while (!remainingDocuments.isEmpty() && rankedDocuments.size() < max) {
             Object topDocument =
                     calculateTopDocumentMMR_BM25_CosineSimilarity(
                             remainingDocuments,
@@ -185,24 +190,27 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         Object topDocument = null;
         double topScore = Double.NEGATIVE_INFINITY;
 
-        List<TextWithEmbeddings> texts = remainingDocuments
-                .stream()
-                .map(recordExtractor)
-                .filter(t -> t.text != null && t.embeddings != null && !t.text.isEmpty() && t.embeddings.length > 0)
-                .toList();
+        List<TextWithEmbeddings> texts =
+                remainingDocuments.stream()
+                        .map(recordExtractor)
+                        .filter(
+                                t ->
+                                        t.text != null
+                                                && t.embeddings != null
+                                                && !t.text.isEmpty()
+                                                && t.embeddings.length > 0)
+                        .toList();
 
         double[] bm25scores = calculateBM25Scores(texts, query, bm25_k1, bm25_b);
 
         for (int i = 0; i < texts.size(); i++) {
-            Object documentObject = texts.get(i);
             TextWithEmbeddings document = texts.get(i);
-            double bm25score = bm25scores[i];
-            double relevance = bm25score;
+            double relevance = bm25scores[i];
             double diversity = calculateDiversity(document, rankedDocuments, recordExtractor);
             double score = lambda * relevance - (1 - lambda) * diversity;
             if (score > topScore) {
                 topScore = score;
-                topDocument = documentObject;
+                topDocument = remainingDocuments.get(i);
             }
         }
 

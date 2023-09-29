@@ -384,9 +384,23 @@ public class NarFileHandler
         return classloaders;
     }
 
+    private ClassLoader systemClassloaderWithCustomLib;
+
     @Override
     public ClassLoader getSystemClassloader() {
-        return parentClassloader;
+        if (systemClassloaderWithCustomLib != null) {
+            return systemClassloaderWithCustomLib;
+        }
+        if (customLibClasspath != null && !customLibClasspath.isEmpty()) {
+            systemClassloaderWithCustomLib =
+                    new NarFileClassLoader(
+                            "system-classloader-with-custom-lib",
+                            customLibClasspath,
+                            parentClassloader);
+        } else {
+            systemClassloaderWithCustomLib = parentClassloader;
+        }
+        return systemClassloaderWithCustomLib;
     }
 
     private static URLClassLoader createClassloaderForPackage(

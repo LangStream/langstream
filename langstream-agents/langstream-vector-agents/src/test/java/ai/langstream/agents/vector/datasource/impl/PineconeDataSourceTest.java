@@ -47,7 +47,7 @@ class PineconeDataSourceTest {
                     }
                 """;
         List<Object> params = List.of(List.of(0.1f, 0.1f, 0.1f, 0.1f, 0.1f));
-        List<Map<String, String>> results = implementation.fetchData(query, params);
+        List<Map<String, Object>> results = implementation.fetchData(query, params);
         log.info("Results: {}", results);
     }
 
@@ -74,7 +74,7 @@ class PineconeDataSourceTest {
                     }
                 """;
         List<Object> params = List.of(List.of(0.1f, 0.1f, 0.1f, 0.1f, 0.1f), "comedy", 2019);
-        List<Map<String, String>> results = implementation.fetchData(query, params);
+        List<Map<String, Object>> results = implementation.fetchData(query, params);
         log.info("Results: {}", results);
     }
 }

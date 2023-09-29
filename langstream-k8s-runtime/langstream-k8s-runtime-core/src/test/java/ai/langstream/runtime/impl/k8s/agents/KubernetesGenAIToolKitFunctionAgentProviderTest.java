@@ -127,38 +127,77 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
 
         Assertions.assertEquals(
                 """
-                {
-                  "ai-chat-completions" : { },
-                  "ai-text-completions" : { },
-                  "cast" : { },
-                  "compute" : { },
-                  "compute-ai-embeddings" : { },
-                  "drop" : { },
-                  "drop-fields" : {
-                    "name" : "Drop fields from the input record",
-                    "properties" : {
-                      "fields" : {
-                        "description" : "Fields to drop from the input record.",
-                        "required" : true,
-                        "type" : "array",
-                        "items" : {
-                          "description" : "Fields to drop from the input record.",
-                          "required" : true,
-                          "type" : "string"
-                        }
-                      },
-                      "part" : {
-                        "description" : "Part to drop. (value or key)",
-                        "required" : false,
-                        "type" : "string"
-                      }
-                    }
-                  },
-                  "flatten" : { },
-                  "merge-key-value" : { },
-                  "query" : { },
-                  "unwrap-key-value" : { }
-                }""",
+                        {
+                          "ai-chat-completions" : { },
+                          "ai-text-completions" : { },
+                          "cast" : { },
+                          "compute" : { },
+                          "compute-ai-embeddings" : { },
+                          "drop" : {
+                            "properties" : {
+                              "composable" : {
+                                "description" : "Whether this step can be composed with other steps.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "true"
+                              },
+                              "when" : {
+                                "description" : "Execute the step only when the condition is met.\\nYou can use the expression language to reference the message.\\nExample: when: \\"value.first == 'f1' && value.last.toUpperCase() == 'L1'\\"",
+                                "required" : false,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "drop-fields" : {
+                            "name" : "Drop fields from the input record",
+                            "properties" : {
+                              "composable" : {
+                                "description" : "Whether this step can be composed with other steps.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "true"
+                              },
+                              "fields" : {
+                                "description" : "Fields to drop from the input record.",
+                                "required" : true,
+                                "type" : "array",
+                                "items" : {
+                                  "description" : "Fields to drop from the input record.",
+                                  "required" : true,
+                                  "type" : "string"
+                                }
+                              },
+                              "part" : {
+                                "description" : "Part to drop. (value or key)",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "when" : {
+                                "description" : "Execute the step only when the condition is met.\\nYou can use the expression language to reference the message.\\nExample: when: \\"value.first == 'f1' && value.last.toUpperCase() == 'L1'\\"",
+                                "required" : false,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "flatten" : { },
+                          "merge-key-value" : {
+                            "properties" : {
+                              "composable" : {
+                                "description" : "Whether this step can be composed with other steps.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "true"
+                              },
+                              "when" : {
+                                "description" : "Execute the step only when the condition is met.\\nYou can use the expression language to reference the message.\\nExample: when: \\"value.first == 'f1' && value.last.toUpperCase() == 'L1'\\"",
+                                "required" : false,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "query" : { },
+                          "unwrap-key-value" : { }
+                        }""",
                 SerializationUtil.prettyPrintJson(model));
     }
 }

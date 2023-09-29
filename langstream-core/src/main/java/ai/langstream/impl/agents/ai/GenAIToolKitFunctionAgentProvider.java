@@ -279,12 +279,13 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             List.of(SERVICE_VERTEX, SERVICE_HUGGING_FACE, SERVICE_OPEN_AI);
 
     static {
-        final StepConfigurationInitializer baseConfig = new StepConfigurationInitializer() {
-            @Override
-            public Class getAgentConfigurationModelClass() {
-                return BaseGenAIStepConfiguration.class;
-            }
-        };
+        final StepConfigurationInitializer baseConfig =
+                new StepConfigurationInitializer() {
+                    @Override
+                    public Class getAgentConfigurationModelClass() {
+                        return BaseGenAIStepConfiguration.class;
+                    }
+                };
 
         final Map<String, StepConfigurationInitializer> steps = new HashMap<>();
         steps.put("drop-fields", DropFieldsConfiguration.STEP);

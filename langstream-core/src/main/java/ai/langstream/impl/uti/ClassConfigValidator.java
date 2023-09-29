@@ -213,7 +213,8 @@ public class ClassConfigValidator {
         Map<String, AgentConfigurationModel.AgentConfigurationProperty> props =
                 new LinkedHashMap<>();
         if (parsed.getProperties() != null) {
-            for (Map.Entry<String, ParsedJsonSchema.Prop> schema : parsed.getProperties().entrySet()) {
+            for (Map.Entry<String, ParsedJsonSchema.Prop> schema :
+                    parsed.getProperties().entrySet()) {
                 final AgentConfigurationModel.AgentConfigurationProperty parsedProp =
                         parseProp(mapper, schema.getValue());
                 if (parsedProp != null) {

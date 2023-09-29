@@ -418,8 +418,7 @@ class CompositeAgentTest {
             Map<String, Object> source = (Map<String, Object>) configuration.get("source");
             assertEquals("s3-source", source.get("agentType"));
             assertEquals(
-                    "10",
-                    ((Map<String, Object>) source.get("configuration")).get("idle-time"));
+                    "10", ((Map<String, Object>) source.get("configuration")).get("idle-time"));
 
             List<Map<String, Object>> processors =
                     (List<Map<String, Object>>) configuration.get("processors");
@@ -593,8 +592,7 @@ class CompositeAgentTest {
             Map<String, Object> source = (Map<String, Object>) configuration.get("source");
             assertEquals("s3-source", source.get("agentType"));
             assertEquals(
-                    "10",
-                    ((Map<String, Object>) source.get("configuration")).get("idle-time"));
+                    "10", ((Map<String, Object>) source.get("configuration")).get("idle-time"));
 
             List<Map<String, Object>> processors =
                     (List<Map<String, Object>>) configuration.get("processors");
@@ -698,8 +696,7 @@ class CompositeAgentTest {
             Map<String, Object> source = (Map<String, Object>) configuration.get("source");
             assertEquals("s3-source", source.get("agentType"));
             assertEquals(
-                    "10",
-                    ((Map<String, Object>) source.get("configuration")).get("idle-time"));
+                    "10", ((Map<String, Object>) source.get("configuration")).get("idle-time"));
 
             List<Map<String, Object>> processors =
                     (List<Map<String, Object>>) configuration.get("processors");

@@ -52,8 +52,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class S3Source extends AbstractAgentCode implements AgentSource {
 
-    protected static ObjectMapper configMapper = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    protected static ObjectMapper configMapper =
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private String bucketName;
     private MinioClient minioClient;
@@ -94,14 +94,14 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
 
     private void makeBucketIfNotExists(String bucketName)
             throws ServerException,
-            InsufficientDataException,
-            ErrorResponseException,
-            IOException,
-            NoSuchAlgorithmException,
-            InvalidKeyException,
-            InvalidResponseException,
-            XmlParserException,
-            InternalException {
+                    InsufficientDataException,
+                    ErrorResponseException,
+                    IOException,
+                    NoSuchAlgorithmException,
+                    InvalidKeyException,
+                    InvalidResponseException,
+                    XmlParserException,
+                    InternalException {
         if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
             log.info("Creating bucket {}", bucketName);
             minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());

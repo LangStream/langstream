@@ -35,9 +35,12 @@ class AgentDocumentationGeneratorTest {
     public static class MyClass {
         @JsonProperty("my-int")
         @JsonPropertyDescription("this must be ignored")
-        @ConfigProperty(required = true, description = """
+        @ConfigProperty(
+                required = true,
+                description = """
             my description
-        """, defaultValue = "11")
+        """,
+                defaultValue = "11")
         private int myInt = 10;
 
         @ConfigProperty(required = true)

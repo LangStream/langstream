@@ -18,8 +18,6 @@ package ai.langstream.ai.agents;
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 public class GenAIAgentCodeProvider implements AgentCodeProvider {

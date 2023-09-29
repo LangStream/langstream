@@ -59,7 +59,8 @@ public class AgentDocumentationGenerator {
                     .configure(SerializationFeature.INDENT_OUTPUT, true)
                     .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-    static final String USAGE = "Usage: agent-doc-generator <output-file> <version> <agents-directory>";
+    static final String USAGE =
+            "Usage: agent-doc-generator <output-file> <version> <agents-directory>";
 
     @SneakyThrows
     public static void main(String[] args) {
@@ -79,7 +80,8 @@ public class AgentDocumentationGenerator {
         }
     }
 
-    private static void generate(String outputFile, String version, String agentsDirectory) throws Exception {
+    private static void generate(String outputFile, String version, String agentsDirectory)
+            throws Exception {
         final AgentsConfigurationModel model = generateModel(version, agentsDirectory);
         jsonWriter.writeValue(new File(outputFile), model);
         log.info("Generated documentation for {} agents to {}", model.agents().size(), outputFile);
@@ -125,7 +127,6 @@ public class AgentDocumentationGenerator {
         model.setProperties(readPropertiesFromClass(clazz));
         return model;
     }
-
 
     public static Map<String, AgentConfigurationModel.AgentConfigurationProperty>
             readPropertiesFromClass(Class clazz) {
@@ -246,7 +247,8 @@ public class AgentDocumentationGenerator {
         return null;
     }
 
-    private static AgentsConfigurationModel generateModel(String version, String agentsDirectory) throws Exception {
+    private static AgentsConfigurationModel generateModel(String version, String agentsDirectory)
+            throws Exception {
 
         Map<String, AgentConfigurationModel> agents = new TreeMap<>();
         NarFileHandler narFileHandler =
@@ -279,7 +281,8 @@ public class AgentDocumentationGenerator {
                                                     .stream()
                                                     .toList();
                                     if (classInfos.isEmpty()) {
-                                        log.info("No configuration class found for agent: {}", type);
+                                        log.info(
+                                                "No configuration class found for agent: {}", type);
                                         agents.put(type, new AgentConfigurationModel());
                                     } else {
                                         if (classInfos.size() > 1) {
@@ -288,7 +291,9 @@ public class AgentDocumentationGenerator {
                                                     type);
                                         }
                                         final ClassInfo classInfo = classInfos.get(0);
-                                        log.info("Scanning configuration class: {}", classInfo.getName());
+                                        log.info(
+                                                "Scanning configuration class: {}",
+                                                classInfo.getName());
                                         agents.put(type, readFromClass(classInfo.loadClass()));
                                     }
                                 }

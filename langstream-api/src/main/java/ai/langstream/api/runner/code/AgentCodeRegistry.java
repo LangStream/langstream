@@ -22,8 +22,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,8 +34,7 @@ public class AgentCodeRegistry {
 
     private AgentPackageLoader agentPackageLoader;
 
-    public AgentCodeRegistry() {
-    }
+    public AgentCodeRegistry() {}
 
     public interface AgentPackage {
         String getName();
@@ -80,10 +77,10 @@ public class AgentCodeRegistry {
                 if (agentCodeProviderProvider == null) {
                     throw new RuntimeException(
                             "Package "
-                            + agentPackage.getName()
-                            + " declared to support agent type "
-                            + agentType
-                            + " but no agent found");
+                                    + agentPackage.getName()
+                                    + " declared to support agent type "
+                                    + agentType
+                                    + " but no agent found");
                 }
                 return agentCodeProviderProvider;
             }
@@ -114,16 +111,18 @@ public class AgentCodeRegistry {
                 loader.stream().filter(p -> p.get().supports(agentType)).findFirst();
 
         return agentCodeProviderProvider
-                .map(provider -> createAgentCodeAndLoaderInstance(agentType, classLoader, provider.get()))
+                .map(
+                        provider ->
+                                createAgentCodeAndLoaderInstance(
+                                        agentType, classLoader, provider.get()))
                 .orElse(null);
     }
 
-    private static AgentCodeAndLoader createAgentCodeAndLoaderInstance(String agentType, ClassLoader classLoader,
-                                                                       AgentCodeProvider provider) {
+    private static AgentCodeAndLoader createAgentCodeAndLoaderInstance(
+            String agentType, ClassLoader classLoader, AgentCodeProvider provider) {
         AgentCode instance =
                 ClassloaderUtils.executeWithClassloader(
-                        classLoader,
-                        () -> provider.createInstance(agentType));
+                        classLoader, () -> provider.createInstance(agentType));
         return new AgentCodeAndLoader(instance, classLoader);
     }
 
@@ -131,9 +130,9 @@ public class AgentCodeRegistry {
         this.agentPackageLoader = loader;
     }
 
-
     @SneakyThrows
-    public void forEachSystemAgent(BiConsumer<String, AgentCodeAndLoader> agentCodeAndLoaderConsumer) {
+    public void forEachSystemAgent(
+            BiConsumer<String, AgentCodeAndLoader> agentCodeAndLoaderConsumer) {
 
         List<ClassLoader> candidateClassloaders =
                 new ArrayList<>(agentPackageLoader.getAllClassloaders());
@@ -141,13 +140,14 @@ public class AgentCodeRegistry {
         for (ClassLoader classLoader : candidateClassloaders) {
             ServiceLoader<AgentCodeProvider> loader =
                     ServiceLoader.load(AgentCodeProvider.class, classLoader);
-            final List<ServiceLoader.Provider<AgentCodeProvider>> providers = loader.stream().toList();
+            final List<ServiceLoader.Provider<AgentCodeProvider>> providers =
+                    loader.stream().toList();
             for (ServiceLoader.Provider<AgentCodeProvider> provider : providers) {
                 final AgentCodeProvider agentCodeProvider = provider.get();
                 for (String type : agentCodeProvider.getSupportedAgentTypes()) {
                     try (final AgentCodeAndLoader agentCodeAndLoader =
-                                 createAgentCodeAndLoaderInstance(type, classLoader,
-                                         agentCodeProvider);) {
+                            createAgentCodeAndLoaderInstance(
+                                    type, classLoader, agentCodeProvider); ) {
                         agentCodeAndLoaderConsumer.accept(type, agentCodeAndLoader);
                     }
                 }

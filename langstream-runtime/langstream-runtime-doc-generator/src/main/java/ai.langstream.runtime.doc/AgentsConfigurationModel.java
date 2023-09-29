@@ -18,4 +18,5 @@ package ai.langstream.runtime.doc;
 import ai.langstream.api.runner.code.doc.AgentConfigurationModel;
 import java.util.Map;
 
-public record AgentsConfigurationModel(String version, Map<String, AgentConfigurationModel> agents) {}
+public record AgentsConfigurationModel(
+        String version, Map<String, AgentConfigurationModel> agents) {}

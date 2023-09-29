@@ -91,7 +91,7 @@ class ReRankAgentTest {
                             "key",
                             Map.of(
                                     "query",
-                                    "tell my a number",
+                                    "tell my a number, for instance two",
                                     "query_embeddings",
                                     List.of(3d, 4d),
                                     "query_results",
@@ -100,10 +100,20 @@ class ReRankAgentTest {
                                             Map.of("text", "two", "embeddings", List.of(3d, 4d)))));
             Record result = agent.processRecord(record).get(0);
             log.info("{}", result.value());
-            assertEquals(
-                    """
-                                {query_embeddings=[3.0, 4.0], query_results=[{embeddings=[1.0, 2.0], text=one}, {embeddings=[3.0, 4.0], text=two}], query=tell my a number, output_field=[{embeddings=[1.0, 2.0], text=one}, {embeddings=[3.0, 4.0], text=two}]}""",
-                    result.value().toString());
+            Map<String, Object> parsedResult = (Map<String, Object>) result.value();
+
+            assertEquals(List.of(3d, 4d), parsedResult.get("query_embeddings"));
+            List<Map<String, Object>> queryResults =
+                    (List<Map<String, Object>>) parsedResult.get("query_results");
+            assertEquals(Map.of("text", "one", "embeddings", List.of(1d, 2d)), queryResults.get(0));
+            assertEquals(Map.of("text", "two", "embeddings", List.of(3d, 4d)), queryResults.get(1));
+
+            List<Map<String, Object>> outputField =
+                    (List<Map<String, Object>>) parsedResult.get("output_field");
+            assertEquals(Map.of("text", "two", "embeddings", List.of(3d, 4d)), outputField.get(0));
+            assertEquals(Map.of("text", "one", "embeddings", List.of(1d, 2d)), outputField.get(1));
+
+            assertEquals("tell my a number, for instance two", parsedResult.get("query"));
         }
     }
 }

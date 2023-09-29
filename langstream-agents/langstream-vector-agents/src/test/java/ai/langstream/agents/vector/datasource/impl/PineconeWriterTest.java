@@ -94,7 +94,7 @@ class PineconeWriterTest {
                     }
                 """;
         List<Object> params = List.of(vector, genre);
-        List<Map<String, String>> results = implementation.fetchData(query, params);
+        List<Map<String, Object>> results = implementation.fetchData(query, params);
         log.info("Results: {}", results);
 
         assertEquals(results.size(), 1);

@@ -143,7 +143,7 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"documentId\":2,\"queryresult\":{\"name\":\"A\",\"description\":\"A description\",\"id\":\"1\"},\"name\":\"A\",\"description\":\"A description\"}"));
+                                "{\"documentId\":2,\"queryresult\":{\"name\":\"A\",\"description\":\"A description\",\"id\":1},\"name\":\"A\",\"description\":\"A description\"}"));
 
                 CqlSessionBuilder builder = new CqlSessionBuilder();
                 builder.addContactPoint(cassandra.getContactPoint());

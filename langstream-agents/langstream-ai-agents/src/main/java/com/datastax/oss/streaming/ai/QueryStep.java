@@ -80,7 +80,7 @@ public class QueryStep implements TransformStep {
                     }
                 });
 
-        List<Map<String, String>> results = dataSource.fetchData(query, params);
+        List<Map<String, Object>> results = dataSource.fetchData(query, params);
         if (results == null) {
             results = List.of();
         }

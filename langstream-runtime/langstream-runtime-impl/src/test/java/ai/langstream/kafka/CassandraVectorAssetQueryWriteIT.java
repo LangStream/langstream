@@ -150,7 +150,7 @@ class CassandraVectorAssetQueryWriteIT extends AbstractApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"documentId\":2,\"embeddings\":[0.1,0.2,0.3,0.4,0.5],\"queryresult\":{\"embeddings\":null,\"name\":\"A\",\"description\":\"A description\",\"id\":\"1\"},\"name\":\"A\",\"description\":\"A description\"}"));
+                                "{\"documentId\":2,\"embeddings\":[0.1,0.2,0.3,0.4,0.5],\"queryresult\":{\"embeddings\":null,\"name\":\"A\",\"description\":\"A description\",\"id\":1},\"name\":\"A\",\"description\":\"A description\"}"));
 
                 CqlSessionBuilder builder = new CqlSessionBuilder();
                 builder.addContactPoint(cassandra.getContactPoint());

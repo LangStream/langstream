@@ -7,3 +7,4 @@ ai.langstream.runtime.impl.k8s.agents.KafkaConnectAgentsProvider
 ai.langstream.runtime.impl.k8s.agents.KubernetesCompositeAgentProvider
 ai.langstream.runtime.impl.k8s.agents.IdentityAgentProvider
 ai.langstream.runtime.impl.k8s.agents.QueryVectorDBAgentProvider
+ai.langstream.runtime.impl.k8s.agents.ReRankAgentProvider

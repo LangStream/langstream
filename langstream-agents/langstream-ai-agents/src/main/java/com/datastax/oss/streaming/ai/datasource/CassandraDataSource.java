@@ -92,7 +92,7 @@ public class CassandraDataSource implements QueryStepDataSource {
     }
 
     @Override
-    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
         if (log.isDebugEnabled()) {
             log.debug(
                     "Executing query {} with params {} ({})",
@@ -134,7 +134,7 @@ public class CassandraDataSource implements QueryStepDataSource {
         return all.stream()
                 .map(
                         r -> {
-                            Map<String, String> result = new HashMap<>();
+                            Map<String, Object> result = new HashMap<>();
                             ColumnDefinitions columnDefinitions = r.getColumnDefinitions();
                             for (int i = 0; i < columnDefinitions.size(); i++) {
                                 String name = columnDefinitions.get(i).getName().toString();
@@ -146,7 +146,7 @@ public class CassandraDataSource implements QueryStepDataSource {
                                             object != null ? object.getClass().toString() : "null",
                                             object);
                                 }
-                                result.put(name, object != null ? object.toString() : null);
+                                result.put(name, object);
                             }
                             return result;
                         })

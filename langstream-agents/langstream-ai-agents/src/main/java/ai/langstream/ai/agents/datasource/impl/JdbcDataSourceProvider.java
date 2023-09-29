@@ -66,7 +66,7 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
 
         @Override
         @SneakyThrows
-        public List<Map<String, String>> fetchData(String query, List<Object> params) {
+        public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             PreparedStatement ps = connection.prepareStatement(query);
             for (int i = 0; i < params.size(); i++) {
                 ps.setObject(i + 1, params.get(i));
@@ -74,13 +74,12 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
             try (ResultSet resultSet = ps.executeQuery()) {
                 ResultSetMetaData metaData = resultSet.getMetaData();
                 int numColumns = metaData.getColumnCount();
-                List<Map<String, String>> results = new ArrayList<>();
+                List<Map<String, Object>> results = new ArrayList<>();
                 while (resultSet.next()) {
-                    Map<String, String> result = new HashMap<>();
+                    Map<String, Object> result = new HashMap<>();
                     for (int i = 1; i <= numColumns; i++) {
                         Object value = resultSet.getObject(i);
-                        result.put(
-                                metaData.getColumnName(i), value != null ? value.toString() : null);
+                        result.put(metaData.getColumnName(i), value);
                     }
                     results.add(result);
                 }

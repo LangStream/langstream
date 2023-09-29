@@ -35,7 +35,7 @@ public class CassandraDataSourceTest {
         String query = "select * from vsearch.products where id=?";
         List<Object> params = new ArrayList<>();
         params.add(1);
-        List<Map<String, String>> maps = source.fetchData(query, params);
+        List<Map<String, Object>> maps = source.fetchData(query, params);
         log.info("maps {}", maps);
     }
 
@@ -48,7 +48,7 @@ public class CassandraDataSourceTest {
         String query = "SELECT * FROM vsearch.products ORDER BY item_vector ANN OF ? LIMIT 1;";
         List<Object> params = new ArrayList<>();
         params.add(Arrays.asList(0.1, 0.2, 0.3, 0.4, 0.5));
-        List<Map<String, String>> maps = source.fetchData(query, params);
+        List<Map<String, Object>> maps = source.fetchData(query, params);
         log.info("maps {}", maps);
     }
 

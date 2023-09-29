@@ -422,6 +422,17 @@
             <configuration>
               <artifactItems>
 
+                <!-- JDBC driver for tests -->
+
+                <artifactItem>
+                  <groupId>org.herddb</groupId>
+                  <artifactId>herddb-jdbc</artifactId>
+                  <classifier>thin</classifier>
+                  <version>0.28.0</version>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/test-jdbc-drivers/java/lib</outputDirectory>
+                </artifactItem>
+
                 <!-- main implementation for the Agents, Assets and TopicConnectionsRuntime-->
 
                 <artifactItem>

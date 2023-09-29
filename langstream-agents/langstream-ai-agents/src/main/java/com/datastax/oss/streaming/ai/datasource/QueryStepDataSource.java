@@ -23,7 +23,7 @@ public interface QueryStepDataSource extends AutoCloseable {
 
     default void initialize(Map<String, Object> config) throws Exception {}
 
-    default List<Map<String, String>> fetchData(String query, List<Object> params) {
+    default List<Map<String, Object>> fetchData(String query, List<Object> params) {
         return Collections.emptyList();
     }
 

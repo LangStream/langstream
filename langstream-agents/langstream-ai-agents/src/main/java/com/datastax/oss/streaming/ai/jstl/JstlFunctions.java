@@ -87,7 +87,7 @@ public class JstlFunctions {
         return JstlTypeConverter.INSTANCE.coerceToLong(input);
     }
 
-    public static Object toListOfFloat(Object input) {
+    public static List<Float> toListOfFloat(Object input) {
         if (input == null) {
             return null;
         }

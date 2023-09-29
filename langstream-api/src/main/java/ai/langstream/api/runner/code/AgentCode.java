@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /** Body of the agent */
-public interface AgentCode {
+public interface AgentCode extends AutoCloseable {
 
     String agentId();
 
@@ -48,6 +48,7 @@ public interface AgentCode {
 
     default void start() throws Exception {}
 
+    @Override
     default void close() throws Exception {}
 
     /**

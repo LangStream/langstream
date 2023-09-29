@@ -15,25 +15,14 @@
  */
 package ai.langstream.ai.agents;
 
+import ai.langstream.ai.agents.rerank.ReRankAgent;
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
 import java.util.Set;
 
-public class GenAIAgentCodeProvider implements AgentCodeProvider {
+public class ReRankAgentCodeProvider implements AgentCodeProvider {
 
-    private static final Set<String> STEP_TYPES =
-            Set.of(
-                    "drop-fields",
-                    "merge-key-value",
-                    "unwrap-key-value",
-                    "cast",
-                    "flatten",
-                    "drop",
-                    "compute",
-                    "compute-ai-embeddings",
-                    "query",
-                    "ai-chat-completions",
-                    "ai-text-completions");
+    private static final Set<String> STEP_TYPES = Set.of("re-rank");
 
     @Override
     public boolean supports(String agentType) {
@@ -42,6 +31,6 @@ public class GenAIAgentCodeProvider implements AgentCodeProvider {
 
     @Override
     public AgentCode createInstance(String agentType) {
-        return new GenAIToolKitAgent();
+        return new ReRankAgent();
     }
 }

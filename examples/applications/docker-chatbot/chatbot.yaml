@@ -40,10 +40,24 @@ pipeline:
     type: "query-vector-db"
     configuration:
       datasource: "JdbcDatasource"
-      query: "SELECT text FROM documents ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) DESC LIMIT 5"
+      query: "SELECT text,embeddings_vector FROM documents ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) DESC LIMIT 20"
       fields:
         - "value.question_embeddings"
       output-field: "value.related_documents"
+  - name: "re-rank documents with MMR"
+    type: "re-rank"
+    configuration:
+      max: 5 # keep only the top 5 documents, because we have an hard limit on the prompt size
+      field: "value.related_documents"
+      query-text: "value.question"
+      query-embeddings: "value.question_embeddings"
+      output-field: "value.related_documents"
+      text-field: "record.text"
+      embeddings-field: "record.embeddings_vector"
+      algorithm: "MMR"
+      lambda: 0.5
+      k1: 1.5
+      b: 0.7
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
 

@@ -134,7 +134,7 @@ public class JdbcWriterTest {
                 String query =
                         "SELECT name,text from documents order by cosine_similarity(vector,cast(? as float array)) DESC";
                 List<Object> params = List.of(vector);
-                List<Map<String, String>> results = datasource.fetchData(query, params);
+                List<Map<String, Object>> results = datasource.fetchData(query, params);
                 log.info("Results: {}", results);
 
                 assertEquals(1, results.size());
@@ -154,7 +154,7 @@ public class JdbcWriterTest {
                 writer.upsert(recordUpdated, Map.of()).get();
 
                 List<Object> params2 = List.of(vector2);
-                List<Map<String, String>> results2 = datasource.fetchData(query, params2);
+                List<Map<String, Object>> results2 = datasource.fetchData(query, params2);
                 log.info("Results: {}", results2);
 
                 assertEquals(1, results2.size());
@@ -165,7 +165,7 @@ public class JdbcWriterTest {
                         SimpleRecord.of("{\"name\": \"do'c1\", \"chunk_id\": 1}", null);
                 writer.upsert(recordDelete, Map.of()).get();
 
-                List<Map<String, String>> results3 = datasource.fetchData(query, params2);
+                List<Map<String, Object>> results3 = datasource.fetchData(query, params2);
                 log.info("Results: {}", results3);
                 assertEquals(0, results3.size());
 

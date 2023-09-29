@@ -67,7 +67,7 @@ jobs:
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "langstream-cli/target/langstream-*.zip,helm/crds/*.yml,target/mini-langstream-*.zip,langstream-runtime/langstream-runtime-impl/target/api.json"
+          artifacts: "langstream-cli/target/langstream-*.zip,helm/crds/*.yml,target/mini-langstream-*.zip,langstream-webservice/target/api.json"
           token: ${{ secrets.GITHUB_TOKEN }}
           generateReleaseNotes: true
           prerelease: false

@@ -424,7 +424,7 @@ class GenAIAgentsTest {
                                   - name: "dropfields"
                                     type: "drop-fields"
                                     configuration:
-                                      fields: 
+                                      fields:
                                       - "embeddings"
                                       part: "value"
                                   - name: "drop"

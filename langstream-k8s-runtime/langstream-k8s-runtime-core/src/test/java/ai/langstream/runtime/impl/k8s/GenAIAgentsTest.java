@@ -177,7 +177,8 @@ class GenAIAgentsTest {
                                     type: "drop-fields"
                                     output: "output-topic"
                                     configuration:
-                                      fields: "embeddings"
+                                      fields:
+                                      - "embeddings"
                                       part: "value"
                                 """),
                                 buildInstanceYaml(),
@@ -228,7 +229,7 @@ class GenAIAgentsTest {
         assertEquals(1, steps.size());
         Map<String, Object> step2 = steps.get(0);
         assertEquals("drop-fields", step2.get("type"));
-        assertEquals("embeddings", step2.get("fields"));
+        assertEquals(List.of("embeddings"), step2.get("fields"));
         assertEquals("value", step2.get("part"));
 
         // verify that the intermediate topic is not created
@@ -293,7 +294,8 @@ class GenAIAgentsTest {
                                     input: "log-topic"
                                     output: "output-topic"
                                     configuration:
-                                      fields: "embeddings"
+                                      fields:
+                                      - "embeddings"
                                       part: "value"
                                 """),
                                 buildInstanceYaml(),
@@ -354,7 +356,7 @@ class GenAIAgentsTest {
             assertEquals(1, steps.size());
             Map<String, Object> step2 = steps.get(0);
             assertEquals("drop-fields", step2.get("type"));
-            assertEquals("embeddings", step2.get("fields"));
+            assertEquals(List.of("embeddings"), step2.get("fields"));
             assertEquals("value", step2.get("part"));
         }
 
@@ -422,7 +424,8 @@ class GenAIAgentsTest {
                                   - name: "dropfields"
                                     type: "drop-fields"
                                     configuration:
-                                      fields: "embeddings"
+                                      fields: 
+                                      - "embeddings"
                                       part: "value"
                                   - name: "drop"
                                     type: "drop"

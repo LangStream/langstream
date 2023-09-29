@@ -387,6 +387,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                         agentConfiguration,
                         dataSourceConfigurationInjector,
                         topicConfigurationGenerator);
+
+        step.remove("composable");
+
         steps.add(step);
     }
 

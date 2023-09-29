@@ -25,6 +25,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>langstream-runtime-api</artifactId>
+  <name>LangStream - Runtime API</name>
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>

@@ -25,7 +25,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>langstream-runtime</artifactId>
   <packaging>pom</packaging>
-  <name>LangStream - Pod Runtime</name>
+  <name>LangStream - Runtime</name>
   <modules>
     <module>langstream-runtime-api</module>
     <module>langstream-runtime-base-docker-image</module>

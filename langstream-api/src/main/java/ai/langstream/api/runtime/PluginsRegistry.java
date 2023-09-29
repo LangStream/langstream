@@ -15,7 +15,9 @@
  */
 package ai.langstream.api.runtime;
 
+import java.util.List;
 import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -43,6 +45,13 @@ public class PluginsRegistry {
                                                         + " for cluster type "
                                                         + clusterRuntime.getClusterType()));
         return agentRuntimeProviderProvider.get();
+    }
+
+    public List<AgentNodeProvider> lookupAvailableAgentImplementations(
+            ComputeClusterRuntime clusterRuntime) {
+        // TODO: cluster runtime '
+        ServiceLoader<AgentNodeProvider> loader = ServiceLoader.load(AgentNodeProvider.class);
+        return loader.stream().map(p -> p.get()).collect(Collectors.toList());
     }
 
     public AssetNodeProvider lookupAssetImplementation(

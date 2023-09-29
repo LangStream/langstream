@@ -15,6 +15,7 @@
  */
 package ai.langstream.impl.agents.ai;
 
+import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
@@ -25,11 +26,15 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.impl.agents.ai.steps.BaseGenAIStepConfiguration;
+import ai.langstream.impl.agents.ai.steps.DropFieldsConfiguration;
 import ai.langstream.impl.common.AbstractAgentProvider;
+import ai.langstream.impl.uti.ClassConfigValidator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -37,19 +42,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
-    protected static final StepConfigurationInitializer DROP_FIELDS =
-            new StepConfigurationInitializer() {
-                @Override
-                public void generateSteps(
-                        Map<String, Object> step,
-                        Map<String, Object> originalConfiguration,
-                        AgentConfiguration agentConfiguration,
-                        DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                        TopicConfigurationGenerator topicConfigurationGenerator) {
-                    requiredField(step, agentConfiguration, originalConfiguration, "fields");
-                    optionalField(step, agentConfiguration, originalConfiguration, "part", null);
-                }
-            };
     protected static final StepConfigurationInitializer UNWRAP_KEY_VALUE =
             new StepConfigurationInitializer() {
                 @Override
@@ -287,13 +279,21 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             List.of(SERVICE_VERTEX, SERVICE_HUGGING_FACE, SERVICE_OPEN_AI);
 
     static {
+        final StepConfigurationInitializer baseConfig =
+                new StepConfigurationInitializer() {
+                    @Override
+                    public Class getAgentConfigurationModelClass() {
+                        return BaseGenAIStepConfiguration.class;
+                    }
+                };
+
         final Map<String, StepConfigurationInitializer> steps = new HashMap<>();
-        steps.put("drop-fields", DROP_FIELDS);
-        steps.put("merge-key-value", new StepConfigurationInitializer() {});
+        steps.put("drop-fields", DropFieldsConfiguration.STEP);
+        steps.put("merge-key-value", baseConfig);
         steps.put("unwrap-key-value", UNWRAP_KEY_VALUE);
         steps.put("cast", CAST);
         steps.put("flatten", FLATTEN);
-        steps.put("drop", new StepConfigurationInitializer() {});
+        steps.put("drop", baseConfig);
         steps.put("compute", COMPUTE);
         steps.put("compute-ai-embeddings", COMPUTE_AI_EMBEDDINGS);
         steps.put("query", QUERY);
@@ -315,13 +315,35 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         Map<String, Object> generateTopicConfiguration(String topicName);
     }
 
-    private interface StepConfigurationInitializer {
+    public interface StepConfigurationInitializer {
+        default Class getAgentConfigurationModelClass() {
+            return null;
+        }
+
         default void generateSteps(
                 Map<String, Object> step,
                 Map<String, Object> originalConfiguration,
                 AgentConfiguration agentConfiguration,
                 DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                TopicConfigurationGenerator topicConfigurationGenerator) {}
+                TopicConfigurationGenerator topicConfigurationGenerator) {
+            final Class modelClazz = getAgentConfigurationModelClass();
+            ClassConfigValidator.validateAgentModelFromClass(
+                    agentConfiguration, modelClazz, originalConfiguration);
+            ClassConfigValidator.generateAgentModelFromClass(modelClazz)
+                    .getProperties()
+                    .entrySet()
+                    .forEach(
+                            e -> {
+                                Object value = originalConfiguration.get(e.getKey());
+                                if (value == null
+                                        && !e.getValue().isRequired()
+                                        && e.getValue().getDefaultValue() != null) {
+                                    step.put(e.getKey(), e.getValue().getDefaultValue());
+                                } else {
+                                    step.put(e.getKey(), value);
+                                }
+                            });
+        }
     }
 
     protected void generateSteps(
@@ -365,6 +387,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                         agentConfiguration,
                         dataSourceConfigurationInjector,
                         topicConfigurationGenerator);
+
+        step.remove("composable");
+
         steps.add(step);
     }
 
@@ -515,5 +540,20 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             step.put(name, newConfiguration.get(name));
             return (T) newConfiguration.get(name);
         }
+    }
+
+    @Override
+    public Map<String, AgentConfigurationModel> generateSupportedTypesDocumentation() {
+        Map<String, AgentConfigurationModel> result = new LinkedHashMap<>();
+        STEP_TYPES.forEach(
+                (type, stepType) -> {
+                    final Class modelClass = stepType.getAgentConfigurationModelClass();
+                    result.put(
+                            type,
+                            modelClass == null
+                                    ? new AgentConfigurationModel()
+                                    : ClassConfigValidator.generateAgentModelFromClass(modelClass));
+                });
+        return result;
     }
 }

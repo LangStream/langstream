@@ -480,7 +480,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
-                                Map.of("config1", true),
+                                Map.of("when", "true"),
                                 null,
                                 null)),
                 List.of(
@@ -490,7 +490,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
-                                Map.of("config1", false),
+                                Map.of("when", "false"),
                                 null,
                                 null)),
                 true);
@@ -503,7 +503,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
-                                Map.of("config1", true),
+                                Map.of("when", "true"),
                                 null,
                                 null)),
                 List.of(
@@ -513,7 +513,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
-                                Map.of("newConfig", false),
+                                Map.of("composable", "false"),
                                 null,
                                 null)),
                 true);

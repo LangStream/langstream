@@ -28,6 +28,13 @@ public class SerializationUtil {
             new ObjectMapper()
                     .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
                     .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+
+    private static final ObjectMapper jsonPrettyPrint =
+            new ObjectMapper()
+                    .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
+                    .configure(SerializationFeature.INDENT_OUTPUT, true)
+                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
     private static final ObjectMapper yamlMapper =
             new ObjectMapper(
                             YAMLFactory.builder()
@@ -50,6 +57,11 @@ public class SerializationUtil {
     @SneakyThrows
     public static String writeAsJson(Object object) {
         return mapper.writeValueAsString(object);
+    }
+
+    @SneakyThrows
+    public static String prettyPrintJson(Object object) {
+        return jsonPrettyPrint.writeValueAsString(object);
     }
 
     @SneakyThrows

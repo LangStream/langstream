@@ -16,7 +16,7 @@
 package ai.langstream.webservice.doc;
 
 import ai.langstream.api.doc.AgentConfigurationModel;
-import ai.langstream.api.doc.AgentsConfigurationModel;
+import ai.langstream.api.doc.ApiConfigurationModel;
 import ai.langstream.api.runtime.AgentNodeProvider;
 import ai.langstream.api.runtime.PluginsRegistry;
 import java.nio.file.Path;
@@ -28,20 +28,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DocumentationGenerator {
 
-    public static void generateAgentDocsToFile(Path file, String version) throws Exception {}
-
-    public static AgentsConfigurationModel generateAgentDocs(String version) {
+    public static ApiConfigurationModel generateDocs(String version) {
         Map<String, AgentConfigurationModel> agents = new TreeMap<>();
         final List<AgentNodeProvider> nodes =
                 new PluginsRegistry().lookupAvailableAgentImplementations(null);
         for (AgentNodeProvider node : nodes) {
             agents.putAll(node.generateSupportedTypesDocumentation());
         }
-        return new AgentsConfigurationModel(version, agents);
+        return new ApiConfigurationModel(version, agents);
     }
-
-    /*
-
-    */
-
 }

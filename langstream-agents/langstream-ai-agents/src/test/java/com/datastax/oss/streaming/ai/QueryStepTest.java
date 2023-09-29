@@ -67,7 +67,7 @@ public class QueryStepTest {
         QueryStepDataSource dataSource =
                 new QueryStepDataSource() {
                     @Override
-                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
                         assertEquals(query, "select 1");
                         List<Object> expectedParams =
                                 List.of(
@@ -123,7 +123,7 @@ public class QueryStepTest {
         QueryStepDataSource dataSource =
                 new QueryStepDataSource() {
                     @Override
-                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
                         assertEquals(query, "select 1");
                         List<Object> expectedParams =
                                 List.of("Jane", "Doe", 42, 19359, 1672700645006L, 83045006);
@@ -173,7 +173,7 @@ public class QueryStepTest {
         QueryStepDataSource dataSource =
                 new QueryStepDataSource() {
                     @Override
-                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
                         assertEquals(query, "select 1");
                         List<Object> expectedParams =
                                 List.of("a", 42.0, true, List.of("b", "c"), List.of(43.0, 44.0));
@@ -228,7 +228,7 @@ public class QueryStepTest {
         QueryStepDataSource dataSource =
                 new QueryStepDataSource() {
                     @Override
-                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
                         assertEquals(query, "select 1");
                         List<Object> expectedParams = List.of("value1", "key2");
                         assertEquals(params, expectedParams);
@@ -253,7 +253,7 @@ public class QueryStepTest {
         QueryStepDataSource dataSource =
                 new QueryStepDataSource() {
                     @Override
-                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
                         assertEquals(query, "select 1");
                         List<Object> expectedParams = List.of("value1", "key2");
                         assertEquals(params, expectedParams);
@@ -294,7 +294,7 @@ public class QueryStepTest {
         QueryStepDataSource dataSource =
                 new QueryStepDataSource() {
                     @Override
-                    public List<Map<String, String>> fetchData(String query, List<Object> params) {
+                    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
                         List<Object> expectedParams = List.of();
                         assertEquals(params, expectedParams);
                         switch (query) {

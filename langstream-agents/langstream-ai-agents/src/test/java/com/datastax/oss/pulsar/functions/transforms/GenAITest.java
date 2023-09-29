@@ -317,7 +317,7 @@ public class GenAITest {
 
                         return new QueryStepDataSource() {
                             @Override
-                            public List<Map<String, String>> fetchData(
+                            public List<Map<String, Object>> fetchData(
                                     String query, List<Object> params) {
                                 assertEquals(
                                         "select * from products where description like ?", query);

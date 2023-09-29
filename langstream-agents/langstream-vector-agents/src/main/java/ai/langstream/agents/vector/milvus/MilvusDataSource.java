@@ -112,7 +112,7 @@ public class MilvusDataSource implements DataSourceProvider {
         }
 
         @Override
-        public List<Map<String, String>> fetchData(String query, List<Object> params) {
+        public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             try {
                 SearchSimpleParam searchParam =
                         buildObjectFromJson(
@@ -141,12 +141,11 @@ public class MilvusDataSource implements DataSourceProvider {
                 return data.getRowRecords().stream()
                         .map(
                                 r -> {
-                                    Map<String, String> result = new HashMap<>();
+                                    Map<String, Object> result = new HashMap<>();
                                     r.getFieldValues()
                                             .forEach(
                                                     (k, v) -> {
-                                                        result.put(
-                                                                k, v == null ? null : v.toString());
+                                                        result.put(k, v);
                                                     });
                                     return result;
                                 })

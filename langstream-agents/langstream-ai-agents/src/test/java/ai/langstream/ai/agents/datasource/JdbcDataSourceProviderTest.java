@@ -54,14 +54,14 @@ public class JdbcDataSourceProviderTest {
             statement.execute("INSERT INTO products (id, name, price) VALUES (2, 'product2', 102)");
         }
 
-        List<Map<String, String>> results =
+        List<Map<String, Object>> results =
                 implementation.fetchData(
                         "SELECT name, price from PRODUCTS where id > ?", List.of(1));
         assertEquals(results.size(), 1);
         log.info("Results: {}", results);
         // H2 returns column names in upper case
         assertEquals("product2", results.get(0).get("NAME"));
-        assertEquals("102", results.get(0).get("PRICE"));
+        assertEquals(102, results.get(0).get("PRICE"));
 
         implementation.close();
     }

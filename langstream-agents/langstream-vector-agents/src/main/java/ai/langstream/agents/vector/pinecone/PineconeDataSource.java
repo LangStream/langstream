@@ -116,13 +116,13 @@ public class PineconeDataSource implements DataSourceProvider {
         }
 
         @Override
-        public List<Map<String, String>> fetchData(String query, List<Object> params) {
+        public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             try {
                 Query parsedQuery = buildObjectFromJson(query, Query.class, params);
 
                 QueryRequest batchQueryRequest = mapQueryToQueryRequest(parsedQuery);
 
-                List<Map<String, String>> results;
+                List<Map<String, Object>> results;
 
                 if (clientConfig.getEndpoint() == null) {
                     results = executeQueryUsingClien(batchQueryRequest, parsedQuery);
@@ -135,9 +135,9 @@ public class PineconeDataSource implements DataSourceProvider {
             }
         }
 
-        private List<Map<String, String>> executeQueryWithMockHttpService(
+        private List<Map<String, Object>> executeQueryWithMockHttpService(
                 QueryRequest batchQueryRequest) throws IOException, InterruptedException {
-            List<Map<String, String>> results;
+            List<Map<String, Object>> results;
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request =
                     HttpRequest.newBuilder(URI.create(clientConfig.getEndpoint()))
@@ -150,9 +150,9 @@ public class PineconeDataSource implements DataSourceProvider {
         }
 
         @NotNull
-        private List<Map<String, String>> executeQueryUsingClien(
+        private List<Map<String, Object>> executeQueryUsingClien(
                 QueryRequest batchQueryRequest, Query parsedQuery) {
-            List<Map<String, String>> results;
+            List<Map<String, Object>> results;
             QueryResponse queryResponse = connection.getBlockingStub().query(batchQueryRequest);
 
             if (log.isDebugEnabled()) {
@@ -169,7 +169,7 @@ public class PineconeDataSource implements DataSourceProvider {
                                             .forEach(
                                                     match -> {
                                                         String id = match.getId();
-                                                        Map<String, String> row = new HashMap<>();
+                                                        Map<String, Object> row = new HashMap<>();
 
                                                         if (parsedQuery.includeMetadata) {
                                                             // put all the metadata

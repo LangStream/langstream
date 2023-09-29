@@ -43,6 +43,8 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
     private String outputField;
     private String algorithm = "none";
 
+    private int max;
+
     private double mmr_lambda;
 
     // BM25 parameters
@@ -80,7 +82,7 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         String embeddingsInRecord =
                 ConfigurationUtils.getString("embeddings-field", "", configuration);
         String textInRecord = ConfigurationUtils.getString("text-field", "", configuration);
-
+        max = ConfigurationUtils.getInt("max", 100, configuration);
         mmr_lambda = ConfigurationUtils.getDouble("lambda", 0.5, configuration);
         bm25_k1 = ConfigurationUtils.getDouble("k1", 1.5, configuration);
         bm25_b = ConfigurationUtils.getDouble("b", 0.75, configuration);
@@ -115,8 +117,6 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
                     context.setRecordObject(o);
                     String text = recordTextAccessor.evaluate(context);
                     float[] embeddings = toArrayOfFloat(recordEmbeddingsAccessor.evaluate(context));
-                    log.info("Text: {}", text);
-                    log.info("Embeddings: {}", embeddings);
                     if (embeddings == null || text == null) {
                         throw new IllegalArgumentException(
                                 "Text or embeddings are null in record " + o);
@@ -137,7 +137,7 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
             Function<Object, TextWithEmbeddings> recordExtractor) {
         switch (algorithm) {
             case ALGORITHM_MMR:
-                return rerankMMR(currentList, query, mmr_lambda, bm25_k1, bm25_b, recordExtractor);
+                return rerankMMR(currentList, max, query, mmr_lambda, bm25_k1, bm25_b, recordExtractor);
             case ALGORITHM_NONE:
                 return currentList;
             default:
@@ -147,6 +147,7 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
 
     private static List<Object> rerankMMR(
             List<Object> documents,
+            int max,
             TextWithEmbeddings query,
             double lambda,
             double bm25_k1,
@@ -155,7 +156,8 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         List<Object> rankedDocuments = new ArrayList<>();
         List<Object> remainingDocuments = new ArrayList<>(documents);
 
-        while (!remainingDocuments.isEmpty()) {
+        while (!remainingDocuments.isEmpty()
+                && rankedDocuments.size() < max) {
             Object topDocument =
                     calculateTopDocumentMMR_BM25_CosineSimilarity(
                             remainingDocuments,
@@ -211,9 +213,6 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
             TextWithEmbeddings document,
             List<Object> rankedDocuments,
             Function<Object, TextWithEmbeddings> textExtractor) {
-        log.info("Calculating diversity for document: {}", document);
-        log.info("Other documents: {}", rankedDocuments);
-
         if (rankedDocuments.isEmpty()) {
             // there is no document, the diversity is 0
             return 0;

@@ -481,6 +481,8 @@ class KafkaConsumerTest {
                                         new SimpleRecord.SimpleHeader("h2", "bar")))
                         .join();
 
+                producer.write(generateRecord(List.of("one", "two"), Map.of("k", "v"))).join();
+
                 try (KafkaConsumerWrapper consumer =
                         (KafkaConsumerWrapper)
                                 runtime.createConsumer(

@@ -15,14 +15,17 @@
  */
 package ai.langstream.kafka.runner;
 
+import static java.util.Map.entry;
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -51,16 +55,16 @@ import org.apache.kafka.common.serialization.UUIDSerializer;
 class KafkaProducerWrapper implements TopicProducer {
 
     final Map<Class<?>, Serializer<?>> BASE_SERIALIZERS =
-            Map.of(
-                    String.class, new StringSerializer(),
-                    Boolean.class, new BooleanSerializer(),
-                    Short.class, new ShortSerializer(),
-                    Integer.class, new IntegerSerializer(),
-                    Long.class, new LongSerializer(),
-                    Float.class, new FloatSerializer(),
-                    Double.class, new DoubleSerializer(),
-                    byte[].class, new ByteArraySerializer(),
-                    UUID.class, new UUIDSerializer());
+            Map.ofEntries(
+                    entry(String.class, new StringSerializer()),
+                    entry(Boolean.class, new BooleanSerializer()),
+                    entry(Short.class, new ShortSerializer()),
+                    entry(Integer.class, new IntegerSerializer()),
+                    entry(Long.class, new LongSerializer()),
+                    entry(Float.class, new FloatSerializer()),
+                    entry(Double.class, new DoubleSerializer()),
+                    entry(byte[].class, new ByteArraySerializer()),
+                    entry(UUID.class, new UUIDSerializer()));
 
     final Map<Class<?>, Serializer<?>> keySerializers = new ConcurrentHashMap<>(BASE_SERIALIZERS);
     final Map<Class<?>, Serializer<?>> valueSerializers = new ConcurrentHashMap<>(BASE_SERIALIZERS);
@@ -226,21 +230,41 @@ class KafkaProducerWrapper implements TopicProducer {
 
     private Serializer<?> getSerializer(
             Class<?> r, Map<Class<?>, Serializer<?>> serializerMap, Boolean isKey) {
-        Serializer<?> result = serializerMap.get(r);
-        if (result == null) {
-            if (GenericRecord.class.isAssignableFrom(r) && isKey != null) { // no AVRO in headers
-                KafkaAvroSerializer kafkaAvroSerializer = new KafkaAvroSerializer();
-                kafkaAvroSerializer.configure(copy, isKey);
-                serializerMap.put(r, kafkaAvroSerializer);
-                return kafkaAvroSerializer;
-            }
-            throw new IllegalArgumentException("Cannot find a serializer for " + r);
-        }
-        return result;
+        return serializerMap.computeIfAbsent(
+                r,
+                k -> {
+                    if (GenericRecord.class.isAssignableFrom(k)
+                            && isKey != null) { // no AVRO in headers
+                        KafkaAvroSerializer kafkaAvroSerializer = new KafkaAvroSerializer();
+                        kafkaAvroSerializer.configure(copy, isKey);
+                        serializerMap.put(r, kafkaAvroSerializer);
+                        return kafkaAvroSerializer;
+                    }
+                    if (Map.class.isAssignableFrom(k)) {
+                        return new ObjectToJsonSerializer();
+                    }
+                    if (Collection.class.isAssignableFrom(k)) {
+                        return new ObjectToJsonSerializer();
+                    }
+                    throw new IllegalArgumentException("Cannot find a serializer for " + r);
+                });
     }
 
     @Override
     public String toString() {
         return "KafkaProducerWrapper{" + "topicName='" + topicName + '\'' + '}';
+    }
+
+    private static class ObjectToJsonSerializer implements Serializer<Object> {
+        private static final ObjectMapper MAPPER = new ObjectMapper();
+
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {}
+
+        @Override
+        @SneakyThrows
+        public byte[] serialize(String topic, Object data) {
+            return MAPPER.writeValueAsBytes(data);
+        }
     }
 }

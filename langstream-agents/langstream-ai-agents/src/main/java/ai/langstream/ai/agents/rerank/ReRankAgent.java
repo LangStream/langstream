@@ -185,12 +185,16 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         Object topDocument = null;
         double topScore = Double.NEGATIVE_INFINITY;
 
-        List<TextWithEmbeddings> texts = remainingDocuments.stream().map(recordExtractor).toList();
+        List<TextWithEmbeddings> texts = remainingDocuments
+                .stream()
+                .map(recordExtractor)
+                .filter(t -> t.text != null && t.embeddings != null && !t.text.isEmpty() && t.embeddings.length > 0)
+                .toList();
 
         double[] bm25scores = calculateBM25Scores(texts, query, bm25_k1, bm25_b);
 
-        for (int i = 0; i < remainingDocuments.size(); i++) {
-            Object documentObject = remainingDocuments.get(i);
+        for (int i = 0; i < texts.size(); i++) {
+            Object documentObject = texts.get(i);
             TextWithEmbeddings document = texts.get(i);
             double bm25score = bm25scores[i];
             double relevance = bm25score;

@@ -62,7 +62,7 @@ jobs:
           ./mini-langstream/package.sh $version
       - name: Generate agents doc
         run: |
-          ./mvnw package -pl langstream-runtime/langstream-runtime-impl -PgenerateDoc,skipPython -DskipTests -Dspotless.skip -nsu 
+          ./mvnw package -pl langstream-webservice -PgenerateDoc,skipPython -DskipTests -Dspotless.skip -nsu 
           
 
       - uses: ncipollo/release-action@v1

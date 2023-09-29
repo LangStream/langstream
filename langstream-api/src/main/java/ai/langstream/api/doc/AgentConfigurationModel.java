@@ -15,7 +15,6 @@
  */
 package ai.langstream.api.doc;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,45 +25,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AgentConfigurationModel {
-
-    public static AgentConfigurationModelBuilder builder() {
-        return new AgentConfigurationModelBuilder();
-    }
-
-    public static class AgentConfigurationModelBuilder {
-        private AgentConfigurationModel model = new AgentConfigurationModel();
-
-        public AgentConfigurationModelBuilder name(String name) {
-            model.setName(name);
-            return this;
-        }
-
-        public AgentConfigurationModelBuilder description(String description) {
-            model.setDescription(description);
-            return this;
-        }
-
-        public AgentConfigurationModelBuilder property(String name, AgentConfigurationProperty property) {
-            if (model.getProperties() == null) {
-                model.setProperties(new LinkedHashMap<>());
-            }
-            model.getProperties().put(name, property);
-            return this;
-        }
-        public AgentConfigurationModel build() {
-            return model;
-        }
-    }
-
-    public enum PropertyType {
-        STRING,
-        INTEGER,
-        FLOAT,
-        BOOLEAN,
-        OBJECT,
-        ARRAY;
-    }
-
 
     @Data
     @NoArgsConstructor

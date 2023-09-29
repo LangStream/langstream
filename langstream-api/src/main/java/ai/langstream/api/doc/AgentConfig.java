@@ -22,7 +22,7 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface AgentConfiguration {
+public @interface AgentConfig {
     String name() default "";
 
     String description() default "";

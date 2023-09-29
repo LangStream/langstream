@@ -15,18 +15,20 @@
  */
 package ai.langstream.impl.agents.ai;
 
+import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.TopicDefinition;
-import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.impl.agents.ai.steps.DropFieldsConfiguration;
 import ai.langstream.impl.common.AbstractAgentProvider;
+import ai.langstream.impl.uti.ClassConfigValidator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,23 +41,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
-    protected static final StepConfigurationInitializer DROP_FIELDS =
-            new StepConfigurationInitializer() {
-                public AgentConfigurationModel getAgentConfigurationModel() {
-                    return AgentConfigurationModel.builder()
-                            .name("drop-fields")
-                            .description("Drop fields from the input record")
-                            .property("fields",
-                                    AgentConfigurationModel.AgentConfigurationProperty.builder()
-                                            .type("array")
-                                            .build())
-                            .property("part",
-                                    AgentConfigurationModel.AgentConfigurationProperty.builder()
-                                            .type("string")
-                                            .build())
-                            .build();
-                }
-            };
     protected static final StepConfigurationInitializer UNWRAP_KEY_VALUE =
             new StepConfigurationInitializer() {
                 @Override
@@ -211,7 +196,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                                     if (!"role".equals(k) && !"content".equals(k)) {
                                                         throw new IllegalArgumentException(
                                                                 "messages must be a list of objects, [{role: 'user', "
-                                                                + "content: 'template'}]");
+                                                                        + "content: 'template'}]");
                                                     }
                                                 });
                             } else {
@@ -294,14 +279,12 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
     static {
         final Map<String, StepConfigurationInitializer> steps = new HashMap<>();
-        steps.put("drop-fields", DROP_FIELDS);
-        steps.put("merge-key-value", new StepConfigurationInitializer() {
-        });
+        steps.put("drop-fields", DropFieldsConfiguration.STEP);
+        steps.put("merge-key-value", new StepConfigurationInitializer() {});
         steps.put("unwrap-key-value", UNWRAP_KEY_VALUE);
         steps.put("cast", CAST);
         steps.put("flatten", FLATTEN);
-        steps.put("drop", new StepConfigurationInitializer() {
-        });
+        steps.put("drop", new StepConfigurationInitializer() {});
         steps.put("compute", COMPUTE);
         steps.put("compute-ai-embeddings", COMPUTE_AI_EMBEDDINGS);
         steps.put("query", QUERY);
@@ -323,9 +306,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         Map<String, Object> generateTopicConfiguration(String topicName);
     }
 
-    private interface StepConfigurationInitializer {
-        default AgentConfigurationModel getAgentConfigurationModel() {
-            return new AgentConfigurationModel();
+    public interface StepConfigurationInitializer {
+        default Class getAgentConfigurationModelClass() {
+            return null;
         }
 
         default void generateSteps(
@@ -334,25 +317,23 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                 AgentConfiguration agentConfiguration,
                 DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
                 TopicConfigurationGenerator topicConfigurationGenerator) {
-            final AgentConfigurationModel model = getAgentConfigurationModel();
-            model.getProperties()
+            final Class modelClazz = getAgentConfigurationModelClass();
+            ClassConfigValidator.validateAgentModelFromClass(
+                    agentConfiguration, modelClazz, originalConfiguration);
+            ClassConfigValidator.generateAgentModelFromClass(modelClazz)
+                    .getProperties()
                     .entrySet()
-                    .forEach(e -> {
-                        if (e.getValue().isRequired()) {
-                            requiredField(
-                                    step,
-                                    agentConfiguration,
-                                    originalConfiguration,
-                                    e.getKey());
-                        } else {
-                            optionalField(
-                                    step,
-                                    agentConfiguration,
-                                    originalConfiguration,
-                                    e.getKey(),
-                                    e.getValue().getDefaultValue());
-                        }
-                    });
+                    .forEach(
+                            e -> {
+                                Object value = originalConfiguration.get(e.getKey());
+                                if (value == null
+                                        && !e.getValue().isRequired()
+                                        && e.getValue().getDefaultValue() != null) {
+                                    step.put(e.getKey(), e.getValue().getDefaultValue());
+                                } else {
+                                    step.put(e.getKey(), value);
+                                }
+                            });
         }
     }
 
@@ -519,13 +500,13 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         if (!newConfiguration.containsKey(name)) {
             throw new IllegalArgumentException(
                     "Missing required field '"
-                    + name
-                    + "' in agent definition, type="
-                    + agentConfiguration.getType()
-                    + ", name="
-                    + agentConfiguration.getName()
-                    + ", id="
-                    + agentConfiguration.getId());
+                            + name
+                            + "' in agent definition, type="
+                            + agentConfiguration.getType()
+                            + ", name="
+                            + agentConfiguration.getName()
+                            + ", id="
+                            + agentConfiguration.getId());
         }
         Object value = newConfiguration.get(name);
         step.put(name, value);
@@ -552,14 +533,15 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
     @Override
     public Map<String, AgentConfigurationModel> generateSupportedTypesDocumentation() {
         Map<String, AgentConfigurationModel> result = new LinkedHashMap<>();
-
-        STEP_TYPES
-                .forEach(
-                        (type, stepType) -> {
-                            final AgentConfigurationModel model =
-                                    stepType.getAgentConfigurationModel();
-                            result.put(type, model);
-                        });
+        STEP_TYPES.forEach(
+                (type, stepType) -> {
+                    final Class modelClass = stepType.getAgentConfigurationModelClass();
+                    result.put(
+                            type,
+                            modelClass == null
+                                    ? new AgentConfigurationModel()
+                                    : ClassConfigValidator.generateAgentModelFromClass(modelClass));
+                });
         return result;
     }
 }

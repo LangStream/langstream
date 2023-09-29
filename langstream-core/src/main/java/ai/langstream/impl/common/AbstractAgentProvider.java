@@ -28,13 +28,13 @@ import ai.langstream.api.runtime.ConnectionImplementation;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.impl.uti.ClassConfigValidator;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import lombok.Getter;
 
 @Getter
@@ -110,6 +110,10 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
         return agentConfiguration.getType();
     }
 
+    protected Class getAgentConfigModelClass(String type) {
+        return null;
+    }
+
     protected AgentNodeMetadata computeAgentMetadata(
             AgentConfiguration agentConfiguration,
             ExecutionPlan physicalApplicationInstance,
@@ -126,6 +130,11 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
             ExecutionPlan executionPlan,
             ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
+        final String type = agentConfiguration.getType();
+        final Class modelClass = getAgentConfigModelClass(type);
+        if (modelClass != null) {
+            ClassConfigValidator.validateAgentModelFromClass(agentConfiguration, modelClass);
+        }
         return new HashMap<>(agentConfiguration.getConfiguration());
     }
 
@@ -192,7 +201,14 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
     public Map<String, AgentConfigurationModel> generateSupportedTypesDocumentation() {
         Map<String, AgentConfigurationModel> result = new LinkedHashMap<>();
         for (String supportedType : supportedTypes) {
-            result.put(supportedType, new AgentConfigurationModel());
+            final Class modelClass = getAgentConfigModelClass(supportedType);
+            if (modelClass == null) {
+                result.put(supportedType, new AgentConfigurationModel());
+            } else {
+                result.put(
+                        supportedType,
+                        ClassConfigValidator.generateAgentModelFromClass(modelClass));
+            }
         }
         return result;
     }

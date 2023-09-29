@@ -62,18 +62,16 @@ public class ClassConfigValidator {
     }
 
     private static AgentConfigurationModel generateModelFromClassNoCache(Class clazz) {
+        AgentConfigurationModel model = new AgentConfigurationModel();
 
         final AgentConfig agentConfig = (AgentConfig) clazz.getAnnotation(AgentConfig.class);
-        if (agentConfig == null) {
-            return null;
-        }
-
-        AgentConfigurationModel model = new AgentConfigurationModel();
-        if (agentConfig.description() != null && !agentConfig.description().isBlank()) {
-            model.setDescription(agentConfig.description().strip());
-        }
-        if (agentConfig.name() != null && !agentConfig.name().isBlank()) {
-            model.setName(agentConfig.name());
+        if (agentConfig != null) {
+            if (agentConfig.description() != null && !agentConfig.description().isBlank()) {
+                model.setDescription(agentConfig.description().strip());
+            }
+            if (agentConfig.name() != null && !agentConfig.name().isBlank()) {
+                model.setName(agentConfig.name());
+            }
         }
         model.setProperties(readPropertiesFromClass(clazz));
         return model;
@@ -96,6 +94,7 @@ public class ClassConfigValidator {
 
         validateProperties(
                 agentConfiguration, null, asMap, agentConfigurationModel.getProperties());
+
         try {
             validatorMapper.convertValue(asMap, modelClazz);
         } catch (IllegalArgumentException ex) {
@@ -213,11 +212,13 @@ public class ClassConfigValidator {
 
         Map<String, AgentConfigurationModel.AgentConfigurationProperty> props =
                 new LinkedHashMap<>();
-        for (Map.Entry<String, ParsedJsonSchema.Prop> schema : parsed.getProperties().entrySet()) {
-            final AgentConfigurationModel.AgentConfigurationProperty parsedProp =
-                    parseProp(mapper, schema.getValue());
-            if (parsedProp != null) {
-                props.put(schema.getKey(), parsedProp);
+        if (parsed.getProperties() != null) {
+            for (Map.Entry<String, ParsedJsonSchema.Prop> schema : parsed.getProperties().entrySet()) {
+                final AgentConfigurationModel.AgentConfigurationProperty parsedProp =
+                        parseProp(mapper, schema.getValue());
+                if (parsedProp != null) {
+                    props.put(schema.getKey(), parsedProp);
+                }
             }
         }
         return props;

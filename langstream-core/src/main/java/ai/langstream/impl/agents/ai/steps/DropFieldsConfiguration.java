@@ -23,7 +23,7 @@ import lombok.Data;
 
 @AgentConfig(name = "Drop fields from the input record")
 @Data
-public class DropFieldsConfiguration {
+public class DropFieldsConfiguration extends BaseGenAIStepConfiguration {
     public static final GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer STEP =
             new GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer() {
                 @Override

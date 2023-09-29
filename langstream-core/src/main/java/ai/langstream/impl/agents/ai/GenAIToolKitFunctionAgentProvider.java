@@ -26,6 +26,7 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.impl.agents.ai.steps.BaseGenAIStepConfiguration;
 import ai.langstream.impl.agents.ai.steps.DropFieldsConfiguration;
 import ai.langstream.impl.common.AbstractAgentProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
@@ -278,13 +279,20 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             List.of(SERVICE_VERTEX, SERVICE_HUGGING_FACE, SERVICE_OPEN_AI);
 
     static {
+        final StepConfigurationInitializer baseConfig = new StepConfigurationInitializer() {
+            @Override
+            public Class getAgentConfigurationModelClass() {
+                return BaseGenAIStepConfiguration.class;
+            }
+        };
+
         final Map<String, StepConfigurationInitializer> steps = new HashMap<>();
         steps.put("drop-fields", DropFieldsConfiguration.STEP);
-        steps.put("merge-key-value", new StepConfigurationInitializer() {});
+        steps.put("merge-key-value", baseConfig);
         steps.put("unwrap-key-value", UNWRAP_KEY_VALUE);
         steps.put("cast", CAST);
         steps.put("flatten", FLATTEN);
-        steps.put("drop", new StepConfigurationInitializer() {});
+        steps.put("drop", baseConfig);
         steps.put("compute", COMPUTE);
         steps.put("compute-ai-embeddings", COMPUTE_AI_EMBEDDINGS);
         steps.put("query", QUERY);

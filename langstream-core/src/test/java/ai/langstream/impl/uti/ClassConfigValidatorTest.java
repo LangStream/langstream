@@ -131,7 +131,8 @@ class ClassConfigValidatorTest {
                         }""",
                 new ObjectMapper()
                         .configure(SerializationFeature.INDENT_OUTPUT, true)
-                        .setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+                        .setSerializationInclusion(
+                                com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
                         .writeValueAsString(model));
     }
 }

@@ -42,8 +42,7 @@ public class DocumentationGeneratorStarter {
             final String outputDir = args[0];
             final String version = args[1];
             final Path agentsFile = Path.of(outputDir).resolve("api.json");
-            final ApiConfigurationModel model =
-                    DocumentationGenerator.generateDocs(version);
+            final ApiConfigurationModel model = DocumentationGenerator.generateDocs(version);
             jsonWriter.writeValue(agentsFile.toFile(), model);
             System.out.println(
                     "Generated documentation with %d agents".formatted(model.agents().size()));

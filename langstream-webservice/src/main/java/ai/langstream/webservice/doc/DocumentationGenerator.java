@@ -19,7 +19,6 @@ import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.ApiConfigurationModel;
 import ai.langstream.api.runtime.AgentNodeProvider;
 import ai.langstream.api.runtime.PluginsRegistry;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;

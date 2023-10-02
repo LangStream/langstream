@@ -424,4 +424,134 @@ class ApplicationPlaceholderResolverTest {
                 ApplicationPlaceholderResolver.resolveSingleValue(
                         context, "${  globals.foo.number  }-${  globals.foo.map  }"));
     }
+
+    @Test
+    void testResolveCompatibilityTripleBraces() {
+        Map<String, Object> context =
+                Map.of(
+                        "globals",
+                        Map.of(
+                                "foo",
+                                Map.of(
+                                        "bar",
+                                        "xxx",
+                                        "number",
+                                        123,
+                                        "list",
+                                        List.of(1, 2),
+                                        "map",
+                                        Map.of("one", 1, "two", 2))));
+        assertEquals(
+                "xxx",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{{globals.foo.bar}}}"));
+        assertEquals(
+                "123", // this is a string !
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{{globals.foo.number}}}"));
+        assertEquals(
+                "[1,2]", // this is a string !
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{{globals.foo.list}}}"));
+
+        // some spaces
+        assertEquals(
+                "123", // this is a string !
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{{  globals.foo.number  }}}"));
+
+        // simple concat
+        assertEquals(
+                "123-xxx",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{{  globals.foo.number  }}}-{{{  globals.foo.bar  }}}"));
+
+        // using a list, but in a string context
+        assertEquals(
+                "123-[1,2]",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{{ globals.foo.number  }}}-{{{  globals.foo.list  }}}"));
+
+        // using a map, but in a string context
+        assertEquals(
+                "123-{\"one\":1,\"two\":2}",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{{  globals.foo.number  }}}-{{{  globals.foo.map  }}}"));
+    }
+
+    @Test
+    void testResolveCompatibilityDoubleBraces() {
+        Map<String, Object> context =
+                Map.of(
+                        "globals",
+                        Map.of(
+                                "foo",
+                                Map.of(
+                                        "bar",
+                                        "xxx",
+                                        "number",
+                                        123,
+                                        "list",
+                                        List.of(1, 2),
+                                        "map",
+                                        Map.of("one", 1, "two", 2))));
+        assertEquals(
+                "xxx",
+                ApplicationPlaceholderResolver.resolveSingleValue(context, "{{globals.foo.bar}}"));
+        assertEquals(
+                "123", // this is a string !
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{globals.foo.number}}"));
+        assertEquals(
+                "[1,2]", // this is a string !
+                ApplicationPlaceholderResolver.resolveSingleValue(context, "{{globals.foo.list}}"));
+
+        // some spaces
+        assertEquals(
+                "123", // this is a string !
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{  globals.foo.number  }}"));
+
+        // simple concat
+        assertEquals(
+                "123-xxx",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{  globals.foo.number  }}-{{  globals.foo.bar  }}"));
+
+        // using a list, but in a string context
+        assertEquals(
+                "123-[1,2]",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{ globals.foo.number  }}-{{  globals.foo.list  }}"));
+
+        // using a map, but in a string context
+        assertEquals(
+                "123-{\"one\":1,\"two\":2}",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{  globals.foo.number  }}-{{  globals.foo.map  }}"));
+    }
+
+    @Test
+    void testDontBreakAMustacheValue() {
+        Map<String, Object> context =
+                Map.of(
+                        "something",
+                        Map.of("foo", Map.of("bar", "xxx", "number", 123, "list", List.of(1, 2))),
+                        "globals",
+                        Map.of(
+                                "foo",
+                                Map.of(
+                                        "bar",
+                                        "xxx",
+                                        "number",
+                                        123,
+                                        "list",
+                                        List.of(1, 2),
+                                        "map",
+                                        Map.of("one", 1, "two", 2))));
+        assertEquals(
+                "{{something.foo.bar}}",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "{{something.foo.bar}}"));
+    }
 }

@@ -21,7 +21,10 @@ import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-@AgentConfig(name = "Cast record to another schema", description = """
+@AgentConfig(
+        name = "Cast record to another schema",
+        description =
+                """
         Transforms the data to a target compatible schema.
         Some step operations like cast or compute involve conversions from a type to another. When this happens the rules are:
             - timestamp, date and time related object conversions assume UTC time zone if it is not explicit.

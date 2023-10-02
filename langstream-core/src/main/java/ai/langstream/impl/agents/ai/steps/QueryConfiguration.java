@@ -24,7 +24,10 @@ import java.util.List;
 import java.util.Map;
 import lombok.Data;
 
-@AgentConfig(name = "Query", description = """
+@AgentConfig(
+        name = "Query",
+        description =
+                """
         Perform a vector search or simple query against a datasource.
         """)
 @Data
@@ -37,17 +40,28 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
                 }
 
                 @Override
-                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration,
-                                          AgentConfiguration agentConfiguration,
-                                          GenAIToolKitFunctionAgentProvider.DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                                          GenAIToolKitFunctionAgentProvider.TopicConfigurationGenerator topicConfigurationGenerator,
-                                          GenAIToolKitFunctionAgentProvider.AIServiceConfigurationGenerator aiServiceConfigurationGenerator) {
-                    GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer.super.generateSteps(step,
-                            originalConfiguration, agentConfiguration, dataSourceConfigurationGenerator,
-                            topicConfigurationGenerator, aiServiceConfigurationGenerator);
+                public void generateSteps(
+                        Map<String, Object> step,
+                        Map<String, Object> originalConfiguration,
+                        AgentConfiguration agentConfiguration,
+                        GenAIToolKitFunctionAgentProvider.DataSourceConfigurationGenerator
+                                dataSourceConfigurationGenerator,
+                        GenAIToolKitFunctionAgentProvider.TopicConfigurationGenerator
+                                topicConfigurationGenerator,
+                        GenAIToolKitFunctionAgentProvider.AIServiceConfigurationGenerator
+                                aiServiceConfigurationGenerator) {
+                    GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer.super
+                            .generateSteps(
+                                    step,
+                                    originalConfiguration,
+                                    agentConfiguration,
+                                    dataSourceConfigurationGenerator,
+                                    topicConfigurationGenerator,
+                                    aiServiceConfigurationGenerator);
                     String datasource = (String) step.remove("datasource");
                     if (datasource == null) {
-                        throw new IllegalStateException("datasource is required but this exception should have been raised before ?");
+                        throw new IllegalStateException(
+                                "datasource is required but this exception should have been raised before ?");
                     }
                     dataSourceConfigurationGenerator.generateDataSourceConfiguration(datasource);
                 }
@@ -76,6 +90,7 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
             required = true)
     @JsonProperty("output-field")
     private String outputField;
+
     @ConfigProperty(
             description =
                     """
@@ -85,7 +100,6 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
     @JsonProperty("only-first")
     private boolean onlyFirst;
 
-
     @ConfigProperty(
             description =
                     """
@@ -93,7 +107,4 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
                    """,
             required = true)
     private String datasource;
-
-
-
 }

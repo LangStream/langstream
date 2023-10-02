@@ -158,14 +158,14 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                     return topicDefinition.getConfig();
                 };
 
-
-        AIServiceConfigurationGenerator aiServiceConfigurationGenerator = (resourceId) ->
-                generateAIServiceConfiguration(
-                        resourceId,
-                        application,
-                        configuration,
-                        computeClusterRuntime,
-                        pluginsRegistry);
+        AIServiceConfigurationGenerator aiServiceConfigurationGenerator =
+                (resourceId) ->
+                        generateAIServiceConfiguration(
+                                resourceId,
+                                application,
+                                configuration,
+                                computeClusterRuntime,
+                                pluginsRegistry);
 
         STEP_TYPES
                 .get(agentConfiguration.getType())

@@ -16,11 +16,13 @@
 package ai.langstream.impl.agents.ai.steps;
 
 import ai.langstream.api.doc.AgentConfig;
-import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import lombok.Data;
 
-@AgentConfig(name = "Merge key-value format", description = "Merges the fields of KeyValue records where both the key and value are structured types of the same schema type. Only AVRO and JSON are supported.")
+@AgentConfig(
+        name = "Merge key-value format",
+        description =
+                "Merges the fields of KeyValue records where both the key and value are structured types of the same schema type. Only AVRO and JSON are supported.")
 @Data
 public class MergeKeyValueConfiguration extends BaseGenAIStepConfiguration {
     public static final GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer STEP =

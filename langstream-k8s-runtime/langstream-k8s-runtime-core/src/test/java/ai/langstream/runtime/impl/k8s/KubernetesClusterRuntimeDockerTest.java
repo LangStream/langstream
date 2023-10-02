@@ -205,33 +205,32 @@ class KubernetesClusterRuntimeDockerTest {
         defaultErrorsAsMap.put("retries", 0);
         assertEquals(
                 SerializationUtil.prettyPrintJson(
-                new AgentSpec(
-                        AgentSpec.ComponentType.PROCESSOR,
-                        tenant,
-                        "step1",
-                        "app",
-                        "compute-ai-embeddings",
-                        Map.of(
-                                "steps",
-                                        List.of(
+                        new AgentSpec(
+                                AgentSpec.ComponentType.PROCESSOR,
+                                tenant,
+                                "step1",
+                                "app",
+                                "compute-ai-embeddings",
+                                Map.of(
+                                        "steps",
+                                                List.of(
+                                                        Map.of(
+                                                                "type", "compute-ai-embeddings",
+                                                                "model", "text-embedding-ada-002",
+                                                                "embeddings-field",
+                                                                        "value.embeddings",
+                                                                "text",
+                                                                        "{{ value.name }} {{ value.description }}",
+                                                                "batch-size", "10",
+                                                                "concurrency", "4",
+                                                                "flush-interval", "0")),
+                                        "openai",
                                                 Map.of(
-                                                        "type", "compute-ai-embeddings",
-                                                        "model", "text-embedding-ada-002",
-                                                        "embeddings-field", "value.embeddings",
-                                                        "text",
-                                                                "{{ value.name }} {{ value.description }}",
-                                                        "batch-size", "10",
-                                                        "concurrency", "4",
-                                                        "flush-interval", "0"
-                    )),
-                                "openai",
-                                        Map.of(
-                                                "url", "http://something",
-                                                "access-key", "xxcxcxc",
-                                                "provider", "azure")),
-                        defaultErrorsAsMap)),
-                SerializationUtil.prettyPrintJson(
-                runtimePodConfiguration.agent()));
+                                                        "url", "http://something",
+                                                        "access-key", "xxcxcxc",
+                                                        "provider", "azure")),
+                                defaultErrorsAsMap)),
+                SerializationUtil.prettyPrintJson(runtimePodConfiguration.agent()));
         assertEquals(
                 new StreamingCluster(
                         "kafka",

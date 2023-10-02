@@ -18,11 +18,13 @@ package ai.langstream.impl.agents.ai.steps;
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import lombok.Data;
 
-@AgentConfig(name = "Compute values from the record", description = """
+@AgentConfig(
+        name = "Compute values from the record",
+        description =
+                """
         Computes new properties, values or field values based on an expression evaluated at runtime. If the field already exists, it will be overwritten.
         """)
 @Data
@@ -35,14 +37,13 @@ public class ComputeConfiguration extends BaseGenAIStepConfiguration {
                 }
             };
 
-
     @Data
     public static class Field {
         @ConfigProperty(
                 description =
                         """
-                                The name of the field to be computed. Prefix with key. or value. to compute the fields in the key or value parts of the message. 
-                                In addition, you can compute values on the following message headers [destinationTopic, messageKey, properties.]. 
+                                The name of the field to be computed. Prefix with key. or value. to compute the fields in the key or value parts of the message.
+                                In addition, you can compute values on the following message headers [destinationTopic, messageKey, properties.].
                                 Please note that properties is a map of key/value pairs that are referenced by the dot notation, for example properties.key0.""",
                 required = true)
         private String name;
@@ -55,17 +56,19 @@ public class ComputeConfiguration extends BaseGenAIStepConfiguration {
                                 """,
                 required = true)
         private String expression;
+
         @ConfigProperty(
                 description =
                         """
                                 The type of the computed field. This
-                                 will translate to the schema type of the new field in the transformed message. 
+                                 will translate to the schema type of the new field in the transformed message.
                                  The following types are currently supported :STRING, INT8, INT16, INT32, INT64, FLOAT, DOUBLE, BOOLEAN, DATE, TIME, TIMESTAMP, LOCAL_DATE_TIME, LOCAL_TIME, LOCAL_DATE, INSTANT.
-                                  The type field is not required for the message headers [destinationTopic, messageKey, properties.] and STRING will be used. 
+                                  The type field is not required for the message headers [destinationTopic, messageKey, properties.] and STRING will be used.
                                   For the value and key, if it is not provided, then the type will be inferred from the result of the expression evaluation.
                                 """,
                 required = true)
         private String type;
+
         @ConfigProperty(
                 description =
                         """
@@ -73,7 +76,6 @@ public class ComputeConfiguration extends BaseGenAIStepConfiguration {
                                 """,
                 defaultValue = "false")
         private boolean optional;
-
     }
 
     @ConfigProperty(

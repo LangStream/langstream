@@ -18,10 +18,12 @@ package ai.langstream.impl.agents.ai.steps;
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-@AgentConfig(name = "Flatten record fields", description = """
+@AgentConfig(
+        name = "Flatten record fields",
+        description =
+                """
         Converts structured nested data into a new single-hierarchy-level structured data. The names of the new fields are built by concatenating the intermediate level field names.
         """)
 @Data

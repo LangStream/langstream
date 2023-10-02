@@ -25,7 +25,10 @@ import java.util.List;
 import java.util.Map;
 import lombok.Data;
 
-@AgentConfig(name = "Compute chat completions", description = """
+@AgentConfig(
+        name = "Compute chat completions",
+        description =
+                """
         Sends the messages to the AI Service to compute chat completions. The result is stored in the specified field.
         """)
 @Data
@@ -38,14 +41,24 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
                 }
 
                 @Override
-                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration,
-                                          AgentConfiguration agentConfiguration,
-                                          GenAIToolKitFunctionAgentProvider.DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                                          GenAIToolKitFunctionAgentProvider.TopicConfigurationGenerator topicConfigurationGenerator,
-                                          GenAIToolKitFunctionAgentProvider.AIServiceConfigurationGenerator aiServiceConfigurationGenerator) {
-                    GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer.super.generateSteps(step,
-                            originalConfiguration, agentConfiguration, dataSourceConfigurationGenerator,
-                            topicConfigurationGenerator, aiServiceConfigurationGenerator);
+                public void generateSteps(
+                        Map<String, Object> step,
+                        Map<String, Object> originalConfiguration,
+                        AgentConfiguration agentConfiguration,
+                        GenAIToolKitFunctionAgentProvider.DataSourceConfigurationGenerator
+                                dataSourceConfigurationGenerator,
+                        GenAIToolKitFunctionAgentProvider.TopicConfigurationGenerator
+                                topicConfigurationGenerator,
+                        GenAIToolKitFunctionAgentProvider.AIServiceConfigurationGenerator
+                                aiServiceConfigurationGenerator) {
+                    GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer.super
+                            .generateSteps(
+                                    step,
+                                    originalConfiguration,
+                                    agentConfiguration,
+                                    dataSourceConfigurationGenerator,
+                                    topicConfigurationGenerator,
+                                    aiServiceConfigurationGenerator);
 
                     final String streamTopic = (String) step.get("stream-to-topic");
                     if (streamTopic != null) {
@@ -54,7 +67,8 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
                         step.put("streamTopicConfiguration", topicConfiguration);
                     }
 
-                    aiServiceConfigurationGenerator.generateAIServiceConfiguration((String) step.remove("ai-service"));
+                    aiServiceConfigurationGenerator.generateAIServiceConfiguration(
+                            (String) step.remove("ai-service"));
                 }
             };
 
@@ -67,6 +81,7 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
                                 """,
                 required = true)
         private String role;
+
         @ConfigProperty(
                 description =
                         """
@@ -75,7 +90,6 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
                 required = true)
         private String content;
     }
-
 
     @ConfigProperty(
             description =
@@ -112,7 +126,7 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
     @ConfigProperty(
             description =
                     """
-                            Minimum number of chunks to send to the stream-to-topic topic. The chunks are sent as soon as they are available. 
+                            Minimum number of chunks to send to the stream-to-topic topic. The chunks are sent as soon as they are available.
                             The chunks are sent in the order they are received from the AI Service.
                             To improve the TTFB (Time-To-First-Byte), the chunk size starts from 1 and doubles until it reaches the max-chunks-per-message value.
                             """,
@@ -128,11 +142,8 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
     @JsonProperty(value = "completion-field")
     private String completionField;
 
-    /**
-     * Not used, no need doc.
-     */
-    @ConfigPropertyIgnore
-    private boolean stream = true;
+    /** Not used, no need doc. */
+    @ConfigPropertyIgnore private boolean stream = true;
 
     @ConfigProperty(
             description =
@@ -157,6 +168,7 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
                             Parameter for the completion request. The parameters are passed to the AI Service as is.
                             """)
     private Double temperature;
+
     @ConfigProperty(
             description =
                     """
@@ -204,7 +216,6 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
                             """)
     @JsonProperty(value = "frequency-penalty")
     private Double frequencyPenalty;
-
 
     @ConfigProperty(
             description =

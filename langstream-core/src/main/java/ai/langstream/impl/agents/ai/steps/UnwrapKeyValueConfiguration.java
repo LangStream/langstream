@@ -18,11 +18,13 @@ package ai.langstream.impl.agents.ai.steps;
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
-import java.util.List;
 import lombok.Data;
 
-@AgentConfig(name = "Unwrap key-value format", description = "If the record value is in KeyValue format, extracts the"
-                                                             + " KeyValue's key or value and make it the record value.")
+@AgentConfig(
+        name = "Unwrap key-value format",
+        description =
+                "If the record value is in KeyValue format, extracts the"
+                        + " KeyValue's key or value and make it the record value.")
 @Data
 public class UnwrapKeyValueConfiguration extends BaseGenAIStepConfiguration {
     public static final GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer STEP =

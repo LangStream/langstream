@@ -16,12 +16,13 @@
 package ai.langstream.impl.agents.ai.steps;
 
 import ai.langstream.api.doc.AgentConfig;
-import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-@AgentConfig(name = "Drop the record", description = """
+@AgentConfig(
+        name = "Drop the record",
+        description =
+                """
         Drops the record from further processing. Use in conjunction with when to selectively drop records.
         """)
 @Data

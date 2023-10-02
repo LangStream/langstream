@@ -23,7 +23,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 import lombok.Data;
 
-@AgentConfig(name = "Compute embeddings of the record", description = """
+@AgentConfig(
+        name = "Compute embeddings of the record",
+        description =
+                """
         Compute embeddings of the record. The embeddings are stored in the record under a specific field.
         """)
 @Data
@@ -36,15 +39,26 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
                 }
 
                 @Override
-                public void generateSteps(Map<String, Object> step, Map<String, Object> originalConfiguration,
-                                          AgentConfiguration agentConfiguration,
-                                          GenAIToolKitFunctionAgentProvider.DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                                          GenAIToolKitFunctionAgentProvider.TopicConfigurationGenerator topicConfigurationGenerator,
-                                          GenAIToolKitFunctionAgentProvider.AIServiceConfigurationGenerator aiServiceConfigurationGenerator) {
-                    GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer.super.generateSteps(step,
-                            originalConfiguration, agentConfiguration, dataSourceConfigurationGenerator,
-                            topicConfigurationGenerator, aiServiceConfigurationGenerator);
-                    aiServiceConfigurationGenerator.generateAIServiceConfiguration((String) step.remove("ai-service"));
+                public void generateSteps(
+                        Map<String, Object> step,
+                        Map<String, Object> originalConfiguration,
+                        AgentConfiguration agentConfiguration,
+                        GenAIToolKitFunctionAgentProvider.DataSourceConfigurationGenerator
+                                dataSourceConfigurationGenerator,
+                        GenAIToolKitFunctionAgentProvider.TopicConfigurationGenerator
+                                topicConfigurationGenerator,
+                        GenAIToolKitFunctionAgentProvider.AIServiceConfigurationGenerator
+                                aiServiceConfigurationGenerator) {
+                    GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer.super
+                            .generateSteps(
+                                    step,
+                                    originalConfiguration,
+                                    agentConfiguration,
+                                    dataSourceConfigurationGenerator,
+                                    topicConfigurationGenerator,
+                                    aiServiceConfigurationGenerator);
+                    aiServiceConfigurationGenerator.generateAIServiceConfiguration(
+                            (String) step.remove("ai-service"));
                 }
             };
 
@@ -59,7 +73,7 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
     @ConfigProperty(
             description =
                     """
-                   Text to create embeddings from. You can use Mustache syntax to compose multiple fields into a single text. Example: 
+                   Text to create embeddings from. You can use Mustache syntax to compose multiple fields into a single text. Example:
                    text: "{{{ value.field1 }}} {{{ value.field2 }}}"
                    """,
             required = true)
@@ -68,7 +82,7 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
     @ConfigProperty(
             description =
                     """
-                            Field where to store the embeddings. 
+                            Field where to store the embeddings.
                             """,
             required = true)
     @JsonProperty("embeddings-field")

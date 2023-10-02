@@ -15,6 +15,7 @@
  */
 package ai.langstream.impl.resources;
 
+import static ai.langstream.api.util.ConfigurationUtils.getString;
 import static ai.langstream.api.util.ConfigurationUtils.requiredField;
 import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
 import static ai.langstream.api.util.ConfigurationUtils.validateEnumField;
@@ -49,8 +50,9 @@ public class DataSourceResourceProvider implements ResourceNodeProvider {
                 break;
             case "jdbc":
                 validateJDBCDatabaseResource(resource);
+                break;
             default:
-                throw new IllegalStateException();
+                throw new IllegalStateException("Unsupported service: " + service);
         }
         return resource.configuration();
     }
@@ -112,10 +114,6 @@ public class DataSourceResourceProvider implements ResourceNodeProvider {
             throw new IllegalArgumentException(
                     "secureBundle is not supported for Cassandra services, use service=astra instead");
         }
-
-        // in Cassandra testes you can use a Cassandra service without authentication
-        requiredField(configuration, "username", describe(resource));
-        requiredField(configuration, "password", describe(resource));
 
         requiredNonEmptyField(configuration, "contact-points", describe(resource));
         requiredNonEmptyField(configuration, "loadBalancing-localDc", describe(resource));

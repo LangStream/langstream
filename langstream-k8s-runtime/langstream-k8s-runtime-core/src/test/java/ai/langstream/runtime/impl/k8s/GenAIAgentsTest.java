@@ -395,7 +395,9 @@ class GenAIAgentsTest {
                                     - name: my-database
                                       type: datasource
                                       configuration:
-                                        connectionUrl: localhost:1544
+                                        service: jdbc
+                                        url: "jdbc:postgresql://localhost:5432/postgres"
+                                        driverClass: "org.postgresql.Driver"
                                   """,
                                         "module.yaml",
                                         """
@@ -540,11 +542,15 @@ class GenAIAgentsTest {
                                     - name: my-database-1
                                       type: datasource
                                       configuration:
-                                        connectionUrl: localhost:1544
+                                        service: jdbc
+                                        url: "jdbc:postgresql://localhost:5432/postgres"
+                                        driverClass: "org.postgresql.Driver"
                                     - name: my-database-2
                                       type: datasource
                                       configuration:
-                                        connectionUrl: localhost:1545
+                                        service: jdbc
+                                        url: "jdbc:postgresql://localhost:5432/postgres"
+                                        driverClass: "org.postgresql.Driver"
                                   """,
                                         "module.yaml",
                                         """
@@ -606,7 +612,9 @@ class GenAIAgentsTest {
             log.info("Configuration: {}", configuration);
             Map<String, Object> datasourceConfiguration1 =
                     (Map<String, Object>) configuration.get("datasource");
-            assertEquals("localhost:1544", datasourceConfiguration1.get("connectionUrl"));
+            assertEquals("jdbc", datasourceConfiguration1.get("service"));
+            assertEquals("jdbc:postgresql://localhost:5432/postgres", datasourceConfiguration1.get("url"));
+            assertEquals("org.postgresql.Driver", datasourceConfiguration1.get("driverClass"));
             List<Map<String, Object>> steps =
                     (List<Map<String, Object>>) configuration.get("steps");
             assertEquals(1, steps.size());
@@ -622,7 +630,9 @@ class GenAIAgentsTest {
                 log.info("Configuration: {}", configuration);
                 Map<String, Object> datasourceConfiguration1 =
                         (Map<String, Object>) configuration.get("datasource");
-                assertEquals("localhost:1545", datasourceConfiguration1.get("connectionUrl"));
+                assertEquals("jdbc", datasourceConfiguration1.get("service"));
+                assertEquals("jdbc:postgresql://localhost:5432/postgres", datasourceConfiguration1.get("url"));
+                assertEquals("org.postgresql.Driver", datasourceConfiguration1.get("driverClass"));
                 List<Map<String, Object>> steps =
                         (List<Map<String, Object>>) configuration.get("steps");
                 // query + cast
@@ -675,7 +685,9 @@ class GenAIAgentsTest {
                                     - name: my-database-1
                                       type: datasource
                                       configuration:
-                                        connectionUrl: localhost:1544
+                                        service: jdbc
+                                        url: "jdbc:postgresql://localhost:5432/postgres"
+                                        driverClass: "org.postgresql.Driver"
                                   """,
                                         "module.yaml",
                                         """
@@ -743,7 +755,9 @@ class GenAIAgentsTest {
             log.info("Configuration: {}", configuration);
             Map<String, Object> datasourceConfiguration1 =
                     (Map<String, Object>) configuration.get("datasource");
-            assertEquals("localhost:1544", datasourceConfiguration1.get("connectionUrl"));
+            assertEquals("jdbc", datasourceConfiguration1.get("service"));
+            assertEquals("jdbc:postgresql://localhost:5432/postgres", datasourceConfiguration1.get("url"));
+            assertEquals("org.postgresql.Driver", datasourceConfiguration1.get("driverClass"));
             List<Map<String, Object>> steps =
                     (List<Map<String, Object>>) configuration.get("steps");
             assertEquals(1, steps.size());
@@ -773,6 +787,7 @@ class GenAIAgentsTest {
                                         url: "http://something"
                                         token: xx
                                         project: yy
+                                        region: us-central1
                                   """,
                                         "module.yaml",
                                         """

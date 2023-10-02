@@ -63,14 +63,14 @@ class PythonCodeAgentsTest {
                                     id: "source1"
                                     type: "python-source"
                                     configuration:
-                                      agent.class: my.python.module.MyClass
+                                      className: my.python.module.MyClass
                                       config1: value1
                                       config2: value2
                                   - name: "process1"
                                     id: "process1"
                                     type: "python-processor"
                                     configuration:
-                                      agent.class: my.python.module.MyClass
+                                      className: my.python.module.MyClass
                                       config1: value1
                                       config2: value2
                                       composable: false
@@ -78,7 +78,7 @@ class PythonCodeAgentsTest {
                                     id: "sink1"
                                     type: "python-sink"
                                     configuration:
-                                      agent.class: my.python.module.MyClass
+                                      className: my.python.module.MyClass
                                       config1: value1
                                       config2: value2
                                 """),
@@ -111,7 +111,7 @@ class PythonCodeAgentsTest {
             DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
-            assertEquals("my.python.module.MyClass", configuration.get("agent.class"));
+            assertEquals("my.python.module.MyClass", configuration.get("className"));
             assertEquals("value1", configuration.get("config1"));
             assertEquals("value2", configuration.get("config2"));
             assertEquals(ComponentType.SOURCE, step.getComponentType());
@@ -124,7 +124,7 @@ class PythonCodeAgentsTest {
             DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
-            assertEquals("my.python.module.MyClass", configuration.get("agent.class"));
+            assertEquals("my.python.module.MyClass", configuration.get("className"));
             assertEquals("value1", configuration.get("config1"));
             assertEquals("value2", configuration.get("config2"));
             assertEquals(ComponentType.PROCESSOR, step.getComponentType());
@@ -136,7 +136,7 @@ class PythonCodeAgentsTest {
             DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
-            assertEquals("my.python.module.MyClass", configuration.get("agent.class"));
+            assertEquals("my.python.module.MyClass", configuration.get("className"));
             assertEquals("value1", configuration.get("config1"));
             assertEquals("value2", configuration.get("config2"));
             assertEquals(ComponentType.SINK, step.getComponentType());

@@ -16,38 +16,20 @@
 package ai.langstream.impl.agents.ai.steps;
 
 import ai.langstream.api.doc.AgentConfig;
-import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
-import java.util.List;
 import lombok.Data;
 
 @AgentConfig(
-        name = "Drop fields",
-        description = """
-                Drops the record fields.
-                """)
+        name = "Merge key-value format",
+        description =
+                "Merges the fields of KeyValue records where both the key and value are structured types of the same schema type. Only AVRO and JSON are supported.")
 @Data
-public class DropFieldsConfiguration extends BaseGenAIStepConfiguration {
+public class MergeKeyValueConfiguration extends BaseGenAIStepConfiguration {
     public static final GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer STEP =
             new GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer() {
                 @Override
                 public Class getAgentConfigurationModelClass() {
-                    return DropFieldsConfiguration.class;
+                    return MergeKeyValueConfiguration.class;
                 }
             };
-
-    @ConfigProperty(
-            description =
-                    """
-                            Fields to drop from the input record.
-                            """,
-            required = true)
-    private List<String> fields;
-
-    @ConfigProperty(
-            description =
-                    """
-                            Part to drop. (value or key)
-                            """)
-    private String part;
 }

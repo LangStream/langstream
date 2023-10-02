@@ -21,17 +21,25 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.Resource;
-import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.impl.agents.ai.steps.AIChatCompletionsConfiguration;
+import ai.langstream.impl.agents.ai.steps.AITextCompletionsConfiguration;
 import ai.langstream.impl.agents.ai.steps.BaseGenAIStepConfiguration;
+import ai.langstream.impl.agents.ai.steps.CastConfiguration;
+import ai.langstream.impl.agents.ai.steps.ComputeAIEmbeddingsConfiguration;
+import ai.langstream.impl.agents.ai.steps.ComputeConfiguration;
+import ai.langstream.impl.agents.ai.steps.DropConfiguration;
 import ai.langstream.impl.agents.ai.steps.DropFieldsConfiguration;
+import ai.langstream.impl.agents.ai.steps.FlattenConfiguration;
+import ai.langstream.impl.agents.ai.steps.MergeKeyValueConfiguration;
+import ai.langstream.impl.agents.ai.steps.QueryConfiguration;
+import ai.langstream.impl.agents.ai.steps.UnwrapKeyValueConfiguration;
 import ai.langstream.impl.common.AbstractAgentProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -42,235 +50,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
-    protected static final StepConfigurationInitializer UNWRAP_KEY_VALUE =
-            new StepConfigurationInitializer() {
-                @Override
-                public void generateSteps(
-                        Map<String, Object> step,
-                        Map<String, Object> originalConfiguration,
-                        AgentConfiguration agentConfiguration,
-                        DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                        TopicConfigurationGenerator topicConfigurationGenerator) {
-                    optionalField(
-                            step, agentConfiguration, originalConfiguration, "unwrapKey", null);
-                }
-            };
-    protected static final StepConfigurationInitializer CAST =
-            new StepConfigurationInitializer() {
-                @Override
-                public void generateSteps(
-                        Map<String, Object> step,
-                        Map<String, Object> originalConfiguration,
-                        AgentConfiguration agentConfiguration,
-                        DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                        TopicConfigurationGenerator topicConfigurationGenerator) {
-                    requiredField(step, agentConfiguration, originalConfiguration, "schema-type");
-                    optionalField(step, agentConfiguration, originalConfiguration, "part", null);
-                }
-            };
-    protected static final StepConfigurationInitializer FLATTEN =
-            new StepConfigurationInitializer() {
-                @Override
-                public void generateSteps(
-                        Map<String, Object> step,
-                        Map<String, Object> originalConfiguration,
-                        AgentConfiguration agentConfiguration,
-                        DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                        TopicConfigurationGenerator topicConfigurationGenerator) {
-                    optionalField(
-                            step, agentConfiguration, originalConfiguration, "delimiter", null);
-                    optionalField(step, agentConfiguration, originalConfiguration, "part", null);
-                }
-            };
-    protected static final StepConfigurationInitializer COMPUTE =
-            new StepConfigurationInitializer() {
-                @Override
-                public void generateSteps(
-                        Map<String, Object> step,
-                        Map<String, Object> originalConfiguration,
-                        AgentConfiguration agentConfiguration,
-                        DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                        TopicConfigurationGenerator topicConfigurationGenerator) {
-                    requiredField(step, agentConfiguration, originalConfiguration, "fields");
-                }
-            };
-    protected static final StepConfigurationInitializer COMPUTE_AI_EMBEDDINGS =
-            new StepConfigurationInitializer() {
-                @Override
-                public void generateSteps(
-                        Map<String, Object> step,
-                        Map<String, Object> originalConfiguration,
-                        AgentConfiguration agentConfiguration,
-                        DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                        TopicConfigurationGenerator topicConfigurationGenerator) {
-                    optionalField(
-                            step,
-                            agentConfiguration,
-                            originalConfiguration,
-                            "model",
-                            "text-embedding-ada-002");
-                    optionalField(
-                            step, agentConfiguration, originalConfiguration, "batch-size", null);
-                    optionalField(
-                            step, agentConfiguration, originalConfiguration, "concurrency", null);
-                    optionalField(
-                            step,
-                            agentConfiguration,
-                            originalConfiguration,
-                            "flush-interval",
-                            null);
-                    requiredField(
-                            step, agentConfiguration, originalConfiguration, "embeddings-field");
-                    requiredField(step, agentConfiguration, originalConfiguration, "text");
-                }
-            };
-    protected static final StepConfigurationInitializer QUERY =
-            new StepConfigurationInitializer() {
-                @Override
-                public void generateSteps(
-                        Map<String, Object> step,
-                        Map<String, Object> originalConfiguration,
-                        AgentConfiguration agentConfiguration,
-                        DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                        TopicConfigurationGenerator topicConfigurationGenerator) {
-
-                    // reference to datasource
-                    String datasource = (String) originalConfiguration.remove("datasource");
-                    if (datasource == null) {
-                        // error
-                        requiredField(
-                                step, agentConfiguration, originalConfiguration, "datasource");
-                        return;
-                    }
-                    dataSourceConfigurationGenerator.generateDataSourceConfiguration(datasource);
-
-                    requiredField(step, agentConfiguration, originalConfiguration, "fields");
-                    requiredField(step, agentConfiguration, originalConfiguration, "query");
-                    requiredField(step, agentConfiguration, originalConfiguration, "output-field");
-                    optionalField(
-                            step, agentConfiguration, originalConfiguration, "only-first", null);
-                }
-            };
-    protected static final StepConfigurationInitializer AI_CHAT_COMPLETIONS =
-            new StepConfigurationInitializer() {
-                @Override
-                public void generateSteps(
-                        Map<String, Object> step,
-                        Map<String, Object> newConfiguration,
-                        AgentConfiguration agentConfiguration,
-                        DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                        TopicConfigurationGenerator topicConfigurationGenerator) {
-                    requiredField(step, agentConfiguration, newConfiguration, "completion-field");
-                    optionalField(step, agentConfiguration, newConfiguration, "log-field", null);
-                    optionalField(
-                            step,
-                            agentConfiguration,
-                            newConfiguration,
-                            "min-chunks-per-message",
-                            null);
-                    optionalField(
-                            step,
-                            agentConfiguration,
-                            newConfiguration,
-                            "stream-response-completion-field",
-                            null);
-                    String streamTopic =
-                            optionalField(
-                                    step,
-                                    agentConfiguration,
-                                    newConfiguration,
-                                    "stream-to-topic",
-                                    null);
-                    if (streamTopic != null) {
-                        Map<String, Object> topicConfiguration =
-                                topicConfigurationGenerator.generateTopicConfiguration(streamTopic);
-                        newConfiguration.put("streamTopicConfiguration", topicConfiguration);
-                    }
-                    Object messages =
-                            requiredField(step, agentConfiguration, newConfiguration, "messages");
-                    if (messages instanceof Collection<?> collection) {
-                        for (Object o : collection) {
-                            if (o instanceof Map map) {
-                                map.keySet()
-                                        .forEach(
-                                                k -> {
-                                                    if (!"role".equals(k) && !"content".equals(k)) {
-                                                        throw new IllegalArgumentException(
-                                                                "messages must be a list of objects, [{role: 'user', "
-                                                                        + "content: 'template'}]");
-                                                    }
-                                                });
-                            } else {
-                                throw new IllegalArgumentException(
-                                        "messages must be a list of objects, [{role: 'user', content: 'template'}]");
-                            }
-                        }
-                    } else {
-                        throw new IllegalArgumentException(
-                                "messages must be a list of objects: [{role: 'user', content: 'template'}]");
-                    }
-                    requiredField(step, agentConfiguration, newConfiguration, "model");
-                    optionalField(step, agentConfiguration, newConfiguration, "temperature", null);
-                    optionalField(step, agentConfiguration, newConfiguration, "top-p", null);
-                    optionalField(step, agentConfiguration, newConfiguration, "logit-bias", null);
-                    optionalField(step, agentConfiguration, newConfiguration, "stop", null);
-                    optionalField(step, agentConfiguration, newConfiguration, "max-tokens", null);
-                    optionalField(
-                            step, agentConfiguration, newConfiguration, "presence-penalty", null);
-                    optionalField(
-                            step, agentConfiguration, newConfiguration, "frequency-penalty", null);
-                    optionalField(step, agentConfiguration, newConfiguration, "user", null);
-                }
-            };
-    protected static final StepConfigurationInitializer AI_TEXT_COMPLETIONS =
-            new StepConfigurationInitializer() {
-                @Override
-                public void generateSteps(
-                        Map<String, Object> step,
-                        Map<String, Object> newConfiguration,
-                        AgentConfiguration agentConfiguration,
-                        DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                        TopicConfigurationGenerator topicConfigurationGenerator) {
-                    requiredField(step, agentConfiguration, newConfiguration, "completion-field");
-                    optionalField(step, agentConfiguration, newConfiguration, "log-field", null);
-                    optionalField(
-                            step,
-                            agentConfiguration,
-                            newConfiguration,
-                            "min-chunks-per-message",
-                            null);
-                    optionalField(
-                            step,
-                            agentConfiguration,
-                            newConfiguration,
-                            "stream-response-completion-field",
-                            null);
-                    String streamTopic =
-                            optionalField(
-                                    step,
-                                    agentConfiguration,
-                                    newConfiguration,
-                                    "stream-to-topic",
-                                    null);
-                    if (streamTopic != null) {
-                        Map<String, Object> topicConfiguration =
-                                topicConfigurationGenerator.generateTopicConfiguration(streamTopic);
-                        newConfiguration.put("streamTopicConfiguration", topicConfiguration);
-                    }
-                    requiredField(step, agentConfiguration, newConfiguration, "prompt");
-                    requiredField(step, agentConfiguration, newConfiguration, "model");
-                    optionalField(step, agentConfiguration, newConfiguration, "temperature", null);
-                    optionalField(step, agentConfiguration, newConfiguration, "top-p", null);
-                    optionalField(step, agentConfiguration, newConfiguration, "logit-bias", null);
-                    optionalField(step, agentConfiguration, newConfiguration, "stop", null);
-                    optionalField(step, agentConfiguration, newConfiguration, "max-tokens", null);
-                    optionalField(
-                            step, agentConfiguration, newConfiguration, "presence-penalty", null);
-                    optionalField(
-                            step, agentConfiguration, newConfiguration, "frequency-penalty", null);
-                    optionalField(step, agentConfiguration, newConfiguration, "user", null);
-                }
-            };
     private static final Map<String, StepConfigurationInitializer> STEP_TYPES;
     protected static final String SERVICE_VERTEX = "vertex-configuration";
     protected static final String SERVICE_HUGGING_FACE = "hugging-face-configuration";
@@ -289,16 +68,16 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
         final Map<String, StepConfigurationInitializer> steps = new HashMap<>();
         steps.put("drop-fields", DropFieldsConfiguration.STEP);
-        steps.put("merge-key-value", baseConfig);
-        steps.put("unwrap-key-value", UNWRAP_KEY_VALUE);
-        steps.put("cast", CAST);
-        steps.put("flatten", FLATTEN);
-        steps.put("drop", baseConfig);
-        steps.put("compute", COMPUTE);
-        steps.put("compute-ai-embeddings", COMPUTE_AI_EMBEDDINGS);
-        steps.put("query", QUERY);
-        steps.put("ai-chat-completions", AI_CHAT_COMPLETIONS);
-        steps.put("ai-text-completions", AI_TEXT_COMPLETIONS);
+        steps.put("merge-key-value", MergeKeyValueConfiguration.STEP);
+        steps.put("unwrap-key-value", UnwrapKeyValueConfiguration.STEP);
+        steps.put("cast", CastConfiguration.STEP);
+        steps.put("flatten", FlattenConfiguration.STEP);
+        steps.put("drop", DropConfiguration.STEP);
+        steps.put("compute", ComputeConfiguration.STEP);
+        steps.put("compute-ai-embeddings", ComputeAIEmbeddingsConfiguration.STEP);
+        steps.put("query", QueryConfiguration.STEP);
+        steps.put("ai-chat-completions", AIChatCompletionsConfiguration.STEP);
+        steps.put("ai-text-completions", AITextCompletionsConfiguration.STEP);
         STEP_TYPES = Collections.unmodifiableMap(steps);
     }
 
@@ -311,8 +90,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         return ComponentType.PROCESSOR;
     }
 
-    interface TopicConfigurationGenerator {
-        Map<String, Object> generateTopicConfiguration(String topicName);
+    public interface TopicConfigurationGenerator {
+        void generateTopicConfiguration(String topicName);
     }
 
     public interface StepConfigurationInitializer {
@@ -325,7 +104,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                 Map<String, Object> originalConfiguration,
                 AgentConfiguration agentConfiguration,
                 DataSourceConfigurationGenerator dataSourceConfigurationGenerator,
-                TopicConfigurationGenerator topicConfigurationGenerator) {
+                TopicConfigurationGenerator topicConfigurationGenerator,
+                AIServiceConfigurationGenerator aiServiceConfigurationGenerator) {
             final Class modelClazz = getAgentConfigurationModelClass();
             ClassConfigValidator.validateAgentModelFromClass(
                     agentConfiguration, modelClazz, originalConfiguration);
@@ -338,8 +118,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                 if (value == null
                                         && !e.getValue().isRequired()
                                         && e.getValue().getDefaultValue() != null) {
-                                    step.put(e.getKey(), e.getValue().getDefaultValue());
-                                } else {
+                                    value = e.getValue().getDefaultValue();
+                                }
+                                if (value != null) {
                                     step.put(e.getKey(), value);
                                 }
                             });
@@ -361,9 +142,6 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         // we are mapping the original name to the ai-tools function name
         step.put("type", agentConfiguration.getType());
 
-        // on every step you can put a "when" clause
-        optionalField(step, agentConfiguration, originalConfiguration, "when", null);
-
         DataSourceConfigurationGenerator dataSourceConfigurationInjector =
                 (resourceId) ->
                         generateDataSourceConfiguration(
@@ -375,9 +153,18 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
         TopicConfigurationGenerator topicConfigurationGenerator =
                 (topicName) -> {
-                    TopicDefinition topicDefinition = module.resolveTopic(topicName);
-                    return topicDefinition.getConfig();
+                    // only resolve the topic definition to verify topic is declared
+                    module.resolveTopic(topicName);
                 };
+
+        AIServiceConfigurationGenerator aiServiceConfigurationGenerator =
+                (resourceId) ->
+                        generateAIServiceConfiguration(
+                                resourceId,
+                                application,
+                                configuration,
+                                computeClusterRuntime,
+                                pluginsRegistry);
 
         STEP_TYPES
                 .get(agentConfiguration.getType())
@@ -386,28 +173,31 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                         originalConfiguration,
                         agentConfiguration,
                         dataSourceConfigurationInjector,
-                        topicConfigurationGenerator);
+                        topicConfigurationGenerator,
+                        aiServiceConfigurationGenerator);
 
         step.remove("composable");
 
         steps.add(step);
     }
 
-    interface DataSourceConfigurationGenerator {
+    public interface DataSourceConfigurationGenerator {
         void generateDataSourceConfiguration(String resourceId);
     }
 
-    private void generateAIProvidersConfiguration(
+    public interface AIServiceConfigurationGenerator {
+        void generateAIServiceConfiguration(String resourceId);
+    }
+
+    private void generateAIServiceConfiguration(
+            String resourceId,
             Application applicationInstance,
-            Map<String, Object> originalConfiguration,
             Map<String, Object> configuration,
             ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
-        // let the user force the provider or detect it automatically
-        String resourceId = (String) originalConfiguration.get("ai-service");
         if (resourceId != null) {
             Resource resource = applicationInstance.getResources().get(resourceId);
-            log.info("Generating ai provider configuration for {}", resourceId);
+            log.info("Generating ai service configuration for {}", resourceId);
             if (resource != null) {
                 if (!AI_SERVICES.contains(resource.type())) {
                     throw new IllegalArgumentException(
@@ -485,13 +275,6 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                         clusterRuntime,
                         pluginsRegistry);
         Map<String, Object> configuration = new HashMap<>();
-
-        generateAIProvidersConfiguration(
-                executionPlan.getApplication(),
-                originalConfiguration,
-                configuration,
-                clusterRuntime,
-                pluginsRegistry);
 
         generateSteps(
                 module,

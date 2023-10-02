@@ -18,36 +18,36 @@ package ai.langstream.impl.agents.ai.steps;
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
-import java.util.List;
 import lombok.Data;
 
 @AgentConfig(
-        name = "Drop fields",
-        description = """
-                Drops the record fields.
-                """)
+        name = "Flatten record fields",
+        description =
+                """
+        Converts structured nested data into a new single-hierarchy-level structured data. The names of the new fields are built by concatenating the intermediate level field names.
+        """)
 @Data
-public class DropFieldsConfiguration extends BaseGenAIStepConfiguration {
+public class FlattenConfiguration extends BaseGenAIStepConfiguration {
     public static final GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer STEP =
             new GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer() {
                 @Override
                 public Class getAgentConfigurationModelClass() {
-                    return DropFieldsConfiguration.class;
+                    return FlattenConfiguration.class;
                 }
             };
 
     @ConfigProperty(
             description =
                     """
-                            Fields to drop from the input record.
+                            The delimiter to use when concatenating the field names.
                             """,
-            required = true)
-    private List<String> fields;
+            defaultValue = "_")
+    private String delimiter;
 
     @ConfigProperty(
             description =
                     """
-                            Part to drop. (value or key)
+                            When used with KeyValue data, defines if the transformation is done on the key or on the value. If empty, the transformation applies to both the key and the value.
                             """)
     private String part;
 }

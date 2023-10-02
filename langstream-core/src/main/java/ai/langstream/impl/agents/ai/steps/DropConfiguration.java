@@ -16,38 +16,22 @@
 package ai.langstream.impl.agents.ai.steps;
 
 import ai.langstream.api.doc.AgentConfig;
-import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
-import java.util.List;
 import lombok.Data;
 
 @AgentConfig(
-        name = "Drop fields",
-        description = """
-                Drops the record fields.
-                """)
+        name = "Drop the record",
+        description =
+                """
+        Drops the record from further processing. Use in conjunction with when to selectively drop records.
+        """)
 @Data
-public class DropFieldsConfiguration extends BaseGenAIStepConfiguration {
+public class DropConfiguration extends BaseGenAIStepConfiguration {
     public static final GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer STEP =
             new GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer() {
                 @Override
                 public Class getAgentConfigurationModelClass() {
-                    return DropFieldsConfiguration.class;
+                    return DropConfiguration.class;
                 }
             };
-
-    @ConfigProperty(
-            description =
-                    """
-                            Fields to drop from the input record.
-                            """,
-            required = true)
-    private List<String> fields;
-
-    @ConfigProperty(
-            description =
-                    """
-                            Part to drop. (value or key)
-                            """)
-    private String part;
 }

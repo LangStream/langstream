@@ -18,36 +18,28 @@ package ai.langstream.impl.agents.ai.steps;
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
-import java.util.List;
 import lombok.Data;
 
 @AgentConfig(
-        name = "Drop fields",
-        description = """
-                Drops the record fields.
-                """)
+        name = "Unwrap key-value format",
+        description =
+                "If the record value is in KeyValue format, extracts the"
+                        + " KeyValue's key or value and make it the record value.")
 @Data
-public class DropFieldsConfiguration extends BaseGenAIStepConfiguration {
+public class UnwrapKeyValueConfiguration extends BaseGenAIStepConfiguration {
     public static final GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer STEP =
             new GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer() {
                 @Override
                 public Class getAgentConfigurationModelClass() {
-                    return DropFieldsConfiguration.class;
+                    return UnwrapKeyValueConfiguration.class;
                 }
             };
 
     @ConfigProperty(
             description =
                     """
-                            Fields to drop from the input record.
+                            Whether to unwrap the key instead of the value.
                             """,
-            required = true)
-    private List<String> fields;
-
-    @ConfigProperty(
-            description =
-                    """
-                            Part to drop. (value or key)
-                            """)
-    private String part;
+            defaultValue = "false")
+    private boolean unwrapKey;
 }

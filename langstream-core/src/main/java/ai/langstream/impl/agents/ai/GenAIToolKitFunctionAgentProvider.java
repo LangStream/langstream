@@ -21,7 +21,6 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.Resource;
-import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -92,7 +91,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
     }
 
     public interface TopicConfigurationGenerator {
-        Map<String, Object> generateTopicConfiguration(String topicName);
+        void generateTopicConfiguration(String topicName);
     }
 
     public interface StepConfigurationInitializer {
@@ -154,8 +153,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
 
         TopicConfigurationGenerator topicConfigurationGenerator =
                 (topicName) -> {
-                    TopicDefinition topicDefinition = module.resolveTopic(topicName);
-                    return topicDefinition.getConfig();
+                    // only resolve the topic definition to verify topic is declared
+                    module.resolveTopic(topicName);
                 };
 
         AIServiceConfigurationGenerator aiServiceConfigurationGenerator =

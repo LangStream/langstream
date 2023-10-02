@@ -61,9 +61,7 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
 
                     final String streamTopic = (String) step.get("stream-to-topic");
                     if (streamTopic != null) {
-                        Map<String, Object> topicConfiguration =
-                                topicConfigurationGenerator.generateTopicConfiguration(streamTopic);
-                        step.put("streamTopicConfiguration", topicConfiguration);
+                        topicConfigurationGenerator.generateTopicConfiguration(streamTopic);
                     }
 
                     aiServiceConfigurationGenerator.generateAIServiceConfiguration(

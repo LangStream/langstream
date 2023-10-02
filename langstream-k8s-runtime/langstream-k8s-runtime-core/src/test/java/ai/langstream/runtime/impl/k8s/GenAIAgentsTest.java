@@ -344,13 +344,7 @@ class GenAIAgentsTest {
             DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
             Map<String, Object> configuration = step.getConfiguration();
             log.info("Configuration: {}", configuration);
-            Map<String, Object> openAIConfiguration =
-                    (Map<String, Object>) configuration.get("openai");
-            log.info("openAIConfiguration: {}", openAIConfiguration);
-            assertEquals("http://something", openAIConfiguration.get("url"));
-            assertEquals("xxcxcxc", openAIConfiguration.get("access-key"));
-            assertEquals("azure", openAIConfiguration.get("provider"));
-
+            assertNull(configuration.get("openai"));
             List<Map<String, Object>> steps =
                     (List<Map<String, Object>>) configuration.get("steps");
             assertEquals(1, steps.size());

@@ -216,6 +216,12 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                   "type" : "string"
                                 }
                               },
+                              "stream" : {
+                                "description" : "Enable streaming of the results. Use in conjunction with the stream-to-topic parameter.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "true"
+                              },
                               "stream-response-completion-field" : {
                                 "description" : "Field to use to store the completion results in the stream-to-topic topic. Use \\"value\\" to write the result without a structured schema. Use \\"value.<field>\\" to write the result in a specific field.",
                                 "required" : false,
@@ -323,6 +329,12 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                   "required" : false,
                                   "type" : "string"
                                 }
+                              },
+                              "stream" : {
+                                "description" : "Enable streaming of the results. Use in conjunction with the stream-to-topic parameter.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "true"
                               },
                               "stream-response-completion-field" : {
                                 "description" : "Field to use to store the completion results in the stream-to-topic topic. Use \\"value\\" to write the result without a structured schema. Use \\"value.<field>\\" to write the result in a specific field.",
@@ -507,7 +519,8 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                             }
                           },
                           "drop-fields" : {
-                            "name" : "Drop fields from the input record",
+                            "name" : "Drop fields",
+                            "description" : "Drops the record fields.",
                             "properties" : {
                               "composable" : {
                                 "description" : "Whether this step can be composed with other steps.",

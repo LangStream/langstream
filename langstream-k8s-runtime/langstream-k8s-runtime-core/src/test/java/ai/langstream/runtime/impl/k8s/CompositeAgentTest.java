@@ -74,14 +74,12 @@ class CompositeAgentTest {
                                     id: "step1"
                                     type: "text-extractor"
                                     input: "input-topic"
-                                    configuration:
-                                      param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
                                     type: "language-detector"
                                     output: "output-topic"
                                     configuration:
-                                      param2: "value2"
+                                      property: "value2"
                                 """),
                                 buildInstanceYaml(),
                                 null)
@@ -118,13 +116,10 @@ class CompositeAgentTest {
                     (List<Map<String, Object>>) configuration.get("processors");
             assertEquals(2, agents.size());
             assertEquals("text-extractor", agents.get(0).get("agentType"));
-            assertEquals(
-                    "value1",
-                    ((Map<String, Object>) agents.get(0).get("configuration")).get("param1"));
             assertEquals("language-detector", agents.get(1).get("agentType"));
             assertEquals(
                     "value2",
-                    ((Map<String, Object>) agents.get(1).get("configuration")).get("param2"));
+                    ((Map<String, Object>) agents.get(1).get("configuration")).get("property"));
 
             Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
             assertEquals("input-topic", inputTopic.topicName());
@@ -152,19 +147,17 @@ class CompositeAgentTest {
                                     id: "step1"
                                     type: "text-extractor"
                                     input: "input-topic"
-                                    configuration:
-                                      param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
                                     type: "language-detector"
                                     configuration:
-                                      param2: "value2"
+                                      property: "value2"
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
                                     output: "output-topic"
                                     configuration:
-                                      param3: "value3"
+                                      allowedLanguages: ["en"]
                                 """),
                                 buildInstanceYaml(),
                                 null)
@@ -201,17 +194,14 @@ class CompositeAgentTest {
                     (List<Map<String, Object>>) configuration.get("processors");
             assertEquals(3, agents.size());
             assertEquals("text-extractor", agents.get(0).get("agentType"));
-            assertEquals(
-                    "value1",
-                    ((Map<String, Object>) agents.get(0).get("configuration")).get("param1"));
             assertEquals("language-detector", agents.get(1).get("agentType"));
             assertEquals(
                     "value2",
-                    ((Map<String, Object>) agents.get(1).get("configuration")).get("param2"));
+                    ((Map<String, Object>) agents.get(1).get("configuration")).get("property"));
             assertEquals("language-detector", agents.get(2).get("agentType"));
             assertEquals(
-                    "value3",
-                    ((Map<String, Object>) agents.get(2).get("configuration")).get("param3"));
+                    List.of("en"),
+                    ((Map<String, Object>) agents.get(2).get("configuration")).get("allowedLanguages"));
 
             Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
             assertEquals("input-topic", inputTopic.topicName());
@@ -239,13 +229,11 @@ class CompositeAgentTest {
                                     id: "step1"
                                     type: "text-extractor"
                                     input: "input-topic"
-                                    configuration:
-                                      param1: "value1"
                                   - name: "language-detector"
                                     id: "step1b"
                                     type: "language-detector"
                                     configuration:
-                                      param2: "value2"
+                                      property: "value2"
                                   - name: "drop-if-not-english"
                                     id: "step2"
                                     type: "drop"
@@ -257,7 +245,7 @@ class CompositeAgentTest {
                                     type: "language-detector"
                                     output: "output-topic"
                                     configuration:
-                                      param3: "value3"
+                                      allowedLanguages: ["en"]
                                 """),
                                 buildInstanceYaml(),
                                 null)
@@ -312,13 +300,10 @@ class CompositeAgentTest {
                     (List<Map<String, Object>>) configuration.get("processors");
             assertEquals(2, agents.size());
             assertEquals("text-extractor", agents.get(0).get("agentType"));
-            assertEquals(
-                    "value1",
-                    ((Map<String, Object>) agents.get(0).get("configuration")).get("param1"));
             assertEquals("language-detector", agents.get(1).get("agentType"));
             assertEquals(
                     "value2",
-                    ((Map<String, Object>) agents.get(1).get("configuration")).get("param2"));
+                    ((Map<String, Object>) agents.get(1).get("configuration")).get("property"));
 
             Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
             assertEquals("input-topic", inputTopic.topicName());
@@ -342,7 +327,7 @@ class CompositeAgentTest {
                     implementation.getAgentImplementation(module, "step3");
             DefaultAgentNode defaultAgentNodeLast = (DefaultAgentNode) agentImplementationLast;
             Map<String, Object> configurationLast = defaultAgentNodeLast.getConfiguration();
-            assertEquals("value3", configurationLast.get("param3"));
+            assertEquals(List.of("en"), configurationLast.get("allowedLanguages"));
 
             Topic inputTopicLast = (Topic) defaultAgentNodeLast.getInputConnectionImplementation();
             assertEquals("agent-step3-input", inputTopicLast.topicName());
@@ -373,19 +358,17 @@ class CompositeAgentTest {
                                   - name: "text-extractor"
                                     id: "step1"
                                     type: "text-extractor"
-                                    configuration:
-                                      param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
                                     type: "language-detector"
                                     configuration:
-                                      param2: "value2"
+                                      property: "value2"
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
                                     output: "output-topic"
                                     configuration:
-                                      param3: "value3"
+                                      allowedLanguages: ["en"]
                                 """),
                                 buildInstanceYaml(),
                                 null)
@@ -424,17 +407,14 @@ class CompositeAgentTest {
                     (List<Map<String, Object>>) configuration.get("processors");
             assertEquals(3, processors.size());
             assertEquals("text-extractor", processors.get(0).get("agentType"));
-            assertEquals(
-                    "value1",
-                    ((Map<String, Object>) processors.get(0).get("configuration")).get("param1"));
             assertEquals("language-detector", processors.get(1).get("agentType"));
             assertEquals(
                     "value2",
-                    ((Map<String, Object>) processors.get(1).get("configuration")).get("param2"));
+                    ((Map<String, Object>) processors.get(1).get("configuration")).get("property"));
             assertEquals("language-detector", processors.get(2).get("agentType"));
             assertEquals(
-                    "value3",
-                    ((Map<String, Object>) processors.get(2).get("configuration")).get("param3"));
+                    List.of("en"),
+                    ((Map<String, Object>) processors.get(2).get("configuration")).get("allowedLanguages"));
 
             Topic outputTopic = (Topic) defaultAgentNode.getOutputConnectionImplementation();
             assertEquals("output-topic", outputTopic.topicName());
@@ -460,18 +440,16 @@ class CompositeAgentTest {
                                     id: "step1"
                                     type: "text-extractor"
                                     input: "input-topic"
-                                    configuration:
-                                      param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
                                     type: "language-detector"
                                     configuration:
-                                      param2: "value2"
+                                      property: "value2"
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
                                     configuration:
-                                      param3: "value3"
+                                      allowedLanguages: ["en"]
                                   - name: "generic-composable-sink"
                                     type: "generic-composable-sink"
                                     configuration:
@@ -507,17 +485,14 @@ class CompositeAgentTest {
                     (List<Map<String, Object>>) configuration.get("processors");
             assertEquals(3, processors.size());
             assertEquals("text-extractor", processors.get(0).get("agentType"));
-            assertEquals(
-                    "value1",
-                    ((Map<String, Object>) processors.get(0).get("configuration")).get("param1"));
             assertEquals("language-detector", processors.get(1).get("agentType"));
             assertEquals(
                     "value2",
-                    ((Map<String, Object>) processors.get(1).get("configuration")).get("param2"));
+                    ((Map<String, Object>) processors.get(1).get("configuration")).get("property"));
             assertEquals("language-detector", processors.get(2).get("agentType"));
             assertEquals(
-                    "value3",
-                    ((Map<String, Object>) processors.get(2).get("configuration")).get("param3"));
+                    List.of("en"),
+                    ((Map<String, Object>) processors.get(2).get("configuration")).get("allowedLanguages"));
 
             Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
             assertEquals("input-topic", inputTopic.topicName());
@@ -549,18 +524,16 @@ class CompositeAgentTest {
                                   - name: "text-extractor"
                                     id: "step1"
                                     type: "text-extractor"
-                                    configuration:
-                                      param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
                                     type: "language-detector"
                                     configuration:
-                                      param2: "value2"
+                                      property: "value2"
                                   - name: "language-detector-2"
                                     id: "step3"
                                     type: "language-detector"
                                     configuration:
-                                      param3: "value3"
+                                      allowedLanguages: ["en"]
                                   - name: "generic-composable-sink"
                                     type: "generic-composable-sink"
                                     configuration:
@@ -598,17 +571,14 @@ class CompositeAgentTest {
                     (List<Map<String, Object>>) configuration.get("processors");
             assertEquals(3, processors.size());
             assertEquals("text-extractor", processors.get(0).get("agentType"));
-            assertEquals(
-                    "value1",
-                    ((Map<String, Object>) processors.get(0).get("configuration")).get("param1"));
             assertEquals("language-detector", processors.get(1).get("agentType"));
             assertEquals(
                     "value2",
-                    ((Map<String, Object>) processors.get(1).get("configuration")).get("param2"));
+                    ((Map<String, Object>) processors.get(1).get("configuration")).get("property"));
             assertEquals("language-detector", processors.get(2).get("agentType"));
             assertEquals(
-                    "value3",
-                    ((Map<String, Object>) processors.get(2).get("configuration")).get("param3"));
+                    List.of("en"),
+                    ((Map<String, Object>) processors.get(2).get("configuration")).get("allowedLanguages"));
 
             assertNull(defaultAgentNode.getInputConnectionImplementation());
             assertNull(defaultAgentNode.getOutputConnectionImplementation());
@@ -639,13 +609,11 @@ class CompositeAgentTest {
                                   - name: "text-extractor"
                                     id: "step1"
                                     type: "text-extractor"
-                                    configuration:
-                                      param1: "value1"
                                   - name: "language-detector"
                                     id: "step2"
                                     type: "language-detector"
                                     configuration:
-                                      param2: "value2"
+                                      property: "value2"
                                   - name: "requires-buffer-topic"
                                     id: "bad-step"
                                     type: "drop"
@@ -655,7 +623,7 @@ class CompositeAgentTest {
                                     id: "step3"
                                     type: "language-detector"
                                     configuration:
-                                      param3: "value3"
+                                      allowedLanguages: ["en"]
                                   - name: "generic-composable-sink"
                                     type: "generic-composable-sink"
                                     configuration:
@@ -702,13 +670,10 @@ class CompositeAgentTest {
                     (List<Map<String, Object>>) configuration.get("processors");
             assertEquals(2, processors.size());
             assertEquals("text-extractor", processors.get(0).get("agentType"));
-            assertEquals(
-                    "value1",
-                    ((Map<String, Object>) processors.get(0).get("configuration")).get("param1"));
             assertEquals("language-detector", processors.get(1).get("agentType"));
             assertEquals(
                     "value2",
-                    ((Map<String, Object>) processors.get(1).get("configuration")).get("param2"));
+                    ((Map<String, Object>) processors.get(1).get("configuration")).get("property"));
 
             Topic outputTopic = (Topic) defaultFirstNode.getOutputConnectionImplementation();
             assertEquals("agent-bad-step-input", outputTopic.topicName());
@@ -734,8 +699,8 @@ class CompositeAgentTest {
             assertEquals(1, processors.size());
             assertEquals("language-detector", processors.get(0).get("agentType"));
             assertEquals(
-                    "value3",
-                    ((Map<String, Object>) processors.get(0).get("configuration")).get("param3"));
+                    List.of("en"),
+                    ((Map<String, Object>) processors.get(0).get("configuration")).get("allowedLanguages"));
 
             Map<String, Object> sink = (Map<String, Object>) configurationThirdNode.get("sink");
             assertEquals("generic-composable-sink", sink.get("agentType"));

@@ -40,7 +40,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                     configuration:
                       a-field: "val"
                 """,
-                "Found error on an agent configuration (agent: 'drop-my-field', type: 'drop-fields'). Property 'a-field' is unknown");
+                "Found error on agent configuration (agent: 'drop-my-field', type: 'drop-fields'). Property 'a-field' is unknown");
         validate(
                 """
                 topics: []
@@ -49,7 +49,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                     type: "drop-fields"
                     configuration: {}
                 """,
-                "Found error on an agent configuration (agent: 'drop-my-field', type: 'drop-fields'). Property 'fields' is required");
+                "Found error on agent configuration (agent: 'drop-my-field', type: 'drop-fields'). Property 'fields' is required");
         validate(
                 """
                 topics: []
@@ -59,7 +59,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                     configuration:
                         fields: {}
                 """,
-                "Found error on an agent configuration (agent: 'drop-my-field', type: 'drop-fields'). Property 'fields' has a wrong data type. Expected type: java.util.ArrayList");
+                "Found error on agent configuration (agent: 'drop-my-field', type: 'drop-fields'). Property 'fields' has a wrong data type. Expected type: java.util.ArrayList");
         validate(
                 """
                 topics: []

@@ -15,7 +15,6 @@
  */
 package ai.langstream.impl.resources;
 
-import static ai.langstream.api.util.ConfigurationUtils.getString;
 import static ai.langstream.api.util.ConfigurationUtils.requiredField;
 import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
 import static ai.langstream.api.util.ConfigurationUtils.validateEnumField;

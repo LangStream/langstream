@@ -613,7 +613,9 @@ class GenAIAgentsTest {
             Map<String, Object> datasourceConfiguration1 =
                     (Map<String, Object>) configuration.get("datasource");
             assertEquals("jdbc", datasourceConfiguration1.get("service"));
-            assertEquals("jdbc:postgresql://localhost:5432/postgres", datasourceConfiguration1.get("url"));
+            assertEquals(
+                    "jdbc:postgresql://localhost:5432/postgres",
+                    datasourceConfiguration1.get("url"));
             assertEquals("org.postgresql.Driver", datasourceConfiguration1.get("driverClass"));
             List<Map<String, Object>> steps =
                     (List<Map<String, Object>>) configuration.get("steps");
@@ -631,7 +633,9 @@ class GenAIAgentsTest {
                 Map<String, Object> datasourceConfiguration1 =
                         (Map<String, Object>) configuration.get("datasource");
                 assertEquals("jdbc", datasourceConfiguration1.get("service"));
-                assertEquals("jdbc:postgresql://localhost:5432/postgres", datasourceConfiguration1.get("url"));
+                assertEquals(
+                        "jdbc:postgresql://localhost:5432/postgres",
+                        datasourceConfiguration1.get("url"));
                 assertEquals("org.postgresql.Driver", datasourceConfiguration1.get("driverClass"));
                 List<Map<String, Object>> steps =
                         (List<Map<String, Object>>) configuration.get("steps");
@@ -756,7 +760,9 @@ class GenAIAgentsTest {
             Map<String, Object> datasourceConfiguration1 =
                     (Map<String, Object>) configuration.get("datasource");
             assertEquals("jdbc", datasourceConfiguration1.get("service"));
-            assertEquals("jdbc:postgresql://localhost:5432/postgres", datasourceConfiguration1.get("url"));
+            assertEquals(
+                    "jdbc:postgresql://localhost:5432/postgres",
+                    datasourceConfiguration1.get("url"));
             assertEquals("org.postgresql.Driver", datasourceConfiguration1.get("driverClass"));
             List<Map<String, Object>> steps =
                     (List<Map<String, Object>>) configuration.get("steps");

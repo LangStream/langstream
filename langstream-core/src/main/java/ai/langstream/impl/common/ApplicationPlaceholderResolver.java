@@ -46,7 +46,11 @@ public class ApplicationPlaceholderResolver {
     private static final ObjectMapper mapper =
             new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-    private static final ObjectMapper mapperForTemplates = new ObjectMapper();
+    private static final ObjectMapper mapperForTemplates =
+            new ObjectMapper()
+                    .configure(
+                            SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS,
+                            true); // help with tests (also of applications using LS)
 
     private ApplicationPlaceholderResolver() {}
 
@@ -256,7 +260,11 @@ public class ApplicationPlaceholderResolver {
             // password=${secrets.password}"
             return resolvePlaceholdersInString(template, context);
         }
-        if (reference.startsWith("${secrets.") || reference.startsWith("${globals.")) {
+
+        // exact match ${ x.y.z } (and not ${ x.y.z }${ x.y.z })
+        if (reference.startsWith("${")
+                && reference.endsWith("}")
+                && reference.indexOf("{") == reference.lastIndexOf("{")) {
             String placeholder = reference.substring(2, reference.length() - 1);
             return resolveReference(placeholder, context);
         }
@@ -277,8 +285,8 @@ public class ApplicationPlaceholderResolver {
             if (end < 0) {
                 throw new IllegalArgumentException("Invalid placeholder: " + template);
             }
-            String placeholder = template.substring(pos + 2, end);
-            Object value = resolveSingleValue(context, placeholder);
+            String placeholder = template.substring(pos + 2, end).trim();
+            Object value = resolveReference(placeholder, context);
             if (value == null) {
                 // to not write "null" inside the string
                 value = "";
@@ -301,6 +309,7 @@ public class ApplicationPlaceholderResolver {
     }
 
     private static Object resolveReference(String placeholder, Object context) {
+        placeholder = placeholder.trim();
         int dot = placeholder.indexOf('.');
         if (dot < 0) {
             return resolveProperty(context, placeholder);

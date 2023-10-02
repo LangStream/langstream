@@ -88,7 +88,7 @@ class GenAIAgentsTest {
                                     configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{% value.name }} {{% value.description }}"
+                                      text: "{{ value.name }} {{ value.description }}"
                                 """),
                                 buildInstanceYaml(),
                                 null)
@@ -171,7 +171,7 @@ class GenAIAgentsTest {
                                     configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{% value.name }} {{% value.description }}"
+                                      text: "{{ value.name }} {{ value.description }}"
                                   - name: "drop"
                                     id: "step2"
                                     type: "drop-fields"
@@ -287,7 +287,7 @@ class GenAIAgentsTest {
                                     configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{% value.name }} {{% value.description }}"
+                                      text: "{{ value.name }} {{ value.description }}"
                                   - name: "drop"
                                     id: "step2"
                                     type: "drop-fields"
@@ -420,7 +420,7 @@ class GenAIAgentsTest {
                                     configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{% value.name }} {{% value.description }}"
+                                      text: "{{ value.name }} {{ value.description }}"
                                   - name: "dropfields"
                                     type: "drop-fields"
                                     configuration:
@@ -700,7 +700,7 @@ class GenAIAgentsTest {
                                     configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{% value.name }} {{% value.description }}"
+                                      text: "{{ value.name }} {{ value.description }}"
                                   - name: "query1"
                                     id: query1
                                     type: "query"
@@ -799,7 +799,7 @@ class GenAIAgentsTest {
                                       ai-service: "my-vertex"
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{% value.name }} {{% value.description }}"
+                                      text: "{{ value.name }} {{ value.description }}"
                                 """),
                                 buildInstanceYaml(),
                                 null)

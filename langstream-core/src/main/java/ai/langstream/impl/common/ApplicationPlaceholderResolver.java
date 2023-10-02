@@ -29,7 +29,6 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.samskivert.mustache.Mustache;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,8 +46,7 @@ public class ApplicationPlaceholderResolver {
     private static final ObjectMapper mapper =
             new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-    private static final ObjectMapper mapperFprTemplates =
-            new ObjectMapper();
+    private static final ObjectMapper mapperFprTemplates = new ObjectMapper();
 
     private ApplicationPlaceholderResolver() {}
 
@@ -100,7 +98,8 @@ public class ApplicationPlaceholderResolver {
                             (Map.Entry<String, TopicDefinition> entry) -> {
                                 String topicName = entry.getKey();
                                 TopicDefinition definition = entry.getValue().copy();
-                                definition.setName(resolveValueAsString(context, definition.getName()));
+                                definition.setName(
+                                        resolveValueAsString(context, definition.getName()));
                                 newTopics.put(resolveValueAsString(context, topicName), definition);
                             });
             module.replaceTopics(newTopics);
@@ -247,17 +246,17 @@ public class ApplicationPlaceholderResolver {
         return value == null ? "" : value.toString();
     }
 
-    static Object resolveValue(Map<String, Object> context, String template){
+    static Object resolveValue(Map<String, Object> context, String template) {
         if (template == null) {
             return null;
         }
         String reference = template.trim();
-        if (!reference.startsWith("${") || !reference.endsWith("}"))  {
-            // this is a raw value like    "username=${secrets.username}" password=${secrets.password}"
+        if (!reference.startsWith("${") || !reference.endsWith("}")) {
+            // this is a raw value like    "username=${secrets.username}"
+            // password=${secrets.password}"
             return resolvePlaceholdersInString(template, context);
         }
-        if (reference.startsWith("${secrets.")
-            || reference.startsWith("${globals.")) {
+        if (reference.startsWith("${secrets.") || reference.startsWith("${globals.")) {
             String placeholder = reference.substring(2, reference.length() - 1);
             return resolveReference(placeholder, context);
         }
@@ -265,7 +264,7 @@ public class ApplicationPlaceholderResolver {
         return resolvePlaceholdersInString(template, context);
     }
 
-    static String resolvePlaceholdersInString(String template, Map<String, Object> context){
+    static String resolvePlaceholdersInString(String template, Map<String, Object> context) {
         StringBuilder result = new StringBuilder();
         int position = 0;
         int pos = template.indexOf("${", position);
@@ -310,14 +309,15 @@ public class ApplicationPlaceholderResolver {
     }
 
     private static Object resolveProperty(Object context, String property) {
-            if (context == null) {
-                return null;
-            }
-            if (context instanceof Map) {
-                return ((Map) context).get(property);
-            } else {
-                throw new IllegalArgumentException("Cannot resolve property " + property + " on " + context);
-            }
+        if (context == null) {
+            return null;
+        }
+        if (context instanceof Map) {
+            return ((Map) context).get(property);
+        } else {
+            throw new IllegalArgumentException(
+                    "Cannot resolve property " + property + " on " + context);
+        }
     }
 
     private static Application deepCopy(Application instance) throws IOException {

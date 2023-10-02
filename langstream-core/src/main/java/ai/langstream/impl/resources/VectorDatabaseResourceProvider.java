@@ -19,10 +19,8 @@ import static ai.langstream.api.util.ConfigurationUtils.requiredField;
 import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
 import static ai.langstream.api.util.ConfigurationUtils.validateEnumField;
 
-import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
-import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.ResourceNodeProvider;
 import ai.langstream.api.util.ConfigurationUtils;
@@ -33,8 +31,7 @@ public class VectorDatabaseResourceProvider extends DataSourceResourceProvider
         implements ResourceNodeProvider {
     @Override
     public Map<String, Object> createImplementation(
-            Resource resource,
-            PluginsRegistry pluginsRegistry) {
+            Resource resource, PluginsRegistry pluginsRegistry) {
         Map<String, Object> configuration = resource.configuration();
 
         String service = requiredField(configuration, "service", describe(resource));

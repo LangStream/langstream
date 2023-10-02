@@ -150,7 +150,8 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             Resource resource, PluginsRegistry pluginsRegistry) {
         ResourceNodeProvider nodeProvider =
                 pluginsRegistry.lookupResourceImplementation(resource.type(), this);
-        final Map<String, Object> newConfig = nodeProvider.createImplementation(resource, pluginsRegistry);
+        final Map<String, Object> newConfig =
+                nodeProvider.createImplementation(resource, pluginsRegistry);
         return new HashMap<>(newConfig);
     }
 

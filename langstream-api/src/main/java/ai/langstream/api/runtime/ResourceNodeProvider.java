@@ -16,7 +16,6 @@
 package ai.langstream.api.runtime;
 
 import ai.langstream.api.doc.ResourceConfigurationModel;
-import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Resource;
 import java.util.Map;
 
@@ -28,9 +27,7 @@ public interface ResourceNodeProvider {
      * @param pluginsRegistry the plugins registry
      * @return the implementation
      */
-    Map<String, Object> createImplementation(
-            Resource resource,
-            PluginsRegistry pluginsRegistry);
+    Map<String, Object> createImplementation(Resource resource, PluginsRegistry pluginsRegistry);
 
     /**
      * Returns the ability of a Resource to be deployed on the give runtimes.

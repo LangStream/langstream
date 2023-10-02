@@ -47,16 +47,12 @@ class ResourceNodeProviderTest {
         switch (outcome) {
             case VALID -> {
                 assertDoesNotThrow(
-                        () ->
-                                providersResourceProvider.createImplementation(
-                                        resource, null));
+                        () -> providersResourceProvider.createImplementation(resource, null));
             }
             case NON_VALID -> {
                 assertThrows(
                         IllegalArgumentException.class,
-                        () ->
-                                providersResourceProvider.createImplementation(
-                                        resource, null));
+                        () -> providersResourceProvider.createImplementation(resource, null));
             }
         }
     }

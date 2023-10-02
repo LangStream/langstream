@@ -16,10 +16,8 @@
 package ai.langstream.impl.resources;
 
 import ai.langstream.api.doc.ResourceConfigurationModel;
-import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
-import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.ResourceNodeProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
@@ -46,15 +44,12 @@ public abstract class AbstractResourceProvider implements ResourceNodeProvider {
 
     @Override
     public Map<String, Object> createImplementation(
-            Resource resource,
-            PluginsRegistry pluginsRegistry) {
-        return computeResourceConfiguration(
-                resource, pluginsRegistry);
+            Resource resource, PluginsRegistry pluginsRegistry) {
+        return computeResourceConfiguration(resource, pluginsRegistry);
     }
 
     protected Map<String, Object> computeResourceConfiguration(
-            Resource resource,
-            PluginsRegistry pluginsRegistry) {
+            Resource resource, PluginsRegistry pluginsRegistry) {
         final String type = resource.type();
         final Class modelClass = getResourceConfigModelClass(type);
         if (modelClass != null) {

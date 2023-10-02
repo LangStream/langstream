@@ -21,10 +21,7 @@ import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
 
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ResourceConfig;
-import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Resource;
-import ai.langstream.api.runtime.ComputeClusterRuntime;
-import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,11 +45,9 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
 
     @Override
     protected Map<String, Object> computeResourceConfiguration(
-            Resource resource,
-            PluginsRegistry pluginsRegistry) {
+            Resource resource, PluginsRegistry pluginsRegistry) {
         final Map<String, Object> copy =
-                super.computeResourceConfiguration(
-                        resource, pluginsRegistry);
+                super.computeResourceConfiguration(resource, pluginsRegistry);
         // only dynamic checks, the rest is done in AbstractResourceProvider
         if (resource.type().equals(VERTEX_CONFIGURATION)) {
             validateVertexConfigurationResource(resource);

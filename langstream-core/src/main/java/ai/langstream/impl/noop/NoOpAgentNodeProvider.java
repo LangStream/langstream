@@ -15,10 +15,12 @@
  */
 package ai.langstream.impl.noop;
 
+import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.common.AbstractAgentProvider;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class NoOpAgentNodeProvider extends AbstractAgentProvider {
@@ -30,5 +32,10 @@ public class NoOpAgentNodeProvider extends AbstractAgentProvider {
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
         return ComponentType.PROCESSOR;
+    }
+
+    @Override
+    public Map<String, AgentConfigurationModel> generateSupportedTypesDocumentation() {
+        return Map.of();
     }
 }

@@ -65,8 +65,8 @@ class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
                                     type: "text-normaliser"
                                     output: "output-topic"
                                     configuration:
-                                        makeLowercase: true
-                                        trimSpaces: true
+                                        make-lowercase: true
+                                        trim-spaces: true
                                 """);
 
         try (ApplicationRuntime applicationRuntime =

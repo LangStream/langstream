@@ -23,8 +23,6 @@ import ai.langstream.api.util.ConfigurationUtils;
 import com.alibaba.fastjson.JSONObject;
 import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.jstl.JstlEvaluator;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.CollectionSchema;
 import io.milvus.grpc.DescribeCollectionResponse;
@@ -44,9 +42,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MilvusWriter implements VectorDatabaseWriterProvider {
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {

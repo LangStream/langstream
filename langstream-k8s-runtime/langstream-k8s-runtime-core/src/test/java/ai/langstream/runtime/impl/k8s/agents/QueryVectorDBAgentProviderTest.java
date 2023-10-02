@@ -26,65 +26,83 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-class S3SourceAgentProviderTest {
+class QueryVectorDBAgentProviderTest {
+
     @Test
     @SneakyThrows
-    public void testValidation() {
+    public void testValidationQueryDb() {
         validate(
                 """
-                topics: []
                 pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
+                  - name: "db"
+                    type: "query-vector-db"
                     configuration:
-                      a-field: "val"
+                      output-field: result
+                      query: "select xxx"
+                      datasource: "cassandra"
+                      unknown-field: "..."
                 """,
-                "Found error on an agent configuration (agent: 's3-source', type: 's3-source'). Property 'a-field' is unknown");
+                "Found error on an agent configuration (agent: 'db', type: 'query-vector-db'). Property 'unknown-field' is unknown");
+
         validate(
                 """
-                topics: []
                 pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
-                    configuration: {}
+                  - name: "db"
+                    type: "query-vector-db"
+                    configuration:
+                      output-field: result
+                      query: "select xxx"
+                      datasource: "not exists"
+                """,
+                "Resource 'not exists' not found");
+
+        validate(
+                """
+                pipeline:
+                  - name: "db"
+                    type: "query-vector-db"
+                    configuration:
+                      output-field: result
+                      query: "select xxx"
+                      datasource: "cassandra"
                 """,
                 null);
+    }
+
+    @Test
+    @SneakyThrows
+    public void testWriteDb() {
         validate(
                 """
-                topics: []
                 pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
+                  - name: "db"
+                    type: "vector-db-sink"
                     configuration:
-                      bucketName: "my-bucket"
-                      access-key: KK
-                      secret-key: SS
-                      endpoint: "http://localhost:9000"
-                      idle-time: 0
-                      region: "us-east-1"
-                      file-extensions: "csv"
+                      datasource: "not exists"
+                      unknown-field: "..."
+                """,
+                "Resource 'not exists' not found");
+
+        validate(
+                """
+                pipeline:
+                  - name: "db"
+                    type: "vector-db-sink"
+                    configuration:
+                      unknown-field: "..."
+                """,
+                "Found error on an agent configuration (agent: 'db', type: 'vector-db-sink'). Property 'datasource' is required");
+
+        validate(
+                """
+                pipeline:
+                  - name: "db"
+                    type: "vector-db-sink"
+                    configuration:
+                      datasource: "cassandra"
+                      unknown-field: "..."
                 """,
                 null);
-        validate(
-                """
-                topics: []
-                pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
-                    configuration:
-                      bucketName: 12
-                """,
-                null);
-        validate(
-                """
-                        topics: []
-                        pipeline:
-                          - name: "s3-source"
-                            type: "s3-source"
-                            configuration:
-                              bucketName: {object: true}
-                        """,
-                "Found error on an agent configuration (agent: 's3-source', type: 's3-source'). Property 'bucketName' has a wrong data type. Expected type: java.lang.String");
     }
 
     private void validate(String pipeline, String expectErrMessage) throws Exception {

@@ -20,12 +20,13 @@ import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 
-public class TikTokLengthFunction implements LengthFunction {
+/** Java implementation of <a href="https://github.com/openai/tiktoken">tiktoken</a>. */
+public class TiktokenLengthFunction implements LengthFunction {
 
     private static final EncodingRegistry REGISTRY = Encodings.newDefaultEncodingRegistry();
     private final EncodingType encodingType;
 
-    public TikTokLengthFunction(String encoding) {
+    public TiktokenLengthFunction(String encoding) {
         encodingType =
                 EncodingType.fromName(encoding)
                         .orElseThrow(

@@ -87,13 +87,26 @@ public class ClassConfigValidator {
     @SneakyThrows
     public static void validateAgentModelFromClass(
             AgentConfiguration agentConfiguration, Class modelClazz, Map<String, Object> asMap) {
+        validateAgentModelFromClass(agentConfiguration, modelClazz, asMap, false);
+    }
+
+    @SneakyThrows
+    public static void validateAgentModelFromClass(
+            AgentConfiguration agentConfiguration,
+            Class modelClazz,
+            Map<String, Object> asMap,
+            boolean allowUnknownProperties) {
         asMap = validatorMapper.readValue(validatorMapper.writeValueAsBytes(asMap), Map.class);
 
         final AgentConfigurationModel agentConfigurationModel =
                 generateAgentModelFromClass(modelClazz);
 
         validateProperties(
-                agentConfiguration, null, asMap, agentConfigurationModel.getProperties());
+                agentConfiguration,
+                null,
+                asMap,
+                agentConfigurationModel.getProperties(),
+                allowUnknownProperties);
 
         try {
             validatorMapper.convertValue(asMap, modelClazz);
@@ -129,8 +142,9 @@ public class ClassConfigValidator {
             AgentConfiguration agentConfiguration,
             String parentProp,
             Map<String, Object> asMap,
-            Map<String, AgentConfigurationModel.AgentConfigurationProperty> properties) {
-        if (asMap != null) {
+            Map<String, AgentConfigurationModel.AgentConfigurationProperty> properties,
+            boolean allowUnknownProperties) {
+        if (!allowUnknownProperties && asMap != null) {
             for (String key : asMap.keySet()) {
                 if (!properties.containsKey(key)) {
                     final String fullPropertyKey =
@@ -176,7 +190,8 @@ public class ClassConfigValidator {
                     agentConfiguration,
                     fullPropertyKey,
                     actualValue == null ? null : (Map<String, Object>) actualValue,
-                    propertyValue.getProperties());
+                    propertyValue.getProperties(),
+                    false);
         }
     }
 

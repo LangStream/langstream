@@ -15,6 +15,8 @@
  */
 package ai.langstream.runtime.impl.k8s.agents;
 
+import ai.langstream.api.doc.AgentConfig;
+import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
@@ -25,26 +27,31 @@ import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
+import ai.langstream.impl.agents.ai.steps.QueryConfiguration;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider {
 
+    protected static final String QUERY_VECTOR_DB = "query-vector-db";
+    protected static final String VECTOR_DB_SINK = "vector-db-sink";
+
     public QueryVectorDBAgentProvider() {
         super(
-                Set.of("query-vector-db", "vector-db-sink"),
-                List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
+                Set.of(QUERY_VECTOR_DB, VECTOR_DB_SINK),
+                List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
         return switch (agentConfiguration.getType()) {
-            case "query-vector-db" -> ComponentType.PROCESSOR;
-            case "vector-db-sink" -> ComponentType.SINK;
+            case QUERY_VECTOR_DB -> ComponentType.PROCESSOR;
+            case VECTOR_DB_SINK -> ComponentType.SINK;
             default -> throw new IllegalStateException();
         };
     }
@@ -68,14 +75,9 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
 
         // get the datasource configuration and inject it into the agent configuration
         String resourceId = (String) originalConfiguration.remove("datasource");
-        if (resourceId == null || resourceId.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Missing required field 'datasource' in agent definition, type="
-                            + agentConfiguration.getType()
-                            + ", name="
-                            + agentConfiguration.getName()
-                            + ", id="
-                            + agentConfiguration.getId());
+        if (resourceId == null) {
+            throw new IllegalStateException(
+                    "datasource is required but this exception should have been raised before ?");
         }
         generateDataSourceConfiguration(
                 resourceId,
@@ -102,16 +104,61 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
             if (!resource.type().equals("datasource")
                     && !resource.type().equals("vector-database")) {
                 throw new IllegalArgumentException(
-                        "Resource "
+                        "Resource '"
                                 + resourceId
-                                + " is not type=datasource or type=vector-database");
+                                + "' is not type=datasource or type=vector-database");
             }
             if (configuration.containsKey("datasource")) {
                 throw new IllegalArgumentException("Only one datasource is supported");
             }
             configuration.put("datasource", resourceImplementation);
         } else {
-            throw new IllegalArgumentException("Resource " + resourceId + " not found");
+            throw new IllegalArgumentException("Resource '" + resourceId + "' not found");
         }
+    }
+
+    @Override
+    protected Class getAgentConfigModelClass(String type) {
+        return switch (type) {
+            case QUERY_VECTOR_DB -> QueryVectorDBConfig.class;
+            case VECTOR_DB_SINK -> VectorDBSinkConfig.class;
+            default -> throw new IllegalStateException(type);
+        };
+    }
+
+    @Override
+    protected boolean isAgentConfigModelAllowUnknownProperties(String type) {
+        return switch (type) {
+            case QUERY_VECTOR_DB -> false;
+            case VECTOR_DB_SINK -> true;
+            default -> throw new IllegalStateException(type);
+        };
+    }
+
+    @AgentConfig(
+            name = "Query a vector database",
+            description =
+                    """
+            Query a vector database using Vector Search capabilities.
+            """)
+    @Data
+    public static class QueryVectorDBConfig extends QueryConfiguration {}
+
+    @AgentConfig(
+            name = "Vector database sink",
+            description =
+                    """
+            Store vectors in a vector database.
+            Configuration properties depends on the vector database implementation, specified by the "datasource" property.
+            """)
+    @Data
+    public static class VectorDBSinkConfig {
+        @ConfigProperty(
+                description =
+                        """
+                        The defined datasource ID to use to store the vectors.
+                                """,
+                required = true)
+        private String datasource;
     }
 }

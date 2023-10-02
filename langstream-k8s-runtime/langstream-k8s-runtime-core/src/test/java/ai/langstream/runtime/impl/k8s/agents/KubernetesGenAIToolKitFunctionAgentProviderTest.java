@@ -18,16 +18,10 @@ package ai.langstream.runtime.impl.k8s.agents;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.api.doc.AgentConfigurationModel;
-import ai.langstream.api.model.Application;
-import ai.langstream.api.runtime.ClusterRuntimeRegistry;
-import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
-import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.noop.NoOpComputeClusterRuntimeProvider;
-import ai.langstream.impl.parser.ModelBuilder;
 import java.util.Map;
-import lombok.Cleanup;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -81,38 +75,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
     }
 
     private void validate(String pipeline, String expectErrMessage) throws Exception {
-        Application applicationInstance =
-                ModelBuilder.buildApplicationInstance(
-                                Map.of("module.yaml", pipeline),
-                                """
-                                        instance:
-                                          streamingCluster:
-                                            type: "noop"
-                                          computeCluster:
-                                            type: "none"
-                                        """,
-                                null)
-                        .getApplication();
-
-        @Cleanup
-        ApplicationDeployer deployer =
-                ApplicationDeployer.builder()
-                        .registry(new ClusterRuntimeRegistry())
-                        .pluginsRegistry(new PluginsRegistry())
-                        .build();
-
-        try {
-            ExecutionPlan implementation =
-                    deployer.createImplementation("app", applicationInstance);
-            if (expectErrMessage != null) {
-                fail("Expected error message: " + expectErrMessage);
-            }
-        } catch (IllegalArgumentException e) {
-            if (expectErrMessage != null && e.getMessage().contains(expectErrMessage)) {
-                return;
-            }
-            fail("Expected error message: " + expectErrMessage + " but got: " + e.getMessage());
-        }
+        AgentValidationTestUtil.validate(pipeline, expectErrMessage);
     }
 
     @Test

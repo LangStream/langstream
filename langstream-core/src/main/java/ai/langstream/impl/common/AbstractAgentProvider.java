@@ -114,6 +114,10 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
         return null;
     }
 
+    protected boolean isAgentConfigModelAllowUnknownProperties(String type) {
+        return false;
+    }
+
     protected AgentNodeMetadata computeAgentMetadata(
             AgentConfiguration agentConfiguration,
             ExecutionPlan physicalApplicationInstance,
@@ -133,7 +137,11 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
         final String type = agentConfiguration.getType();
         final Class modelClass = getAgentConfigModelClass(type);
         if (modelClass != null) {
-            ClassConfigValidator.validateAgentModelFromClass(agentConfiguration, modelClass);
+            ClassConfigValidator.validateAgentModelFromClass(
+                    agentConfiguration,
+                    modelClass,
+                    agentConfiguration.getConfiguration(),
+                    isAgentConfigModelAllowUnknownProperties(type));
         }
         return new HashMap<>(agentConfiguration.getConfiguration());
     }

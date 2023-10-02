@@ -15,10 +15,12 @@
  */
 package ai.langstream.runtime.impl.k8s.agents;
 
+import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.impl.agents.AbstractCompositeAgentProvider;
 import ai.langstream.impl.noop.NoOpComputeClusterRuntimeProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import java.util.List;
+import java.util.Map;
 
 public class KubernetesCompositeAgentProvider extends AbstractCompositeAgentProvider {
     public KubernetesCompositeAgentProvider() {
@@ -26,5 +28,10 @@ public class KubernetesCompositeAgentProvider extends AbstractCompositeAgentProv
                 List.of(
                         KubernetesClusterRuntime.CLUSTER_TYPE,
                         NoOpComputeClusterRuntimeProvider.CLUSTER_TYPE));
+    }
+
+    @Override
+    public Map<String, AgentConfigurationModel> generateSupportedTypesDocumentation() {
+        return Map.of();
     }
 }

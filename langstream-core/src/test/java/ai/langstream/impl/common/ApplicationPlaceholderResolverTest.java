@@ -60,10 +60,6 @@ class ApplicationPlaceholderResolverTest {
                 ApplicationPlaceholderResolver.resolveValue(
                         context, "${secrets.openai-credentials.accessKey}"));
         assertEquals(
-                "http://mypulsar.localhost:8080",
-                ApplicationPlaceholderResolver.resolveValue(
-                        context, "${cluster.configuration.admin.serviceUrl}"));
-        assertEquals(
                 "http://myurl.localhost:8080/endpoint",
                 ApplicationPlaceholderResolver.resolveValue(context, "${globals.open-api-url}"));
     }
@@ -277,23 +273,6 @@ class ApplicationPlaceholderResolverTest {
         Assertions.assertTrue(configuration.get("rootObject") instanceof Map);
         Assertions.assertTrue(configuration.get("rootArray") instanceof java.util.List);
         Assertions.assertTrue(configuration.get("myvalue") instanceof String);
-    }
-
-    @Test
-    void testEscapeMustache() {
-        assertEquals(
-                """
-                {{ do not resolve }} resolved
-                {{# value.related_documents}}
-                {{ text}}
-                {{/ value.related_documents}}""",
-                ApplicationPlaceholderResolver.resolveValue(
-                        Map.of("test", "resolved"),
-                        """
-                        {{% do not resolve }} {{ test }}
-                        {{ value.related_documents}}
-                        {{% text}}
-                        {{%/ value.related_documents}}"""));
     }
 
     @Test

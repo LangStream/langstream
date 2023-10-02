@@ -25,17 +25,11 @@ public interface ResourceNodeProvider {
     /**
      * Create an Implementation of a Resource.
      *
-     * @param module the module
-     * @param executionPlan the physical application instance
-     * @param clusterRuntime the cluster runtime
      * @param pluginsRegistry the plugins registry
-     * @return the Agent
+     * @return the implementation
      */
     Map<String, Object> createImplementation(
             Resource resource,
-            Module module,
-            ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry);
 
     /**

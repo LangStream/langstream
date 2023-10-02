@@ -59,6 +59,12 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
                                     aiServiceConfigurationGenerator);
                     aiServiceConfigurationGenerator.generateAIServiceConfiguration(
                             (String) step.remove("ai-service"));
+
+                    // in the user config we use the pascal but the downstream impl requires snake
+                    final Object modelUrl = step.remove("modelUrl");
+                    if (modelUrl != null) {
+                        step.put("model-url", modelUrl);
+                    }
                 }
             };
 

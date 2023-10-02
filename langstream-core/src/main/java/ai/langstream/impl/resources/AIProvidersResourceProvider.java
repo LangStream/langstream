@@ -49,13 +49,10 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
     @Override
     protected Map<String, Object> computeResourceConfiguration(
             Resource resource,
-            Module module,
-            ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
         final Map<String, Object> copy =
                 super.computeResourceConfiguration(
-                        resource, module, executionPlan, clusterRuntime, pluginsRegistry);
+                        resource, pluginsRegistry);
         // only dynamic checks, the rest is done in AbstractResourceProvider
         if (resource.type().equals(VERTEX_CONFIGURATION)) {
             validateVertexConfigurationResource(resource);
@@ -96,7 +93,7 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
     }
 
     @Override
-    protected Class getAgentConfigModelClass(String type) {
+    protected Class getResourceConfigModelClass(String type) {
         switch (type) {
             case OPEN_AI_CONFIGURATION -> {
                 return OpenAIConfig.class;

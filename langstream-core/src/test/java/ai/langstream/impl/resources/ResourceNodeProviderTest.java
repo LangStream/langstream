@@ -49,14 +49,14 @@ class ResourceNodeProviderTest {
                 assertDoesNotThrow(
                         () ->
                                 providersResourceProvider.createImplementation(
-                                        resource, null, null, null, null));
+                                        resource, null));
             }
             case NON_VALID -> {
                 assertThrows(
                         IllegalArgumentException.class,
                         () ->
                                 providersResourceProvider.createImplementation(
-                                        resource, null, null, null, null));
+                                        resource, null));
             }
         }
     }

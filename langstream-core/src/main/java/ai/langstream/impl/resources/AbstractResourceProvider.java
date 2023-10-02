@@ -36,39 +36,33 @@ public abstract class AbstractResourceProvider implements ResourceNodeProvider {
         this.supportedTypes = supportedTypes;
     }
 
-    protected Class getAgentConfigModelClass(String type) {
+    protected Class getResourceConfigModelClass(String type) {
         return null;
     }
 
-    protected boolean isAgentConfigModelAllowUnknownProperties(String type) {
+    protected boolean isResourceConfigModelAllowUnknownProperties(String type) {
         return false;
     }
 
     @Override
     public Map<String, Object> createImplementation(
             Resource resource,
-            Module module,
-            ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
         return computeResourceConfiguration(
-                resource, module, executionPlan, clusterRuntime, pluginsRegistry);
+                resource, pluginsRegistry);
     }
 
     protected Map<String, Object> computeResourceConfiguration(
             Resource resource,
-            Module module,
-            ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
         final String type = resource.type();
-        final Class modelClass = getAgentConfigModelClass(type);
+        final Class modelClass = getResourceConfigModelClass(type);
         if (modelClass != null) {
             ClassConfigValidator.validateResourceModelFromClass(
                     resource,
                     modelClass,
                     resource.configuration(),
-                    isAgentConfigModelAllowUnknownProperties(type));
+                    isResourceConfigModelAllowUnknownProperties(type));
         }
         return new HashMap<>(resource.configuration());
     }
@@ -82,7 +76,7 @@ public abstract class AbstractResourceProvider implements ResourceNodeProvider {
     public Map<String, ResourceConfigurationModel> generateSupportedTypesDocumentation() {
         Map<String, ResourceConfigurationModel> result = new LinkedHashMap<>();
         for (String supportedType : supportedTypes) {
-            final Class modelClass = getAgentConfigModelClass(supportedType);
+            final Class modelClass = getResourceConfigModelClass(supportedType);
             if (modelClass == null) {
                 result.put(supportedType, new ResourceConfigurationModel());
             } else {

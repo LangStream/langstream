@@ -36,9 +36,6 @@ public class DataSourceResourceProvider implements ResourceNodeProvider {
     @Override
     public Map<String, Object> createImplementation(
             Resource resource,
-            Module module,
-            ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
         Map<String, Object> configuration = resource.configuration();
 

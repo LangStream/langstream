@@ -107,25 +107,25 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "{{{globals.input-topic}}}"
+                                  - name: "${globals.input-topic}"
                                     creation-mode: create-if-not-exists
-                                  - name: "{{{globals.output-topic}}}"
+                                  - name: "${globals.output-topic}"
                                     creation-mode: create-if-not-exists
-                                  - name: "{{{globals.stream-topic}}}"
+                                  - name: "${globals.stream-topic}"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "convert-to-json"
                                     id: "step1"
                                     type: "document-to-json"
-                                    input: "{{{globals.input-topic}}}"
+                                    input: "${globals.input-topic}"
                                     configuration:
                                       text-field: "question"
                                   - name: "chat-completions"
                                     type: "ai-chat-completions"
-                                    output: "{{{globals.output-topic}}}"
+                                    output: "${globals.output-topic}"
                                     configuration:
                                       model: "%s"
-                                      stream-to-topic: "{{{globals.stream-topic}}}"
+                                      stream-to-topic: "${globals.stream-topic}"
                                       stream-response-completion-field: "value"
                                       completion-field: "value.answer"
                                       log-field: "value.prompt"
@@ -137,7 +137,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                 """
                                 .formatted(
                                         model,
-                                        "What can you tell me about {{% value.question}} ?"));
+                                        "What can you tell me about {{{ value.question }}} ?"));
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
@@ -183,7 +183,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                 consumer,
                                 List.of(
                                         """
-                                                {"question":"the car","session-id":"2139847128764192","answer":"A car is a vehicle","prompt":"{\\"options\\":{\\"type\\":\\"ai-chat-completions\\",\\"when\\":null,\\"model\\":\\"gpt-35-turbo\\",\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about {{ value.question}} ?\\"}],\\"stream-to-topic\\":\\"%s\\",\\"stream-response-completion-field\\":\\"value\\",\\"min-chunks-per-message\\":3,\\"completion-field\\":\\"value.answer\\",\\"stream\\":true,\\"log-field\\":\\"value.prompt\\",\\"max-tokens\\":null,\\"temperature\\":null,\\"top-p\\":null,\\"logit-bias\\":null,\\"user\\":null,\\"stop\\":null,\\"presence-penalty\\":null,\\"frequency-penalty\\":null},\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about the car ?\\"}],\\"model\\":\\"gpt-35-turbo\\"}"}"""
+                                                {"question":"the car","session-id":"2139847128764192","answer":"A car is a vehicle","prompt":"{\\"options\\":{\\"type\\":\\"ai-chat-completions\\",\\"when\\":null,\\"model\\":\\"gpt-35-turbo\\",\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about {{{ value.question }}} ?\\"}],\\"stream-to-topic\\":\\"%s\\",\\"stream-response-completion-field\\":\\"value\\",\\"min-chunks-per-message\\":3,\\"completion-field\\":\\"value.answer\\",\\"stream\\":true,\\"log-field\\":\\"value.prompt\\",\\"max-tokens\\":null,\\"temperature\\":null,\\"top-p\\":null,\\"logit-bias\\":null,\\"user\\":null,\\"stop\\":null,\\"presence-penalty\\":null,\\"frequency-penalty\\":null},\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about the car ?\\"}],\\"model\\":\\"gpt-35-turbo\\"}"}"""
                                                 .formatted(streamToTopic)));
                 ConsumerRecord record = mainOutputRecords.get(0);
 

@@ -122,7 +122,7 @@ class KubernetesClusterRuntimeDockerTest {
                                     configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{% value.name }} {{% value.description }}"
+                                      text: "{{ value.name }} {{ value.description }}"
                                 """),
                                 buildInstanceYaml(),
                                 null)
@@ -299,7 +299,7 @@ class KubernetesClusterRuntimeDockerTest {
                                     configuration:
                                       model: "text-embedding-ada-002"
                                       embeddings-field: "value.embeddings"
-                                      text: "{{% value.name }} {{% value.description }}"
+                                      text: "{{ value.name }} {{ value.description }}"
                                 """),
                                 buildInstanceYaml(),
                                 null)

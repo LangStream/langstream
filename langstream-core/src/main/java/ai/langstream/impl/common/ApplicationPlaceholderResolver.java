@@ -29,7 +29,6 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.samskivert.mustache.Mustache;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,6 +45,12 @@ public class ApplicationPlaceholderResolver {
 
     private static final ObjectMapper mapper =
             new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
+    private static final ObjectMapper mapperForTemplates =
+            new ObjectMapper()
+                    .configure(
+                            SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS,
+                            true); // help with tests (also of applications using LS)
 
     private ApplicationPlaceholderResolver() {}
 
@@ -97,8 +102,9 @@ public class ApplicationPlaceholderResolver {
                             (Map.Entry<String, TopicDefinition> entry) -> {
                                 String topicName = entry.getKey();
                                 TopicDefinition definition = entry.getValue().copy();
-                                definition.setName(resolveValue(context, definition.getName()));
-                                newTopics.put(resolveValue(context, topicName), definition);
+                                definition.setName(
+                                        resolveValueAsString(context, definition.getName()));
+                                newTopics.put(resolveValueAsString(context, topicName), definition);
                             });
             module.replaceTopics(newTopics);
             if (module.getAssets() != null) {
@@ -185,8 +191,8 @@ public class ApplicationPlaceholderResolver {
                                 authentication.isAllowTestMode());
             }
 
-            final String topic = resolveValue(context, gateway.getTopic());
-            final String eventsTopic = resolveValue(context, gateway.getEventsTopic());
+            final String topic = resolveValueAsString(context, gateway.getTopic());
+            final String eventsTopic = resolveValueAsString(context, gateway.getEventsTopic());
             newGateways.add(
                     new Gateway(
                             gateway.getId(),
@@ -219,7 +225,7 @@ public class ApplicationPlaceholderResolver {
         }
         return new Connection(
                 connection.connectionType(),
-                resolveValue(context, connection.definition()),
+                resolveValueAsString(context, connection.definition()),
                 connection.enableDeadletterQueue());
     }
 
@@ -235,36 +241,96 @@ public class ApplicationPlaceholderResolver {
         } else if (object instanceof Collection) {
             return resolveCollection(context, (Collection<?>) object);
         } else {
-            return resolveValue(context, object == null ? null : object.toString());
+            return resolveSingleValue(context, object == null ? null : object.toString());
         }
     }
 
-    private record Placeholder(String key, String value, String finalReplacement) {}
+    static String resolveValueAsString(Map<String, Object> context, String template) {
+        Object value = resolveSingleValue(context, template);
+        return value == null ? null : value.toString();
+    }
 
-    static String resolveValue(Map<String, Object> context, String template) {
+    static Object resolveSingleValue(Map<String, Object> context, String template) {
         if (template == null) {
             return null;
         }
-        List<Placeholder> placeholders = new ArrayList<>();
-        placeholders.add(new Placeholder("{{% ", "{__MUSTACHE_ESCAPING_PREFIX ", "{{ "));
-        placeholders.add(
-                new Placeholder("{{%# ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPSTART ", "{{# "));
-        placeholders.add(new Placeholder("{{%/ ", "{__MUSTACHE_ESCAPING_PREFIX_LOOPEND ", "{{/ "));
-        String escaped = template;
-        for (Placeholder placeholder : placeholders) {
-            escaped = escaped.replace(placeholder.key, placeholder.value);
+        String reference = template.trim();
+        if (!reference.startsWith("${") || !reference.endsWith("}")) {
+            // this is a raw value like    "username=${secrets.username}"
+            // password=${secrets.password}"
+            return resolvePlaceholdersInString(template, context);
         }
-        try {
-            final String result = Mustache.compiler().compile(escaped).execute(context);
-            String finalResult = result;
-            for (Placeholder placeholder : placeholders) {
-                finalResult = finalResult.replace(placeholder.value, placeholder.finalReplacement);
+
+        // exact match ${ x.y.z } (and not ${ x.y.z }${ x.y.z })
+        if (reference.startsWith("${")
+                && reference.endsWith("}")
+                && reference.indexOf("{") == reference.lastIndexOf("{")) {
+            String placeholder = reference.substring(2, reference.length() - 1);
+            return resolveReference(placeholder, context);
+        }
+        log.warn("Unknown placeholder: {}", reference);
+        return resolvePlaceholdersInString(template, context);
+    }
+
+    static String resolvePlaceholdersInString(String template, Map<String, Object> context) {
+        StringBuilder result = new StringBuilder();
+        int position = 0;
+        int pos = template.indexOf("${", position);
+        if (pos < 0) {
+            return template;
+        }
+        while (pos >= 0) {
+            result.append(template, position, pos);
+            int end = template.indexOf("}", pos);
+            if (end < 0) {
+                throw new IllegalArgumentException("Invalid placeholder: " + template);
             }
-            return finalResult;
-        } catch (com.samskivert.mustache.MustacheException e) {
-            log.error("Error resolving template: {}", template, e);
+            String placeholder = template.substring(pos + 2, end).trim();
+            Object value = resolveReference(placeholder, context);
+            if (value == null) {
+                // to not write "null" inside the string
+                value = "";
+            }
+            if (!(value instanceof String)) {
+                // stuff that is not a String has to be converted to something that fits in a String
+                // using JSON is the least bad option
+                try {
+                    value = mapperForTemplates.writeValueAsString(value);
+                } catch (IOException impossible) {
+                    throw new IllegalStateException(impossible);
+                }
+            }
+            result.append(value);
+            position = end + 1;
+            pos = template.indexOf("${", position);
+        }
+        result.append(template, position, template.length());
+        return result.toString();
+    }
+
+    private static Object resolveReference(String placeholder, Object context) {
+        placeholder = placeholder.trim();
+        int dot = placeholder.indexOf('.');
+        if (dot < 0) {
+            return resolveProperty(context, placeholder);
+        } else {
+            String parent = placeholder.substring(0, dot);
+            String child = placeholder.substring(dot + 1);
+            Object parentValue = resolveProperty(context, parent);
+            return resolveReference(child, parentValue);
+        }
+    }
+
+    private static Object resolveProperty(Object context, String property) {
+        if (context == null) {
             throw new IllegalArgumentException(
-                    "Error resolving template: " + template + " " + e, e);
+                    "Property " + property + " cannot be resolved on a empty context");
+        }
+        if (context instanceof Map) {
+            return ((Map) context).get(property);
+        } else {
+            throw new IllegalArgumentException(
+                    "Cannot resolve property " + property + " on " + context);
         }
     }
 

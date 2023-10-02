@@ -39,9 +39,9 @@ pipeline:
       handle-cookies: true
       max-unflushed-pages: 100
       bucketName: "langstream-test-crawler-to-vector"
-      endpoint: "{{{secrets.s3.endpoint}}}"
-      access-key: "{{{secrets.s3.access-key}}}"
-      secret-key: "{{{secrets.s3.secret-key}}}"
+      endpoint: "${secrets.s3.endpoint}"
+      access-key: "${secrets.s3.access-key}"
+      secret-key: "${secrets.s3.secret-key}"
   - name: "Extract text"
     type: "text-extractor"
   - name: "Normalise text"
@@ -89,8 +89,8 @@ pipeline:
     type: "compute-ai-embeddings"
     output: "ls-test-chunks-topic"
     configuration:
-      ai-service: "{{{secrets.embeddings.service}}}"
-      model: "{{{secrets.embeddings.model}}}"
+      ai-service: "${secrets.embeddings.service}"
+      model: "${secrets.embeddings.model}"
       embeddings-field: "value.embeddings_vector"
       text: "{{% value.text }}"
       batch-size: 10

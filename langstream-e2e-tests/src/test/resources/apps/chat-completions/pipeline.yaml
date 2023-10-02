@@ -31,8 +31,8 @@ pipeline:
     type: "ai-chat-completions"
     output: "ls-test-history-topic"
     configuration:
-      ai-service: "{{{secrets.chat-completions.service}}}"
-      model: "{{{secrets.chat-completions.model}}}"
+      ai-service: "${secrets.chat-completions.service}"
+      model: "${secrets.chat-completions.model}"
       completion-field: "value.answer"
       log-field: "value.prompt"
       stream-to-topic: "ls-test-output-topic"

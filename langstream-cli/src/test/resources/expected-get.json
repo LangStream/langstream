@@ -7,9 +7,9 @@
         "name" : "OpenAI Azure configuration",
         "type" : "open-ai-configuration",
         "configuration" : {
-          "access-key" : "{{ secrets.open-ai.access-key }}",
+          "access-key" : "${secrets.open-ai.access-key}",
           "provider" : "azure",
-          "url" : "{{ secrets.open-ai.url }}"
+          "url" : "${secrets.open-ai.url}"
         }
       }
     },
@@ -38,12 +38,12 @@
             "enableDeadletterQueue" : false
           },
           "configuration" : {
-            "access-key" : "{{{secrets.s3-credentials.access-key}}}",
-            "bucketName" : "{{{secrets.s3-credentials.bucket-name}}}",
-            "endpoint" : "{{{secrets.s3-credentials.endpoint}}}",
+            "access-key" : "${secrets.s3-credentials.access-key}",
+            "bucketName" : "${secrets.s3-credentials.bucket-name}",
+            "endpoint" : "${secrets.s3-credentials.endpoint}",
             "idle-time" : 5,
-            "region" : "{{{secrets.s3-credentials.region}}}",
-            "secret-key" : "{{{secrets.s3-credentials.secret}}}"
+            "region" : "${secrets.s3-credentials.region}",
+            "secret-key" : "${secrets.s3-credentials.secret}"
           },
           "resources" : {
             "parallelism" : 1,
@@ -276,9 +276,9 @@
           },
           "output" : null,
           "configuration" : {
-            "auth.password" : "{{{ secrets.cassandra.password }}}",
-            "auth.username" : "{{{ secrets.cassandra.username }}}",
-            "cloud.secureConnectBundle" : "{{{ secrets.cassandra.secure-connect-bundle }}}",
+            "auth.password" : "${ secrets.cassandra.password }",
+            "auth.username" : "${ secrets.cassandra.username }",
+            "cloud.secureConnectBundle" : "${ secrets.cassandra.secure-connect-bundle }",
             "connector.class" : "com.datastax.oss.kafka.sink.CassandraSinkConnector",
             "key.converter" : "org.apache.kafka.connect.storage.StringConverter",
             "name" : "cassandra-sink",

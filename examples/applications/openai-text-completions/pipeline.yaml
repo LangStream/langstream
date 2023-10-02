@@ -31,7 +31,7 @@ pipeline:
     type: "ai-text-completions"
     output: "debug"
     configuration:
-      model: "{{{secrets.open-ai.text-completions-model}}}"
+      model: "${secrets.open-ai.text-completions-model}"
       # on the log-topic we add a field with the answer
       completion-field: "value.answer"
       # we are also logging the prompt we sent to the LLM

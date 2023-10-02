@@ -20,21 +20,21 @@ configuration:
   - type: "open-ai-configuration"
     name: "OpenAI Azure configuration"
     configuration:
-      url: "{{ secrets.open-ai.url }}"
-      access-key: "{{ secrets.open-ai.access-key }}"
-      provider: "{{ secrets.open-ai.provider }}"
+      url: "${secrets.open-ai.url}"
+      access-key: "${secrets.open-ai.access-key}"
+      provider: "${secrets.open-ai.provider}"
   - type: "datasource"
     name: "MilvusDatasource"
     configuration:
       service: "milvus"
       ## OSS Milvus
-      username: "{{{ secrets.milvus.username }}}"
-      password: "{{{ secrets.milvus.password }}}"
-      host: "{{{ secrets.milvus.host }}}"
-      port: "{{{ secrets.milvus.port }}}"
+      username: "${secrets.milvus.username}"
+      password: "${secrets.milvus.password}"
+      host: "${secrets.milvus.host}"
+      port: "${secrets.milvus.port}"
       ## Set to "upsert" for OSS Milvus, on Zills use "delete-insert"
-      write-mode: "{{{ secrets.milvus.write-mode }}}"
+      write-mode: "${secrets.milvus.write-mode}"
       ## Zillis
-      url: "{{{ secrets.milvus.url }}}"
-      token: "{{{ secrets.milvus.token }}}"
+      url: "${secrets.milvus.url}"
+      token: "${secrets.milvus.token}"
 

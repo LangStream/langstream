@@ -107,7 +107,7 @@ class ApplicationDeployerTest {
                                           name: "OpenAI Azure configuration"
                                           id: "openai-azure"
                                           configuration:
-                                            credentials: "{{secrets.openai-credentials.accessKey}}"
+                                            credentials: "${secrets.openai-credentials.accessKey}"
 
                                 """),
                                 """

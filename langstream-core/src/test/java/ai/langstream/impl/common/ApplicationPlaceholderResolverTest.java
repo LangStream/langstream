@@ -16,12 +16,11 @@
 package ai.langstream.impl.common;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Resource;
 import ai.langstream.impl.parser.ModelBuilder;
-import com.samskivert.mustache.MustacheException;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -59,15 +58,12 @@ class ApplicationPlaceholderResolverTest {
                 ApplicationPlaceholderResolver.createContext(applicationInstance);
         assertEquals(
                 "my-access-key",
-                ApplicationPlaceholderResolver.resolveValue(
-                        context, "{{secrets.openai-credentials.accessKey}}"));
-        assertEquals(
-                "http://mypulsar.localhost:8080",
-                ApplicationPlaceholderResolver.resolveValue(
-                        context, "{{cluster.configuration.admin.serviceUrl}}"));
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "${secrets.openai-credentials.accessKey}"));
         assertEquals(
                 "http://myurl.localhost:8080/endpoint",
-                ApplicationPlaceholderResolver.resolveValue(context, "{{globals.open-api-url}}"));
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "${globals.open-api-url}"));
     }
 
     @Test
@@ -83,8 +79,8 @@ class ApplicationPlaceholderResolverTest {
                                                   name: "OpenAI Azure configuration"
                                                   id: "openai-azure"
                                                   configuration:
-                                                    credentials: "{{secrets.openai-credentials.accessKey}}"
-                                                    url: "{{globals.open-api-url}}"
+                                                    credentials: "${secrets.openai-credentials.accessKey}"
+                                                    url: "${globals.open-api-url}"
 
                                         """),
                                 """
@@ -119,19 +115,19 @@ class ApplicationPlaceholderResolverTest {
                                         module: "module-1"
                                         id: "pipeline-1"
                                         topics:
-                                            - name: "{{{globals.input-topic}}}"
-                                            - name: "{{{globals.output-topic}}}"
-                                            - name: "{{{globals.stream-response-topic}}}"
+                                            - name: "${globals.input-topic}"
+                                            - name: "${globals.output-topic}"
+                                            - name: "${globals.stream-response-topic}"
                                         pipeline:
                                           - name: "agent1"
                                             id: "agent1"
                                             type: "ai-chat-completions"
-                                            input: "{{{globals.input-topic}}}"
-                                            output: "{{{globals.output-topic}}}"
+                                            input: "${globals.input-topic}"
+                                            output: "${globals.output-topic}"
                                             configuration:
-                                              stream-to-topic: "{{{globals.stream-response-topic}}}"
+                                              stream-to-topic: "${globals.stream-response-topic}"
                                               sinkType: "some-sink-type-on-your-cluster"
-                                              access-key: "{{ secrets.ak.value }}"
+                                              access-key: "${secrets.ak.value}"
                                         """),
                                 """
                                 instance:
@@ -235,7 +231,7 @@ class ApplicationPlaceholderResolverTest {
                                           name: "OpenAI Azure configuration"
                                           id: "openai-azure"
                                           configuration:
-                                            credentials: "{{secrets.openai-credentials.invalid}}"
+                                            credentials: "${secrets.openai-credentials.invalid}"
 
                                 """),
                                 null,
@@ -247,8 +243,9 @@ class ApplicationPlaceholderResolverTest {
                         () ->
                                 ApplicationPlaceholderResolver.resolvePlaceholders(
                                         applicationInstance));
-
-        assertInstanceOf(MustacheException.Context.class, illegalArgumentException.getCause());
+        assertEquals(
+                "Property invalid cannot be resolved on a empty context",
+                illegalArgumentException.getMessage());
     }
 
     @Test
@@ -281,23 +278,6 @@ class ApplicationPlaceholderResolverTest {
     }
 
     @Test
-    void testEscapeMustache() {
-        assertEquals(
-                """
-                {{ do not resolve }} resolved
-                {{# value.related_documents}}
-                {{ text}}
-                {{/ value.related_documents}}""",
-                ApplicationPlaceholderResolver.resolveValue(
-                        Map.of("test", "resolved"),
-                        """
-                        {{% do not resolve }} {{ test }}
-                        {{%# value.related_documents}}
-                        {{% text}}
-                        {{%/ value.related_documents}}"""));
-    }
-
-    @Test
     void testResolveTopicsInGateway() throws Exception {
         Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(
@@ -307,28 +287,28 @@ class ApplicationPlaceholderResolverTest {
                                         module: "module-1"
                                         id: "pipeline-1"
                                         topics:
-                                            - name: "{{{globals.input-topic}}}"
-                                            - name: "{{{globals.output-topic}}}"
-                                            - name: "{{{globals.stream-response-topic}}}"
+                                            - name: "${globals.input-topic}"
+                                            - name: "${globals.output-topic}"
+                                            - name: "${globals.stream-response-topic}"
                                         pipeline:
                                           - name: "agent1"
                                             id: "agent1"
                                             type: "ai-chat-completions"
-                                            input: "{{{globals.input-topic}}}"
-                                            output: "{{{globals.output-topic}}}"
+                                            input: "${globals.input-topic}"
+                                            output: "${globals.output-topic}"
                                         """,
                                         "gateways.yaml",
                                         """
                                         gateways:
                                           - id: produce
                                             type: produce
-                                            topic: "{{{globals.input-topic}}}"
-                                            events-topic: "{{{globals.stream-response-topic}}}"
+                                            topic: "${globals.input-topic}"
+                                            events-topic: "${globals.stream-response-topic}"
                                             produce-options: {}
                                           - id: consume
                                             type: consume
-                                            topic: "{{{globals.input-topic}}}"
-                                            events-topic: "{{{globals.stream-response-topic}}}"
+                                            topic: "${globals.input-topic}"
+                                            events-topic: "${globals.stream-response-topic}"
                                             consume-options: {}
                                         """),
                                 """
@@ -347,5 +327,101 @@ class ApplicationPlaceholderResolverTest {
         assertEquals("my-stream-topic", resolved.getGateways().gateways().get(0).getEventsTopic());
         assertEquals("my-input-topic", resolved.getGateways().gateways().get(1).getTopic());
         assertEquals("my-stream-topic", resolved.getGateways().gateways().get(1).getEventsTopic());
+    }
+
+    @Test
+    void testResolveVariablesInAssets() throws Exception {
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module1.yaml",
+                                        """
+                                        module: "module-1"
+                                        id: "pipeline-1"
+                                        assets:
+                                            - name: "by asset"
+                                              asset-type: "some-type"
+                                              config:
+                                                 some-value: "${globals.table-name}"
+                                        pipeline:
+                                          - name: "agent1"
+                                            id: "agent1"
+                                            type: "identity"
+                                        """),
+                                """
+                                instance:
+                                    globals:
+                                        table-name: my-table
+                                """,
+                                null)
+                        .getApplication();
+
+        final Application resolved =
+                ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
+        assertEquals(
+                "my-table",
+                resolved.getModule("module-1").getAssets().get(0).getConfig().get("some-value"));
+    }
+
+    @Test
+    void testResolveAsString() {
+        assertEquals("test", ApplicationPlaceholderResolver.resolveValueAsString(Map.of(), "test"));
+        assertEquals(
+                "xxx",
+                ApplicationPlaceholderResolver.resolveValueAsString(
+                        Map.of("globals", Map.of("foo", Map.of("bar", "xxx"))),
+                        "${globals.foo.bar}"));
+    }
+
+    @Test
+    void testResolve() {
+        Map<String, Object> context =
+                Map.of(
+                        "globals",
+                        Map.of(
+                                "foo",
+                                Map.of(
+                                        "bar",
+                                        "xxx",
+                                        "number",
+                                        123,
+                                        "list",
+                                        List.of(1, 2),
+                                        "map",
+                                        Map.of("one", 1, "two", 2))));
+        assertEquals(
+                "xxx",
+                ApplicationPlaceholderResolver.resolveSingleValue(context, "${globals.foo.bar}"));
+        assertEquals(
+                123,
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "${globals.foo.number}"));
+        assertEquals(
+                List.of(1, 2),
+                ApplicationPlaceholderResolver.resolveSingleValue(context, "${globals.foo.list}"));
+
+        // some spaces
+        assertEquals(
+                123,
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "${  globals.foo.number  }"));
+
+        // simple concat
+        assertEquals(
+                "123-xxx",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "${  globals.foo.number  }-${  globals.foo.bar  }"));
+
+        // using a list, but in a string context
+        assertEquals(
+                "123-[1,2]",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "${  globals.foo.number  }-${  globals.foo.list  }"));
+
+        // using a map, but in a string context
+        assertEquals(
+                "123-{\"one\":1,\"two\":2}",
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "${  globals.foo.number  }-${  globals.foo.map  }"));
     }
 }

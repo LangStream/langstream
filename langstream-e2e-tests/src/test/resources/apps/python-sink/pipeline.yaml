@@ -35,4 +35,4 @@ pipeline:
     input: ls-test-input
     configuration:
       className: example.TestSink
-      bootstrapServers: "{{ secrets.kafka.bootstrap-servers }}"
+      bootstrapServers: "${secrets.kafka.bootstrap-servers}"

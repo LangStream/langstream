@@ -56,7 +56,7 @@ pipeline:
         - role: system
           content: |
               An user is going to perform a questions, these documents may help you in answering to their questions.
-              {{%# value.related_documents}}
+              {{ value.related_documents}}
               {{% text}}
               {{%/ value.related_documents}}
         - role: user

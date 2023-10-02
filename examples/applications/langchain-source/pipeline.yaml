@@ -24,7 +24,7 @@ pipeline:
     output: "output-topic"
     configuration:
       className: s3_langchain.S3LangChain
-      bucketName: "{{{ secrets.s3.bucket-name }}}"
-      endpoint: "{{{ secrets.s3.endpoint }}}"
-      username: "{{{ secrets.s3.access-key }}}"
-      password: "{{{ secrets.s3.secret }}}"
+      bucketName: "${ secrets.s3.bucket-name }"
+      endpoint: "${ secrets.s3.endpoint }"
+      username: "${ secrets.s3.access-key }"
+      password: "${ secrets.s3.secret }"

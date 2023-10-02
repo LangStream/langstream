@@ -76,12 +76,12 @@ class PlaceholderEndToEndTest extends AbstractApplicationRunner {
                         module: "module-1"
                         id: "pipeline-1"
                         topics:
-                          - name: "{{{globals.input-topic}}}"
+                          - name: "${globals.input-topic}"
                             creation-mode: create-if-not-exists
                             schema:
                               type: avro
                               schema: '%s'
-                          - name: "{{{globals.output-topic}}}"
+                          - name: "${globals.output-topic}"
                             creation-mode: create-if-not-exists
                             schema:
                               type: avro
@@ -89,8 +89,8 @@ class PlaceholderEndToEndTest extends AbstractApplicationRunner {
                           - name: "identity"
                             id: "step1"
                             type: "identity"
-                            input: "{{{globals.input-topic}}}"
-                            output: "{{{globals.output-topic}}}"
+                            input: "${globals.input-topic}"
+                            output: "${globals.output-topic}"
                         """
                                 .formatted(schemaDefinition));
         try (ApplicationRuntime applicationRuntime =

@@ -50,7 +50,7 @@ class DeployAssetsTest extends AbstractApplicationRunner {
                                     - type: "datasource"
                                       name: "the-resource"
                                       configuration:
-                                         foo: "{{{secrets.the-secret.password}}}"
+                                         foo: "${secrets.the-secret.password}"
                             """,
                         "module.yaml",
                         """
@@ -61,7 +61,7 @@ class DeployAssetsTest extends AbstractApplicationRunner {
                             creation-mode: create-if-not-exists
                             asset-type: "mock-database-resource"
                             config:
-                                table: "{{{globals.table-name}}}"
+                                table: "${globals.table-name}"
                                 datasource: "the-resource"
                           - name: "my-table2"
                             creation-mode: create-if-not-exists

@@ -60,10 +60,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.samskivert</groupId>
-      <artifactId>jmustache</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
       <scope>test</scope>

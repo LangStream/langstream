@@ -80,14 +80,8 @@ class ResourceNodeProviderTest {
                                 "azure",
                                 "url",
                                 "http://some-url")),
-                Arguments.of(
-                        VALID,
-                        "hugging-face-configuration",
-                        Map.of("provider", "api")),
-                Arguments.of(
-                        VALID,
-                        "hugging-face-configuration",
-                        Map.of("provider", "local")),
+                Arguments.of(VALID, "hugging-face-configuration", Map.of("provider", "api")),
+                Arguments.of(VALID, "hugging-face-configuration", Map.of("provider", "local")),
                 Arguments.of(
                         NON_VALID,
                         "hugging-face-configuration",

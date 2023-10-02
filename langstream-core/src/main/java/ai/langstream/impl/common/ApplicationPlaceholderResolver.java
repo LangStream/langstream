@@ -46,7 +46,7 @@ public class ApplicationPlaceholderResolver {
     private static final ObjectMapper mapper =
             new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-    private static final ObjectMapper mapperFprTemplates = new ObjectMapper();
+    private static final ObjectMapper mapperForTemplates = new ObjectMapper();
 
     private ApplicationPlaceholderResolver() {}
 
@@ -283,7 +283,7 @@ public class ApplicationPlaceholderResolver {
                 // stuff that is not a String has to be converted to something that fits in a String
                 // using JSON is the least bad option
                 try {
-                    value = mapperFprTemplates.writeValueAsString(value);
+                    value = mapperForTemplates.writeValueAsString(value);
                 } catch (IOException impossible) {
                     throw new IllegalStateException(impossible);
                 }
@@ -310,7 +310,8 @@ public class ApplicationPlaceholderResolver {
 
     private static Object resolveProperty(Object context, String property) {
         if (context == null) {
-            return null;
+            throw new IllegalArgumentException(
+                    "Property " + property + " cannot be resolved on a empty context");
         }
         if (context instanceof Map) {
             return ((Map) context).get(property);

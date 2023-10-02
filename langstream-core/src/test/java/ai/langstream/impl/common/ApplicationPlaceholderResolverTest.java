@@ -16,12 +16,10 @@
 package ai.langstream.impl.common;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Resource;
 import ai.langstream.impl.parser.ModelBuilder;
-import com.samskivert.mustache.MustacheException;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -247,8 +245,9 @@ class ApplicationPlaceholderResolverTest {
                         () ->
                                 ApplicationPlaceholderResolver.resolvePlaceholders(
                                         applicationInstance));
-
-        assertInstanceOf(MustacheException.Context.class, illegalArgumentException.getCause());
+        assertEquals(
+                "Property invalid cannot be resolved on a empty context",
+                illegalArgumentException.getMessage());
     }
 
     @Test

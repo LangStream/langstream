@@ -237,16 +237,16 @@ public class ApplicationPlaceholderResolver {
         } else if (object instanceof Collection) {
             return resolveCollection(context, (Collection<?>) object);
         } else {
-            return resolveValue(context, object == null ? null : object.toString());
+            return resolveSingleValue(context, object == null ? null : object.toString());
         }
     }
 
     static String resolveValueAsString(Map<String, Object> context, String template) {
-        Object value = resolveValue(context, template);
+        Object value = resolveSingleValue(context, template);
         return value == null ? null : value.toString();
     }
 
-    static Object resolveValue(Map<String, Object> context, String template) {
+    static Object resolveSingleValue(Map<String, Object> context, String template) {
         if (template == null) {
             return null;
         }
@@ -278,7 +278,7 @@ public class ApplicationPlaceholderResolver {
                 throw new IllegalArgumentException("Invalid placeholder: " + template);
             }
             String placeholder = template.substring(pos + 2, end);
-            Object value = resolveValue(context, placeholder);
+            Object value = resolveSingleValue(context, placeholder);
             if (value == null) {
                 // to not write "null" inside the string
                 value = "";

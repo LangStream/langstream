@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Resource;
 import ai.langstream.impl.parser.ModelBuilder;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -57,11 +58,12 @@ class ApplicationPlaceholderResolverTest {
                 ApplicationPlaceholderResolver.createContext(applicationInstance);
         assertEquals(
                 "my-access-key",
-                ApplicationPlaceholderResolver.resolveValue(
+                ApplicationPlaceholderResolver.resolveSingleValue(
                         context, "${secrets.openai-credentials.accessKey}"));
         assertEquals(
                 "http://myurl.localhost:8080/endpoint",
-                ApplicationPlaceholderResolver.resolveValue(context, "${globals.open-api-url}"));
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "${globals.open-api-url}"));
     }
 
     @Test
@@ -325,5 +327,67 @@ class ApplicationPlaceholderResolverTest {
         assertEquals("my-stream-topic", resolved.getGateways().gateways().get(0).getEventsTopic());
         assertEquals("my-input-topic", resolved.getGateways().gateways().get(1).getTopic());
         assertEquals("my-stream-topic", resolved.getGateways().gateways().get(1).getEventsTopic());
+    }
+
+    @Test
+    void testResolveVariablesInAssets() throws Exception {
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module1.yaml",
+                                        """
+                                        module: "module-1"
+                                        id: "pipeline-1"
+                                        assets:
+                                            - name: "by asset"
+                                              asset-type: "some-type"
+                                              config:
+                                                 some-value: "${globals.table-name}"
+                                        pipeline:
+                                          - name: "agent1"
+                                            id: "agent1"
+                                            type: "identity"
+                                        """),
+                                """
+                                instance:
+                                    globals:
+                                        table-name: my-table
+                                """,
+                                null)
+                        .getApplication();
+
+        final Application resolved =
+                ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
+        assertEquals(
+                "my-table",
+                resolved.getModule("module-1").getAssets().get(0).getConfig().get("some-value"));
+    }
+
+    @Test
+    void testResolveAsString() {
+        assertEquals("test", ApplicationPlaceholderResolver.resolveValueAsString(Map.of(), "test"));
+        assertEquals(
+                "xxx",
+                ApplicationPlaceholderResolver.resolveValueAsString(
+                        Map.of("globals", Map.of("foo", Map.of("bar", "xxx"))),
+                        "${globals.foo.bar}"));
+    }
+
+    @Test
+    void testResolve() {
+        Map<String, Object> context =
+                Map.of(
+                        "globals",
+                        Map.of("foo", Map.of("bar", "xxx", "number", 123, "list", List.of(1, 2))));
+        assertEquals(
+                "xxx",
+                ApplicationPlaceholderResolver.resolveSingleValue(context, "${globals.foo.bar}"));
+        assertEquals(
+                123,
+                ApplicationPlaceholderResolver.resolveSingleValue(
+                        context, "${globals.foo.number}"));
+        assertEquals(
+                List.of(1, 2),
+                ApplicationPlaceholderResolver.resolveSingleValue(context, "${globals.foo.list}"));
     }
 }

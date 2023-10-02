@@ -15,12 +15,16 @@
  */
 package ai.langstream.runtime.impl.k8s.agents;
 
+import ai.langstream.api.doc.AgentConfig;
+import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Set;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 /** Implements support for WebCrawler Source Agents. */
@@ -34,5 +38,183 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
     @Override
     protected final ComponentType getComponentType(AgentConfiguration agentConfiguration) {
         return ComponentType.SOURCE;
+    }
+
+    @Data
+    @AgentConfig(
+            name = "Web crawler source",
+            description =
+                    """
+                    Crawl a website and extract the content of the pages.
+                    """)
+    public static class Config {
+        @ConfigProperty(
+                description =
+                        """
+                                Configuration for handling the agent status.
+                                The name of the bucket.
+                                        """,
+                defaultValue = "langstream-source")
+        private String bucketName;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Configuration for handling the agent status.
+                                The S3 endpoint.""",
+                defaultValue = "http://minio-endpoint.-not-set:9090")
+        private String endpoint;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Configuration for handling the agent status.
+                        Access key for the S3 server.
+                        """,
+                defaultValue = "minioadmin")
+        @JsonProperty("access-key")
+        private String accessKey;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Configuration for handling the agent status.
+                        Secret key for the S3 server.
+                        """,
+                defaultValue = "minioadmin")
+        @JsonProperty("secret-key")
+        private String secretKey;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Configuration for handling the agent status.
+                                Region for the S3 server.
+                                """)
+        private String region = "";
+
+        @ConfigProperty(
+                description =
+                        """
+                                Domains that the crawler is allowed to access.
+                                """)
+        @JsonProperty("allowed-domains")
+        private Set<String> allowedDomains;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Paths that the crawler is not allowed to access.
+                                """)
+        @JsonProperty("forbidden-paths")
+        private Set<String> forbiddenPaths;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Maximum number of URLs that can be crawled.
+                                """,
+                defaultValue = "1000")
+        @JsonProperty("max-urls")
+        private int maxUrls;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Maximum depth of the crawl.
+                                """,
+                defaultValue = "50")
+        @JsonProperty("max-depth")
+        private int maxDepth;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Whether to scan the HTML documents to find links to other pages.
+                                """,
+                defaultValue = "true")
+        @JsonProperty("handle-robots-file")
+        private boolean handleRobotsFile;
+
+        @ConfigProperty(
+                description =
+                        """
+                Whether to scan HTML documents for links to other sites.
+                                """,
+                defaultValue = "true")
+        @JsonProperty("scan-html-documents")
+        private boolean scanHtmlDocuments;
+
+        @ConfigProperty(
+                description =
+                        """
+                The starting URLs for the crawl.
+                                """)
+        @JsonProperty("seed-urls")
+        private Set<String> seedUrls;
+
+        @ConfigProperty(
+                description =
+                        """
+                Time interval between reindexing of the pages.
+                                """,
+                defaultValue = (60 * 60 * 24) + "")
+        @JsonProperty("reindex-interval-seconds")
+        private int reindexIntervalSeconds;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Maximum number of unflushed pages before the agent persists the crawl data.
+                        """,
+                defaultValue = "100")
+        @JsonProperty("max-unflushed-pages")
+        private int maxUnflushedPages;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Minimum time between two requests to the same domain. (in milliseconds)
+                        """,
+                defaultValue = "500")
+        @JsonProperty("min-time-between-requests")
+        private int minTimeBetweenRequests;
+
+        @ConfigProperty(
+                description =
+                        """
+                        User agent to use for the requests.
+                        """,
+                defaultValue =
+                        "Mozilla/5.0 (compatible; LangStream.ai/0.1; +https://langstream.ai)")
+        @JsonProperty("user-agent")
+        private String userAgent;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Maximum number of errors allowed before stopping.
+                        """,
+                defaultValue = "5")
+        @JsonProperty("max-error-count")
+        private int maxErrorCount;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Timeout for HTTP requests. (in milliseconds)
+                        """,
+                defaultValue = "10000")
+        @JsonProperty("http-timeout")
+        private int httpTimeout;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Whether to handle cookies.
+                        """,
+                defaultValue = "true")
+        @JsonProperty("handle-cookies")
+        private boolean handleCookies;
     }
 }

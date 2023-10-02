@@ -17,7 +17,6 @@ package ai.langstream.impl.agents.ai.steps;
 
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
-import ai.langstream.api.doc.ConfigPropertyIgnore;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -29,8 +28,8 @@ import lombok.Data;
         name = "Compute chat completions",
         description =
                 """
-        Sends the messages to the AI Service to compute chat completions. The result is stored in the specified field.
-        """)
+                        Sends the messages to the AI Service to compute chat completions. The result is stored in the specified field.
+                        """)
 @Data
 public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
     public static final GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer STEP =
@@ -142,8 +141,13 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
     @JsonProperty(value = "completion-field")
     private String completionField;
 
-    /** Not used, no need doc. */
-    @ConfigPropertyIgnore private boolean stream = true;
+    @ConfigProperty(
+            description =
+                    """
+                            Enable streaming of the results. Use in conjunction with the stream-to-topic parameter.
+                            """,
+            defaultValue = "true")
+    private boolean stream = true;
 
     @ConfigProperty(
             description =

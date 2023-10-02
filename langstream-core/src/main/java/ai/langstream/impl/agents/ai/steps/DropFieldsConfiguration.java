@@ -21,7 +21,11 @@ import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import java.util.List;
 import lombok.Data;
 
-@AgentConfig(name = "Drop fields from the input record")
+@AgentConfig(
+        name = "Drop fields",
+        description = """
+                Drops the record fields.
+                """)
 @Data
 public class DropFieldsConfiguration extends BaseGenAIStepConfiguration {
     public static final GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer STEP =
@@ -35,15 +39,15 @@ public class DropFieldsConfiguration extends BaseGenAIStepConfiguration {
     @ConfigProperty(
             description =
                     """
-                    Fields to drop from the input record.
-                    """,
+                            Fields to drop from the input record.
+                            """,
             required = true)
     private List<String> fields;
 
     @ConfigProperty(
             description =
                     """
-                    Part to drop. (value or key)
-                    """)
+                            Part to drop. (value or key)
+                            """)
     private String part;
 }

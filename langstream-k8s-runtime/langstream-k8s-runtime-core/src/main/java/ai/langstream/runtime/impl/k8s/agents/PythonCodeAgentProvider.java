@@ -15,6 +15,8 @@
  */
 package ai.langstream.runtime.impl.k8s.agents;
 
+import ai.langstream.api.doc.AgentConfig;
+import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
@@ -42,5 +44,57 @@ public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
             default -> throw new IllegalArgumentException(
                     "Unsupported agent type: " + agentConfiguration.getType());
         };
+    }
+
+    @Override
+    protected Class getAgentConfigModelClass(String type) {
+        return switch (type) {
+            case "python-source" -> PythonSourceConfig.class;
+            case "python-sink" -> PythonSinkConfig.class;
+            case "python-processor", "python-function" -> PythonProcessorConfig.class;
+            default -> throw new IllegalArgumentException("Unsupported agent type: " + type);
+        };
+    }
+
+    @Override
+    protected boolean isAgentConfigModelAllowUnknownProperties(String type) {
+        return true;
+    }
+
+    @AgentConfig(
+            name = "Python custom source",
+            description =
+                    """
+                    Run a your own Python source.
+                    All the configuration properties are available to in the class init method.
+                    """)
+    public static class PythonSourceConfig extends PythonConfig {}
+
+    @AgentConfig(
+            name = "Python custom sink",
+            description =
+                    """
+                    Run a your own Python sink.
+                    All the configuration properties are available to in the class init method.
+                    """)
+    public static class PythonSinkConfig extends PythonConfig {}
+
+    @AgentConfig(
+            name = "Python custom processor",
+            description =
+                    """
+                    Run a your own Python processor.
+                    All the configuration properties are available to in the class init method.
+                    """)
+    public static class PythonProcessorConfig extends PythonConfig {}
+
+    public static class PythonConfig {
+        @ConfigProperty(
+                description =
+                        """
+                                Python class name to instantiate. This class must be present in the application's "python" files.
+                                        """,
+                required = true)
+        private String className;
     }
 }

@@ -1,6 +1,22 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ai.langstream.runtime.impl.k8s.agents;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
@@ -21,7 +37,7 @@ class QueryVectorDBAgentProviderTest {
                   - name: "db"
                     type: "query-vector-db"
                     configuration:
-                      output-field: result    
+                      output-field: result
                       query: "select xxx"
                       datasource: "cassandra"
                       unknown-field: "..."
@@ -87,7 +103,6 @@ class QueryVectorDBAgentProviderTest {
                       unknown-field: "..."
                 """,
                 null);
-
     }
 
     private void validate(String pipeline, String expectErrMessage) throws Exception {
@@ -157,5 +172,4 @@ class QueryVectorDBAgentProviderTest {
                 }""",
                 SerializationUtil.prettyPrintJson(model));
     }
-
 }

@@ -142,8 +142,7 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
             Query a vector database using Vector Search capabilities.
             """)
     @Data
-    public static class QueryVectorDBConfig extends QueryConfiguration {
-    }
+    public static class QueryVectorDBConfig extends QueryConfiguration {}
 
     @AgentConfig(
             name = "Vector database sink",

@@ -34,8 +34,11 @@ public class AgentValidationTestUtil {
         }
         Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(
-                                Map.of("module.yaml", pipeline,
-                                        "configuration.yaml", """
+                                Map.of(
+                                        "module.yaml",
+                                        pipeline,
+                                        "configuration.yaml",
+                                        """
                                               configuration:
                                                 resources:
                                                   - type: "datasource"

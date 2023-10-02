@@ -45,9 +45,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MilvusWriter implements VectorDatabaseWriterProvider {
 
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
         return "milvus".equals(dataSourceConfig.get("service"));

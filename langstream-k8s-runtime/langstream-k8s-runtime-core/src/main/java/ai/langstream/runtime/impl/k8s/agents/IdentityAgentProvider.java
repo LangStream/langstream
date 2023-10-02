@@ -17,6 +17,7 @@ package ai.langstream.runtime.impl.k8s.agents;
 
 import static ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime.CLUSTER_TYPE;
 
+import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
@@ -38,4 +39,16 @@ public class IdentityAgentProvider extends AbstractComposableAgentProvider {
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
         return ComponentType.PROCESSOR;
     }
+
+    @Override
+    protected Class getAgentConfigModelClass(String type) {
+        return IdentityAgentConfig.class;
+    }
+
+    @AgentConfig(
+            name = "Identity function",
+            description =
+                    "Simple agent to move data from the input to the output. "
+                            + "Could be used for testing or sample applications.")
+    public static class IdentityAgentConfig {}
 }

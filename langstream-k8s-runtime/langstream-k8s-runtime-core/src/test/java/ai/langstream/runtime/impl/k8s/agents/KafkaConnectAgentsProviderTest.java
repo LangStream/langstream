@@ -15,8 +15,6 @@
  */
 package ai.langstream.runtime.impl.k8s.agents;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
@@ -26,65 +24,105 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-class S3SourceAgentProviderTest {
+class KafkaConnectAgentsProviderTest {
     @Test
     @SneakyThrows
-    public void testValidation() {
+    public void testValidationSource() {
         validate(
                 """
-                topics: []
+                topics:
+                - name: in
+                - name: out
                 pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
+                  - name: "my-source"
+                    type: "source"
+                    input: in
+                    output: out
                     configuration:
-                      a-field: "val"
+                      connector.class: "io.confluent.connect.s3.S3SourceConnector"
                 """,
-                "Found error on an agent configuration (agent: 's3-source', type: 's3-source'). Property 'a-field' is unknown");
+                null);
+
         validate(
                 """
-                topics: []
+                topics:
+                - name: in
+                - name: out
                 pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
+                  - name: "my-source"
+                    input: in
+                    output: out
+                    type: "source"
                     configuration: {}
                 """,
-                null);
+                "Found error on an agent configuration (agent: 'my-source', type: 'source'). Property 'connector.class' is required");
+
         validate(
                 """
-                topics: []
+                topics:
+                - name: in
+                - name: out
                 pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
+                  - name: "my-source"
+                    type: "source"
+                    input: in
+                    output: out
                     configuration:
-                      bucketName: "my-bucket"
-                      access-key: KK
-                      secret-key: SS
-                      endpoint: "http://localhost:9000"
-                      idle-time: 0
-                      region: "us-east-1"
-                      file-extensions: "csv"
+                      connector.class: "io.confluent.connect.s3.S3SourceConnector"
+                      whatever.config:
+                        inner: "value"
                 """,
                 null);
+    }
+
+    @Test
+    @SneakyThrows
+    public void testValidationSink() {
         validate(
                 """
-                topics: []
+                topics:
+                - name: in
+                - name: out
                 pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
+                  - name: "my-source"
+                    type: "sink"
+                    input: in
+                    output: out
                     configuration:
-                      bucketName: 12
+                      connector.class: "io.confluent.connect.s3.S3SourceConnector"
                 """,
                 null);
+
         validate(
                 """
-                        topics: []
-                        pipeline:
-                          - name: "s3-source"
-                            type: "s3-source"
-                            configuration:
-                              bucketName: {object: true}
-                        """,
-                "Found error on an agent configuration (agent: 's3-source', type: 's3-source'). Property 'bucketName' has a wrong data type. Expected type: java.lang.String");
+                topics:
+                - name: in
+                - name: out
+                pipeline:
+                  - name: "my-source"
+                    input: in
+                    output: out
+                    type: "sink"
+                    configuration: {}
+                """,
+                "Found error on an agent configuration (agent: 'my-source', type: 'sink'). Property 'connector.class' is required");
+
+        validate(
+                """
+                topics:
+                - name: in
+                - name: out
+                pipeline:
+                  - name: "my-source"
+                    type: "sink"
+                    input: in
+                    output: out
+                    configuration:
+                      connector.class: "io.confluent.connect.s3.S3SourceConnector"
+                      whatever.config:
+                        inner: "value"
+                """,
+                null);
     }
 
     private void validate(String pipeline, String expectErrMessage) throws Exception {

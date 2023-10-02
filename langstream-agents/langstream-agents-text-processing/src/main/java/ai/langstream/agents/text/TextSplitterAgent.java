@@ -67,7 +67,7 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
                         newLengthFunction = String::length;
                         break;
                     default:
-                        newLengthFunction = new TikTokLengthFunction(lengthFunctionName);
+                        newLengthFunction = new TiktokenLengthFunction(lengthFunctionName);
                 }
                 newTextSplitter =
                         new RecursiveCharacterTextSplitter(

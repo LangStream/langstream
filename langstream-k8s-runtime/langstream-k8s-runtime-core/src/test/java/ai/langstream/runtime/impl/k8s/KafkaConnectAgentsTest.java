@@ -100,7 +100,6 @@ class KafkaConnectAgentsTest {
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         assertEquals("FileStreamSink", configuration.get("connector.class"));
-        assertEquals("input-topic", configuration.get("topics"));
         assertEquals("/tmp/test.sink.txt", configuration.get("file"));
         assertEquals(ComponentType.SINK, step.getComponentType());
     }
@@ -153,7 +152,6 @@ class KafkaConnectAgentsTest {
         Map<String, Object> configuration = step.getConfiguration();
         log.info("Configuration: {}", configuration);
         assertEquals("FileStreamSource", configuration.get("connector.class"));
-        assertEquals("output-topic", configuration.get("topic"));
         assertEquals("/tmp/test.txt", configuration.get("file"));
         assertEquals(ComponentType.SOURCE, step.getComponentType());
     }

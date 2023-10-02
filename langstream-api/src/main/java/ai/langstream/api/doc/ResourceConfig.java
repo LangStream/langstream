@@ -15,17 +15,15 @@
  */
 package ai.langstream.api.doc;
 
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class AgentConfigurationModel {
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface ResourceConfig {
+    String name() default "";
 
-    private String name;
-    private String description;
-    private Map<String, ConfigPropertyModel> properties;
+    String description() default "";
 }

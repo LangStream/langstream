@@ -47,9 +47,7 @@ public class PluginsRegistry {
         return agentRuntimeProviderProvider.get();
     }
 
-    public List<AgentNodeProvider> lookupAvailableAgentImplementations(
-            ComputeClusterRuntime clusterRuntime) {
-        // TODO: cluster runtime '
+    public List<AgentNodeProvider> lookupAvailableAgentImplementations() {
         ServiceLoader<AgentNodeProvider> loader = ServiceLoader.load(AgentNodeProvider.class);
         return loader.stream().map(p -> p.get()).collect(Collectors.toList());
     }
@@ -78,6 +76,12 @@ public class PluginsRegistry {
                                                         + clusterRuntime.getClusterType()));
         return assetRuntimeProviderProvider.get();
     }
+
+    public List<ResourceNodeProvider> lookupAvailableResourceImplementations() {
+        ServiceLoader<ResourceNodeProvider> loader = ServiceLoader.load(ResourceNodeProvider.class);
+        return loader.stream().map(p -> p.get()).collect(Collectors.toList());
+    }
+
 
     public ResourceNodeProvider lookupResourceImplementation(
             String type, ComputeClusterRuntime clusterRuntime) {

@@ -15,6 +15,8 @@
  */
 package ai.langstream.api.runtime;
 
+import ai.langstream.api.doc.AgentConfigurationModel;
+import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Resource;
 import java.util.Map;
@@ -45,4 +47,9 @@ public interface ResourceNodeProvider {
      * @return true if this provider can create the implementation
      */
     boolean supports(String type, ComputeClusterRuntime clusterRuntime);
+
+    default Map<String, ResourceConfigurationModel> generateSupportedTypesDocumentation() {
+        return Map.of();
+    }
+
 }

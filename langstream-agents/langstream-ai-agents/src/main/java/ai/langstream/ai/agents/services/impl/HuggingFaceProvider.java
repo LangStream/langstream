@@ -41,6 +41,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,22 +61,12 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                 (Map<String, Object>) agentConfiguration.get("huggingface"));
     }
 
+    @Slf4j
     static class HuggingFaceServiceProvider implements ServiceProvider {
-        private static final Logger log =
-                LoggerFactory.getLogger(
-                        com.datastax.oss.streaming.ai.services.HuggingFaceServiceProvider.class);
         private final Map<String, Object> providerConfiguration;
 
         public HuggingFaceServiceProvider(Map<String, Object> providerConfiguration) {
             this.providerConfiguration = providerConfiguration;
-        }
-
-        public HuggingFaceServiceProvider(TransformStepConfig tranformConfiguration) {
-            this.providerConfiguration =
-                    (Map)
-                            (new ObjectMapper())
-                                    .convertValue(
-                                            tranformConfiguration.getHuggingface(), Map.class);
         }
 
         public CompletionsService getCompletionsService(

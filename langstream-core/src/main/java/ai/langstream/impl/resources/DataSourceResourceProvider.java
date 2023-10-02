@@ -44,7 +44,7 @@ public class DataSourceResourceProvider implements ResourceNodeProvider {
 
         String service = requiredField(configuration, "service", describe(resource));
         validateEnumField(
-                configuration, "service", Set.of("astra", "cassandra"), describe(resource));
+                configuration, "service", Set.of("astra", "cassandra", "jdbc"), describe(resource));
 
         switch (service) {
             case "astra":

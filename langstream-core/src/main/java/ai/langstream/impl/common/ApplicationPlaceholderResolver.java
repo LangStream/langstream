@@ -243,7 +243,7 @@ public class ApplicationPlaceholderResolver {
 
     static String resolveValueAsString(Map<String, Object> context, String template) {
         Object value = resolveValue(context, template);
-        return value == null ? "" : value.toString();
+        return value == null ? null : value.toString();
     }
 
     static Object resolveValue(Map<String, Object> context, String template) {
@@ -279,6 +279,10 @@ public class ApplicationPlaceholderResolver {
             }
             String placeholder = template.substring(pos + 2, end);
             Object value = resolveValue(context, placeholder);
+            if (value == null) {
+                // to not write "null" inside the string
+                value = "";
+            }
             if (!(value instanceof String)) {
                 // stuff that is not a String has to be converted to something that fits in a String
                 // using JSON is the least bad option

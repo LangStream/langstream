@@ -400,7 +400,7 @@ public class AppControllerIT {
                                 metadata:
                                   name: %s
                                 spec:
-                                    application: '{"agentRunners": {"agent1": {"resources": {"size": %d, "parallelism": %d}}'
+                                    application: '{"agentRunners": {"agent1": {"resources": {"size": %d, "parallelism": %d}}}'
                                     tenant: %s
                                 """
                                 .formatted(appId, size, parallelism, tenant));

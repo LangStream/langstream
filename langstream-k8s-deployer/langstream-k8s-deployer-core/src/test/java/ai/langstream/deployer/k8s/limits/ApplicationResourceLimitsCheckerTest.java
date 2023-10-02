@@ -124,7 +124,7 @@ class ApplicationResourceLimitsCheckerTest {
                                   name: %s
                                   namespace: %s
                                 spec:
-                                    application: '{"agentRunners": {"agent1": {"resources": {"size": %d, "parallelism": %d}}'
+                                    application: '{"agentRunners": {"agent1": {"resources": {"size": %d, "parallelism": %d}}}}'
                                     tenant: %s
                                 """
                                 .formatted(appId, tenant, size, parallelism, tenant));

@@ -265,7 +265,7 @@ public abstract class AbstractApplicationRunner {
                                     assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
                                 } else {
                                     log.info("expected: {}", expectedValue);
-                                    log.info("got: {}", actualValue);
+                                    log.info("got:      {}", actualValue);
                                     assertEquals(expectedValue, actualValue);
                                 }
                             }

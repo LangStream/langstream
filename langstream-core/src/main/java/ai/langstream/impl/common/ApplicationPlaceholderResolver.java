@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -272,20 +273,50 @@ public class ApplicationPlaceholderResolver {
         return resolvePlaceholdersInString(template, context);
     }
 
+    private static Set<String> ONLY_SECRETS_AND_GLOBALS = Set.of("secrets", "globals");
+
     static String resolvePlaceholdersInString(String template, Map<String, Object> context) {
+        if (!template.contains("${") && template.contains("{{") && template.contains("}}")) {
+            // 0.x syntax
+            if (template.contains("{{{")) {
+                return resolvePlaceholdersInString(
+                        template, context, "{{{", "}}}", ONLY_SECRETS_AND_GLOBALS);
+            } else {
+                return resolvePlaceholdersInString(
+                        template, context, "{{", "}}", ONLY_SECRETS_AND_GLOBALS);
+            }
+        }
+        return resolvePlaceholdersInString(template, context, "${", "}", null);
+    }
+
+    private static String resolvePlaceholdersInString(
+            String template,
+            Map<String, Object> context,
+            String prefix,
+            String suffix,
+            Set<String> allowedRoots) {
         StringBuilder result = new StringBuilder();
         int position = 0;
-        int pos = template.indexOf("${", position);
+        int pos = template.indexOf(prefix, position);
         if (pos < 0) {
             return template;
         }
         while (pos >= 0) {
             result.append(template, position, pos);
-            int end = template.indexOf("}", pos);
+            int end = template.indexOf(suffix, pos);
             if (end < 0) {
                 throw new IllegalArgumentException("Invalid placeholder: " + template);
             }
-            String placeholder = template.substring(pos + 2, end).trim();
+            String placeholder = template.substring(pos + prefix.length(), end).trim();
+
+            if (allowedRoots != null && allowedRoots.stream().noneMatch(placeholder::startsWith)) {
+                // this is a raw value like "The question is {{{value.question}}}"
+                // in a mustache template
+                // at this step of the preprocessor we allow mustache like syntax only for secrets
+                // and globals
+                // in order to keep compatibility with 0.x applications
+                return template;
+            }
             Object value = resolveReference(placeholder, context);
             if (value == null) {
                 // to not write "null" inside the string
@@ -301,8 +332,8 @@ public class ApplicationPlaceholderResolver {
                 }
             }
             result.append(value);
-            position = end + 1;
-            pos = template.indexOf("${", position);
+            position = end + suffix.length();
+            pos = template.indexOf(prefix, position);
         }
         result.append(template, position, template.length());
         return result.toString();

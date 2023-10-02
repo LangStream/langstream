@@ -30,16 +30,16 @@ configuration:
     - type: "open-ai-configuration"
       name: "OpenAI Azure configuration"
       configuration:
-        accessKey: "{{secrets.openai-credentials.accessKey}}"
+        accessKey: "${secrets.openai-credentials.accessKey}"
         url: "https://api-server/v1/engines/"
     - type: "hugging-face-configuration"
       name: "Hugging Face API configuration"
       configuration:
-        credentials: "{{secrets.hf-credentials.accessKey}}"
+        credentials: "${secrets.hf-credentials.accessKey}"
     - type: "datasource"
       name: "Sample DataSource"
       configuration:
         type: astra
-        username: "{{secrets.astra-credentials.username}}"
-        password: "{{secrets.astra-credentials.password}}"
-        secureBundle: "{{secrets.astra-credentials.secureBundle}}"
+        username: "${secrets.astra-credentials.username}"
+        password: "${secrets.astra-credentials.password}"
+        secureBundle: "${secrets.astra-credentials.secureBundle}"

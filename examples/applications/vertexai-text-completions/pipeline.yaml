@@ -29,7 +29,7 @@ pipeline:
     type: "ai-text-completions"
     output: "answers"
     configuration:
-      model: "{{{secrets.vertex-ai.text-completions-model}}}"
+      model: "${secrets.vertex-ai.text-completions-model}"
       # on the log-topic we add a field with the answer
       completion-field: "value.answer"
       # we are also logging the prompt we sent to the LLM

@@ -32,7 +32,7 @@ pipeline:
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"
     configuration:
-      model: "{{{secrets.open-ai.embeddings-model}}}" # This needs to match the name of the model deployment, not the base model
+      model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.question_embeddings"
       text: "{{% value.question }}"
       flush-interval: 0
@@ -61,7 +61,7 @@ pipeline:
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
     configuration:
-      model: "{{{secrets.open-ai.chat-completions-model}}}" # This needs to be set to the model deployment name, not the base name
+      model: "${secrets.open-ai.chat-completions-model}" # This needs to be set to the model deployment name, not the base name
       # on the log-topic we add a field with the answer
       completion-field: "value.answer"
       # we are also logging the prompt we sent to the LLM
@@ -87,7 +87,7 @@ pipeline:
               Do not provide information that is not related to the LangStream project.
             
               Documents:
-              {{%# value.related_documents}}
+              {{ value.related_documents}}
               {{% text}}
               {{%/ value.related_documents}}
         - role: user

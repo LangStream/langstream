@@ -60,14 +60,14 @@ class ApplicationPlaceholderResolverTest {
         assertEquals(
                 "my-access-key",
                 ApplicationPlaceholderResolver.resolveValue(
-                        context, "{{secrets.openai-credentials.accessKey}}"));
+                        context, "${secrets.openai-credentials.accessKey}"));
         assertEquals(
                 "http://mypulsar.localhost:8080",
                 ApplicationPlaceholderResolver.resolveValue(
-                        context, "{{cluster.configuration.admin.serviceUrl}}"));
+                        context, "${cluster.configuration.admin.serviceUrl}"));
         assertEquals(
                 "http://myurl.localhost:8080/endpoint",
-                ApplicationPlaceholderResolver.resolveValue(context, "{{globals.open-api-url}}"));
+                ApplicationPlaceholderResolver.resolveValue(context, "${globals.open-api-url}"));
     }
 
     @Test
@@ -83,8 +83,8 @@ class ApplicationPlaceholderResolverTest {
                                                   name: "OpenAI Azure configuration"
                                                   id: "openai-azure"
                                                   configuration:
-                                                    credentials: "{{secrets.openai-credentials.accessKey}}"
-                                                    url: "{{globals.open-api-url}}"
+                                                    credentials: "${secrets.openai-credentials.accessKey}"
+                                                    url: "${globals.open-api-url}"
 
                                         """),
                                 """
@@ -119,19 +119,19 @@ class ApplicationPlaceholderResolverTest {
                                         module: "module-1"
                                         id: "pipeline-1"
                                         topics:
-                                            - name: "{{{globals.input-topic}}}"
-                                            - name: "{{{globals.output-topic}}}"
-                                            - name: "{{{globals.stream-response-topic}}}"
+                                            - name: "${globals.input-topic}"
+                                            - name: "${globals.output-topic}"
+                                            - name: "${globals.stream-response-topic}"
                                         pipeline:
                                           - name: "agent1"
                                             id: "agent1"
                                             type: "ai-chat-completions"
-                                            input: "{{{globals.input-topic}}}"
-                                            output: "{{{globals.output-topic}}}"
+                                            input: "${globals.input-topic}"
+                                            output: "${globals.output-topic}"
                                             configuration:
-                                              stream-to-topic: "{{{globals.stream-response-topic}}}"
+                                              stream-to-topic: "${globals.stream-response-topic}"
                                               sinkType: "some-sink-type-on-your-cluster"
-                                              access-key: "{{ secrets.ak.value }}"
+                                              access-key: "${secrets.ak.value}"
                                         """),
                                 """
                                 instance:
@@ -235,7 +235,7 @@ class ApplicationPlaceholderResolverTest {
                                           name: "OpenAI Azure configuration"
                                           id: "openai-azure"
                                           configuration:
-                                            credentials: "{{secrets.openai-credentials.invalid}}"
+                                            credentials: "${secrets.openai-credentials.invalid}"
 
                                 """),
                                 null,
@@ -292,7 +292,7 @@ class ApplicationPlaceholderResolverTest {
                         Map.of("test", "resolved"),
                         """
                         {{% do not resolve }} {{ test }}
-                        {{%# value.related_documents}}
+                        {{ value.related_documents}}
                         {{% text}}
                         {{%/ value.related_documents}}"""));
     }
@@ -307,28 +307,28 @@ class ApplicationPlaceholderResolverTest {
                                         module: "module-1"
                                         id: "pipeline-1"
                                         topics:
-                                            - name: "{{{globals.input-topic}}}"
-                                            - name: "{{{globals.output-topic}}}"
-                                            - name: "{{{globals.stream-response-topic}}}"
+                                            - name: "${globals.input-topic}"
+                                            - name: "${globals.output-topic}"
+                                            - name: "${globals.stream-response-topic}"
                                         pipeline:
                                           - name: "agent1"
                                             id: "agent1"
                                             type: "ai-chat-completions"
-                                            input: "{{{globals.input-topic}}}"
-                                            output: "{{{globals.output-topic}}}"
+                                            input: "${globals.input-topic}"
+                                            output: "${globals.output-topic}"
                                         """,
                                         "gateways.yaml",
                                         """
                                         gateways:
                                           - id: produce
                                             type: produce
-                                            topic: "{{{globals.input-topic}}}"
-                                            events-topic: "{{{globals.stream-response-topic}}}"
+                                            topic: "${globals.input-topic}"
+                                            events-topic: "${globals.stream-response-topic}"
                                             produce-options: {}
                                           - id: consume
                                             type: consume
-                                            topic: "{{{globals.input-topic}}}"
-                                            events-topic: "{{{globals.stream-response-topic}}}"
+                                            topic: "${globals.input-topic}"
+                                            events-topic: "${globals.stream-response-topic}"
                                             consume-options: {}
                                         """),
                                 """

@@ -21,8 +21,8 @@ configuration:
       name: "AstraDatasource"
       configuration:
         service: "astra"
-        clientId: "{{{ secrets.astra.clientId }}}"
-        secret: "{{{ secrets.astra.secret }}}"
-        token: "{{{ secrets.astra.token }}}"
-        database: "{{{ secrets.astra.database }}}"
-        environment: "{{{ secrets.astra.environment }}}"
+        clientId: "${ secrets.astra.clientId }"
+        secret: "${ secrets.astra.secret }"
+        token: "${ secrets.astra.token }"
+        database: "${ secrets.astra.database }"
+        environment: "${ secrets.astra.environment }"

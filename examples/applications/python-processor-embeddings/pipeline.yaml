@@ -27,4 +27,4 @@ pipeline:
     output: "output-topic"
     configuration:
       className: embeddings.Embedding
-      openaiKey: "{{ secrets.open-ai.access-key }}"
+      openaiKey: "${secrets.open-ai.access-key}"

@@ -53,6 +53,6 @@ pipeline:
       key.converter: org.apache.kafka.connect.storage.StringConverter
       value.converter: org.apache.kafka.connect.storage.StringConverter
       loadBalancing.localDc: "datacenter1"
-      contactPoints: "{{{ secrets.cassandra.contact-points }}}"
+      contactPoints: "${ secrets.cassandra.contact-points }"
       topic.ls-test-topic1.vsearch.products.mapping: "id=value.id,description=value.description,name=value.name"
       name: cassandra-sink

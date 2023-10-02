@@ -22,15 +22,15 @@ configuration:
       configuration:
         service: "jdbc"
         driverClass: "herddb.jdbc.Driver"
-        url: "{{secrets.herddb.url}}"
-        user: "{{secrets.herddb.user}}"
-        password: "{{secrets.herddb.password}}"
+        url: "${secrets.herddb.url}"
+        user: "${secrets.herddb.user}"
+        password: "${secrets.herddb.password}"
     - type: "open-ai-configuration"
       name: "OpenAI Azure configuration"
       configuration:
-        url: "{{ secrets.open-ai.url }}"
-        access-key: "{{ secrets.open-ai.access-key }}"
-        provider: "{{ secrets.open-ai.provider }}"
+        url: "${secrets.open-ai.url}"
+        access-key: "${secrets.open-ai.access-key}"
+        provider: "${secrets.open-ai.provider}"
   dependencies:
     - name: "HerdDB.org JDBC Driver"
       url: "https://repo1.maven.org/maven2/org/herddb/herddb-jdbc/0.28.0/herddb-jdbc-0.28.0-thin.jar"

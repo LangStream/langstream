@@ -21,9 +21,9 @@ configuration:
       name: "CassandraDatasource"
       configuration:
         service: "cassandra"
-        contact-points: "{{{ secrets.cassandra.contact-points }}}"
-        loadBalancing-localDc: "{{{ secrets.cassandra.local-dc }}}"
-        port: "{{{ secrets.cassandra.port }}}"
+        contact-points: "${ secrets.cassandra.contact-points }"
+        loadBalancing-localDc: "${ secrets.cassandra.local-dc }"
+        port: "${ secrets.cassandra.port }"
   dependencies:
     - name: "Kafka Connect Sink for Apache Cassandra from DataStax"
       url: "https://github.com/datastax/kafka-sink/releases/download/1.5.0/kafka-connect-cassandra-sink-1.5.0.jar"

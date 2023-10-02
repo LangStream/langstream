@@ -107,25 +107,25 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                 module: "module-1"
                                 id: "pipeline-1"
                                 topics:
-                                  - name: "{{{globals.input-topic}}}"
+                                  - name: "${globals.input-topic}"
                                     creation-mode: create-if-not-exists
-                                  - name: "{{{globals.output-topic}}}"
+                                  - name: "${globals.output-topic}"
                                     creation-mode: create-if-not-exists
-                                  - name: "{{{globals.stream-topic}}}"
+                                  - name: "${globals.stream-topic}"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "convert-to-json"
                                     id: "step1"
                                     type: "document-to-json"
-                                    input: "{{{globals.input-topic}}}"
+                                    input: "${globals.input-topic}"
                                     configuration:
                                       text-field: "question"
                                   - name: "chat-completions"
                                     type: "ai-chat-completions"
-                                    output: "{{{globals.output-topic}}}"
+                                    output: "${globals.output-topic}"
                                     configuration:
                                       model: "%s"
-                                      stream-to-topic: "{{{globals.stream-topic}}}"
+                                      stream-to-topic: "${globals.stream-topic}"
                                       stream-response-completion-field: "value"
                                       completion-field: "value.answer"
                                       log-field: "value.prompt"

@@ -60,7 +60,7 @@ gateways:
     authentication:
       provider: google
       configuration:
-        clientId: "{{ secrets.google.client-id }}"
+        clientId: "${secrets.google.client-id}"
     produce-options:
       headers:
         - key: langstream-client-user-id
@@ -72,7 +72,7 @@ gateways:
     authentication:
       provider: google
       configuration:
-        clientId: "{{ secrets.google.client-id }}"
+        clientId: "${secrets.google.client-id}"
     consume-options:
       filters:
         headers:

@@ -52,7 +52,7 @@ gateways:
       provider: google
       allow-test-mode: true
       configuration:
-        clientId: "{{ secrets.google.client-id }}"
+        clientId: "${secrets.google.client-id}"
     produce-options:
       headers:
         - key: langstream-client-user-id
@@ -69,7 +69,7 @@ gateways:
       allow-test-mode: true
       provider: google
       configuration:
-        clientId: "{{ secrets.google.client-id }}"
+        clientId: "${secrets.google.client-id}"
     consume-options:
       filters:
         headers:
@@ -86,7 +86,7 @@ gateways:
     authentication:
       provider: github
       configuration:
-        clientId: "{{ secrets.github.client-id }}"
+        clientId: "${secrets.github.client-id}"
     produce-options:
       headers:
         - key: langstream-client-user-id
@@ -102,7 +102,7 @@ gateways:
     authentication:
       provider: github
       configuration:
-        clientId: "{{ secrets.github.client-id }}"
+        clientId: "${secrets.github.client-id}"
     consume-options:
       filters:
         headers:

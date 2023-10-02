@@ -49,12 +49,12 @@ class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
                                       name: "AstraDBDatasource"
                                       configuration:
                                         service: "astra"
-                                        clientId: "{{{ secrets.astra.clientId }}}"
-                                        secret: "{{{ secrets.astra.secret }}}"
+                                        clientId: "${ secrets.astra.clientId }"
+                                        secret: "${ secrets.astra.secret }"
                                         # These are optional, but if you want to use the astra-keyspace asset you need them
-                                        token: "{{{ secrets.astra.token }}}"
-                                        database: "{{{ secrets.astra.database }}}"
-                                        environment: "{{{ secrets.astra.environment }}}"
+                                        token: "${ secrets.astra.token }"
+                                        database: "${ secrets.astra.database }"
+                                        environment: "${ secrets.astra.environment }"
                                 """,
                         "pipeline.yaml",
                         """

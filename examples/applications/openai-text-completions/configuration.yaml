@@ -20,4 +20,4 @@ configuration:
     - type: "open-ai-configuration"
       name: "OpenAI configuration"
       configuration:
-        access-key: "{{ secrets.open-ai.access-key }}"
+        access-key: "${secrets.open-ai.access-key}"

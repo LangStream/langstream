@@ -40,5 +40,5 @@ pipeline:
     input: ls-test-topic0
     output: ls-test-topic1
     configuration:
-      secret_value: "{{ secrets.secret1.value-key }}"
+      secret_value: "${secrets.secret1.value-key}"
       className: example.Exclamation

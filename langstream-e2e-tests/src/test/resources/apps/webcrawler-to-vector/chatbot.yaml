@@ -34,8 +34,8 @@ pipeline:
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"
     configuration:
-      ai-service: "{{{secrets.embeddings.service}}}"
-      model: "{{{secrets.embeddings.model}}}"
+      ai-service: "${secrets.embeddings.service}"
+      model: "${secrets.embeddings.model}"
       embeddings-field: "value.question_embeddings"
       text: "{{% value.question }}"
       flush-interval: 0
@@ -51,8 +51,8 @@ pipeline:
     type: "ai-chat-completions"
 
     configuration:
-      ai-service: "{{{secrets.chat-completions.service}}}"
-      model: "{{{secrets.chat-completions.model}}}" # This needs to be set to the model deployment name, not the base name
+      ai-service: "${secrets.chat-completions.service}"
+      model: "${secrets.chat-completions.model}" # This needs to be set to the model deployment name, not the base name
       # on the ls-test-log-topic we add a field with the answer
       completion-field: "value.answer"
       # we are also logging the prompt we sent to the LLM
@@ -78,7 +78,7 @@ pipeline:
               Do not provide information that is not related to the LangStream project.
             
               Documents:
-              {{%# value.related_documents}}
+              {{ value.related_documents}}
               {{% text}}
               {{%/ value.related_documents}}
         - role: user

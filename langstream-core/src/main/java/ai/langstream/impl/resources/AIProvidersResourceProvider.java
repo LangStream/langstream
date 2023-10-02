@@ -15,26 +15,19 @@
  */
 package ai.langstream.impl.resources;
 
-import static ai.langstream.api.util.ConfigurationUtils.getMap;
 import static ai.langstream.api.util.ConfigurationUtils.getString;
 import static ai.langstream.api.util.ConfigurationUtils.requiredField;
 import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
-import static ai.langstream.api.util.ConfigurationUtils.validateEnumField;
 
-import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ResourceConfig;
-import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.api.runtime.ResourceNodeProvider;
-import ai.langstream.impl.uti.ClassConfigValidator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -53,14 +46,16 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
         super(SUPPORTED_TYPES);
     }
 
-
     @Override
-    protected Map<String, Object> computeResourceConfiguration(Resource resource, Module module,
-                                                               ExecutionPlan executionPlan,
-                                                               ComputeClusterRuntime clusterRuntime,
-                                                               PluginsRegistry pluginsRegistry) {
+    protected Map<String, Object> computeResourceConfiguration(
+            Resource resource,
+            Module module,
+            ExecutionPlan executionPlan,
+            ComputeClusterRuntime clusterRuntime,
+            PluginsRegistry pluginsRegistry) {
         final Map<String, Object> copy =
-                super.computeResourceConfiguration(resource, module, executionPlan, clusterRuntime, pluginsRegistry);
+                super.computeResourceConfiguration(
+                        resource, module, executionPlan, clusterRuntime, pluginsRegistry);
         // only dynamic checks, the rest is done in AbstractResourceProvider
         if (resource.type().equals(VERTEX_CONFIGURATION)) {
             validateVertexConfigurationResource(resource);
@@ -96,7 +91,6 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
         }
     }
 
-
     protected static Supplier<String> describe(Resource resource) {
         return () -> "resource with id = " + resource.id() + " of type " + resource.type();
     }
@@ -117,7 +111,6 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
         }
     }
 
-
     @Data
     @ResourceConfig(name = "Open AI", description = "Connect to OpenAI API or Azure OpenAI API.")
     public static class OpenAIConfig {
@@ -126,69 +119,72 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
             openai,
             azure
         }
+
         @ConfigProperty(
-                description = """
+                description =
+                        """
                             The provider to use. Either "openai" or "azure".
                         """,
-                defaultValue = "openai"
-        )
+                defaultValue = "openai")
         private Provider provider;
 
         @ConfigProperty(
-                description = """
+                description =
+                        """
                             The access key to use.
                         """,
-                required = true
-        )
+                required = true)
         @JsonProperty("access-key")
         private String accessKey;
 
         @ConfigProperty(
-                description = """
-                            Url for Azure OpenAI API. Required only if provider is "azure".
+                description =
                         """
-        )
+                            Url for Azure OpenAI API. Required only if provider is "azure".
+                        """)
         private String url;
-
     }
-
 
     @Data
     @ResourceConfig(name = "Vertex AI", description = "Connect to VertexAI API.")
     public static class VertexAIConfig {
 
         @ConfigProperty(
-                description = """
+                description =
+                        """
                         URL connection for the Vertex API.
                         """,
-                required = true
-        )
+                required = true)
         private String url;
+
         @ConfigProperty(
-                description = """
+                description =
+                        """
                         GCP region for the Vertex API.
                         """,
-                required = true
-        )
+                required = true)
         private String region;
+
         @ConfigProperty(
-                description = """
+                description =
+                        """
                         GCP project name for the Vertex API.
                         """,
-                required = true
-        )
+                required = true)
         private String project;
+
         @ConfigProperty(
-                description = """
+                description =
+                        """
                         Access key for the Vertex API.
-                        """
-        )
+                        """)
         private String token;
+
         @ConfigProperty(
-                description = """
-                        Specify service account credentials. Refer to the GCP documentation on how to download it
+                description =
                         """
-        )
+                        Specify service account credentials. Refer to the GCP documentation on how to download it
+                        """)
         private String serviceAccountJson;
     }
 
@@ -200,58 +196,60 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
             local,
             api
         }
+
         @ConfigProperty(
-                description = """
+                description =
+                        """
                             The provider to use. Either "local" or "api".
                         """,
-                defaultValue = "api"
-        )
+                defaultValue = "api")
         private Provider provider;
 
         @JsonProperty("api-url")
         @ConfigProperty(
-                description = """
+                description =
+                        """
                         The URL of the Hugging Face API. Relevant only if provider is "api".
                         """,
-                defaultValue = "https://api-inference.huggingface.co/pipeline/feature-extraction/"
-        )
+                defaultValue = "https://api-inference.huggingface.co/pipeline/feature-extraction/")
         private String apiUrl;
 
         @ConfigProperty(
-                description = """
+                description =
+                        """
                         The model url to use. Relevant only if provider is "api".
                         """,
-                defaultValue = "https://huggingface.co/api/models/"
-        )
+                defaultValue = "https://huggingface.co/api/models/")
         @JsonProperty("model-check-url")
         private String modelUrl;
 
         @ConfigProperty(
-                description = """
-                            The access key to use for "api" provider.
+                description =
                         """
-        )
+                            The access key to use for "api" provider.
+                        """)
         @JsonProperty("access-key")
         private String accessKey;
 
         @ConfigProperty(
-                description = """
+                description =
+                        """
                         Additional arguments. DEPRECATED: use "arguments" in the compute-ai-embeddings agent instead.
-                        """
-        )
+                        """)
         private Map<String, String> arguments;
+
         @ConfigProperty(
-                description = """
+                description =
+                        """
                         Additional options. DEPRECATED: use "options" in the compute-ai-embeddings agent instead.
-                        """
-        )
-        private  Map<String, String> options;
+                        """)
+        private Map<String, String> options;
+
         @ConfigProperty(
-                description = """
-                        Model name. DEPRECATED: use "model" in the compute-ai-embeddings agent instead.
+                description =
                         """
-        )
+                        Model name. DEPRECATED: use "model" in the compute-ai-embeddings agent instead.
+                        """)
         private String model;
     }
-
 }

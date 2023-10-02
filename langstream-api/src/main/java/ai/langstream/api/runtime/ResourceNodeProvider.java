@@ -15,7 +15,6 @@
  */
 package ai.langstream.api.runtime;
 
-import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Resource;
@@ -51,5 +50,4 @@ public interface ResourceNodeProvider {
     default Map<String, ResourceConfigurationModel> generateSupportedTypesDocumentation() {
         return Map.of();
     }
-
 }

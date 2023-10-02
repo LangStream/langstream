@@ -24,7 +24,6 @@ import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
 import com.datastax.oss.streaming.ai.model.TransformSchemaType;
-import com.datastax.oss.streaming.ai.model.config.OpenAIConfig;
 import com.datastax.oss.streaming.ai.model.config.StepConfig;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.services.OpenAIServiceProvider;
@@ -496,7 +495,9 @@ public class TransformFunction
                 return new OpenAIServiceProvider(config);
             }
             if (config.getHuggingface() != null) {
-                return new HuggingFaceProvider().createImplementation(TransformFunctionUtil.convertToMap(config.getHuggingface()));
+                return new HuggingFaceProvider()
+                        .createImplementation(
+                                TransformFunctionUtil.convertToMap(config.getHuggingface()));
             }
         }
         return new ServiceProvider.NoopServiceProvider();

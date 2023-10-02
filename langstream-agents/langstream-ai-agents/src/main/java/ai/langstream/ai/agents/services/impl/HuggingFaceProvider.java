@@ -25,7 +25,6 @@ import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.embeddings.HuggingFaceEmbeddingService;
 import com.datastax.oss.streaming.ai.embeddings.HuggingFaceRestEmbeddingService;
 import com.datastax.oss.streaming.ai.model.config.ComputeProvider;
-import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -42,8 +41,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HuggingFaceProvider implements ServiceProviderProvider {
 

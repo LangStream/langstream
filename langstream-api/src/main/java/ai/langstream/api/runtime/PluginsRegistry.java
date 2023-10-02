@@ -82,7 +82,6 @@ public class PluginsRegistry {
         return loader.stream().map(p -> p.get()).collect(Collectors.toList());
     }
 
-
     public ResourceNodeProvider lookupResourceImplementation(
             String type, ComputeClusterRuntime clusterRuntime) {
         log.info(

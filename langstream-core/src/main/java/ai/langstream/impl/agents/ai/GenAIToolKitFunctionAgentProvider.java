@@ -27,7 +27,6 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.agents.ai.steps.AIChatCompletionsConfiguration;
 import ai.langstream.impl.agents.ai.steps.AITextCompletionsConfiguration;
-import ai.langstream.impl.agents.ai.steps.BaseGenAIStepConfiguration;
 import ai.langstream.impl.agents.ai.steps.CastConfiguration;
 import ai.langstream.impl.agents.ai.steps.ComputeAIEmbeddingsConfiguration;
 import ai.langstream.impl.agents.ai.steps.ComputeConfiguration;

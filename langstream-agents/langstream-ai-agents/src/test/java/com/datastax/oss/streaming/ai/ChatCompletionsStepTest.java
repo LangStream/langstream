@@ -142,7 +142,6 @@ public class ChatCompletionsStepTest {
                 ArgumentCaptor.forClass(ChatCompletionsOptions.class);
         ChatCompletionsConfig config = new ChatCompletionsConfig();
         config.setModel("test-model");
-        config.setStream(false);
         config.setMessages(
                 List.of(
                         new ChatMessage("user")

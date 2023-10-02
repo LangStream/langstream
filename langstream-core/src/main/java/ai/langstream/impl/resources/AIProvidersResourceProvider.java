@@ -228,12 +228,30 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
 
         @ConfigProperty(
                 description = """
-                            The access key to use.
-                        """,
-                required = true
+                            The access key to use for "api" provider.
+                        """
         )
         @JsonProperty("access-key")
         private String accessKey;
+
+        @ConfigProperty(
+                description = """
+                        Additional arguments. DEPRECATED: use "arguments" in the compute-ai-embeddings agent instead.
+                        """
+        )
+        private Map<String, String> arguments;
+        @ConfigProperty(
+                description = """
+                        Additional options. DEPRECATED: use "options" in the compute-ai-embeddings agent instead.
+                        """
+        )
+        private  Map<String, String> options;
+        @ConfigProperty(
+                description = """
+                        Model name. DEPRECATED: use "model" in the compute-ai-embeddings agent instead.
+                        """
+        )
+        private String model;
     }
 
 }

@@ -201,7 +201,8 @@ class CompositeAgentTest {
             assertEquals("language-detector", agents.get(2).get("agentType"));
             assertEquals(
                     List.of("en"),
-                    ((Map<String, Object>) agents.get(2).get("configuration")).get("allowedLanguages"));
+                    ((Map<String, Object>) agents.get(2).get("configuration"))
+                            .get("allowedLanguages"));
 
             Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
             assertEquals("input-topic", inputTopic.topicName());
@@ -414,7 +415,8 @@ class CompositeAgentTest {
             assertEquals("language-detector", processors.get(2).get("agentType"));
             assertEquals(
                     List.of("en"),
-                    ((Map<String, Object>) processors.get(2).get("configuration")).get("allowedLanguages"));
+                    ((Map<String, Object>) processors.get(2).get("configuration"))
+                            .get("allowedLanguages"));
 
             Topic outputTopic = (Topic) defaultAgentNode.getOutputConnectionImplementation();
             assertEquals("output-topic", outputTopic.topicName());
@@ -492,7 +494,8 @@ class CompositeAgentTest {
             assertEquals("language-detector", processors.get(2).get("agentType"));
             assertEquals(
                     List.of("en"),
-                    ((Map<String, Object>) processors.get(2).get("configuration")).get("allowedLanguages"));
+                    ((Map<String, Object>) processors.get(2).get("configuration"))
+                            .get("allowedLanguages"));
 
             Topic inputTopic = (Topic) defaultAgentNode.getInputConnectionImplementation();
             assertEquals("input-topic", inputTopic.topicName());
@@ -578,7 +581,8 @@ class CompositeAgentTest {
             assertEquals("language-detector", processors.get(2).get("agentType"));
             assertEquals(
                     List.of("en"),
-                    ((Map<String, Object>) processors.get(2).get("configuration")).get("allowedLanguages"));
+                    ((Map<String, Object>) processors.get(2).get("configuration"))
+                            .get("allowedLanguages"));
 
             assertNull(defaultAgentNode.getInputConnectionImplementation());
             assertNull(defaultAgentNode.getOutputConnectionImplementation());
@@ -700,7 +704,8 @@ class CompositeAgentTest {
             assertEquals("language-detector", processors.get(0).get("agentType"));
             assertEquals(
                     List.of("en"),
-                    ((Map<String, Object>) processors.get(0).get("configuration")).get("allowedLanguages"));
+                    ((Map<String, Object>) processors.get(0).get("configuration"))
+                            .get("allowedLanguages"));
 
             Map<String, Object> sink = (Map<String, Object>) configurationThirdNode.get("sink");
             assertEquals("generic-composable-sink", sink.get("agentType"));

@@ -1,3 +1,18 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ai.langstream.impl.resources.datasource;
 
 import ai.langstream.api.doc.ConfigProperty;
@@ -5,7 +20,6 @@ import ai.langstream.api.doc.ResourceConfig;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.resources.BaseDataSourceResourceProvider;
-import ai.langstream.impl.resources.DataSourceResourceProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import java.util.Base64;
 import java.util.Map;
@@ -25,18 +39,21 @@ public class AstraDatasourceConfig {
 
                 @Override
                 public void validate(Resource resource) {
-                    ClassConfigValidator.validateResourceModelFromClass(resource,
-                            AstraDatasourceConfig.class, resource.configuration(), false);
+                    ClassConfigValidator.validateResourceModelFromClass(
+                            resource, AstraDatasourceConfig.class, resource.configuration(), false);
                     Map<String, Object> configuration = resource.configuration();
 
-                    String secureBundle = ConfigurationUtils.getString("secureBundle", "", configuration);
+                    String secureBundle =
+                            ConfigurationUtils.getString("secureBundle", "", configuration);
                     if (secureBundle.isEmpty()) {
-                        if (configuration.get("token") == null || configuration.get("database") == null) {
+                        if (configuration.get("token") == null
+                                || configuration.get("database") == null) {
                             throw new IllegalArgumentException(
                                     ClassConfigValidator.formatErrString(
-                                            new ClassConfigValidator.ResourceEntityRef(resource), "token",
+                                            new ClassConfigValidator.ResourceEntityRef(resource),
+                                            "token",
                                             "token and database are required for Astra service if secureBundle is not"
-                                            + " configured."));
+                                                    + " configured."));
                         }
                     } else {
                         if (secureBundle.startsWith("base64:")) {
@@ -45,15 +62,15 @@ public class AstraDatasourceConfig {
                         try {
                             Base64.getDecoder().decode(secureBundle);
                         } catch (IllegalArgumentException e) {
-                            throw new IllegalArgumentException(ClassConfigValidator.formatErrString(
-                                    new ClassConfigValidator.ResourceEntityRef(resource), "secureBundle",
-                                    "secureBundle must be a valid base64 string."));
+                            throw new IllegalArgumentException(
+                                    ClassConfigValidator.formatErrString(
+                                            new ClassConfigValidator.ResourceEntityRef(resource),
+                                            "secureBundle",
+                                            "secureBundle must be a valid base64 string."));
                         }
                     }
-
                 }
             };
-
 
     @ConfigProperty(
             description =
@@ -68,12 +85,14 @@ public class AstraDatasourceConfig {
                             Astra Token (AstraCS:xxx) for connecting to the database. If secureBundle is provided, this field is ignored.
                             """)
     private String token;
+
     @ConfigProperty(
             description =
                     """
                             Astra Database name to connect to. If secureBundle is provided, this field is ignored.
                             """)
     private String database;
+
     @ConfigProperty(
             description =
                     """
@@ -81,6 +100,7 @@ public class AstraDatasourceConfig {
                             """,
             required = true)
     private String clientId;
+
     @ConfigProperty(
             description =
                     """
@@ -90,7 +110,9 @@ public class AstraDatasourceConfig {
     private String secret;
 
     public enum Environments {
-        DEV, PROD, TEST;
+        DEV,
+        PROD,
+        TEST;
     }
 
     @ConfigProperty(
@@ -100,5 +122,4 @@ public class AstraDatasourceConfig {
                             """,
             defaultValue = "PROD")
     private Environments environment;
-
 }

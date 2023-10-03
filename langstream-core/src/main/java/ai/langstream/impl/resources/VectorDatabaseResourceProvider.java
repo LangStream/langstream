@@ -15,31 +15,21 @@
  */
 package ai.langstream.impl.resources;
 
-import static ai.langstream.api.util.ConfigurationUtils.requiredField;
-import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
-import static ai.langstream.api.util.ConfigurationUtils.validateEnumField;
-
-import ai.langstream.api.model.Resource;
-import ai.langstream.api.runtime.ComputeClusterRuntime;
-import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.api.runtime.ResourceNodeProvider;
-import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.resources.datasource.AstraDatasourceConfig;
 import ai.langstream.impl.resources.datasource.CassandraDatasourceConfig;
-import ai.langstream.impl.resources.datasource.JDBCDatasourceConfig;
 import ai.langstream.impl.resources.datasource.MilvusDatasourceConfig;
 import ai.langstream.impl.resources.datasource.PineconeDatasourceConfig;
 import java.util.Map;
-import java.util.Set;
 
 public class VectorDatabaseResourceProvider extends BaseDataSourceResourceProvider {
 
     public VectorDatabaseResourceProvider() {
-        super("vector-database", Map.of(
-                "astra", AstraDatasourceConfig.CONFIG,
-                "cassandra", CassandraDatasourceConfig.CONFIG,
-                "pinecone", PineconeDatasourceConfig.CONFIG,
-                "milvus", MilvusDatasourceConfig.CONFIG
-        ));
+        super(
+                "vector-database",
+                Map.of(
+                        "astra", AstraDatasourceConfig.CONFIG,
+                        "cassandra", CassandraDatasourceConfig.CONFIG,
+                        "pinecone", PineconeDatasourceConfig.CONFIG,
+                        "milvus", MilvusDatasourceConfig.CONFIG));
     }
 }

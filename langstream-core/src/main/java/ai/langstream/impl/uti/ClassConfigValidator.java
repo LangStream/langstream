@@ -135,6 +135,7 @@ public class ClassConfigValidator {
     public static class ResourceEntityRef implements EntityRef {
 
         private final Resource resource;
+
         @Override
         public String ref() {
             return "resource configuration (resource: '%s', type: '%s')"
@@ -150,7 +151,8 @@ public class ClassConfigValidator {
             Class modelClazz,
             Map<String, Object> asMap,
             boolean allowUnknownProperties) {
-        validateModelFromClass(new ResourceEntityRef(resource), modelClazz, asMap, allowUnknownProperties);
+        validateModelFromClass(
+                new ResourceEntityRef(resource), modelClazz, asMap, allowUnknownProperties);
     }
 
     @SneakyThrows

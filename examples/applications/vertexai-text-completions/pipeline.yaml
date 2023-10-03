@@ -36,4 +36,4 @@ pipeline:
       log-field: "value.prompt"
       max-tokens: 20
       prompt:
-        - "{{% value.question}}"
+        - "{{ value.question}}"

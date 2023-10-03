@@ -30,6 +30,6 @@ pipeline:
     configuration:
       model: "textembedding-gecko"
       embeddings-field: "value.embeddings"
-      text: "{{% value.name }} {{% value.description }}"
+      text: "{{ value.name }} {{ value.description }}"
       batch-size: 10
       flush-interval: 500

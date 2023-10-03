@@ -36,7 +36,7 @@ class PythonCodeAgentProviderTest {
                       a-field: "val"
                 """
                         .formatted(type),
-                "Found error on an agent configuration (agent: 'python1', type: '%s'). Property 'className' is required"
+                "Found error on agent configuration (agent: 'python1', type: '%s'). Property 'className' is required"
                         .formatted(type));
         validate(
                 """
@@ -47,7 +47,7 @@ class PythonCodeAgentProviderTest {
                     configuration: {}
                 """
                         .formatted(type),
-                "Found error on an agent configuration (agent: 'python1', type: '%s'). Property 'className' is required"
+                "Found error on agent configuration (agent: 'python1', type: '%s'). Property 'className' is required"
                         .formatted(type));
         validate(
                 """

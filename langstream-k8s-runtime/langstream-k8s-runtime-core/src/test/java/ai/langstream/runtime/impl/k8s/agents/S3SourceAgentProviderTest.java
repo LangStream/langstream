@@ -39,7 +39,7 @@ class S3SourceAgentProviderTest {
                     configuration:
                       a-field: "val"
                 """,
-                "Found error on an agent configuration (agent: 's3-source', type: 's3-source'). Property 'a-field' is unknown");
+                "Found error on agent configuration (agent: 's3-source', type: 's3-source'). Property 'a-field' is unknown");
         validate(
                 """
                 topics: []
@@ -84,7 +84,7 @@ class S3SourceAgentProviderTest {
                             configuration:
                               bucketName: {object: true}
                         """,
-                "Found error on an agent configuration (agent: 's3-source', type: 's3-source'). Property 'bucketName' has a wrong data type. Expected type: java.lang.String");
+                "Found error on agent configuration (agent: 's3-source', type: 's3-source'). Property 'bucketName' has a wrong data type. Expected type: java.lang.String");
     }
 
     private void validate(String pipeline, String expectErrMessage) throws Exception {

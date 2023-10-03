@@ -55,7 +55,7 @@ class KafkaConnectAgentsProviderTest {
                     type: "source"
                     configuration: {}
                 """,
-                "Found error on an agent configuration (agent: 'my-source', type: 'source'). Property 'connector.class' is required");
+                "Found error on agent configuration (agent: 'my-source', type: 'source'). Property 'connector.class' is required");
 
         validate(
                 """
@@ -105,7 +105,7 @@ class KafkaConnectAgentsProviderTest {
                     type: "sink"
                     configuration: {}
                 """,
-                "Found error on an agent configuration (agent: 'my-source', type: 'sink'). Property 'connector.class' is required");
+                "Found error on agent configuration (agent: 'my-source', type: 'sink'). Property 'connector.class' is required");
 
         validate(
                 """

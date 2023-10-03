@@ -15,7 +15,7 @@
  */
 package ai.langstream.api.runtime;
 
-import ai.langstream.api.model.Module;
+import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.Resource;
 import java.util.Map;
 
@@ -24,18 +24,10 @@ public interface ResourceNodeProvider {
     /**
      * Create an Implementation of a Resource.
      *
-     * @param module the module
-     * @param executionPlan the physical application instance
-     * @param clusterRuntime the cluster runtime
      * @param pluginsRegistry the plugins registry
-     * @return the Agent
+     * @return the implementation
      */
-    Map<String, Object> createImplementation(
-            Resource resource,
-            Module module,
-            ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime,
-            PluginsRegistry pluginsRegistry);
+    Map<String, Object> createImplementation(Resource resource, PluginsRegistry pluginsRegistry);
 
     /**
      * Returns the ability of a Resource to be deployed on the give runtimes.
@@ -45,4 +37,8 @@ public interface ResourceNodeProvider {
      * @return true if this provider can create the implementation
      */
     boolean supports(String type, ComputeClusterRuntime clusterRuntime);
+
+    default Map<String, ResourceConfigurationModel> generateSupportedTypesDocumentation() {
+        return Map.of();
+    }
 }

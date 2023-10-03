@@ -27,7 +27,6 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.agents.ai.steps.AIChatCompletionsConfiguration;
 import ai.langstream.impl.agents.ai.steps.AITextCompletionsConfiguration;
-import ai.langstream.impl.agents.ai.steps.BaseGenAIStepConfiguration;
 import ai.langstream.impl.agents.ai.steps.CastConfiguration;
 import ai.langstream.impl.agents.ai.steps.ComputeAIEmbeddingsConfiguration;
 import ai.langstream.impl.agents.ai.steps.ComputeConfiguration;
@@ -58,14 +57,6 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             List.of(SERVICE_VERTEX, SERVICE_HUGGING_FACE, SERVICE_OPEN_AI);
 
     static {
-        final StepConfigurationInitializer baseConfig =
-                new StepConfigurationInitializer() {
-                    @Override
-                    public Class getAgentConfigurationModelClass() {
-                        return BaseGenAIStepConfiguration.class;
-                    }
-                };
-
         final Map<String, StepConfigurationInitializer> steps = new HashMap<>();
         steps.put("drop-fields", DropFieldsConfiguration.STEP);
         steps.put("merge-key-value", MergeKeyValueConfiguration.STEP);

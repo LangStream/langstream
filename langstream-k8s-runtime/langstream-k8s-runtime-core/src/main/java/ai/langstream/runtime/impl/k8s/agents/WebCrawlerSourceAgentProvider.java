@@ -40,6 +40,11 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
         return ComponentType.SOURCE;
     }
 
+    @Override
+    protected Class getAgentConfigModelClass(String type) {
+        return Config.class;
+    }
+
     @Data
     @AgentConfig(
             name = "Web crawler source",

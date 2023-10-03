@@ -66,7 +66,7 @@ public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
             description =
                     """
                     Run a your own Python source.
-                    All the configuration properties are available to in the class init method.
+                    All the configuration properties are available in the class init method.
                     """)
     public static class PythonSourceConfig extends PythonConfig {}
 
@@ -75,7 +75,7 @@ public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
             description =
                     """
                     Run a your own Python sink.
-                    All the configuration properties are available to in the class init method.
+                    All the configuration properties are available in the class init method.
                     """)
     public static class PythonSinkConfig extends PythonConfig {}
 
@@ -84,7 +84,7 @@ public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
             description =
                     """
                     Run a your own Python processor.
-                    All the configuration properties are available to in the class init method.
+                    All the configuration properties are available the class init method.
                     """)
     public static class PythonProcessorConfig extends PythonConfig {}
 

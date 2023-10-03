@@ -13,19 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.doc;
+package ai.langstream.impl.resources.datasource;
 
-import java.util.Map;
-import lombok.AllArgsConstructor;
+import ai.langstream.api.doc.ConfigProperty;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class AgentConfigurationModel {
+public class BaseDatasourceConfig {
 
-    private String name;
-    private String description;
-    private Map<String, ConfigPropertyModel> properties;
+    @ConfigProperty(required = true)
+    private String service;
 }

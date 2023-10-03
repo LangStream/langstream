@@ -32,7 +32,7 @@ class LoadAssertManagerCodeTest {
         AssetManagerRegistry registry = new AssetManagerRegistry();
         AssetDefinition assetDefinition = new AssetDefinition();
         assetDefinition.setConfig(
-                Map.of("datasource", Map.of("configuration", Map.of("foo", "bar"))));
+                Map.of("datasource", Map.of("configuration", Map.of("url", "bar"))));
         assetDefinition.setAssetType("mock-database-resource");
         AssetManager assetManager =
                 registry.getAssetManager(assetDefinition.getAssetType()).agentCode();

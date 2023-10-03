@@ -27,8 +27,8 @@ import lombok.Data;
         name = "Compute embeddings of the record",
         description =
                 """
-        Compute embeddings of the record. The embeddings are stored in the record under a specific field.
-        """)
+                        Compute embeddings of the record. The embeddings are stored in the record under a specific field.
+                        """)
 @Data
 public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration {
     public static final GenAIToolKitFunctionAgentProvider.StepConfigurationInitializer STEP =
@@ -59,6 +59,12 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
                                     aiServiceConfigurationGenerator);
                     aiServiceConfigurationGenerator.generateAIServiceConfiguration(
                             (String) step.remove("ai-service"));
+
+                    // in the user config we use the pascal but the downstream impl requires snake
+                    final Object modelUrl = step.remove("modelUrl");
+                    if (modelUrl != null) {
+                        step.put("model-url", modelUrl);
+                    }
                 }
             };
 
@@ -73,9 +79,9 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
     @ConfigProperty(
             description =
                     """
-                   Text to create embeddings from. You can use Mustache syntax to compose multiple fields into a single text. Example:
-                   text: "{{{ value.field1 }}} {{{ value.field2 }}}"
-                   """,
+                            Text to create embeddings from. You can use Mustache syntax to compose multiple fields into a single text. Example:
+                            text: "{{{ value.field1 }}} {{{ value.field2 }}}"
+                            """,
             required = true)
     private String text;
 
@@ -121,4 +127,25 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
                             """)
     @JsonProperty(value = "ai-service")
     private String aiService;
+
+    @ConfigProperty(
+            description =
+                    """
+                            Additional options to pass to the AI Service. (HuggingFace only)
+                            """)
+    private Map<String, String> options;
+
+    @ConfigProperty(
+            description =
+                    """
+                            Additional arguments to pass to the AI Service. (HuggingFace only)
+                            """)
+    private Map<String, String> arguments;
+
+    @ConfigProperty(
+            description =
+                    """
+                            URL of the model to use. (HuggingFace only). The default is computed from the model: "djl://ai.djl.huggingface.pytorch{model}"
+                             """)
+    private String modelUrl;
 }

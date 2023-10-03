@@ -42,7 +42,7 @@ class QueryVectorDBAgentProviderTest {
                       datasource: "cassandra"
                       unknown-field: "..."
                 """,
-                "Found error on an agent configuration (agent: 'db', type: 'query-vector-db'). Property 'unknown-field' is unknown");
+                "Found error on agent configuration (agent: 'db', type: 'query-vector-db'). Property 'unknown-field' is unknown");
 
         validate(
                 """
@@ -91,7 +91,7 @@ class QueryVectorDBAgentProviderTest {
                     configuration:
                       unknown-field: "..."
                 """,
-                "Found error on an agent configuration (agent: 'db', type: 'vector-db-sink'). Property 'datasource' is required");
+                "Found error on agent configuration (agent: 'db', type: 'vector-db-sink'). Property 'datasource' is required");
 
         validate(
                 """

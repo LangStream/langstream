@@ -19,7 +19,10 @@ import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ConfigPropertyIgnore;
+import ai.langstream.api.doc.ResourceConfig;
+import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.model.Resource;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -40,6 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
@@ -55,6 +59,7 @@ public class ClassConfigValidator {
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     static final Map<String, AgentConfigurationModel> agentModels = new ConcurrentHashMap<>();
+    static final Map<String, ResourceConfigurationModel> resourceModels = new ConcurrentHashMap<>();
 
     public static AgentConfigurationModel generateAgentModelFromClass(Class clazz) {
         return agentModels.computeIfAbsent(
@@ -77,11 +82,30 @@ public class ClassConfigValidator {
         return model;
     }
 
-    @SneakyThrows
-    public static void validateAgentModelFromClass(
-            AgentConfiguration agentConfiguration, Class modelClazz) {
-        validateAgentModelFromClass(
-                agentConfiguration, modelClazz, agentConfiguration.getConfiguration());
+    public static ResourceConfigurationModel generateResourceModelFromClass(Class clazz) {
+        return resourceModels.computeIfAbsent(
+                clazz.getName(), k -> generateResourceModelFromClassNoCache(clazz));
+    }
+
+    private static ResourceConfigurationModel generateResourceModelFromClassNoCache(Class clazz) {
+        ResourceConfigurationModel model = new ResourceConfigurationModel();
+
+        final ResourceConfig resourceConfig =
+                (ResourceConfig) clazz.getAnnotation(ResourceConfig.class);
+        if (resourceConfig != null) {
+            if (resourceConfig.description() != null && !resourceConfig.description().isBlank()) {
+                model.setDescription(resourceConfig.description().strip());
+            }
+            if (resourceConfig.name() != null && !resourceConfig.name().isBlank()) {
+                model.setName(resourceConfig.name());
+            }
+        }
+        model.setProperties(readPropertiesFromClass(clazz));
+        return model;
+    }
+
+    public interface EntityRef {
+        String ref();
     }
 
     @SneakyThrows
@@ -96,13 +120,54 @@ public class ClassConfigValidator {
             Class modelClazz,
             Map<String, Object> asMap,
             boolean allowUnknownProperties) {
+        final EntityRef ref =
+                () ->
+                        "agent configuration (agent: '%s', type: '%s')"
+                                .formatted(
+                                        agentConfiguration.getName() == null
+                                                ? agentConfiguration.getId()
+                                                : agentConfiguration.getName(),
+                                        agentConfiguration.getType());
+        validateModelFromClass(ref, modelClazz, asMap, allowUnknownProperties);
+    }
+
+    @AllArgsConstructor
+    public static class ResourceEntityRef implements EntityRef {
+
+        private final Resource resource;
+
+        @Override
+        public String ref() {
+            return "resource configuration (resource: '%s', type: '%s')"
+                    .formatted(
+                            resource.name() == null ? resource.id() : resource.name(),
+                            resource.type());
+        }
+    }
+
+    @SneakyThrows
+    public static void validateResourceModelFromClass(
+            Resource resource,
+            Class modelClazz,
+            Map<String, Object> asMap,
+            boolean allowUnknownProperties) {
+        validateModelFromClass(
+                new ResourceEntityRef(resource), modelClazz, asMap, allowUnknownProperties);
+    }
+
+    @SneakyThrows
+    private static void validateModelFromClass(
+            EntityRef entityRef,
+            Class modelClazz,
+            Map<String, Object> asMap,
+            boolean allowUnknownProperties) {
         asMap = validatorMapper.readValue(validatorMapper.writeValueAsBytes(asMap), Map.class);
 
         final AgentConfigurationModel agentConfigurationModel =
                 generateAgentModelFromClass(modelClazz);
 
         validateProperties(
-                agentConfiguration,
+                entityRef,
                 null,
                 asMap,
                 agentConfigurationModel.getProperties(),
@@ -118,7 +183,7 @@ public class ClassConfigValidator {
                                 .collect(Collectors.joining("."));
                 throw new IllegalArgumentException(
                         formatErrString(
-                                agentConfiguration,
+                                entityRef,
                                 property,
                                 "has a wrong data type. Expected type: "
                                         + mismatchedInputException.getTargetType().getName()));
@@ -128,21 +193,15 @@ public class ClassConfigValidator {
         }
     }
 
-    private static String formatErrString(
-            AgentConfiguration agent, String property, String message) {
-        return "Found error on an agent configuration (agent: '%s', type: '%s'). Property '%s' %s"
-                .formatted(
-                        agent.getName() == null ? agent.getId() : agent.getName(),
-                        agent.getType(),
-                        property,
-                        message);
+    public static String formatErrString(EntityRef entityRef, String property, String message) {
+        return "Found error on %s. Property '%s' %s".formatted(entityRef.ref(), property, message);
     }
 
     private static void validateProperties(
-            AgentConfiguration agentConfiguration,
+            EntityRef entityRef,
             String parentProp,
             Map<String, Object> asMap,
-            Map<String, AgentConfigurationModel.AgentConfigurationProperty> properties,
+            Map<String, ai.langstream.api.doc.ConfigPropertyModel> properties,
             boolean allowUnknownProperties) {
         if (!allowUnknownProperties && asMap != null) {
             for (String key : asMap.keySet()) {
@@ -150,18 +209,17 @@ public class ClassConfigValidator {
                     final String fullPropertyKey =
                             parentProp == null ? key : parentProp + "." + key;
                     throw new IllegalArgumentException(
-                            formatErrString(agentConfiguration, fullPropertyKey, "is unknown"));
+                            formatErrString(entityRef, fullPropertyKey, "is unknown"));
                 }
             }
         }
 
-        for (Map.Entry<String, AgentConfigurationModel.AgentConfigurationProperty> property :
+        for (Map.Entry<String, ai.langstream.api.doc.ConfigPropertyModel> property :
                 properties.entrySet()) {
-            final AgentConfigurationModel.AgentConfigurationProperty propertyValue =
-                    property.getValue();
+            final ai.langstream.api.doc.ConfigPropertyModel propertyValue = property.getValue();
             final String propertyKey = property.getKey();
             validateProperty(
-                    agentConfiguration,
+                    entityRef,
                     parentProp,
                     asMap == null ? null : asMap.get(propertyKey),
                     propertyValue,
@@ -170,10 +228,10 @@ public class ClassConfigValidator {
     }
 
     private static void validateProperty(
-            AgentConfiguration agentConfiguration,
+            EntityRef entityRef,
             String parentProp,
             Object actualValue,
-            AgentConfigurationModel.AgentConfigurationProperty propertyValue,
+            ai.langstream.api.doc.ConfigPropertyModel propertyValue,
             String propertyKey) {
 
         final String fullPropertyKey =
@@ -182,12 +240,12 @@ public class ClassConfigValidator {
         if (propertyValue.isRequired()) {
             if (actualValue == null) {
                 throw new IllegalArgumentException(
-                        formatErrString(agentConfiguration, fullPropertyKey, "is required"));
+                        formatErrString(entityRef, fullPropertyKey, "is required"));
             }
         }
         if (propertyValue.getProperties() != null) {
             validateProperties(
-                    agentConfiguration,
+                    entityRef,
                     fullPropertyKey,
                     actualValue == null ? null : (Map<String, Object>) actualValue,
                     propertyValue.getProperties(),
@@ -217,20 +275,19 @@ public class ClassConfigValidator {
         Map<String, Prop> properties;
     }
 
-    public static Map<String, AgentConfigurationModel.AgentConfigurationProperty>
-            readPropertiesFromClass(Class clazz) {
+    public static Map<String, ai.langstream.api.doc.ConfigPropertyModel> readPropertiesFromClass(
+            Class clazz) {
         JsonNode jsonSchema = getJsonSchema(clazz);
         final ObjectMapper mapper =
                 new ObjectMapper()
                         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         final ParsedJsonSchema parsed = mapper.convertValue(jsonSchema, ParsedJsonSchema.class);
 
-        Map<String, AgentConfigurationModel.AgentConfigurationProperty> props =
-                new LinkedHashMap<>();
+        Map<String, ai.langstream.api.doc.ConfigPropertyModel> props = new LinkedHashMap<>();
         if (parsed.getProperties() != null) {
             for (Map.Entry<String, ParsedJsonSchema.Prop> schema :
                     parsed.getProperties().entrySet()) {
-                final AgentConfigurationModel.AgentConfigurationProperty parsedProp =
+                final ai.langstream.api.doc.ConfigPropertyModel parsedProp =
                         parseProp(mapper, schema.getValue());
                 if (parsedProp != null) {
                     props.put(schema.getKey(), parsedProp);
@@ -241,10 +298,10 @@ public class ClassConfigValidator {
     }
 
     @SneakyThrows
-    private static AgentConfigurationModel.AgentConfigurationProperty parseProp(
+    private static ai.langstream.api.doc.ConfigPropertyModel parseProp(
             ObjectMapper mapper, ParsedJsonSchema.Prop value) {
-        AgentConfigurationModel.AgentConfigurationProperty newProp =
-                new AgentConfigurationModel.AgentConfigurationProperty();
+        ai.langstream.api.doc.ConfigPropertyModel newProp =
+                new ai.langstream.api.doc.ConfigPropertyModel();
 
         newProp.setType(value.getType());
         final String jsonDesc = value.getDescription();
@@ -268,7 +325,7 @@ public class ClassConfigValidator {
                             .collect(Collectors.toMap(Pair::getLeft, Pair::getRight)));
         }
         if (value.getItems() != null) {
-            final AgentConfigurationModel.AgentConfigurationProperty items =
+            final ai.langstream.api.doc.ConfigPropertyModel items =
                     parseProp(mapper, value.getItems());
 
             if (items != null) {

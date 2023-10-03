@@ -15,81 +15,21 @@
  */
 package ai.langstream.impl.resources;
 
-import static ai.langstream.api.util.ConfigurationUtils.requiredField;
-import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
-import static ai.langstream.api.util.ConfigurationUtils.validateEnumField;
-
-import ai.langstream.api.model.Module;
-import ai.langstream.api.model.Resource;
-import ai.langstream.api.runtime.ComputeClusterRuntime;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.api.runtime.ResourceNodeProvider;
-import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.impl.resources.datasource.AstraDatasourceConfig;
+import ai.langstream.impl.resources.datasource.CassandraDatasourceConfig;
+import ai.langstream.impl.resources.datasource.MilvusDatasourceConfig;
+import ai.langstream.impl.resources.datasource.PineconeDatasourceConfig;
 import java.util.Map;
-import java.util.Set;
 
-public class VectorDatabaseResourceProvider extends DataSourceResourceProvider
-        implements ResourceNodeProvider {
-    @Override
-    public Map<String, Object> createImplementation(
-            Resource resource,
-            Module module,
-            ExecutionPlan executionPlan,
-            ComputeClusterRuntime clusterRuntime,
-            PluginsRegistry pluginsRegistry) {
-        Map<String, Object> configuration = resource.configuration();
+public class VectorDatabaseResourceProvider extends BaseDataSourceResourceProvider {
 
-        String service = requiredField(configuration, "service", describe(resource));
-        validateEnumField(
-                configuration,
-                "service",
-                Set.of("astra", "cassandra", "pinecone", "milvus"),
-                describe(resource));
-
-        switch (service) {
-            case "astra":
-                validateAstraDatabaseResource(resource);
-                break;
-            case "cassandra":
-                validateCassandraDatabaseResource(resource);
-                break;
-            case "pinecone":
-                validatePineconeDatabaseResource(resource);
-                break;
-            case "milvus":
-                validateMilvusDatabaseResource(resource);
-                break;
-            default:
-                throw new IllegalStateException();
-        }
-
-        return resource.configuration();
-    }
-
-    private void validateMilvusDatabaseResource(Resource resource) {
-        Map<String, Object> configuration = resource.configuration();
-
-        requiredNonEmptyField(configuration, "user", describe(resource));
-        requiredNonEmptyField(configuration, "host", describe(resource));
-        requiredNonEmptyField(configuration, "password", describe(resource));
-        requiredNonEmptyField(configuration, "index-name", describe(resource));
-        ConfigurationUtils.validateInteger(configuration, "port", 1, 300000, describe(resource));
-    }
-
-    protected void validatePineconeDatabaseResource(Resource resource) {
-        Map<String, Object> configuration = resource.configuration();
-
-        requiredNonEmptyField(configuration, "api-key", describe(resource));
-        requiredNonEmptyField(configuration, "environment", describe(resource));
-        requiredNonEmptyField(configuration, "project-name", describe(resource));
-        requiredNonEmptyField(configuration, "index-name", describe(resource));
-        ConfigurationUtils.validateInteger(
-                configuration, "server-side-timeout-sec", 1, 300000, describe(resource));
-    }
-
-    @Override
-    public boolean supports(String type, ComputeClusterRuntime clusterRuntime) {
-        return "vector-database".equals(type);
+    public VectorDatabaseResourceProvider() {
+        super(
+                "vector-database",
+                Map.of(
+                        "astra", AstraDatasourceConfig.CONFIG,
+                        "cassandra", CassandraDatasourceConfig.CONFIG,
+                        "pinecone", PineconeDatasourceConfig.CONFIG,
+                        "milvus", MilvusDatasourceConfig.CONFIG));
     }
 }

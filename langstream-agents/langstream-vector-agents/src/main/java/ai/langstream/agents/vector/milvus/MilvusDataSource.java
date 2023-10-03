@@ -59,6 +59,9 @@ public class MilvusDataSource implements DataSourceProvider {
         @JsonProperty(value = "host")
         private String host;
 
+        @JsonProperty(value = "port")
+        private int port = 19530;
+
         // Zillis service
 
         @JsonProperty(value = "url")
@@ -66,9 +69,6 @@ public class MilvusDataSource implements DataSourceProvider {
 
         @JsonProperty(value = "token")
         private String token;
-
-        @JsonProperty(value = "port")
-        private int port = 19530;
     }
 
     @Override

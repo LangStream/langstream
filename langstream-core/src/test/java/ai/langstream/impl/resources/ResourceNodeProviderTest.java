@@ -47,16 +47,12 @@ class ResourceNodeProviderTest {
         switch (outcome) {
             case VALID -> {
                 assertDoesNotThrow(
-                        () ->
-                                providersResourceProvider.createImplementation(
-                                        resource, null, null, null, null));
+                        () -> providersResourceProvider.createImplementation(resource, null));
             }
             case NON_VALID -> {
                 assertThrows(
                         IllegalArgumentException.class,
-                        () ->
-                                providersResourceProvider.createImplementation(
-                                        resource, null, null, null, null));
+                        () -> providersResourceProvider.createImplementation(resource, null));
             }
         }
     }
@@ -65,7 +61,7 @@ class ResourceNodeProviderTest {
         return Arrays.asList(
                 Arguments.of(NON_VALID, "open-ai-configuration", Map.of()),
                 Arguments.of(NON_VALID, "vertex-configuration", Map.of()),
-                Arguments.of(NON_VALID, "hugging-face-configuration", Map.of()),
+                Arguments.of(VALID, "hugging-face-configuration", Map.of()),
                 Arguments.of(
                         VALID,
                         "open-ai-configuration",
@@ -84,38 +80,12 @@ class ResourceNodeProviderTest {
                                 "azure",
                                 "url",
                                 "http://some-url")),
-                Arguments.of(
-                        VALID,
-                        "hugging-face-configuration",
-                        Map.of("provider", "api", "model", "some-model")),
-                Arguments.of(
-                        VALID,
-                        "hugging-face-configuration",
-                        Map.of("model", "some-model", "options", Map.of("wait-for-model", "true"))),
+                Arguments.of(VALID, "hugging-face-configuration", Map.of("provider", "api")),
+                Arguments.of(VALID, "hugging-face-configuration", Map.of("provider", "local")),
                 Arguments.of(
                         NON_VALID,
                         "hugging-face-configuration",
-                        Map.of("model", "some-model", "options", "this-is-not-a-map")),
-                Arguments.of(
-                        VALID,
-                        "hugging-face-configuration",
-                        Map.of(
-                                "model",
-                                "some-model",
-                                "arguments",
-                                Map.of("some-argument", "true"))),
-                Arguments.of(
-                        NON_VALID,
-                        "hugging-face-configuration",
-                        Map.of("model", "some-model", "arguments", "this-is-not-a-map")),
-                Arguments.of(
-                        VALID,
-                        "hugging-face-configuration",
-                        Map.of("provider", "local", "model", "some-model")),
-                Arguments.of(
-                        NON_VALID,
-                        "hugging-face-configuration",
-                        Map.of("provider", "bad-provider", "model", "some-model")),
+                        Map.of("provider", "bad-provider")),
                 Arguments.of(
                         VALID,
                         "vertex-configuration",
@@ -285,7 +255,7 @@ class ResourceNodeProviderTest {
                                 "secret",
                                 "pwd")),
                 Arguments.of(
-                        VALID,
+                        NON_VALID,
                         "astra",
                         Map.of(
                                 "secureBundle",
@@ -295,7 +265,7 @@ class ResourceNodeProviderTest {
                                 "password",
                                 "pwd")),
                 Arguments.of(
-                        VALID,
+                        NON_VALID,
                         "astra",
                         Map.of(
                                 "secureBundle",

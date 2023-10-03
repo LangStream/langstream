@@ -50,7 +50,9 @@ class DeployAssetsTest extends AbstractApplicationRunner {
                                     - type: "datasource"
                                       name: "the-resource"
                                       configuration:
-                                         foo: "${secrets.the-secret.password}"
+                                         service: jdbc
+                                         url: "${secrets.the-secret.password}"
+                                         driverClass: "org.postgresql.Driver"
                             """,
                         "module.yaml",
                         """
@@ -94,7 +96,7 @@ class DeployAssetsTest extends AbstractApplicationRunner {
                     (Map<String, Object>) deployedAsset.getConfig().get("datasource");
             Map<String, Object> datasourceConfiguration =
                     (Map<String, Object>) datasource.get("configuration");
-            assertEquals("bar", datasourceConfiguration.get("foo"));
+            assertEquals("bar", datasourceConfiguration.get("url"));
 
             final ExecutionPlan plan = applicationRuntime.implementation();
             applicationDeployer.cleanup(tenant, plan);

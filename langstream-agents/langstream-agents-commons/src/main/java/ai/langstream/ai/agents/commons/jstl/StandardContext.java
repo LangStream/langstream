@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.jstl;
+package ai.langstream.ai.agents.commons.jstl;
 
 import jakarta.el.ArrayELResolver;
 import jakarta.el.BeanNameELResolver;

@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.jstl;
+package ai.langstream.ai.agents.commons.jstl;
 
-import com.datastax.oss.streaming.ai.TransformContext;
-import com.datastax.oss.streaming.ai.jstl.predicate.JstlPredicate;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.el.ELException;
 import java.lang.reflect.Array;

@@ -15,6 +15,8 @@
  */
 package com.datastax.oss.streaming.ai;
 
+import ai.langstream.ai.agents.commons.TransformContext;
+
 public class UnwrapKeyValueStep implements TransformStep {
 
     private final boolean unwrapKey;

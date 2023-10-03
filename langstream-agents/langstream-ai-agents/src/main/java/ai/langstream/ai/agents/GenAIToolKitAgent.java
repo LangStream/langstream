@@ -15,6 +15,8 @@
  */
 package ai.langstream.ai.agents;
 
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.ai.agents.services.ServiceProviderRegistry;
 import ai.langstream.api.runner.code.AbstractAgentCode;
@@ -26,11 +28,9 @@ import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ComponentType;
-import com.datastax.oss.streaming.ai.TransformContext;
+import com.datastax.oss.streaming.ai.StepPredicatePair;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
-import com.datastax.oss.streaming.ai.model.TransformSchemaType;
 import com.datastax.oss.streaming.ai.model.config.StepConfig;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;

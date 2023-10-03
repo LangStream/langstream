@@ -15,9 +15,10 @@
  */
 package com.datastax.oss.streaming.ai;
 
+import ai.langstream.ai.agents.commons.JsonRecord;
+import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.api.util.OrderedAsyncBatchExecutor;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
-import com.datastax.oss.streaming.ai.model.JsonRecord;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 import java.util.ArrayList;

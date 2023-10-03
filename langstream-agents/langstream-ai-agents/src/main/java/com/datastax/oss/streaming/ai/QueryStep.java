@@ -15,8 +15,9 @@
  */
 package com.datastax.oss.streaming.ai;
 
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.TransformSchemaType;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.datastax.oss.streaming.ai.model.TransformSchemaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;

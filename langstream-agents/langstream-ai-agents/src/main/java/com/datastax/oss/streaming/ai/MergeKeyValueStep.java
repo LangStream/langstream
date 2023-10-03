@@ -15,7 +15,8 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import com.datastax.oss.streaming.ai.model.TransformSchemaType;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.TransformSchemaType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;

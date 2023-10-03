@@ -15,11 +15,12 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import com.datastax.oss.streaming.ai.jstl.JstlTypeConverter;
+import ai.langstream.ai.agents.commons.AvroUtil;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.TransformSchemaType;
+import ai.langstream.ai.agents.commons.jstl.JstlTypeConverter;
 import com.datastax.oss.streaming.ai.model.ComputeField;
 import com.datastax.oss.streaming.ai.model.ComputeFieldType;
-import com.datastax.oss.streaming.ai.model.TransformSchemaType;
-import com.datastax.oss.streaming.ai.util.AvroUtil;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.Time;

@@ -21,7 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.datastax.oss.streaming.ai.model.TransformSchemaType;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.TransformSchemaType;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

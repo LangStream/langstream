@@ -13,15 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.jstl.predicate;
+package com.datastax.oss.streaming.ai;
 
-import com.datastax.oss.streaming.ai.TransformContext;
-import java.util.function.Predicate;
+import ai.langstream.ai.agents.commons.jstl.predicate.TransformPredicate;
+import lombok.Data;
 
 /**
- * A predicate functional interface that applies to {@link TransformContext}. Implementations of
- * this interface should respect the current record encapsulated in the {@link TransformContext}
- * when evaluating the predicate.
+ * A convenience class to group a step and its predicate together. A convenience class to group a
+ * step and its predicate together.
  */
-@FunctionalInterface
-public interface TransformPredicate extends Predicate<TransformContext> {}
+@Data
+public class StepPredicatePair {
+    /** The candidate transform step to be invoked. */
+    private final TransformStep transformStep;
+
+    /** A predicate that decides whether the transform step should be invoked or not. */
+    private final TransformPredicate predicate;
+}

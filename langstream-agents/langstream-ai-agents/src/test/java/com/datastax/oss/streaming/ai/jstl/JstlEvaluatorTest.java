@@ -18,7 +18,9 @@ package com.datastax.oss.streaming.ai.jstl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.datastax.oss.streaming.ai.TransformContext;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
+import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import com.datastax.oss.streaming.ai.Utils;
 import jakarta.el.MethodNotFoundException;
 import java.nio.charset.StandardCharsets;

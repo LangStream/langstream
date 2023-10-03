@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.jstl.predicate;
+package ai.langstream.ai.agents.commons.jstl.predicate;
 
-import com.datastax.oss.streaming.ai.TransformContext;
-import com.datastax.oss.streaming.ai.jstl.JstlEvaluator;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import jakarta.el.ELException;
 import jakarta.el.PropertyNotFoundException;
 import lombok.extern.slf4j.Slf4j;

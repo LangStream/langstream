@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+set -e
 minikube start --memory=8192 --cpus=4 --kubernetes-version=v1.26.3
 eval $(minikube docker-env)
 ./docker/build.sh

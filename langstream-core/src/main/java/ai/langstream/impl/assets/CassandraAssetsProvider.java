@@ -19,46 +19,60 @@ import static ai.langstream.api.util.ConfigurationUtils.requiredField;
 import static ai.langstream.api.util.ConfigurationUtils.requiredListField;
 import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
 
+import ai.langstream.api.doc.AgentConfig;
+import ai.langstream.api.doc.AssetConfig;
+import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.common.AbstractAssetProvider;
+import ai.langstream.impl.uti.ClassConfigValidator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CassandraAssetsProvider extends AbstractAssetProvider {
 
+    protected static final String CASSANDRA_TABLE = "cassandra-table";
+    protected static final String CASSANDRA_KEYSPACE = "cassandra-keyspace";
+    protected static final String ASTRA_KEYSPACE = "astra-keyspace";
+
     public CassandraAssetsProvider() {
-        super(Set.of("cassandra-table", "cassandra-keyspace", "astra-keyspace"));
+        super(Set.of(CASSANDRA_TABLE, CASSANDRA_KEYSPACE, ASTRA_KEYSPACE));
+    }
+
+    @Override
+    protected Class getAssetConfigModelClass(String type) {
+        return switch (type) {
+            case CASSANDRA_TABLE -> CassandraTableConfig.class;
+            case CASSANDRA_KEYSPACE -> CassandraKeyspaceConfig.class;
+            case ASTRA_KEYSPACE -> AstraKeyspaceConfig.class;
+            default -> throw new IllegalArgumentException("Unknown asset type " + type);
+        };
     }
 
     @Override
     protected void validateAsset(AssetDefinition assetDefinition, Map<String, Object> asset) {
         Map<String, Object> configuration = ConfigurationUtils.getMap("config", null, asset);
-        requiredField(configuration, "datasource", describe(assetDefinition));
         final Map<String, Object> datasource =
                 ConfigurationUtils.getMap("datasource", Map.of(), configuration);
         final Map<String, Object> datasourceConfiguration =
                 ConfigurationUtils.getMap("configuration", Map.of(), datasource);
         switch (assetDefinition.getAssetType()) {
-            case "cassandra-table" -> {
-                requiredNonEmptyField(configuration, "table-name", describe(assetDefinition));
-                requiredNonEmptyField(configuration, "keyspace", describe(assetDefinition));
-                requiredListField(configuration, "create-statements", describe(assetDefinition));
+            case CASSANDRA_TABLE -> {
                 checkDeleteStatements(assetDefinition, configuration);
             }
-            case "cassandra-keyspace" -> {
-                requiredNonEmptyField(configuration, "keyspace", describe(assetDefinition));
-                requiredListField(configuration, "create-statements", describe(assetDefinition));
+            case CASSANDRA_KEYSPACE -> {
                 checkDeleteStatements(assetDefinition, configuration);
                 if (datasourceConfiguration.containsKey("secureBundle")
                         || datasourceConfiguration.containsKey("database")) {
                     throw new IllegalArgumentException("Use astra-keyspace for AstraDB services");
                 }
             }
-            case "astra-keyspace" -> {
-                requiredNonEmptyField(configuration, "keyspace", describe(assetDefinition));
+            case ASTRA_KEYSPACE -> {
                 if (!datasourceConfiguration.containsKey("secureBundle")
                         && !datasourceConfiguration.containsKey("database")) {
                     throw new IllegalArgumentException(
@@ -70,8 +84,7 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
                 requiredNonEmptyField(
                         datasourceConfiguration, "database", describe(assetDefinition));
             }
-            default -> throw new IllegalStateException(
-                    "Unexpected value: " + assetDefinition.getAssetType());
+            default -> {}
         }
     }
 
@@ -89,6 +102,133 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
 
     @Override
     protected boolean lookupResource(String fieldName) {
-        return "datasource".contains(fieldName);
+        return "datasource".equals(fieldName);
     }
+
+
+    @AssetConfig(
+            name = "Cassandra table",
+            description =
+                    """
+                    Manage a Cassandra table in existing keyspace.
+                    """)
+    @Data
+    public static class CassandraTableConfig {
+
+        @ConfigProperty(
+                description =
+                        """
+                       Reference to a datasource id configured in the application.
+                       """,
+                required = true)
+        private String datasource;
+
+        @ConfigProperty(
+                description =
+                        """
+                       Name of the table.
+                       """,
+                required = true)
+        @JsonProperty("table-name")
+        private String table;
+        @ConfigProperty(
+                description =
+                        """
+                       Name of the keyspace where the table is located.
+                       """,
+                required = true)
+        private String keyspace;
+
+        @ConfigProperty(
+                description =
+                        """
+                       List of the statement to execute to create the table. They will be executed every time the application is deployed or upgraded.
+                       """,
+                required = true)
+        @JsonProperty("create-statements")
+        private List<String> createStatements;
+        @ConfigProperty(
+                description =
+                        """
+                       List of the statement to execute to cleanup the table. They will be executed when the application is deleted only if 'deletion-mode' is 'delete'.
+                       """
+        )
+        @JsonProperty("delete-statements")
+        private List<String> deleteStatements;
+
+    }
+
+    @AssetConfig(
+            name = "Cassandra keyspace",
+            description =
+                    """
+                    Manage a Cassandra keyspace.
+                    """)
+    @Data
+    public static class CassandraKeyspaceConfig {
+
+        @ConfigProperty(
+                description =
+                        """
+                       Reference to a datasource id configured in the application.
+                       """,
+                required = true)
+        private String datasource;
+
+        @ConfigProperty(
+                description =
+                        """
+                       Name of the keyspace to create.
+                       """,
+                required = true)
+        private String keyspace;
+
+        @ConfigProperty(
+                description =
+                        """
+                       List of the statement to execute to create the keyspace. They will be executed every time the application is deployed or upgraded.
+                       """,
+                required = true)
+        @JsonProperty("create-statements")
+        private List<String> createStatements;
+        @ConfigProperty(
+                description =
+                        """
+                       List of the statement to execute to cleanup the keyspace. They will be executed when the application is deleted only if 'deletion-mode' is 'delete'.
+                       """
+        )
+        @JsonProperty("delete-statements")
+        private List<String> deleteStatements;
+
+    }
+
+    @AssetConfig(
+            name = "Astra keyspace",
+            description =
+                    """
+                    Manage a DataStax Astra keyspace.
+                    """)
+    @Data
+    public static class AstraKeyspaceConfig {
+
+        @ConfigProperty(
+                description =
+                        """
+                       Reference to a datasource id configured in the application.
+                       """,
+                required = true)
+        private String datasource;
+
+        @ConfigProperty(
+                description =
+                        """
+                       Name of the keyspace to create.
+                       """,
+                required = true)
+        private String keyspace;
+
+    }
+
+
+
 }

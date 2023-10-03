@@ -17,11 +17,14 @@ package ai.langstream.impl.uti;
 
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.AgentConfigurationModel;
+import ai.langstream.api.doc.AssetConfig;
+import ai.langstream.api.doc.AssetConfigurationModel;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ConfigPropertyIgnore;
 import ai.langstream.api.doc.ResourceConfig;
 import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.Resource;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -60,6 +63,8 @@ public class ClassConfigValidator {
 
     static final Map<String, AgentConfigurationModel> agentModels = new ConcurrentHashMap<>();
     static final Map<String, ResourceConfigurationModel> resourceModels = new ConcurrentHashMap<>();
+    static final Map<String, AssetConfigurationModel> assetModels = new ConcurrentHashMap<>();
+
 
     public static AgentConfigurationModel generateAgentModelFromClass(Class clazz) {
         return agentModels.computeIfAbsent(
@@ -98,6 +103,27 @@ public class ClassConfigValidator {
             }
             if (resourceConfig.name() != null && !resourceConfig.name().isBlank()) {
                 model.setName(resourceConfig.name());
+            }
+        }
+        model.setProperties(readPropertiesFromClass(clazz));
+        return model;
+    }
+
+    public static AssetConfigurationModel generateAssetModelFromClass(Class clazz) {
+        return assetModels.computeIfAbsent(
+                clazz.getName(), k -> generateAssetFromClassNoCache(clazz));
+    }
+
+    private static AssetConfigurationModel generateAssetFromClassNoCache(Class clazz) {
+        AssetConfigurationModel model = new AssetConfigurationModel();
+
+        final AssetConfig assetConfig = (AssetConfig) clazz.getAnnotation(AssetConfig.class);
+        if (assetConfig != null) {
+            if (assetConfig.description() != null && !assetConfig.description().isBlank()) {
+                model.setDescription(assetConfig.description().strip());
+            }
+            if (assetConfig.name() != null && !assetConfig.name().isBlank()) {
+                model.setName(assetConfig.name());
             }
         }
         model.setProperties(readPropertiesFromClass(clazz));
@@ -153,6 +179,29 @@ public class ClassConfigValidator {
             boolean allowUnknownProperties) {
         validateModelFromClass(
                 new ResourceEntityRef(resource), modelClazz, asMap, allowUnknownProperties);
+    }
+
+    @AllArgsConstructor
+    public static class AssetEntityRef implements EntityRef {
+
+        private final AssetDefinition asset;
+
+        @Override
+        public String ref() {
+            return "asset configuration (asset: '%s', type: '%s')"
+                    .formatted(
+                            asset.getName() == null ? asset.getId() : asset.getName(),
+                            asset.getAssetType());
+        }
+    }
+
+    @SneakyThrows
+    public static void validateAssetModelFromClass(
+            AssetDefinition asset,
+            Class modelClazz,
+            Map<String, Object> asMap,
+            boolean allowUnknownProperties) {
+        validateModelFromClass(new AssetEntityRef(asset), modelClazz, asMap, allowUnknownProperties);
     }
 
     @SneakyThrows

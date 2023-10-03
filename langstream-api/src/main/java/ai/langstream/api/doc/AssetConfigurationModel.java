@@ -16,9 +16,16 @@
 package ai.langstream.api.doc;
 
 import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public record ApiConfigurationModel(
-        String version,
-        Map<String, AgentConfigurationModel> agents,
-        Map<String, ResourceConfigurationModel> resources,
-        Map<String, AssetConfigurationModel> assets) {}
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AssetConfigurationModel {
+
+    private String name;
+    private String description;
+    private Map<String, ConfigPropertyModel> properties;
+}

@@ -25,6 +25,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ResourceConfigurationModel {
 
+    private String type;
     private String name;
     private String description;
     private Map<String, ConfigPropertyModel> properties;

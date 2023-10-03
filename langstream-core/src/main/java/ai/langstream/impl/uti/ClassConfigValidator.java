@@ -43,6 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
@@ -103,7 +104,7 @@ public class ClassConfigValidator {
         return model;
     }
 
-    interface EntityRef {
+    public interface EntityRef {
         String ref();
     }
 
@@ -130,19 +131,26 @@ public class ClassConfigValidator {
         validateModelFromClass(ref, modelClazz, asMap, allowUnknownProperties);
     }
 
+    @AllArgsConstructor
+    public static class ResourceEntityRef implements EntityRef {
+
+        private final Resource resource;
+        @Override
+        public String ref() {
+            return "resource configuration (resource: '%s', type: '%s')"
+                    .formatted(
+                            resource.name() == null ? resource.id() : resource.name(),
+                            resource.type());
+        }
+    }
+
     @SneakyThrows
     public static void validateResourceModelFromClass(
             Resource resource,
             Class modelClazz,
             Map<String, Object> asMap,
             boolean allowUnknownProperties) {
-        final EntityRef ref =
-                () ->
-                        "resource configuration (resource: '%s', type: '%s')"
-                                .formatted(
-                                        resource.name() == null ? resource.id() : resource.name(),
-                                        resource.type());
-        validateModelFromClass(ref, modelClazz, asMap, allowUnknownProperties);
+        validateModelFromClass(new ResourceEntityRef(resource), modelClazz, asMap, allowUnknownProperties);
     }
 
     @SneakyThrows
@@ -183,7 +191,7 @@ public class ClassConfigValidator {
         }
     }
 
-    private static String formatErrString(EntityRef entityRef, String property, String message) {
+    public static String formatErrString(EntityRef entityRef, String property, String message) {
         return "Found error on %s. Property '%s' %s".formatted(entityRef.ref(), property, message);
     }
 

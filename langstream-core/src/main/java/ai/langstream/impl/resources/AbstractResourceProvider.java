@@ -73,11 +73,14 @@ public abstract class AbstractResourceProvider implements ResourceNodeProvider {
         for (String supportedType : supportedTypes) {
             final Class modelClass = getResourceConfigModelClass(supportedType);
             if (modelClass == null) {
-                result.put(supportedType, new ResourceConfigurationModel());
+                final ResourceConfigurationModel model = new ResourceConfigurationModel();
+                model.setType(supportedType);
+                result.put(supportedType, model);
             } else {
-                result.put(
-                        supportedType,
-                        ClassConfigValidator.generateResourceModelFromClass(modelClass));
+                final ResourceConfigurationModel value =
+                        ClassConfigValidator.generateResourceModelFromClass(modelClass);
+                value.setType(supportedType);
+                result.put(supportedType, value);
             }
         }
         return result;

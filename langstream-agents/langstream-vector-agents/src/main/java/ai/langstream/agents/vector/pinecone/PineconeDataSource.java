@@ -87,15 +87,15 @@ public class PineconeDataSource implements DataSourceProvider {
 
         PineconeConfig clientConfig = MAPPER.convertValue(dataSourceConfig, PineconeConfig.class);
 
-        return new PinecodeQueryStepDataSource(clientConfig);
+        return new PineconeQueryStepDataSource(clientConfig);
     }
 
-    private static class PinecodeQueryStepDataSource implements QueryStepDataSource {
+    private static class PineconeQueryStepDataSource implements QueryStepDataSource {
 
         private final PineconeConfig clientConfig;
         private PineconeConnection connection;
 
-        public PinecodeQueryStepDataSource(PineconeConfig clientConfig) {
+        public PineconeQueryStepDataSource(PineconeConfig clientConfig) {
             this.clientConfig = clientConfig;
         }
 
@@ -258,7 +258,7 @@ public class PineconeDataSource implements DataSourceProvider {
                 case STRING_VALUE -> value.getStringValue();
                 case BOOL_VALUE -> value.getBoolValue();
                 case LIST_VALUE -> value.getListValue().getValuesList().stream()
-                        .map(PinecodeQueryStepDataSource::valueToObject)
+                        .map(PineconeQueryStepDataSource::valueToObject)
                         .toList();
                 case STRUCT_VALUE -> value.getStructValue().getFieldsMap().entrySet().stream()
                         .collect(

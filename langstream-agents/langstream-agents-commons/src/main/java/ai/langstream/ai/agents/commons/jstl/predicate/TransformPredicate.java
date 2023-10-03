@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.model;
+package ai.langstream.ai.agents.commons.jstl.predicate;
 
-import java.util.Map;
-import lombok.Data;
+import ai.langstream.ai.agents.commons.TransformContext;
+import java.util.function.Predicate;
 
-@Data
-public class JsonRecord {
-    String topicName;
-    String destinationTopic;
-    Object key;
-    Object value;
-    Map<String, String> properties;
-    Long eventTime;
-}
+/**
+ * A predicate functional interface that applies to {@link TransformContext}. Implementations of
+ * this interface should respect the current record encapsulated in the {@link TransformContext}
+ * when evaluating the predicate.
+ */
+@FunctionalInterface
+public interface TransformPredicate extends Predicate<TransformContext> {}

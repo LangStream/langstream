@@ -16,13 +16,13 @@
 package ai.langstream.agents.vector;
 
 import ai.langstream.ai.agents.GenAIToolKitAgent;
+import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import com.datastax.oss.streaming.ai.QueryStep;
-import com.datastax.oss.streaming.ai.TransformContext;
+import com.datastax.oss.streaming.ai.StepPredicatePair;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
 import com.datastax.oss.streaming.ai.model.config.QueryConfig;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.fasterxml.jackson.databind.DeserializationFeature;

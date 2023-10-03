@@ -16,13 +16,13 @@
 package ai.langstream.agents.vector.milvus;
 
 import ai.langstream.ai.agents.GenAIToolKitAgent;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.alibaba.fastjson.JSONObject;
-import com.datastax.oss.streaming.ai.TransformContext;
-import com.datastax.oss.streaming.ai.jstl.JstlEvaluator;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.CollectionSchema;
 import io.milvus.grpc.DescribeCollectionResponse;

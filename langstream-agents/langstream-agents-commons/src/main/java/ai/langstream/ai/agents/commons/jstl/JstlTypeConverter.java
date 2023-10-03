@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.jstl;
+package ai.langstream.ai.agents.commons.jstl;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.el.ELContext;
 import jakarta.el.ELException;
 import jakarta.el.TypeConverter;
@@ -46,7 +45,6 @@ import org.apache.pulsar.client.api.Schema;
 public class JstlTypeConverter extends TypeConverter {
     public static final JstlTypeConverter INSTANCE = new JstlTypeConverter();
 
-    @SuppressFBWarnings("NP_BOOLEAN_RETURN_NULL")
     protected Boolean coerceToBoolean(Object value) {
         if (value instanceof byte[]) {
             return Schema.BOOL.decode((byte[]) value);

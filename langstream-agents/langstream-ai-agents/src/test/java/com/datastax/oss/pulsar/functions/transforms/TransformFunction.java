@@ -17,13 +17,13 @@ package com.datastax.oss.pulsar.functions.transforms;
 
 import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.buildStep;
 
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.services.impl.HuggingFaceProvider;
 import com.datastax.oss.streaming.ai.JsonNodeSchema;
-import com.datastax.oss.streaming.ai.TransformContext;
+import com.datastax.oss.streaming.ai.StepPredicatePair;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
-import com.datastax.oss.streaming.ai.model.TransformSchemaType;
 import com.datastax.oss.streaming.ai.model.config.StepConfig;
 import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.services.OpenAIServiceProvider;

@@ -15,7 +15,8 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import com.datastax.oss.streaming.ai.model.TransformSchemaType;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.TransformSchemaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;

@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai.streaming;
 
-import com.datastax.oss.streaming.ai.TransformContext;
+import ai.langstream.ai.agents.commons.TransformContext;
 
 public interface StreamingAnswersConsumer {
     void streamAnswerChunk(int index, String message, boolean last, TransformContext outputMessage);

@@ -20,7 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.datastax.oss.streaming.ai.TransformContext;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.jstl.JstlTransformContextAdapter;
 import com.datastax.oss.streaming.ai.Utils;
 import java.time.LocalDate;
 import java.util.HashMap;

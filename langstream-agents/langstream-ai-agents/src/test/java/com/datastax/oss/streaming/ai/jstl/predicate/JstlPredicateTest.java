@@ -19,7 +19,8 @@ import static com.datastax.oss.streaming.ai.Utils.newTransformContext;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.datastax.oss.streaming.ai.TransformContext;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import com.datastax.oss.streaming.ai.Utils;
 import java.util.HashMap;
 import org.apache.pulsar.client.api.Schema;

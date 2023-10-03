@@ -13,28 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai;
+package ai.langstream.ai.agents.commons;
 
-import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.safeClone;
-
-import com.datastax.oss.streaming.ai.model.JsonRecord;
-import com.datastax.oss.streaming.ai.model.TransformSchemaType;
-import com.datastax.oss.streaming.ai.util.AvroUtil;
-import com.datastax.oss.streaming.ai.util.JsonConverter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Conversions;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryEncoder;
@@ -323,5 +323,39 @@ public class TransformContext {
                 addOrReplaceKeyFields(Map.of(fieldSchemaField, content), avroKeySchemaCache);
             }
         }
+    }
+
+    public static Object safeClone(Object object) {
+        if (object == null) {
+            return null;
+        }
+        if (object.getClass().isPrimitive()
+                || object instanceof String
+                || object instanceof Number
+                || object instanceof Boolean) {
+            return object;
+        }
+        if (object instanceof Map map) {
+            HashMap<Object, Object> res = new HashMap<>();
+            map.forEach((k, v) -> res.put(safeClone(k), safeClone(v)));
+            return res;
+        }
+        if (object instanceof List list) {
+            List<Object> res = new ArrayList<>();
+            list.forEach(v -> res.add(safeClone(v)));
+            return res;
+        }
+        if (object instanceof Set set) {
+            Set<Object> res = new HashSet<>();
+            set.forEach(v -> res.add(safeClone(v)));
+            return res;
+        }
+        if (object instanceof GenericRecord genericRecord) {
+            return GenericData.get().deepCopy(genericRecord.getSchema(), genericRecord);
+        }
+        if (object instanceof JsonNode jsonNode) {
+            return jsonNode.deepCopy();
+        }
+        throw new UnsupportedOperationException("Cannot copy a value of " + object.getClass());
     }
 }

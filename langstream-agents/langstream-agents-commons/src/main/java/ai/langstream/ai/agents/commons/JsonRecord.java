@@ -13,20 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.jstl.predicate;
+package ai.langstream.ai.agents.commons;
 
-import com.datastax.oss.streaming.ai.TransformStep;
+import java.util.Map;
 import lombok.Data;
 
-/**
- * A convenience class to group a step and its predicate together. A convenience class to group a
- * step and its predicate together.
- */
 @Data
-public class StepPredicatePair {
-    /** The candidate transform step to be invoked. */
-    private final TransformStep transformStep;
-
-    /** A predicate that decides whether the transform step should be invoked or not. */
-    private final TransformPredicate predicate;
+public class JsonRecord {
+    String topicName;
+    String destinationTopic;
+    Object key;
+    Object value;
+    Map<String, String> properties;
+    Long eventTime;
 }

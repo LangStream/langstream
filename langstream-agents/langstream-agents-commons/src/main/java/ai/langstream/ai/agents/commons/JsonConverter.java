@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.util;
-
-import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.getBytes;
+package ai.langstream.ai.agents.commons;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -246,5 +244,20 @@ public class JsonConverter {
                         return jsonNodeFactory.textNode(value == null ? null : value.toString());
                     }
                 });
+    }
+
+    public static byte[] getBytes(ByteBuffer byteBuffer) {
+        if (byteBuffer == null) {
+            return null;
+        }
+        if (byteBuffer.hasArray()
+                && byteBuffer.arrayOffset() == 0
+                && byteBuffer.array().length == byteBuffer.remaining()) {
+            return byteBuffer.array();
+        }
+        // Direct buffer is not backed by array and it needs to be read from direct memory
+        byte[] array = new byte[byteBuffer.remaining()];
+        byteBuffer.get(array);
+        return array;
     }
 }

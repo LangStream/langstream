@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
+import ai.langstream.ai.agents.commons.TransformContext;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 

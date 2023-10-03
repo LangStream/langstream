@@ -19,6 +19,7 @@ package com.datastax.oss.streaming.ai.util;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import ai.langstream.ai.agents.commons.AvroUtil;
 import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;

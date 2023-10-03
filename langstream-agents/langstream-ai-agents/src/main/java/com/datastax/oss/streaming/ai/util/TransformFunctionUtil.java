@@ -15,6 +15,9 @@
  */
 package com.datastax.oss.streaming.ai.util;
 
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.TransformSchemaType;
+import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.OpenAIClientBuilder;
@@ -35,19 +38,16 @@ import com.datastax.oss.streaming.ai.DropStep;
 import com.datastax.oss.streaming.ai.FlattenStep;
 import com.datastax.oss.streaming.ai.MergeKeyValueStep;
 import com.datastax.oss.streaming.ai.QueryStep;
+import com.datastax.oss.streaming.ai.StepPredicatePair;
 import com.datastax.oss.streaming.ai.TextCompletionsStep;
-import com.datastax.oss.streaming.ai.TransformContext;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.UnwrapKeyValueStep;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
-import com.datastax.oss.streaming.ai.jstl.predicate.JstlPredicate;
-import com.datastax.oss.streaming.ai.jstl.predicate.StepPredicatePair;
 import com.datastax.oss.streaming.ai.model.ComputeField;
 import com.datastax.oss.streaming.ai.model.ComputeFieldType;
-import com.datastax.oss.streaming.ai.model.TransformSchemaType;
 import com.datastax.oss.streaming.ai.model.config.CastConfig;
 import com.datastax.oss.streaming.ai.model.config.ChatCompletionsConfig;
 import com.datastax.oss.streaming.ai.model.config.ComputeAIEmbeddingsConfig;
@@ -64,7 +64,6 @@ import com.datastax.oss.streaming.ai.model.config.UnwrapKeyValueConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumerFactory;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -75,7 +74,6 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -87,8 +85,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -422,40 +418,6 @@ public class TransformFunctionUtil {
         byte[] array = new byte[byteBuffer.remaining()];
         byteBuffer.get(array);
         return array;
-    }
-
-    public static Object safeClone(Object object) {
-        if (object == null) {
-            return null;
-        }
-        if (object.getClass().isPrimitive()
-                || object instanceof String
-                || object instanceof Number
-                || object instanceof Boolean) {
-            return object;
-        }
-        if (object instanceof Map map) {
-            HashMap<Object, Object> res = new HashMap<>();
-            map.forEach((k, v) -> res.put(safeClone(k), safeClone(v)));
-            return res;
-        }
-        if (object instanceof List list) {
-            List<Object> res = new ArrayList<>();
-            list.forEach(v -> res.add(safeClone(v)));
-            return res;
-        }
-        if (object instanceof Set set) {
-            Set<Object> res = new HashSet<>();
-            set.forEach(v -> res.add(safeClone(v)));
-            return res;
-        }
-        if (object instanceof GenericRecord genericRecord) {
-            return GenericData.get().deepCopy(genericRecord.getSchema(), genericRecord);
-        }
-        if (object instanceof JsonNode jsonNode) {
-            return jsonNode.deepCopy();
-        }
-        throw new UnsupportedOperationException("Cannot copy a value of " + object.getClass());
     }
 
     private static class MockHttpClient implements HttpClient {

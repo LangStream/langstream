@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai.model;
 
-import com.datastax.oss.streaming.ai.jstl.JstlEvaluator;
+import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import jakarta.el.ELException;
 import java.math.BigDecimal;
 import java.sql.Time;

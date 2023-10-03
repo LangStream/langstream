@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
+import ai.langstream.ai.agents.commons.TransformContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

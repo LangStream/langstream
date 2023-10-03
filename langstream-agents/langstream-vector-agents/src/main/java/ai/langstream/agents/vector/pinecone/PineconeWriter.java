@@ -16,11 +16,11 @@
 package ai.langstream.agents.vector.pinecone;
 
 import ai.langstream.ai.agents.GenAIToolKitAgent;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
-import com.datastax.oss.streaming.ai.TransformContext;
-import com.datastax.oss.streaming.ai.jstl.JstlEvaluator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Struct;

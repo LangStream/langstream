@@ -17,12 +17,13 @@ package com.datastax.oss.streaming.ai;
 
 import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.convertToMap;
 
+import ai.langstream.ai.agents.commons.JsonRecord;
+import ai.langstream.ai.agents.commons.TransformContext;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
-import com.datastax.oss.streaming.ai.model.JsonRecord;
 import com.datastax.oss.streaming.ai.model.config.ChatCompletionsConfig;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumer;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumerFactory;

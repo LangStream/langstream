@@ -17,8 +17,9 @@ package com.datastax.oss.streaming.ai;
 
 import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.attemptJsonConversion;
 
-import com.datastax.oss.streaming.ai.jstl.JstlTypeConverter;
-import com.datastax.oss.streaming.ai.model.TransformSchemaType;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.TransformSchemaType;
+import ai.langstream.ai.agents.commons.jstl.JstlTypeConverter;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;

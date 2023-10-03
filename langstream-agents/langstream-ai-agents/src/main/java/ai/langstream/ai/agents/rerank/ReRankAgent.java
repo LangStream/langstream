@@ -18,11 +18,11 @@ package ai.langstream.ai.agents.rerank;
 import static ai.langstream.ai.agents.GenAIToolKitAgent.transformContextToRecord;
 
 import ai.langstream.ai.agents.GenAIToolKitAgent;
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import ai.langstream.api.util.ConfigurationUtils;
-import com.datastax.oss.streaming.ai.TransformContext;
-import com.datastax.oss.streaming.ai.jstl.JstlEvaluator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;

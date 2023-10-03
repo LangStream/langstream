@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.jstl;
+package ai.langstream.ai.agents.commons.jstl;
 
-import com.datastax.oss.streaming.ai.TransformContext;
-import com.datastax.oss.streaming.ai.util.AvroUtil;
+import ai.langstream.ai.agents.commons.AvroUtil;
+import ai.langstream.ai.agents.commons.TransformContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

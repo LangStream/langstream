@@ -87,7 +87,12 @@ public class ChatCompletionsStep implements TransformStep {
                         chatMessage ->
                                 messageTemplates.put(
                                         chatMessage,
-                                        Mustache.compiler().compile(chatMessage.getContent())));
+                                        Mustache.compiler()
+                                                .compile(
+                                                        MustacheCompatibilityUtils
+                                                                .handleLegacyTemplate(
+                                                                        chatMessage
+                                                                                .getContent()))));
     }
 
     @Override

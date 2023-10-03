@@ -15,6 +15,7 @@
  */
 package ai.langstream.kafka;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
@@ -42,7 +43,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @WireMockTest
@@ -55,13 +57,17 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
         wireMockRuntimeInfo = info;
     }
 
-    @Test
-    public void testChatCompletionWithStreaming() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testChatCompletionWithStreaming(boolean legacy) throws Exception {
 
         String model = "gpt-35-turbo";
 
         stubFor(
                 post("/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-08-01-preview")
+                        .withRequestBody(
+                                equalTo(
+                                        "{\"messages\":[{\"role\":\"user\",\"content\":\"What can you tell me about the car ?\"}],\"stream\":true}"))
                         .willReturn(
                                 okJson(
                                         """
@@ -85,6 +91,11 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
         final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
 
         String tenant = "tenant";
+
+        String prompt =
+                legacy
+                        ? "What can you tell me about {{% value.question }} ?"
+                        : "What can you tell me about {{{ value.question }}} ?";
 
         String[] expectedAgents = new String[] {appId + "-step1"};
 
@@ -135,9 +146,7 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                                         - role: user
                                           content: "%s"
                                 """
-                                .formatted(
-                                        model,
-                                        "What can you tell me about {{{ value.question }}} ?"));
+                                .formatted(model, prompt));
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
@@ -178,13 +187,12 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
+                String expected =
+                        """
+                                                {"question":"the car","session-id":"2139847128764192","answer":"A car is a vehicle","prompt":"{\\"options\\":{\\"type\\":\\"ai-chat-completions\\",\\"when\\":null,\\"model\\":\\"gpt-35-turbo\\",\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"%s\\"}],\\"stream-to-topic\\":\\"%s\\",\\"stream-response-completion-field\\":\\"value\\",\\"min-chunks-per-message\\":3,\\"completion-field\\":\\"value.answer\\",\\"stream\\":true,\\"log-field\\":\\"value.prompt\\",\\"max-tokens\\":null,\\"temperature\\":null,\\"top-p\\":null,\\"logit-bias\\":null,\\"user\\":null,\\"stop\\":null,\\"presence-penalty\\":null,\\"frequency-penalty\\":null},\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about the car ?\\"}],\\"model\\":\\"gpt-35-turbo\\"}"}"""
+                                .formatted(prompt, streamToTopic);
                 List<ConsumerRecord> mainOutputRecords =
-                        waitForMessages(
-                                consumer,
-                                List.of(
-                                        """
-                                                {"question":"the car","session-id":"2139847128764192","answer":"A car is a vehicle","prompt":"{\\"options\\":{\\"type\\":\\"ai-chat-completions\\",\\"when\\":null,\\"model\\":\\"gpt-35-turbo\\",\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about {{{ value.question }}} ?\\"}],\\"stream-to-topic\\":\\"%s\\",\\"stream-response-completion-field\\":\\"value\\",\\"min-chunks-per-message\\":3,\\"completion-field\\":\\"value.answer\\",\\"stream\\":true,\\"log-field\\":\\"value.prompt\\",\\"max-tokens\\":null,\\"temperature\\":null,\\"top-p\\":null,\\"logit-bias\\":null,\\"user\\":null,\\"stop\\":null,\\"presence-penalty\\":null,\\"frequency-penalty\\":null},\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about the car ?\\"}],\\"model\\":\\"gpt-35-turbo\\"}"}"""
-                                                .formatted(streamToTopic)));
+                        waitForMessages(consumer, List.of(expected));
                 ConsumerRecord record = mainOutputRecords.get(0);
 
                 assertNull(record.headers().lastHeader("stream-id"));

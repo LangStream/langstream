@@ -15,10 +15,15 @@
  */
 package ai.langstream.api.doc;
 
-import java.util.Map;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public record ApiConfigurationModel(
-        String version,
-        Map<String, AgentConfigurationModel> agents,
-        Map<String, ResourceConfigurationModel> resources,
-        Map<String, AssetConfigurationModel> assets) {}
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface AssetConfig {
+    String name() default "";
+
+    String description() default "";
+}

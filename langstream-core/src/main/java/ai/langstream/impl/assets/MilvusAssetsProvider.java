@@ -15,15 +15,13 @@
  */
 package ai.langstream.impl.assets;
 
-import static ai.langstream.api.util.ConfigurationUtils.requiredField;
-import static ai.langstream.api.util.ConfigurationUtils.requiredListField;
-import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
-
-import ai.langstream.api.model.AssetDefinition;
-import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.doc.AssetConfig;
+import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.common.AbstractAssetProvider;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 import java.util.Set;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -34,25 +32,56 @@ public class MilvusAssetsProvider extends AbstractAssetProvider {
     }
 
     @Override
-    protected void validateAsset(AssetDefinition assetDefinition, Map<String, Object> asset) {
-        Map<String, Object> configuration = ConfigurationUtils.getMap("config", null, asset);
-        requiredField(configuration, "datasource", describe(assetDefinition));
-        final Map<String, Object> datasource =
-                ConfigurationUtils.getMap("datasource", Map.of(), configuration);
-        final Map<String, Object> datasourceConfiguration =
-                ConfigurationUtils.getMap("configuration", Map.of(), datasource);
-        switch (assetDefinition.getAssetType()) {
-            case "milvus-collection" -> {
-                requiredNonEmptyField(configuration, "collection-name", describe(assetDefinition));
-                requiredListField(configuration, "create-statements", describe(assetDefinition));
-            }
-            default -> throw new IllegalStateException(
-                    "Unexpected value: " + assetDefinition.getAssetType());
-        }
+    protected Class getAssetConfigModelClass(String type) {
+        return TableConfig.class;
     }
 
     @Override
     protected boolean lookupResource(String fieldName) {
-        return "datasource".contains(fieldName);
+        return "datasource".equals(fieldName);
+    }
+
+    @AssetConfig(
+            name = "Milvus collection",
+            description =
+                    """
+                    Manage a Milvus collection.
+                    """)
+    @Data
+    public static class TableConfig {
+
+        @ConfigProperty(
+                description =
+                        """
+                       Reference to a datasource id configured in the application.
+                       """,
+                required = true)
+        private String datasource;
+
+        @ConfigProperty(
+                description =
+                        """
+                       Name of the collection.
+                       """,
+                required = true)
+        @JsonProperty("collection-name")
+        private String collectionName;
+
+        @ConfigProperty(
+                description =
+                        """
+                       Name of the database where to create the collection.
+                       """)
+        @JsonProperty("database-name")
+        private String databaseName;
+
+        @ConfigProperty(
+                description =
+                        """
+                       List of the statement to execute to create the collection. They will be executed every time the application is deployed or upgraded.
+                       """,
+                required = true)
+        @JsonProperty("create-statements")
+        private List<String> createStatements;
     }
 }

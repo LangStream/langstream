@@ -23,13 +23,16 @@ import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.ResourceNodeProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
 
 @AllArgsConstructor
 public class BaseDataSourceResourceProvider implements ResourceNodeProvider {
 
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
     private final String resourceType;
     private final Map<String, DatasourceConfig> supportedServices;
 
@@ -73,9 +76,11 @@ public class BaseDataSourceResourceProvider implements ResourceNodeProvider {
         Map<String, ResourceConfigurationModel> result = new LinkedHashMap<>();
         for (Map.Entry<String, DatasourceConfig> datasource : supportedServices.entrySet()) {
             final String service = datasource.getKey();
-            final ResourceConfigurationModel value =
+            ResourceConfigurationModel value =
                     ClassConfigValidator.generateResourceModelFromClass(
                             datasource.getValue().getResourceConfigModelClass());
+            value = deepCopy(value);
+
             value.getProperties()
                     .get("service")
                     .setDescription("Service type. Set to '" + service + "'");
@@ -84,5 +89,11 @@ public class BaseDataSourceResourceProvider implements ResourceNodeProvider {
             result.put(resourceType + "_" + service, value);
         }
         return result;
+    }
+
+    @SneakyThrows
+    private static ResourceConfigurationModel deepCopy(ResourceConfigurationModel instance) {
+        return MAPPER.readValue(
+                MAPPER.writeValueAsBytes(instance), ResourceConfigurationModel.class);
     }
 }

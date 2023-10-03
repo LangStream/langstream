@@ -52,6 +52,11 @@ public class PluginsRegistry {
         return loader.stream().map(p -> p.get()).collect(Collectors.toList());
     }
 
+    public List<AssetNodeProvider> lookupAvailableAssetImplementations() {
+        ServiceLoader<AssetNodeProvider> loader = ServiceLoader.load(AssetNodeProvider.class);
+        return loader.stream().map(p -> p.get()).collect(Collectors.toList());
+    }
+
     public AssetNodeProvider lookupAssetImplementation(
             String type, ComputeClusterRuntime clusterRuntime) {
         log.info(

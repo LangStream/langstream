@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +14,7 @@
 # limitations under the License.
 #
 
+set -e
 minikube start --memory=8192 --cpus=4 --kubernetes-version=v1.26.3
 eval $(minikube docker-env)
 ./docker/build.sh

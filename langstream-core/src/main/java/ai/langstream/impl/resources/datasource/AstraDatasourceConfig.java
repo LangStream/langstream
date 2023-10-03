@@ -109,6 +109,20 @@ public class AstraDatasourceConfig extends BaseDatasourceConfig {
             required = true)
     private String secret;
 
+    @ConfigProperty(
+            description =
+                    """
+                            DEPRECATED: use clientId instead.
+                            """)
+    private String username;
+
+    @ConfigProperty(
+            description =
+                    """
+                            DEPRECATED: use secret instead.
+                            """)
+    private String password;
+
     public enum Environments {
         DEV,
         PROD,

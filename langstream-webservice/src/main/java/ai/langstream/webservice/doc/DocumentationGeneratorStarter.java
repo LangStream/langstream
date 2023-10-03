@@ -45,7 +45,11 @@ public class DocumentationGeneratorStarter {
             final ApiConfigurationModel model = DocumentationGenerator.generateDocs(version);
             jsonWriter.writeValue(agentsFile.toFile(), model);
             System.out.println(
-                    "Generated documentation with %d agents".formatted(model.agents().size()));
+                    "Generated documentation with %d agents, %d resources, %d assets"
+                            .formatted(
+                                    model.agents().size(),
+                                    model.resources().size(),
+                                    model.assets().size()));
 
         } catch (Throwable e) {
             e.printStackTrace();

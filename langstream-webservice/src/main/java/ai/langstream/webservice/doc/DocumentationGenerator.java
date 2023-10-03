@@ -17,8 +17,10 @@ package ai.langstream.webservice.doc;
 
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.ApiConfigurationModel;
+import ai.langstream.api.doc.AssetConfigurationModel;
 import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.runtime.AgentNodeProvider;
+import ai.langstream.api.runtime.AssetNodeProvider;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.ResourceNodeProvider;
 import java.util.List;
@@ -32,6 +34,7 @@ public class DocumentationGenerator {
     public static ApiConfigurationModel generateDocs(String version) {
         Map<String, AgentConfigurationModel> agents = new TreeMap<>();
         Map<String, ResourceConfigurationModel> resources = new TreeMap<>();
+        Map<String, AssetConfigurationModel> assets = new TreeMap<>();
         final PluginsRegistry registry = new PluginsRegistry();
         final List<AgentNodeProvider> nodes = registry.lookupAvailableAgentImplementations();
         for (AgentNodeProvider node : nodes) {
@@ -43,6 +46,12 @@ public class DocumentationGenerator {
         for (ResourceNodeProvider resourceNodeProvider : resourceNodeProviders) {
             resources.putAll(resourceNodeProvider.generateSupportedTypesDocumentation());
         }
-        return new ApiConfigurationModel(version, agents, resources);
+
+        final List<AssetNodeProvider> assetNodeProviders =
+                registry.lookupAvailableAssetImplementations();
+        for (AssetNodeProvider assetProvider : assetNodeProviders) {
+            assets.putAll(assetProvider.generateSupportedTypesDocumentation());
+        }
+        return new ApiConfigurationModel(version, agents, resources, assets);
     }
 }

@@ -80,7 +80,7 @@ pipeline:
               Do not provide information that is not related to the LangStream project.
             
               Documents:
-              {{ value.related_documents}}
+              {{# value.related_documents}}
               {{ text}}
               {{/ value.related_documents}}
         - role: user

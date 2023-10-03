@@ -53,6 +53,14 @@ class WebCrawlerConfigurationTest {
                         "https://domain/something/secondlevel", Set.of("/something/sec")));
 
         assertFalse(verifyForbiddenPaths("not-an-url", Set.of("/something")));
+
+        // this is not an URL
+        assertFalse(verifyForbiddenPaths("something:somewhere", Set.of("/something")));
+
+        assertTrue(verifyForbiddenPaths("https://domain", Set.of("/something")));
+        assertTrue(verifyForbiddenPaths("https://domain/", Set.of("/something")));
+        assertFalse(verifyForbiddenPaths("https://domain", Set.of("/")));
+        assertFalse(verifyForbiddenPaths("https://domain/", Set.of("/")));
     }
 
     private boolean verifyDomain(String url, Set<String> allowedDomains) {

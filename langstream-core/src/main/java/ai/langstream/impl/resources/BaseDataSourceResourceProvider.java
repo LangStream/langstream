@@ -17,7 +17,6 @@ package ai.langstream.impl.resources;
 
 import static ai.langstream.api.util.ConfigurationUtils.getString;
 
-import ai.langstream.api.doc.ConfigPropertyModel;
 import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.runtime.ComputeClusterRuntime;

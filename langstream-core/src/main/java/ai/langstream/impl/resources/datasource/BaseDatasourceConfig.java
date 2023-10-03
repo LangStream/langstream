@@ -16,20 +16,11 @@
 package ai.langstream.impl.resources.datasource;
 
 import ai.langstream.api.doc.ConfigProperty;
-import ai.langstream.api.doc.ResourceConfig;
-import ai.langstream.api.model.Resource;
-import ai.langstream.api.util.ConfigurationUtils;
-import ai.langstream.impl.resources.BaseDataSourceResourceProvider;
-import ai.langstream.impl.uti.ClassConfigValidator;
-import java.util.Base64;
-import java.util.Map;
 import lombok.Data;
 
 @Data
 public class BaseDatasourceConfig {
 
-    @ConfigProperty(
-            required = true
-    )
+    @ConfigProperty(required = true)
     private String service;
 }

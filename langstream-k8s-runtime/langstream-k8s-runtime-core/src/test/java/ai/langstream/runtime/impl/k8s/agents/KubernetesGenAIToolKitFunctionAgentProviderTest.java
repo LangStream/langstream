@@ -417,6 +417,11 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                 "required" : false,
                                 "type" : "string"
                               },
+                              "arguments" : {
+                                "description" : "Additional arguments to pass to the AI Service. (HuggingFace only)",
+                                "required" : false,
+                                "type" : "object"
+                              },
                               "batch-size" : {
                                 "description" : "Batch size for submitting the embeddings requests.",
                                 "required" : false,
@@ -451,6 +456,16 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                 "required" : false,
                                 "type" : "string",
                                 "defaultValue" : "text-embedding-ada-002"
+                              },
+                              "modelUrl" : {
+                                "description" : "URL of the model to use. (HuggingFace only). The default is computed from the model: \\"djl://ai.djl.huggingface.pytorch{model}\\"",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "options" : {
+                                "description" : "Additional options to pass to the AI Service. (HuggingFace only)",
+                                "required" : false,
+                                "type" : "object"
                               },
                               "text" : {
                                 "description" : "Text to create embeddings from. You can use Mustache syntax to compose multiple fields into a single text. Example:\\ntext: \\"{{{ value.field1 }}} {{{ value.field2 }}}\\"",

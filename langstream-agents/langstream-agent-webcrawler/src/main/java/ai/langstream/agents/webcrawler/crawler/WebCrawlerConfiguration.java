@@ -44,11 +44,23 @@ public class WebCrawlerConfiguration {
 
     public boolean isAllowedUrl(String url) {
         final String domainOnly;
-        final String pathOnly;
+        final String path;
         try {
+            final String pathOnly;
             URI uri = URI.create(url);
             String host = uri.getHost();
             pathOnly = uri.getPath();
+            if (pathOnly == null) {
+                // this doesn't look like a real URL
+                // for instance it is something like http:something (without slashes)
+                return false;
+            }
+            log.info("pathOnly: {}", pathOnly);
+            if (pathOnly.isEmpty()) {
+                path = "/";
+            } else {
+                path = pathOnly;
+            }
             domainOnly = host;
         } catch (Exception e) {
             log.info("Url {} doesn't have a domain, parsing error: {}", url, e + "");
@@ -74,10 +86,10 @@ public class WebCrawlerConfiguration {
                 !forbiddenPaths.isEmpty()
                         && forbiddenPaths.stream()
                                 .anyMatch(
-                                        path -> {
+                                        fpath -> {
                                             // https://domain/something/....
                                             // http://domain/....
-                                            return pathOnly.startsWith(path);
+                                            return path.startsWith(fpath);
                                         });
 
         return allowedDomain && !forbiddenPath;

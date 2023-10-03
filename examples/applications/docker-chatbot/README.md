@@ -69,27 +69,28 @@ flowchart TB
     A("convert-to-structure<br><i>document-to-json</i>") --> B
     B("compute-embeddings<br><i>compute-ai-embeddings</i>") --> C
     C("lookup-related-documents<br><i>query-vector-db</i>") --> D
-    D("ai-chat-completions<br><i>ai-chat-completions</i>") --> E
-    E("cleanup-response<br><i>drop-fields</i>")
+    D("re-rank documents with MMR<br><i>re-rank</i>") --> E
+    E("ai-chat-completions<br><i>ai-chat-completions</i>") --> F
+    F("cleanup-response<br><i>drop-fields</i>")
   end
   questions-topic --> A
   JdbcDatasource --> C
-  D --> answers-topic
-  E --> log-topic
+  E --> answers-topic
+  F --> log-topic
 
   subgraph crawler["<b>crawler</b>"]
-    F("Crawl the WebSite<br><i>webcrawler-source</i>") --> G
-    G("Extract text<br><i>text-extractor</i>") --> H
-    H("Normalise text<br><i>text-normaliser</i>") --> I
-    I("Detect language<br><i>language-detector</i>") --> J
-    J("Split into chunks<br><i>text-splitter</i>") --> K
-    K("Convert to structured data<br><i>document-to-json</i>") --> L
-    L("prepare-structure<br><i>compute</i>") --> M
-    M("compute-embeddings<br><i>compute-ai-embeddings</i>")
-    N("Write<br><i>vector-db-sink</i>")
+    G("Crawl the WebSite<br><i>webcrawler-source</i>") --> H
+    H("Extract text<br><i>text-extractor</i>") --> I
+    I("Normalise text<br><i>text-normaliser</i>") --> J
+    J("Detect language<br><i>language-detector</i>") --> K
+    K("Split into chunks<br><i>text-splitter</i>") --> L
+    L("Convert to structured data<br><i>document-to-json</i>") --> M
+    M("prepare-structure<br><i>compute</i>") --> N
+    N("compute-embeddings<br><i>compute-ai-embeddings</i>")
+    O("Write<br><i>vector-db-sink</i>")
   end
-  O["🌐 web site"] --> F
-  M --> chunks-topic
-  chunks-topic --> N
-  N --> documents
+  P["🌐 web site"] --> G
+  N --> chunks-topic
+  chunks-topic --> O
+  O --> documents
 ```

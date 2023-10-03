@@ -26,7 +26,7 @@ import lombok.Data;
 
 @Data
 @ResourceConfig(name = "Pinecone", description = "Connect to Pinecone service.")
-public class PineconeDatasourceConfig {
+public class PineconeDatasourceConfig extends BaseDatasourceConfig {
 
     public static final BaseDataSourceResourceProvider.DatasourceConfig CONFIG =
             new BaseDataSourceResourceProvider.DatasourceConfig() {

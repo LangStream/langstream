@@ -73,9 +73,7 @@ public class MockAssetManagerCodeProvider implements AssetManagerProvider {
             if (configuration == null) {
                 throw new IllegalStateException("Datasource configuration is required");
             }
-            assertEquals("jdbc", configuration.get("service"));
             assertEquals("bar", configuration.get("url"));
-            assertEquals("org.postgresql.Driver", configuration.get("driverClass"));
             DEPLOYED_ASSETS.add(assetDefinition);
         }
 

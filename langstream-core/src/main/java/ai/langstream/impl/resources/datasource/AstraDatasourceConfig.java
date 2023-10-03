@@ -27,7 +27,7 @@ import lombok.Data;
 
 @Data
 @ResourceConfig(name = "Astra", description = "Connect to DataStax Astra Database service.")
-public class AstraDatasourceConfig {
+public class AstraDatasourceConfig extends BaseDatasourceConfig {
 
     public static final BaseDataSourceResourceProvider.DatasourceConfig CONFIG =
             new BaseDataSourceResourceProvider.DatasourceConfig() {

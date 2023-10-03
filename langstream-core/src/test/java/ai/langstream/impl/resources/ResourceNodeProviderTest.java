@@ -255,7 +255,7 @@ class ResourceNodeProviderTest {
                                 "secret",
                                 "pwd")),
                 Arguments.of(
-                        VALID,
+                        NON_VALID,
                         "astra",
                         Map.of(
                                 "secureBundle",
@@ -265,7 +265,7 @@ class ResourceNodeProviderTest {
                                 "password",
                                 "pwd")),
                 Arguments.of(
-                        VALID,
+                        NON_VALID,
                         "astra",
                         Map.of(
                                 "secureBundle",

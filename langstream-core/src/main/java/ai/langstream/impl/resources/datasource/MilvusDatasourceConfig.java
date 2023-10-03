@@ -26,7 +26,7 @@ import lombok.Data;
 
 @Data
 @ResourceConfig(name = "Milvus", description = "Connect to Milvus/Zillis service.")
-public class MilvusDatasourceConfig {
+public class MilvusDatasourceConfig extends BaseDatasourceConfig {
 
     public static final BaseDataSourceResourceProvider.DatasourceConfig CONFIG =
             new BaseDataSourceResourceProvider.DatasourceConfig() {

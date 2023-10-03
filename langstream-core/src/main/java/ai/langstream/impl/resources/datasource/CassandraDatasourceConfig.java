@@ -28,7 +28,7 @@ import lombok.Data;
 
 @Data
 @ResourceConfig(name = "Cassandra", description = "Connect to Apache cassandra.")
-public class CassandraDatasourceConfig {
+public class CassandraDatasourceConfig extends BaseDatasourceConfig {
 
     public static final BaseDataSourceResourceProvider.DatasourceConfig CONFIG =
             new BaseDataSourceResourceProvider.DatasourceConfig() {
@@ -77,7 +77,7 @@ public class CassandraDatasourceConfig {
                     """
                             Cassandra port.
                             """,
-            required = true)
+            defaultValue = "9042")
     private int port;
 
     @ConfigProperty(

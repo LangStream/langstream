@@ -26,8 +26,8 @@ import lombok.Data;
 @ResourceConfig(
         name = "JDBC",
         description =
-                "Connect to any JDBC compatible database. The driver must be provided as dependency")
-public class JDBCDatasourceConfig {
+                "Connect to any JDBC compatible database. The driver must be provided as dependency. All the extra configuration properties are passed as is to the JDBC driver.")
+public class JDBCDatasourceConfig extends BaseDatasourceConfig {
 
     public static final BaseDataSourceResourceProvider.DatasourceConfig CONFIG =
             new BaseDataSourceResourceProvider.DatasourceConfig() {

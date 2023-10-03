@@ -78,13 +78,8 @@ public class BaseDataSourceResourceProvider implements ResourceNodeProvider {
                     ClassConfigValidator.generateResourceModelFromClass(
                             datasource.getValue().getResourceConfigModelClass());
             value.getProperties()
-                    .put(
-                            "service",
-                            ConfigPropertyModel.builder()
-                                    .type("string")
-                                    .required(true)
-                                    .description("Service type. Set to '" + service + "'")
-                                    .build());
+                    .get("service")
+                    .setDescription("Service type. Set to '" + service + "'");
 
             value.setType(resourceType);
             result.put(resourceType + "_" + service, value);

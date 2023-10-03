@@ -15,9 +15,7 @@
  */
 package ai.langstream.impl.assets;
 
-import static ai.langstream.api.util.ConfigurationUtils.requiredField;
 import static ai.langstream.api.util.ConfigurationUtils.requiredListField;
-import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
 
 import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.ConfigProperty;
@@ -42,7 +40,6 @@ public class JdbcAssetsProvider extends AbstractAssetProvider {
     protected Class getAssetConfigModelClass(String type) {
         return TableConfig.class;
     }
-
 
     @Override
     protected void validateAsset(AssetDefinition assetDefinition, Map<String, Object> asset) {
@@ -73,12 +70,9 @@ public class JdbcAssetsProvider extends AbstractAssetProvider {
         return "datasource".equals(fieldName);
     }
 
-
-
     @AssetConfig(
             name = "JDBC table",
-            description =
-                    """
+            description = """
                     Manage a JDBC table.
                     """)
     @Data
@@ -109,14 +103,13 @@ public class JdbcAssetsProvider extends AbstractAssetProvider {
                 required = true)
         @JsonProperty("create-statements")
         private List<String> createStatements;
+
         @ConfigProperty(
                 description =
                         """
                        List of the statement to execute to cleanup the table. They will be executed when the application is deleted only if 'deletion-mode' is 'delete'.
-                       """
-        )
+                       """)
         @JsonProperty("delete-statements")
         private List<String> deleteStatements;
-
     }
 }

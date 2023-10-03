@@ -65,7 +65,6 @@ public class ClassConfigValidator {
     static final Map<String, ResourceConfigurationModel> resourceModels = new ConcurrentHashMap<>();
     static final Map<String, AssetConfigurationModel> assetModels = new ConcurrentHashMap<>();
 
-
     public static AgentConfigurationModel generateAgentModelFromClass(Class clazz) {
         return agentModels.computeIfAbsent(
                 clazz.getName(), k -> generateModelFromClassNoCache(clazz));
@@ -201,7 +200,8 @@ public class ClassConfigValidator {
             Class modelClazz,
             Map<String, Object> asMap,
             boolean allowUnknownProperties) {
-        validateModelFromClass(new AssetEntityRef(asset), modelClazz, asMap, allowUnknownProperties);
+        validateModelFromClass(
+                new AssetEntityRef(asset), modelClazz, asMap, allowUnknownProperties);
     }
 
     @SneakyThrows

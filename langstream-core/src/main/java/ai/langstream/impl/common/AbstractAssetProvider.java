@@ -17,7 +17,6 @@ package ai.langstream.impl.common;
 
 import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
 
-import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.AssetConfigurationModel;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.AssetDefinition;
@@ -61,8 +60,8 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
         return new AssetNode(asset);
     }
 
-    protected void validateAsset(
-            AssetDefinition assetDefinition, Map<String, Object> asset) {};
+    protected void validateAsset(AssetDefinition assetDefinition, Map<String, Object> asset) {}
+    ;
 
     private Map<String, Object> planAsset(
             AssetDefinition assetDefinition,
@@ -78,7 +77,10 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
         final Class assetConfigModelClass = getAssetConfigModelClass(type);
         final Map<String, Object> config = assetDefinition.getConfig();
         if (assetConfigModelClass != null) {
-            ClassConfigValidator.validateAssetModelFromClass(assetDefinition, getAssetConfigModelClass(type), config,
+            ClassConfigValidator.validateAssetModelFromClass(
+                    assetDefinition,
+                    getAssetConfigModelClass(type),
+                    config,
                     isAssetConfigModelAllowUnknownProperties(type));
         }
         Map<String, Resource> resources = application.getResources();
@@ -90,34 +92,30 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
         asset.put("deletion-mode", assetDefinition.getDeletionMode());
         Map<String, Object> configuration = new HashMap<>();
         if (config != null) {
-            config
-                    .forEach(
-                            (key, value) -> {
-                                // automatically resolve resource references
-                                if (lookupResource(key)) {
-                                    String resourceId =
-                                            requiredNonEmptyField(
-                                                    config,
-                                                    key,
-                                                    describe(assetDefinition));
-                                    Resource resource = resources.get(resourceId);
-                                    if (resource != null) {
-                                        Map<String, Object> resourceImplementation =
-                                                computeClusterRuntime.getResourceImplementation(
-                                                        resource, pluginsRegistry);
-                                        value = Map.of("configuration", resourceImplementation);
-                                    } else {
-                                        throw new IllegalArgumentException(
-                                                "Resource with id="
-                                                        + resourceId
-                                                        + " not found, declared as "
-                                                        + key
-                                                        + " in asset "
-                                                        + assetDefinition.getId());
-                                    }
-                                }
-                                configuration.put(key, value);
-                            });
+            config.forEach(
+                    (key, value) -> {
+                        // automatically resolve resource references
+                        if (lookupResource(key)) {
+                            String resourceId =
+                                    requiredNonEmptyField(config, key, describe(assetDefinition));
+                            Resource resource = resources.get(resourceId);
+                            if (resource != null) {
+                                Map<String, Object> resourceImplementation =
+                                        computeClusterRuntime.getResourceImplementation(
+                                                resource, pluginsRegistry);
+                                value = Map.of("configuration", resourceImplementation);
+                            } else {
+                                throw new IllegalArgumentException(
+                                        "Resource with id="
+                                                + resourceId
+                                                + " not found, declared as "
+                                                + key
+                                                + " in asset "
+                                                + assetDefinition.getId());
+                            }
+                        }
+                        configuration.put(key, value);
+                    });
         }
         asset.put("config", configuration);
         return asset;

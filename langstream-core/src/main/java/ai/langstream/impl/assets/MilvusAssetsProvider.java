@@ -15,18 +15,11 @@
  */
 package ai.langstream.impl.assets;
 
-import static ai.langstream.api.util.ConfigurationUtils.requiredField;
-import static ai.langstream.api.util.ConfigurationUtils.requiredListField;
-import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
-
 import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.ConfigProperty;
-import ai.langstream.api.model.AssetDefinition;
-import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.common.AbstractAssetProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +30,7 @@ public class MilvusAssetsProvider extends AbstractAssetProvider {
     public MilvusAssetsProvider() {
         super(Set.of("milvus-collection"));
     }
+
     @Override
     protected Class getAssetConfigModelClass(String type) {
         return TableConfig.class;
@@ -46,7 +40,6 @@ public class MilvusAssetsProvider extends AbstractAssetProvider {
     protected boolean lookupResource(String fieldName) {
         return "datasource".equals(fieldName);
     }
-
 
     @AssetConfig(
             name = "Milvus collection",
@@ -90,6 +83,5 @@ public class MilvusAssetsProvider extends AbstractAssetProvider {
                 required = true)
         @JsonProperty("create-statements")
         private List<String> createStatements;
-
     }
 }

@@ -15,17 +15,14 @@
  */
 package ai.langstream.impl.assets;
 
-import static ai.langstream.api.util.ConfigurationUtils.requiredField;
 import static ai.langstream.api.util.ConfigurationUtils.requiredListField;
 import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
 
-import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.common.AbstractAssetProvider;
-import ai.langstream.impl.uti.ClassConfigValidator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +102,6 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
         return "datasource".equals(fieldName);
     }
 
-
     @AssetConfig(
             name = "Cassandra table",
             description =
@@ -131,6 +127,7 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
                 required = true)
         @JsonProperty("table-name")
         private String table;
+
         @ConfigProperty(
                 description =
                         """
@@ -147,15 +144,14 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
                 required = true)
         @JsonProperty("create-statements")
         private List<String> createStatements;
+
         @ConfigProperty(
                 description =
                         """
                        List of the statement to execute to cleanup the table. They will be executed when the application is deleted only if 'deletion-mode' is 'delete'.
-                       """
-        )
+                       """)
         @JsonProperty("delete-statements")
         private List<String> deleteStatements;
-
     }
 
     @AssetConfig(
@@ -191,15 +187,14 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
                 required = true)
         @JsonProperty("create-statements")
         private List<String> createStatements;
+
         @ConfigProperty(
                 description =
                         """
                        List of the statement to execute to cleanup the keyspace. They will be executed when the application is deleted only if 'deletion-mode' is 'delete'.
-                       """
-        )
+                       """)
         @JsonProperty("delete-statements")
         private List<String> deleteStatements;
-
     }
 
     @AssetConfig(
@@ -226,9 +221,5 @@ public class CassandraAssetsProvider extends AbstractAssetProvider {
                        """,
                 required = true)
         private String keyspace;
-
     }
-
-
-
 }

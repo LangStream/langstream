@@ -15,6 +15,7 @@
  */
 package ai.langstream.kafka;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -41,6 +42,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -438,6 +440,128 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                 } else {
                     waitForMessagesInAnyOrder(consumer, expected);
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testLegacySyntax() throws Exception {
+        wireMockRuntimeInfo
+                .getWireMock()
+                .allStubMappings()
+                .getMappings()
+                .forEach(
+                        stubMapping -> {
+                            log.info("Removing stub {}", stubMapping);
+                            wireMockRuntimeInfo.getWireMock().removeStubMapping(stubMapping);
+                        });
+        String embeddingFirst = "[1.0,5.4,8.7]";
+        stubFor(
+                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-08-01-preview")
+                        .withRequestBody(equalTo("{\"input\":[\"something to embed foo\"]}"))
+                        .willReturn(
+                                okJson(
+                                        """
+                                               {
+                                                   "data": [
+                                                     {
+                                                       "embedding": %s,
+                                                       "index": 0,
+                                                       "object": "embedding"
+                                                     }
+                                                   ],
+                                                   "model": "text-embedding-ada-002",
+                                                   "object": "list",
+                                                   "usage": {
+                                                     "prompt_tokens": 5,
+                                                     "total_tokens": 5
+                                                   }
+                                                 }
+                                            """
+                                                .formatted(embeddingFirst))));
+        // wait for WireMock to be ready
+        Thread.sleep(1000);
+
+        final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
+        String tenant = "tenant";
+
+        String[] expectedAgents = new String[] {appId + "-step1"};
+        String model = "text-embedding-ada-002";
+
+        Map<String, String> application =
+                Map.of(
+                        "configuration.yaml",
+                        """
+                               configuration:
+                                 resources:
+                                   - type: "open-ai-configuration"
+                                     name: "OpenAI Azure configuration"
+                                     configuration:
+                                       url: "%s"
+                                       access-key: "%s"
+                                       provider: "azure"
+                               """
+                                .formatted(wireMockRuntimeInfo.getHttpBaseUrl(), "sdòflkjsòlfkj"),
+                        "module.yaml",
+                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                    options:
+                                      # we want to read more than one record at a time
+                                      consumer.max.poll.records: 100
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "compute-embeddings"
+                                    id: "step1"
+                                    type: "compute-ai-embeddings"
+                                    input: "%s"
+                                    output: "%s"
+                                    configuration:
+                                      model: "%s"
+                                      embeddings-field: "value.embeddings"
+                                      text: "%s"
+                                      batch-size: 3
+                                      concurrency: 4
+                                      flush-interval: 10000
+                                """
+                                .formatted(
+                                        inputTopic,
+                                        outputTopic,
+                                        inputTopic,
+                                        outputTopic,
+                                        model,
+                                        "something to embed {{% value.name}}"));
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+            ExecutionPlan implementation = applicationRuntime.implementation();
+            Application applicationInstance = applicationRuntime.applicationInstance();
+
+            Module module = applicationInstance.getModule("module-1");
+            assertTrue(
+                    implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName(inputTopic)))
+                            instanceof Topic);
+
+            Set<String> topics = getKafkaAdmin().listTopics().names().get();
+            log.info("Topics {}", topics);
+            assertTrue(topics.contains(inputTopic));
+
+            try (KafkaProducer<String, String> producer = createProducer();
+                    KafkaConsumer<String, String> consumer = createConsumer(outputTopic)) {
+
+                sendMessage(inputTopic, null, "{\"name\": \"foo\"}", List.of(), producer);
+
+                executeAgentRunners(applicationRuntime);
+                waitForMessages(
+                        consumer, List.of("{\"name\":\"foo\",\"embeddings\":[1.0,5.4,8.7]}"));
             }
         }
     }

@@ -62,7 +62,8 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
             long flushInterval,
             int concurrency,
             EmbeddingsService embeddingsService) {
-        this.template = Mustache.compiler().compile(text);
+        this.template =
+                Mustache.compiler().compile(MustacheCompatibilityUtils.handleLegacyTemplate(text));
         this.embeddingsFieldName = embeddingsFieldName;
         this.embeddingsService = embeddingsService;
         this.executorService =

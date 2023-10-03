@@ -145,8 +145,7 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
     @ConfigProperty(
             description =
                     """
-                            URL of the model to use. (HuggingFace only)
-                             """,
-            defaultValue = "djl://ai.djl.huggingface.pytorch{model}")
+                            URL of the model to use. (HuggingFace only). The default is computed from the model: "djl://ai.djl.huggingface.pytorch{model}"
+                             """)
     private String modelUrl;
 }

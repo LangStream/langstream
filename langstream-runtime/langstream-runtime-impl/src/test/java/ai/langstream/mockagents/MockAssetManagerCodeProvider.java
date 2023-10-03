@@ -15,12 +15,13 @@
  */
 package ai.langstream.mockagents;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.assets.AssetManager;
 import ai.langstream.api.runner.assets.AssetManagerProvider;
 import ai.langstream.api.util.ConfigurationUtils;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 
@@ -72,10 +73,9 @@ public class MockAssetManagerCodeProvider implements AssetManagerProvider {
             if (configuration == null) {
                 throw new IllegalStateException("Datasource configuration is required");
             }
-            String foo = (String) configuration.get("foo");
-            if (!Objects.equals(foo, "bar")) {
-                throw new IllegalStateException("Datasource configuration is not configured well");
-            }
+            assertEquals("jdbc", configuration.get("service"));
+            assertEquals("bar", configuration.get("url"));
+            assertEquals("org.postgresql.Driver", configuration.get("driverClass"));
             DEPLOYED_ASSETS.add(assetDefinition);
         }
 

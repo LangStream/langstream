@@ -14,4 +14,5 @@ python -m http.server 8888 -d /tmp/openai-completions-chatbot
 Open [http://localhost:8888](http://localhost:8888) in your browser.
 
 
+![ls-js](https://github.com/LangStream/langstream/assets/23314389/008f3686-ae0e-48c9-b0e4-353d47474f24)
 

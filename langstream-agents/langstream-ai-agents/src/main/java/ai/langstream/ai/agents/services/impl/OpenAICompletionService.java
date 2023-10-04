@@ -23,13 +23,16 @@ import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
 import com.azure.ai.openai.models.ChatRole;
 import com.azure.ai.openai.models.CompletionsFinishReason;
+import com.azure.ai.openai.models.CompletionsLogProbabilityModel;
 import com.azure.ai.openai.models.CompletionsOptions;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
+import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -45,7 +48,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class OpenAICompletionService implements CompletionsService {
 
-    private OpenAIAsyncClient client;
+    private final OpenAIAsyncClient client;
 
     public OpenAICompletionService(OpenAIAsyncClient client) {
         this.client = client;
@@ -77,7 +80,6 @@ public class OpenAICompletionService implements CompletionsService {
                         .setStop((List<String>) options.get("stop"))
                         .setPresencePenalty(getDouble("presence-penalty", null, options))
                         .setFrequencyPenalty(getDouble("frequency-penalty", null, options));
-
         ChatCompletions result = new ChatCompletions();
         // this is the default behavior, as it is async
         // it works even if the streamingChunksConsumer is null
@@ -212,7 +214,7 @@ public class OpenAICompletionService implements CompletionsService {
     }
 
     @Override
-    public CompletableFuture<String> getTextCompletions(
+    public CompletableFuture<TextCompletionResult> getTextCompletions(
             List<String> prompt,
             StreamingChunksConsumer streamingChunksConsumer,
             Map<String, Object> options) {
@@ -226,6 +228,7 @@ public class OpenAICompletionService implements CompletionsService {
                         .setStream(getBoolean("stream", true, options))
                         .setUser((String) options.get("user"))
                         .setStop((List<String>) options.get("stop"))
+                        .setLogprobs(getInteger("logprobs", null, options))
                         .setPresencePenalty(getDouble("presence-penalty", null, options))
                         .setFrequencyPenalty(getDouble("frequency-penalty", null, options));
 
@@ -251,12 +254,26 @@ public class OpenAICompletionService implements CompletionsService {
                     .doOnNext(textCompletionsConsumer)
                     .subscribe();
 
-            return finished.thenApply(___ -> textCompletionsConsumer.totalAnswer.toString());
+            return finished.thenApply(
+                    ___ -> {
+                        TextCompletionResult.LogProbInformation logProbs =
+                                new TextCompletionResult.LogProbInformation(
+                                        textCompletionsConsumer.logProbsTokens,
+                                        textCompletionsConsumer.logProbsTokenLogProbabilities);
+                        return new TextCompletionResult(
+                                textCompletionsConsumer.totalAnswer.toString(), logProbs);
+                    });
         } else {
             com.azure.ai.openai.models.Completions completions =
                     client.getCompletions(model, completionsOptions).block();
             final String text = completions.getChoices().get(0).getText();
-            return CompletableFuture.completedFuture(text);
+            CompletionsLogProbabilityModel logprobs = completions.getChoices().get(0).getLogprobs();
+            TextCompletionResult.LogProbInformation logProbs =
+                    completions.getChoices().get(0).getLogprobs() != null
+                            ? new TextCompletionResult.LogProbInformation(
+                                    logprobs.getTokens(), logprobs.getTokenLogProbabilities())
+                            : new TextCompletionResult.LogProbInformation(null, null);
+            return CompletableFuture.completedFuture(new TextCompletionResult(text, logProbs));
         }
     }
 
@@ -271,6 +288,8 @@ public class OpenAICompletionService implements CompletionsService {
         private final StringWriter writer = new StringWriter();
         private final AtomicInteger numberOfChunks = new AtomicInteger();
         private final int minChunksPerMessage;
+        public List<String> logProbsTokens = new ArrayList<>();
+        public List<Double> logProbsTokenLogProbabilities = new ArrayList<>();
 
         private AtomicInteger currentChunkSize = new AtomicInteger(1);
         private AtomicInteger index = new AtomicInteger();
@@ -313,6 +332,13 @@ public class OpenAICompletionService implements CompletionsService {
                 }
                 writer.write(content);
                 totalAnswer.write(content);
+
+                CompletionsLogProbabilityModel logprobs = first.getLogprobs();
+                if (logprobs != null) {
+                    logProbsTokens.addAll(logprobs.getTokens());
+                    logProbsTokenLogProbabilities.addAll(logprobs.getTokenLogProbabilities());
+                }
+
                 numberOfChunks.incrementAndGet();
 
                 // start from 1 chunk, then double the size until we reach the minChunksPerMessage

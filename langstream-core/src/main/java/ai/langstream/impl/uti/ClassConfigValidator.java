@@ -258,7 +258,11 @@ public class ClassConfigValidator {
                     final String fullPropertyKey =
                             parentProp == null ? key : parentProp + "." + key;
                     throw new IllegalArgumentException(
-                            formatErrString(entityRef, fullPropertyKey, "is unknown"));
+                            formatErrString(
+                                    entityRef,
+                                    fullPropertyKey,
+                                    "is unknown, you may want to try with some of "
+                                            + properties.keySet()));
                 }
             }
         }

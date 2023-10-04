@@ -190,6 +190,14 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
     @ConfigProperty(
             description =
                     """
+                            Log probabilities to a field.
+                            """)
+    @JsonProperty(value = "logprobs-field")
+    private String logprobsField;
+
+    @ConfigProperty(
+            description =
+                    """
                             Parameter for the completion request. The parameters are passed to the AI Service as is.
                             """)
     @JsonProperty(value = "user")

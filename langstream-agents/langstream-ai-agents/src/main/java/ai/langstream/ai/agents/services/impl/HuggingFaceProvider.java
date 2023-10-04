@@ -20,6 +20,7 @@ import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
+import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.AbstractHuggingFaceEmbeddingService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.embeddings.HuggingFaceEmbeddingService;
@@ -152,11 +153,12 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
 
             @Override
             @SneakyThrows
-            public CompletableFuture<String> getTextCompletions(
+            public CompletableFuture<TextCompletionResult> getTextCompletions(
                     List<String> prompt,
                     StreamingChunksConsumer streamingChunksConsumer,
                     Map<String, Object> options) {
-                return callHFService(prompt, options).thenApply(r -> r.get(0).sequence);
+                return callHFService(prompt, options)
+                        .thenApply(r -> new TextCompletionResult(r.get(0).sequence, null));
             }
 
             @Override

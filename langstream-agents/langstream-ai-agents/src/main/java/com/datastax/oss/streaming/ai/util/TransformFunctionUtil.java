@@ -133,15 +133,15 @@ public class TransformFunctionUtil {
         }
         if (openAIConfig.getUrl() != null && !openAIConfig.getUrl().isEmpty()) {
             openAIClientBuilder.endpoint(openAIConfig.getUrl());
+        }
 
-            // this is for testing only
-            if (openAIConfig.getUrl().startsWith("http://localhost")) {
-                HttpPipeline httpPipeline =
-                        new HttpPipelineBuilder()
-                                .httpClient(new MockHttpClient(openAIConfig.getAccessKey()))
-                                .build();
-                openAIClientBuilder.pipeline(httpPipeline);
-            }
+        // this is for testing only
+        if (true || openAIConfig.getUrl().startsWith("http://localhost")) {
+            HttpPipeline httpPipeline =
+                    new HttpPipelineBuilder()
+                            .httpClient(new MockHttpClient(openAIConfig.getAccessKey()))
+                            .build();
+            openAIClientBuilder.pipeline(httpPipeline);
         }
 
         return openAIClientBuilder.buildAsyncClient();
@@ -467,12 +467,15 @@ public class TransformFunctionUtil {
                                 });
                 if (apiKey != null) {
                     builder.header("api-key", apiKey);
+                    builder.header("Authorization", "Bearer " + apiKey);
                 }
+                java.net.http.HttpRequest request = builder.build();
+                log.info("Request: {}", request);
+                // logprobs
                 return Mono.fromFuture(
                         httpClient
                                 .sendAsync(
-                                        builder.build(),
-                                        java.net.http.HttpResponse.BodyHandlers.ofString())
+                                        request, java.net.http.HttpResponse.BodyHandlers.ofString())
                                 .thenApply(
                                         (response) -> {
                                             log.info("Response: {}", response.body());

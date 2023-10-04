@@ -26,6 +26,7 @@ import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
+import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -115,29 +117,6 @@ class OpenAIProviderTest {
 
     @Test
     void testStreamingTextCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
-
-        stubFor(
-                post("/openai/deployments/gpt-35-turbo-instruct/completions?api-version=2023-08-01-preview")
-                        .willReturn(
-                                okJson(
-                                        """
-                                                data: {"choices":[{"text":"\\n\\n","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-
-                                                data: {"choices":[{"text":"Am","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-
-                                                data: {"choices":[{"text":"o","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-
-                                                data: {"choices":[{"text":" le","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-
-                                                data: {"choices":[{"text":" mac","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-
-                                                data: {"choices":[{"text":"chine","index":0,"logprobs":null,"finish_reason":null,"content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-
-                                                data: {"choices":[{"text":"","index":0,"logprobs":null,"finish_reason":"stop","content_filter_results":null}],"id":"cmpl-82dWhr1wUJ167k6oYiSZ9MsecCCPI"}
-
-                                                data: [DONE]
-                                                 """)));
-
         ServiceProviderProvider provider = new OpenAIServiceProvider();
         ServiceProvider implementation =
                 provider.createImplementation(
@@ -172,12 +151,64 @@ class OpenAIProviderTest {
                                         true,
                                         "min-chunks-per-message",
                                         3))
-                        .get();
+                        .get()
+                        .text();
         log.info("result: {}", completions);
         assertEquals("Amo le macchine", completions);
         assertEquals(3, chunks.size());
         assertEquals("Am", chunks.get(0));
         assertEquals("o le", chunks.get(1));
         assertEquals(" macchine", chunks.get(2));
+    }
+
+    @Test
+    @Disabled
+    void testLogProb() throws Exception {
+        ServiceProviderProvider provider = new OpenAIServiceProvider();
+        ServiceProvider implementation =
+                provider.createImplementation(
+                        Map.of("openai", Map.of("provider", "openai", "access-key", "")));
+
+        CompletionsService service = implementation.getCompletionsService(Map.of());
+        TextCompletionResult completionsNoStream =
+                service.getTextCompletions(
+                                List.of("What is a car?"),
+                                null,
+                                Map.of(
+                                        "model",
+                                        "gpt-3.5-turbo-instruct",
+                                        "logprobs",
+                                        2,
+                                        "stream",
+                                        false))
+                        .get();
+
+        TextCompletionResult.LogProbInformation logProbInformationNoStream =
+                completionsNoStream.logProbInformation();
+        for (int i = 0; i < logProbInformationNoStream.tokens().size(); i++) {
+            String token = logProbInformationNoStream.tokens().get(i);
+            Double tokenLogProbability = logProbInformationNoStream.tokenLogProbabilities().get(i);
+            log.info("token: {} {}", token, tokenLogProbability);
+        }
+        TextCompletionResult completions =
+                service.getTextCompletions(
+                                List.of("What is a car?"),
+                                null,
+                                Map.of(
+                                        "model",
+                                        "gpt-3.5-turbo-instruct",
+                                        "logprobs",
+                                        2,
+                                        "stream",
+                                        true))
+                        .get();
+        TextCompletionResult.LogProbInformation logProbInformation =
+                completions.logProbInformation();
+        for (int i = 0; i < logProbInformation.tokens().size(); i++) {
+            String token = logProbInformation.tokens().get(i);
+            Double tokenLogProbability = logProbInformation.tokenLogProbabilities().get(i);
+            log.info("token: {} {}", token, tokenLogProbability);
+        }
+        log.info("result: {}", completions);
     }
 }

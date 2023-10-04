@@ -225,7 +225,8 @@ class VertexAIProviderTest {
                                 3.0));
         String textCompletions =
                 service.getTextCompletions(List.of("explain a car"), null, Map.of("max_tokens", 3))
-                        .get();
+                        .get()
+                        .text();
         log.info("result: {}", textCompletions);
         assertEquals(
                 "A car is a wheeled, self-propelled motor vehicle used for transportation.",

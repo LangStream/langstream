@@ -21,6 +21,7 @@ import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
+import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -378,7 +379,7 @@ public class VertexAIProvider implements ServiceProviderProvider {
             }
 
             @Override
-            public CompletableFuture<String> getTextCompletions(
+            public CompletableFuture<TextCompletionResult> getTextCompletions(
                     List<String> prompt,
                     StreamingChunksConsumer streamingChunksConsumer,
                     Map<String, Object> options) {
@@ -396,7 +397,9 @@ public class VertexAIProvider implements ServiceProviderProvider {
                 CompletableFuture<TextPredictions> predictionsResult =
                         executeVertexCall(request, TextPredictions.class, model);
                 return predictionsResult.thenApply(
-                        predictions -> predictions.predictions.get(0).content);
+                        predictions ->
+                                new TextCompletionResult(
+                                        predictions.predictions.get(0).content, null));
             }
 
             @Data

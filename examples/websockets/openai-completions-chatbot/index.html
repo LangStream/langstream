@@ -1,0 +1,338 @@
+<!--
+
+    Copyright DataStax, Inc.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<html>
+
+<head>
+    <style>
+        body {
+            font: 15px arial, sans-serif;
+            background-color: #d9d9d9;
+            padding-top: 15px;
+            padding-bottom: 15px;
+        }
+
+        #bodybox {
+            margin: auto;
+            max-width: 750px;
+            font: 15px arial, sans-serif;
+            background-color: white;
+            border-style: solid;
+            border-width: 1px;
+            padding-top: 20px;
+            padding-bottom: 25px;
+            padding-right: 25px;
+            padding-left: 25px;
+            box-shadow: 5px 5px 5px grey;
+            border-radius: 15px;
+        }
+
+        #chatborder {
+            border-style: solid;
+            background-color: #f6f9f6;
+            border-width: 3px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            margin-left: 20px;
+            margin-right: 20px;
+            padding-top: 10px;
+            padding-bottom: 15px;
+            padding-right: 20px;
+            padding-left: 15px;
+            border-radius: 15px;
+        }
+
+        .chatlog {
+            font: 15px arial, sans-serif;
+        }
+
+        #chat-input {
+            font: 17px arial, sans-serif;
+            height: 22px;
+            width: 100%;
+        }
+
+        h1 {
+            margin: auto;
+        }
+
+        pre {
+            background-color: #f0f0f0;
+            margin-left: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 2px;
+            margin-top: 4px;
+
+        }
+    </style>
+</head>
+<body>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<div id='bodybox'>
+    <code style="font-size: 12px">
+
+        brew install langstream/langstream/langstream<br>
+
+        export OPEN_AI_ACCESS_KEY=your-key-here<br>
+        export GOOGLE_CLIENT_ID=xx # only for google authentication<br><br>
+        langstream docker run test -app https://github.com/LangStream/langstream/blob/main/examples/applications/openai-completions -s https://github.com/LangStream/langstream/blob/main/examples/secrets/secrets.yaml<br><br>
+
+    </code>
+
+    <div id='chatborder'>
+        <form id='setup-box'>
+            <label for="baseurl">Base url</label>&nbsp;<input id='baseurl' type="text"
+                                                              value="ws://localhost:8091" /><br><br>
+            <label for="baseurl">Tenant</label>&nbsp;<input id='tenant' type="text" value="default" /><br><br>
+            <label for="baseurl">Application ID</label>&nbsp; <input id='app' type="text" value="test" /><br><br>
+            <fieldset>
+                <legend>Authentication:</legend>
+
+                <div>
+                    <input type="radio" id="auth-none" name="auth" value="none" checked />
+                    <label for="auth-none">None</label>
+                </div>
+                <div>
+                    <input type="radio" id="auth-google" name="auth" value="google" />
+                    <label for="auth-google">Google</label>
+                </div>
+                <label for="credentials">Google Client ID</label>&nbsp; <input id='google-client-id' type="text" /><br><br>
+
+            </fieldset>
+            <br>
+            <label for="credentials">Current credentials</label>&nbsp; <input id='credentials' type="text" readonly disabled /><br><br>
+
+            <div id="googleauth"></div>
+            <br>
+            <button type="button" onclick="setup()">Start</button>
+        </form>
+
+        <div id="chat-box" style="display: none">
+            <div>
+                <p>Please refresh to start over</p>
+                <p id="producer-gateway-info"></p>
+                <p id="consumer-gateway-info"></p>
+            </div>
+            <hr>
+            <div id="messages"></div>
+            <input type="text" name="chat" id="chat-input" placeholder="Hi there! Type here to talk to me."
+                   onfocus="placeHolder()">
+        </div>
+    </div>
+</div>
+<script>
+    const handler = {
+        started: false,
+        sessionId: crypto.randomUUID(),
+        producer: null,
+        consumer: null,
+        streams: {},
+        producerReady: false,
+        consumerReady: false
+    }
+    function updateProducerInfo(status) {
+        document.getElementById("producer-gateway-info").innerHTML = `<b>Producer gateway</b> ${status}`
+    }
+    function updateConsumerInfo(status) {
+        document.getElementById("consumer-gateway-info").innerHTML = `<b>Consumer gateway</b> ${status}`
+    }
+    function setup() {
+
+        document.getElementById("messages").innerHTML = ""
+        handler.sessionId = crypto.randomUUID()
+
+        const baseurl = document.getElementById("baseurl").value
+        const tenant = document.getElementById("tenant").value
+        const applicationId = document.getElementById("app").value
+
+        const credentials = document.getElementById("credentials").value
+
+        const auth = document.querySelector('input[name="auth"]:checked').value;
+        let produceGateway, consumeGateway;
+        if (auth === "none") {
+            produceGateway = "produce-input"
+            consumeGateway = "consume-output"
+        } else if (auth === "google") {
+            loadGoogleButton()
+            if (!credentials) {
+                alert("Please login with Google")
+                return
+            }
+            produceGateway = "produce-input-auth"
+            consumeGateway = "consume-output-auth"
+        }
+        localStorage.setItem("langstream", JSON.stringify({baseurl, tenant, applicationId, google: document.getElementById("google-client-id").value}))
+
+        document.getElementById("chat-box").style.display = 'block';
+        document.getElementById("setup-box").style.display = 'none';
+
+        const producerUrlNoCreds = `${baseurl}/v1/produce/${tenant}/${applicationId}/${produceGateway}?param:sessionId=${handler.sessionId}`
+        const consumerUrlNoCreds = `${baseurl}/v1/consume/${tenant}/${applicationId}/${consumeGateway}?param:sessionId=${handler.sessionId}`
+        const producerUrl = `${producerUrlNoCreds}&credentials=${credentials}`
+        const consumerUrl = `${consumerUrlNoCreds}&credentials=${credentials}`
+        try {
+            handler.producer = new WebSocket(producerUrl);
+            updateProducerInfo("Connecting to " + producerUrlNoCreds)
+            handler.producer.onopen = () => {
+                console.log("Connected to websocket producer");
+                updateProducerInfo("Connected to " + producerUrlNoCreds)
+                handler.producerReady = true
+                if (handler.consumerReady) {
+                    document.getElementById("chat-input").style.display = 'block';
+                }
+            }
+            handler.producer.onmessage = (event) => {
+                console.log("producer received: ", event.data);
+            };
+            handler.producer.onerror = (event) => {
+                console.log("producer got error: ", event);
+                updateProducerInfo("Failed")
+
+            };
+            handler.producer.onclose = (event) => {
+                console.log("producer got close: ", event);
+                if (handler.producerReady) {
+                    handler.producer = new WebSocket(producerUrl);
+                }
+                handler.producerReady = false
+            };
+        } catch (e) {
+            console.error(e)
+            updateProducerInfo("Error " + e.message)
+        }
+
+        try {
+            updateConsumerInfo("Connecting to " + consumerUrlNoCreds)
+            handler.consumer = new WebSocket(consumerUrl);
+            handler.consumer.onopen = () => {
+                console.log("Connected to websocket consumer");
+                updateConsumerInfo("Connected to " + consumerUrlNoCreds)
+                handler.consumerReady = true
+                if (handler.producerReady) {
+                    document.getElementById("chat-input").style.display = 'block';
+                }
+            }
+            handler.consumer.onmessage = (event) => {
+                console.log("consumer received: ", event.data);
+                const message = JSON.parse(event.data)
+                const streamId = message.record.headers["stream-id"]
+                addMessageToUI("Server", message.record.value, streamId)
+            };
+            handler.consumer.onerror = (event) => {
+                console.log("consumer got error: ", event);
+                updateConsumerInfo("Failed")
+
+            };
+            handler.consumer.onclose = (event) => {
+                console.log("consumer got onclose: ", event);
+                if (handler.consumerReady) {
+                    handler.consumerReady = false
+                    console.log("Reconnecting to consumer")
+                    handler.consumer = new WebSocket(consumerUrl);
+                }
+
+            };
+        } catch (e) {
+            console.error(e)
+            updateConsumerInfo("Error " + e.message)
+        }
+        document.getElementById('bodybox').style.display = 'block';
+
+    }
+
+
+    function addMessageToUI(from, message, boxId) {
+        if (!message) {
+            return
+        }
+        if (boxId) {
+            const current = document.getElementById(`langstream-stream-${boxId}`)
+            if (current) {
+                current.innerHTML += `${message}`
+                return
+            }
+        }
+        const uiMessage = from + ": " + message
+        document.getElementById("messages").innerHTML += `<p id='langstream-stream-${boxId}' class="chatlog">${uiMessage}</p>`
+
+    }
+
+    function onUserSent() {
+        if (!document.getElementById("chat-input").value != "") {
+            return;
+        }
+        const message = document.getElementById("chat-input").value;
+        document.getElementById("chat-input").value = "";
+        addMessageToUI("You", message)
+
+        handler.producer.send(JSON.stringify({ value: message }))
+    }
+
+
+    //runs the keypress() function when a key is pressed
+    document.onkeypress = keyPress;
+    //if the key pressed is 'enter' runs the function newEntry()
+    function keyPress(e) {
+        var x = e || window.event;
+        var key = (x.keyCode || x.which);
+        if (key == 13 || key == 3) {
+            //runs this function when enter is pressed
+            onUserSent();
+        }
+    }
+
+    function placeHolder() {
+        document.getElementById("chat-input").placeholder = "";
+    }
+
+    function loadGoogleButton() {
+        const client_id = document.getElementById("google-client-id").value
+
+        if (!client_id) {
+            alert("Please set Google client_id in the input")
+            throw "Please set Google client_id in the input"
+        }
+        google.accounts.id.initialize({
+            client_id: client_id,
+            callback: r => {
+                document.getElementById("credentials").value = r.credential
+
+            }
+        });
+        google.accounts.id.renderButton(
+            document.getElementById("googleauth"),
+            { theme: "outline", size: "large" }  // customization attributes
+        );
+        google.accounts.id.prompt(); // also display the One Tap dialog
+    }
+    window.onload = () => {
+        const value = localStorage.getItem("langstream")
+        if (value) {
+            const config = JSON.parse(value)
+            const {baseurl, tenant, applicationId, google} = config
+            document.getElementById("baseurl").value = baseurl  || ""
+            document.getElementById("tenant").value = tenant  || ""
+            document.getElementById("app").value = applicationId  || ""
+            document.getElementById("google-client-id").value = google || ""
+        }
+    }
+</script>
+</body>
+
+</html>

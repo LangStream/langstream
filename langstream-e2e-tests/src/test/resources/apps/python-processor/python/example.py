@@ -15,6 +15,7 @@
 #
 
 from langstream import SimpleRecord, Processor
+import logging
 
 
 class Exclamation(Processor):
@@ -23,6 +24,7 @@ class Exclamation(Processor):
         self.secret_value = config["secret_value"]
 
     def process(self, record):
+        logging.info("Processing record" + str(record))
         return [
             SimpleRecord(
                 record.value() + "!!" + self.secret_value, headers=record.headers()

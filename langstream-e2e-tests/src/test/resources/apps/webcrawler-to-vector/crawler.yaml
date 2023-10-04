@@ -30,7 +30,6 @@ pipeline:
       min-time-between-requests: 500
       reindex-interval-seconds: 3600
       max-error-count: 5
-      max-urls: 1
       max-depth: 1
       handle-robots-file: true
       user-agent: ""

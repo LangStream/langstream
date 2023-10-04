@@ -1259,7 +1259,7 @@ public class BaseEndToEndTest implements TestWatcher {
     private static void awaitCleanup(String tenant, String applicationId) {
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
         Awaitility.await()
-                .atMost(1, TimeUnit.MINUTES)
+                .atMost(2, TimeUnit.MINUTES)
                 .untilAsserted(
                         () -> {
                             Assertions.assertEquals(

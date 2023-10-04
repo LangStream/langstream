@@ -26,9 +26,6 @@ assets:
     config:
       keyspace: "langstreamtest"
       datasource: "AstraDatasource"
-      delete-statements:
-        - |
-          DROP KEYSPACE IF EXISTS langstreamtest;
   - name: "documents-table"
     asset-type: "cassandra-table"
     creation-mode: create-if-not-exists
@@ -41,8 +38,9 @@ assets:
         - |
           DROP TABLE IF EXISTS langstreamtest.documents;
       create-statements:
+        - DROP TABLE IF EXISTS langstreamtest.documents;
         - |
-          CREATE TABLE IF NOT EXISTS langstreamtest.documents (
+          CREATE TABLE langstreamtest.documents (
           filename TEXT,
           chunk_id int,
           num_tokens int,

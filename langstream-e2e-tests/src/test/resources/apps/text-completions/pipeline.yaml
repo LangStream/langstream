@@ -40,4 +40,4 @@ pipeline:
       min-chunks-per-message: 20
       max-tokens: 20
       prompt:
-        - "{{% value.question}}"
+        - "{{ value.question}}"

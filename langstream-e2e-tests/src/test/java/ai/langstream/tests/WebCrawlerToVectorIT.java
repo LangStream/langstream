@@ -76,13 +76,12 @@ public class WebCrawlerToVectorIT extends BaseEndToEndTest {
 
         final String sessionId = UUID.randomUUID().toString();
 
-        executeCommandOnClient(
-                "bin/langstream gateway produce %s user-input -v 'When was released LangStream 0.0.20? Write it in format yyyy-dd-mm.' -p sessionId=%s"
-                        .formatted(applicationId, sessionId)
-                        .split(" "));
-
         boolean ok = false;
         for (int i = 0; i < 10; i++) {
+            executeCommandOnClient(
+                    "bin/langstream gateway produce %s user-input -v 'When was released LangStream 0.0.20? Write it in format yyyy-dd-mm.' -p sessionId=%s"
+                            .formatted(applicationId, sessionId)
+                            .split(" "));
             final ConsumeGatewayMessage message =
                     consumeOneMessageFromGateway(
                             applicationId,

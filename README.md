@@ -65,7 +65,7 @@ Refer to the [CLI documentation](https://docs.langstream.ai/installation/langstr
 
 Run the sample Chat Completions application on-the-fly:
 ```bash
-export OPENAI_API_KEY=your-key-here
+export OPEN_AI_ACCESS_KEY=your-key-here
 langstream docker run test \
    -app https://github.com/LangStream/langstream/blob/main/examples/applications/openai-completions \
    -s https://github.com/LangStream/langstream/blob/main/examples/secrets/secrets.yaml
@@ -159,7 +159,7 @@ mini-langstream start
 
 Deploy an application:
 ```bash
-export OPENAI_API_KEY=<your-openai-api-key>
+export OPEN_AI_ACCESS_KEY=<your-openai-api-key>
 mini-langstream cli apps deploy my-app -app https://github.com/LangStream/langstream/tree/main/examples/applications/openai-completions -s https://github.com/LangStream/langstream/blob/main/examples/secrets/secrets.yaml
 ```
 

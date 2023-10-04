@@ -133,15 +133,16 @@ public class TransformFunctionUtil {
         }
         if (openAIConfig.getUrl() != null && !openAIConfig.getUrl().isEmpty()) {
             openAIClientBuilder.endpoint(openAIConfig.getUrl());
-        }
 
-        // this is for testing only
-        if (true || openAIConfig.getUrl().startsWith("http://localhost")) {
-            HttpPipeline httpPipeline =
-                    new HttpPipelineBuilder()
-                            .httpClient(new MockHttpClient(openAIConfig.getAccessKey()))
-                            .build();
-            openAIClientBuilder.pipeline(httpPipeline);
+            // this is for testing only
+            if (openAIConfig.getUrl().startsWith("http://localhost")) {
+                HttpPipeline httpPipeline =
+                        new HttpPipelineBuilder()
+                                .httpClient(new MockHttpClient(openAIConfig.getAccessKey()))
+                                .build();
+                openAIClientBuilder.pipeline(httpPipeline);
+            }
+
         }
 
         return openAIClientBuilder.buildAsyncClient();

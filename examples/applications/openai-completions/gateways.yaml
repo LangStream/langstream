@@ -57,6 +57,8 @@ gateways:
   - id: produce-input-auth
     type: produce
     topic: input-topic
+    parameters:
+      - sessionId
     authentication:
       provider: google
       configuration:
@@ -69,6 +71,8 @@ gateways:
   - id: consume-output-auth
     type: consume
     topic: output-topic
+    parameters:
+      - sessionId
     authentication:
       provider: google
       configuration:

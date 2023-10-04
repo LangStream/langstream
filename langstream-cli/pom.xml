@@ -169,6 +169,7 @@
               <id>langstream</id>
               <platforms>
                 <platform>unix</platform>
+                <platform>windows</platform>
               </platforms>
             </program>
           </programs>

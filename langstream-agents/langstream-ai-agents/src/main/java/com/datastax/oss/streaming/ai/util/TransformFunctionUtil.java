@@ -142,7 +142,6 @@ public class TransformFunctionUtil {
                                 .build();
                 openAIClientBuilder.pipeline(httpPipeline);
             }
-
         }
 
         return openAIClientBuilder.buildAsyncClient();

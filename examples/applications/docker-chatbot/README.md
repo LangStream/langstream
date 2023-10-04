@@ -14,7 +14,7 @@ but you can use any Vector databases.
 Export to the ENV the access key to OpenAI
 
 ```
-export OPENAI_ACCESS_KEY=...
+export OPEN_AI_ACCESS_KEY=...
 ```
 
 The default [secrets file](../../secrets/secrets.yaml) reads from the ENV. Check out the file to learn more about

@@ -6,7 +6,7 @@ This sample application shows how to use the `gpt-3.5-turbo-instruct` Open AI mo
 
 
 ```
-export OPENAI_ACCESS_KEY=...
+export OPEN_AI_ACCESS_KEY=...
 ```
 
 ## Deploy the LangStream application

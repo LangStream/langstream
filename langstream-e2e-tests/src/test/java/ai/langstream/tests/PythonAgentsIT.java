@@ -108,7 +108,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
     }
 
     @Test
-    public void testSink() {
+    public void testSink() throws Exception {
         installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
@@ -116,13 +116,12 @@ public class PythonAgentsIT extends BaseEndToEndTest {
         Map<String, Object> admin =
                 (Map<String, Object>)
                         streamingCluster.configuration().getOrDefault("admin", Map.of());
-        String bootStrapServers =
-                (String) admin.getOrDefault("bootstrap.servers", "localhost:9092");
+        final String pythonKafkaProducerConfig = JSON_MAPPER.writeValueAsString(admin);
         deployLocalApplicationAndAwaitReady(
                 tenant,
                 applicationId,
                 "python-sink",
-                Map.of("KAFKA_BOOTSTRAP_SERVERS", bootStrapServers),
+                Map.of("KAFKA_PRODUCER_CONFIG", pythonKafkaProducerConfig),
                 1);
 
         executeCommandOnClient(

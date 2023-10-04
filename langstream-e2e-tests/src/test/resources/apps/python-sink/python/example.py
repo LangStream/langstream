@@ -14,17 +14,35 @@
 # limitations under the License.
 #
 
-import logging
+import logging, json, re
 from confluent_kafka import Producer
 
 
+def extract_jaas_property(prop, jaas_entry):
+    re_pattern = re.compile(prop + r'\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|(\S+))')
+    re_match = re_pattern.search(jaas_entry)
+    if re_match:
+        return re_match.group(1) or re_match.group(2) or re_match.group(3)
+    else:
+        return None
 class TestSink(object):
     def __init__(self):
         self.producer = None
 
+
+
     def init(self, config):
         logging.info("Init config: " + str(config))
-        self.producer = Producer({"bootstrap.servers": config["bootstrapServers"]})
+        producer_config = json.loads(config["producerConfig"])
+        logging.info("Producer config: " + str(producer_config))
+        if "sasl.jaas.config" in producer_config:
+            for prop in ["username", "password"]:
+                if "sasl." + prop not in producer_config:
+                    prop_value = extract_jaas_property(prop, producer_config["sasl.jaas.config"])
+                    if prop_value:
+                        producer_config["sasl." + prop] = prop_value
+            del producer_config["sasl.jaas.config"]
+        self.producer = Producer(producer_config)
 
     def write(self, record):
         logging.info("Write record: " + str(record))

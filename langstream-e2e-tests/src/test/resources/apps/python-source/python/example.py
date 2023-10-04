@@ -23,8 +23,8 @@ class TestSource(object):
         self.sent = False
 
     def read(self):
-        logging.info("Read records")
         if not self.sent:
+            logging.info("Sending the record")
             self.sent = True
             return [SimpleRecord("test")]
         return []

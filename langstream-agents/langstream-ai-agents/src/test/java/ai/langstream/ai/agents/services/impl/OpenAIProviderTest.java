@@ -44,7 +44,7 @@ class OpenAIProviderTest {
 
     @Test
     void testStreamingChatCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
-
+        resetWiremockStubs(vmRuntimeInfo);
         stubFor(
                 post("/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-08-01-preview")
                         .willReturn(
@@ -118,6 +118,7 @@ class OpenAIProviderTest {
 
     @Test
     void testStreamingTextCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
+        resetWiremockStubs(vmRuntimeInfo);
         stubFor(
                 post("/openai/deployments/gpt-35-turbo-instruct/completions?api-version=2023-08-01-preview")
                         .withRequestBody(
@@ -263,5 +264,19 @@ class OpenAIProviderTest {
             log.info("token: {} {}", token, tokenLogProbability);
         }
         log.info("result: {}", completions);
+    }
+
+    private static void resetWiremockStubs(WireMockRuntimeInfo wireMockRuntimeInfo)
+            throws Exception {
+        wireMockRuntimeInfo
+                .getWireMock()
+                .allStubMappings()
+                .getMappings()
+                .forEach(
+                        stubMapping -> {
+                            log.info("Removing stub {}", stubMapping);
+                            wireMockRuntimeInfo.getWireMock().removeStubMapping(stubMapping);
+                        });
+        Thread.sleep(1000);
     }
 }

@@ -43,6 +43,10 @@ RUN mkdir -p /etc/apt/keyrings \
      && export ARCH=$(uname -m | sed -r 's/aarch64/arm64/g' |  awk '!/arm64/{$0="amd64"}1') \
      && echo networkaddress.cache.ttl=1 >> /usr/lib/jvm/temurin-17-jdk-$ARCH/conf/security/java.security
 
+# Install utility packages for Python unstructured data processing
+RUN apt-get -y install --no-install-recommends libmagic-dev poppler-utils tesseract-ocr tesseract-lang libreoffice \
+     pandoc
+
 # Cleanup apt
 RUN  apt-get -y --purge autoremove \
      && apt-get autoclean \

@@ -8,7 +8,7 @@ fastavro = "*"
 "openai[wandb]" = "*"
 langchain = "*"
 boto3 = "*"
-unstructured = "*"
+"unstructured[all-docs]" = "*"
 llama-index = "*"
 cassio = "*"
 

@@ -135,6 +135,6 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
                         Action on the message. Possible values are "dispatch" or "drop".
                         """,
                 defaultValue = "dispatch")
-        String action;
+        String action = "dispatch";
     }
 }

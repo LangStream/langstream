@@ -100,10 +100,14 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                 boolean test = r.predicate.test(context);
                 if (test) {
                     if (r.destination.isEmpty()) {
-                        log.info("Discarding record {} - empty destination", record);
+                        if (log.isDebugEnabled()) {
+                            log.debug("Discarding record {} - empty destination", record);
+                        }
                         recordSink.emit(new SourceRecordAndResult(record, List.of(), null));
                     } else {
-                        log.info("Dispatching record {} to topic {}", record, r.destination);
+                        if (log.isDebugEnabled()) {
+                            log.debug("Dispatching record {} to topic {}", record, r.destination);
+                        }
                         TopicProducer topicProducer = producers.get(r.destination);
                         topicProducer
                                 .write(record)
@@ -130,7 +134,9 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                 }
             }
 
-            log.info("Sending record {} to the default destination", record);
+            if (log.isDebugEnabled()) {
+                log.debug("Sending record {} to the default destination", record);
+            }
             recordSink.emit(new SourceRecordAndResult(record, List.of(record), null));
         } catch (Throwable error) {
             log.error("Error processing record: {}", record, error);

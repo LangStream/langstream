@@ -160,4 +160,78 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
             }
         }
     }
+
+    @Test
+    public void testSimpleFlowControlDefaultToAnotherAgent() throws Exception {
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                                topics:
+                                  - name: "input-topic-to-agent"
+                                    creation-mode: create-if-not-exists
+                                  - name: "topic1-to-agent"
+                                    creation-mode: create-if-not-exists
+                                  - name: "topic2-to-agent"
+                                    creation-mode: create-if-not-exists
+                                  - name: "default-topic-to-agent"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "Dispatch"
+                                    type: "dispatch"
+                                    input: input-topic-to-agent
+                                    id: step1
+                                    configuration:
+                                      routes:
+                                         - when: properties.language == "en"
+                                           destination: topic1-to-agent
+                                         - when: properties.language == "fr"
+                                           destination: topic2-to-agent
+                                         - when: properties.language == "none"
+                                           destination: ""
+                                  - name: "Compute"
+                                    type: "compute"
+                                    output: default-topic-to-agent
+                                    id: step1
+                                    configuration:
+                                      fields:
+                                         - name: "value"
+                                           expression: "'modified'"
+                                """);
+
+        // query the database with re-rank
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer();
+                    KafkaConsumer<String, String> consumer =
+                            createConsumer("default-topic-to-agent");
+                    KafkaConsumer<String, String> consumer1 = createConsumer("topic1-to-agent");
+                    KafkaConsumer<String, String> consumer2 = createConsumer("topic2-to-agent")) {
+
+                sendMessage(
+                        "input-topic-to-agent",
+                        "for-default",
+                        List.of(new RecordHeader("language", "it".getBytes())),
+                        producer);
+                sendMessage(
+                        "input-topic-to-agent",
+                        "for-topic1",
+                        List.of(new RecordHeader("language", "en".getBytes())),
+                        producer);
+                sendMessage(
+                        "input-topic-to-agent",
+                        "for-topic2",
+                        List.of(new RecordHeader("language", "fr".getBytes())),
+                        producer);
+                executeAgentRunners(applicationRuntime);
+                waitForMessages(consumer, List.of("modified"));
+                waitForMessages(consumer1, List.of("for-topic1"));
+                waitForMessages(consumer2, List.of("for-topic2"));
+            }
+        }
+    }
 }

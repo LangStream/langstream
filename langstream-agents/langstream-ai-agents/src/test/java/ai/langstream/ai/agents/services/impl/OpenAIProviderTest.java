@@ -27,7 +27,6 @@ import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
-import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -35,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -106,14 +105,20 @@ class OpenAIProviderTest {
                                         "min-chunks-per-message",
                                         3))
                         .get();
-        log.info("result: {}", chatCompletions);
-        assertEquals(
-                "A car is a vehicle",
-                chatCompletions.getChoices().get(0).getMessage().getContent());
-        assertEquals(3, chunks.size());
-        assertEquals("A", chunks.get(0));
-        assertEquals(" car is", chunks.get(1));
-        assertEquals(" a vehicle", chunks.get(2));
+
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            log.info("result: {}", chatCompletions);
+                            log.info("chunks: {}", chunks);
+                            assertEquals(
+                                    "A car is a vehicle",
+                                    chatCompletions.getChoices().get(0).getMessage().getContent());
+                            assertEquals(3, chunks.size());
+                            assertEquals("A", chunks.get(0));
+                            assertEquals(" car is", chunks.get(1));
+                            assertEquals(" a vehicle", chunks.get(2));
+                        });
     }
 
     @Test
@@ -201,69 +206,23 @@ class OpenAIProviderTest {
                                         3))
                         .get()
                         .text();
-        log.info("result: {}", completions);
-        assertEquals(
-                "I am an AI language model and I do not have personal experiences or the",
-                completions);
-        assertEquals(7, chunks.size());
-        assertEquals("I", chunks.get(0));
-        assertEquals(" am an", chunks.get(1));
-        assertEquals(" AI language model", chunks.get(2));
-        assertEquals(" and I do", chunks.get(3));
-        assertEquals(" not have personal", chunks.get(4));
-        assertEquals(" experiences or the", chunks.get(5));
-        assertEquals("", chunks.get(6));
-    }
-
-    @Test
-    @Disabled
-    void testLogProb() throws Exception {
-        ServiceProviderProvider provider = new OpenAIServiceProvider();
-        ServiceProvider implementation =
-                provider.createImplementation(
-                        Map.of("openai", Map.of("provider", "openai", "access-key", "")));
-
-        CompletionsService service = implementation.getCompletionsService(Map.of());
-        TextCompletionResult completionsNoStream =
-                service.getTextCompletions(
-                                List.of("What is a car?"),
-                                null,
-                                Map.of(
-                                        "model",
-                                        "gpt-3.5-turbo-instruct",
-                                        "logprobs",
-                                        2,
-                                        "stream",
-                                        false))
-                        .get();
-
-        TextCompletionResult.LogProbInformation logProbInformationNoStream =
-                completionsNoStream.logProbInformation();
-        for (int i = 0; i < logProbInformationNoStream.tokens().size(); i++) {
-            String token = logProbInformationNoStream.tokens().get(i);
-            Double tokenLogProbability = logProbInformationNoStream.tokenLogProbabilities().get(i);
-            log.info("token: {} {}", token, tokenLogProbability);
-        }
-        TextCompletionResult completions =
-                service.getTextCompletions(
-                                List.of("What is a car?"),
-                                null,
-                                Map.of(
-                                        "model",
-                                        "gpt-3.5-turbo-instruct",
-                                        "logprobs",
-                                        2,
-                                        "stream",
-                                        true))
-                        .get();
-        TextCompletionResult.LogProbInformation logProbInformation =
-                completions.logProbInformation();
-        for (int i = 0; i < logProbInformation.tokens().size(); i++) {
-            String token = logProbInformation.tokens().get(i);
-            Double tokenLogProbability = logProbInformation.tokenLogProbabilities().get(i);
-            log.info("token: {} {}", token, tokenLogProbability);
-        }
-        log.info("result: {}", completions);
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            log.info("result: {}", completions);
+                            log.info("chunks: {}", chunks);
+                            assertEquals(
+                                    "I am an AI language model and I do not have personal experiences or the",
+                                    completions);
+                            assertEquals(7, chunks.size());
+                            assertEquals("I", chunks.get(0));
+                            assertEquals(" am an", chunks.get(1));
+                            assertEquals(" AI language model", chunks.get(2));
+                            assertEquals(" and I do", chunks.get(3));
+                            assertEquals(" not have personal", chunks.get(4));
+                            assertEquals(" experiences or the", chunks.get(5));
+                            assertEquals("", chunks.get(6));
+                        });
     }
 
     private static void resetWiremockStubs(WireMockRuntimeInfo wireMockRuntimeInfo)

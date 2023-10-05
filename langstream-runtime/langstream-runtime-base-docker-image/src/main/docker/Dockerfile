@@ -44,8 +44,7 @@ RUN mkdir -p /etc/apt/keyrings \
      && echo networkaddress.cache.ttl=1 >> /usr/lib/jvm/temurin-17-jdk-$ARCH/conf/security/java.security
 
 # Install utility packages for Python unstructured data processing
-RUN apt-get -y install --no-install-recommends libmagic-dev poppler-utils tesseract-ocr tesseract-lang libreoffice \
-     pandoc
+RUN apt-get -y install --no-install-recommends libmagic-dev poppler-utils tesseract-ocr libreoffice pandoc
 
 # Cleanup apt
 RUN  apt-get -y --purge autoremove \

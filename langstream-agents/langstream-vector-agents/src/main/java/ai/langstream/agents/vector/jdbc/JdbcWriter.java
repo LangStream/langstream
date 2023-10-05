@@ -15,7 +15,8 @@
  */
 package ai.langstream.agents.vector.jdbc;
 
-import ai.langstream.ai.agents.GenAIToolKitAgent;
+import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
+
 import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.ai.agents.datasource.impl.JdbcDataSourceProvider;
@@ -145,8 +146,7 @@ public class JdbcWriter implements VectorDatabaseWriterProvider {
                 Record record, Map<String, Object> context) {
             CompletableFuture<?> handle = new CompletableFuture<>();
             try {
-                TransformContext transformContext =
-                        GenAIToolKitAgent.recordToTransformContext(record, true);
+                TransformContext transformContext = recordToTransformContext(record, true);
 
                 List<Object> primaryKeyValues = prepareValueList(transformContext, primaryKey);
                 List<Object> otherValues = prepareValueList(transformContext, columns);

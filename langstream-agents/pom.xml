@@ -39,5 +39,6 @@
         <module>langstream-agents-text-processing</module>
         <module>langstream-ai-agents</module>
         <module>langstream-vector-agents</module>
+        <module>langstream-agents-flow-control</module>
     </modules>
 </project>

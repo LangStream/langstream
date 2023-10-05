@@ -63,9 +63,7 @@ import com.datastax.oss.streaming.ai.model.config.TransformStepConfig;
 import com.datastax.oss.streaming.ai.model.config.UnwrapKeyValueConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumerFactory;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -386,23 +384,6 @@ public class TransformFunctionUtil {
         if (predicate == null || predicate.test(transformContext)) {
             step.process(transformContext);
         }
-    }
-
-    public static Object attemptJsonConversion(Object value) {
-        try {
-            if (value instanceof String) {
-                return OBJECT_MAPPER.readValue(
-                        (String) value, new TypeReference<Map<String, Object>>() {});
-            } else if (value instanceof byte[]) {
-                return OBJECT_MAPPER.readValue(
-                        (byte[]) value, new TypeReference<Map<String, Object>>() {});
-            }
-        } catch (IOException e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Cannot convert value to json", e);
-            }
-        }
-        return value;
     }
 
     public static byte[] getBytes(ByteBuffer byteBuffer) {

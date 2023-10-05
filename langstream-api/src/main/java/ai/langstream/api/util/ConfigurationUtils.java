@@ -185,6 +185,11 @@ public class ConfigurationUtils {
             Set<String> values,
             Supplier<String> definition) {
         Object value = configuration.get(name);
+        validateEnumValue(name, values, value, definition);
+    }
+
+    public static void validateEnumValue(
+            String name, Set<String> values, Object value, Supplier<String> definition) {
         if (value == null || value.toString().isEmpty()) {
             return;
         }

@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
+import static ai.langstream.ai.agents.commons.TransformContext.attemptJsonConversion;
 import static com.datastax.oss.streaming.ai.FlattenStep.AVRO_READ_OFFSET_PROP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -23,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
-import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -428,10 +428,9 @@ public class Utils {
             transformContext.setValueObject(value);
         }
         if (attemptJsonConversion) {
-            transformContext.setKeyObject(
-                    TransformFunctionUtil.attemptJsonConversion(transformContext.getKeyObject()));
+            transformContext.setKeyObject(attemptJsonConversion(transformContext.getKeyObject()));
             transformContext.setValueObject(
-                    TransformFunctionUtil.attemptJsonConversion(transformContext.getValueObject()));
+                    attemptJsonConversion(transformContext.getValueObject()));
         }
         return transformContext;
     }

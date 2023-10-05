@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.attemptJsonConversion;
+import static ai.langstream.ai.agents.commons.TransformContext.attemptJsonConversion;
 
 import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.commons.TransformSchemaType;

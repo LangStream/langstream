@@ -55,11 +55,11 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                                     id: step1
                                     configuration:
                                       routes:
-                                         - when: value.language == "en"
+                                         - when: properties.language == "en"
                                            destination: topic1
-                                         - when: value.language == "fr"
+                                         - when: properties.language == "fr"
                                            destination: topic2
-                                         - when: value.language == "none"
+                                         - when: properties.language == "none"
                                            destination: ""
                                 """);
 
@@ -89,6 +89,72 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                         producer);
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(consumer, List.of("for-default"));
+                waitForMessages(consumer1, List.of("for-topic1"));
+                waitForMessages(consumer2, List.of("for-topic2"));
+            }
+        }
+    }
+
+    /**
+     * This test validates that the default destination is not mandatory. if you don't set an
+     * "output" the processor behaves like a sink (no output)
+     */
+    @Test
+    public void testSimpleFlowControlNoDefaultDestination() throws Exception {
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                                topics:
+                                  - name: "input-topic-no-default"
+                                    creation-mode: create-if-not-exists
+                                  - name: "topic1-no-default"
+                                    creation-mode: create-if-not-exists
+                                  - name: "topic2-no-default"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "Dispatch"
+                                    type: "dispatch"
+                                    input: input-topic-no-default
+                                    id: step1
+                                    configuration:
+                                      routes:
+                                         - when: properties.language == "en"
+                                           destination: topic1-no-default
+                                         - when: properties.language == "fr"
+                                           destination: topic2-no-default
+                                         - when: properties.language == "none"
+                                           destination: ""
+                                """);
+
+        // query the database with re-rank
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer();
+                    KafkaConsumer<String, String> consumer1 = createConsumer("topic1-no-default");
+                    KafkaConsumer<String, String> consumer2 = createConsumer("topic2-no-default")) {
+
+                sendMessage(
+                        "input-topic-no-default",
+                        "for-default",
+                        List.of(new RecordHeader("language", "it".getBytes())),
+                        producer);
+                sendMessage(
+                        "input-topic-no-default",
+                        "for-topic1",
+                        List.of(new RecordHeader("language", "en".getBytes())),
+                        producer);
+                sendMessage(
+                        "input-topic-no-default",
+                        "for-topic2",
+                        List.of(new RecordHeader("language", "fr".getBytes())),
+                        producer);
+                // executeAgentRunners validates that the source has been fully committed
+                executeAgentRunners(applicationRuntime);
                 waitForMessages(consumer1, List.of("for-topic1"));
                 waitForMessages(consumer2, List.of("for-topic2"));
             }

@@ -25,6 +25,7 @@ import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
+import ai.langstream.impl.uti.ClassConfigValidator;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import java.util.List;
 import java.util.Map;
@@ -56,13 +57,17 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
             ExecutionPlan executionPlan,
             ComputeClusterRuntime clusterRuntime,
             PluginsRegistry pluginsRegistry) {
-        List<RouteConfiguration> routes =
-                ((DispatchConfig) agentConfiguration.getConfiguration()).getRoutes();
-        for (RouteConfiguration routeConfiguration : routes) {
-            String destination = routeConfiguration.getDestination();
-            if (destination != null && !destination.isEmpty()) {
-                log.info("Validating topic reference {}", destination);
-                module.resolveTopic(destination);
+        DispatchConfig dispatchConfig =
+                ClassConfigValidator.convertValidatedConfiguration(
+                        agentConfiguration.getConfiguration(), DispatchConfig.class);
+        List<RouteConfiguration> routes = dispatchConfig.getRoutes();
+        if (routes != null) {
+            for (RouteConfiguration routeConfiguration : routes) {
+                String destination = routeConfiguration.getDestination();
+                if (destination != null && !destination.isEmpty()) {
+                    log.info("Validating topic reference {}", destination);
+                    module.resolveTopic(destination);
+                }
             }
         }
         return super.computeAgentConfiguration(

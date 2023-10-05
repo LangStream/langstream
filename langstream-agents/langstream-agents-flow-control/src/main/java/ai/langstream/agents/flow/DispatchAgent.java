@@ -74,6 +74,7 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                                         .getTopicConnectionProvider()
                                         .createProducer(
                                                 agentContext.getGlobalAgentId(), topic, Map.of());
+                        producer.start();
                         producers.put(topic, producer);
                     }
                 });
@@ -116,9 +117,12 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                                                 recordSink.emit(
                                                         new SourceRecordAndResult(record, null, e));
                                             } else {
+                                                // the record is to be marked as processed, but not
+                                                // emitted to the
+                                                // next agent
                                                 recordSink.emit(
                                                         new SourceRecordAndResult(
-                                                                record, List.of(record), null));
+                                                                record, List.of(), null));
                                             }
                                         });
                     }
@@ -126,7 +130,8 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                 }
             }
 
-            recordSink.emit(new SourceRecordAndResult(record, List.of(), null));
+            log.info("Sending record {} to the default destination", record);
+            recordSink.emit(new SourceRecordAndResult(record, List.of(record), null));
         } catch (Throwable error) {
             log.error("Error processing record: {}", record, error);
             recordSink.emit(new SourceRecordAndResult(record, null, error));

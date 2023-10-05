@@ -65,6 +65,11 @@ public class ClassConfigValidator {
     static final Map<String, ResourceConfigurationModel> resourceModels = new ConcurrentHashMap<>();
     static final Map<String, AssetConfigurationModel> assetModels = new ConcurrentHashMap<>();
 
+    public static <T> T convertValidatedConfiguration(
+            Map<String, Object> agentConfiguration, Class<T> clazz) {
+        return validatorMapper.convertValue(agentConfiguration, clazz);
+    }
+
     public static AgentConfigurationModel generateAgentModelFromClass(Class clazz) {
         return agentModels.computeIfAbsent(
                 clazz.getName(), k -> generateModelFromClassNoCache(clazz));
@@ -223,7 +228,7 @@ public class ClassConfigValidator {
                 allowUnknownProperties);
 
         try {
-            validatorMapper.convertValue(asMap, modelClazz);
+            convertValidatedConfiguration(asMap, modelClazz);
         } catch (IllegalArgumentException ex) {
             if (ex.getCause() instanceof MismatchedInputException mismatchedInputException) {
                 final String property =

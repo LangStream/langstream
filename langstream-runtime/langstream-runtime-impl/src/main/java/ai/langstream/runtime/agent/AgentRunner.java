@@ -943,9 +943,17 @@ public class AgentRunner {
     }
 
     private static class NoopTopicProducer implements TopicProducer {
+        private final AtomicLong totalIn = new AtomicLong();
+
+        @Override
+        public CompletableFuture<?> write(Record record) {
+            totalIn.incrementAndGet();
+            return CompletableFuture.completedFuture(null);
+        }
+
         @Override
         public long getTotalIn() {
-            return 0;
+            return totalIn.get();
         }
     }
 

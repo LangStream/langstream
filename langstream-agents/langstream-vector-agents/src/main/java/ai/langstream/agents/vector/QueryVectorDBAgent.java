@@ -15,7 +15,9 @@
  */
 package ai.langstream.agents.vector;
 
-import ai.langstream.ai.agents.GenAIToolKitAgent;
+import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
+import static ai.langstream.ai.agents.commons.TransformContext.transformContextToRecord;
+
 import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.api.runner.code.Record;
@@ -63,10 +65,10 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
         if (log.isDebugEnabled()) {
             log.debug("Processing record {}", record);
         }
-        TransformContext context = GenAIToolKitAgent.recordToTransformContext(record, true);
+        TransformContext context = recordToTransformContext(record, true);
         TransformFunctionUtil.processTransformSteps(context, steps);
         context.convertMapToStringOrBytes();
-        Optional<Record> recordResult = GenAIToolKitAgent.transformContextToRecord(context);
+        Optional<Record> recordResult = transformContextToRecord(context);
         if (log.isDebugEnabled()) {
             log.debug("recordResult {}", recordResult);
         }

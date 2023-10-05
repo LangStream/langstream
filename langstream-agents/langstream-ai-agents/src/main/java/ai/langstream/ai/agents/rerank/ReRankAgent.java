@@ -15,9 +15,9 @@
  */
 package ai.langstream.ai.agents.rerank;
 
-import static ai.langstream.ai.agents.GenAIToolKitAgent.transformContextToRecord;
+import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
+import static ai.langstream.ai.agents.commons.TransformContext.transformContextToRecord;
 
-import ai.langstream.ai.agents.GenAIToolKitAgent;
 import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.runner.code.Record;
@@ -101,8 +101,7 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         if (record == null) {
             return List.of();
         }
-        TransformContext transformContext =
-                GenAIToolKitAgent.recordToTransformContext(record, true).copy();
+        TransformContext transformContext = recordToTransformContext(record, true).copy();
 
         List<Object> currentList = (List<Object>) fieldAccessor.evaluate(transformContext);
 

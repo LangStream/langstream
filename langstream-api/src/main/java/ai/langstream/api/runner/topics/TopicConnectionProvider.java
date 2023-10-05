@@ -20,5 +20,5 @@ import java.util.Map;
 public interface TopicConnectionProvider {
     TopicConsumer createConsumer(String agentId, Map<String, Object> config);
 
-    TopicProducer createProducer(String agentId, Map<String, Object> config);
+    TopicProducer createProducer(String agentId, String topic, Map<String, Object> config);
 }

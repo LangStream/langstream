@@ -15,7 +15,8 @@
  */
 package ai.langstream.agents.vector.milvus;
 
-import ai.langstream.ai.agents.GenAIToolKitAgent;
+import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
+
 import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
@@ -115,8 +116,7 @@ public class MilvusWriter implements VectorDatabaseWriterProvider {
         public CompletableFuture<?> upsert(Record record, Map<String, Object> context) {
             CompletableFuture<?> handle = new CompletableFuture<>();
             try {
-                TransformContext transformContext =
-                        GenAIToolKitAgent.recordToTransformContext(record, true);
+                TransformContext transformContext = recordToTransformContext(record, true);
 
                 JSONObject row = new JSONObject();
                 fields.forEach(

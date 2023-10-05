@@ -299,9 +299,8 @@ public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentS
         topicProducerToOffsetStore =
                 topicConnectionProvider.createProducer(
                         agentId,
+                        offsetTopic,
                         Map.of(
-                                "topic",
-                                offsetTopic,
                                 "key.serializer",
                                 "org.apache.kafka.common.serialization.ByteArraySerializer",
                                 "value.serializer",

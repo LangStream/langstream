@@ -122,7 +122,7 @@ codeStorage:
 For Azure:
 ```yaml
 codeStorage:
-  type: azure-blob-storage
+  type: azure
   configuration:
     endpoint: https://<storage-account>.blob.core.windows.net
     container: langstream

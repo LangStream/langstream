@@ -24,6 +24,7 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
@@ -63,6 +64,12 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
         List<RouteConfiguration> routes = dispatchConfig.getRoutes();
         if (routes != null) {
             for (RouteConfiguration routeConfiguration : routes) {
+                String action = routeConfiguration.getAction();
+                ConfigurationUtils.validateEnumValue(
+                        "action",
+                        Set.of("dispatch", "drop"),
+                        action,
+                        () -> "route " + routeConfiguration);
                 String destination = routeConfiguration.getDestination();
                 if (destination != null && !destination.isEmpty()) {
                     log.info("Validating topic reference {}", destination);
@@ -118,5 +125,13 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
                         Destination of the message. If the destination is empty the message is discarded
                         """)
         String destination;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Action on the message. Possible values are "dispatch" or "drop".
+                        """,
+                defaultValue = "dispatch")
+        String action;
     }
 }

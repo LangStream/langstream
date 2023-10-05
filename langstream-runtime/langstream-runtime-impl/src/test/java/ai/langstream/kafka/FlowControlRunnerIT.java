@@ -60,7 +60,7 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                                          - when: properties.language == "fr"
                                            destination: topic2
                                          - when: properties.language == "none"
-                                           destination: ""
+                                           action: drop
                                 """);
 
         // query the database with re-rank
@@ -127,7 +127,7 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                                          - when: properties.language == "fr"
                                            destination: topic2-no-default
                                          - when: properties.language == "none"
-                                           destination: ""
+                                           action: drop
                                 """);
 
         // query the database with re-rank
@@ -188,10 +188,11 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                                       routes:
                                          - when: properties.language == "en"
                                            destination: topic1-to-agent
+                                           action: dispatch
                                          - when: properties.language == "fr"
                                            destination: topic2-to-agent
                                          - when: properties.language == "none"
-                                           destination: ""
+                                           action: drop
                                   - name: "Compute"
                                     type: "compute"
                                     output: default-topic-to-agent

@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
 
-    record Route(String destination, JstlPredicate predicate) {}
+    record Route(String destination, boolean drop, JstlPredicate predicate) {}
 
     private final List<Route> routes = new ArrayList<>();
     private final Map<String, TopicProducer> producers = new HashMap<>();
@@ -49,12 +49,27 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                 r -> {
                     String when = ConfigurationUtils.getString("when", "", r);
                     String destination = ConfigurationUtils.getString("destination", "", r);
-                    if (destination.isEmpty()) {
-                        log.info("Condition: \"{}\", Destination is empty (discard record)", when);
-                    } else {
-                        log.info("Condition: \"{}\", Destination: {}", when, destination);
+                    String action = ConfigurationUtils.getString("action", "dispatch", r);
+                    final boolean drop;
+                    switch (action) {
+                        case "dispatch":
+                            drop = false;
+                            break;
+                        case "drop":
+                            drop = true;
+                            break;
+                        default:
+                            throw new IllegalArgumentException();
                     }
-                    this.routes.add(new Route(destination, new JstlPredicate(when)));
+                    if (drop) {
+                        log.info("Condition: \"{}\", action = drop", when);
+                    } else {
+                        log.info(
+                                "Condition: \"{}\", action = dispatch, destination: {}",
+                                when,
+                                destination);
+                    }
+                    this.routes.add(new Route(destination, drop, new JstlPredicate(when)));
                 });
     }
 
@@ -99,9 +114,9 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
             for (Route r : routes) {
                 boolean test = r.predicate.test(context);
                 if (test) {
-                    if (r.destination.isEmpty()) {
+                    if (r.drop) {
                         if (log.isDebugEnabled()) {
-                            log.debug("Discarding record {} - empty destination", record);
+                            log.debug("Discarding record {} - action=drop", record);
                         }
                         recordSink.emit(new SourceRecordAndResult(record, List.of(), null));
                     } else {

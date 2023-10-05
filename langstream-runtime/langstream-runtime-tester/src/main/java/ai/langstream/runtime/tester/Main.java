@@ -48,8 +48,7 @@ public class Main {
 
             boolean dryRunMode =
                     Boolean.parseBoolean(
-                            System.getenv()
-                                    .getOrDefault("LANSGSTREAM_TESTER_DRYRUN", "false"));
+                            System.getenv().getOrDefault("LANSGSTREAM_TESTER_DRYRUN", "false"));
             String applicationPath = "/code/application";
             String instanceFile = "/code/instance.yaml";
             String secretsFile = "/code/secrets.yaml";
@@ -73,7 +72,8 @@ public class Main {
             if (dryRunMode) {
                 log.info("Dry run mode");
                 final Application resolved =
-                        ApplicationPlaceholderResolver.resolvePlaceholders(applicationWithPackageInfo.getApplication());
+                        ApplicationPlaceholderResolver.resolvePlaceholders(
+                                applicationWithPackageInfo.getApplication());
                 final ApplicationDescription.ApplicationDefinition def =
                         new ApplicationDescription.ApplicationDefinition(resolved);
 
@@ -81,9 +81,6 @@ public class Main {
                 log.info("Application:\n{}", asString);
                 return;
             }
-
-
-
 
             List<String> expectedAgents = new ArrayList<>();
             List<String> allAgentIds = new ArrayList<>();

@@ -104,7 +104,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     @CommandLine.Option(
             names = {"--dry-run"},
-            description = "Dry-run mode. Do not deploy the application but only resolves placeholders and display the result.")
+            description =
+                    "Dry-run mode. Do not deploy the application but only resolves placeholders and display the result.")
     private boolean dryRun;
 
     @Override

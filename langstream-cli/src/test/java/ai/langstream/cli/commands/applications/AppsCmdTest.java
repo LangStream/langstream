@@ -48,7 +48,7 @@ class AppsCmdTest extends CommandTestBase {
                 AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
 
         wireMock.register(
-                WireMock.post(String.format("/api/applications/%s/my-app", TENANT))
+                WireMock.post(String.format("/api/applications/%s/my-app?dry-run=false", TENANT))
                         .withMultipartRequestBody(
                                 aMultipart("app")
                                         .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -108,7 +108,7 @@ class AppsCmdTest extends CommandTestBase {
         final Path zipFile =
                 AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
-                WireMock.post(String.format("/api/applications/%s/my-app", TENANT))
+                WireMock.post(String.format("/api/applications/%s/my-app?dry-run=false", TENANT))
                         .withMultipartRequestBody(
                                 aMultipart("app")
                                         .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -167,6 +167,66 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
     }
+
+
+    @Test
+    public void testDeployDryRun() throws Exception {
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
+        final String instance = createTempFile("instance: {}");
+        final String secrets = createTempFile("secrets: []");
+
+        final Path zipFile =
+                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+
+        wireMock.register(
+                WireMock.post(String.format("/api/applications/%s/my-app?dry-run=true", TENANT))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .withMultipartRequestBody(
+                                aMultipart("instance").withBody(equalTo("instance: {}")))
+                        .withMultipartRequestBody(
+                                aMultipart("secrets").withBody(equalTo("secrets: []")))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "deploy",
+                        "my-app",
+                        "-s",
+                        secrets,
+                        "-app",
+                        langstream.toAbsolutePath().toString(),
+                        "-i",
+                        instance,
+                        "--dry-run");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertTrue(result.out().contains("name: \"my-app\""));
+
+        result =
+                executeCommand(
+                        "apps",
+                        "deploy",
+                        "my-app",
+                        "-s",
+                        secrets,
+                        "-app",
+                        langstream.toAbsolutePath().toString(),
+                        "-i",
+                        instance,
+                        "--dry-run",
+                        "-o",
+                        "json");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertTrue(result.out().contains("{\n"
+                                                    + "  \"name\" : \"my-app\"\n"
+                                                    + "}"));
+    }
+
 
     @Test
     public void testUpdateInstance() throws Exception {
@@ -399,7 +459,7 @@ class AppsCmdTest extends CommandTestBase {
                 AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
 
         wireMock.register(
-                WireMock.post(String.format("/api/applications/%s/my-app", TENANT))
+                WireMock.post(String.format("/api/applications/%s/my-app?dry-run=false", TENANT))
                         .withMultipartRequestBody(
                                 aMultipart("app")
                                         .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))

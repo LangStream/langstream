@@ -55,6 +55,16 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 description = "Secrets file path")
         private String secretFilePath;
 
+        @CommandLine.Option(
+                names = {"--dry-run"},
+                description = "")
+        private boolean dryRun;
+
+        @CommandLine.Option(
+                names = {"-o"},
+                description = "Output format for dry-run mode.")
+        private Formats format = Formats.raw;
+
         @Override
         String applicationId() {
             return name;
@@ -78,6 +88,16 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         @Override
         boolean isUpdate() {
             return false;
+        }
+
+        @Override
+        boolean isDryRun() {
+            return dryRun;
+        }
+
+        @Override
+        Formats format() {
+            return format;
         }
     }
 
@@ -126,6 +146,16 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         boolean isUpdate() {
             return true;
         }
+
+        @Override
+        boolean isDryRun() {
+            return false;
+        }
+
+        @Override
+        Formats format() {
+            return null;
+        }
     }
 
     abstract String applicationId();
@@ -137,6 +167,10 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
     abstract String secretFilePath();
 
     abstract boolean isUpdate();
+
+    abstract boolean isDryRun();
+
+    abstract Formats format();
 
     @Override
     @SneakyThrows
@@ -160,9 +194,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         final Path tempZip = buildZip(appDirectory, this::log);
 
         long size = Files.size(tempZip);
-        log(String.format("deploying application: %s (%d KB)", applicationId, size / 1024));
-        String secretsContents = null;
-        String instanceContents = null;
+
 
         final Map<String, Object> contents = new HashMap<>();
         contents.put("app", tempZip);
@@ -170,7 +202,6 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             try {
                 contents.put(
                         "instance",
-                        instanceContents =
                                 LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
                                         instanceFile.toPath()));
             } catch (Exception e) {
@@ -185,7 +216,6 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             try {
                 contents.put(
                         "secrets",
-                        secretsContents =
                                 LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
                                         secretsFile.toPath()));
             } catch (Exception e) {
@@ -199,11 +229,23 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         final MultiPartBodyPublisher bodyPublisher = buildMultipartContentForAppZip(contents);
 
         if (isUpdate()) {
+            log(String.format("updating application: %s (%d KB)", applicationId, size / 1024));
             getClient().applications().update(applicationId, bodyPublisher);
             log(String.format("application %s updated", applicationId));
         } else {
-            getClient().applications().deploy(applicationId, bodyPublisher);
-            log(String.format("application %s deployed", applicationId));
+            final boolean dryRun = isDryRun();
+            if (dryRun) {
+                log(String.format("resolving application: %s. Dry run mode is enabled, the application will NOT be deployed", applicationId));
+            } else {
+                log(String.format("deploying application: %s (%d KB)", applicationId, size / 1024));
+            }
+            final String response = getClient().applications().deploy(applicationId, bodyPublisher, dryRun);
+            if (dryRun) {
+                final Formats format = format();
+                print(format == Formats.raw ? Formats.yaml : format, response, null, null);
+            } else {
+                log(String.format("application %s deployed", applicationId));
+            }
         }
     }
 

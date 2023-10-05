@@ -19,7 +19,9 @@ import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import java.net.http.HttpResponse;
 
 public interface Applications {
-    void deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher);
+    String deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher);
+
+    String deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher, boolean dryRun);
 
     void update(String application, MultiPartBodyPublisher multiPartBodyPublisher);
 

@@ -64,7 +64,7 @@ public class ApplicationDescription {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ApplicationDefinition {
 
-        private ApplicationDefinition(Application application) {
+        public ApplicationDefinition(Application application) {
             this.resources = application.getResources();
             this.modules =
                     application.getModules().values().stream().map(ModuleDefinition::new).toList();

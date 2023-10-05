@@ -680,6 +680,7 @@
                 <exclude>**/.ruff_cache/**</exclude>
                 <exclude>**/__pycache__/**</exclude>
                 <exclude>**/python/lib/**</exclude>
+                <exclude>examples/applications/langchain-document-loader/python/tests/lorem.txt</exclude>
               </excludes>
             </licenseSet>
           </licenseSets>

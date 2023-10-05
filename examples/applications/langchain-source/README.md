@@ -14,7 +14,7 @@ Update the pipeline file and set the bucket name, s3 URL username, password and 
 ## Deploy the LangStream application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/python-langchain -i examples/instances/kafka-kubernetes.yaml -s -s examples/secrets/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/langchain-source -i examples/instances/kafka-kubernetes.yaml -s -s examples/secrets/secrets.yaml
 ```
 
 ## Start a Consumer

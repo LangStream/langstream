@@ -66,8 +66,10 @@ class HttpRequestAgentRunnerIT extends AbstractApplicationRunner {
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
+                                    deletion-mode: delete
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
+                                    deletion-mode: delete
                                 pipeline:
                                   - name: "http-request"
                                     type: "http-request"
@@ -105,8 +107,10 @@ class HttpRequestAgentRunnerIT extends AbstractApplicationRunner {
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
+                                    deletion-mode: delete
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
+                                    deletion-mode: delete
                                 pipeline:
                                   - name: "http-request"
                                     type: "http-request"
@@ -115,7 +119,7 @@ class HttpRequestAgentRunnerIT extends AbstractApplicationRunner {
                                     id: step1
                                     configuration:
                                         output-field: value.api
-                                        url: %s/api/models/
+                                        url: %s/api/models
                                         query-string:
                                             name: "{{{ value.id }}}"
 
@@ -153,8 +157,10 @@ class HttpRequestAgentRunnerIT extends AbstractApplicationRunner {
                                 topics:
                                   - name: "input-topic"
                                     creation-mode: create-if-not-exists
+                                    deletion-mode: delete
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
+                                    deletion-mode: delete
                                 pipeline:
                                   - name: "http-request"
                                     type: "http-request"
@@ -163,7 +169,7 @@ class HttpRequestAgentRunnerIT extends AbstractApplicationRunner {
                                     id: step1
                                     configuration:
                                         output-field: value.api
-                                        url: %s/api/models/
+                                        url: %s/api/models
                                         query-string:
                                             name: "{{{ value.id }}}"
                                         method: POST

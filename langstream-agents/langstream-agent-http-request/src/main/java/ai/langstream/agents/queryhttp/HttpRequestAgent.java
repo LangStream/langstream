@@ -158,14 +158,21 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
                     .sendAsync(request, HttpResponse.BodyHandlers.ofString())
                     .thenAccept(
                             response -> {
-                                final Object body = parseResponseBody(response);
-                                context.setResultField(
-                                        body,
-                                        outputFieldName,
-                                        null,
-                                        avroKeySchemaCache,
-                                        avroValueSchemaCache);
                                 try {
+                                    if (response.statusCode() >= 400) {
+                                        throw new RuntimeException(
+                                                "Error processing record: "
+                                                + record
+                                                + " with response: "
+                                                + response);
+                                    }
+                                    final Object body = parseResponseBody(response);
+                                    context.setResultField(
+                                            body,
+                                            outputFieldName,
+                                            null,
+                                            avroKeySchemaCache,
+                                            avroValueSchemaCache);
                                     Optional<Record> recordResult =
                                             TransformContext.transformContextToRecord(context);
                                     if (log.isDebugEnabled()) {
@@ -206,13 +213,13 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
         }
 
         return "?"
-                + queryStringTemplates.entrySet().stream()
-                        .map(
-                                e -> {
-                                    final String resolved = e.getValue().execute(jsonRecord);
-                                    return encodeParam(e.getKey(), resolved);
-                                })
-                        .collect(Collectors.joining("&"));
+               + queryStringTemplates.entrySet().stream()
+                       .map(
+                               e -> {
+                                   final String resolved = e.getValue().execute(jsonRecord);
+                                   return encodeParam(e.getKey(), resolved);
+                               })
+                       .collect(Collectors.joining("&"));
     }
 
     private static String encodeParam(String key, String value) {

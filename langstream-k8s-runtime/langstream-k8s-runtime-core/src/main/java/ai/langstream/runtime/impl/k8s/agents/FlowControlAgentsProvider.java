@@ -72,6 +72,9 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
                         () -> "route " + routeConfiguration);
                 String destination = routeConfiguration.getDestination();
                 if (destination != null && !destination.isEmpty()) {
+                    if (action.equals("drop")) {
+                        throw new IllegalArgumentException("drop action cannot have a destination");
+                    }
                     log.info("Validating topic reference {}", destination);
                     module.resolveTopic(destination);
                 }
@@ -95,10 +98,10 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
     }
 
     @AgentConfig(
-            name = "Text extractor",
+            name = "Dispatch agent",
             description =
                     """
-            Extracts text content from different document formats like PDF, JSON, XML, ODF, HTML and many others.
+            Dispatches messages to different destinations based on conditions.
             """)
     @Data
     public static class DispatchConfig {
@@ -115,14 +118,14 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
         @ConfigProperty(
                 description =
                         """
-                        Condition to activate the route.
+                        Condition to activate the route. This is a standard EL expression.
                                 """)
         String when;
 
         @ConfigProperty(
                 description =
                         """
-                        Destination of the message. If the destination is empty the message is discarded
+                        Destination of the message.
                         """)
         String destination;
 

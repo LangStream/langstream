@@ -63,6 +63,10 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                     }
                     if (drop) {
                         log.info("Condition: \"{}\", action = drop", when);
+                        if (!destination.isEmpty()) {
+                            throw new IllegalStateException(
+                                    "drop action cannot have a destination");
+                        }
                     } else {
                         log.info(
                                 "Condition: \"{}\", action = dispatch, destination: {}",

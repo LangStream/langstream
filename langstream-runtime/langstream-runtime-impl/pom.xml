@@ -477,6 +477,16 @@
 
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
+                  <artifactId>langstream-agents-flow-control</artifactId>
+                  <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                </artifactItem>
+
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
                   <artifactId>langstream-agent-grpc</artifactId>
                   <version>${project.version}</version>
                   <type>nar</type>

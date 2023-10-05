@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.pulsar.functions.transforms;
 
+import static ai.langstream.ai.agents.commons.TransformContext.attemptJsonConversion;
 import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.buildStep;
 
 import ai.langstream.ai.agents.commons.TransformContext;
@@ -315,10 +316,9 @@ public class TransformFunction
             transformContext.setValueObject(value);
         }
         if (attemptJsonConversion) {
-            transformContext.setKeyObject(
-                    TransformFunctionUtil.attemptJsonConversion(transformContext.getKeyObject()));
+            transformContext.setKeyObject(attemptJsonConversion(transformContext.getKeyObject()));
             transformContext.setValueObject(
-                    TransformFunctionUtil.attemptJsonConversion(transformContext.getValueObject()));
+                    attemptJsonConversion(transformContext.getValueObject()));
         }
         return transformContext;
     }

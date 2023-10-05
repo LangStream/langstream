@@ -55,6 +55,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -350,7 +351,17 @@ public class AgentRunner {
 
                                         @Override
                                         public TopicProducer createProducer(
-                                                String agentId, Map<String, Object> config) {
+                                                String agentId,
+                                                String topic,
+                                                Map<String, Object> config) {
+                                            if (topic != null && !topic.isEmpty()) {
+                                                if (config == null) {
+                                                    config = Map.of("topic", topic);
+                                                } else {
+                                                    config = new HashMap<>(config);
+                                                    config.put("topic", topic);
+                                                }
+                                            }
                                             return topicConnectionsRuntime.createProducer(
                                                     agentId,
                                                     configuration.streamingCluster(),

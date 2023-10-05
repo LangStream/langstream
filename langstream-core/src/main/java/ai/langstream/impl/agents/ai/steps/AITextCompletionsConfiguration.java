@@ -170,6 +170,22 @@ public class AITextCompletionsConfiguration extends BaseGenAIStepConfiguration {
     @ConfigProperty(
             description =
                     """
+                            Log probabilities to a field.
+                            """)
+    @JsonProperty(value = "logprobs-field")
+    private String logprobsField;
+
+    @ConfigProperty(
+            description =
+                    """
+                            Logprobs parameter (only valid for OpenAI).
+                            """)
+    @JsonProperty(value = "logprobs")
+    private String logprobs;
+
+    @ConfigProperty(
+            description =
+                    """
                             Parameter for the completion request. The parameters are passed to the AI Service as is.
                             """)
     @JsonProperty(value = "user")

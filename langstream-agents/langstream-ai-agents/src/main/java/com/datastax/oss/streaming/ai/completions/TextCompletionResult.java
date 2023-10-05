@@ -16,21 +16,7 @@
 package com.datastax.oss.streaming.ai.completions;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
-public interface CompletionsService {
-    CompletableFuture<ChatCompletions> getChatCompletions(
-            List<ChatMessage> message,
-            StreamingChunksConsumer streamingChunksConsumer,
-            Map<String, Object> options);
-
-    CompletableFuture<TextCompletionResult> getTextCompletions(
-            List<String> prompt,
-            StreamingChunksConsumer streamingChunksConsumer,
-            Map<String, Object> options);
-
-    interface StreamingChunksConsumer {
-        void consumeChunk(String answerId, int index, Chunk chunk, boolean last);
-    }
+public record TextCompletionResult(String text, LogProbInformation logProbInformation) {
+    public record LogProbInformation(List<String> tokens, List<Double> tokenLogProbabilities) {}
 }

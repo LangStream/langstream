@@ -21,6 +21,7 @@ import ai.langstream.ai.agents.commons.JsonRecord;
 import ai.langstream.ai.agents.commons.TransformContext;
 import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
+import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.model.config.TextCompletionsConfig;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumer;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumerFactory;
@@ -90,7 +91,7 @@ public class TextCompletionsStep implements TransformStep {
         final Map<String, Object> options = convertToMap(config);
         options.put("min-chunks-per-message", config.getMinChunksPerMessage());
 
-        CompletableFuture<String> chatCompletionsHandle =
+        CompletableFuture<TextCompletionResult> chatCompletionsHandle =
                 completionsService.getTextCompletions(
                         prompt,
                         new CompletionsService.StreamingChunksConsumer() {
@@ -117,7 +118,7 @@ public class TextCompletionsStep implements TransformStep {
 
         return chatCompletionsHandle.thenApply(
                 content -> {
-                    applyResultFieldToContext(transformContext, content, false);
+                    applyResultFieldToContext(transformContext, content.text(), false);
 
                     String logField = config.getLogField();
                     if (logField != null && !logField.isEmpty()) {
@@ -128,6 +129,31 @@ public class TextCompletionsStep implements TransformStep {
                         transformContext.setResultField(
                                 TransformContext.toJson(logMap),
                                 logField,
+                                Schema.create(Schema.Type.STRING),
+                                avroKeySchemaCache,
+                                avroValueSchemaCache);
+                    }
+
+                    String logProbsField = config.getLogProbsField();
+                    if (logProbsField != null && !logProbsField.isEmpty()) {
+                        TextCompletionResult.LogProbInformation logProbInformation =
+                                content.logProbInformation();
+
+                        // ensure that we always have a logProbInformation object even if it is
+                        // empty
+                        if (logProbInformation == null) {
+                            logProbInformation =
+                                    new TextCompletionResult.LogProbInformation(null, null);
+                        }
+                        Map<String, Object> logMap = new HashMap<>();
+                        List<String> tokens = logProbInformation.tokens();
+                        List<Double> logprobs = logProbInformation.tokenLogProbabilities();
+                        logMap.put("tokens", tokens != null ? tokens : List.of());
+                        logMap.put("logprobs", logprobs != null ? logprobs : List.of());
+
+                        transformContext.setResultField(
+                                TransformContext.toJson(logMap),
+                                logProbsField,
                                 Schema.create(Schema.Type.STRING),
                                 avroKeySchemaCache,
                                 avroValueSchemaCache);

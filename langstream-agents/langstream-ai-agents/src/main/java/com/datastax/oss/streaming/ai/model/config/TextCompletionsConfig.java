@@ -47,6 +47,12 @@ public class TextCompletionsConfig extends StepConfig {
     @JsonProperty(value = "log-field")
     private String logField;
 
+    @JsonProperty(value = "logprobs-field")
+    private String logProbsField;
+
+    @JsonProperty(value = "logprobs")
+    private Double logProbs;
+
     @JsonProperty(value = "max-tokens")
     private Integer maxTokens;
 

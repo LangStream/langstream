@@ -467,12 +467,15 @@ public class TransformFunctionUtil {
                                 });
                 if (apiKey != null) {
                     builder.header("api-key", apiKey);
+                    builder.header("Authorization", "Bearer " + apiKey);
                 }
+                java.net.http.HttpRequest request = builder.build();
+                log.info("Request: {}", request);
+                // logprobs
                 return Mono.fromFuture(
                         httpClient
                                 .sendAsync(
-                                        builder.build(),
-                                        java.net.http.HttpResponse.BodyHandlers.ofString())
+                                        request, java.net.http.HttpResponse.BodyHandlers.ofString())
                                 .thenApply(
                                         (response) -> {
                                             log.info("Response: {}", response.body());

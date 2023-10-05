@@ -40,5 +40,6 @@
         <module>langstream-ai-agents</module>
         <module>langstream-vector-agents</module>
         <module>langstream-agents-flow-control</module>
+        <module>langstream-agent-http-request</module>
     </modules>
 </project>

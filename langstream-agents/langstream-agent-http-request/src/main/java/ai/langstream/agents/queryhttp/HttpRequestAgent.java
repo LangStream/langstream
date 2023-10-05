@@ -162,9 +162,9 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
                                     if (response.statusCode() >= 400) {
                                         throw new RuntimeException(
                                                 "Error processing record: "
-                                                + record
-                                                + " with response: "
-                                                + response);
+                                                        + record
+                                                        + " with response: "
+                                                        + response);
                                     }
                                     final Object body = parseResponseBody(response);
                                     context.setResultField(
@@ -213,13 +213,13 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
         }
 
         return "?"
-               + queryStringTemplates.entrySet().stream()
-                       .map(
-                               e -> {
-                                   final String resolved = e.getValue().execute(jsonRecord);
-                                   return encodeParam(e.getKey(), resolved);
-                               })
-                       .collect(Collectors.joining("&"));
+                + queryStringTemplates.entrySet().stream()
+                        .map(
+                                e -> {
+                                    final String resolved = e.getValue().execute(jsonRecord);
+                                    return encodeParam(e.getKey(), resolved);
+                                })
+                        .collect(Collectors.joining("&"));
     }
 
     private static String encodeParam(String key, String value) {

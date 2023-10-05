@@ -168,7 +168,6 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals("", result.err());
     }
 
-
     @Test
     public void testDeployDryRun() throws Exception {
         Path langstream = Files.createTempDirectory("langstream");
@@ -222,11 +221,8 @@ class AppsCmdTest extends CommandTestBase {
                         "json");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
-        Assertions.assertTrue(result.out().contains("{\n"
-                                                    + "  \"name\" : \"my-app\"\n"
-                                                    + "}"));
+        Assertions.assertTrue(result.out().contains("{\n" + "  \"name\" : \"my-app\"\n" + "}"));
     }
-
 
     @Test
     public void testUpdateInstance() throws Exception {

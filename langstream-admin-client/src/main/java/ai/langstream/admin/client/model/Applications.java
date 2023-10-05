@@ -21,7 +21,8 @@ import java.net.http.HttpResponse;
 public interface Applications {
     String deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher);
 
-    String deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher, boolean dryRun);
+    String deploy(
+            String application, MultiPartBodyPublisher multiPartBodyPublisher, boolean dryRun);
 
     void update(String application, MultiPartBodyPublisher multiPartBodyPublisher);
 

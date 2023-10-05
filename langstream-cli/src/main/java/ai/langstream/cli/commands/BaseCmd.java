@@ -24,7 +24,6 @@ import ai.langstream.cli.LangStreamCLIConfig;
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.commands.applications.GithubRepositoryDownloader;
 import ai.langstream.cli.commands.profiles.BaseProfileCmd;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;

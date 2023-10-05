@@ -152,8 +152,9 @@ public class ApplicationResource {
                         dryRun);
         final Application application;
         if (dryRun) {
-            application = ApplicationPlaceholderResolver.resolvePlaceholders(
-                    parsedApplication.getApplication().getApplication());
+            application =
+                    ApplicationPlaceholderResolver.resolvePlaceholders(
+                            parsedApplication.getApplication().getApplication());
 
         } else {
             applicationService.deployApplication(

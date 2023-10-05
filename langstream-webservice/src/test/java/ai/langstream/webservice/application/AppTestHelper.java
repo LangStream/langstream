@@ -136,7 +136,6 @@ public class AppTestHelper {
                 secretsContent,
                 checkOk,
                 null);
-
     }
 
     public static ResultActions updateApp(
@@ -150,15 +149,18 @@ public class AppTestHelper {
             boolean checkOk,
             Map<String, String> queryString)
             throws Exception {
-        final String queryStringStr = queryString == null ? "" : queryString.entrySet()
-                .stream()
-                .map(e -> e.getKey() + "=" + e.getValue())
-                .reduce((a, b) -> a + "&" + b)
-                .orElse("");
+        final String queryStringStr =
+                queryString == null
+                        ? ""
+                        : queryString.entrySet().stream()
+                                .map(e -> e.getKey() + "=" + e.getValue())
+                                .reduce((a, b) -> a + "&" + b)
+                                .orElse("");
         final MockMultipartHttpServletRequestBuilder multipart =
                 multipart(
                         patch ? HttpMethod.PATCH : HttpMethod.POST,
-                        "/api/applications/%s/%s?%s".formatted(tenant, applicationId, queryStringStr));
+                        "/api/applications/%s/%s?%s"
+                                .formatted(tenant, applicationId, queryStringStr));
         if (appFileContent != null) {
             multipart.file(getMultipartFile(appFileContent));
         }

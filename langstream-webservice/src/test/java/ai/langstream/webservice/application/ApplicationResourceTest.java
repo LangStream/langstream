@@ -293,16 +293,15 @@ class ApplicationResourceTest {
                 .andExpect(status().isInternalServerError());
     }
 
-
     @Test
     void testDeployDryRun() throws Exception {
         mockMvc.perform(put("/api/tenants/my-tenant4")).andExpect(status().isOk());
         AppTestHelper.updateApp(
-                mockMvc,
-                false,
-                "my-tenant4",
-                "test",
-                """
+                        mockMvc,
+                        false,
+                        "my-tenant4",
+                        "test",
+                        """
                         id: app1
                         name: test
                         topics:
@@ -314,24 +313,26 @@ class ApplicationResourceTest {
                               configuration:
                                 model: "${secrets.s1.key-s}"
                         """,
-                """
+                        """
                         instance:
                           streamingCluster:
                             type: pulsar
                           computeCluster:
                             type: none
                         """,
-                """
+                        """
                         secrets:
                           - id: s1
                             data:
                               key-s: value-s
-                         
+
                         """,
-                true,
-                Map.of("dry-run", "true"))
-                .andExpect(content()
-                        .string("""
+                        true,
+                        Map.of("dry-run", "true"))
+                .andExpect(
+                        content()
+                                .string(
+                                        """
                                 {
                                   "resources" : { },
                                   "modules" : [ {
@@ -395,6 +396,5 @@ class ApplicationResourceTest {
                                     "globals" : { }
                                   }
                                 }"""));
-
     }
 }

@@ -195,15 +195,14 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         long size = Files.size(tempZip);
 
-
         final Map<String, Object> contents = new HashMap<>();
         contents.put("app", tempZip);
         if (instanceFile != null) {
             try {
                 contents.put(
                         "instance",
-                                LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
-                                        instanceFile.toPath()));
+                        LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
+                                instanceFile.toPath()));
             } catch (Exception e) {
                 log(
                         "Failed to resolve instance file references. Please double check the file path: "
@@ -216,8 +215,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             try {
                 contents.put(
                         "secrets",
-                                LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
-                                        secretsFile.toPath()));
+                        LocalFileReferenceResolver.resolveFileReferencesInYAMLFile(
+                                secretsFile.toPath()));
             } catch (Exception e) {
                 log(
                         "Failed to resolve secrets file references. Please double check the file path: "
@@ -235,11 +234,15 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         } else {
             final boolean dryRun = isDryRun();
             if (dryRun) {
-                log(String.format("resolving application: %s. Dry run mode is enabled, the application will NOT be deployed", applicationId));
+                log(
+                        String.format(
+                                "resolving application: %s. Dry run mode is enabled, the application will NOT be deployed",
+                                applicationId));
             } else {
                 log(String.format("deploying application: %s (%d KB)", applicationId, size / 1024));
             }
-            final String response = getClient().applications().deploy(applicationId, bodyPublisher, dryRun);
+            final String response =
+                    getClient().applications().deploy(applicationId, bodyPublisher, dryRun);
             if (dryRun) {
                 final Formats format = format();
                 print(format == Formats.raw ? Formats.yaml : format, response, null, null);

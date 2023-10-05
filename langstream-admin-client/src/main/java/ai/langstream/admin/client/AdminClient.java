@@ -188,7 +188,8 @@ public class AdminClient implements AutoCloseable {
 
         @Override
         @SneakyThrows
-        public String deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher, boolean dryRun) {
+        public String deploy(
+                String application, MultiPartBodyPublisher multiPartBodyPublisher, boolean dryRun) {
             final String path = tenantAppPath("/" + application) + "?dry-run=" + dryRun;
             final String contentType =
                     String.format(

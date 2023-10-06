@@ -80,11 +80,7 @@ public class MockAssetManagerCodeProvider implements AssetManagerProvider {
         @Override
         public synchronized boolean deleteAssetIfExists() throws Exception {
             log.info("Deleting asset {}", assetDefinition);
-            final boolean remove = DEPLOYED_ASSETS.remove(assetDefinition);
-            if (!remove) {
-                throw new IllegalStateException("Asset not found: " + assetDefinition);
-            }
-            return true;
+            return DEPLOYED_ASSETS.remove(assetDefinition);
         }
     }
 }

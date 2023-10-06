@@ -19,11 +19,9 @@ import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
@@ -36,7 +34,7 @@ import org.apache.avro.Schema;
 @Slf4j
 public class QueryStep implements TransformStep {
 
-    @Builder.Default private final List<String> fields = new ArrayList<>();
+    @Builder.Default private final List<String> fields;
     private final String outputFieldName;
     private final String query;
     private final boolean onlyFirst;
@@ -46,93 +44,83 @@ public class QueryStep implements TransformStep {
     private final List<JstlEvaluator<Object>> fieldsEvaluators = new ArrayList<>();
     private final String loopOver;
     private JstlEvaluator<List> loopOverAccessor;
-    private String fieldInRecord;
 
-    @Override
-    public void start() throws Exception {
-        fields.forEach(
+    QueryStep(
+            List<String> fields,
+            String outputFieldName,
+            String query,
+            boolean onlyFirst,
+            QueryStepDataSource dataSource,
+            String loopOver,
+            JstlEvaluator<List> loopOverAccessor) {
+        this.fields = fields;
+        this.outputFieldName = outputFieldName;
+        this.query = query;
+        this.onlyFirst = onlyFirst;
+        this.dataSource = dataSource;
+        this.loopOver = loopOver;
+        this.loopOverAccessor = loopOverAccessor;
+        this.fields.forEach(
                 field -> {
-                    fieldsEvaluators.add(new JstlEvaluator<>(field, Object.class));
+                    fieldsEvaluators.add(new JstlEvaluator<>("${" + field + "}", Object.class));
                 });
         if (loopOver != null && !loopOver.isEmpty()) {
-            this.loopOverAccessor = new JstlEvaluator<List>(loopOver, List.class);
-            if (!outputFieldName.startsWith("record.")) {
-                throw new IllegalArgumentException(
-                        "With loop-over the embeddings field but be something like record.xxx");
-            }
-            this.fieldInRecord = outputFieldName.substring(7);
-            if (outputFieldName.contains(".")) {
-                throw new IllegalArgumentException(
-                        "With loop-over the embeddings field but be something like record.xxx,"
-                                + "it cannot be record.xxx.yyy");
-            }
+            this.loopOverAccessor = new JstlEvaluator<List>("${" + loopOver + "}", List.class);
         } else {
             this.loopOverAccessor = null;
-            this.fieldInRecord = null;
         }
     }
 
     @Override
     public void process(TransformContext transformContext) {
+        List<Map<String, Object>> results;
         if (loopOverAccessor == null) {
-            List<Map<String, Object>> results = performQuery(transformContext);
-            Object finalResult = results;
-            Schema schema;
-            if (onlyFirst) {
-                schema = Schema.createMap(Schema.create(Schema.Type.STRING));
-                if (results.isEmpty()) {
-                    finalResult = Map.of();
-                } else {
-                    finalResult = results.get(0);
-                }
-            } else {
-                schema = Schema.createArray(Schema.createMap(Schema.create(Schema.Type.STRING)));
-            }
-            transformContext.setResultField(
-                    finalResult, outputFieldName, schema, avroKeySchemaCache, avroValueSchemaCache);
+            results = performQuery(transformContext);
         } else {
             // loop over a list
             // for each item we name if "record" and we perform the query
             List<Object> nestedRecords = loopOverAccessor.evaluate(transformContext);
-            List<Map<String, Object>> newList = new CopyOnWriteArrayList<>();
+            results = new ArrayList<>();
             for (Object document : nestedRecords) {
-                // this is a mutable map
-                Map<String, Object> newMap = new HashMap<>((Map<String, Object>) document);
-                newList.add(newMap);
                 TransformContext nestedRecordContext = new TransformContext();
-                nestedRecordContext.setRecordObject(newMap);
-
+                nestedRecordContext.setRecordObject(document);
                 // set in the item the result
-                List<Map<String, Object>> results = performQuery(nestedRecordContext);
-                newMap.put(fieldInRecord, results);
+                List<Map<String, Object>> resultsForDocument = performQuery(nestedRecordContext);
+                results.addAll(resultsForDocument);
             }
-
-            // finally we can override the original list with a new one
-
-            // please note that in AVRO there is no Map<String, Object>, we are reporting
-            // Map<String, String>
-            // but currently we don't care much as this feature is supposed to work with schema less
-            // records
-            transformContext.setResultField(
-                    newList,
-                    loopOver,
-                    Schema.createArray(Schema.createMap(Schema.create(Schema.Type.STRING))),
-                    avroKeySchemaCache,
-                    avroValueSchemaCache);
         }
+
+        Object finalResult = results;
+        Schema schema;
+        if (onlyFirst) {
+            schema = Schema.createMap(Schema.create(Schema.Type.STRING));
+            if (results.isEmpty()) {
+                finalResult = Map.of();
+            } else {
+                finalResult = results.get(0);
+            }
+        } else {
+            schema = Schema.createArray(Schema.createMap(Schema.create(Schema.Type.STRING)));
+        }
+
+        transformContext.setResultField(
+                finalResult, outputFieldName, schema, avroKeySchemaCache, avroValueSchemaCache);
     }
 
     private List<Map<String, Object>> performQuery(TransformContext transformContext) {
         List<Object> params = new ArrayList<>();
         fieldsEvaluators.forEach(
                 field -> {
+                    log.info("Evaluating {}", field);
                     Object value = field.evaluate(transformContext);
+                    log.info("Result {} type {}", value, value != null ? value.getClass() : "null");
                     params.add(value);
                 });
         List<Map<String, Object>> results = dataSource.fetchData(query, params);
         if (results == null) {
             results = List.of();
         }
+        log.info("Result from datasource: {}", results);
         return results;
     }
 }

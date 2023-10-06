@@ -107,7 +107,7 @@ public class JstlEvaluator<T> {
                 .mapFunction(
                         "fn",
                         "addAll",
-                        JstlFunctions.class.getMethod("addAll", Object.class, String.class));
+                        JstlFunctions.class.getMethod("addAll", Object.class, Object.class));
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction("fn", "emptyList", JstlFunctions.class.getMethod("emptyList"));

@@ -67,8 +67,8 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
 
         String tokensField = ConfigurationUtils.getString("tokens-field", "", configuration);
         String logProbsField = ConfigurationUtils.getString("logprobs-field", "", configuration);
-        tokensAccessor = new JstlEvaluator<>("${" + tokensField + "}", List.class);
-        logsProbsAccessor = new JstlEvaluator<>("${" + logProbsField + "}", List.class);
+        tokensAccessor = new JstlEvaluator("${" + tokensField + "}", List.class);
+        logsProbsAccessor = new JstlEvaluator("${" + logProbsField + "}", List.class);
         loopTopic = ConfigurationUtils.getString("loop-topic", "", configuration);
         retrieveDocumentsField =
                 ConfigurationUtils.getString(

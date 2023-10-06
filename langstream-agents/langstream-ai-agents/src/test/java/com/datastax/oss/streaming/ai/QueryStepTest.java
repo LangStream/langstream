@@ -17,6 +17,8 @@ package com.datastax.oss.streaming.ai;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.GenericObject;
 import org.apache.pulsar.client.api.schema.GenericRecord;
@@ -43,6 +46,7 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
 import org.junit.jupiter.api.Test;
 
+@Slf4j
 public class QueryStepTest {
 
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -126,7 +130,13 @@ public class QueryStepTest {
                     public List<Map<String, Object>> fetchData(String query, List<Object> params) {
                         assertEquals(query, "select 1");
                         List<Object> expectedParams =
-                                List.of("Jane", "Doe", 42, 19359, 1672700645006L, 83045006);
+                                List.of(
+                                        "Jane",
+                                        "Doe",
+                                        42,
+                                        java.time.LocalDate.of(2023, 1, 2),
+                                        Instant.ofEpochMilli(1672700645006L),
+                                        LocalTime.parse("23:04:05.006"));
                         assertEquals(params, expectedParams);
                         return List.of(Map.of());
                     }
@@ -176,7 +186,7 @@ public class QueryStepTest {
                     public List<Map<String, Object>> fetchData(String query, List<Object> params) {
                         assertEquals(query, "select 1");
                         List<Object> expectedParams =
-                                List.of("a", 42.0, true, List.of("b", "c"), List.of(43.0, 44.0));
+                                List.of("a", 42, true, List.of("b", "c"), List.of(43, 44));
                         assertEquals(params, expectedParams);
                         return List.of(Map.of());
                     }
@@ -354,5 +364,71 @@ public class QueryStepTest {
                         "value3",
                         "result",
                         Map.of()));
+    }
+
+    @Test
+    void testLoopOver() throws Exception {
+
+        String value =
+                """
+                {
+                    "documents_to_retrieve": [
+                        {
+                            "text": "text 1",
+                            "embeddings": [1,2,3,4,5]
+                        },
+                        {
+                            "text": "text 2",
+                            "embeddings": [2,2,3,4,5]
+                        }
+                    ]
+                }
+                """;
+
+        QueryStepDataSource dataSource =
+                new QueryStepDataSource() {
+                    @Override
+                    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
+                        log.info("Params: {}", params);
+                        List<Double> param1 = (List<Double>) params.get(0);
+                        if (param1.equals(List.of(1, 2, 3, 4, 5))) {
+                            return List.of(
+                                    Map.of("text", "retrieved-similar-to-1-1"),
+                                    Map.of("text", "retrieved-similar-to-1-2"));
+                        } else if (param1.equals(List.of(2, 2, 3, 4, 5))) {
+                            return List.of(Map.of("text", "retrieved-similar-to-2"));
+                        } else {
+                            throw new IllegalArgumentException(params + "");
+                        }
+                    }
+                };
+
+        QueryStep queryStep =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .loopOver("value.documents_to_retrieve")
+                        .outputFieldName("value.retrieved_documents")
+                        .fields(List.of("record.embeddings"))
+                        .query("select 1 where vector near ?")
+                        .build();
+        queryStep.start();
+
+        TransformContext context =
+                TransformContext.recordToTransformContext(SimpleRecord.of(null, value), true);
+
+        queryStep.process(context);
+        ai.langstream.api.runner.code.Record record =
+                TransformContext.transformContextToRecord(context).orElseThrow();
+        Map<String, Object> result = (Map<String, Object>) record.value();
+        log.info("Result: {}", result);
+
+        List<Map<String, Object>> retrieved_documents =
+                (List<Map<String, Object>>) result.get("retrieved_documents");
+        assertEquals(
+                List.of(
+                        Map.of("text", "retrieved-similar-to-1-1"),
+                        Map.of("text", "retrieved-similar-to-1-2"),
+                        Map.of("text", "retrieved-similar-to-2")),
+                retrieved_documents);
     }
 }

@@ -15,9 +15,15 @@
  */
 package ai.langstream.runtime.tester;
 
+import ai.langstream.api.model.Application;
+import ai.langstream.api.webservice.application.ApplicationDescription;
 import ai.langstream.apigateway.LangStreamApiGateway;
+import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.webservice.LangStreamControlPlaneWebApplication;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,6 +46,9 @@ public class Main {
                             System.getenv()
                                     .getOrDefault("LANSGSTREAM_TESTER_STARTWEBSERVICES", "true"));
 
+            boolean dryRunMode =
+                    Boolean.parseBoolean(
+                            System.getenv().getOrDefault("LANSGSTREAM_TESTER_DRYRUN", "false"));
             String applicationPath = "/code/application";
             String instanceFile = "/code/instance.yaml";
             String secretsFile = "/code/secrets.yaml";
@@ -59,6 +68,19 @@ public class Main {
             ModelBuilder.ApplicationWithPackageInfo applicationWithPackageInfo =
                     ModelBuilder.buildApplicationInstance(
                             applicationDirectories, instance, secrets);
+
+            if (dryRunMode) {
+                log.info("Dry run mode");
+                final Application resolved =
+                        ApplicationPlaceholderResolver.resolvePlaceholders(
+                                applicationWithPackageInfo.getApplication());
+                final ApplicationDescription.ApplicationDefinition def =
+                        new ApplicationDescription.ApplicationDefinition(resolved);
+
+                final String asString = yamlPrinter().writeValueAsString(def);
+                log.info("Application:\n{}", asString);
+                return;
+            }
 
             List<String> expectedAgents = new ArrayList<>();
             List<String> allAgentIds = new ArrayList<>();
@@ -144,5 +166,11 @@ public class Main {
         } catch (Throwable error) {
             error.printStackTrace();
         }
+    }
+
+    private static ObjectMapper yamlPrinter() {
+        return new ObjectMapper(new YAMLFactory())
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
     }
 }

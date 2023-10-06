@@ -102,6 +102,12 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             description = "Docker image of the LangStream runtime to use")
     private String dockerImageName;
 
+    @CommandLine.Option(
+            names = {"--dry-run"},
+            description =
+                    "Dry-run mode. Do not deploy the application but only resolves placeholders and display the result.")
+    private boolean dryRun;
+
     @Override
     @SneakyThrows
     public void run() {
@@ -120,6 +126,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 dockerImageName = "ghcr.io/langstream/langstream-runtime-tester";
             }
         }
+        startBroker = !dryRun && startBroker;
+        startDatabase = !dryRun && startDatabase;
+        startS3 = !dryRun && startS3;
+        startWebservices = !dryRun && startWebservices;
 
         final File appDirectory = checkFileExistsOrDownload(appPath);
         final File instanceFile;
@@ -170,7 +180,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 throw e;
             }
         } else {
-            if (startBroker) {
+            if (startBroker || dryRun) {
                 instanceContents =
                         "instance:\n"
                                 + "  streamingCluster:\n"
@@ -211,7 +221,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 startBroker,
                 startS3,
                 startWebservices,
-                startDatabase);
+                startDatabase,
+                dryRun);
     }
 
     private void executeOnDocker(
@@ -224,7 +235,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             boolean startBroker,
             boolean startS3,
             boolean startWebservices,
-            boolean startDatabase)
+            boolean startDatabase,
+            boolean dryRun)
             throws Exception {
         File tmpInstanceFile = Files.createTempFile("instance", ".yaml").toFile();
         Files.write(tmpInstanceFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));
@@ -251,6 +263,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add("LANSGSTREAM_TESTER_APPLICATIONID=" + applicationId);
         commandLine.add("-e");
         commandLine.add("LANSGSTREAM_TESTER_STARTWEBSERVICES=" + startWebservices);
+        commandLine.add("-e");
+        commandLine.add("LANSGSTREAM_TESTER_DRYRUN=" + dryRun);
 
         if (singleAgentId != null && !singleAgentId.isEmpty()) {
             commandLine.add("-e");

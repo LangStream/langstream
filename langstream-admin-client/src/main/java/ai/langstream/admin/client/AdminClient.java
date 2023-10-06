@@ -182,15 +182,21 @@ public class AdminClient implements AutoCloseable {
 
     private class ApplicationsImpl implements Applications {
         @Override
+        public String deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
+            return deploy(application, multiPartBodyPublisher, false);
+        }
+
+        @Override
         @SneakyThrows
-        public void deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
-            final String path = tenantAppPath("/" + application);
+        public String deploy(
+                String application, MultiPartBodyPublisher multiPartBodyPublisher, boolean dryRun) {
+            final String path = tenantAppPath("/" + application) + "?dry-run=" + dryRun;
             final String contentType =
                     String.format(
                             "multipart/form-data; boundary=%s",
                             multiPartBodyPublisher.getBoundary());
             final HttpRequest request = newPost(path, contentType, multiPartBodyPublisher.build());
-            http(request);
+            return http(request).body();
         }
 
         @Override

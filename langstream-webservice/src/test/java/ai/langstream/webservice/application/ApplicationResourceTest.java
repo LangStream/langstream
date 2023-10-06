@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -27,6 +28,7 @@ import ai.langstream.impl.codestorage.NoopCodeStorageProvider;
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.webservice.WebAppTestConfig;
 import java.nio.file.Path;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -289,5 +291,110 @@ class ApplicationResourceTest {
 
         mockMvc.perform(get("/api/applications/my-tenant3/test"))
                 .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void testDeployDryRun() throws Exception {
+        mockMvc.perform(put("/api/tenants/my-tenant4")).andExpect(status().isOk());
+        AppTestHelper.updateApp(
+                        mockMvc,
+                        false,
+                        "my-tenant4",
+                        "test",
+                        """
+                        id: app1
+                        name: test
+                        topics:
+                          - name: "history-topic"
+                        pipeline:
+                            - name: "ai-chat-completions"
+                              type: "ai-chat-completions"
+                              output: "history-topic"
+                              configuration:
+                                model: "${secrets.s1.key-s}"
+                        """,
+                        """
+                        instance:
+                          streamingCluster:
+                            type: pulsar
+                          computeCluster:
+                            type: none
+                        """,
+                        """
+                        secrets:
+                          - id: s1
+                            data:
+                              key-s: value-s
+
+                        """,
+                        true,
+                        Map.of("dry-run", "true"))
+                .andExpect(
+                        content()
+                                .string(
+                                        """
+                                {
+                                  "resources" : { },
+                                  "modules" : [ {
+                                    "id" : "default",
+                                    "pipelines" : [ {
+                                      "id" : "app1",
+                                      "module" : "default",
+                                      "name" : "test",
+                                      "resources" : {
+                                        "parallelism" : 1,
+                                        "size" : 1
+                                      },
+                                      "errors" : {
+                                        "retries" : 0,
+                                        "on-failure" : "fail"
+                                      },
+                                      "agents" : [ {
+                                        "id" : "app1-ai-chat-completions-1",
+                                        "name" : "ai-chat-completions",
+                                        "type" : "ai-chat-completions",
+                                        "input" : null,
+                                        "output" : {
+                                          "connectionType" : "TOPIC",
+                                          "definition" : "history-topic",
+                                          "enableDeadletterQueue" : false
+                                        },
+                                        "configuration" : {
+                                          "model" : "value-s"
+                                        },
+                                        "resources" : {
+                                          "parallelism" : 1,
+                                          "size" : 1
+                                        },
+                                        "errors" : {
+                                          "retries" : 0,
+                                          "on-failure" : "fail"
+                                        }
+                                      } ]
+                                    } ],
+                                    "topics" : [ {
+                                      "name" : "history-topic",
+                                      "config" : null,
+                                      "options" : null,
+                                      "keySchema" : null,
+                                      "valueSchema" : null,
+                                      "partitions" : 0,
+                                      "implicit" : false,
+                                      "creation-mode" : "none",
+                                      "deletion-mode" : "none"
+                                    } ]
+                                  } ],
+                                  "instance" : {
+                                    "streamingCluster" : {
+                                      "type" : "pulsar",
+                                      "configuration" : { }
+                                    },
+                                    "computeCluster" : {
+                                      "type" : "none",
+                                      "configuration" : { }
+                                    },
+                                    "globals" : { }
+                                  }
+                                }"""));
     }
 }

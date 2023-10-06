@@ -16,11 +16,13 @@
 package ai.langstream.webservice.application;
 
 import ai.langstream.api.codestorage.CodeStorageException;
+import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.api.webservice.application.ApplicationDescription;
+import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.webservice.security.infrastructure.primary.TokenAuthFilter;
 import io.swagger.v3.oas.annotations.Operation;
@@ -130,13 +132,14 @@ public class ApplicationResource {
 
     @PostMapping(value = "/{tenant}/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create and deploy an application")
-    void deployApplication(
+    ApplicationDescription.ApplicationDefinition deployApplication(
             Authentication authentication,
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("id") String applicationId,
             @RequestParam("app") MultipartFile appFile,
             @RequestParam String instance,
-            @RequestParam Optional<String> secrets)
+            @RequestParam Optional<String> secrets,
+            @RequestParam(value = "dry-run", required = false) boolean dryRun)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
@@ -145,12 +148,23 @@ public class ApplicationResource {
                         Optional.of(appFile),
                         Optional.of(instance),
                         secrets,
-                        tenant);
-        applicationService.deployApplication(
-                tenant,
-                applicationId,
-                parsedApplication.getApplication(),
-                parsedApplication.getCodeArchiveReference());
+                        tenant,
+                        dryRun);
+        final Application application;
+        if (dryRun) {
+            application =
+                    ApplicationPlaceholderResolver.resolvePlaceholders(
+                            parsedApplication.getApplication().getApplication());
+
+        } else {
+            applicationService.deployApplication(
+                    tenant,
+                    applicationId,
+                    parsedApplication.getApplication(),
+                    parsedApplication.getCodeArchiveReference());
+            application = parsedApplication.getApplication().getApplication();
+        }
+        return new ApplicationDescription.ApplicationDefinition(application);
     }
 
     @PatchMapping(value = "/{tenant}/{id}", consumes = "multipart/form-data")
@@ -165,7 +179,7 @@ public class ApplicationResource {
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
-                parseApplicationInstance(applicationId, appFile, instance, secrets, tenant);
+                parseApplicationInstance(applicationId, appFile, instance, secrets, tenant, false);
         applicationService.updateApplication(
                 tenant,
                 applicationId,
@@ -184,7 +198,8 @@ public class ApplicationResource {
             Optional<MultipartFile> file,
             Optional<String> instance,
             Optional<String> secrets,
-            String tenant)
+            String tenant,
+            boolean dryRun)
             throws Exception {
         final ParsedApplication parsedApplication = new ParsedApplication();
         withApplicationZip(
@@ -197,7 +212,7 @@ public class ApplicationResource {
                                         instance.orElse(null),
                                         secrets.orElse(null));
                         final String codeArchiveReference;
-                        if (zip == null) {
+                        if (zip == null || dryRun) {
                             codeArchiveReference = null;
                         } else {
                             codeArchiveReference =
